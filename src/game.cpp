@@ -1,0 +1,371 @@
+/*
+ Copyright (C) 2024 Wolf Alexander
+
+ This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
+
+#include "game.h"
+
+bool Game::InitIrrlicht() {
+    /************************************************/
+    /************** Init Irrlicht stuff *************/
+    /************************************************/
+
+    // create event receiver
+    receiver = new MyEventReceiver();
+
+    //set target screen resolution
+    mGameScreenRes.set(640,480);
+    //mGameScreenRes.set(1280,960);
+
+    device = createDevice(video::EDT_OPENGL, mGameScreenRes, 16,false,false, false, receiver);
+
+    if (device == 0) {
+          cout << "Failed Irrlicht device creation!" << endl;
+          return false;
+    }
+
+    //get pointer to video driver, Irrlicht scene manager
+    driver = device->getVideoDriver();
+    smgr = device->getSceneManager();
+
+    //get Irrlicht GUI functionality pointers
+    guienv = device->getGUIEnvironment();
+
+    return true;
+}
+
+bool Game::InitSFMLAudio() {
+    /************************************************/
+    /************** Init SFML for Audio use *********/
+    /************************************************/
+
+    uint32_t audioSampleRate = AUDIO_SAMPLERATE;
+
+    //init music
+    gameMusicPlayer = new MyMusicStream(audioSampleRate);
+    if (!gameMusicPlayer->getInitOk()) {
+        cout << "Music init failed!" << endl;
+        return false;
+    }
+
+    gameMusicPlayer->SetVolume(volumeMusic);
+
+    gameSoundEngine = new SoundEngine();
+    if (!gameSoundEngine->getInitOk()) {
+        cout << "Sound resource init failed!" << endl;
+        return false;
+    }
+
+    gameSoundEngine->SetVolume(volumeSound);
+
+    return true;
+}
+
+bool Game::InitGameAssets() {
+    /***********************************************************/
+    /* Extract game assets                                     */
+    /***********************************************************/
+    prepareData = new PrepareData(device, driver);
+    if (!prepareData->PreparationOk) {
+        cout << "Game assets preparation operation failed!" << endl;
+        return false;
+    }
+
+    /***********************************************************/
+    /* Load GameFonts                                          */
+    /***********************************************************/
+    GameTexts = new GameText(device, driver);
+
+    if (!GameTexts->GameTextInitializedOk) {
+        cout << "Game fonts init operation failed!" << endl;
+        return false;
+    }
+
+    /***********************************************************/
+    /* Load and define game assets (Meshes, Tracks, Craft)     */
+    /***********************************************************/
+    GameAssets = new Assets(device, driver, smgr);
+
+    return true;
+}
+
+bool Game::InitGame() {
+    if (!InitIrrlicht())
+        return false;
+
+    if (!InitGameAssets())
+        return false;
+
+    //InitSFMLAudio needs to be called after
+    //InitGameAssets, because it needs the
+    //assets already unpacked to load sounds etc..
+    if (!InitSFMLAudio())
+        return false;
+
+    mTimeProfiler = new TimeProfiler();
+
+    //create the games menue
+    MainMenue = new Menue(device, driver, mGameScreenRes, GameTexts, receiver, smgr, gameSoundEngine, GameAssets);
+    if (!MainMenue->MenueInitializationSuccess) {
+        cout << "Game menue init operation failed!" << endl;
+        return false;
+    }
+
+    //only for debugging
+    dbgTimeProfiler = guienv->addStaticText(L"Location",
+           rect<s32>(100,150,300,250), false, true, NULL, -1, true);
+
+    dbgText = guienv->addStaticText(L"",
+           rect<s32>(100,250,200,350), false, true, NULL, -1, true);
+
+    dbgText2 = guienv->addStaticText(L"",
+           rect<s32>(350,200,450,300), false, true, NULL, -1, true);
+
+    smgr->addLightSceneNode(0, vector3df(0, 100, 0),
+            video::SColorf(1.0f, 1.0f, 1.0f), 1000.0f, -1);
+
+    smgr->setAmbientLight(video::SColorf(255.0,255.0,255.0));
+
+    return true;
+}
+
+//This function allows to quickly enter a race for
+//game debugging, and to skip the menue etc.
+void Game::DebugGame() {
+
+    int debugLevelNr = 1;
+
+    //player wants to start the race
+    if (this->CreateNewRace(debugLevelNr)) {
+         mGameState = DEF_GAMESTATE_RACE;
+
+         GameLoop();
+    }
+}
+
+void Game::RunGame() {
+    MainMenue->ShowGameTitle();
+    mGameState = DEF_GAMESTATE_GAMETITLE;
+    showTitleAbsTime = 0.0f;
+
+    GameLoop();
+}
+
+void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
+    if (mGameState == DEF_GAMESTATE_GAMETITLE) {
+        showTitleAbsTime += frameDeltaTime;
+
+        if (showTitleAbsTime > 3.0f) {
+            MainMenue->ShowMainMenue();
+            mGameState = DEF_GAMESTATE_MENUE;
+        }
+    }
+
+    driver->beginScene(true,true,
+                video::SColor(255,100,101,140));
+
+    MainMenue->HandleInput();
+    MainMenue->Render();
+
+    //advance menues absolute time (necessary
+    //to control menue animations) and to trigger
+    //time dependent menue actions triggers (start game demo,
+    //show high score)
+    MainMenue->AdvanceTime(frameDeltaTime);
+
+    if (MainMenue->HandleActions(pendingAction)) {
+        //user triggered an menue action
+        if (pendingAction == MainMenue->ActQuitToOS) {
+            //user wants to quit the program
+            ExitGame = true;
+        }
+
+        //this is how we handle a checkbox/slider value update
+        if (pendingAction == MainMenue->ActSetDifficultyLevel) {
+            //user wants to change difficulty level
+            //newLevel = pendingAction->currSetValue;
+        }
+
+        //this is how we handle a playername string change
+        if (pendingAction == MainMenue->ActSetPlayerName) {
+            //strcpy(value, pendingAction->newSetTextInputString);
+        }
+
+        if (pendingAction == MainMenue->ActSetMusicVolume) {
+            //volumeMusic: 0 means no music, 100.0f means max volume
+            volumeMusic = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
+            gameMusicPlayer->SetVolume(volumeMusic);
+        }
+
+        if (pendingAction == MainMenue->ActSetSoundVolume) {
+            //volumeSound: 0 means no sound, 100.0f means max volume
+            volumeSound = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
+            gameSoundEngine->SetVolume(volumeSound);
+        }
+
+        if (pendingAction == MainMenue->ActRace) {
+            //player wants to start the race
+            if (this->CreateNewRace(pendingAction->currSetValue)) {
+                 mGameState = DEF_GAMESTATE_RACE;
+            }
+        }
+    }
+
+    driver->endScene();
+}
+
+void Game::GameLoopRace(irr::f32 frameDeltaTime) {
+
+    mTimeProfiler->StartOfGameLoop();
+
+    //handle main player keyboard input
+    mCurrentRace->HandleInput();
+
+    mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
+
+    mCurrentRace->HandleComputerPlayers();
+
+    mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
+
+    //advance race time, execute physics, move players...
+    mCurrentRace->AdvanceTime(frameDeltaTime);
+
+    wchar_t* text = new wchar_t[200];
+    wchar_t* text2 = new wchar_t[200];
+
+    mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
+
+    swprintf(text2, 50, L"%lf %lf ", this->mCurrentRace->player->debugMaxStep,
+             this->mCurrentRace->player->dbgDistance);
+
+    dbgTimeProfiler->setText(text);
+    dbgText2->setText(text2);
+
+    delete[] text;
+    delete[] text2;
+
+    driver->beginScene(true,true,
+     video::SColor(255,100,101,140));
+
+    //render scene: terrain, blocks, player craft, entities...
+    mCurrentRace->Render();
+
+    smgr->drawAll();
+
+    mTimeProfiler->Profile(mTimeProfiler->tIntRender3DScene);
+
+    //2nd draw HUD over the scene, needs to be done at the end
+    mCurrentRace->DrawHUD(frameDeltaTime);
+    mCurrentRace->DrawMiniMap(frameDeltaTime);
+
+    //last draw text debug output from Irrlicht
+    guienv->drawAll();
+
+    mTimeProfiler->Profile(mTimeProfiler->tIntRender2D);
+
+    driver->endScene();
+
+    //does the player want to end the race?
+    if (mCurrentRace->exitRace) {
+        mCurrentRace->End();
+
+        //clean up current race data
+        delete mCurrentRace;
+        mCurrentRace = NULL;
+
+        mGameState = DEF_GAMESTATE_MENUE;
+        MainMenue->ShowMainMenue();
+    }
+}
+
+void Game::GameLoop() {
+
+    // In order to do framerate independent movement, we have to know
+    // how long it was since the last frame
+    u32 then = device->getTimer()->getTime();
+
+    while (device->run() && (ExitGame == false)) {
+       /*  if (device->isWindowActive())
+            {*/
+
+        //Work out a frame delta time.
+        const u32 now = device->getTimer()->getTime();
+        f32 frameDeltaTime = (f32)(now - then) / 1000.f; // Time in seconds
+        then = now;
+
+        switch (mGameState) {
+            case DEF_GAMESTATE_GAMETITLE:
+            case DEF_GAMESTATE_MENUE: {
+                GameLoopMenue(frameDeltaTime);
+                break;
+            }
+
+            case DEF_GAMESTATE_RACE: {
+                GameLoopRace(frameDeltaTime);
+                break;
+            }
+        }
+
+        int fps = driver->getFPS();
+
+        if (lastFPS != fps) {
+                         core::stringw tmp(L"Hi-Octane 202X [");
+                         tmp += driver->getName();
+                         tmp += L"] Triangles drawn: ";
+                         tmp += driver->getPrimitiveCountDrawn();
+                         tmp += " @ fps: ";
+                         tmp += fps;
+
+                         device->setWindowCaption(tmp.c_str());
+                         lastFPS = fps;
+                     }
+            //}
+   }
+
+   //cleanup game texts
+   delete GameTexts;
+
+   //cleanup game assets
+   delete GameAssets;
+
+   //delete sound/music
+   delete gameSoundEngine;
+   delete gameMusicPlayer;
+
+   delete mTimeProfiler;
+
+   driver->drop();
+}
+
+bool Game::CreateNewRace(int load_levelnr) {
+    if (mCurrentRace != NULL)
+        return false;
+
+    gameSoundEngine->StartEngineSound();
+
+    //create a new Race
+    mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, gameMusicPlayer, gameSoundEngine,
+                           mTimeProfiler, this->mGameScreenRes, load_levelnr);
+
+    mCurrentRace->Init();
+
+    if (!mCurrentRace->ready) {
+        //there was a problem with Race initialization
+        cout << "Race creation failed!" << endl;
+        return false;
+    }
+
+    return true;
+}
+
+void Game::CleanUpRace() {
+    if (mCurrentRace == NULL)
+        return;
+}
+
+Game::Game() {
+}
