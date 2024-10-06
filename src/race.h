@@ -1,0 +1,397 @@
+/*
+ The source code of function createEntity in this file was based on/derived from/translated from
+ the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself (and later modified by me)
+ This project also uses the GPL3 license which is attached to this project repo as well.
+ 
+ The source code for function draw2DImage was taken from:  (most likely from user Lonesome Ducky)
+ https://irrlicht.sourceforge.io/forum/viewtopic.php?t=43565
+ https://irrlicht.sourceforge.io/forum//viewtopic.php?p=246138#246138
+
+ Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2016 movAX13h and srtuss  (authors of original source code of function createEntity, later modified by me)
+ 
+ This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
+
+#ifndef RACE_H
+#define RACE_H
+
+#include <irrlicht/irrlicht.h>
+#include "resources/entityitem.h"
+#include <list>
+#include "models/morph.h"
+#include "definitions.h"
+#include "models/collectable.h"
+#include "models/cone.h"
+#include "models/recovery.h"
+#include "models/column.h"
+#include "draw/drawdebug.h"
+#include "models/player.h"
+#include "draw/hud.h"
+#include "draw/gametext.h"
+#include "input/input.h"
+#include <algorithm>
+#include "models/particle.h"
+#include "audio/music.h"
+#include "audio/sound.h"
+#include "utils/worldaware.h"
+#include "utils/fileutils.h"
+#include "utils/tprofile.h"
+#include "models/explosion.h"
+
+using namespace std;
+
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+struct CheckPointInfoStruct {
+    //pntr to checkpoint Irrlicht sceneNode
+    irr::scene::IMeshSceneNode* SceneNode;
+    //pntr to checkpoint Irrlich Mesh
+    irr::scene::SMesh* Mesh;
+
+    //value for checkpoint, is defined
+    //within level file with increasing
+    //integer values
+    irr::s32 value = 0;
+
+    EntityItem* pEntity;
+    LineStruct* pLineStruct;
+
+    //if we want to figure out if a player
+    //craft flies in normal race direction
+    //or reverse through the checkpoint
+    //we want to figure out a forward
+    //race direction pointer
+    irr::core::vector3df RaceDirectionVec;
+};
+
+struct WayPointLinkInfoStruct {
+    EntityItem* pStartEntity;
+    EntityItem* pEndEntity;
+
+    //3D line that links two waypoints together
+    LineStruct* pLineStruct;
+
+    //normalized link direction vector
+    irr::core::vector3df LinkDirectionVec;
+
+    irr::f32 length3D;
+
+    //if a checkpoint is crossing this waypoint line
+    //segment add a pointer to this checkpoint here
+    //otherwise this pointer will be kept NULL
+    CheckPointInfoStruct* pntrCheckPoint = NULL;
+
+    //if there is a checkpoint crossing this WaypointLink
+    //the following variable will hold the Distance
+    //between Start of Waypoint location (also equal to pLineStruct->A
+    //and the point where the checkpoint crosses the waypoint line
+    irr::f32 distanceStartLinkToCheckpoint = 0.0f;
+
+    //pointer to next WayPointLinkInfoStruct on the way
+    //if a next element is existing
+    //we can use this pointer for faster path search
+    //during the game; if not existing stays NULL
+    WayPointLinkInfoStruct *pntrPathNextLink = NULL;
+
+    //if existing keep also direction vector of next element
+    //so that we can adjust orientation of craft before we reach
+    //next waypoint link
+    irr::core::vector3df PathNextLinkDirectionVec;
+
+    //automatic created (interpolated) waypoint links between
+    //this elements start point and the next elements end point
+    //is used if necessary during the transition from this element
+    //to next if we loose your way temporarily
+    WayPointLinkInfoStruct *pntrTransitionLink = NULL;
+};
+
+class Player; //Forward declaration
+class HUD; //Forward declaration
+class WorldAwareness; //Forward declaration
+class SteamFountain; //Forward declaration
+class ExplosionLauncher; //Forward declaration
+class LevelTerrain; //Forward declaration
+class LevelBlocks; //Forward declaration
+
+class Race {
+public:
+    Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
+         GameText* gameText, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
+         dimension2d<u32> gameScreenRes, int loadLevelNr);
+
+    ~Race();
+
+    bool ready;
+
+    void HandleInput();
+    void HandleComputerPlayers();
+    void Render();
+    void DrawHUD(irr::f32 frameDeltaTime);
+    void DrawMiniMap(irr::f32 frameDeltaTime);
+    void AdvanceTime(irr::f32 frameDeltaTime);
+    void Init();
+    void AddPlayer();
+    void End();
+
+    bool exitRace = false;
+
+    Player *player;
+
+    //a second player for debugging purposes
+    Player *player2;
+
+    //handles the height map terrain
+    //of the level
+    LevelTerrain *mLevelTerrain;
+
+    SoundEngine* mSoundEngine;
+
+    std::vector<LineStruct*> *ENTWallsegmentsLine_List;
+
+    //lets create and store a direction vector for
+    //later use (calculations), so that we do not have to do this
+    //over and over again
+    irr::core::vector3d<irr::f32>* xAxisDirVector;
+    irr::core::vector3d<irr::f32>* yAxisDirVector;
+    irr::core::vector3d<irr::f32>* zAxisDirVector;
+
+    irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
+    EntityItem* FindNearestWayPointToPlayer(Player* whichPlayer);
+    std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint);
+
+    //attacker is the enemy player that does damage the player targetToHit
+    //for damage that an entity does cause (for example steamFountain) attacker is set
+    //to NULL
+    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, Player* attacker = NULL);
+
+    Player* currPlayerFollow;
+
+    //my Irrlicht video driver
+    irr::video::IVideoDriver *mDriver;
+
+    //my Irrlicht scene manager
+    scene::ISceneManager *mSmgr;
+
+    //my Irrlicht device
+    irr::IrrlichtDevice* mDevice;
+
+    //handles the columns (made of blocks)
+    //of the level
+    LevelBlocks *mLevelBlocks;
+
+    void TestVoxels();
+    //int getNrTrianglesCollected();
+    //int getNrHitTrianglesRay();
+
+    //std::vector<RayHitTriangleInfoStruct*> TestRayTrianglesSelector;
+
+    //my physics
+    Physics *mPhysics;
+
+    //my explosion launcher
+    ExplosionLauncher* mExplosionLauncher;
+
+    void testPerm();
+    void remoPerm();
+    HUD *Hud1Player;
+
+    //debugging function which allows to draw a rectangle around a selected
+    //tile of the heightmap of the terrain level
+    void DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color);
+
+private:
+    int levelNr;
+
+    //the image for the base of the minimap
+    //without the player location dots
+    irr::video::ITexture* baseMiniMap;
+    irr::core::dimension2di miniMapSize;
+    irr::core::vector2d<irr::s32> miniMapDrawLocation;
+    MyMusicStream* mMusicPlayer;
+
+    //stores the detected minimap race track positions
+    //referenced to Terrain tile coordinates from level
+    //file. We need this information later to be able
+    //to convert player level coordinates to 2D minimap
+    //positions
+    irr::u32 miniMapStartW;
+    irr::u32 miniMapEndW;
+    irr::u32 miniMapStartH;
+    irr::u32 miniMapEndH;
+
+    //precalculated value for miniMap so that we safe
+    //unnecessary calculations during game
+    irr::f32 miniMapPixelPerCellW;
+    irr::f32 miniMapPixelPerCellH;
+
+    irr::f32 miniMapAbsTime = 0.0f;
+    bool miniMapBlinkActive = false;
+
+    void InitMiniMap(irr::u32 levelNr);
+    irr::core::dimension2di CalcPlayerMiniMapPosition(Player* whichPlayer);
+
+    //handles the file data structure of the
+    //level
+    LevelFile *mLevelRes;
+
+    //class for world awareness functions
+    //which are needed by computer player control functions
+    WorldAwareness* mWorldAware;
+
+    TimeProfiler* mTimeProfiler;
+
+    //my Irrlicht event receiver
+    MyEventReceiver* mEventReceiver;
+
+    //my game Text object pointer
+    GameText* mGameText;
+
+    //the game screen resolution
+    dimension2d<u32> mGameScreenRes;
+
+    //my sky image for the level background
+    irr::video::ITexture* mSkyImage = NULL;
+
+    //my drawDebug object
+    DrawDebug *mDrawDebug;
+
+    //my texture loader
+    TextureLoader *mTexLoader;
+
+    //the main player object
+
+    //Player physics object
+    PhysicsObject* playerPhysicsObj;
+
+    //vector of players in this race
+    std::vector<Player*> mPlayerList;
+
+    //Player 2 physics object
+    PhysicsObject* player2PhysicsObj;
+
+    std::vector<Player*> playerRanking;
+
+    //my camera
+    scene::ICameraSceneNode* mCamera;
+
+    //if all morphs should be executed
+    //set to true
+    bool runMorph = false;
+    irr::f32 absTimeMorph = 0.0f;
+
+    //if true the camera is inside player1 craft
+    //if false we have a free-moving camera for debugging and
+    //development
+    bool playerCamera = true;
+
+    //variables to switch different debugging functions on and off
+    bool DebugShowWaypoints = false;
+    bool DebugShowWallCollisionMesh = false;
+    bool DebugShowCheckpoints = false;
+    bool DebugShowWallSegments = true;
+    bool DebugShowTransitionLinks = false;
+
+    void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
+    bool LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
+    bool LoadLevel(int loadLevelNr);
+    void createLevelEntities();
+    void getPlayerStartPosition(int levelNr, irr::core::vector3d<irr::f32> &startPos, irr::core::vector3d<irr::f32> &startDirection);
+    void createPlayers(int levelNr);
+    void DrawSky();
+    void DrawTestShape();
+
+    void draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
+         irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
+         irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color);
+
+    void removePlayerTest();
+    bool player2Removed = false;
+
+    void IrrlichtStats(char* text);
+
+    void AddCheckPoint(EntityItem entity);
+    void CheckPointPostProcessing();
+
+    void AddWayPoint(EntityItem *entity, EntityItem *next);
+    std::vector<WayPointLinkInfoStruct*> *wayPointLinkVec;
+    void CreateTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink);
+ //   WayPointLinkInfoStruct* SearchTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink);
+    std::vector<WayPointLinkInfoStruct*> *transitionLinkVec;
+
+    std::vector<EntityItem*> *ENTWaypoints_List;
+
+    std::list<EntityItem*> *ENTWallsegments_List;
+
+    //std::list<EntityItem*> *ENTCheckpoint_List;
+    //std::list<LineStruct*> *ENTCheckpointLine_List;
+
+    std::list<EntityItem*> *ENTTriggers_List;
+    std::list<Collectable*> *ENTCollectables_List;
+
+    //holds a list of all available level morphs
+    std::list<Morph*> Morphs;
+
+    void createWallCollisionData();
+    void createFinalCollisionData();
+
+    //holds a generated Mesh for wall collision detection
+    irr::scene::SMesh* wallCollisionMesh;
+
+    //holds the OctreeSceneNode for the wall collision detection
+    //we use this for trianglePicking later
+    irr::scene::ISceneNode *wallCollisionMeshSceneNode;
+
+    //the necessary triangle selectors for craft collision detection
+    irr::scene::ITriangleSelector* triangleSelectorWallCollision = NULL;
+    irr::scene::ITriangleSelector* triangleSelectorColumnswCollision = NULL;
+    irr::scene::ITriangleSelector* triangleSelectorColumnswoCollision = NULL;
+
+    //necessary triangle selector for raycasting onto terrain
+    irr::scene::ITriangleSelector* triangleSelectorTerrain = NULL;
+
+    void createCheckpointMeshData(CheckPointInfoStruct &newStruct);
+    std::vector<CheckPointInfoStruct*> *checkPointVec;
+
+    void PlayerFindClosestWaypointLink(Player* player);
+    void UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer);
+    void UpdatePlayerRacePositionRanking();
+    void UpdatePlayerRacePositionRankingHelper2(std::vector< pair <irr::s32, Player*> > vecNextCheckPointExpected);
+    void UpdatePlayerRacePositionRankingHelper3(std::vector< pair <irr::f32, Player*> > vecRemainingDistanceToNextCheckpoint);
+
+    void CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f32> playerBox);
+
+    //my vector of SteamFountains
+    std::vector<SteamFountain*>* steamFountainVec;
+
+    //my vector of recovery vehicles
+    std::vector<Recovery*>* recoveryVec;
+
+    //my vector of cones
+    std::vector<Cone*>* coneVec;
+
+    void UpdateParticleSystems(irr::f32 frameDeltaTime);
+
+    //Audio related stuff
+    void DeliverMusicFileName(unsigned int levelNr, char *musicFileName);
+    void StopMusic();
+    void StopAllSounds();
+
+    //cleanup-stuff
+    void CleanUpAllCheckpoints();
+    void CleanUpWayPointLinks(std::vector<WayPointLinkInfoStruct*> &vec);
+    void CleanUpSteamFountains();
+    void CleanUpEntities();
+    void CleanUpRecoveryVehicles();
+    void CleanUpCones();
+    void CleanUpMorphs();
+    void CleanUpSky();
+    void CleanMiniMap();
+};
+
+#endif // RACE_H
