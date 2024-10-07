@@ -117,13 +117,13 @@ bool Game::InitGame() {
 
     //only for debugging
     dbgTimeProfiler = guienv->addStaticText(L"Location",
-           rect<s32>(100,150,300,250), false, true, NULL, -1, true);
+           rect<s32>(100,150,300,200), false, true, NULL, -1, true);
 
-    dbgText = guienv->addStaticText(L"",
-           rect<s32>(100,250,200,350), false, true, NULL, -1, true);
+    /*dbgText = guienv->addStaticText(L"",
+           rect<s32>(100,250,200,350), false, true, NULL, -1, true);*/
 
-    dbgText2 = guienv->addStaticText(L"",
-           rect<s32>(350,200,450,300), false, true, NULL, -1, true);
+    /*dbgText2 = guienv->addStaticText(L"",
+           rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
 
     smgr->addLightSceneNode(0, vector3df(0, 100, 0),
             video::SColorf(1.0f, 1.0f, 1.0f), 1000.0f, -1);
@@ -235,18 +235,18 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mCurrentRace->AdvanceTime(frameDeltaTime);
 
     wchar_t* text = new wchar_t[200];
-    wchar_t* text2 = new wchar_t[200];
+    //wchar_t* text2 = new wchar_t[200];
 
     mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
-    swprintf(text2, 50, L"%lf %lf ", this->mCurrentRace->player->debugMaxStep,
-             this->mCurrentRace->player->dbgDistance);
+    /*swprintf(text2, 50, L"%lf %lf ", this->mCurrentRace->player->debugMaxStep,
+             this->mCurrentRace->player->dbgDistance);*/
 
     dbgTimeProfiler->setText(text);
-    dbgText2->setText(text2);
+    //dbgText2->setText(text2);
 
     delete[] text;
-    delete[] text2;
+    //delete[] text2;
 
     driver->beginScene(true,true,
      video::SColor(255,100,101,140));

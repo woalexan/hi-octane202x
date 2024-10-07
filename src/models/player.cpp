@@ -199,7 +199,8 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
        // targetSteerDir = (NewFrontAt-NewPosition).normalize();
        // targetSteerAngle = 0;
 
-        Player_node->setDebugDataVisible(EDS_BBOX);
+        //Player_node->setDebugDataVisible(EDS_BBOX);
+        Player_node->setDebugDataVisible(EDS_OFF);
 
         Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
         Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, false);

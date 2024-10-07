@@ -21,8 +21,8 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
     //create memory for ingame palette
     palette=static_cast<unsigned char*>(malloc(768));
 
-    char palfile[30];
-    strcpy(&palfile[0], "data/palet0-0.dat");
+    char palfile[50];
+    strcpy(&palfile[0], "originalgame/data/palet0-0.dat");
 
     //read ingame palette
     PreparationOk = PreparationOk && ReadPaletteFile(&palfile[0], palette);
@@ -226,7 +226,7 @@ bool PrepareData::Extract3DModel(char* srcFilename, char* destFilename, char* ob
 }
 
 bool PrepareData::Extra3DModels() {
-    char file[50];
+    char file[65];
     char file2[50];
     char helper[10];
     char objname[20];
@@ -237,7 +237,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 3; idx++) {
-        strcpy(file, "objects/data/barel0-");
+        strcpy(file, "originalgame/objects/data/barel0-");
         strcpy(file2, "extract/models/barel0-");
         strcpy(objname, "barel0-");
 
@@ -257,7 +257,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "objects/data/bike0-");
+        strcpy(file, "originalgame/objects/data/bike0-");
         strcpy(file2, "extract/models/bike0-");
         strcpy(objname, "bike0-");
 
@@ -277,7 +277,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "objects/data/car0-");
+        strcpy(file, "originalgame/objects/data/car0-");
         strcpy(file2, "extract/models/car0-");
         strcpy(objname, "car0-");
 
@@ -297,7 +297,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 2; idx++) {
-        strcpy(file, "objects/data/cone0-");
+        strcpy(file, "originalgame/objects/data/cone0-");
         strcpy(file2, "extract/models/cone0-");
         strcpy(objname, "cone0-");
 
@@ -317,7 +317,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "objects/data/jet0-");
+        strcpy(file, "originalgame/objects/data/jet0-");
         strcpy(file2, "extract/models/jet0-");
         strcpy(objname, "jet0-");
 
@@ -337,7 +337,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "objects/data/jugga0-");
+        strcpy(file, "originalgame/objects/data/jugga0-");
         strcpy(file2, "extract/models/jugga0-");
         strcpy(objname, "jugga0-");
 
@@ -357,7 +357,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "objects/data/marsh0-");
+        strcpy(file, "originalgame/objects/data/marsh0-");
         strcpy(file2, "extract/models/marsh0-");
         strcpy(objname, "marsh0-");
 
@@ -377,7 +377,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "objects/data/recov0-");
+        strcpy(file, "originalgame/objects/data/recov0-");
         strcpy(file2, "extract/models/recov0-");
         strcpy(objname, "recov0-");
 
@@ -397,7 +397,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "objects/data/sign0-");
+        strcpy(file, "originalgame/objects/data/sign0-");
         strcpy(file2, "extract/models/sign0-");
         strcpy(objname, "sign0-");
 
@@ -417,7 +417,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "objects/data/skim0-");
+        strcpy(file, "originalgame/objects/data/skim0-");
         strcpy(file2, "extract/models/skim0-");
         strcpy(objname, "skim0-");
 
@@ -437,7 +437,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "objects/data/tank0-");
+        strcpy(file, "originalgame/objects/data/tank0-");
         strcpy(file2, "extract/models/tank0-");
         strcpy(objname, "tank0-");
 
@@ -457,7 +457,7 @@ bool PrepareData::Extra3DModels() {
      ******************************************/
 
     for (idx = 0; idx < 6; idx++) {
-        strcpy(file, "objects/data/track0-");
+        strcpy(file, "originalgame/objects/data/track0-");
         strcpy(file2, "extract/models/track0-");
         strcpy(objname, "track0-");
 
@@ -485,9 +485,9 @@ bool PrepareData::ExtractLevels() {
      return false;
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- strcpy(packfile, "maps/level0-1.dat");
+ strcpy(packfile, "originalgame/maps/level0-1.dat");
  strcpy(unpackfile, "extract/level0-1/level0-1-unpacked.dat");
 
  //RNC unpack level file
@@ -500,7 +500,7 @@ bool PrepareData::ExtractLevels() {
  if (!PrepareSubDir((char*)("extract/level0-2")))
      return false;
 
- strcpy(packfile, "maps/level0-2.dat");
+ strcpy(packfile, "originalgame/maps/level0-2.dat");
  strcpy(unpackfile, "extract/level0-2/level0-2-unpacked.dat");
 
  //RNC unpack level file
@@ -513,7 +513,7 @@ bool PrepareData::ExtractLevels() {
  if (!PrepareSubDir((char*)("extract/level0-3")))
      return false;
 
- strcpy(packfile, "maps/level0-3.dat");
+ strcpy(packfile, "originalgame/maps/level0-3.dat");
  strcpy(unpackfile, "extract/level0-3/level0-3-unpacked.dat");
 
  //RNC unpack level file
@@ -526,7 +526,7 @@ bool PrepareData::ExtractLevels() {
  if (!PrepareSubDir((char*)("extract/level0-4")))
      return false;
 
- strcpy(packfile, "maps/level0-4.dat");
+ strcpy(packfile, "originalgame/maps/level0-4.dat");
  strcpy(unpackfile, "extract/level0-4/level0-4-unpacked.dat");
 
  //RNC unpack level file
@@ -539,7 +539,7 @@ bool PrepareData::ExtractLevels() {
  if (!PrepareSubDir((char*)("extract/level0-5")))
      return false;
 
- strcpy(packfile, "maps/level0-5.dat");
+ strcpy(packfile, "originalgame/maps/level0-5.dat");
  strcpy(unpackfile, "extract/level0-5/level0-5-unpacked.dat");
 
  //RNC unpack level file
@@ -552,7 +552,7 @@ bool PrepareData::ExtractLevels() {
  if (!PrepareSubDir((char*)("extract/level0-6")))
      return false;
 
- strcpy(packfile, "maps/level0-6.dat");
+ strcpy(packfile, "originalgame/maps/level0-6.dat");
  strcpy(unpackfile, "extract/level0-6/level0-6-unpacked.dat");
 
  //RNC unpack level file
@@ -575,11 +575,11 @@ bool PrepareData::ExtractGameLogoSVGA() {
  //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- char tabfile[20];
- strcpy(packfile, "data/logo0-1.dat");
- strcpy(tabfile, "data/logo0-1.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/logo0-1.dat");
+ strcpy(tabfile, "originalgame/data/logo0-1.tab");
  strcpy(unpackfile, "extract/images/logo0-1-unpacked.dat");
 
  //RNC unpack logo
@@ -616,16 +616,16 @@ bool PrepareData::ExtractHUD1PlayerSVGA() {
  //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
 
  //unpack data file
- char unpackfile[20];
- char tabfile[20];
- strcpy(unpackfile, "data/panel0-1.dat");
- strcpy(tabfile, "data/panel0-1.tab");
+ char unpackfile[35];
+ char tabfile[35];
+ strcpy(unpackfile, "originalgame/data/panel0-1.dat");
+ strcpy(tabfile, "originalgame/data/panel0-1.tab");
 
  //is not RNC compressed, we can skip this step
 
- char palFile[20];
+ char palFile[35];
  char outputDir[50];
- strcpy(palFile, "data/palet0-0.dat");
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
  strcpy(outputDir, "extract/hud1player/panel0-1-");
 
  //extract images to BMP from DAT/TAB file
@@ -646,16 +646,16 @@ bool PrepareData::ExtractMiniMapsSVGA() {
  //Unknown format 	RNC-compressed = No 	MiniMaps
 
  //unpack data file
- char unpackfile[20];
- char tabfile[20];
- strcpy(unpackfile, "data/track0-1.dat");
- strcpy(tabfile, "data/track0-1.tab");
+ char unpackfile[35];
+ char tabfile[35];
+ strcpy(unpackfile, "originalgame/data/track0-1.dat");
+ strcpy(tabfile, "originalgame/data/track0-1.tab");
 
  //is not RNC compressed, we can skip this step
 
- char palFile[20];
+ char palFile[35];
  char outputDir[50];
- strcpy(palFile, "data/palet0-0.dat");
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
  strcpy(outputDir, "extract/minimaps/track0-1-");
 
  //extract images to BMP from DAT/TAB file
@@ -678,16 +678,16 @@ bool PrepareData::ExtractHUD2PlayersSVGA() {
  //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
 
  //unpack data file
- char unpackfile[20];
- char tabfile[20];
- strcpy(unpackfile, "data/panel0-0.dat");
- strcpy(tabfile, "data/panel0-0.tab");
+ char unpackfile[35];
+ char tabfile[35];
+ strcpy(unpackfile, "originalgame/data/panel0-0.dat");
+ strcpy(tabfile, "originalgame/data/panel0-0.tab");
 
  //is not RNC compressed, we can skip this step
 
- char palFile[20];
+ char palFile[35];
  char outputDir[50];
- strcpy(palFile, "data/palet0-0.dat");
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
  strcpy(outputDir, "extract/hud2player/panel0-0-");
 
  //extract images to BMP from DAT/TAB file
@@ -710,10 +710,10 @@ bool PrepareData::ExtractLargeGreenFontSVGA() {
  //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
 
  //unpack data file
- char unpackfile[20];
- char tabfile[20];
- strcpy(unpackfile, "data/pfont0-1.dat");
- strcpy(tabfile, "data/pfont0-1.tab");
+ char unpackfile[35];
+ char tabfile[35];
+ strcpy(unpackfile, "originalgame/data/pfont0-1.dat");
+ strcpy(tabfile, "originalgame/data/pfont0-1.tab");
 
  //is not RNC compressed, we can skip this step
 
@@ -746,11 +746,11 @@ bool PrepareData::ExtractCheatPuzzle() {
 
  //now create final png picture out of raw video data
  //we also have to take game palette into account
- char palFile[20];
- strcpy(palFile, "data/palet0-0.dat");
+ char palFile[35];
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
 
  char outputFile[50];
- strcpy(unpackfile, "data/puzzle.dat");
+ strcpy(unpackfile, "originalgame/data/puzzle.dat");
  strcpy(outputFile, "extract/puzzle/puzzle.png");
 
  //scale puzzle by factor 4
@@ -769,11 +769,11 @@ bool PrepareData::ExtractLargeFontSVGA() {
  //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[60];
- char tabfile[20];
- strcpy(packfile, "data/olfnt0-1.dat");
- strcpy(tabfile, "data/olfnt0-1.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/olfnt0-1.dat");
+ strcpy(tabfile, "originalgame/data/olfnt0-1.tab");
  strcpy(unpackfile, "extract/fonts/large/olfnt0-1-unpacked.dat");
 
  //RNC unpack Large Font file
@@ -784,10 +784,10 @@ bool PrepareData::ExtractLargeFontSVGA() {
  }
 
  char unpackfileDat[50];
- char palFile[20];
+ char palFile[35];
  char outputDir[50];
  strcpy(unpackfileDat, "extract/fonts/large/olfnt0-1-unpacked.dat");
- strcpy(palFile, "data/palet0-0.dat");
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
  strcpy(outputDir, "extract/fonts/large/olfnt0-1-");
 
  //extract images to BMP from DAT/TAB file
@@ -812,11 +812,11 @@ bool PrepareData::ExtractSmallFontSVGA() {
  //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[60];
- char tabfile[20];
- strcpy(packfile, "data/osfnt0-1.dat");
- strcpy(tabfile, "data/osfnt0-1.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/osfnt0-1.dat");
+ strcpy(tabfile, "originalgame/data/osfnt0-1.tab");
  strcpy(unpackfile, "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
 
  //RNC unpack small Font file
@@ -827,10 +827,10 @@ bool PrepareData::ExtractSmallFontSVGA() {
  }
 
  char unpackfileDat[50];
- char palFile[20];
+ char palFile[35];
  char outputDir[50];
  strcpy(unpackfileDat, "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
- strcpy(palFile, "data/palet0-0.dat");
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
  strcpy(outputDir, "extract/fonts/smallsvga/osfnt0-1-");
 
  //extract images to BMP from DAT/TAB file
@@ -1051,11 +1051,11 @@ bool PrepareData::ExtractLoadingScreenSVGA() {
  //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- char tabfile[20];
- strcpy(packfile, "data/onet0-1.dat");
- strcpy(tabfile, "data/onet0-1.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/onet0-1.dat");
+ strcpy(tabfile, "originalgame/data/onet0-1.tab");
  strcpy(unpackfile, "extract/images/onet0-1-unpacked.dat");
 
  //RNC unpack Loading Screen
@@ -1103,11 +1103,11 @@ bool PrepareData::ExtractSelectionScreenSVGA() {
  //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- char tabfile[20];
- strcpy(packfile, "data/oscr0-1.dat");
- strcpy(tabfile, "data/oscr0-1.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/oscr0-1.dat");
+ strcpy(tabfile, "originalgame/data/oscr0-1.tab");
  strcpy(unpackfile, "extract/images/oscr0-1-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1119,8 +1119,8 @@ bool PrepareData::ExtractSelectionScreenSVGA() {
 
  //now create final png picture out of raw video data
  //we also have to take game palette into account
- char palFile[30];
- strcpy(palFile, "data/palet0-0.dat");
+ char palFile[45];
+ strcpy(palFile, "originalgame/data/palet0-0.dat");
 
  char outputFile[50];
  strcpy(outputFile, "extract/images/oscr0-1.png");
@@ -1144,11 +1144,11 @@ bool PrepareData::ExtractSky() {
  //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
 
  //unpack data file number 0
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- char tabfile[20];
- strcpy(packfile, "data/sky0-0.dat");
- strcpy(tabfile, "data/sky0-0.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/sky0-0.dat");
+ strcpy(tabfile, "originalgame/data/sky0-0.tab");
  strcpy(unpackfile, "extract/sky/sky0-0-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1159,8 +1159,8 @@ bool PrepareData::ExtractSky() {
  }
 
  //unpack data file number 1
- strcpy(packfile, "data/sky0-1.dat");
- strcpy(tabfile, "data/sky0-1.tab");
+ strcpy(packfile, "originalgame/data/sky0-1.dat");
+ strcpy(tabfile, "originalgame/data/sky0-1.tab");
  strcpy(unpackfile, "extract/sky/sky0-1-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1171,8 +1171,8 @@ bool PrepareData::ExtractSky() {
  }
 
  //unpack data file number 2
- strcpy(packfile, "data/sky0-2.dat");
- strcpy(tabfile, "data/sky0-2.tab");
+ strcpy(packfile, "originalgame/data/sky0-2.dat");
+ strcpy(tabfile, "originalgame/data/sky0-2.tab");
  strcpy(unpackfile, "extract/sky/sky0-2-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1183,8 +1183,8 @@ bool PrepareData::ExtractSky() {
  }
 
  //unpack data file number 3
- strcpy(packfile, "data/sky0-3.dat");
- strcpy(tabfile, "data/sky0-3.tab");
+ strcpy(packfile, "originalgame/data/sky0-3.dat");
+ strcpy(tabfile, "originalgame/data/sky0-3.tab");
  strcpy(unpackfile, "extract/sky/sky0-3-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1195,8 +1195,8 @@ bool PrepareData::ExtractSky() {
  }
 
  //unpack data file number 4
- strcpy(packfile, "data/sky0-4.dat");
- strcpy(tabfile, "data/sky0-4.tab");
+ strcpy(packfile, "originalgame/data/sky0-4.dat");
+ strcpy(tabfile, "originalgame/data/sky0-4.tab");
  strcpy(unpackfile, "extract/sky/sky0-4-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1207,8 +1207,8 @@ bool PrepareData::ExtractSky() {
  }
 
  //unpack data file number 5
- strcpy(packfile, "data/sky0-5.dat");
- strcpy(tabfile, "data/sky0-5.tab");
+ strcpy(packfile, "originalgame/data/sky0-5.dat");
+ strcpy(tabfile, "originalgame/data/sky0-5.tab");
  strcpy(unpackfile, "extract/sky/sky0-5-unpacked.dat");
 
  //RNC unpack Selection Screen
@@ -1548,12 +1548,12 @@ bool PrepareData::ExtractTerrainTextures() {
  //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
 
  //unpack data file number 0
- char packfile[20];
+ char packfile[35];
  char unpackfile[100];
- char tabfile[20];
+ char tabfile[35];
  char outputDirName[20];
- strcpy(packfile, "data/textu0-0.dat");
- strcpy(tabfile, "data/textu0-0.tab");
+ strcpy(packfile, "originalgame/data/textu0-0.dat");
+ strcpy(tabfile, "originalgame/data/textu0-0.tab");
  strcpy(unpackfile, "extract/textu0-0-unpacked.dat");
 
  //RNC unpack file
@@ -1564,8 +1564,8 @@ bool PrepareData::ExtractTerrainTextures() {
  }
 
  //unpack data file number 1
- strcpy(packfile, "data/textu0-1.dat");
- strcpy(tabfile, "data/textu0-1.tab");
+ strcpy(packfile, "originalgame/data/textu0-1.dat");
+ strcpy(tabfile, "originalgame/data/textu0-1.tab");
  strcpy(unpackfile, "extract/textu0-1-unpacked.dat");
 
  //RNC unpack file
@@ -1576,8 +1576,8 @@ bool PrepareData::ExtractTerrainTextures() {
  }
 
  //unpack data file number 2
- strcpy(packfile, "data/textu0-2.dat");
- strcpy(tabfile, "data/textu0-2.tab");
+ strcpy(packfile, "originalgame/data/textu0-2.dat");
+ strcpy(tabfile, "originalgame/data/textu0-2.tab");
  strcpy(unpackfile, "extract/textu0-2-unpacked.dat");
 
  //RNC unpack file
@@ -1588,8 +1588,8 @@ bool PrepareData::ExtractTerrainTextures() {
  }
 
  //unpack data file number 3
- strcpy(packfile, "data/textu0-3.dat");
- strcpy(tabfile, "data/textu0-3.tab");
+ strcpy(packfile, "originalgame/data/textu0-3.dat");
+ strcpy(tabfile, "originalgame/data/textu0-3.tab");
  strcpy(unpackfile, "extract/textu0-3-unpacked.dat");
 
  //RNC unpack file
@@ -1600,8 +1600,8 @@ bool PrepareData::ExtractTerrainTextures() {
  }
 
  //unpack data file number 4
- strcpy(packfile, "data/textu0-4.dat");
- strcpy(tabfile, "data/textu0-4.tab");
+ strcpy(packfile, "originalgame/data/textu0-4.dat");
+ strcpy(tabfile, "originalgame/data/textu0-4.tab");
  strcpy(unpackfile, "extract/textu0-4-unpacked.dat");
 
  //RNC unpack file
@@ -1612,8 +1612,8 @@ bool PrepareData::ExtractTerrainTextures() {
  }
 
  //unpack data file number 5
- strcpy(packfile, "data/textu0-5.dat");
- strcpy(tabfile, "data/textu0-5.tab");
+ strcpy(packfile, "originalgame/data/textu0-5.dat");
+ strcpy(tabfile, "originalgame/data/textu0-5.tab");
  strcpy(unpackfile, "extract/textu0-5-unpacked.dat");
 
  //RNC unpack file
@@ -1720,11 +1720,11 @@ bool PrepareData::AddOtherLevelsHiOctaneTools() {
      char finalFile[50];
      char levelFile[50];
 
-     strcpy(outputFile, "userData/level0-7.png");
-     strcpy(levelFile, "userData/level0-7.dat");
+     strcpy(outputFile, "userdata/level0-7.png");
+     strcpy(levelFile, "userdata/level0-7.dat");
      strcpy(finalFile, "/tex");
 
-     //are level 7 files available in userData folder?
+     //are level 7 files available in userdata folder?
      if ((FileExists(outputFile) == 1) && (FileExists(levelFile) == 1)) {
          //yes, install level 7 in extract folder
          strcpy(outputDirName, "extract/level0-7");
@@ -1735,11 +1735,11 @@ bool PrepareData::AddOtherLevelsHiOctaneTools() {
          copy_file(levelFile, outputFile);
      }
 
-     strcpy(outputFile, "userData/level0-8.png");
-     strcpy(levelFile, "userData/level0-8.dat");
+     strcpy(outputFile, "userdata/level0-8.png");
+     strcpy(levelFile, "userdata/level0-8.dat");
      strcpy(finalFile, "/tex");
 
-     //are level 8 files available in userData folder?
+     //are level 8 files available in userdata folder?
      if ((FileExists(outputFile) == 1) && (FileExists(levelFile) == 1)) {
          //yes, install level 8 in extract folder
          strcpy(outputDirName, "extract/level0-8");
@@ -1750,11 +1750,11 @@ bool PrepareData::AddOtherLevelsHiOctaneTools() {
          copy_file(levelFile, outputFile);
      }
 
-     strcpy(outputFile, "userData/level0-9.png");
-     strcpy(levelFile, "userData/level0-9.dat");
+     strcpy(outputFile, "userdata/level0-9.png");
+     strcpy(levelFile, "userdata/level0-9.dat");
      strcpy(finalFile, "/tex");
 
-     //are level 9 files available in userData folder?
+     //are level 9 files available in userdata folder?
      if ((FileExists(outputFile) == 1) && (FileExists(levelFile) == 1)) {
          //yes, install level 9 in extract folder
          strcpy(outputDirName, "extract/level0-9");
@@ -2254,11 +2254,11 @@ bool PrepareData::ExtractIntroductoryScreen() {
  //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
 
  //unpack data file number 0
- char packfile[20];
+ char packfile[35];
  char unpackfile[60];
- char tabfile[20];
- strcpy(packfile, "data/title.dat");
- strcpy(tabfile, "data/title.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/title.dat");
+ strcpy(tabfile, "originalgame/data/title.tab");
  strcpy(unpackfile, "extract/images/title-unpacked.dat");
 
  //RNC unpack file
@@ -2294,11 +2294,11 @@ bool PrepareData::ExtractThinWhiteFontSVGA() {
  //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[60];
- char tabfile[20];
- strcpy(packfile, "data/hfont0-0.dat");
- strcpy(tabfile, "data/hfont0-0.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/hfont0-0.dat");
+ strcpy(tabfile, "originalgame/data/hfont0-0.tab");
  strcpy(unpackfile, "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
 
  //RNC unpack thin white font
@@ -2336,11 +2336,11 @@ bool PrepareData::ExtractEditorCursors() {
  //Unknown format 	RNC-compressed = Yes 	Editor cursors
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[60];
- char tabfile[20];
- strcpy(packfile, "data/point0-0.dat");
- strcpy(tabfile, "data/point0-0.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/point0-0.dat");
+ strcpy(tabfile, "originalgame/data/point0-0.tab");
  strcpy(unpackfile, "extract/editor/point0-0-unpacked.dat");
 
  //RNC unpack editor cursors
@@ -2377,11 +2377,11 @@ bool PrepareData::ExtractEditorItemsLarge() {
  //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- char tabfile[20];
- strcpy(packfile, "data/hspr0-0.dat");
- strcpy(tabfile, "data/hspr0-0.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/hspr0-0.dat");
+ strcpy(tabfile, "originalgame/data/hspr0-0.tab");
  strcpy(unpackfile, "extract/editor/hspr0-0-unpacked.dat");
 
  //RNC unpack editor items large data
@@ -2418,11 +2418,11 @@ bool PrepareData::ExtractEditorItemsSmall() {
  //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
 
  //unpack data file
- char packfile[20];
+ char packfile[35];
  char unpackfile[50];
- char tabfile[20];
- strcpy(packfile, "data/mspr0-0.dat");
- strcpy(tabfile, "data/mspr0-0.tab");
+ char tabfile[35];
+ strcpy(packfile, "originalgame/data/mspr0-0.dat");
+ strcpy(tabfile, "originalgame/data/mspr0-0.tab");
  strcpy(unpackfile, "extract/editor/mspr0-0-unpacked.dat");
 
  //RNC unpack editor items small data
@@ -2463,11 +2463,11 @@ bool PrepareData::ExtractModelTextures() {
  modelTexAtlasSize.Width = 256;
  modelTexAtlasSize.Height = 768;
 
- char packfile[50];
- char tabfile[50];
+ char packfile[65];
+ char tabfile[65];
  char outputfile[50];
- strcpy(packfile, "objects/data/tex0-0.dat");
- strcpy(tabfile, "objects/data/tex0-0.tab");
+ strcpy(packfile, "originalgame/objects/data/tex0-0.dat");
+ strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
  strcpy(outputfile, "extract/models/tex0-0.png");
 
  ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
@@ -2525,8 +2525,8 @@ bool PrepareData::ExtractTmaps() {
     //data\tmaps.tab
     //RNC-compressed = Yes 	Tmaps data (contains collectible items, powerups...)
 
-   char ArchiveName[40];
-   strcpy(ArchiveName, "data/tmaps.dat");
+   char ArchiveName[55];
+   strcpy(ArchiveName, "originalgame/data/tmaps.dat");
 
    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
    //Many of the game's files are compressed using the Rob Northern Compression format;
@@ -2655,8 +2655,8 @@ bool PrepareData::ExtractTmaps() {
 
 //extracts sound files from sound.data
 bool PrepareData::ExtractSounds() {
-   char ArchiveName[40];
-   strcpy(ArchiveName, "sound/sound.dat");
+   char ArchiveName[55];
+   strcpy(ArchiveName, "originalgame/sound/sound.dat");
 
    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
    //Many of the game's files are compressed using the Rob Northern Compression format;
@@ -2985,10 +2985,10 @@ bool PrepareData::ExtractMusic() {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT
 
-    char filename[50];
+    char filename[65];
     char outputNameStr[50];
 
-    strcpy(filename, "sound/music.dat");
+    strcpy(filename, "originalgame/sound/music.dat");
     strcpy(outputNameStr, "extract/music");
 
     FILE* iFile;

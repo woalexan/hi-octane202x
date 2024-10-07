@@ -16,10 +16,10 @@
 #define DEF_LOADLEVEL 1 //choice from 1 up to 9
 #define DEF_INSPECT_LEVEL true
 #define DEF_DBG_WALLCOLLISIONS false
-#define DEF_PLAYERCANGOBACKWARDS true
+#define DEF_PLAYERCANGOBACKWARDS false
 
 //Player settings
-#define DEBUG_PLAYER_HEIGHT_CONTROL true
+#define DEBUG_PLAYER_HEIGHT_CONTROL false
 
 //Audio settings
 #define AUDIO_SAMPLERATE 44100

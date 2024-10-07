@@ -294,7 +294,7 @@ private:
     bool DebugShowWaypoints = false;
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = false;
-    bool DebugShowWallSegments = true;
+    bool DebugShowWallSegments = false;
     bool DebugShowTransitionLinks = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);

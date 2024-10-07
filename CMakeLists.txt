@@ -166,10 +166,7 @@ add_executable(hi-octane202x
     src/main.cpp)
 
 TARGET_LINK_LIBRARIES(hi-octane202x ${IRRLICHT_LIBRARY})
-TARGET_LINK_LIBRARIES(hi-octane202x ${ADLLIB_LIBRARY})
-
-#target_link_libraries( hi-octane202x ${ADLLIB_LIBRARY})
-#target_link_libraries( hi-octane202x /usr/local/lib64/libADLMIDI.a)
+TARGET_LINK_LIBRARIES(hi-octane202x ${ADLMIDI_LIBRARY})
 
 ###########################
 

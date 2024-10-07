@@ -24,9 +24,9 @@ bool MyMusicStream::prepareInstrumentFile() {
     //is file SAMPLE.OPL
      AIL_GTL *AILBank = new AIL_GTL;
      FmBank *testAILBank = new FmBank();
-     if (AILBank->loadFile("sound/sample.opl", *testAILBank) != FfmtErrCode::ERR_OK) {
+     if (AILBank->loadFile("originalgame/sound/sample.opl", *testAILBank) != FfmtErrCode::ERR_OK) {
          //there was an error loading the file
-         std::cout << "Music: Failed loading sound/sample.opl instrument file" << std::endl;
+         std::cout << "Music: Failed loading originalgame/sound/sample.opl instrument file" << std::endl;
          delete testAILBank;
          delete  AILBank;
          return false;
