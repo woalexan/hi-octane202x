@@ -210,11 +210,11 @@ void Assets::InitRaceTracks() {
     AddRaceTrack((char*)("6. THRAK CITY"), (char*)("extract/models/track0-5.obj"), 5);
 
     //Track7, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    AddRaceTrack((char*)("7. ANCIENT MINE TOWN"), (char*)("extract/models/cone0-0.obj"), 5);
+    //AddRaceTrack((char*)("7. ANCIENT MINE TOWN"), (char*)("extract/models/cone0-0.obj"), 5);
 
     //Track8, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    AddRaceTrack((char*)("8. ARCTIC LAND"), (char*)("extract/models/cone0-0.obj"), 5);
+    //AddRaceTrack((char*)("8. ARCTIC LAND"), (char*)("extract/models/cone0-0.obj"), 5);
 
     //Track9, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    AddRaceTrack((char*)("9. DEATH MATCH ARENA"), (char*)("extract/models/cone0-0.obj"), 5);
+    //AddRaceTrack((char*)("9. DEATH MATCH ARENA"), (char*)("extract/models/cone0-0.obj"), 5);
 }

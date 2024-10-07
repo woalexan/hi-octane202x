@@ -32,7 +32,7 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     levelNr = loadLevelNr;
     ready = false;
 
-    IrrlichtStats("before Race constructor");
+    //IrrlichtStats("before Race constructor");
 
     //create the predefined axis direction vectors
     xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
@@ -165,7 +165,7 @@ Race::~Race() {
     //free all loaded textures
     delete mTexLoader;
 
-    IrrlichtStats("After race destructor");
+    //IrrlichtStats("After race destructor");
 }
 
 void Race::CleanUpMorphs() {
@@ -1526,12 +1526,12 @@ void Race::Render() {
       player2->computerCurrFollowWayPointLink->pLineStruct->color = mDrawDebug->blue;
     }*/
 
-    if (player2->cPTargetEntity != NULL) {
+  /*  if (player2->cPTargetEntity != NULL) {
         mDriver->setMaterial(*mDrawDebug->green);
         irr::core::vector3df vecHlp = player2->cPTargetEntity->get_Center();
         vecHlp.X = -vecHlp.X;
         mDriver->draw3DLine(player2->phobj->physicState.position, vecHlp);
-    }
+    }*/
 
 
 /*
@@ -1611,15 +1611,16 @@ void Race::Render() {
       //mPhysics->DrawSelectedCollisionMeshTriangles(player->phobj->GetCollisionArea());
       //mPhysics->DrawSelectedRayTargetMeshTriangles(TestRayTrianglesSelector);
 
-      mDriver->setMaterial(*mDrawDebug->green);
-      mDriver->draw3DLine(mPhysics->DbgRayTargetLine.start, mPhysics->DbgRayTargetLine.end);
+      /*mDriver->setMaterial(*mDrawDebug->green);
+      mDriver->draw3DLine(mPhysics->DbgRayTargetLine.start, mPhysics->DbgRayTargetLine.end);*/
 
       if (DEF_DBG_WALLCOLLISIONS) {
               mDrawDebug->Draw3DTriangle(&playerPhysicsObj->mNearestTriangle,  irr::video::SColor(0, 255, 0,127));
       }
 
       //Draw debug stuff for player Terrain Collision
-      if (this->player != NULL) {
+    //  if (this->player != NULL) {
+      if (false) {
          /* if (this->player->currTileBelowPlayer != NULL) {
             DebugDrawHeightMapTileOutline(this->player->currTileBelowPlayer->get_X(),
                                           this->player->currTileBelowPlayer->get_Z(),
@@ -2050,7 +2051,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    strcpy(terrainname, "Terrain1");
 
    //Test map save
-   this->mLevelRes->Save(std::string("mapsave.dat"));
+   //this->mLevelRes->Save(std::string("mapsave.dat"));
 
    /***********************************************************/
    /* Prepare level terrain                                   */
@@ -2173,7 +2174,7 @@ void Race::createCheckpointMeshData(CheckPointInfoStruct &newStruct) {
     newStruct.SceneNode = this->mSmgr->addMeshSceneNode(checkPointMesh, 0);
 
     //hide the collision mesh that the player does not see it
-    newStruct.SceneNode->setVisible(true);
+    newStruct.SceneNode->setVisible(false);
     newStruct.SceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, true);
     //newStruct.SceneNode->setDebugDataVisible(EDS_BBOX);
 }

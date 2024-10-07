@@ -2,7 +2,13 @@
 # ----------------------------------------------------------------------------
 
 cmake-build-*/
-build/
+build/*
+!build/originalgame
+build/originalgame/*
+!build/originalgame/readme.txt
+!build/userdata
+build/userdata/*
+!build/userdata/readme.txt
 *~
 *.autosave
 *.a
