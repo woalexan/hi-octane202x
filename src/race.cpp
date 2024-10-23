@@ -853,6 +853,15 @@ int Race::getNrHitTrianglesRay() {
     return  TestRayTrianglesSelector.size();
 }*/
 
+void Race::HandleCraftHeightMapCollisions() {
+ //   player->UpdateHMapCollisionPointData(&player->mHMapCollPntData);
+
+    //Execute the terrain heightmap tile collision detection
+    //only if we do this morphing will also have an effect
+    //on the craft movements
+ //   player->HeightMapCollision(&player->mHMapCollPntData);
+}
+
 void Race::Init() {
     //create my main camera
     mCamera = mSmgr->addCameraSceneNodeFPS(0,100.0f,0.05f,-1,
@@ -876,7 +885,7 @@ void Race::Init() {
 
         //create my overall physics object
         //also handover pointer to my DrawDebug object
-        this->mPhysics = new Physics(this->mDrawDebug);
+        this->mPhysics = new Physics(this, this->mDrawDebug);
 
         //handover pointer to wall collision line (based on level file entities) data
         this->mPhysics->SetLevelCollisionWallLineData(ENTWallsegmentsLine_List);
@@ -958,7 +967,6 @@ void Race::TestVoxels() {
 }
 
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
-
     float progressMorph;
 
     //if frameDeltaTime is too large we could get
@@ -1113,6 +1121,10 @@ void Race::HandleComputerPlayers() {
 void Race::HandleInput() {
     bool playerNoTurningKeyPressed = true;
 
+    //only for debugging purposes, to trigger
+    //a breakpoint via a keyboard press
+    DebugHitBreakpoint = false;
+
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
         // testPerm();
@@ -1157,6 +1169,11 @@ void Race::HandleInput() {
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
     {
          this->currPlayerFollow = player2;
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
+    {
+         DebugHitBreakpoint = true;
     }
 
     if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_A)) {
@@ -1708,6 +1725,42 @@ void Race::Render() {
 
       }
 
+    /*  irr::core::vector2di hlpe;
+
+      irr::core::vector3df pnt1 = this->player->WorldCoordCraftFrontPnt;
+      pnt1.Y = this->player->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(pnt1.X, pnt1.Z, hlpe);
+
+      irr::core::vector3df pnt2 = this->player->WorldCoordCraftFrontPnt2;
+      pnt2.Y = this->player->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(pnt2.X, pnt2.Z, hlpe);*/
+
+    /*
+      mDrawDebug->Draw3DLine(this->player->WorldCoordCraftFrontPnt, this->player->WorldCoordCraftFrontPnt2,
+                             this->mDrawDebug->blue);*/
+
+      /*mDrawDebug->Draw3DLine(pnt1, pnt2,
+                             this->mDrawDebug->red);
+*/
+      /*mDrawDebug->Draw3DLine(this->player->debug.A, this->player->debug.B,
+                             this->mDrawDebug->blue);*/
+
+  /*    mDrawDebug->Draw3DLine(this->player->mHMapCollPntData.backRight45deg->wCoordPnt1,
+                             this->player->mHMapCollPntData.backRight45deg->wCoordPnt2,
+                             this->mDrawDebug->red);*/
+
+    /*  mDrawDebug->Draw3DLine(this->player->mHMapCollPntData.frontLeft45deg->wCoordPnt1, this->player->mHMapCollPntData.frontLeft45deg->wCoordPnt2,
+                             this->mDrawDebug->blue);*/
+
+      /*mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->mHMapCollPntData.backRight45deg->intersectionPnt,
+                             this->mDrawDebug->green);*/
+
+      /*mDrawDebug->Draw3DLine(this->player->mHMapCollPntData.backRight45deg->planePnt1,
+                             this->player->mHMapCollPntData.backRight45deg->planePnt2,
+                             this->mDrawDebug->blue);*/
+
+
+      /*mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), this->player->dbgInterset,
+                             this->mDrawDebug->green);*/
+
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
@@ -2056,7 +2109,8 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    /* Prepare level terrain                                   */
    /***********************************************************/
-   this->mLevelTerrain = new LevelTerrain(terrainname, this->mLevelRes, this->mSmgr, this->mDriver, mTexLoader);
+   this->mLevelTerrain = new LevelTerrain(terrainname, this->mLevelRes, this->mSmgr, this->mDriver, mTexLoader,
+                                          this);
 
    if (this->mLevelTerrain->Terrain_ready == false) {
        //something went wrong with the terrain loading, exit application

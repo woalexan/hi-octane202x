@@ -17,6 +17,7 @@
 #include <string.h>
 #include "math.h"
 #include "../audio/sound.h"
+#include "../audio/music.h"
 #include "../resources/assets.h"
 
 //definition of available menue pages
@@ -36,6 +37,7 @@
 //special "menue" pages
 #define MENUE_GAMETITLE 200
 #define MENUE_LOADRACESCREEN 201
+#define MENUE_INTRO 202
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION NULL
@@ -46,6 +48,9 @@
 #define MENUE_ACTION_SETPLAYERNAME 5
 #define MENUE_ACTION_SETMUSICVOLUME 6
 #define MENUE_ACTION_SETSOUNDVOLUME 7
+
+//special "menue" actions
+#define MENUE_ACTION_INTROSTOP 100
 
 //definition of possible menue states
 #define MENUE_STATE_TRANSITION 0  //menue window is currently moving, no item selection possible
@@ -75,6 +80,31 @@
 
 //3D model update period time in seconds
 #define MENUE_3DMODEL_UPDATEPERIODSEC 0.075f
+
+//this struct holds the information for a sound trigger event
+//used during the games intro playing
+typedef struct {
+    //absolute time of intro playing progress
+    //when to trigger this sound
+    irr::f32 triggerAbsTime;
+
+    //sound resource Id to trigger
+    uint8_t soundResId;
+
+    //if true looping sound is currently
+    //playing
+    bool loopSoundActive = false;
+
+    //if true sound will loop
+    bool looping;
+
+    //absolute time of intro playing
+    //to end looping sound again
+    irr::f32 endLoopingAbsTime;
+
+    //needed for looping sounds
+    sf::Sound* soundBufPntr = NULL;
+} IntroSoundTriggerStruct;
 
 //this struct holds the information for a menue
 //graphical element (mostly logo)
@@ -188,6 +218,9 @@ private:
     SoundEngine* mSoundEngine;
     Assets* mGameAssets;
 
+    //we need a music player for the game intro music
+    MyMusicStream* mMusicPlayer;
+
     irr::video::ITexture* backgnd;
     irr::core::dimension2d<irr::u32> screenResolution;
     std::vector<MenueGraphicPart*> GameLogo;
@@ -221,6 +254,8 @@ private:
     void RenderRaceSelection();
 
     void AcceptedRaceSetup();
+
+    void RenderIntro(irr::f32 frameDeltaTime);
 
     //renderOnlyNumberBlocks = optional parameter, needed for type writer effect in menue
     void RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
@@ -487,8 +522,10 @@ private:
 
     //create a dummy menue page for showing
     //game title screen and race loading screen
+    //same is true for game intro
     MenuePage* gameTitleMenuePage;
     MenuePage* raceLoadingMenuePage;
+    MenuePage* gameIntroMenuePage;
 
     void CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord);
     void InitStatLabels();
@@ -518,10 +555,36 @@ private:
     void RenderShipStatBoxes(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
                                irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks);
 
+    //stuff for game intro playing
+    std::vector<irr::video::ITexture*>* introTextures;
+    irr::u32 currIntroFrame;
+    irr::u32 numIntroFrame;
+    irr::core::vector2di introFrameScrDrawPos;
+    irr::core::dimension2d<irr::u32> introFrameScrSize;
+    bool introPlaying = false;
+
+    //absolute time for intro rendering
+    irr::f32 introTargetTimeBetweenFramesSec;
+    irr::f32 introCurrTimeBetweenFramesSec;
+    irr::f32 currFrameTimeErrorSec;
+    irr::f32 introAbsTimeSound;
+
+    //sound stuff for intro playing
+    std::vector<IntroSoundTriggerStruct*>* introSoundEventVec;
+    irr::u8 currIdxSoundEventVec;
+    irr::u8 numSoundEvents;
+
+    void AddIntroSoundTrigger(irr::f32 absTriggerTime, uint8_t soundIdNr,
+                              bool looping = false,  irr::f32 endLoopingTime = 0.0f);
+    void IntroProcessLoopingSounds(irr::f32 currSoundPlayingTime);
+
+    void CleanupIntro();
+
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
     Menue(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
-          MyEventReceiver* eventReceiver, irr::scene::ISceneManager* mainSceneManager, SoundEngine* soundEngine, Assets* assets);
+          MyEventReceiver* eventReceiver, irr::scene::ISceneManager* mainSceneManager, SoundEngine* soundEngine,
+          MyMusicStream* gameMusicPlayerParam, Assets* assets);
     ~Menue();
 
     bool MenueInitializationSuccess;
@@ -536,13 +599,17 @@ public:
     MenueAction* ActSetMusicVolume;
     MenueAction* ActSetSoundVolume;
 
-    void Render();
+    //special menue actions
+    MenueAction* ActIntroStop;
+
+    void Render(irr::f32 frameDeltaTime);
     void HandleInput();
     bool HandleActions(MenueAction* &pendingAction);
     void AdvanceTime(irr::f32 frameDeltaTime);
 
     void ShowGameTitle();
     void ShowMainMenue();
+    void ShowIntro();
 };
 
 #endif // MENUE_H

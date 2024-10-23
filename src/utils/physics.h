@@ -31,6 +31,7 @@
 
 #include <irrlicht/irrlicht.h>
 #include "../draw/drawdebug.h"
+#include "../race.h"
 #include <vector>
 #include <list>
 #include "../definitions.h"
@@ -53,6 +54,7 @@
 #define PHYSIC_APPLYFORCE_ONLYROT 2 //applies a force only rotational to rigid body
 
 class PhysicsObject; //Forward declaration
+class Race; //Forward declaration
 
 struct RayHitTriangleInfoStruct {
     irr::core::triangle3df hitTriangle;
@@ -310,7 +312,8 @@ private:
     //level wall collision 3D line data loaded from level file;
     std::vector<LineStruct*> *ENTWallsegmentsLine_List;
 
-    DrawDebug *mDebugObj;
+    Race *mParentRace;
+    DrawDebug* mDebugObj;
 
     bool OrientedBBoxCollision(PhysicsObject* obj1, PhysicsObject* obj2,  irr::core::aabbox3df box1, irr::core::aabbox3df box2,
                                         irr::core::vector3df *collNormal, irr::f32 *depth);
@@ -331,7 +334,7 @@ private:
     irr::core::vector3df mWallNormal;
 
 public:
-    Physics(DrawDebug *debugObj);
+    Physics(Race *parentRace, DrawDebug* drawDbg);
     ~Physics();
 
      std::vector<irr::scene::ITriangleSelector*> mRayTargetSelectors;

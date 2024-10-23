@@ -118,6 +118,8 @@ class SteamFountain; //Forward declaration
 class ExplosionLauncher; //Forward declaration
 class LevelTerrain; //Forward declaration
 class LevelBlocks; //Forward declaration
+class Physics; //Forward declaration
+class PhysicsObject; //Forward declaration
 
 class Race {
 public:
@@ -138,6 +140,8 @@ public:
     void Init();
     void AddPlayer();
     void End();
+
+    void HandleCraftHeightMapCollisions();
 
     bool exitRace = false;
 
@@ -200,6 +204,8 @@ public:
     void testPerm();
     void remoPerm();
     HUD *Hud1Player;
+
+    bool DebugHitBreakpoint = false;
 
     //debugging function which allows to draw a rectangle around a selected
     //tile of the heightmap of the terrain level

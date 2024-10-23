@@ -22,9 +22,10 @@
 #include "resources/assets.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
-#define DEF_GAMESTATE_GAMETITLE 1
-#define DEF_GAMESTATE_MENUE 2
-#define DEF_GAMESTATE_RACE 3
+#define DEF_GAMESTATE_INTRO 1
+#define DEF_GAMESTATE_GAMETITLE 2
+#define DEF_GAMESTATE_MENUE 3
+#define DEF_GAMESTATE_RACE 4
 
 using namespace std;
 
@@ -70,6 +71,11 @@ private:
     irr::f32 showTitleAbsTime = 0.0f;
 
     bool ExitGame = false;
+    bool mDebugGame = false;
+
+    //set true to skip playing
+    //game intro
+    bool SkipGameIntro = true;
 
     //Returns true for success, false for error occured
     bool InitIrrlicht();

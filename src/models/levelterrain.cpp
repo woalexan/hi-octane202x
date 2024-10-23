@@ -181,9 +181,11 @@ void LevelTerrain::CheckPosInsideChargingRegion(int posX, int posY, bool &charge
     }
 }
 
-LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver, TextureLoader* textureSource) {
+LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
+                           TextureLoader* textureSource, Race* mRaceParent) {
    this->m_driver = driver;
    this->m_smgr = mySmgr;
+   this->mRace = mRaceParent;
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -749,6 +751,138 @@ irr::f32 LevelTerrain::GetAveragedTileHeight(int x, int z)
 
 //next function is used for terrain tile based collision
 //detection
+//x1, z1 = pnt 1 location tile, where to start
+//x2, z2 = pnt 2 location tile, tile further away from player
+void LevelTerrain::GetCollisionPlaneBetweenNeighboringTiles(int x1, int z1, int x2, int z2,
+                       irr::core::vector3df &collPlanePos1, irr::core::vector3df &collPlanePos2,
+                       irr::core::vector3df &collResolutionDirVec) {
+
+    //what is the spartial relationsship between
+    //first and second tile?
+    //there are 8 possibilities
+    irr::s8 deltaX = (x2 - x1);
+    irr::s8 deltaZ = (z2 - z1);
+
+    irr::core::vector3df hlp;
+    irr::core::vector3df v4 = this->pTerrainTiles[x1][z1].vert4->Pos;
+    v4.X = -v4.X;
+    v4.Y = -v4.Y;
+
+    irr::core::vector3df v3 = this->pTerrainTiles[x1][z1].vert3->Pos;
+    v3.X = -v3.X;
+    v3.Y = -v3.Y;
+
+    irr::core::vector3df v2 = this->pTerrainTiles[x1][z1].vert2->Pos;
+    v2.X = -v2.X;
+    v2.Y = -v2.Y;
+
+    irr::core::vector3df v1 = this->pTerrainTiles[x1][z1].vert1->Pos;
+    v1.X = -v1.X;
+    v1.Y = -v1.Y;
+
+    switch (deltaX) {
+        case -1 : {
+            switch (deltaZ) {
+                case -1: {
+                    //corner tile left/upwards has 3 stepnessess
+                    hlp = (v3 - v1) * irr::core::vector3df(0.5f, 1.0f, 0.5f);
+                    collPlanePos1 = v4 - hlp;
+                    collPlanePos2 = v2 - hlp;
+                    hlp.normalize();
+                    collResolutionDirVec = hlp;
+                    break;
+                 }
+                case 0: {
+                    //tile left of first tile, here there are only 2 stepnessess
+                    collPlanePos1 = v1;
+                    collPlanePos2 = v4;
+                    hlp = v3 - v4;
+                    hlp.normalize();
+                    collResolutionDirVec = hlp;
+                    break;
+                }
+                case +1: {
+                    //corner tile left/downwards has 3 stepnessess
+                    hlp = (v2 - v4) * irr::core::vector3df(0.5f, 1.0f, 0.5f);
+                    collPlanePos1 = v1 - hlp;
+                    collPlanePos2 = v3 - hlp;
+                    hlp.normalize();
+                    collResolutionDirVec = hlp;
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case 0 : {
+            switch (deltaZ) {
+                case -1: {
+                    //tile upwards has 2 stepnessess
+                    collPlanePos1 = v1;
+                    collPlanePos2 = v2;
+                    hlp = v4 - v1;
+                    hlp.normalize();
+                    collResolutionDirVec = hlp;
+
+                    break;
+                 }
+                case 0: {
+                    //neighbor and first tile are identical, return no stepness
+                    break;
+                }
+                case +1: {
+                    //tile downwards has 2 stepnessess
+                    collPlanePos1 = v3;
+                    collPlanePos2 = v4;
+                    hlp = v1 - v4;
+                    hlp.normalize();
+                    collResolutionDirVec = hlp;
+                    break;
+                }
+            }
+
+            break;
+        }
+
+    case +1 : {
+        switch (deltaZ) {
+            case -1: {
+                //corner tile right/upwards has 3 stepnessess
+                hlp = (v4 - v2) * irr::core::vector3df(0.5f, 1.0f, 0.5f);
+                collPlanePos1 = v1 - hlp;
+                collPlanePos2 = v3 - hlp;
+                hlp.normalize();
+                collResolutionDirVec = hlp;
+                break;
+             }
+            case 0: {
+                //tile right of first tile, here there are only 2 stepnessess
+                collPlanePos1 = v2;
+                collPlanePos2 = v3;
+                hlp = v4 - v3;
+                hlp.normalize();
+                collResolutionDirVec = hlp;
+                break;
+            }
+            case +1: {
+                //corner tile right/downwards has 3 stepnessess
+                hlp = (v1 - v3) * irr::core::vector3df(0.5f, 1.0f, 0.5f);
+                collPlanePos1 = v2 - hlp;
+                collPlanePos2 = v4 - hlp;
+                hlp.normalize();
+                collResolutionDirVec = hlp;
+                break;
+            }
+        }
+
+        break;
+        }
+    }
+}
+
+//next function is used for terrain tile based collision
+//detection
 //x1, z1 = current player location tile, tile which defines in which
 //direction of steepness of neighboring tile is calculated
 //x2, z2 = tile location of neighboring tile for which the steepness should
@@ -1252,8 +1386,6 @@ bool LevelTerrain::setupGeometry() {
 
         this->pTerrainTiles[x][z].currTileHeight = 0.0f;
 
-        //only create mesh for cell if it was not optimized away (non used parts of the level map)
-        if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
             MapEntry *b = GetMapEntry(x + 1, z);
             MapEntry *c = GetMapEntry(x + 1, z + 1);
             MapEntry *d = GetMapEntry(x, z + 1);
@@ -1289,8 +1421,6 @@ bool LevelTerrain::setupGeometry() {
             this->pTerrainTiles[x][z].vert4CurrPositionY = this->pTerrainTiles[x][z].vert4->Pos.Y;
             this->pTerrainTiles[x][z].vert4CurrPositionYDirty = false;
 
-            numVertices += 4;
-
             //precalculate averaged tile height, this value will be for example used later
             //for player craft calculations...
             this->pTerrainTiles[x][z].currTileHeight = GetAveragedTileHeight(x, z);
@@ -1312,13 +1442,7 @@ bool LevelTerrain::setupGeometry() {
             this->pTerrainTiles[x][z].vert4->TCoords = newuvs[3];
             this->pTerrainTiles[x][z].vert4UVcoord = newuvs[3];
 
-            numUVs += 4;
-
             this->pTerrainTiles[x][z].VertUpdatedUVScoord = false;
-
-            //store the texture ID information for the 2 tris
-            textureIdData.push_back(a->m_TextureId);
-            textureIdData.push_back(a->m_TextureId);
 
             // add normals
             normal = computeNormalFromMapEntries(x    , z    , 1.0f);
@@ -1341,25 +1465,34 @@ bool LevelTerrain::setupGeometry() {
             this->pTerrainTiles[x][z].vert4->Normal = normal;
             this->pTerrainTiles[x][z].vert4CurrNormal = normal;
 
-            numNormals += 4;
-
             this->pTerrainTiles[x][z].RefreshNormals = false;
 
-            // add indices for the 2 tris
-            indices.push_back(i);
-            indices.push_back(i + 1);
-            indices.push_back(i + 3);
+            //only create mesh for cell if it was not optimized away (non used parts of the level map)
+            if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
+                 numUVs += 4;
+                 numVertices += 4;
 
-            indices.push_back(i + 1);
-            indices.push_back(i + 2);
-            indices.push_back(i + 3);
+                 //store the texture ID information for the 2 tris
+                 textureIdData.push_back(a->m_TextureId);
+                 textureIdData.push_back(a->m_TextureId);
 
-            i += 4;
+                 numNormals += 4;
 
-            numIndices += 6;
+                 // add indices for the 2 tris
+                 indices.push_back(i);
+                 indices.push_back(i + 1);
+                 indices.push_back(i + 3);
 
-            // determine max height
-            max = std::max(max, a->m_Height);
+                 indices.push_back(i + 1);
+                 indices.push_back(i + 2);
+                 indices.push_back(i + 3);
+
+                 i += 4;
+
+                 numIndices += 6;
+
+                 // determine max height
+                 max = std::max(max, a->m_Height);
           }
        }
      }
@@ -1635,7 +1768,40 @@ void LevelTerrain::ApplyMorph(Morph morph)
 
           if (dirtyPos) {
                 myTerrainMesh->setDirty(EBT_VERTEX);
-               }
+          }
+}
+
+irr::f32 LevelTerrain::GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord) {
+    /*if (this->mRace != NULL) {
+        if (this->mRace->DebugHitBreakpoint) {
+            this->mRace->DebugHitBreakpoint = false;
+        }
+    }*/
+
+    //what cell are we in?
+    vector2di cell(-x / this->segmentSize, z / this->segmentSize);
+
+    ForceTileGridCoordRange(cell);
+
+    outCellCoord = cell;
+
+    //get pntr to this tile
+    TerrainTileData *pntr = &pTerrainTiles[cell.X][cell.Y];
+
+    irr::f32 yRes;
+
+    if (pntr != NULL) {
+        irr::f32 slopeX = -pntr->vert2CurrPositionY + pntr->vert1CurrPositionY;
+        irr::f32 slopeZ = -pntr->vert4CurrPositionY + pntr->vert1CurrPositionY;
+
+        vector2df modulus(-x - irr::f32(cell.X), z - irr::f32(cell.Y));
+
+        yRes = -pntr->vert1CurrPositionY + slopeX * modulus.X + slopeZ * modulus.Y;
+    } else {
+        yRes = 0.0f;
+    }
+
+    return yRes;
 }
 
 irr::u16 LevelTerrain::get_width() {

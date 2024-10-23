@@ -149,6 +149,16 @@ Player::~Player() {
 
     delete dirtTexIdsVec;
     dirtTexIdsVec = NULL;
+
+    //free the height map collision stuff
+    delete this->mHMapCollPntData.front;
+    delete this->mHMapCollPntData.frontLeft45deg;
+    delete this->mHMapCollPntData.frontRight45deg;
+    delete this->mHMapCollPntData.left;
+    delete this->mHMapCollPntData.right;
+    delete this->mHMapCollPntData.backLeft45deg;
+    delete this->mHMapCollPntData.backRight45deg;
+    delete this->mHMapCollPntData.back;
 }
 
 Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
@@ -273,6 +283,75 @@ void Player::SetCurrClosestWayPointLink(WayPointLinkInfoStruct* newClosestWayPoi
     }
 }
 
+//calculate local coordinates for heightmap collision points of craft
+void Player::CreateHMapCollisionPointData() {
+    this->Player_node->updateAbsolutePosition();
+
+    /*irr::f32 diag = sqrt(this->mRace->mLevelTerrain->segmentSize * this->mRace->mLevelTerrain->segmentSize
+                         + this->mRace->mLevelTerrain->segmentSize * this->mRace->mLevelTerrain->segmentSize);*/
+
+    irr::f32 diag = this->mRace->mLevelTerrain->segmentSize * 0.7f;
+
+    //get the size of the craft 3D model bounding box
+    irr::core::vector3df hlpVec = Player_node->getTransformedBoundingBox().getExtent();
+
+    //straight forwards direction
+    this->mHMapCollPntData.front = new HMAPCOLLSENSOR();
+    mHMapCollPntData.front->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z);
+    mHMapCollPntData.front->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - this->mRace->mLevelTerrain->segmentSize);
+
+    //forward 45deg to the left side direction
+    this->mHMapCollPntData.frontLeft45deg = new HMAPCOLLSENSOR();
+    this->mHMapCollPntData.frontLeft45deg->localPnt1.set(0.5f * hlpVec.X, 0.0f,-0.5f * hlpVec.Z);
+    this->mHMapCollPntData.frontLeft45deg->localPnt2.set(0.5f * hlpVec.X + diag, 0.0f, -0.5f * hlpVec.Z - diag);
+
+    //forward 45deg to the right side direction
+    this->mHMapCollPntData.frontRight45deg = new HMAPCOLLSENSOR();
+    this->mHMapCollPntData.frontRight45deg->localPnt1.set(-0.5f * hlpVec.X, 0.0f, -0.5f * hlpVec.Z);
+    this->mHMapCollPntData.frontRight45deg->localPnt2.set(-0.5f * hlpVec.X - diag, 0.0f, -0.5f * hlpVec.Z - diag);
+
+    //left side of the player craft
+    this->mHMapCollPntData.left = new HMAPCOLLSENSOR();
+    this->mHMapCollPntData.left->localPnt1.set(0.5f * hlpVec.X, 0.0f, 0.0f);
+    this->mHMapCollPntData.left->localPnt2.set(0.5f * hlpVec.X + this->mRace->mLevelTerrain->segmentSize, 0.0f, 0.0f);
+
+    //right side of the player craft
+    this->mHMapCollPntData.right = new HMAPCOLLSENSOR();
+    this->mHMapCollPntData.right->localPnt1.set(-0.5f * hlpVec.X, 0.0f, 0.0f);
+    this->mHMapCollPntData.right->localPnt2.set(-0.5f * hlpVec.X - this->mRace->mLevelTerrain->segmentSize, 0.0f, 0.0f);
+
+    //back 45deg to the left side direction
+    this->mHMapCollPntData.backLeft45deg = new HMAPCOLLSENSOR();
+    this->mHMapCollPntData.backLeft45deg->localPnt1.set(0.5f * hlpVec.X, 0.0f, 0.5f * hlpVec.Z);
+    this->mHMapCollPntData.backLeft45deg->localPnt2.set(0.5f * hlpVec.X + diag, 0.0f, 0.5f * hlpVec.Z + diag);
+
+    //back 45deg to the right side direction
+    this->mHMapCollPntData.backRight45deg = new HMAPCOLLSENSOR();
+    this->mHMapCollPntData.backRight45deg->localPnt1.set(-0.5f * hlpVec.X, 0.0f, 0.5f * hlpVec.Z);
+    this->mHMapCollPntData.backRight45deg->localPnt2.set(-0.5f * hlpVec.X - diag, 0.0f, 0.5f * hlpVec.Z + diag);
+
+    //straight backwards direction
+    this->mHMapCollPntData.back = new HMAPCOLLSENSOR();
+    mHMapCollPntData.back->localPnt1.set(0.0f, 0.0f, 0.5f * hlpVec.Z);
+    mHMapCollPntData.back->localPnt2.set(0.0f, 0.0f, 0.5f * hlpVec.Z + this->mRace->mLevelTerrain->segmentSize);
+}
+
+void Player::UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor) {
+    sensor.wCoordPnt1 = this->phobj->ConvertToWorldCoord(sensor.localPnt1);
+    sensor.wCoordPnt2 = this->phobj->ConvertToWorldCoord(sensor.localPnt2);
+}
+
+//calculate world coordinates from local coordinates for heightmap collision points of craft
+void Player::UpdateHMapCollisionPointData() {
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.front);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.frontLeft45deg);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.frontRight45deg);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.left);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.right);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.back);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.backLeft45deg);
+  UpdateHMapCollisionSensorPointData(*this->mHMapCollPntData.backRight45deg);
+}
 
 //NewPosition = New position of player craft center of gravity (world coordinates)
 //NewFrontAt = defines where player craft front is located at (world coordinates)
@@ -290,6 +369,8 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
 
     irr::core::vector3df WCDirVecFrontToCOG = (NewPosition - NewFrontAt);
     irr::core::vector3df WCDirVecCOGtoBack = NewPosition + WCDirVecFrontToCOG;
+
+    LocalCraftFrontPnt2 = LocalCraftFrontPnt - WCDirVecFrontToCOG.normalize() * 1.0f;
 
     matr.transformVect(WCDirVecCOGtoBack);
     LocalCraftBackPnt = WCDirVecCOGtoBack;
@@ -336,6 +417,8 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     LocalCraftDustPnt.X = 0.0f;
     LocalCraftDustPnt.Y = -hlpVec.Y * 0.3f;
     LocalCraftDustPnt.Z = 0.0f;
+
+    CreateHMapCollisionPointData();
 }
 
 void Player::DebugCraftLocalFeatureCoordinates() {
@@ -557,7 +640,7 @@ void Player::NoTurningKeyPressed() {
         currentSideForce = 0.0f;
    }
 }
-
+/*
 void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df collResolutionDirVec, bool isForCraftBack = false) {
     irr::f32 dist;
 
@@ -606,6 +689,57 @@ void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::ve
     //Also slow the craft down considerably by adding friction
     //because otherwise the player gets no penalty by colliding with walls
     this->phobj->AddFriction(2.0f);
+}*/
+
+void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2) {
+    irr::f32 dist;
+    irr::core::vector3df outIntersect;
+    irr::core::vector3df collResolutionDirVec;
+
+    //allow max 10 iterations to resolve collision
+    //to prevent endless loops
+    for (int resolvCnt = 0; resolvCnt < 10; resolvCnt++) {
+        if (cplane.getIntersectionWithLimitedLine(pnt1, pnt2, outIntersect)) {
+            /*irr::core::vector2di outCell;
+            //we need to correct Y coordinate of intersection point, so that it is at the height of the tile below
+            outIntersect.Y =
+                    this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(outIntersect.X, outIntersect.Z, outCell);
+
+            dbgInterset = outIntersect;*/
+
+            collResolutionDirVec = (outIntersect - pnt1);
+            dist = collResolutionDirVec.getLength();
+        } else {
+            //no more intersection
+            break;
+        }
+
+        dbgDistance = dist;
+
+        //if we have enough distance exit
+        if (dist > 0.0f)
+            break;
+
+        if (resolvCnt == 0) {
+            //a collision should occur, play collision sound
+            this->Collided();
+        }
+
+        //prevent collision detection to modify Y coordinate, this should
+        //eliminate all kind of unwanted effects, like moving the craft
+        //upwards a hill during a continious collision situation
+        //with the terrain etc.
+        collResolutionDirVec.Y = 0.0f;
+
+        //add a force that pushes the object away from the terrain tile we collided with
+        this->phobj->physicState.position -= collResolutionDirVec * dist;
+        this->phobj->AddWorldCoordForce(this->phobj->physicState.position,
+                this->phobj->physicState.position - collResolutionDirVec * 2.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+     }
+
+    //Also slow the craft down considerably by adding friction
+    //because otherwise the player gets no penalty by colliding with walls
+    this->phobj->AddFriction(2.0f);
 }
 
 //in the original game the ship seems to collide with the
@@ -624,7 +758,7 @@ void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::ve
 //height of surrounding tiles. I need to do the same, which I will try to do here.
 //I know it seems kind of messy to have different kind of collisions in the same
 //game, but that is all I can do now
-void Player::HeightMapCollision() {
+/*void Player::HeightMapCollision() {
     //if we do not know the neighboring tile in forward direction
     //yet lets exit here, we can not do anything in this case
     //this tile is derived inside function GetHeightRaceTrackBelowCraft
@@ -778,6 +912,215 @@ void Player::HeightMapCollision() {
             HeightMapCollisionResolve(cplane, collResolutionDirVec, true);
         }
     }
+}*/
+
+//in the original game the ship seems to collide with the
+//marked Wallsegments which are contained within the enties
+//of the level data. I do the same, as I create a collision mesh which
+//contains an auto generated vertical wall at each wall segment location.
+//Additional I create an collision mesh where the outline of (almost) every
+//block in the game is also added. Only exception are the blocks above an tunnel,
+//because otherwise the player often got stuck there in the ceiling.
+//This collision mesh collisions are handled in Utils/physics.
+//The problem is if I only apply this kind of collisions with the blocks and the
+//wallsegment lines the player can fly through walls of Morphing-Regions, as the are
+//not there at all. Also for example in Level 3 the player can fly upwards the walls
+//of the massive hills around the starting point, but in the original game the
+//player can not. Therefore the game seems to do additional collision checking based on the
+//height of surrounding tiles. I need to do the same, which I will try to do here.
+//I know it seems kind of messy to have different kind of collisions in the same
+//game, but that is all I can do now
+void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
+
+    irr::f32 dist;
+    irr::core::vector3df collPlanePos1Coord;
+    irr::core::vector3df collPlanePos2Coord;
+    irr::core::vector3df collResolutionDirVector;
+    irr::core::vector3df outIntersect;
+    irr::core::vector3df delta;
+    irr::core::vector3df deltaGround;
+    irr::f32 step;
+    irr::core::plane3df cplane;
+
+    collSensor.stepness = 0.0f;
+    collSensor.distance = 0.0f;
+    collSensor.planePnt1.set(0.0f, 0.0f, 0.0f);
+    collSensor.planePnt2.set(0.0f, 0.0f, 0.0f);
+    collSensor.intersectionPnt.set(0.0f, 0.0f, 0.0f);
+
+    bool diffTiles = false;
+    bool noIntersectionPnt = false;
+
+    collSensor.wCoordPnt1.Y =
+            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+            (collSensor.wCoordPnt1.X,
+             collSensor.wCoordPnt1.Z,
+             collSensor.cellPnt1);
+
+    collSensor.wCoordPnt2.Y =
+            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+            (collSensor.wCoordPnt2.X,
+             collSensor.wCoordPnt2.Z,
+             collSensor.cellPnt2);
+
+    if ((collSensor.cellPnt1.X != collSensor.cellPnt2.X) ||
+        (collSensor.cellPnt1.Y != collSensor.cellPnt2.Y)) {
+            diffTiles = true;
+    }
+
+    if (diffTiles) {
+        //the two points are in different tiles, that means there is a intersection point at the edge
+        //between the two tiles
+        //there is potential for a collision, get "collision" plane between both cells
+        this->mRace->mLevelTerrain->GetCollisionPlaneBetweenNeighboringTiles(collSensor.cellPnt1.X, collSensor.cellPnt1.Y,
+                                                                             collSensor.cellPnt2.X, collSensor.cellPnt2.Y,
+                               collPlanePos1Coord, collPlanePos2Coord,
+                               collResolutionDirVector);
+
+        collSensor.planePnt1 = collPlanePos1Coord;
+        collSensor.planePnt2 = collPlanePos2Coord;
+
+        //create a plane for further collision calculations
+        cplane.setPlane(collPlanePos1Coord, collPlanePos2Coord, collPlanePos1Coord + irr::core::vector3df(0.0f, 1.0f, 0.0f));
+
+        if (cplane.getIntersectionWithLimitedLine(collSensor.wCoordPnt1, collSensor.wCoordPnt2, outIntersect)) {
+            irr::core::vector2di outCell;
+            //we need to correct Y coordinate of intersection point, so that it is at the height of the tile below
+            outIntersect.Y =
+                    this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(outIntersect.X, outIntersect.Z, outCell);
+
+            collSensor.intersectionPnt = outIntersect;
+
+            //steepness is calculated from pnt2 back to intersection point
+            delta = (collSensor.wCoordPnt2 - outIntersect);
+
+            deltaGround = delta;
+            deltaGround.Y = 0.0f;
+
+            //calculate steepness
+            step = delta.Y / (deltaGround.getLength());
+            collSensor.stepness = step;
+
+        } else {
+            //we did not find an intersection point
+            noIntersectionPnt = true;
+        }
+    } else {
+        //both points are in the same tile
+        //calculate steepness directly between pnt2 and pnt1
+        delta = (collSensor.wCoordPnt2 - collSensor.wCoordPnt1);
+
+        deltaGround = delta;
+        deltaGround.Y = 0.0f;
+
+        //calculate steepness
+        step = delta.Y / (deltaGround.getLength());
+        collSensor.stepness = step;
+    }
+
+    irr::f32 SteepThresh = DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES;
+
+    collSensor.deactivateHeightControl = false;
+
+    //if steepness is higher then threshold we need to check for collision
+    if (step > SteepThresh) {
+        collSensor.deactivateHeightControl = true;
+
+        if (diffTiles && !noIntersectionPnt) {
+            //if pnt2 and pnt1 are again in different tiles, the remaining distance before
+            //crash is from intersection point to pnt1
+            irr::core::vector3df distVec = (outIntersect - collSensor.wCoordPnt1);
+
+            dist = distVec.getLength();
+            collSensor.distance = dist;
+
+            if ((dist < 0.1f) && (dist > 0.0f)) {
+                //we have a collision!
+                //HeightMapCollisionResolve(cplane, collDataStruct->wCoordFront1, collDataStruct->wCoordFront2);
+
+                //a collision should occur, play collision sound
+                this->Collided();
+
+                irr::core::vector3df collResolutionDirVec = distVec.normalize();
+
+                //immediately move the object so the collision is resolved
+                //add a force that pushes the object away from the terrain tile we collided with
+                this->phobj->physicState.position -= collResolutionDirVec * (0.1f - dist);
+
+                this->phobj->AddWorldCoordForce(this->phobj->physicState.position,
+                        this->phobj->physicState.position - collResolutionDirVec * 10.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
+                collSensor.collCnt++;
+            }
+
+        } else if (!diffTiles) {
+            //we most likely went to far over the cplane
+            if (cplane.getIntersectionWithLimitedLine(this->phobj->physicState.position, collSensor.wCoordPnt1, outIntersect)) {
+                irr::core::vector2di outCell;
+                //we need to correct Y coordinate of intersection point, so that it is at the height of the tile below
+                outIntersect.Y =
+                        this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(outIntersect.X, outIntersect.Z, outCell);
+
+                collSensor.intersectionPnt = outIntersect;
+
+                //distance we went over the collision target is between
+                //the point closes to the craft and the new intersection point
+                irr::core::vector3df distVec = (outIntersect - collSensor.wCoordPnt1);
+
+                dist = distVec.getLength();
+                collSensor.distance = dist;
+
+                //a collision should occur, play collision sound
+                this->Collided();
+
+                irr::core::vector3df collResolutionDirVec = distVec.normalize();
+
+                //immediately move the object so the collision is resolved
+                //add a force that pushes the object away from the terrain tile we collided with
+                this->phobj->physicState.position += collResolutionDirVec * dist;
+
+                this->phobj->AddWorldCoordForce(this->phobj->physicState.position,
+                        this->phobj->physicState.position + collResolutionDirVec * 10.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
+                 collSensor.collCnt++;
+
+            } else {
+                //we did not find an intersection point
+                noIntersectionPnt = true;
+            }
+
+        }
+
+
+      /*  dist = (outIntersect - collDataStruct->wCoordFront1).getLength();
+
+        if (dist < 0.0f) {
+            //we have a collision!
+            HeightMapCollisionResolve(cplane, collDataStruct->wCoordFront1, collDataStruct->wCoordFront2);
+        }*/
+
+
+
+        //dbgInterset.set(0.0f, 0.0f, 0.0f);
+/*
+        dbgDistance = 0.0f;
+
+        if (cplane.getIntersectionWithLimitedLine(collDataStruct->wCoordFront1, collDataStruct->wCoordFront2, outIntersect)) {
+            dbgInterset = outIntersect;
+
+            dist = (outIntersect - collDataStruct->wCoordFront1).getLength();
+
+            if (dist < 0.0f) {
+                //we have a collision!
+                HeightMapCollisionResolve(cplane, collDataStruct->wCoordFront1, collDataStruct->wCoordFront2);
+            }
+
+            dbgDistance = dist;
+        }*/
+
+
+    }
+
 }
 
 void Player::Collided() {
@@ -1494,6 +1837,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
     WorldCoordCraftBackPnt = this->phobj->ConvertToWorldCoord(LocalCraftBackPnt);
     WorldCoordCraftLeftPnt = this->phobj->ConvertToWorldCoord(LocalCraftLeftPnt);
     WorldCoordCraftRightPnt = this->phobj->ConvertToWorldCoord(LocalCraftRightPnt);
+
+    WorldCoordCraftFrontPnt2 = this->phobj->ConvertToWorldCoord(LocalCraftFrontPnt2);
+
     WorldCoordCraftSmokePnt = this->phobj->ConvertToWorldCoord(LocalCraftSmokePnt);
     WorldCraftDustPnt = this->phobj->ConvertToWorldCoord(LocalCraftDustPnt);
 
@@ -1505,6 +1851,20 @@ void Player::Update(irr::f32 frameDeltaTime) {
     craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
     craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
 
+    UpdateHMapCollisionPointData();
+
+    //Execute the terrain heightmap tile collision detection
+    //only if we do this morphing will also have an effect
+    //on the craft movements
+    HeightMapCollision(*mHMapCollPntData.front);
+    HeightMapCollision(*mHMapCollPntData.frontLeft45deg);
+    HeightMapCollision(*mHMapCollPntData.frontRight45deg);
+    HeightMapCollision(*mHMapCollPntData.left);
+    HeightMapCollision(*mHMapCollPntData.right);
+    HeightMapCollision(*mHMapCollPntData.back);
+    HeightMapCollision(*mHMapCollPntData.backLeft45deg);
+    HeightMapCollision(*mHMapCollPntData.backRight45deg);
+
    // StabilizeCraft(frameDeltaTime);
 
     //*****************************************************
@@ -1513,6 +1873,22 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //establish height information of race track below player craft
     GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
+
+    if (this->mHMapCollPntData.front->deactivateHeightControl) {
+        currHeightFront = this->mHMapCollPntData.front->wCoordPnt1.Y;
+    }
+
+    if (this->mHMapCollPntData.back->deactivateHeightControl) {
+        currHeightBack = this->mHMapCollPntData.back->wCoordPnt1.Y;
+    }
+
+    if (this->mHMapCollPntData.left->deactivateHeightControl) {
+        currHeightLeft = this->mHMapCollPntData.left->wCoordPnt1.Y;
+    }
+
+    if (this->mHMapCollPntData.right->deactivateHeightControl) {
+        currHeightRight = this->mHMapCollPntData.right->wCoordPnt1.Y;
+    }
 
     DbgCurrRaceTrackHeightFront = currHeightFront;
     DbgCurrRaceTrackHeightBack = currHeightBack;
@@ -1568,11 +1944,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     irr::f32 corrForceRight = heightErrorRight * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y * corrDampingHeight;
     this->phobj->AddLocalCoordForce(LocalCraftRightPnt, LocalCraftRightPnt - irr::core::vector3df(0.0f, corrForceRight, 0.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-
-    //Execute the terrain heightmap tile collision detection
-    //only if we do this morphing will also have an effect
-    //on the craft movements
-    HeightMapCollision();
 
     //check if this player is located at a charging station (gasoline, ammo or shield)
     CheckForChargingStation();
@@ -2295,7 +2666,7 @@ void Player::CheckDustCloudEmitter() {
 
 void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::f32 &left, irr::f32 &right) {
     //we need to control the height of the player according to the Terrain below
-    irr::core::vector3d<irr::f32> SearchPosition;
+    //irr::core::vector3d<irr::f32> SearchPosition;
 
     //calculate craft travel direction
     //the commented line below which calculate frontDir vom Velocity vector is bad, because at the start
@@ -2303,10 +2674,10 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
     //possible for terrain below the craft
     //irr::core::vector3df frontDir = (this->phobj->physicState.velocity / this->phobj->physicState.speed);
 
-    irr::core::vector3df frontDir;
+    /*irr::core::vector3df frontDir;
     irr::core::vector3df leftDir;
     irr::core::vector3df rightDir;
-    irr::core::vector3df backDir;
+    irr::core::vector3df backDir;*/
 
     irr::core::vector3df pos_in_worldspace_frontPos(LocalCraftFrontPnt);
     this->Player_node->updateAbsolutePosition();
@@ -2314,149 +2685,48 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
 
     matr.transformVect(pos_in_worldspace_frontPos);
 
-    frontDir = (pos_in_worldspace_frontPos - this->Player_node->getPosition());
-    frontDir.normalize();
+    irr::core::vector2di outCellFront;
+    front = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                pos_in_worldspace_frontPos.X,
+                pos_in_worldspace_frontPos.Z,
+                outCellFront);
 
     irr::core::vector3df pos_in_worldspace_RightPos(LocalCraftRightPnt);
     matr.transformVect(pos_in_worldspace_RightPos);
-    rightDir = (pos_in_worldspace_RightPos - this->Player_node->getPosition());
-    rightDir.normalize();
+
+    irr::core::vector2di outCellRight;
+    right = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                pos_in_worldspace_RightPos.X,
+                pos_in_worldspace_RightPos.Z,
+                outCellRight);
 
     irr::core::vector3df pos_in_worldspace_LeftPos(LocalCraftLeftPnt);
     matr.transformVect(pos_in_worldspace_LeftPos);
 
+    irr::core::vector2di outCellLeft;
+    left = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                pos_in_worldspace_LeftPos.X,
+                pos_in_worldspace_LeftPos.Z,
+                outCellLeft);
+
     irr::core::vector3df pos_in_worldspace_backPos(LocalCraftBackPnt);
     matr.transformVect(pos_in_worldspace_backPos);
 
-    irr::core::vector2di closestCoord;
-    int nrVertice;
+    irr::core::vector2di outCellBack;
+    back = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                pos_in_worldspace_backPos.X,
+                pos_in_worldspace_backPos.Z,
+                outCellBack);
 
-    //for front of craft
-    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_frontPos, nrVertice);
-    mNextNeighboringTileInFrontOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
-
-    //get current height of race track below front of craft
-    switch (nrVertice) {
-        case 1: {
-            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
-            break;
-         }
-        case 2: {
-            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
-            break;
-         }
-        case 3: {
-            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
-            break;
-             }
-        case 4: {
-            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
-            break;
-     }
-    }
-
-    //for right of craft
-    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_RightPos, nrVertice);
-    mNextNeighboringTileRightOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
-
-    //get current height of race track below right of craft
-    switch (nrVertice) {
-        case 1: {
-            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
-            break;
-         }
-        case 2: {
-            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
-            break;
-         }
-        case 3: {
-            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
-            break;
-             }
-        case 4: {
-            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
-            break;
-     }
-    }
-
-    //for left of craft
-    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_LeftPos, nrVertice);
-     mNextNeighboringTileLeftOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
-
-    //get current height of race track below left of craft
-    switch (nrVertice) {
-        case 1: {
-            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
-            break;
-         }
-        case 2: {
-            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
-            break;
-         }
-        case 3: {
-            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
-            break;
-             }
-        case 4: {
-            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
-            break;
-     }
-    }
-
-    //for back of craft
-    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_backPos, nrVertice);
-    mNextNeighboringTileBehindOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
-
-    //get current height of race track below back of craft
-    switch (nrVertice) {
-        case 1: {
-            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
-            break;
-         }
-        case 2: {
-            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
-            break;
-         }
-        case 3: {
-            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
-            break;
-             }
-        case 4: {
-            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
-            break;
-     }
-    }
-
-   // mNextNeighboringTileInFrontOfMe = NULL;
-   // mNextNeighboringTileBehindOfMe = NULL;
-   // mNextNeighboringTileLeftOfMe = NULL;
-   // mNextNeighboringTileRightOfMe = NULL;
-
-    //irr::core::vector3d<irr::f32> VectorUp(0.0f, 1.0f, 0.0f);
-
-    //irr::core::vector3df sideDir = frontDir.crossProduct(VectorUp);
-
-    //irr::f32 next_height;
-
-    if (DEBUG_PLAYER_HEIGHT_CONTROL == true)
-         debug_player_heightcalc_lines.clear();
-
-    MapEntry* FrontTerrainTiles[3];
-    MapEntry* BackTerrainTiles[3];
-    MapEntry* RightTerrainTiles[3];
-    MapEntry* LeftTerrainTiles[3];
-
-    currTileBelowPlayer = NULL;
+    //currTileBelowPlayer = NULL;
 
     //calculate current cell below player
-    int current_cell_calc_x, current_cell_calc_y;
+    //int current_cell_calc_x, current_cell_calc_y;
 
-    current_cell_calc_y = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
-    current_cell_calc_x = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
+    //current_cell_calc_y = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
+    //current_cell_calc_x = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
 
-    currTileBelowPlayer = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
-
-
+    //currTileBelowPlayer = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
     //just for debugging texture IDs
     //currTextID = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_TextureId;
@@ -2464,212 +2734,391 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
 
     //*** search the Terrain cells in front of the player ***
 
-    //search next cell in front of the player
-    int next_cell_x, next_cell_y;
-    SearchPosition = this->phobj->physicState.position;
-    int kmax = 1;
-
-    for (int k = 0; k < kmax; k++) {
-        FrontTerrainTiles[k] = NULL;
-
-        //search next cell, but max 10 iterations to not lock up the game if something is wrong
-        for (int j = 0; j < 10; j++) {
-            next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
-            next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
-
-            if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-                //we found the next cell
-                //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-                FrontTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
-                j = 10;
-
-                //if we found the first neighboring tile in forward direction
-                //also remember it for other functions later
-                if ((mNextNeighboringTileInFrontOfMe == NULL) && (k == 0)) {
-                    mNextNeighboringTileInFrontOfMe = FrontTerrainTiles[k];
-                }
-            }
-
-            SearchPosition += frontDir;
-        }
-
-        //have not found the next cell?
-        if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-            //have not found another cell, just take the current cell height, thats the best we have
-            //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-        }
-    }
-
-    //*** search the Terrain cells back of the player ***
-
-    //search cells back of the player
-   SearchPosition = this->phobj->physicState.position;
-
-    for (int k = 0; k < kmax; k++) {
-        BackTerrainTiles[k] = NULL;
-     //search cells behind the player, but max 10 iterations to not lock up the game if something is wrong
-     for (int j = 0; j < 10; j++) {
-         next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
-         next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
-
-       if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-           //we found the next cell
-           //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-           BackTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
-
-           j = 10;
-
-           //if we found the first neighboring tile in backwards direction
-           //also remember it for other functions later
-           if ((mNextNeighboringTileBehindOfMe == NULL) && (k == 0)) {
-               mNextNeighboringTileBehindOfMe = BackTerrainTiles[k];
-           }
-       }
-
-       SearchPosition -= frontDir; //follow path behind the player
-    }
-
-       //have not found the next cell?
-      if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-            //have not found another cell, just take the current cell height, thats the best we have
-          //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-     }
-   }
-
-    //*** search the Terrain cells in right of the player ***
-
-    //search next cell right of the player
-    SearchPosition = this->phobj->physicState.position;
-
-    for (int k = 0; k < kmax; k++) {
-        RightTerrainTiles[k] = NULL;
-     //search next cell, but max 10 iterations to not lock up the game if something is wrong
-     for (int j = 0; j < 10; j++) {
-         next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
-         next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
-
-       if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-           //we found the next cell
-           //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-           RightTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
-           j = 10;
-
-           //if we found the first neighboring tile right of me
-           //also remember it for other functions later
-           if ((mNextNeighboringTileRightOfMe == NULL) && (k == 0)) {
-               mNextNeighboringTileRightOfMe = RightTerrainTiles[k];
-           }
-       }
-
-       SearchPosition += rightDir;
-    }
-
-       //have not found the next cell?
-      if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-            //have not found another cell, just take the current cell height, thats the best we have
-          //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-     }
-   }
-
-    //*** search the Terrain cells in left of the player ***
-
-    //search next cell left of the player
-    SearchPosition = this->phobj->physicState.position;
-
-    for (int k = 0; k < kmax; k++) {
-        LeftTerrainTiles[k] = NULL;
-     //search next cell, but max 10 iterations to not lock up the game if something is wrong
-     for (int j = 0; j < 10; j++) {
-         next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
-         next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
-
-       if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-           //we found the next cell
-           //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-           LeftTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
-           j = 10;
-
-           //if we found the first neighboring tile right of me
-           //also remember it for other functions later
-           if ((mNextNeighboringTileLeftOfMe == NULL) && (k == 0)) {
-               mNextNeighboringTileLeftOfMe = LeftTerrainTiles[k];
-           }
-       }
-
-       SearchPosition -= rightDir;
-    }
-
-       //have not found the next cell?
-      if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-            //have not found another cell, just take the current cell height, thats the best we have
-          //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-     }
-   }
-
-    irr::s32 lastIdxLeft = -1;
-    irr::s32 lastIdxRight = -1;
-    irr::s32 lastIdxFront = -1;
-    irr::s32 lastIdxBack = -1;
-
-    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
-        if (LeftTerrainTiles[tidx] != NULL) {
-            lastIdxLeft = tidx;
-        } else break;
-     }
-
-    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
-        if (RightTerrainTiles[tidx] != NULL) {
-            lastIdxRight = tidx;
-        } else break;
-     }
-
-    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
-        if (FrontTerrainTiles[tidx] != NULL) {
-            lastIdxFront = tidx;
-        } else break;
-     }
-
-    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
-        if (BackTerrainTiles[tidx] != NULL) {
-            lastIdxBack = tidx;
-        } else break;
-     }
-
-    irr::core::vector3df vec1;
-    irr::core::vector3df vec2;
-
-
-    if (lastIdxFront != -1) {
-        //front = FrontTerrainTiles[lastIdxFront]->m_Height;
-       // front = mRace->mLevelTerrain->pTerrainTiles[FrontTerrainTiles[lastIdxFront]->get_X()][FrontTerrainTiles[lastIdxFront]->get_Z()].currTileHeight;
-    }
-
-    if (lastIdxBack != -1) {
-        //back = BackTerrainTiles[lastIdxBack]->m_Height;
-       // back = mRace->mLevelTerrain->pTerrainTiles[BackTerrainTiles[lastIdxBack]->get_X()][BackTerrainTiles[lastIdxBack]->get_Z()].currTileHeight;
-    }
-
-    if (lastIdxLeft != -1) {
-        //left = LeftTerrainTiles[lastIdxLeft]->m_Height;
-       // left = mRace->mLevelTerrain->pTerrainTiles[LeftTerrainTiles[lastIdxLeft]->get_X()][LeftTerrainTiles[lastIdxLeft]->get_Z()].currTileHeight;
-        vec1 = mRace->mLevelTerrain->pTerrainTiles[LeftTerrainTiles[lastIdxLeft]->get_X()][LeftTerrainTiles[lastIdxLeft]->get_Z()].vert1->Pos;
-    }
-
-    if (lastIdxRight != -1) {
-        //right = RightTerrainTiles[lastIdxRight]->m_Height;
-       // right = mRace->mLevelTerrain->pTerrainTiles[RightTerrainTiles[lastIdxRight]->get_X()][RightTerrainTiles[lastIdxRight]->get_Z()].currTileHeight;
-        vec2 = mRace->mLevelTerrain->pTerrainTiles[RightTerrainTiles[lastIdxRight]->get_X()][RightTerrainTiles[lastIdxRight]->get_Z()].vert1->Pos;
-    }
-
     //calculate terrain tilt from craft left to right
-    if ((lastIdxLeft != -1) && (lastIdxRight != -1)) {
-        irr::f32 hdiff = left - right;
-        irr::f32 vdiff = (vec1 - vec2).getLength();
+    irr::f32 hdiff = left - right;
+    irr::f32 vdiff = (pos_in_worldspace_LeftPos - pos_in_worldspace_RightPos).getLength();
 
-        irr::f32 terrainTiltCraftLeftRightRad = asinf(hdiff/vdiff) ;
-        terrainTiltCraftLeftRightDeg = (terrainTiltCraftLeftRightRad / irr::core::PI) * 180.0f;
-    }
+    irr::f32 terrainTiltCraftLeftRightRad = asinf(hdiff/vdiff) ;
+    terrainTiltCraftLeftRightDeg = (terrainTiltCraftLeftRightRad / irr::core::PI) * 180.0f;
 }
+
+//void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::f32 &left, irr::f32 &right) {
+//    //we need to control the height of the player according to the Terrain below
+//    irr::core::vector3d<irr::f32> SearchPosition;
+
+//    //calculate craft travel direction
+//    //the commented line below which calculate frontDir vom Velocity vector is bad, because at the start
+//    //for example we have no velocity, and therefore frontDir is not defined; Therefore now height calculcation is
+//    //possible for terrain below the craft
+//    //irr::core::vector3df frontDir = (this->phobj->physicState.velocity / this->phobj->physicState.speed);
+
+//    irr::core::vector3df frontDir;
+//    irr::core::vector3df leftDir;
+//    irr::core::vector3df rightDir;
+//    irr::core::vector3df backDir;
+
+//    irr::core::vector3df pos_in_worldspace_frontPos(LocalCraftFrontPnt);
+//    this->Player_node->updateAbsolutePosition();
+//    irr::core::matrix4 matr = this->Player_node->getAbsoluteTransformation();
+
+//    matr.transformVect(pos_in_worldspace_frontPos);
+
+//    frontDir = (pos_in_worldspace_frontPos - this->Player_node->getPosition());
+//    frontDir.normalize();
+
+//    irr::core::vector3df pos_in_worldspace_RightPos(LocalCraftRightPnt);
+//    matr.transformVect(pos_in_worldspace_RightPos);
+//    rightDir = (pos_in_worldspace_RightPos - this->Player_node->getPosition());
+//    rightDir.normalize();
+
+//    irr::core::vector3df pos_in_worldspace_LeftPos(LocalCraftLeftPnt);
+//    matr.transformVect(pos_in_worldspace_LeftPos);
+
+//    irr::core::vector3df pos_in_worldspace_backPos(LocalCraftBackPnt);
+//    matr.transformVect(pos_in_worldspace_backPos);
+
+//    irr::core::vector2di closestCoord;
+//    int nrVertice;
+
+//    //for front of craft
+//    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_frontPos, nrVertice);
+//    mNextNeighboringTileInFrontOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
+
+//    //get current height of race track below front of craft
+//    switch (nrVertice) {
+//        case 1: {
+//            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
+//            break;
+//         }
+//        case 2: {
+//            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
+//            break;
+//         }
+//        case 3: {
+//            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
+//            break;
+//             }
+//        case 4: {
+//            front = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
+//            break;
+//     }
+//    }
+
+//    //for right of craft
+//    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_RightPos, nrVertice);
+//    mNextNeighboringTileRightOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
+
+//    //get current height of race track below right of craft
+//    switch (nrVertice) {
+//        case 1: {
+//            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
+//            break;
+//         }
+//        case 2: {
+//            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
+//            break;
+//         }
+//        case 3: {
+//            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
+//            break;
+//             }
+//        case 4: {
+//            right = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
+//            break;
+//     }
+//    }
+
+//    //for left of craft
+//    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_LeftPos, nrVertice);
+//     mNextNeighboringTileLeftOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
+
+//    //get current height of race track below left of craft
+//    switch (nrVertice) {
+//        case 1: {
+//            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
+//            break;
+//         }
+//        case 2: {
+//            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
+//            break;
+//         }
+//        case 3: {
+//            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
+//            break;
+//             }
+//        case 4: {
+//            left = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
+//            break;
+//     }
+//    }
+
+//    //for back of craft
+//    closestCoord = this->mRace->mLevelTerrain->GetClosestTileGridCoordToMapPosition(pos_in_worldspace_backPos, nrVertice);
+//    mNextNeighboringTileBehindOfMe = this->mRace->mLevelTerrain->levelRes->pMap[closestCoord.X][closestCoord.Y];
+
+//    //get current height of race track below back of craft
+//    switch (nrVertice) {
+//        case 1: {
+//            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert1CurrPositionY;
+//            break;
+//         }
+//        case 2: {
+//            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert2CurrPositionY;
+//            break;
+//         }
+//        case 3: {
+//            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert3CurrPositionY;
+//            break;
+//             }
+//        case 4: {
+//            back = -this->mRace->mLevelTerrain->pTerrainTiles[closestCoord.X][closestCoord.Y].vert4CurrPositionY;
+//            break;
+//     }
+//    }
+
+//   // mNextNeighboringTileInFrontOfMe = NULL;
+//   // mNextNeighboringTileBehindOfMe = NULL;
+//   // mNextNeighboringTileLeftOfMe = NULL;
+//   // mNextNeighboringTileRightOfMe = NULL;
+
+//    //irr::core::vector3d<irr::f32> VectorUp(0.0f, 1.0f, 0.0f);
+
+//    //irr::core::vector3df sideDir = frontDir.crossProduct(VectorUp);
+
+//    //irr::f32 next_height;
+
+//    if (DEBUG_PLAYER_HEIGHT_CONTROL == true)
+//         debug_player_heightcalc_lines.clear();
+
+//    MapEntry* FrontTerrainTiles[3];
+//    MapEntry* BackTerrainTiles[3];
+//    MapEntry* RightTerrainTiles[3];
+//    MapEntry* LeftTerrainTiles[3];
+
+//    currTileBelowPlayer = NULL;
+
+//    //calculate current cell below player
+//    int current_cell_calc_x, current_cell_calc_y;
+
+//    current_cell_calc_y = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
+//    current_cell_calc_x = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
+
+//    currTileBelowPlayer = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
+
+
+
+//    //just for debugging texture IDs
+//    //currTextID = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_TextureId;
+//    //AddTextureID(currTextID);
+
+//    //*** search the Terrain cells in front of the player ***
+
+//    //search next cell in front of the player
+//    int next_cell_x, next_cell_y;
+//    SearchPosition = this->phobj->physicState.position;
+//    int kmax = 1;
+
+//    for (int k = 0; k < kmax; k++) {
+//        FrontTerrainTiles[k] = NULL;
+
+//        //search next cell, but max 10 iterations to not lock up the game if something is wrong
+//        for (int j = 0; j < 10; j++) {
+//            next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
+//            next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
+
+//            if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
+//                //we found the next cell
+//                //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
+//                FrontTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
+//                j = 10;
+
+//                //if we found the first neighboring tile in forward direction
+//                //also remember it for other functions later
+//                if ((mNextNeighboringTileInFrontOfMe == NULL) && (k == 0)) {
+//                    mNextNeighboringTileInFrontOfMe = FrontTerrainTiles[k];
+//                }
+//            }
+
+//            SearchPosition += frontDir;
+//        }
+
+//        //have not found the next cell?
+//        if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
+//            //have not found another cell, just take the current cell height, thats the best we have
+//            //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
+//        }
+//    }
+
+//    //*** search the Terrain cells back of the player ***
+
+//    //search cells back of the player
+//   SearchPosition = this->phobj->physicState.position;
+
+//    for (int k = 0; k < kmax; k++) {
+//        BackTerrainTiles[k] = NULL;
+//     //search cells behind the player, but max 10 iterations to not lock up the game if something is wrong
+//     for (int j = 0; j < 10; j++) {
+//         next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
+//         next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
+
+//       if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
+//           //we found the next cell
+//           //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
+//           BackTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
+
+//           j = 10;
+
+//           //if we found the first neighboring tile in backwards direction
+//           //also remember it for other functions later
+//           if ((mNextNeighboringTileBehindOfMe == NULL) && (k == 0)) {
+//               mNextNeighboringTileBehindOfMe = BackTerrainTiles[k];
+//           }
+//       }
+
+//       SearchPosition -= frontDir; //follow path behind the player
+//    }
+
+//       //have not found the next cell?
+//      if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
+//            //have not found another cell, just take the current cell height, thats the best we have
+//          //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
+//     }
+//   }
+
+//    //*** search the Terrain cells in right of the player ***
+
+//    //search next cell right of the player
+//    SearchPosition = this->phobj->physicState.position;
+
+//    for (int k = 0; k < kmax; k++) {
+//        RightTerrainTiles[k] = NULL;
+//     //search next cell, but max 10 iterations to not lock up the game if something is wrong
+//     for (int j = 0; j < 10; j++) {
+//         next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
+//         next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
+
+//       if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
+//           //we found the next cell
+//           //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
+//           RightTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
+//           j = 10;
+
+//           //if we found the first neighboring tile right of me
+//           //also remember it for other functions later
+//           if ((mNextNeighboringTileRightOfMe == NULL) && (k == 0)) {
+//               mNextNeighboringTileRightOfMe = RightTerrainTiles[k];
+//           }
+//       }
+
+//       SearchPosition += rightDir;
+//    }
+
+//       //have not found the next cell?
+//      if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
+//            //have not found another cell, just take the current cell height, thats the best we have
+//          //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
+//     }
+//   }
+
+//    //*** search the Terrain cells in left of the player ***
+
+//    //search next cell left of the player
+//    SearchPosition = this->phobj->physicState.position;
+
+//    for (int k = 0; k < kmax; k++) {
+//        LeftTerrainTiles[k] = NULL;
+//     //search next cell, but max 10 iterations to not lock up the game if something is wrong
+//     for (int j = 0; j < 10; j++) {
+//         next_cell_y = (SearchPosition.Z / mRace->mLevelTerrain->segmentSize);
+//         next_cell_x = -(SearchPosition.X / mRace->mLevelTerrain->segmentSize);
+
+//       if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
+//           //we found the next cell
+//           //next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
+//           LeftTerrainTiles[k] = mRace->mLevelTerrain->GetMapEntry(next_cell_x, next_cell_y);
+//           j = 10;
+
+//           //if we found the first neighboring tile right of me
+//           //also remember it for other functions later
+//           if ((mNextNeighboringTileLeftOfMe == NULL) && (k == 0)) {
+//               mNextNeighboringTileLeftOfMe = LeftTerrainTiles[k];
+//           }
+//       }
+
+//       SearchPosition -= rightDir;
+//    }
+
+//       //have not found the next cell?
+//      if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
+//            //have not found another cell, just take the current cell height, thats the best we have
+//          //next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
+//     }
+//   }
+
+//    irr::s32 lastIdxLeft = -1;
+//    irr::s32 lastIdxRight = -1;
+//    irr::s32 lastIdxFront = -1;
+//    irr::s32 lastIdxBack = -1;
+
+//    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
+//        if (LeftTerrainTiles[tidx] != NULL) {
+//            lastIdxLeft = tidx;
+//        } else break;
+//     }
+
+//    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
+//        if (RightTerrainTiles[tidx] != NULL) {
+//            lastIdxRight = tidx;
+//        } else break;
+//     }
+
+//    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
+//        if (FrontTerrainTiles[tidx] != NULL) {
+//            lastIdxFront = tidx;
+//        } else break;
+//     }
+
+//    for (irr::s32 tidx = 0; tidx < kmax; tidx++) {
+//        if (BackTerrainTiles[tidx] != NULL) {
+//            lastIdxBack = tidx;
+//        } else break;
+//     }
+
+//    irr::core::vector3df vec1;
+//    irr::core::vector3df vec2;
+
+
+//    if (lastIdxFront != -1) {
+//        //front = FrontTerrainTiles[lastIdxFront]->m_Height;
+//       // front = mRace->mLevelTerrain->pTerrainTiles[FrontTerrainTiles[lastIdxFront]->get_X()][FrontTerrainTiles[lastIdxFront]->get_Z()].currTileHeight;
+//    }
+
+//    if (lastIdxBack != -1) {
+//        //back = BackTerrainTiles[lastIdxBack]->m_Height;
+//       // back = mRace->mLevelTerrain->pTerrainTiles[BackTerrainTiles[lastIdxBack]->get_X()][BackTerrainTiles[lastIdxBack]->get_Z()].currTileHeight;
+//    }
+
+//    if (lastIdxLeft != -1) {
+//        //left = LeftTerrainTiles[lastIdxLeft]->m_Height;
+//       // left = mRace->mLevelTerrain->pTerrainTiles[LeftTerrainTiles[lastIdxLeft]->get_X()][LeftTerrainTiles[lastIdxLeft]->get_Z()].currTileHeight;
+//        vec1 = mRace->mLevelTerrain->pTerrainTiles[LeftTerrainTiles[lastIdxLeft]->get_X()][LeftTerrainTiles[lastIdxLeft]->get_Z()].vert1->Pos;
+//    }
+
+//    if (lastIdxRight != -1) {
+//        //right = RightTerrainTiles[lastIdxRight]->m_Height;
+//       // right = mRace->mLevelTerrain->pTerrainTiles[RightTerrainTiles[lastIdxRight]->get_X()][RightTerrainTiles[lastIdxRight]->get_Z()].currTileHeight;
+//        vec2 = mRace->mLevelTerrain->pTerrainTiles[RightTerrainTiles[lastIdxRight]->get_X()][RightTerrainTiles[lastIdxRight]->get_Z()].vert1->Pos;
+//    }
+
+//    //calculate terrain tilt from craft left to right
+//    if ((lastIdxLeft != -1) && (lastIdxRight != -1)) {
+//        irr::f32 hdiff = left - right;
+//        irr::f32 vdiff = (vec1 - vec2).getLength();
+
+//        irr::f32 terrainTiltCraftLeftRightRad = asinf(hdiff/vdiff) ;
+//        terrainTiltCraftLeftRightDeg = (terrainTiltCraftLeftRightRad / irr::core::PI) * 180.0f;
+//    }
+//}
 
 void Player::CpTriggerTurn(uint8_t newTurnMode, irr::f32 turnAngle) {
    // if (cPCurrentTurnMode == CP_TURN_NOTURN) {

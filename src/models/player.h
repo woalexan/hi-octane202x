@@ -49,6 +49,7 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 #define CMD_FOLLOW_TARGETWAYPOINTLINK 3
 
 struct WayPointLinkInfoStruct; //Forward declaration
+struct RayHitTriangleInfoStruct; //Forward declaration
 
 typedef struct {
     uint8_t cmdType;
@@ -110,12 +111,63 @@ typedef struct {
     char name[50];
 } PLAYERSTATS;
 
+//struct for one heightmap collision "sensor" element
+//which consists of 2 points for terrain stepness measurement
+typedef struct {
+    //local coordinate for the craft 3D Model of the sensor element point
+    irr::core::vector3df localPnt1;
+    irr::core::vector3df localPnt2;
+
+    //latest world coordinate for the sensor element point
+    irr::core::vector3df wCoordPnt1;
+    irr::core::vector3df wCoordPnt2;
+
+    //latest terrain cell coordinate for the sensor
+    //element point
+    irr::core::vector2di cellPnt1;
+    irr::core::vector2di cellPnt2;
+
+    //current plane for intersection
+    irr::core::vector3df planePnt1;
+    irr::core::vector3df planePnt2;
+
+    //the current intersectionPnt
+    irr::core::vector3df intersectionPnt;
+
+    //current measured stepness;
+    irr::f32 stepness;
+
+    //the current distance to the
+    //detected collision point
+    irr::f32 distance;
+
+    //if the craft is close to a high slope (collision) at this sensor element
+    //stop using this point for craft leaning (height) control
+    //if we would not do this then the craft would be able to climb
+    //up the slope, and the collision detection does not stop us worst case
+    bool deactivateHeightControl;
+
+    irr::u32 collCnt = 0;
+} HMAPCOLLSENSOR;
+
+typedef struct {
+    HMAPCOLLSENSOR* front;
+    HMAPCOLLSENSOR* frontRight45deg;
+    HMAPCOLLSENSOR* frontLeft45deg;
+    HMAPCOLLSENSOR* right;
+    HMAPCOLLSENSOR* left;
+    HMAPCOLLSENSOR* backRight45deg;
+    HMAPCOLLSENSOR* backLeft45deg;
+    HMAPCOLLSENSOR* back;
+} HMAPCOLLSTRUCT;
+
 class HUD; //Forward declaration
 class Race; //Forward declaration
 class SmokeTrail; //Forward declaration
 class DustBelowCraft; //Forward declaration
 class MachineGun; //Forward declaration
 class MissileLauncher; //Forward declaration
+class PhysicsObject;
 
 class Player {
 public:
@@ -203,6 +255,8 @@ public:
     irr::core::vector3d<irr::f32> LocalCraftLeftPnt;
     irr::core::vector3d<irr::f32> LocalCraftRightPnt;
 
+    irr::core::vector3d<irr::f32> LocalCraftFrontPnt2;
+
     //local position on the craft where smoke pours out if
     //player is damaged
     irr::core::vector3d<irr::f32> LocalCraftSmokePnt;
@@ -216,6 +270,8 @@ public:
     irr::core::vector3d<irr::f32> WorldCoordCraftBackPnt;
     irr::core::vector3d<irr::f32> WorldCoordCraftLeftPnt;
     irr::core::vector3d<irr::f32> WorldCoordCraftRightPnt;
+
+    irr::core::vector3d<irr::f32> WorldCoordCraftFrontPnt2;
 
     //world coordinate position on the craft where smoke pours out if
     //player is damaged
@@ -433,6 +489,11 @@ public:
     //Returns true if there was a target found, False otherwise
     bool GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget);
 
+    HMAPCOLLSTRUCT mHMapCollPntData;
+
+    void UpdateHMapCollisionPointData();
+    void HeightMapCollision(HMAPCOLLSENSOR &collSensor);
+
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
 
@@ -446,9 +507,11 @@ private:
 
     void CheckForChargingStation();
     void CalcPlayerCraftLeaningAngle();
-    void HeightMapCollision();
-    void HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df collResolutionDirVec,
-                                   bool isForCraftBack);
+
+    void HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2);
+    void UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor);
+
+    void CreateHMapCollisionPointData();
 
     //variables to remember if during the last
     //gameloop this player did any charging
