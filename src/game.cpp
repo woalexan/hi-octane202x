@@ -21,7 +21,7 @@ bool Game::InitIrrlicht() {
     mGameScreenRes.set(640,480);
     //mGameScreenRes.set(1280,960);
 
-    device = createDevice(video::EDT_OPENGL, mGameScreenRes, 16,false,false, false, receiver);
+    device = createDevice(video::EDT_OPENGL, mGameScreenRes, 16, false, false, false, receiver);
 
     if (device == 0) {
           cout << "Failed Irrlicht device creation!" << endl;
@@ -109,7 +109,8 @@ bool Game::InitGame() {
     mTimeProfiler = new TimeProfiler();
 
     //create the games menue
-    MainMenue = new Menue(device, driver, mGameScreenRes, GameTexts, receiver, smgr, gameSoundEngine, GameAssets);
+    MainMenue = new Menue(device, driver, mGameScreenRes, GameTexts, receiver, smgr, gameSoundEngine,
+                      gameMusicPlayer, GameAssets);
     if (!MainMenue->MenueInitializationSuccess) {
         cout << "Game menue init operation failed!" << endl;
         return false;
@@ -119,8 +120,8 @@ bool Game::InitGame() {
     dbgTimeProfiler = guienv->addStaticText(L"Location",
            rect<s32>(100,150,300,200), false, true, NULL, -1, true);
 
-    /*dbgText = guienv->addStaticText(L"",
-           rect<s32>(100,250,200,350), false, true, NULL, -1, true);*/
+    dbgText = guienv->addStaticText(L"",
+           rect<s32>(100,250,300,350), false, true, NULL, -1, true);
 
     /*dbgText2 = guienv->addStaticText(L"",
            rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
@@ -137,7 +138,9 @@ bool Game::InitGame() {
 //game debugging, and to skip the menue etc.
 void Game::DebugGame() {
 
-    int debugLevelNr = 1;
+    mDebugGame = true;
+
+    int debugLevelNr = 3;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -148,8 +151,17 @@ void Game::DebugGame() {
 }
 
 void Game::RunGame() {
-    MainMenue->ShowGameTitle();
-    mGameState = DEF_GAMESTATE_GAMETITLE;
+    mDebugGame = false;
+
+    if (!SkipGameIntro) {
+        MainMenue->ShowIntro();
+        mGameState = DEF_GAMESTATE_INTRO;
+    } else {
+      //go immediately to the game title screen
+      MainMenue->ShowGameTitle();
+      mGameState = DEF_GAMESTATE_GAMETITLE;
+    }
+
     showTitleAbsTime = 0.0f;
 
     GameLoop();
@@ -169,7 +181,7 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
                 video::SColor(255,100,101,140));
 
     MainMenue->HandleInput();
-    MainMenue->Render();
+    MainMenue->Render(frameDeltaTime);
 
     //advance menues absolute time (necessary
     //to control menue animations) and to trigger
@@ -213,6 +225,15 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
                  mGameState = DEF_GAMESTATE_RACE;
             }
         }
+
+        //take care of the special menue actions
+
+        //is game intro playing finished or was it interrupted?
+        if (pendingAction == MainMenue->ActIntroStop) {
+                 //yes, change to game title screen
+                 mGameState = DEF_GAMESTATE_GAMETITLE;
+                 MainMenue->ShowGameTitle();
+        }
     }
 
     driver->endScene();
@@ -235,18 +256,42 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mCurrentRace->AdvanceTime(frameDeltaTime);
 
     wchar_t* text = new wchar_t[200];
-    //wchar_t* text2 = new wchar_t[200];
+    wchar_t* text2 = new wchar_t[400];
 
     mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
-    /*swprintf(text2, 50, L"%lf %lf ", this->mCurrentRace->player->debugMaxStep,
-             this->mCurrentRace->player->dbgDistance);*/
+    swprintf(text2, 390, L"Front: %lf %lf %u\n FrR: %lf %lf %u\n FrL: %lf %lf %u\n Left: %lf %lf %u\n Right: %lf %lf %u\n BackR: %lf %lf %u\n BackL: %lf %lf %u\n Back: %lf %lf %u",
+             this->mCurrentRace->player->mHMapCollPntData.front->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.front->distance,
+             this->mCurrentRace->player->mHMapCollPntData.front->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.frontRight45deg->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.frontRight45deg->distance,
+             this->mCurrentRace->player->mHMapCollPntData.frontRight45deg->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.frontLeft45deg->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.frontLeft45deg->distance,
+             this->mCurrentRace->player->mHMapCollPntData.frontLeft45deg->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.left->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.left->distance,
+             this->mCurrentRace->player->mHMapCollPntData.left->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.right->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.right->distance,
+             this->mCurrentRace->player->mHMapCollPntData.right->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.backRight45deg->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.backRight45deg->distance,
+             this->mCurrentRace->player->mHMapCollPntData.backRight45deg->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.backLeft45deg->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.backLeft45deg->distance,
+             this->mCurrentRace->player->mHMapCollPntData.backLeft45deg->collCnt,
+             this->mCurrentRace->player->mHMapCollPntData.back->stepness,
+             this->mCurrentRace->player->mHMapCollPntData.back->distance,
+             this->mCurrentRace->player->mHMapCollPntData.back->collCnt
+             );
 
     dbgTimeProfiler->setText(text);
-    //dbgText2->setText(text2);
+    dbgText->setText(text2);
 
     delete[] text;
-    //delete[] text2;
+    delete[] text2;
 
     driver->beginScene(true,true,
      video::SColor(255,100,101,140));
@@ -277,8 +322,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         delete mCurrentRace;
         mCurrentRace = NULL;
 
-        mGameState = DEF_GAMESTATE_MENUE;
-        MainMenue->ShowMainMenue();
+        if (mDebugGame) {
+            ExitGame = true;
+        } else {
+            mGameState = DEF_GAMESTATE_MENUE;
+            MainMenue->ShowMainMenue();
+        }
     }
 }
 
@@ -299,6 +348,7 @@ void Game::GameLoop() {
 
         switch (mGameState) {
             case DEF_GAMESTATE_GAMETITLE:
+            case DEF_GAMESTATE_INTRO:
             case DEF_GAMESTATE_MENUE: {
                 GameLoopMenue(frameDeltaTime);
                 break;

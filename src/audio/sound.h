@@ -32,6 +32,21 @@
 #define SFILE_GAME_MISSILE_SHOT (char*)"extract/sound/sound2-MISSILE.WAV"
 #define SFILE_GAME_EXPLODE (char*)"extract/sound/sound2-EXPLODE.WAV"
 
+//the sound0 files seem to be the audio files for the intro
+#define SFILE_INTRO_FIRE (char*)"extract/sound/sound0-FIRE.WAV"
+#define SFILE_INTRO_EXPLODE (char*)"extract/sound/sound0-EXPLODE.WAV"
+#define SFILE_INTRO_TURBO (char*)"extract/sound/sound0-TURBO.WAV"
+#define SFILE_INTRO_SMALLCAR (char*)"extract/sound/sound0-SMALLCAR.WAV"
+#define SFILE_INTRO_SCRAPE2 (char*)"extract/sound/sound0-SCRAPE2.WAV"
+#define SFILE_INTRO_RICCOS (char*)"extract/sound/sound0-RICCOS.WAV"
+#define SFILE_INTRO_PAST (char*)"extract/sound/sound0-PAST.WAV"
+#define SFILE_INTRO_MISSILE (char*)"extract/sound/sound0-MISSILE.WAV"
+#define SFILE_INTRO_MINIGUN (char*)"extract/sound/sound0-MINIGUN.WAV"
+#define SFILE_INTRO_HELEHIT (char*)"extract/sound/sound0-HELEHIT.WAV"
+#define SFILE_INTRO_FIREPAST (char*)"extract/sound/sound0-FIREPAST.WAV"
+#define SFILE_INTRO_CURTAIN (char*)"extract/sound/sound0-CURTAIN.WAV"
+#define SFILE_INTRO_BOOSTER (char*)"extract/sound/sound0-BOOSTER.WAV"
+
 #define SRES_NORES 0
 #define SRES_MENUE_TYPEWRITEREFFECT1 1
 #define SRES_MENUE_TYPEWRITEREFFECT2 2
@@ -50,6 +65,20 @@
 #define SRES_GAME_MGUN_LONGSHOT 19
 #define SRES_GAME_MISSILE_SHOT 20
 #define SRES_GAME_EXPLODE 21
+
+#define SRES_INTRO_FIRE 50
+#define SRES_INTRO_EXPLODE 51
+#define SRES_INTRO_TURBO 52
+#define SRES_INTRO_SMALLCAR 53
+#define SRES_INTRO_SCRAPE2 54
+#define SRES_INTRO_RICCOS 55
+#define SRES_INTRO_PAST 56
+#define SRES_INTRO_MISSILE 57
+#define SRES_INTRO_MINIGUN 58
+#define SRES_INTRO_HELEHIT 59
+#define SRES_INTRO_FIREPAST 60
+#define SRES_INTRO_CURTAIN 61
+#define SRES_INTRO_BOOSTER 62
 
 //maximum number of allowed sound sources
 #define SOUND_MAXNR 20

@@ -11,6 +11,7 @@
 //
 
 #include "preparedata.h"
+#include "../intro/flifix.h"
 
 PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
     myDevice = device;
@@ -172,6 +173,12 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
                  if (PreparationOk) {
                      PreparationOk = PreparationOk && Extra3DModels();
                  }
+            }
+
+            if (!PrepareSubDir((char *)("extract/intro"))) {
+                 PreparationOk = false;
+            } else {
+                 PreparationOk = PreparationOk && PrepareIntro();
             }
 
             //install other available assets user has copied
@@ -1885,6 +1892,87 @@ bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *pale
     return true;
 }
 
+bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
+                                      char* outputFilename, int scaleFactor, bool flipY) {
+    size_t size = sizex * sizey;
+
+   //create arrays for color information
+    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
+
+    unsigned char color;
+
+    size_t counter;
+
+    //use palette to derive RGB information for all pixels
+    //loaded palette has 6 bits per color
+    for (counter = 0; counter < size; counter++) {
+         color = ByteArray[counter];
+
+         arrR[counter] = (unsigned char)colorMap[color].r;
+         arrG[counter] = (unsigned char)colorMap[color].g;
+         arrB[counter] = (unsigned char)colorMap[color].b;
+     }
+
+     //create an empty image
+     irr::video::IImage* img =
+             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+
+     //draw the image
+     for (irr::u32 posx = 0; posx < sizex; posx++) {
+         for (irr::u32 posy = 0; posy < sizey; posy++) {
+             if (!flipY) {
+                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
+                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
+             } else {
+                 //flip image vertically
+                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[(sizey - posy) * sizex + posx],
+                           arrG[(sizey - posy) * sizex + posx], arrB[(sizey - posy) * sizex + posx]));
+             }
+         }
+     }
+
+      irr::video::IImage* imgUp;
+
+     //should the picture be upscaled?
+     if (scaleFactor != 1.0) {
+        //create an empty image with upscaled dimension
+        imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
+
+        //get the pointers to the raw image data
+        uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
+        uint32_t *imageData = (uint32_t*)img->lock();
+
+        xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
+
+        //release the pointers, we do not need them anymore
+        img->unlock();
+        imgUp->unlock();
+     }
+
+     //create new file for writting
+     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+
+     //write image to file
+     if (scaleFactor == 1.0) {
+        //write original image data
+        myDriver->writeImageToFile(img, outputPic);
+     } else {
+         //write upscaled image data
+        myDriver->writeImageToFile(imgUp, outputPic);
+     }
+
+    //close output file
+    outputPic->drop();
+
+    free(arrR);
+    free(arrG);
+    free(arrB);
+
+    return true;
+}
+
 bool PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
     int retcode=read_palette_rgb(paletteDataOut,palFile,(unsigned int)(256));
 
@@ -3073,6 +3161,99 @@ bool PrepareData::ExtractMusic() {
 
         //clear list again to make room for next file round
         VecTuneInformation.clear();
+     }
+
+    return true;
+}
+
+//The following routine uses the flifix source code,
+//repairs the original games intro.dat file, and then
+//extracts the intro in single frames that we can then
+//load and play using Irrlicht
+bool PrepareData::PrepareIntro() {
+    //Variables initiation
+    FILE *animFile;
+    FILE *destFile;
+    //Frames are numbered from 0
+    ulong startFrame=0;
+    ulong endFrame=ULONG_MAX;
+    //Options description is avaible in the file where they are defined
+    int globOptions = 0;
+
+    char filename[65];
+    char outputNameStr[50];
+
+    strcpy(filename, "originalgame/data/intro.dat");
+    strcpy(outputNameStr, "extract/intro/intro.fli");
+
+    char *srcFName = filename;
+    char *destFName = outputNameStr;
+
+    //we need this option to succesfully repair
+    //the original games fli movie file
+    globOptions |= poFixMainHeader;
+
+    //Opening the files
+    animFile = openSourceFLIFile(srcFName);
+    if (animFile == NULL)
+        return false;
+
+    destFile = openDestinationFLIFile(destFName);
+    if (destFile == NULL) {
+        fclose(animFile);
+        return false;
+    }
+
+    //File analyst
+    if (globOptions & poSimpleFix)
+      processFLISimple(animFile,destFile,startFrame,endFrame, & globOptions);
+     else
+      processFLIFile(animFile,destFile,startFrame,endFrame, globOptions);
+
+    //Closing files
+    closeFLIFiles(animFile,destFile,globOptions);
+
+    //now load the FLI file and create for each frame a texture file for later
+    FILE* f = std::fopen(outputNameStr, "rb");
+    flic::StdioFileInterface file(f);
+    flic::Decoder decoder(&file);
+    flic::Header header;
+    if (!decoder.readHeader(header)) {
+       return false;
+    }
+
+     std::vector<uint8_t> buffer(header.width * header.height);
+     flic::Frame frame;
+     frame.pixels = &buffer[0];
+     frame.rowstride = header.width;
+
+     char outFrameFileName[50];
+     char fname[20];
+
+     for (long i = 0; i < header.frames; ++i) {
+       if (!decoder.readFrame(frame)) {
+         //return 3;
+         return false;
+       } else {
+           //process the current decoded frame data in buffer
+           char* frameData = new char[buffer.size()];
+           std::copy(buffer.begin(),buffer.end(), frameData);
+
+           //create the filename for the picture output file
+           strcpy(outFrameFileName, "extract/intro/frame");
+           sprintf (fname, "%0*lu.png", 4, i);
+           strcat(outFrameFileName, fname);
+
+           //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
+           if (!ConvertIntroFrame(frameData, frame.colormap, header.width, header.height, outFrameFileName, 2.0, false)) {
+               delete [] frameData;
+
+               //there was an error
+               return false;
+           }
+
+           delete[] frameData;
+       }
      }
 
     return true;

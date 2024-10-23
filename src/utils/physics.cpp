@@ -1016,6 +1016,9 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
                  //between physics objects themselves (via bounding boxes)
                  HandleObjToObjCollision(frameDeltaTime);
 
+                 //execute all craft terrain height map collisions
+                 //this->mParentRace->HandleCraftHeightMapCollisions();
+
                  (*it)->previousPhysicState = (*it)->physicState;
                  this->integrate((*it), (*it)->physicState, t, dt);
              }
@@ -1054,10 +1057,11 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     }
 }
 
-Physics::Physics(DrawDebug *debugObj) {
+Physics::Physics(Race* parentRace, DrawDebug* drawDbg) {
     PhysicObjectVec.clear();
 
-    mDebugObj = debugObj;
+    mParentRace = parentRace;
+    mDebugObj = drawDbg;
 
     //setup gravity
     mGravityVec.set(0.0f, -9.81f, 0.0f);

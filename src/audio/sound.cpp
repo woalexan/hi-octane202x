@@ -232,6 +232,21 @@ void SoundEngine::LoadSoundResources() {
 
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
+
+    //load all the intro sounds as well
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_TURBO, SRES_INTRO_TURBO);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_SMALLCAR, SRES_INTRO_SMALLCAR);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_SCRAPE2, SRES_INTRO_SCRAPE2);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_RICCOS, SRES_INTRO_RICCOS);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_PAST, SRES_INTRO_PAST);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_MISSILE, SRES_INTRO_MISSILE);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_MINIGUN, SRES_INTRO_MINIGUN);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);
 }
 
 //Loads a single specified sound resource
@@ -330,6 +345,21 @@ SoundEngine::~SoundEngine() {
 
     DeleteSoundResource(SRES_GAME_MISSILE_SHOT);
     DeleteSoundResource(SRES_GAME_EXPLODE);
+
+    //remove all the intro sounds as well
+    DeleteSoundResource(SRES_INTRO_FIRE);
+    DeleteSoundResource(SRES_INTRO_EXPLODE);
+    DeleteSoundResource(SRES_INTRO_TURBO);
+    DeleteSoundResource(SRES_INTRO_SMALLCAR);
+    DeleteSoundResource(SRES_INTRO_SCRAPE2);
+    DeleteSoundResource(SRES_INTRO_RICCOS);
+    DeleteSoundResource(SRES_INTRO_PAST);
+    DeleteSoundResource(SRES_INTRO_MISSILE);
+    DeleteSoundResource(SRES_INTRO_MINIGUN);
+    DeleteSoundResource(SRES_INTRO_HELEHIT);
+    DeleteSoundResource(SRES_INTRO_FIREPAST);
+    DeleteSoundResource(SRES_INTRO_CURTAIN);
+    DeleteSoundResource(SRES_INTRO_BOOSTER);
 
     delete SoundResVec;
 }

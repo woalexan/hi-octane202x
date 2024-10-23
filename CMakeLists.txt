@@ -76,6 +76,19 @@ add_executable(hi-octane202x
     src/resources/xbrz-1-8/xbrz.h
     src/resources/xbrz-1-8/xbrz.cpp
 
+    src/resources/intro/flifile.h
+    src/resources/intro/flifile.cpp
+    src/resources/intro/flifix.h
+    src/resources/intro/flifix.cpp
+    src/resources/intro/prgtools.h
+    src/resources/intro/prgtools.cpp
+
+    src/resources/intro/flic.h
+    src/resources/intro/flic_details.h
+    src/resources/intro/stdio.cpp
+    src/resources/intro/decoder.cpp
+    src/resources/intro/encoder.cpp
+
     src/draw/drawdebug.h
     src/draw/drawdebug.cpp
     src/draw/gametext.h

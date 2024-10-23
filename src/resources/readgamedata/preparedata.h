@@ -22,6 +22,7 @@
 #include "../../utils/fileutils.h"
 #include "objectdatfile.h"
 #include "../xbrz-1-8/xbrz.h"
+#include "../intro/flic.h"
 
 //Never remove packed attribute below, because
 //otherwise read from File into this struct will
@@ -191,6 +192,10 @@ private:
     bool ExtractTmaps();
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
+
+    bool PrepareIntro();
+    bool ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
+                                          char* outputFilename, int scaleFactor, bool flipY);
 
     bool ExtractMusic();
 

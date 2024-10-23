@@ -22,6 +22,7 @@
 #include "morph.h"
 #include "../definitions.h"
 #include "player.h"
+#include "../race.h"
 
 using namespace irr;
 using namespace video;
@@ -38,8 +39,8 @@ typedef SColor colour_func(f32 x, f32 y, f32 z);
 
 #define CELL_OPTIMIZATION_THRESHOLD 0.0f  //Optimization Threshold in percent;
 
-#define DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES 1.1f;  //steepness threshold to trigger
-                                                      //collision with terrain tile map
+#define DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES 0.9f;  //steepness threshold to trigger
+                                                          //collision with terrain tile map
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -111,7 +112,8 @@ struct TerrainTileData {
 
 class LevelTerrain {
 public:
-    LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource);
+    LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
+                 Race* mRaceParent);
     ~LevelTerrain();
 
     void ResetTerrainTileData();
@@ -130,6 +132,7 @@ public:
     irr::u16 get_width();
     irr::u16 get_heigth();
 
+    irr::f32 GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord);
     irr::f32 GetHeightInterpolated(irr::f32 x, irr::f32 z);
     MapEntry* GetMapEntry(int x, int y);
     irr::core::vector2di GetClosestTileGridCoordToMapPosition(irr::core::vector3df mapPosition, int &outNrVertice);
@@ -149,6 +152,11 @@ public:
     //be calculated
     irr::f32 GetSteepnessOfNeighboringTile(int x1, int z1, int x2, int z2, irr::core::vector3df &collPlanePos1, irr::core::vector3df &collPlanePos2,
                                            irr::core::vector3df &collResolutionDirVec);
+
+    void GetCollisionPlaneBetweenNeighboringTiles(int x1, int z1, int x2, int z2,
+                           irr::core::vector3df &collPlanePos1, irr::core::vector3df &collPlanePos2,
+                           irr::core::vector3df &collResolutionDirVec);
+
     vector3d<irr::f32> computeTileSurfaceNormalFromPositionsBuffer(irr::s32 x, irr::s32 z);
 
 private:
@@ -167,6 +175,7 @@ private:
 
     irr::video::IVideoDriver *m_driver;
     scene::ISceneManager *m_smgr;
+    Race* mRace;
 
     TextureLoader* mTexSource;
     //std::string m_texfile;
