@@ -110,6 +110,8 @@ struct TerrainTileData {
     irr::f32 currTileHeight;
 };
 
+class Race; //Forward declaration
+
 class LevelTerrain {
 public:
     LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
@@ -158,6 +160,13 @@ public:
                            irr::core::vector3df &collResolutionDirVec);
 
     vector3d<irr::f32> computeTileSurfaceNormalFromPositionsBuffer(irr::s32 x, irr::s32 z);
+
+    //definition of road texture elements
+    std::vector<irr::s32> roadTexIdsVec = {31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
+                                            77, 78, 79, 82, 86, 116, 117, 118, 119,
+                                           122, 124, 125, 126, 128, 130, 137, 138, 139, 140,
+                                           141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
+                                           96, 4};
 
 private:
     bool setupGeometry();

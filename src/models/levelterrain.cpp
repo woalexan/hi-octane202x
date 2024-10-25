@@ -404,13 +404,6 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
             m_driver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
                                   irr::core::dimension2d<irr::u32>(endW - startW, endH - startH));
 
-    //definition of road texture elements
-    std::vector<irr::s32> roadTexIdsVec = {31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
-                                            77, 78, 79, 82, 86, 116, 117, 118, 119,
-                                           122, 124, 125, 126, 128, 130, 137, 138, 139, 140,
-                                           141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
-                                           96, 4};
-
     for (irr::u32 posx = startW; posx < endW; posx++) {
         for (irr::u32 posy = startH; posy < endH; posy++) {
             texID = this->GetMapEntry(posx, posy)->m_TextureId;

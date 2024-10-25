@@ -854,12 +854,7 @@ int Race::getNrHitTrianglesRay() {
 }*/
 
 void Race::HandleCraftHeightMapCollisions() {
- //   player->UpdateHMapCollisionPointData(&player->mHMapCollPntData);
-
-    //Execute the terrain heightmap tile collision detection
-    //only if we do this morphing will also have an effect
-    //on the craft movements
- //   player->HeightMapCollision(&player->mHMapCollPntData);
+    player->ExecuteHeightMapCollisionDetection();
 }
 
 void Race::Init() {
@@ -1138,6 +1133,16 @@ void Race::HandleInput() {
       if (player->altCntrlMode == false) {
           player->altCntrlMode = true;
       } else player->altCntrlMode = false;
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
+       // player->StartRecordingHeightMapCollisionDbgData(player->mHMapCollPntData.front);
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7)) {
+        /*char fileName[80];
+        strcpy(fileName, "HMAPCOLLDBG.CSV");
+        player->StopRecordingHeightMapCollisionDbgData(fileName);*/
     }
 
     if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_W)) {

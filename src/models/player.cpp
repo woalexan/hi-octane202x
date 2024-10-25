@@ -299,41 +299,213 @@ void Player::CreateHMapCollisionPointData() {
     this->mHMapCollPntData.front = new HMAPCOLLSENSOR();
     mHMapCollPntData.front->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z);
     mHMapCollPntData.front->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - this->mRace->mLevelTerrain->segmentSize);
+    strcpy(mHMapCollPntData.front->sensorName, "Front");
 
     //forward 45deg to the left side direction
     this->mHMapCollPntData.frontLeft45deg = new HMAPCOLLSENSOR();
     this->mHMapCollPntData.frontLeft45deg->localPnt1.set(0.5f * hlpVec.X, 0.0f,-0.5f * hlpVec.Z);
     this->mHMapCollPntData.frontLeft45deg->localPnt2.set(0.5f * hlpVec.X + diag, 0.0f, -0.5f * hlpVec.Z - diag);
+    strcpy(mHMapCollPntData.frontLeft45deg->sensorName, "FrontL");
 
     //forward 45deg to the right side direction
     this->mHMapCollPntData.frontRight45deg = new HMAPCOLLSENSOR();
     this->mHMapCollPntData.frontRight45deg->localPnt1.set(-0.5f * hlpVec.X, 0.0f, -0.5f * hlpVec.Z);
     this->mHMapCollPntData.frontRight45deg->localPnt2.set(-0.5f * hlpVec.X - diag, 0.0f, -0.5f * hlpVec.Z - diag);
+    strcpy(mHMapCollPntData.frontRight45deg->sensorName, "FrontR");
 
     //left side of the player craft
     this->mHMapCollPntData.left = new HMAPCOLLSENSOR();
     this->mHMapCollPntData.left->localPnt1.set(0.5f * hlpVec.X, 0.0f, 0.0f);
     this->mHMapCollPntData.left->localPnt2.set(0.5f * hlpVec.X + this->mRace->mLevelTerrain->segmentSize, 0.0f, 0.0f);
+    strcpy(mHMapCollPntData.left->sensorName, "Left");
 
     //right side of the player craft
     this->mHMapCollPntData.right = new HMAPCOLLSENSOR();
     this->mHMapCollPntData.right->localPnt1.set(-0.5f * hlpVec.X, 0.0f, 0.0f);
     this->mHMapCollPntData.right->localPnt2.set(-0.5f * hlpVec.X - this->mRace->mLevelTerrain->segmentSize, 0.0f, 0.0f);
+    strcpy(mHMapCollPntData.right->sensorName, "Right");
 
     //back 45deg to the left side direction
     this->mHMapCollPntData.backLeft45deg = new HMAPCOLLSENSOR();
     this->mHMapCollPntData.backLeft45deg->localPnt1.set(0.5f * hlpVec.X, 0.0f, 0.5f * hlpVec.Z);
     this->mHMapCollPntData.backLeft45deg->localPnt2.set(0.5f * hlpVec.X + diag, 0.0f, 0.5f * hlpVec.Z + diag);
+    strcpy(mHMapCollPntData.backLeft45deg->sensorName, "BackL");
 
     //back 45deg to the right side direction
     this->mHMapCollPntData.backRight45deg = new HMAPCOLLSENSOR();
     this->mHMapCollPntData.backRight45deg->localPnt1.set(-0.5f * hlpVec.X, 0.0f, 0.5f * hlpVec.Z);
     this->mHMapCollPntData.backRight45deg->localPnt2.set(-0.5f * hlpVec.X - diag, 0.0f, 0.5f * hlpVec.Z + diag);
+    strcpy(mHMapCollPntData.backRight45deg->sensorName, "BackR");
 
     //straight backwards direction
     this->mHMapCollPntData.back = new HMAPCOLLSENSOR();
     mHMapCollPntData.back->localPnt1.set(0.0f, 0.0f, 0.5f * hlpVec.Z);
     mHMapCollPntData.back->localPnt2.set(0.0f, 0.0f, 0.5f * hlpVec.Z + this->mRace->mLevelTerrain->segmentSize);
+    strcpy(mHMapCollPntData.back->sensorName, "Back");
+}
+
+void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCharNr) {
+
+    int remChars = maxCharNr;
+
+    wcscpy(outputText, L"");
+
+    wchar_t entry[200];
+    size_t currLen;
+
+    //front
+    if (mHMapCollPntData.front->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.front,
+                                                  entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+        } else
+            return;
+    }
+
+    //front left
+     if (mHMapCollPntData.frontLeft45deg->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.frontLeft45deg,
+                                                      entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+        } else
+            return;
+     }
+
+    //front right
+    if (mHMapCollPntData.frontRight45deg->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.frontRight45deg,
+                                                      entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+        } else
+            return;
+    }
+
+    //Left
+    if (mHMapCollPntData.left->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.left,
+                                                      entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+         } else
+            return;
+    }
+
+    //Right
+    if (mHMapCollPntData.right->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.right,
+                                                      entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+        } else
+            return;
+    }
+
+    //Back left
+    if (mHMapCollPntData.backLeft45deg->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.backLeft45deg,
+                                                    entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+          wcscat(outputText, entry);
+        } else
+         return;
+    }
+
+    //Back right
+   if (mHMapCollPntData.backRight45deg->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.backRight45deg,
+                                                      entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+        } else
+            return;
+    }
+
+    //back
+    if (mHMapCollPntData.back->currState != STATE_HMAP_COLL_IDLE) {
+        GetHeightMapCollisionSensorDebugInfoEntryText(mHMapCollPntData.back,
+                                                      entry, 190);
+
+        currLen = wcslen(entry);
+        remChars -= currLen;
+
+        if (remChars > 0) {
+         wcscat(outputText, entry);
+        } else
+            return;
+    }
+}
+
+void Player::GetHeightMapCollisionSensorDebugStateName(HMAPCOLLSENSOR *collSensor, char **stateName) {
+    *stateName = new char[20];
+
+    strcpy(*stateName, "");
+
+    if (collSensor != NULL) {
+        if (collSensor->currState == STATE_HMAP_COLL_IDLE) {
+            strcpy(*stateName, "IDLE");
+        } else if (collSensor->currState == STATE_HMAP_COLL_WATCH) {
+            strcpy(*stateName, "WATCH");
+        } else if (collSensor->currState == STATE_HMAP_COLL_RESOLVE) {
+            strcpy(*stateName, "RESOLVE");
+        } else if (collSensor->currState == STATE_HMAP_COLL_FAILED) {
+            strcpy(*stateName, "FAILED");
+       } else if (collSensor->currState == STATE_HMAP_COLL_NOINTERSECTPNT) {
+            strcpy(*stateName, "NOINTERSECTPNT");
+        }
+    }
+}
+
+void Player::GetHeightMapCollisionSensorDebugInfoEntryText(
+    HMAPCOLLSENSOR *collSensor, wchar_t* outputText, int maxCharNr) {
+
+    wcscpy(outputText, L"");
+
+    if (collSensor != NULL) {
+        char *stateName;
+
+        //only create debug text if state is not idle
+        GetHeightMapCollisionSensorDebugStateName(collSensor, &stateName);
+
+        swprintf(outputText, maxCharNr, L"%s: %s %lf %lf %u\n",
+                     collSensor->sensorName,
+                     stateName,
+                     collSensor->stepness,
+                     collSensor->distance,
+                     collSensor->collCnt);
+
+          delete[] stateName;
+        }
 }
 
 void Player::UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor) {
@@ -369,8 +541,6 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
 
     irr::core::vector3df WCDirVecFrontToCOG = (NewPosition - NewFrontAt);
     irr::core::vector3df WCDirVecCOGtoBack = NewPosition + WCDirVecFrontToCOG;
-
-    LocalCraftFrontPnt2 = LocalCraftFrontPnt - WCDirVecFrontToCOG.normalize() * 1.0f;
 
     matr.transformVect(WCDirVecCOGtoBack);
     LocalCraftBackPnt = WCDirVecCOGtoBack;
@@ -419,6 +589,11 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     LocalCraftDustPnt.Z = 0.0f;
 
     CreateHMapCollisionPointData();
+
+    LocalCraftFrontPnt = mHMapCollPntData.front->localPnt1;
+    LocalCraftBackPnt = mHMapCollPntData.back->localPnt1;
+    LocalCraftLeftPnt = mHMapCollPntData.left->localPnt1;
+    LocalCraftRightPnt = mHMapCollPntData.right->localPnt1;
 }
 
 void Player::DebugCraftLocalFeatureCoordinates() {
@@ -914,6 +1089,25 @@ void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::ve
     }
 }*/
 
+void Player::ExecuteHeightMapCollisionDetection() {
+     UpdateHMapCollisionPointData();
+
+     //Execute the terrain heightmap tile collision detection
+     //only if we do this morphing will also have an effect
+     //on the craft movements
+     HeightMapCollision(*mHMapCollPntData.front);
+     HeightMapCollision(*mHMapCollPntData.frontLeft45deg);
+     HeightMapCollision(*mHMapCollPntData.frontRight45deg);
+     HeightMapCollision(*mHMapCollPntData.left);
+     HeightMapCollision(*mHMapCollPntData.right);
+     HeightMapCollision(*mHMapCollPntData.back);
+     HeightMapCollision(*mHMapCollPntData.backLeft45deg);
+     HeightMapCollision(*mHMapCollPntData.backRight45deg);
+
+     //store heightmap collision detection debugging results for frame
+     StoreHeightMapCollisionDbgRecordingDataForFrame();
+}
+
 //in the original game the ship seems to collide with the
 //marked Wallsegments which are contained within the enties
 //of the level data. I do the same, as I create a collision mesh which
@@ -951,6 +1145,8 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
     bool diffTiles = false;
     bool noIntersectionPnt = false;
 
+    collSensor.currState = STATE_HMAP_COLL_IDLE;
+
     collSensor.wCoordPnt1.Y =
             mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
             (collSensor.wCoordPnt1.X,
@@ -983,7 +1179,8 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
         //create a plane for further collision calculations
         cplane.setPlane(collPlanePos1Coord, collPlanePos2Coord, collPlanePos1Coord + irr::core::vector3df(0.0f, 1.0f, 0.0f));
 
-        if (cplane.getIntersectionWithLimitedLine(collSensor.wCoordPnt1, collSensor.wCoordPnt2, outIntersect)) {
+        if (cplane.getIntersectionWithLimitedLine(collSensor.wCoordPnt1, collSensor.wCoordPnt2, outIntersect))
+        {
             irr::core::vector2di outCell;
             //we need to correct Y coordinate of intersection point, so that it is at the height of the tile below
             outIntersect.Y =
@@ -1004,6 +1201,8 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
         } else {
             //we did not find an intersection point
             noIntersectionPnt = true;
+
+            collSensor.currState = STATE_HMAP_COLL_NOINTERSECTPNT;
         }
     } else {
         //both points are in the same tile
@@ -1025,6 +1224,7 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
     //if steepness is higher then threshold we need to check for collision
     if (step > SteepThresh) {
         collSensor.deactivateHeightControl = true;
+        collSensor.currState = STATE_HMAP_COLL_WATCH;
 
         if (diffTiles && !noIntersectionPnt) {
             //if pnt2 and pnt1 are again in different tiles, the remaining distance before
@@ -1040,6 +1240,8 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
 
                 //a collision should occur, play collision sound
                 this->Collided();
+
+                collSensor.currState = STATE_HMAP_COLL_RESOLVE;
 
                 irr::core::vector3df collResolutionDirVec = distVec.normalize();
 
@@ -1073,6 +1275,8 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
                 //a collision should occur, play collision sound
                 this->Collided();
 
+                collSensor.currState = STATE_HMAP_COLL_RESOLVE;
+
                 irr::core::vector3df collResolutionDirVec = distVec.normalize();
 
                 //immediately move the object so the collision is resolved
@@ -1087,40 +1291,90 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
             } else {
                 //we did not find an intersection point
                 noIntersectionPnt = true;
+
+                collSensor.currState = STATE_HMAP_COLL_NOINTERSECTPNT;
             }
 
         }
+    }
+}
 
+void Player::StoreHeightMapCollisionDbgRecordingDataForFrame() {
+    //if currently no recording is done just return
+    if (this->hMapCollDebugWhichSensor == NULL)
+        return;
 
-      /*  dist = (outIntersect - collDataStruct->wCoordFront1).getLength();
+    if (this->hMapCollDebugRecordingData == NULL)
+        return;
 
-        if (dist < 0.0f) {
-            //we have a collision!
-            HeightMapCollisionResolve(cplane, collDataStruct->wCoordFront1, collDataStruct->wCoordFront2);
-        }*/
+    HMAPCOLLSENSOR* newDataPoint = new HMAPCOLLSENSOR();
+    //copy the data
+    *newDataPoint = *hMapCollDebugWhichSensor;
 
+    //store recording data from the current frame in the recording vector
+    this->hMapCollDebugRecordingData->push_back(newDataPoint);
+}
 
+void Player::StartRecordingHeightMapCollisionDbgData(HMAPCOLLSENSOR *whichCollSensor) {
+    //if we record already just return
+    if (this->hMapCollDebugWhichSensor != NULL)
+        return;
 
-        //dbgInterset.set(0.0f, 0.0f, 0.0f);
-/*
-        dbgDistance = 0.0f;
+    //if no valid sensor is specified also return
+    if (whichCollSensor == NULL)
+        return;
 
-        if (cplane.getIntersectionWithLimitedLine(collDataStruct->wCoordFront1, collDataStruct->wCoordFront2, outIntersect)) {
-            dbgInterset = outIntersect;
+    //create new recording data vector
+    this->hMapCollDebugRecordingData = new std::vector<HMAPCOLLSENSOR*>();
 
-            dist = (outIntersect - collDataStruct->wCoordFront1).getLength();
+    hMapCollDebugWhichSensor = whichCollSensor;
+}
 
-            if (dist < 0.0f) {
-                //we have a collision!
-                HeightMapCollisionResolve(cplane, collDataStruct->wCoordFront1, collDataStruct->wCoordFront2);
-            }
+void Player::StopRecordingHeightMapCollisionDbgData(char* outputDbgFileName) {
+    //if we do not record right now just return
+    if (this->hMapCollDebugWhichSensor == NULL)
+        return;
 
-            dbgDistance = dist;
-        }*/
+    std::vector<HMAPCOLLSENSOR*>::iterator it;
 
+    //write the debugging output file
+    FILE* outputFile;
 
+    outputFile = fopen(outputDbgFileName, "w");
+
+    char *stateName;
+
+    for (it = this->hMapCollDebugRecordingData->begin(); it != this->hMapCollDebugRecordingData->end(); ++it) {
+        GetHeightMapCollisionSensorDebugStateName((*it), &stateName);
+
+        fprintf(outputFile, "%s;%lf;%lf;%u\n",
+                stateName,
+                (*it)->stepness,
+                (*it)->distance,
+                (*it)->collCnt
+               );
+
+        delete[] stateName;
     }
 
+    fclose(outputFile);
+
+    HMAPCOLLSENSOR* pntr;
+
+    //delete recorded data again
+    for (it = this->hMapCollDebugRecordingData->begin(); it != this->hMapCollDebugRecordingData->end(); ) {
+        pntr = (*it);
+
+        it = this->hMapCollDebugRecordingData->erase(it);
+
+        //delete object itself as well
+        delete pntr;
+    }
+
+    delete this->hMapCollDebugRecordingData;
+    this->hMapCollDebugRecordingData = NULL;
+
+    hMapCollDebugWhichSensor = NULL;
 }
 
 void Player::Collided() {
@@ -1838,8 +2092,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     WorldCoordCraftLeftPnt = this->phobj->ConvertToWorldCoord(LocalCraftLeftPnt);
     WorldCoordCraftRightPnt = this->phobj->ConvertToWorldCoord(LocalCraftRightPnt);
 
-    WorldCoordCraftFrontPnt2 = this->phobj->ConvertToWorldCoord(LocalCraftFrontPnt2);
-
     WorldCoordCraftSmokePnt = this->phobj->ConvertToWorldCoord(LocalCraftSmokePnt);
     WorldCraftDustPnt = this->phobj->ConvertToWorldCoord(LocalCraftDustPnt);
 
@@ -1851,20 +2103,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
     craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
 
-    UpdateHMapCollisionPointData();
-
-    //Execute the terrain heightmap tile collision detection
-    //only if we do this morphing will also have an effect
-    //on the craft movements
-    HeightMapCollision(*mHMapCollPntData.front);
-    HeightMapCollision(*mHMapCollPntData.frontLeft45deg);
-    HeightMapCollision(*mHMapCollPntData.frontRight45deg);
-    HeightMapCollision(*mHMapCollPntData.left);
-    HeightMapCollision(*mHMapCollPntData.right);
-    HeightMapCollision(*mHMapCollPntData.back);
-    HeightMapCollision(*mHMapCollPntData.backLeft45deg);
-    HeightMapCollision(*mHMapCollPntData.backRight45deg);
-
    // StabilizeCraft(frameDeltaTime);
 
     //*****************************************************
@@ -1873,22 +2111,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //establish height information of race track below player craft
     GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
-
-    if (this->mHMapCollPntData.front->deactivateHeightControl) {
-        currHeightFront = this->mHMapCollPntData.front->wCoordPnt1.Y;
-    }
-
-    if (this->mHMapCollPntData.back->deactivateHeightControl) {
-        currHeightBack = this->mHMapCollPntData.back->wCoordPnt1.Y;
-    }
-
-    if (this->mHMapCollPntData.left->deactivateHeightControl) {
-        currHeightLeft = this->mHMapCollPntData.left->wCoordPnt1.Y;
-    }
-
-    if (this->mHMapCollPntData.right->deactivateHeightControl) {
-        currHeightRight = this->mHMapCollPntData.right->wCoordPnt1.Y;
-    }
 
     DbgCurrRaceTrackHeightFront = currHeightFront;
     DbgCurrRaceTrackHeightBack = currHeightBack;
@@ -1919,6 +2141,28 @@ void Player::Update(irr::f32 frameDeltaTime) {
     irr::f32 heightErrorBack = (WorldCoordCraftBackPnt.Y - (currHeightBack + HOVER_HEIGHT));
     irr::f32 heightErrorLeft = (WorldCoordCraftLeftPnt.Y - (currHeightLeft + HOVER_HEIGHT + leftMore));
     irr::f32 heightErrorRight = (WorldCoordCraftRightPnt.Y - (currHeightRight + HOVER_HEIGHT+ rightMore));
+
+    //if we are close to terrain heightmap collision stop the height control loop
+    //because otherwise we are pulled upwards of steep slopes etc.
+    if (this->mHMapCollPntData.front->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorFront = 0.0f;
+        heightErrorBack = 0.0f;
+    }
+
+    if (this->mHMapCollPntData.back->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorFront = 0.0f;
+        heightErrorBack = 0.0f;
+    }
+
+    if (this->mHMapCollPntData.left->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorLeft = 0.0f;
+        heightErrorRight = 0.0f;
+    }
+
+    if (this->mHMapCollPntData.right->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorLeft = 0.0f;
+        heightErrorRight = 0.0f;
+    }
 
     //best values until now 01.08.2024
     irr::f32 corrForceHeight = 100.0f;
