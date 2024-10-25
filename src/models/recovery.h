@@ -11,6 +11,15 @@
 #define RECOVERY_H
 
 #include <irrlicht/irrlicht.h>
+#include "player.h"
+
+#define STATE_RECOVERY_IDLE 0
+#define STATE_RECOVERY_MOVETODUTY 1
+#define STATE_RECOVERY_PLAYERGRABBED 2
+#define STATE_RECOVERY_PUTPLAYERBACK 3
+#define STATE_RECOVERY_GOBACKTOIDLEPOSITION 4
+
+class Player; //Forward declaration
 
 class Recovery {
 public:
@@ -19,8 +28,21 @@ public:
 
     bool ready;
 
+    bool CurrentlyReadyforMission();
+    void SentToRepairMission(Player* repairTarget);
+
 private:
-    irr::core::vector3d<irr::f32> Position;
+    //my current position I am at
+    irr::core::vector3df mPosition;
+
+    //used to keep my starting (idle) position
+    //in the current map
+    irr::core::vector3df mStartingPosition;
+
+    Player *repairTarget;
+
+    //my own current state
+    irr::u32 mCurrentState;
 
     irr::scene::IAnimatedMesh*  RecoveryMesh;
     irr::scene::IMeshSceneNode* Recovery_node;

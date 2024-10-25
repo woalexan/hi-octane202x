@@ -120,6 +120,7 @@ class LevelTerrain; //Forward declaration
 class LevelBlocks; //Forward declaration
 class Physics; //Forward declaration
 class PhysicsObject; //Forward declaration
+class Recovery; //Forward declaration
 
 class Race {
 public:

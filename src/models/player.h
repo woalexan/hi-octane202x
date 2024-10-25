@@ -48,6 +48,12 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 #define CMD_FLYTO_TARGETPOSITION 2
 #define CMD_FOLLOW_TARGETWAYPOINTLINK 3
 
+#define STATE_HMAP_COLL_IDLE 0
+#define STATE_HMAP_COLL_WATCH 1
+#define STATE_HMAP_COLL_RESOLVE 2
+#define STATE_HMAP_COLL_NOINTERSECTPNT 3
+#define STATE_HMAP_COLL_FAILED 4
+
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 
@@ -148,6 +154,11 @@ typedef struct {
     bool deactivateHeightControl;
 
     irr::u32 collCnt = 0;
+
+    irr::u32 currState;
+
+    //for debugging print purposes
+    char sensorName[10];
 } HMAPCOLLSENSOR;
 
 typedef struct {
@@ -436,7 +447,6 @@ public:
     //the following variable is used for race position calculation
     irr::f32 remainingDistanceToNextCheckPoint = 0.0f;
 
-
     //the current calculate angle between craft upwards direction vector
     //and the world Y-axis. Is used to draw the sky background image realistic
     irr::f32 currPlayerCraftLeaningAngleDeg = 0.0f;
@@ -491,11 +501,30 @@ public:
 
     HMAPCOLLSTRUCT mHMapCollPntData;
 
-    void UpdateHMapCollisionPointData();
-    void HeightMapCollision(HMAPCOLLSENSOR &collSensor);
+    void ExecuteHeightMapCollisionDetection();
+
+    void GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCharNr);
+    void GetHeightMapCollisionSensorDebugInfoEntryText(HMAPCOLLSENSOR *collSensor,
+                                                       wchar_t* outputText,
+                                                       int maxCharNr);
+
+    void StartRecordingHeightMapCollisionDbgData(HMAPCOLLSENSOR *whichCollSensor);
+    void StopRecordingHeightMapCollisionDbgData(char* outputDbgFileName);
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
+
+    //for recording HeightMap Collision data for debugging
+    std::vector<HMAPCOLLSENSOR*>* hMapCollDebugRecordingData;
+
+    //if NULL then no recording is taking place right now
+    HMAPCOLLSENSOR *hMapCollDebugWhichSensor = NULL;
+
+    void GetHeightMapCollisionSensorDebugStateName(HMAPCOLLSENSOR *collSensor, char **stateName);
+    void StoreHeightMapCollisionDbgRecordingDataForFrame();
+
+    void UpdateHMapCollisionPointData();
+    void HeightMapCollision(HMAPCOLLSENSOR &collSensor);
 
     float updateSlowCnter = 0.0f;
 

@@ -140,7 +140,7 @@ void Game::DebugGame() {
 
     mDebugGame = true;
 
-    int debugLevelNr = 3;
+    int debugLevelNr = 1;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -260,32 +260,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
-    swprintf(text2, 390, L"Front: %lf %lf %u\n FrR: %lf %lf %u\n FrL: %lf %lf %u\n Left: %lf %lf %u\n Right: %lf %lf %u\n BackR: %lf %lf %u\n BackL: %lf %lf %u\n Back: %lf %lf %u",
-             this->mCurrentRace->player->mHMapCollPntData.front->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.front->distance,
-             this->mCurrentRace->player->mHMapCollPntData.front->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.frontRight45deg->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.frontRight45deg->distance,
-             this->mCurrentRace->player->mHMapCollPntData.frontRight45deg->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.frontLeft45deg->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.frontLeft45deg->distance,
-             this->mCurrentRace->player->mHMapCollPntData.frontLeft45deg->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.left->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.left->distance,
-             this->mCurrentRace->player->mHMapCollPntData.left->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.right->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.right->distance,
-             this->mCurrentRace->player->mHMapCollPntData.right->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.backRight45deg->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.backRight45deg->distance,
-             this->mCurrentRace->player->mHMapCollPntData.backRight45deg->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.backLeft45deg->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.backLeft45deg->distance,
-             this->mCurrentRace->player->mHMapCollPntData.backLeft45deg->collCnt,
-             this->mCurrentRace->player->mHMapCollPntData.back->stepness,
-             this->mCurrentRace->player->mHMapCollPntData.back->distance,
-             this->mCurrentRace->player->mHMapCollPntData.back->collCnt
-             );
+    mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);

@@ -1004,6 +1004,8 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     //to advance physics by frameDeltaTime
     physicsAccumulator += frameDeltaTime;
 
+    irr::core::vector3df rot2;
+
     //advance physics time
     while ( physicsAccumulator >= dt ) {
              //process all existing physic objects in the world one after each other
@@ -1016,8 +1018,21 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
                  //between physics objects themselves (via bounding boxes)
                  HandleObjToObjCollision(frameDeltaTime);
 
+                 //Wolf Alexander 24.10.2024: For the heightmap collision to work we
+                 //need to immediately update the sceneNodes here inside the loop
+                 //which is kind of dirty, but regarding the CPU load I did not
+                 //see any negative impact of doing this, so I decided to just do it :)
+
+                 //update sceneNode position and orientation
+                 (*it)->sceneNode->setPosition((*it)->physicState.position);
+
+                 (*it)->physicState.orientation.toEuler(rot2);
+                 (*it)->sceneNode->setRotation(rot2 * irr::core::RADTODEG);
+
+                 (*it)->sceneNode->updateAbsolutePosition();
+
                  //execute all craft terrain height map collisions
-                 //this->mParentRace->HandleCraftHeightMapCollisions();
+                 this->mParentRace->HandleCraftHeightMapCollisions();
 
                  (*it)->previousPhysicState = (*it)->physicState;
                  this->integrate((*it), (*it)->physicState, t, dt);
