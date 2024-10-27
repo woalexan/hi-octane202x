@@ -88,7 +88,9 @@ bool Game::InitGameAssets() {
     /***********************************************************/
     /* Load and define game assets (Meshes, Tracks, Craft)     */
     /***********************************************************/
-    GameAssets = new Assets(device, driver, smgr);
+    bool keepConfigDataFileUpdated = false;
+
+    GameAssets = new Assets(device, driver, smgr, keepConfigDataFileUpdated);
 
     return true;
 }
@@ -173,6 +175,11 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
 
         if (showTitleAbsTime > 3.0f) {
             MainMenue->ShowMainMenue();
+
+            //next line just for debugging/testing
+            //of HighScore page
+            //MainMenue->ShowHighscore();
+
             mGameState = DEF_GAMESTATE_MENUE;
         }
     }
@@ -204,7 +211,9 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
 
         //this is how we handle a playername string change
         if (pendingAction == MainMenue->ActSetPlayerName) {
-            //strcpy(value, pendingAction->newSetTextInputString);
+            //copy new selected main player name into player name array
+            char* newStr = pendingAction->newSetTextInputString;
+            this->GameAssets->SetNewMainPlayerName(newStr);
         }
 
         if (pendingAction == MainMenue->ActSetMusicVolume) {
@@ -260,7 +269,38 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
-    mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
+    //mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
+
+    irr::f32 deltah1 = mCurrentRace->player->cameraSensor->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+    irr::f32 deltah2 = mCurrentRace->player->cameraSensor2->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+    irr::f32 deltah3 = mCurrentRace->player->cameraSensor3->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+    irr::f32 deltah4 = mCurrentRace->player->cameraSensor4->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+    irr::f32 deltah5 = mCurrentRace->player->cameraSensor5->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+    irr::f32 deltah6 = mCurrentRace->player->cameraSensor6->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+    irr::f32 deltah7 = mCurrentRace->player->cameraSensor7->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+
+    irr::f32 maxh = fmax(deltah1, deltah2);
+    maxh = fmax(maxh, deltah3);
+    maxh = fmax(maxh, deltah4);
+    maxh = fmax(maxh, deltah5);
+    maxh = fmax(maxh, deltah6);
+    maxh = fmax(maxh, deltah7);
+
+
+    irr::f32 maxStep = fmax(mCurrentRace->player->cameraSensor->stepness, mCurrentRace->player->cameraSensor2->stepness);
+    maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor3->stepness);
+    maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor4->stepness);
+    maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor5->stepness);
+
+    swprintf(text2, 390, L"%lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n",
+                 deltah1,
+                 deltah2,
+                 deltah3,
+                 deltah4,
+                 deltah5,
+             deltah6,
+             deltah7,
+             maxh);
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);

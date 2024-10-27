@@ -288,7 +288,12 @@ irr::core::vector3df MissileLauncher::GetMissileLaunchLocation() {
     return Loc;
 }
 
-void MissileLauncher::Trigger() { 
+void MissileLauncher::Trigger() {
+
+    //if player can not shoot right now simply exit
+    if (!this->mParent->mPlayerStats->mPlayerCanShoot)
+        return;
+
     //is there even a missile left for this player?
     this->mParent->mPlayerStats->ammoVal -= 20.0f;
 

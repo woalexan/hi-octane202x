@@ -78,7 +78,7 @@ MachineGunBulletImpactStruct* MachineGun::GetCurrentlyAvailableImpactStruct() {
            rNumFloat = (irr::f32)((float(rNum) / float (RAND_MAX)) * 100.0f);
 
            if (rNumFloat < probability) {
-               //this availalbe impact struct was randomly selected
+               //this available impact struct was randomly selected
                return (*it);
            }
       }
@@ -87,6 +87,10 @@ MachineGunBulletImpactStruct* MachineGun::GetCurrentlyAvailableImpactStruct() {
 }
 
 void MachineGun::Trigger() {
+    //if player can not shoot right now simply exit
+    if (!this->mParent->mPlayerStats->mPlayerCanShoot)
+        return;
+
     bool skipAnimation = false;
 
     //can we shoot one bullet more currently, or are already

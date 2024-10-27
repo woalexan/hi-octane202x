@@ -144,6 +144,8 @@ public:
 
     void HandleCraftHeightMapCollisions();
 
+    void CallRecoveryVehicleForHelp(Player* whichPlayer);
+
     bool exitRace = false;
 
     Player *player;
@@ -378,6 +380,12 @@ private:
 
     //my vector of recovery vehicles
     std::vector<Recovery*>* recoveryVec;
+
+    //vector of players that currently need help of
+    //a recovery vehicle
+    std::vector<Player*>* mPlayerWaitForRecoveryVec;
+
+    void UpdateRecoveryVehicles(irr::f32 deltaTime);
 
     //my vector of cones
     std::vector<Cone*>* coneVec;

@@ -54,6 +54,13 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 #define STATE_HMAP_COLL_NOINTERSECTPNT 3
 #define STATE_HMAP_COLL_FAILED 4
 
+#define STATE_PLAYER_BEFORESTART 0
+#define STATE_PLAYER_RACING 1
+#define STATE_PLAYER_EMPTYFUEL 2
+#define STATE_PLAYER_BROKEN 3
+#define STATE_PLAYER_FINISHED 4
+#define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 5
+
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 
@@ -115,6 +122,11 @@ typedef struct {
     int currKillCount = 0;
 
     char name[50];
+
+    bool mPlayerCanMove;
+    bool mPlayerCanShoot;
+
+    irr::u32 mPlayerCurrentState;
 } PLAYERSTATS;
 
 //struct for one heightmap collision "sensor" element
@@ -178,7 +190,8 @@ class SmokeTrail; //Forward declaration
 class DustBelowCraft; //Forward declaration
 class MachineGun; //Forward declaration
 class MissileLauncher; //Forward declaration
-class PhysicsObject;
+class PhysicsObject; //Forward declaration
+class Recovery; //Forward declaration
 
 class Player {
 public:
@@ -186,6 +199,14 @@ public:
     Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
            bool humanPlayer);
     ~Player();
+
+    HMAPCOLLSENSOR* cameraSensor;
+    HMAPCOLLSENSOR* cameraSensor2;
+    HMAPCOLLSENSOR* cameraSensor3;
+    HMAPCOLLSENSOR* cameraSensor4;
+    HMAPCOLLSENSOR* cameraSensor5;
+    HMAPCOLLSENSOR* cameraSensor6;
+    HMAPCOLLSENSOR* cameraSensor7;
 
     void SetPlayerObject(PhysicsObject* phObjPtr);
     void DamageGlas();
@@ -397,7 +418,8 @@ public:
 
     void SetCurrClosestWayPointLink(WayPointLinkInfoStruct* newClosestWayPointLink);
     irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
-    EntityItem* FindNearestWayPoint();
+
+    irr::f32 GetHoverHeight();
 
 
     //computer player stuff
@@ -511,6 +533,9 @@ public:
     void StartRecordingHeightMapCollisionDbgData(HMAPCOLLSENSOR *whichCollSensor);
     void StopRecordingHeightMapCollisionDbgData(char* outputDbgFileName);
 
+    void SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle);
+    void FreedFromRecoveryVehicleAgain();
+
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
 
@@ -519,6 +544,12 @@ private:
 
     //if NULL then no recording is taking place right now
     HMAPCOLLSENSOR *hMapCollDebugWhichSensor = NULL;
+
+    //from which recovery vehicle are we currently grabbed?
+    Recovery* mGrabedByThisRecoveryVehicle = NULL;
+
+    void SetNewState(irr::u32 newPlayerState);
+    irr::u32 GetCurrentState();
 
     void GetHeightMapCollisionSensorDebugStateName(HMAPCOLLSENSOR *collSensor, char **stateName);
     void StoreHeightMapCollisionDbgRecordingDataForFrame();

@@ -202,6 +202,13 @@ struct ObjPhysicsState {
 
 class PhysicsObject {
 public:
+    //if set to false this physicsObject is temporarily
+    //not taken into account during physics calculations
+    //this means its position, speed etc. is not updated
+    //anymore, its SceneNode is not updated anymore, and it is
+    //also ignored during collision detection
+    bool mActive = true;
+
     irr::scene::ISceneNode* sceneNode;
 
     //current axis aligned bounding box for the physics object

@@ -65,15 +65,15 @@ public:
     //  position = 2D position where text rendering should occur (leftmost character of text)
     //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
     //                     If specified stops text rendering after specified number of chars
-    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s8 stopAfterNrChars = -1);
-    irr::u32 GetWidthPixelsGameText(char* text, GameTextFont *whichFont, irr::s8 stopAfterNrChars = -1);
+    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s16 stopAfterNrChars = -1);
+    irr::u32 GetWidthPixelsGameText(char* text, GameTextFont *whichFont, irr::s16 stopAfterNrChars = -1);
 
     //delivers the maximum height in pixels of all characters found in the specified text
     //  text = Text which should be rendered (null terminated!)
     //  whichFont = pointer to the font that should be used
     //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
     //                     If specified stops text rendering after specified number of chars
-    irr::u32 GetHeightPixelsGameText(char* text, GameTextFont *whichFont, irr::s8 stopAfterNrChars = -1);
+    irr::u32 GetHeightPixelsGameText(char* text, GameTextFont *whichFont, irr::s16 stopAfterNrChars = -1);
 
     //Renders specified 2D text (can only contain numbers from 0-9, and characters "." and "/") using irrlicht at the specified location
     //Parameters:

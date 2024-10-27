@@ -57,6 +57,12 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     recoveryVec = new std::vector<Recovery*>;
     recoveryVec->clear();
 
+    //my vector of player that need help
+    //of a recovery vehicle and are currently waiting
+    //for it
+    mPlayerWaitForRecoveryVec = new std::vector<Player*>;
+    mPlayerWaitForRecoveryVec->clear();
+
     //my vector of cones on the race track
     coneVec = new std::vector<Cone*>;
     coneVec->clear();
@@ -300,6 +306,75 @@ void Race::CleanUpRecoveryVehicles() {
     //delete also the vector itself
     delete recoveryVec;
     recoveryVec = NULL;
+
+    //clean up also waiting list for recovery
+    delete mPlayerWaitForRecoveryVec;
+    mPlayerWaitForRecoveryVec = NULL;
+}
+
+void Race::CallRecoveryVehicleForHelp(Player *whichPlayer) {
+    this->mPlayerWaitForRecoveryVec->push_back(whichPlayer);
+}
+
+void Race::UpdateRecoveryVehicles(irr::f32 deltaTime) {
+    //does at least one player need help?
+    if (mPlayerWaitForRecoveryVec->size() > 0) {
+        vector< pair <irr::f32, Recovery*> > vecAvailRecoveryVehicles;
+
+        std::vector<Player*>::iterator itPlayer;
+        //go through all players that are currently waiting for help
+        for (itPlayer = mPlayerWaitForRecoveryVec->begin(); itPlayer != mPlayerWaitForRecoveryVec->end(); ) {
+            //yes, search the nearest recovery vehicle that is available
+            //right now
+
+            std::vector<Recovery*>::iterator it;
+            irr::f32 distance;
+
+            vecAvailRecoveryVehicles.clear();
+
+            for (it = this->recoveryVec->begin(); it != this->recoveryVec->end(); ++it) {
+                //currently available?
+                if ((*it)->CurrentlyReadyforMission()) {
+                    //yes it is, calculate distance between player and recovery vehicle
+                    //we want to call the closest one
+                    distance = ((*itPlayer)->phobj->physicState.position - (*it)->GetCurrentPosition()).getLength();
+
+                    vecAvailRecoveryVehicles.push_back( make_pair(distance, (*it)));
+                }
+            }
+
+            //if there is at least one recovery vehicle available sort them by descending distance,
+            //and select one for this player, otherwise do nothing
+            if (vecAvailRecoveryVehicles.size() > 0) {
+                //sort vector pairs in descending value of distance
+               std::sort(vecAvailRecoveryVehicles.rbegin(), vecAvailRecoveryVehicles.rend());
+
+               //start with the last element in sorted vector (which is the closest recovery vehicle
+               //to this player)
+               auto it4 = vecAvailRecoveryVehicles.rbegin();
+
+               //now command the selected recovery vehicle to help this player
+               (*it4).second->SentToRepairMission(*itPlayer);
+
+               //delete this player from the waiting list
+               itPlayer = this->mPlayerWaitForRecoveryVec->erase(itPlayer);
+            } else {
+                //no more recovery vehicles available
+                //we can stop to look
+                break;
+            }
+
+            //more recovery vehicles available
+            //search one for the next player in need
+     }
+   }
+
+   //update all available recovery vehicles
+   std::vector<Recovery*>::iterator it;
+
+   for (it = this->recoveryVec->begin(); it != this->recoveryVec->end(); ++it) {
+       (*it)->Update(deltaTime);
+   }
 }
 
 void Race::CleanUpCones() {
@@ -1012,6 +1087,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
             worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamPosPnt);
             worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamTargetPnt);
         } else {
+            irr::f32 maxStep = fmax(player->cameraSensor->stepness, player->cameraSensor2->stepness);
+            maxStep = fmax(maxStep, player->cameraSensor3->stepness);
+            maxStep = fmax(maxStep, player->cameraSensor4->stepness);
+            maxStep = fmax(maxStep, player->cameraSensor5->stepness);
+
+
             //1st person camera selected
             worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamPosPnt);
             worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamTargetPnt);
@@ -1080,6 +1161,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update player race position ranking
     UpdatePlayerRacePositionRanking();
 
+    //update recovery vehicle logic
+    UpdateRecoveryVehicles(frameDeltaTime);
+
     mTimeProfiler->Profile(mTimeProfiler->tIntPlayerMonitoring);
 
     //update all particle systems
@@ -1123,7 +1207,8 @@ void Race::HandleInput() {
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
         // testPerm();
-        player->mHUD->AddGlasBreak();
+        //player->mHUD->AddGlasBreak();
+        this->CallRecoveryVehicleForHelp(this->player);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
@@ -1765,6 +1850,27 @@ void Race::Render() {
 
       /*mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), this->player->dbgInterset,
                              this->mDrawDebug->green);*/
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor->wCoordPnt1, this->player->cameraSensor->wCoordPnt2,
+                                   this->mDrawDebug->green);
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor2->wCoordPnt1, this->player->cameraSensor2->wCoordPnt2,
+                                   this->mDrawDebug->green);
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor3->wCoordPnt1, this->player->cameraSensor3->wCoordPnt2,
+                                   this->mDrawDebug->green);
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor4->wCoordPnt1, this->player->cameraSensor4->wCoordPnt2,
+                                   this->mDrawDebug->green);
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor5->wCoordPnt1, this->player->cameraSensor5->wCoordPnt2,
+                                   this->mDrawDebug->green);
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor6->wCoordPnt1, this->player->cameraSensor6->wCoordPnt2,
+                                   this->mDrawDebug->green);
+
+      mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
+                                   this->mDrawDebug->green);
 
 }
 

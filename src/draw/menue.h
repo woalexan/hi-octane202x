@@ -38,6 +38,7 @@
 #define MENUE_GAMETITLE 200
 #define MENUE_LOADRACESCREEN 201
 #define MENUE_INTRO 202
+#define MENUE_HIGHSCORE 203
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION NULL
@@ -160,6 +161,10 @@ typedef struct {
 
     //is for example used for player name entry
     //dialog
+    //pointer which allows to point to a char array
+    //content is used to initialize text input field
+    char* initTextPntr = NULL;
+
     bool isTextEntryField = false;
     //current text input string
     char currTextInputFieldStr[MENUE_TEXTENTRY_MAXTEXTLEN + 1];
@@ -370,6 +375,7 @@ private:
     void AddInputTextFieldChar(MenueSingleEntry* textInputEntry, char newCharToAdd);
     void RemoveInputTextFieldChar(MenueSingleEntry* textInputEntry);
     void AcceptInputTextFieldValue(MenueSingleEntry* textInputEntry);
+    void SetInputTextField(MenueSingleEntry* textInputEntry, char* newText);
 
     void UnhideRaceTrackModels();
     void HideRaceTrackModels();
@@ -522,10 +528,15 @@ private:
 
     //create a dummy menue page for showing
     //game title screen and race loading screen
-    //same is true for game intro
+    //same is true for game intro and high score table page
     MenuePage* gameTitleMenuePage;
     MenuePage* raceLoadingMenuePage;
     MenuePage* gameIntroMenuePage;
+    MenuePage* gameHighscoreMenuePage;
+
+    //dummy menue entry which is not visible
+    //for gameHiscoreMenuePage
+    MenueSingleEntry* gameHiscoreMenueDummyEntry;
 
     void CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord);
     void InitStatLabels();
@@ -580,6 +591,13 @@ private:
 
     void CleanupIntro();
 
+    //stuff for the highscore page
+    std::vector<MenueTextLabel*>* highScorePageTextVec;
+
+    void RenderStatTextPage(irr::f32 frameDeltaTime);
+    void CleanupHighScorepage();
+    irr::f32 absTimeElapsedAtHighScorePage;
+
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
     Menue(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
@@ -610,6 +628,7 @@ public:
     void ShowGameTitle();
     void ShowMainMenue();
     void ShowIntro();
+    void ShowHighscore();
 };
 
 #endif // MENUE_H
