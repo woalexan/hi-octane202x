@@ -188,6 +188,9 @@ void Menue::AcceptedRaceSetup() {
     //show race loading page
     this->currSelMenuePage = raceLoadingMenuePage;
 
+    //set new number of default laps for this race track
+    this->mGameAssets->SetNewRaceTrackDefaultNrLaps(currSelectedRaceTrack + 1, currentSelRaceLapNumberVal);
+
     //tell main program that we should start
     //the race
     //handover selected level number
@@ -250,6 +253,21 @@ void Menue::InitMenuePageEntries() {
 
     ShipSelectionPage = new MenuePage();
     ShipSelectionPage->pageNumber = MENUE_SELECTSHIP;
+
+    //define dummy menue page for highscore screen
+    gameHighscoreMenuePage = new MenuePage();
+    gameHighscoreMenuePage->pageNumber = MENUE_HIGHSCORE;
+    //if we press ESC on the highscore page go to game menue
+    gameHighscoreMenuePage->parentMenuePage = NULL;
+
+    gameHiscoreMenueDummyEntry = new MenueSingleEntry();
+    gameHiscoreMenueDummyEntry->entryText = (char*)"";
+    gameHiscoreMenueDummyEntry->entryNumber = 0;
+    gameHiscoreMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
+    gameHiscoreMenueDummyEntry->nextMenuePage = NULL;
+    gameHiscoreMenueDummyEntry->triggerAction = NULL;
+
+    gameHighscoreMenuePage->pageEntryVec.push_back(gameHiscoreMenueDummyEntry);
 
     //now define menue page entries
 
@@ -587,6 +605,10 @@ void Menue::InitMenuePageEntries() {
     PlayerNameEnterField->nextMenuePage = NULL;
     PlayerNameEnterField->itemSelectable = true;
     PlayerNameEnterField->isTextEntryField = true; //important!
+
+    //initialize the input text field with current configured
+    //main player name
+    PlayerNameEnterField->initTextPntr = this->mGameAssets->GetNewMainPlayerName();
 
     //create an action for setting a new player name
     ActSetPlayerName = new MenueAction();
@@ -1393,7 +1415,7 @@ void Menue::RenderRaceSelection() {
 
             if (currSelMenuePage == ShipSelectionPage) {
                 currSelectedShip= 0;
-                FinalPositionRaceTrackWheelReached(currSelectedShip);
+                FinalPositionShipSelectionWheelReached(currSelectedShip);
 
                 RecalculateShipStatLabels();
                 UpdateShipSelectionTypeWriterEffect();
@@ -1451,13 +1473,6 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
 
     if (currSelMenuePage != NULL) {
         if (currSelMenuePage == RaceTrackSelectionPage) {
-            //SetRotation3DModelAroundYAxis(ModelTrack1, curr3DModelRotationDeg);
-            //SetRotation3DModelAroundYAxis(ModelTrack2, curr3DModelRotationDeg);
-            //SetRotation3DModelAroundYAxis(ModelTrack3, curr3DModelRotationDeg);
-            //SetRotation3DModelAroundYAxis(ModelTrack4, curr3DModelRotationDeg);
-            //SetRotation3DModelAroundYAxis(ModelTrack5, curr3DModelRotationDeg);
-            //SetRotation3DModelAroundYAxis(ModelTrack6, curr3DModelRotationDeg);
-
             //rotate 3D selection models of all available race tracks
             for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
                 SetRotation3DModelAroundYAxis(this->ModelTrackSceneNodeVec.at(i), curr3DModelRotationDeg);
@@ -1466,12 +1481,6 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
             //update models for all colorschemes
             for (irr::u8 j = 0; j < this->numCraftsAvailable; j++) {
                 for (unsigned long i = 0; i < this->mGameAssets->mCraftColorSchemeNames.size(); i++) {
-                    //SetRotation3DModelAroundYAxis(ModelShip1[i], curr3DModelRotationDeg);
-                    //SetRotation3DModelAroundYAxis(ModelShip2[i], curr3DModelRotationDeg);
-                    //SetRotation3DModelAroundYAxis(ModelShip3[i], curr3DModelRotationDeg);
-                    //SetRotation3DModelAroundYAxis(ModelShip4[i], curr3DModelRotationDeg);
-                    //SetRotation3DModelAroundYAxis(ModelShip5[i], curr3DModelRotationDeg);
-                    //SetRotation3DModelAroundYAxis(ModelShip6[i], curr3DModelRotationDeg);
                     SetRotation3DModelAroundYAxis(this->ModelCraftsSceneNodeVec[j]->at(i), curr3DModelRotationDeg);
                 }
             }
@@ -1480,12 +1489,6 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
 }
 
 void Menue::UnhideRaceTrackModels() {
-    /*ModelTrack1->setVisible(true);
-    ModelTrack2->setVisible(true);
-    ModelTrack3->setVisible(true);
-    ModelTrack4->setVisible(true);
-    ModelTrack5->setVisible(true);
-    ModelTrack6->setVisible(true);*/
     //unhide all race track 3D selection models
     for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
           this->ModelTrackSceneNodeVec.at(i)->setVisible(true);
@@ -1493,13 +1496,6 @@ void Menue::UnhideRaceTrackModels() {
 }
 
 void Menue::HideRaceTrackModels() {
-    /*ModelTrack1->setVisible(false);
-    ModelTrack2->setVisible(false);
-    ModelTrack3->setVisible(false);
-    ModelTrack4->setVisible(false);
-    ModelTrack5->setVisible(false);
-    ModelTrack6->setVisible(false);*/
-
     //hide all race track 3D selection models
     for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
           this->ModelTrackSceneNodeVec.at(i)->setVisible(false);
@@ -1507,13 +1503,6 @@ void Menue::HideRaceTrackModels() {
 }
 
 void Menue::UnhideShipModels() {
-    //ModelShip1[currSelectedShipColorScheme]->setVisible(true);
-    //ModelShip2[currSelectedShipColorScheme]->setVisible(true);
-    //ModelShip3[currSelectedShipColorScheme]->setVisible(true);
-    //ModelShip4[currSelectedShipColorScheme]->setVisible(true);
-    //ModelShip5[currSelectedShipColorScheme]->setVisible(true);
-    //ModelShip6[currSelectedShipColorScheme]->setVisible(true);
-
     for (irr::u8 i = 0; i < this->numCraftsAvailable; i++) {
         this->ModelCraftsSceneNodeVec[i]->at(currSelectedShipColorScheme)->setVisible(true);
     }
@@ -1524,18 +1513,12 @@ void Menue::HideShipModels() {
     //ship color schemes)
     for (irr::u8 j = 0; j < this->numCraftsAvailable; j++) {
         for (unsigned long i = 0; i < this->mGameAssets->mCraftColorSchemeNames.size(); i++) {
-            //ModelShip1[i]->setVisible(false);
-            //ModelShip2[i]->setVisible(false);
-            //ModelShip3[i]->setVisible(false);
-            //ModelShip4[i]->setVisible(false);
-            //ModelShip5[i]->setVisible(false);
-            //ModelShip6[i]->setVisible(false);
             this->ModelCraftsSceneNodeVec[j]->at(i)->setVisible(false);
         }
     }
 }
 
-void Menue::ChangeToShipSelection() {
+void Menue::ChangeToShipSelection() {  
     //hide race track models, otherwise we would also see them while
     //player ship selection
     HideRaceTrackModels();
@@ -1840,7 +1823,7 @@ void Menue::ShowIntro() {
     introCurrTimeBetweenFramesSec = 0.0f;
 
     //start the intro music at the same time
-    if (!mMusicPlayer->loadGameMusicFile("extract/music/TINTRO2.XMI")) {
+    if (!mMusicPlayer->loadGameMusicFile((char*)"extract/music/TINTRO2.XMI")) {
          std::cout << "Music load failed" << std::endl;
     } else {
         //start music playing
@@ -1878,6 +1861,8 @@ void Menue::Render(irr::f32 frameDeltaTime) {
     if ((this->currSelMenuePage == RaceTrackSelectionPage) || (this->currSelMenuePage == ShipSelectionPage)) {
         //call racetrack and ship selection rendering source code
         RenderRaceSelection();
+    } else if (this->currSelMenuePage == gameHighscoreMenuePage) {
+        RenderStatTextPage(frameDeltaTime);
     } else {
      //default menue rendering source code
 
@@ -1927,6 +1912,57 @@ void Menue::Render(irr::f32 frameDeltaTime) {
     }
 }
 
+//this render function is used for the race finished stat page and
+//the highscore page (which contains just formated texts)
+void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
+    //first draw background picture
+    myDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0), irr::core::recti(0, 0, screenResolution.Width, screenResolution.Height)
+                         , 0, irr::video::SColor(255,255,255,255), true);
+
+    //Render the currently selected window depending on the current
+    //window state (fully open vs. transitioning)
+    RenderWindow(irr::core::recti(24, 23, 619, 311));
+
+    irr::s32 printCharLeft = currNrCharsShownCnter;
+
+    //is the complete page already rendered, if so sum up overall
+    //time this page is already shown to the user
+    if (currMenueState == MENUE_STATE_SELACTIVE) {
+        absTimeElapsedAtHighScorePage += frameDeltaTime;
+
+        //if we reach 10 seconds close this page again
+        if (absTimeElapsedAtHighScorePage > 10.0f) {
+            CleanupHighScorepage();
+            return;
+        }
+    }
+
+    //if we do not use type write effect deactivate it
+    //here for rendering
+    if (!MENUE_ENABLETYPEWRITEREFFECT) {
+        printCharLeft = -1;
+    }
+
+    //Draw overall text
+    std::vector<MenueTextLabel*>::iterator it;
+
+    for (it = this->highScorePageTextVec->begin(); it != this->highScorePageTextVec->end(); ++it) {
+        this->myGameTextRenderer->DrawGameText(
+                    (*it)->text,
+                    this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA,
+                    (*it)->drawPositionTxt, printCharLeft);
+
+        if (MENUE_ENABLETYPEWRITEREFFECT) {
+            //decrease number of characters left for printing in this rendering run (type writer effect) of game
+            printCharLeft -= strlen((*it)->text);
+
+            if (printCharLeft < 0) {
+                printCharLeft = 0;
+            }
+        }
+    }
+}
+
 irr::u32 Menue::MaxMenueEntryNumber(MenuePage* inputPage) {
     irr::u32 maxEntryNum = 0;
 
@@ -1972,6 +2008,13 @@ void Menue::SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nex
                 //we found the matching menue item, change selected item
                 currSelMenuePage = newMenuePage;
                 currSelMenueSingleEntry = (*it);
+
+                //if this menue page has a text entry field
+                //preset input text
+                if (currSelMenueSingleEntry->isTextEntryField && currSelMenueSingleEntry->initTextPntr != NULL) {
+                    //present text field string from source pointer location
+                    SetInputTextField(currSelMenueSingleEntry, currSelMenueSingleEntry->initTextPntr);
+                }
             }
         }
     }
@@ -2231,7 +2274,23 @@ void Menue::AddInputTextFieldChar(MenueSingleEntry* textInputEntry, char newChar
    //update menue item entry text, important (otherwise we do not see change reflected in Gui Dialog!
    textInputEntry->entryText = textInputEntry->currTextInputFieldStr;
 
-   //if typewriter effect is used we need to add one character to variable
+   //if typewriter effect is used we need to update number of
+   //finalNrChardsShownMenuePageFinished, otherwise not all characters will be rendered
+   if (MENUE_ENABLETYPEWRITEREFFECT) {
+       finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+       currNrCharsShownCnter = finalNrChardsShownMenuePageFinished;
+   }
+}
+
+void Menue::SetInputTextField(MenueSingleEntry* textInputEntry, char* newText) {
+   strncpy(textInputEntry->currTextInputFieldStr, newText, sizeof (textInputEntry->currTextInputFieldStr));
+
+   textInputEntry->currTextInputFieldStrLen = strlen(textInputEntry->currTextInputFieldStr);
+
+   //update menue item entry text, important (otherwise we do not see change reflected in Gui Dialog!
+   textInputEntry->entryText = textInputEntry->currTextInputFieldStr;
+
+   //if typewriter effect is used we need to update number of
    //finalNrChardsShownMenuePageFinished, otherwise not all characters will be rendered
    if (MENUE_ENABLETYPEWRITEREFFECT) {
        finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
@@ -2705,67 +2764,6 @@ void Menue::FinalPositionShipSelectionWheelReached(irr::u8 newPosition) {
         currSelShipStatFirePower = 0;
     }
 
-    /*switch (newPosition) {
-        case 0: {
-            strcpy(currSelShipName, (char*)"KD-1 SPEEDER");
-            currSelShipStatSpeed = 6;
-            currSelShipStatArmour = 4;
-            currSelShipStatWeight = 5;
-            currSelShipStatFirePower = 5;
-
-            break;
-        }
-        case 1: {
-            strcpy(currSelShipName, "BESERKER");
-            currSelShipStatSpeed = 3;
-            currSelShipStatArmour = 5;
-            currSelShipStatWeight = 6;
-            currSelShipStatFirePower = 6;
-            break;
-        }
-
-        case 2: {
-            strcpy(currSelShipName, "JUGGA");
-            currSelShipStatSpeed = 4;
-            currSelShipStatArmour = 5;
-            currSelShipStatWeight = 6;
-            currSelShipStatFirePower = 5;
-            break;
-        }
-        case 3: {
-            strcpy(currSelShipName, "VAMPYR");
-            currSelShipStatSpeed = 6;
-            currSelShipStatArmour = 4;
-            currSelShipStatWeight = 6;
-            currSelShipStatFirePower = 4;
-            break;
-        }
-        case 4: {
-            strcpy(currSelShipName, "OUTRIDER");
-            currSelShipStatSpeed = 8;
-            currSelShipStatArmour = 3;
-            currSelShipStatWeight = 4;
-            currSelShipStatFirePower = 5;
-            break;
-        }
-        case 5: {
-            strcpy(currSelShipName, "FLEXIWING");
-            currSelShipStatSpeed = 8;
-            currSelShipStatArmour = 4;
-            currSelShipStatWeight = 4;
-            currSelShipStatFirePower = 4;
-            break;
-        }
-        default: {
-            strcpy(currSelShipName, "UNDEFINED (ERROR!)");
-            currSelShipStatSpeed = 0;
-            currSelShipStatArmour = 0;
-            currSelShipStatWeight = 0;
-            currSelShipStatFirePower = 0;
-            break;
-        }
-     }*/
-
     RecalculateShipStatLabels();
 
     //recalculate X coordinate of ship name to center name!
@@ -2791,44 +2789,6 @@ void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
        strcpy(currSelRaceTrackName, "UNDEFINED (ERROR!)");
        currentSelRaceLapNumberVal = 0;
     }
-
-    /*switch (newPosition) {
-        case 0: {
-            strcpy(currSelRaceTrackName, (char*)"1. AMAZON DELTA TURNPIKE");
-            currentSelRaceLapNumberVal = 11;
-            break;
-        }
-        case 1: {
-            strcpy(currSelRaceTrackName, "2. TRANS-ASIA INTERSTATE");
-            currentSelRaceLapNumberVal = 8;
-            break;
-        }
-
-        case 2: {
-            strcpy(currSelRaceTrackName, "3. SHANGHAI DRAGON");
-            currentSelRaceLapNumberVal = 9;
-            break;
-        }
-        case 3: {
-            strcpy(currSelRaceTrackName, "4. NEW CHERNOBYL CENTRAL");
-            currentSelRaceLapNumberVal = 8;
-            break;
-        }
-        case 4: {
-            strcpy(currSelRaceTrackName, "5. SLAM CANYON");
-            currentSelRaceLapNumberVal = 9;
-            break;
-        }
-        case 5: {
-            strcpy(currSelRaceTrackName, "6. THRAK CITY");
-            currentSelRaceLapNumberVal = 5;
-            break;
-        }
-        default: {
-
-            break;
-        }
-     }*/
 
     //recalculate X coordinate of race track name to center race track name!
     irr::u32 newCoord = (screenResolution.Width / 2) - (myGameTextRenderer->GetWidthPixelsGameText(currSelRaceTrackName, myGameTextRenderer->HudWhiteTextBannerFont) / 2);
@@ -2955,51 +2915,6 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
 
     currAngleDeg = currRaceTrackWheelAngleDeg;
 
-    //newPosition = 0 -> selects Track1 to be in the front
-    //newPosition = 1 -> selects Track2 to be in the front
-    //items rotate clockwise for next race track (position)
-    //currAngleDeg = 270.0f + newPosition * 60.0f;
-
-    //Track1
-    //TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelTrack1->setPosition(TrackCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Track2
-    //TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelTrack2->setPosition(TrackCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Track3
-    //TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelTrack3->setPosition(TrackCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Track4
-    //TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelTrack4->setPosition(TrackCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Track5
-    //TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelTrack5->setPosition(TrackCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Track6
-    //TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelTrack6->setPosition(TrackCoord);
-
     for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
         //Track number i
         TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
@@ -3051,51 +2966,6 @@ void Menue::Update3DModelShipWheelPosition() {
 
     currAngleDeg = currShipWheelAngleDeg;
 
-    //newPosition = 0 -> selects Ship1 to be in the front
-    //newPosition = 1 -> selects Ship2 to be in the front
-    //items rotate clockwise for next ship (position)
-    //currAngleDeg = 270.0f + newPosition * 60.0f;
-
-    //Ship1
-    //ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelShip1[currSelectedShipColorScheme]->setPosition(ShipCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Ship2
-    //ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelShip2[currSelectedShipColorScheme]->setPosition(ShipCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Ship3
-    //ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelShip3[currSelectedShipColorScheme]->setPosition(ShipCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Ship4
-    //ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelShip4[currSelectedShipColorScheme]->setPosition(ShipCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Ship5
-    //ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelShip5[currSelectedShipColorScheme]->setPosition(ShipCoord);
-
-    //currAngleDeg -= 60.0f;
-
-    //Ship6
-    //ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-    //ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-    //ModelShip6[currSelectedShipColorScheme]->setPosition(ShipCoord);
-
     for (irr::u8 i = 0; i < this->numCraftsAvailable; i++) {
         //Ship number i
         ShipCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
@@ -3117,38 +2987,6 @@ void Menue::InitRaceTrackSceneNodes() {
 
     //set up light
     //smgrMenue->setAmbientLight(video::SColorf(255.0,255.0,255.0));
-
-    //load all necessary race track models using irrlicht
-
-    //Track1
-    //ModelTrack1 = smgrMenue->addMeshSceneNode(this->mGameAssets->mRaceTrackVec->at(0)->MeshTrack);
-    //ModelTrack1->setVisible(true);
-    //ModelTrack1->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-    //Track2
-    //ModelTrack2 = smgrMenue->addMeshSceneNode(this->mGameAssets->mRaceTrackVec->at(1)->MeshTrack);
-    //ModelTrack2->setVisible(true);
-    //ModelTrack2->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-    //Track3
-    //ModelTrack3 = smgrMenue->addMeshSceneNode(this->mGameAssets->mRaceTrackVec->at(2)->MeshTrack);
-    //ModelTrack3->setVisible(true);
-    //ModelTrack3->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-    //Track4
-    //ModelTrack4 = smgrMenue->addMeshSceneNode(this->mGameAssets->mRaceTrackVec->at(3)->MeshTrack);
-    //ModelTrack4->setVisible(true);
-    //ModelTrack4->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-    //Track5
-    //ModelTrack5 = smgrMenue->addMeshSceneNode(this->mGameAssets->mRaceTrackVec->at(4)->MeshTrack);
-    //ModelTrack5->setVisible(true);
-    //ModelTrack5->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-    //Track6
-    //ModelTrack6 = smgrMenue->addMeshSceneNode(this->mGameAssets->mRaceTrackVec->at(5)->MeshTrack);
-    //ModelTrack6->setVisible(true);
-    //ModelTrack6->setMaterialFlag(irr::video::EMF_LIGHTING, false);
 
     //create SceneNode for each available race track
     //we need this sceneNodes for racetrack selection model view
@@ -3187,84 +3025,6 @@ void Menue::InitVehicleModels() {
           }
 
           this->ModelCraftsSceneNodeVec.push_back(vecSceneNodePntr);
-
-        //Ship1
-        //sprintf(fileName, "extract/models/car0-%d.obj", i);
-        //newMesh = smgrMenue->getMesh(fileName);
-
-        //this->MeshShip1.push_back(newMesh);
-
-        //newSceneNode = smgrMenue->addMeshSceneNode(newMesh);
-        //newSceneNode = smgrMenue->addMeshSceneNode(this->mGameAssets->mCraftVec->at(0)->MeshCraft.at(i));
-        //newSceneNode->setVisible(true);
-        //newSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-        //this->ModelShip1.push_back(newSceneNode);
-
-        //Ship2
-        //sprintf(fileName, "extract/models/tank0-%d.obj", i);
-        //newMesh = smgrMenue->getMesh(fileName);
-
-        //this->MeshShip2.push_back(newMesh);
-
-        //newSceneNode = smgrMenue->addMeshSceneNode(newMesh);
-        //newSceneNode = smgrMenue->addMeshSceneNode(this->mGameAssets->mCraftVec->at(1)->MeshCraft.at(i));
-        //newSceneNode->setVisible(true);
-        //newSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-        //this->ModelShip2.push_back(newSceneNode);
-
-        //Ship3
-        //sprintf(fileName, "extract/models/jugga0-%d.obj", i);
-        //newMesh = smgrMenue->getMesh(fileName);
-
-        //this->MeshShip3.push_back(newMesh);
-
-        //newSceneNode = smgrMenue->addMeshSceneNode(newMesh);
-        //newSceneNode = smgrMenue->addMeshSceneNode(this->mGameAssets->mCraftVec->at(2)->MeshCraft.at(i));
-        //newSceneNode->setVisible(true);
-        //newSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-        //this->ModelShip3.push_back(newSceneNode);
-
-        //Ship4
-        //sprintf(fileName, "extract/models/jet0-%d.obj", i);
-        //newMesh = smgrMenue->getMesh(fileName);
-
-        //this->MeshShip4.push_back(newMesh);
-
-        //newSceneNode = smgrMenue->addMeshSceneNode(newMesh);
-        //newSceneNode = smgrMenue->addMeshSceneNode(this->mGameAssets->mCraftVec->at(3)->MeshCraft.at(i));
-        //newSceneNode->setVisible(true);
-        //newSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-        //this->ModelShip4.push_back(newSceneNode);
-
-        //Ship5
-        //sprintf(fileName, "extract/models/bike0-%d.obj", i);
-        //newMesh = smgrMenue->getMesh(fileName);
-
-        //this->MeshShip5.push_back(newMesh);
-
-        //newSceneNode = smgrMenue->addMeshSceneNode(newMesh);
-        //newSceneNode = smgrMenue->addMeshSceneNode(this->mGameAssets->mCraftVec->at(4)->MeshCraft.at(i));
-        //newSceneNode->setVisible(true);
-        //newSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-        //this->ModelShip5.push_back(newSceneNode);
-
-        //Ship6
-        //sprintf(fileName, "extract/models/skim0-%d.obj", i);
-        //newMesh = smgrMenue->getMesh(fileName);
-
-        //this->MeshShip6.push_back(newMesh);
-
-        //newSceneNode = smgrMenue->addMeshSceneNode(newMesh);
-        //newSceneNode = smgrMenue->addMeshSceneNode(this->mGameAssets->mCraftVec->at(5)->MeshCraft.at(i));
-        //newSceneNode->setVisible(true);
-        //newSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-
-        //this->ModelShip6.push_back(newSceneNode);
     }
 
     //initialize 3D model positions
@@ -3480,6 +3240,160 @@ void Menue::ShowMainMenue() {
     currMenueWindowAnimationFinalIdx = windowMenueAnimationStartGame->coordVec.size() - 1;
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
+}
+
+void Menue::CleanupHighScorepage() {
+    std::vector<MenueTextLabel*>::iterator it;
+    MenueTextLabel* labelPntr;
+
+    for (it = this->highScorePageTextVec->begin(); it != this->highScorePageTextVec->end(); ) {
+        labelPntr = (*it);
+
+        it = this->highScorePageTextVec->erase(it);
+
+        //Reuse the visible bool variable in the MenueTextLabel struct
+        //here for another purpose. If we set visible to true we know
+        //that during the Cleanup process of variables of highscore screen
+        //in function CleanupHighScorepage we need to delete also the
+        //pntr to the text variable; if visible is false, then we must not
+        //delete the text string pointer!
+        if ((*it)->visible) {
+           //visible was set to true, delete text pointer!
+           delete[] labelPntr->text;
+        }
+
+        //delete MenueTextLabel as well
+        delete labelPntr;
+    }
+
+    //also delete the vector of MenueTextLabels we have used
+    delete highScorePageTextVec;
+
+    //go back to main menue top page
+    ShowMainMenue();
+}
+
+void Menue::ShowHighscore() {
+   //request pointer to highscore table values
+   std::vector<HighScoreEntryStruct*>* pntrTable;
+
+   pntrTable = this->mGameAssets->GetHighScoreTable();
+
+   //if function returns NULL there was an
+   //unexpected issue
+   if (pntrTable == NULL)
+       return;
+
+   //prepare text for this page
+   highScorePageTextVec = new std::vector<MenueTextLabel*>();
+   highScorePageTextVec->clear();
+
+   MenueTextLabel* newLabel;
+   irr::u32 textYcoord;
+   char* highScoreValStr;
+   char* assessementStr;
+   irr::u32 nrCharsOverall = 0;
+   char* titleText;
+
+   titleText = new char[10];
+   strcpy(titleText, (char*)"HISCORES");
+
+   //first add menue page title text
+   newLabel = new MenueTextLabel();
+   newLabel->drawPositionTxt.X = 264;
+   newLabel->drawPositionTxt.Y = 45;
+   newLabel->text = titleText;
+
+   //Reuse the visible bool variable in the MenueTextLabel struct
+   //here for another purpose. If we set visible to true we know
+   //that during the Cleanup process of variables of highscore screen
+   //in function CleanupHighScorepage we need to delete also the
+   //pntr to the text variable; if visible is false, then we must not
+   //delete the text string pointer!
+   newLabel->visible = true; //set to true, delete text pointer afterwards!
+
+   highScorePageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   //loop over all 19 entries we want to show
+   for (irr::u8 cnt = 0; cnt < 19; cnt++) {
+       //first calculate textYcoord according to entry line
+       textYcoord = 75 + cnt * 14;
+
+       //for the player name
+       newLabel = new MenueTextLabel();
+       newLabel->drawPositionTxt.X = 56;
+       newLabel->drawPositionTxt.Y = textYcoord;
+       newLabel->text = pntrTable->at(cnt)->namePlayer;
+       newLabel->visible = false; //we must not delete this text pointer!
+
+       highScorePageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+
+       //for the highscore value
+       highScoreValStr = new char[5];
+       sprintf(highScoreValStr, "%u", pntrTable->at(cnt)->highscoreVal);
+
+       newLabel = new MenueTextLabel();
+       newLabel->drawPositionTxt.X =
+               313 - this->myGameTextRenderer->GetWidthPixelsGameText(
+                   highScoreValStr,
+                   this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA) / 2;
+
+       newLabel->drawPositionTxt.Y = textYcoord;
+       newLabel->text = highScoreValStr;
+       newLabel->visible = true; //set to true, delete text pointer afterwards!
+
+       highScorePageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+
+       //for the player assessement string
+       assessementStr =
+               this->mGameAssets->GetDriverAssessementString(
+                   pntrTable->at(cnt)->playerAssessementVal);
+
+       newLabel = new MenueTextLabel();
+       newLabel->drawPositionTxt.X =
+               592 - this->myGameTextRenderer->GetWidthPixelsGameText(
+                   assessementStr,
+                   this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA);
+
+       newLabel->drawPositionTxt.Y = textYcoord;
+       newLabel->text = assessementStr;
+       newLabel->visible = false; //we must not delete this text pointer!
+
+       highScorePageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //now we have all the text prepared
+   currSelMenuePage = this->gameHighscoreMenuePage;
+
+   //there is a non visible dummy menue entry
+   //we need to use it, because we need at least one item
+   currSelMenueSingleEntry = gameHiscoreMenueDummyEntry;
+
+   absTimeElapsedAtHighScorePage = 0.0f;
+
+   //do we use typewriter effect?
+   if (MENUE_ENABLETYPEWRITEREFFECT) {
+     //reset typewriter effect to build
+     //next page correctly
+     currNrCharsShownCnter = 0;
+     finalNrChardsShownMenuePageFinished = nrCharsOverall;
+     typeWriterEffectNextCharacterAbsTime = absoluteTime;
+
+     //for typewriter effect we need to set menue state again
+     //to typewriter inbetween state
+     currMenueState = MENUE_STATE_TYPETEXT;
+   } else {
+     //no skip this effect
+     currMenueState = MENUE_STATE_SELACTIVE;
+   }
 }
 
 Menue::~Menue() {

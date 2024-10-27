@@ -19,6 +19,8 @@
 #define STATE_RECOVERY_PUTPLAYERBACK 3
 #define STATE_RECOVERY_GOBACKTOIDLEPOSITION 4
 
+#define RECOVERY_VEHICLE_SPEED 12.0f
+
 class Player; //Forward declaration
 
 class Recovery {
@@ -30,10 +32,21 @@ public:
 
     bool CurrentlyReadyforMission();
     void SentToRepairMission(Player* repairTarget);
+    irr::core::vector3df GetCurrentPosition();
+
+    void Update(irr::f32 deltaTime);
 
 private:
     //my current position I am at
     irr::core::vector3df mPosition;
+
+    irr::core::vector3df mPlayerDropOfPosition;
+
+    bool mPlayerDropOfDirVecFound;
+    irr::f32 mPlayerDropOfAbsAngle;
+
+    irr::core::vector3df localCoordClaw;
+    irr::core::vector3df worldCoordClaw;
 
     //used to keep my starting (idle) position
     //in the current map

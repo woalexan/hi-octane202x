@@ -575,6 +575,9 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
 
      for (it2 = startit; it2 != this->PhysicObjectVec.end(); ++it2) {
 
+       //check only for collision if both objects are "active"
+       if ((*it)->mActive && (*it2)->mActive) {
+
          if (CheckForCollision((*it), (*it2), &collNormal, &collDepth)) {
              //yes, we found an object to object collision
             //DbgCollisionDetected = collDepth;
@@ -640,6 +643,7 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
          } else {
              RemoveObjToObjCollisionPair((*it), (*it2));
          }
+       }
      }
    }
 }
@@ -981,17 +985,20 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     }*/
 
      for (it = this->PhysicObjectVec.begin(); it != this->PhysicObjectVec.end(); ++it) {
-        /*   PhysicsObject& obj = itObjects->second;
-           obj.mHasTouchedWorldGeometryLastUpdate = false;
-           obj.mHasTouchedWallLastUpdate = false;
-           obj.mHasTouchedObjectLastUpdate = false;
-           obj.mCushioning = 0.f;*/
 
-           (*it)->CollidedOtherObjectLastTime = false;
+          if ((*it)->mActive) {
+            /*   PhysicsObject& obj = itObjects->second;
+            obj.mHasTouchedWorldGeometryLastUpdate = false;
+            obj.mHasTouchedWallLastUpdate = false;
+            obj.mHasTouchedObjectLastUpdate = false;
+            obj.mCushioning = 0.f;*/
 
-           (*it)->sceneNode->updateAbsolutePosition();
-           (*it)->mModelCollCenter = (*it)->sceneNode->getTransformedBoundingBox().getCenter();
-           (*it)->mRadius = (*it)->sceneNode->getTransformedBoundingBox().getExtent().getLength() * 0.15f;
+            (*it)->CollidedOtherObjectLastTime = false;
+
+            (*it)->sceneNode->updateAbsolutePosition();
+            (*it)->mModelCollCenter = (*it)->sceneNode->getTransformedBoundingBox().getCenter();
+            (*it)->mRadius = (*it)->sceneNode->getTransformedBoundingBox().getExtent().getLength() * 0.15f;
+          }
 
            // We handle objects moved outside the physics, so that it seems like they had always been in that other position in the past.
            // Rewriting history, to make it fit to current needs, a very political algorithm ;-)
@@ -1010,32 +1017,35 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     while ( physicsAccumulator >= dt ) {
              //process all existing physic objects in the world one after each other
              for (it = this->PhysicObjectVec.begin(); it != this->PhysicObjectVec.end(); ++it) {
-                 //execute collision detection between physics objects
-                 //and wall/blocks (via sphere and triangle selector)
-                 HandleWallCollision(*(*it));
 
-                 //execute collision detection and resolution
-                 //between physics objects themselves (via bounding boxes)
-                 HandleObjToObjCollision(frameDeltaTime);
+                 if ((*it)->mActive) {
+                    //execute collision detection between physics objects
+                    //and wall/blocks (via sphere and triangle selector)
+                    HandleWallCollision(*(*it));
 
-                 //Wolf Alexander 24.10.2024: For the heightmap collision to work we
-                 //need to immediately update the sceneNodes here inside the loop
-                 //which is kind of dirty, but regarding the CPU load I did not
-                 //see any negative impact of doing this, so I decided to just do it :)
+                    //execute collision detection and resolution
+                    //between physics objects themselves (via bounding boxes)
+                    HandleObjToObjCollision(frameDeltaTime);
 
-                 //update sceneNode position and orientation
-                 (*it)->sceneNode->setPosition((*it)->physicState.position);
+                    //Wolf Alexander 24.10.2024: For the heightmap collision to work we
+                    //need to immediately update the sceneNodes here inside the loop
+                    //which is kind of dirty, but regarding the CPU load I did not
+                    //see any negative impact of doing this, so I decided to just do it :)
 
-                 (*it)->physicState.orientation.toEuler(rot2);
-                 (*it)->sceneNode->setRotation(rot2 * irr::core::RADTODEG);
+                    //update sceneNode position and orientation
+                    (*it)->sceneNode->setPosition((*it)->physicState.position);
 
-                 (*it)->sceneNode->updateAbsolutePosition();
+                    (*it)->physicState.orientation.toEuler(rot2);
+                    (*it)->sceneNode->setRotation(rot2 * irr::core::RADTODEG);
 
-                 //execute all craft terrain height map collisions
-                 this->mParentRace->HandleCraftHeightMapCollisions();
+                    (*it)->sceneNode->updateAbsolutePosition();
 
-                 (*it)->previousPhysicState = (*it)->physicState;
-                 this->integrate((*it), (*it)->physicState, t, dt);
+                    //execute all craft terrain height map collisions
+                    this->mParentRace->HandleCraftHeightMapCollisions();
+
+                    (*it)->previousPhysicState = (*it)->physicState;
+                    this->integrate((*it), (*it)->physicState, t, dt);
+                 }
              }
 
 
@@ -1049,26 +1059,29 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     //interpolate states for rendering etc...
     //interpolate all existing physic objects (calculate render state)
     for (it = this->PhysicObjectVec.begin(); it != this->PhysicObjectVec.end(); ++it) {
-       (*it)->interpolatePhysicState(alpha);
 
-       //update sceneNode position and orientation
-       (*it)->sceneNode->setPosition((*it)->interpolatedState.position);
+        if ((*it)->mActive) {
+            (*it)->interpolatePhysicState(alpha);
 
-       (*it)->interpolatedState.orientation.toEuler(rot);
-       (*it)->sceneNode->setRotation(rot * irr::core::RADTODEG);
+            //update sceneNode position and orientation
+            (*it)->sceneNode->setPosition((*it)->interpolatedState.position);
 
-       //copy debug force information to debug vector
-       (*it)->debugForceVectorWorldCoord.clear();
+            (*it)->interpolatedState.orientation.toEuler(rot);
+            (*it)->sceneNode->setRotation(rot * irr::core::RADTODEG);
 
-       for (itForce = (*it)->currForceVectorWorldCoord.begin(); itForce != (*it)->currForceVectorWorldCoord.end(); ++itForce) {
-        (*it)->debugForceVectorWorldCoord.push_back(*itForce);
-       }
+            //copy debug force information to debug vector
+            (*it)->debugForceVectorWorldCoord.clear();
 
-       //clear all current force vectors
-       (*it)->currForceVectorWorldCoord.clear();
+            for (itForce = (*it)->currForceVectorWorldCoord.begin(); itForce != (*it)->currForceVectorWorldCoord.end(); ++itForce) {
+                 (*it)->debugForceVectorWorldCoord.push_back(*itForce);
+            }
 
-       //remove current frictions again
-       (*it)->currFrictionSum = 0.0f;
+            //clear all current force vectors
+            (*it)->currForceVectorWorldCoord.clear();
+
+            //remove current frictions again
+            (*it)->currFrictionSum = 0.0f;
+        }
     }
 }
 

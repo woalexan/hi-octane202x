@@ -12,6 +12,8 @@
 
 #include "irrlicht/irrlicht.h"
 #include <vector>
+#include "../utils/fileutils.h"
+#include "../utils/crc32.h"
 
 struct RaceTrackInfoStruct {
     //number of this race track level
@@ -39,7 +41,8 @@ struct RaceTrackInfoStruct {
 
     //name of current best player
     //on this race track
-    char bestPlayer[50];
+    //player names have max 8 chars
+    char bestPlayer[10];
 
     //current best high score
     //for this race track
@@ -47,7 +50,8 @@ struct RaceTrackInfoStruct {
 
     //name of current best high score
     //player
-    char bestHighScorePlayer[50];
+    //player names have max 8 chars
+    char bestHighScorePlayer[10];
 
     //the mesh for the race track
     //at track selection page in menue
@@ -77,19 +81,51 @@ struct CraftInfoStruct {
     std::vector<irr::scene::IMesh*> MeshCraft;
 };
 
+struct HighScoreEntryStruct {
+    //number of this entry in the CONFIG.DAT file
+    //starting with 0 for first entry
+
+    //the name of the player for this entry
+    //player names have max 8 chars
+    char namePlayer[10];
+
+    //the highscore value for this entry
+    irr::u8 highscoreVal;
+
+    //the integer value that contains the player
+    //assessement according to the original games
+    //assessement string table
+    irr::u8 playerAssessementVal;
+};
+
 class Assets {
 public:
-    Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::scene::ISceneManager* smgr);
+    Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::scene::ISceneManager* smgr,
+           bool updateGameConfigFile);
     ~Assets();
 
     std::vector<RaceTrackInfoStruct*> *mRaceTrackVec;
     std::vector<CraftInfoStruct*> *mCraftVec;
     std::vector<char*> mCraftColorSchemeNames;
 
+    void SetNewMainPlayerName(char* newName);
+    char* GetNewMainPlayerName();
+
+    void SetNewRaceTrackDefaultNrLaps(irr::u32 nrRaceTrack, irr::u8 newNumberLaps);
+
+    //assessementLevel goes from value 0 (highest appraisal) up
+    //to value 20 (worst performance)
+    char* GetDriverAssessementString(irr::u8 assessementLevel);
+
+    //returns NULL in case of an unexpected error
+    std::vector<HighScoreEntryStruct*>* GetHighScoreTable();
+
 private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
     irr::scene::ISceneManager* mySmgr;
+
+    bool mUpdateGameConfigFile;
 
     irr::u8 currLevelNr = 1;
     irr::u8 currCraftNr = 1;
@@ -98,6 +134,36 @@ private:
     void AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNrLaps);
     void InitCrafts();
     void AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, irr::u8 statArmour, irr::u8 statWeight, irr::u8 statFirePower);
+
+    char* currentConfigFileDataByteArray = NULL;
+    size_t currentConfigFileDataByteArrayLen = 0;
+
+    std::vector<char*>* driverAssessementStrings;
+    void InitDriverAssessementStrings();
+    void CleanUpDriverAssessementStrings();
+    void AddDriverAssessementString(char* newString);
+
+    bool mCurrentConfigFileRead;
+
+    //Routines handling the default games config.dat file
+    bool ReadGameConfigFile();
+    bool WriteGameConfigFile();
+
+    int32_t ConvertByteArray_ToInt32(char* bytes, size_t start_position);
+    void ReadNullTerminatedString(char* bytes, size_t start_position, char* outString, irr::u8 maxStrLen);
+    void WriteNullTerminatedString(char* bytes, size_t start_position, char* writeString, irr::u8 maxStrLen);
+
+    //This functions only work in case the original games config file was already successfully read
+    //before!
+    void DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct);
+    void DecodeMainPlayerName();
+    bool DecodeHighScoreTable();
+
+    std::vector<HighScoreEntryStruct*>* highScoreTableVec;
+
+    //game player names are limited to max
+    //8 characters in Hi-Octane!
+    char currMainPlayerName[10];
 };
 
 #endif // ASSETS_H

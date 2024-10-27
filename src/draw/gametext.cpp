@@ -434,12 +434,12 @@ void GameText::FreeTextFont(GameTextFont &pntrFont) {
 //  position = 2D position where text rendering should occur (leftmost character of text)
 //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
 //                     If specified stops text rendering after specified number of chars
-void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s8 stopAfterNrChars) {
+void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s16 stopAfterNrChars) {
   //only continue when fonts loaded ok
   if (GameTextInitializedOk && (whichFont != NULL)) {
     char* pntr = &text[0];
     irr::core::vector2di correctCharPosition = position;
-    irr::s8 charCnter = stopAfterNrChars;
+    irr::s16 charCnter = stopAfterNrChars;
 
     while ((*pntr != 0) && ((charCnter > 0) || (stopAfterNrChars == -1))) {
         //draw current character
@@ -464,9 +464,9 @@ void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::posi
 //  whichFont = pointer to the font that should be used
 //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
 //                     If specified stops text rendering after specified number of chars
-irr::u32 GameText::GetWidthPixelsGameText(char* text, GameTextFont *whichFont, irr::s8 stopAfterNrChars) {
+irr::u32 GameText::GetWidthPixelsGameText(char* text, GameTextFont *whichFont, irr::s16 stopAfterNrChars) {
     irr::u32 width = 0;
-    irr::s8 charCnter = stopAfterNrChars;
+    irr::s16 charCnter = stopAfterNrChars;
 
     //only continue when fonts loaded ok
     if (GameTextInitializedOk && (whichFont != NULL)) {
@@ -492,10 +492,10 @@ irr::u32 GameText::GetWidthPixelsGameText(char* text, GameTextFont *whichFont, i
 //  whichFont = pointer to the font that should be used
 //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
 //                     If specified stops text rendering after specified number of chars
-irr::u32 GameText::GetHeightPixelsGameText(char* text, GameTextFont *whichFont, irr::s8 stopAfterNrChars) {
+irr::u32 GameText::GetHeightPixelsGameText(char* text, GameTextFont *whichFont, irr::s16 stopAfterNrChars) {
     irr::u32 maxHeight = 0;
     irr::u32 currHeight;
-    irr::s8 charCnter = stopAfterNrChars;
+    irr::s16 charCnter = stopAfterNrChars;
 
     //only continue when fonts loaded ok
     if (GameTextInitializedOk && (whichFont != NULL)) {
