@@ -117,7 +117,7 @@ typedef struct {
 
     int currLapNumber = 1;
 
-    int raceNumberLaps = 12;
+    int raceNumberLaps = 6;
 
     int currKillCount = 0;
 

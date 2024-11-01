@@ -15,6 +15,27 @@
 #include "../utils/fileutils.h"
 #include "../utils/crc32.h"
 
+//if we ever want to implement the other languages
+//stored in the game these are the values assigned to the current
+//selected game language settings in CONFIG.DAT file
+#define GAME_LANGUAGE_ENGLISH 0
+#define GAME_LANGUAGE_GERMAN 1
+#define GAME_LANGUAGE_FRENCH 2
+#define GAME_LANGUAGE_SPANISH 3
+#define GAME_LANGUAGE_ITALIAN 4
+
+//values in CONFIG.DAT for the different race craft
+//color schemes, this are the actual used values for each
+//color scheme in this file
+#define GAME_CRAFTCOLSCHEME_MADMEDICINE 0x06
+#define GAME_CRAFTCOLSCHEME_ASSASSINS 0xAA
+#define GAME_CRAFTCOLSCHEME_GOREHOUNDS 0x4A
+#define GAME_CRAFTCOLSCHEME_FOOFIGHTERS 0x10
+#define GAME_CRAFTCOLSCHEME_DETHFEST 0x8C
+#define GAME_CRAFTCOLSCHEME_FIREPHREAKS 0x16
+#define GAME_CRAFTCOLSCHEME_STORMRIDERS 0x17
+#define GAME_CRAFTCOLSCHEME_BULLFROG 0x8F
+
 struct RaceTrackInfoStruct {
     //number of this race track level
     irr::u8 levelNr;
@@ -107,18 +128,31 @@ public:
     std::vector<RaceTrackInfoStruct*> *mRaceTrackVec;
     std::vector<CraftInfoStruct*> *mCraftVec;
     std::vector<char*> mCraftColorSchemeNames;
+    std::vector<irr::u8> mCraftColorSchemeConfigDatFileValue;
 
     void SetNewMainPlayerName(char* newName);
     char* GetNewMainPlayerName();
+
+    void SetCurrentChampionshipName(char* newName);
+    char* GetCurrentChampionshipName();
+
+    void SetCurrentGameLanguage(irr::u8 newLanguage);
+    irr::u8 GetCurrentGameLanguage();
+
+    void SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme);
+    irr::u8 GetCurrentCraftColorScheme();
 
     void SetNewRaceTrackDefaultNrLaps(irr::u32 nrRaceTrack, irr::u8 newNumberLaps);
 
     //assessementLevel goes from value 0 (highest appraisal) up
     //to value 20 (worst performance)
     char* GetDriverAssessementString(irr::u8 assessementLevel);
+    irr::u8 GetNumberDriverAssessementStrings();
 
     //returns NULL in case of an unexpected error
     std::vector<HighScoreEntryStruct*>* GetHighScoreTable();
+
+    void UpdateGameConfigFileExitGame();
 
 private:
     irr::video::IVideoDriver* myDriver;
@@ -146,7 +180,7 @@ private:
     bool mCurrentConfigFileRead;
 
     //Routines handling the default games config.dat file
-    bool ReadGameConfigFile();
+    bool ReadGameConfigFile(char** targetBuf, size_t &outBufSize);
     bool WriteGameConfigFile();
 
     int32_t ConvertByteArray_ToInt32(char* bytes, size_t start_position);
@@ -155,15 +189,31 @@ private:
 
     //This functions only work in case the original games config file was already successfully read
     //before!
-    void DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct);
-    void DecodeMainPlayerName();
+    bool DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct);
+    bool DecodeMainPlayerName();
     bool DecodeHighScoreTable();
+    bool DecodeCurrentGameLanguage();
+    bool DecodeCurrentCraftColorScheme();
+    bool DecodeCurrentChampionshipName();
 
     std::vector<HighScoreEntryStruct*>* highScoreTableVec;
 
     //game player names are limited to max
     //8 characters in Hi-Octane!
+    //plus 1 termination char + 1 char extra :)
     char currMainPlayerName[10];
+
+    //name of current active (last selected) championship in
+    //config.dat file; length is limited to 12 characters in Hi-Octane!
+    //plus 1 termination char + 1 char extra :)
+    char currChampionshipName[14];
+
+    //current selected game language, we only support english right now
+    irr::u8 currSelectedGameLanguage = GAME_LANGUAGE_ENGLISH;
+
+    //is the current selected craft colorscheme setting in CONFIG.DAT file
+    //without config file the default start value if MAD MEDICINE
+    irr::u8 currSelectedCraftColorScheme = GAME_CRAFTCOLSCHEME_MADMEDICINE;
 };
 
 #endif // ASSETS_H

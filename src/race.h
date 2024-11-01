@@ -111,6 +111,37 @@ struct WayPointLinkInfoStruct {
     WayPointLinkInfoStruct *pntrTransitionLink = NULL;
 };
 
+struct RaceStatsEntryStruct {
+    //player names in Hi-Octane are limited
+    //to 8 characters, plus 1 termination char + 1 extra
+    //char to be on the safe side :)
+    char playerName[10];
+
+    //the hit accuracy
+    irr::u8 hitAccuracy;
+
+    //the number of kills
+    irr::u8 nrKills;
+
+    //the number of deaths
+    irr::u8 nrDeaths;
+
+    //the average lap time
+    irr::u16 avgLapTime;
+
+    //the best lap time
+    irr::u16 bestLapTime;
+
+    //the race time
+    irr::u32 raceTime;
+
+    //the rating number up to 20
+    irr::u8 rating;
+
+    //the position
+    irr::u8 racePosition;
+};
+
 class Player; //Forward declaration
 class HUD; //Forward declaration
 class WorldAwareness; //Forward declaration
@@ -141,6 +172,9 @@ public:
     void Init();
     void AddPlayer();
     void End();
+
+    std::vector<RaceStatsEntryStruct*>* RetrieveFinalRaceStatistics();
+    void CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr);
 
     void HandleCraftHeightMapCollisions();
 
@@ -213,6 +247,12 @@ public:
     //debugging function which allows to draw a rectangle around a selected
     //tile of the heightmap of the terrain level
     void DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color);
+
+    void PlayerHasFinishedLastLapOfRace(Player *whichPlayer);
+
+    //this list contains all players that have already
+    //finished the race in the order how the have finished
+    std::vector<Player*> playerRaceFinishedVec;
 
 private:
     int levelNr;

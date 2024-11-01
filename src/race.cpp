@@ -68,6 +68,7 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     coneVec->clear();
 
     mPlayerList.clear();
+    playerRaceFinishedVec.clear();
 
     //load the correct music file for this level
     char musicFileName[60];
@@ -846,6 +847,142 @@ void Race::removePlayerTest() {
     delete player2;
 
     player2Removed = true;
+}
+
+void Race::CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr) {
+     std::vector<RaceStatsEntryStruct*>::iterator it;
+
+     RaceStatsEntryStruct* pntrStruct;
+
+     if (pntr->size() > 0) {
+         for (it = pntr->begin(); it != pntr->end(); ) {
+             pntrStruct = (*it);
+
+             it = pntr->erase(it);
+
+             delete  pntrStruct;
+         }
+     }
+}
+
+void Race::PlayerHasFinishedLastLapOfRace(Player *whichPlayer) {
+    if (whichPlayer != NULL) {
+        this->playerRaceFinishedVec.push_back(whichPlayer);
+    }
+}
+
+//helper function which creates and returns the final race statistics
+std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
+    std::vector<RaceStatsEntryStruct*>* result = new std::vector<RaceStatsEntryStruct*>();
+
+    result->clear();
+
+    //just put example data in here right now from a games example
+    RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("ABC"));
+    newEntry->hitAccuracy = 49;
+    newEntry->nrKills = 4;
+    newEntry->nrDeaths = 0;
+    newEntry->avgLapTime = 449;
+    newEntry->bestLapTime = 375;
+    newEntry->raceTime = 4943;
+    newEntry->rating = 16;
+    newEntry->racePosition = 1;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("BARNSY"));
+    newEntry->hitAccuracy = 55;
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 3;
+    newEntry->avgLapTime = 526;
+    newEntry->bestLapTime = 407;
+    newEntry->raceTime = 5794;
+    newEntry->rating = 4;
+    newEntry->racePosition = 5;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("SHUNTLY"));
+    newEntry->hitAccuracy = 45;
+    newEntry->nrKills = 3;
+    newEntry->nrDeaths = 1;
+    newEntry->avgLapTime = 657;
+    newEntry->bestLapTime = 456;
+    newEntry->raceTime = 7237;
+    newEntry->rating = 6;
+    newEntry->racePosition = 8;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("COPSE"));
+    newEntry->hitAccuracy = 69;
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 4;
+    newEntry->avgLapTime = 520;
+    newEntry->bestLapTime = 392;
+    newEntry->raceTime = 5721;
+    newEntry->rating = 5;
+    newEntry->racePosition = 2;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("MANNY"));
+    newEntry->hitAccuracy = 53;
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 2;
+    newEntry->avgLapTime = 543;
+    newEntry->bestLapTime = 397;
+    newEntry->raceTime = 5973;
+    newEntry->rating = 4;
+    newEntry->racePosition = 6;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("MCLALIN"));
+    newEntry->hitAccuracy = 47;
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 3;
+    newEntry->avgLapTime = 515;
+    newEntry->bestLapTime = 411;
+    newEntry->raceTime = 5671;
+    newEntry->rating = 4;
+    newEntry->racePosition = 5;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("MAD"));
+    newEntry->hitAccuracy = 45;
+    newEntry->nrKills = 7;
+    newEntry->nrDeaths = 0;
+    newEntry->avgLapTime = 501;
+    newEntry->bestLapTime = 399;
+    newEntry->raceTime = 5519;
+    newEntry->rating = 15;
+    newEntry->racePosition = 3;
+
+    result->push_back(newEntry);
+
+    newEntry = new RaceStatsEntryStruct();
+    strcpy(newEntry->playerName, (char*)("ATROW"));
+    newEntry->hitAccuracy = 48;
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 1;
+    newEntry->avgLapTime = 593;
+    newEntry->bestLapTime = 430;
+    newEntry->raceTime = 6533;
+    newEntry->rating = 4;
+    newEntry->racePosition = 7;
+
+    result->push_back(newEntry);
+
+    return (result);
 }
 
 irr::core::dimension2di Race::CalcPlayerMiniMapPosition(Player* whichPlayer) {

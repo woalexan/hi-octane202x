@@ -191,6 +191,9 @@ void Menue::AcceptedRaceSetup() {
     //set new number of default laps for this race track
     this->mGameAssets->SetNewRaceTrackDefaultNrLaps(currSelectedRaceTrack + 1, currentSelRaceLapNumberVal);
 
+    //set new default craft color scheme
+    this->mGameAssets->SetCurrentCraftColorScheme(this->currSelectedShipColorScheme);
+
     //tell main program that we should start
     //the race
     //handover selected level number
@@ -219,6 +222,11 @@ void Menue::InitMenuePageEntries() {
     //the intro was either interrupted or finished
     ActIntroStop = new MenueAction();
     ActIntroStop->actionNr = MENUE_ACTION_INTROSTOP;
+
+    //a special action that signals the Main loop that race stat
+    //page was closed by player
+    ActCloseRaceStatPage = new MenueAction();
+    ActCloseRaceStatPage->actionNr = MENUE_ACTION_CLOSERACESTATPAGE;
 
     //define menue pages first
     TopMenuePage = new MenuePage();
@@ -268,6 +276,21 @@ void Menue::InitMenuePageEntries() {
     gameHiscoreMenueDummyEntry->triggerAction = NULL;
 
     gameHighscoreMenuePage->pageEntryVec.push_back(gameHiscoreMenueDummyEntry);
+
+    //define dummy menue page for race stats screen
+    raceStatsMenuePage = new MenuePage();
+    raceStatsMenuePage->pageNumber = MENUE_RACESTATS;
+    //if we press ESC on the race stats page go to game menue
+    raceStatsMenuePage->parentMenuePage = NULL;
+
+    raceStatsMenueDummyEntry = new MenueSingleEntry();
+    raceStatsMenueDummyEntry->entryText = (char*)"";
+    raceStatsMenueDummyEntry->entryNumber = 0;
+    raceStatsMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
+    raceStatsMenueDummyEntry->nextMenuePage = NULL;
+    raceStatsMenueDummyEntry->triggerAction = ActCloseRaceStatPage;
+
+    raceStatsMenuePage->pageEntryVec.push_back(raceStatsMenueDummyEntry);
 
     //now define menue page entries
 
@@ -1075,19 +1098,19 @@ void Menue::PrintMenueEntriesRaceSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(SelRaceTrackNrLapsLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA,
+          myGameTextRenderer->DrawGameText(SelRaceTrackNrLapsLabel->text, SelRaceTrackNrLapsLabel->whichFont,
                                            SelRaceTrackNrLapsLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(SelRaceTrackNrLapsLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(SelRaceTrackBestLapLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA,
+          myGameTextRenderer->DrawGameText(SelRaceTrackBestLapLabel->text, SelRaceTrackBestLapLabel->whichFont,
                                            SelRaceTrackBestLapLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(SelRaceTrackBestLapLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(SelRaceTrackBestRaceLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA,
+          myGameTextRenderer->DrawGameText(SelRaceTrackBestRaceLabel->text, SelRaceTrackBestRaceLabel->whichFont,
                                            SelRaceTrackBestRaceLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(SelRaceTrackBestRaceLabel->text);
           if (printCharLeft < 0)
@@ -1523,10 +1546,14 @@ void Menue::ChangeToShipSelection() {
     //player ship selection
     HideRaceTrackModels();
 
+    this->currSelectedShipColorScheme = this->mGameAssets->GetCurrentCraftColorScheme();
+
     //unhide player ship models, we need to see them
     UnhideShipModels();
 
-    SetShipColorScheme(0);
+    //get the currently selected default color scheme from
+    //config.dat
+    SetShipColorScheme(currSelectedShipColorScheme);
 
     currSelectedShip = 0;
     FinalPositionShipSelectionWheelReached(currSelectedShip);
@@ -1547,6 +1574,9 @@ void Menue::ChangeToRaceSelection(MenueSingleEntry* callerItem) {
     //so that we can return to the correct menue page later when
     //interrupting race track selection prematuraliy
     RaceTrackSelectionCallerMenueEntry = callerItem;
+
+    //get current configured number of laps from config.dat
+    this->currentSelRaceLapNumberVal = this->mGameAssets->mRaceTrackVec->at(0)->currSelNrLaps;
 
     //unhide Race track models, we need to see them
     UnhideRaceTrackModels();
@@ -1707,6 +1737,10 @@ void Menue::ShowGameTitle() {
     this->currSelMenuePage = gameTitleMenuePage;
 }
 
+void Menue::ShowGameLoadingScreen() {
+    this->currSelMenuePage = raceLoadingMenuePage;
+}
+
 void Menue::AddIntroSoundTrigger(irr::f32 absTriggerTime, uint8_t soundIdNr, bool looping,
                                  irr::f32 endLoopingTime) {
    IntroSoundTriggerStruct* newTrigger = new IntroSoundTriggerStruct();
@@ -1861,7 +1895,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
     if ((this->currSelMenuePage == RaceTrackSelectionPage) || (this->currSelMenuePage == ShipSelectionPage)) {
         //call racetrack and ship selection rendering source code
         RenderRaceSelection();
-    } else if (this->currSelMenuePage == gameHighscoreMenuePage) {
+    } else if ((this->currSelMenuePage == gameHighscoreMenuePage) || (this->currSelMenuePage == raceStatsMenuePage)) {
         RenderStatTextPage(frameDeltaTime);
     } else {
      //default menue rendering source code
@@ -1919,21 +1953,30 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
     myDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0), irr::core::recti(0, 0, screenResolution.Width, screenResolution.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
 
-    //Render the currently selected window depending on the current
-    //window state (fully open vs. transitioning)
-    RenderWindow(irr::core::recti(24, 23, 619, 311));
+    if (currSelMenuePage == gameHighscoreMenuePage) {
+        //Render the currently selected window depending on the current
+        //window state (fully open vs. transitioning)
+        RenderWindow(irr::core::recti(24, 23, 619, 311));
+    } else if (currSelMenuePage == raceStatsMenuePage) {
+        //Render the currently selected window depending on the current
+        //window state (fully open vs. transitioning)
+        RenderWindow(irr::core::recti(0, 0, 640, 334));
+    }
 
     irr::s32 printCharLeft = currNrCharsShownCnter;
 
     //is the complete page already rendered, if so sum up overall
     //time this page is already shown to the user
     if (currMenueState == MENUE_STATE_SELACTIVE) {
-        absTimeElapsedAtHighScorePage += frameDeltaTime;
+        if (currSelMenuePage == gameHighscoreMenuePage) {
 
-        //if we reach 10 seconds close this page again
-        if (absTimeElapsedAtHighScorePage > 10.0f) {
-            CleanupHighScorepage();
-            return;
+            absTimeElapsedAtHighScorePage += frameDeltaTime;
+
+            //if we reach 10 seconds close this page again
+            if (absTimeElapsedAtHighScorePage > 10.0f) {
+                CleanupHighScorepage();
+                return;
+            }
         }
     }
 
@@ -1945,22 +1988,31 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
 
     //Draw overall text
     std::vector<MenueTextLabel*>::iterator it;
+    std::vector<MenueTextLabel*>* lblVecPntr = NULL;
 
-    for (it = this->highScorePageTextVec->begin(); it != this->highScorePageTextVec->end(); ++it) {
-        this->myGameTextRenderer->DrawGameText(
-                    (*it)->text,
-                    this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA,
-                    (*it)->drawPositionTxt, printCharLeft);
+    if (currSelMenuePage == gameHighscoreMenuePage) {
+        lblVecPntr = highScorePageTextVec;
+    } else if (currSelMenuePage == raceStatsMenuePage) {
+        lblVecPntr = raceStatsPageTextVec;
+    }
 
-        if (MENUE_ENABLETYPEWRITEREFFECT) {
-            //decrease number of characters left for printing in this rendering run (type writer effect) of game
-            printCharLeft -= strlen((*it)->text);
+    if (lblVecPntr != NULL) {
+        for (it = lblVecPntr->begin(); it != lblVecPntr->end(); ++it) {
+            this->myGameTextRenderer->DrawGameText(
+                        (*it)->text,
+                        (*it)->whichFont,
+                        (*it)->drawPositionTxt, printCharLeft);
 
-            if (printCharLeft < 0) {
-                printCharLeft = 0;
+            if (MENUE_ENABLETYPEWRITEREFFECT) {
+                //decrease number of characters left for printing in this rendering run (type writer effect) of game
+                printCharLeft -= strlen((*it)->text);
+
+                if (printCharLeft < 0) {
+                    printCharLeft = 0;
+                }
             }
         }
-    }
+   }
 }
 
 irr::u32 Menue::MaxMenueEntryNumber(MenuePage* inputPage) {
@@ -3059,18 +3111,21 @@ void Menue::InitStatLabels() {
 
     SelRaceTrackNrLapsLabel = new MenueTextLabel();
     SelRaceTrackNrLapsLabel->text = new char[70];
+    SelRaceTrackNrLapsLabel->whichFont = myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
     strcpy(SelRaceTrackNrLapsLabel->text, "");
     //all the other variables will be setup later
 
     SelRaceTrackBestLapLabel = new MenueTextLabel();
     SelRaceTrackBestLapLabel->text = new char[70];
+    SelRaceTrackBestLapLabel->whichFont = myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
     strcpy(SelRaceTrackBestLapLabel->text, "");
     //all the other variables will be setup later
 
     SelRaceTrackBestRaceLabel = new MenueTextLabel();
     SelRaceTrackBestRaceLabel->text = new char[70];
+    SelRaceTrackBestRaceLabel->whichFont = myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
     strcpy(SelRaceTrackBestRaceLabel->text, "");
     //all the other variables will be setup later
@@ -3144,8 +3199,8 @@ void Menue::RecalculateShipStatLabels() {
 }
 
 void Menue::CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di centerCoord) {
-    irr::u32 textWidth = myGameTextRenderer->GetWidthPixelsGameText(label.text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA);
-    irr::u32 textHeight = myGameTextRenderer->GetHeightPixelsGameText(label.text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA);
+    irr::u32 textWidth = myGameTextRenderer->GetWidthPixelsGameText(label.text, label.whichFont);
+    irr::u32 textHeight = myGameTextRenderer->GetHeightPixelsGameText(label.text, label.whichFont);
 
     label.drawPositionTxt.X = centerCoord.X - (textWidth / 2);
     label.drawPositionTxt.Y = centerCoord.Y - (textHeight / 2);
@@ -3303,6 +3358,7 @@ void Menue::ShowHighscore() {
    newLabel->drawPositionTxt.X = 264;
    newLabel->drawPositionTxt.Y = 45;
    newLabel->text = titleText;
+   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
@@ -3327,6 +3383,7 @@ void Menue::ShowHighscore() {
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = pntrTable->at(cnt)->namePlayer;
        newLabel->visible = false; //we must not delete this text pointer!
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3337,10 +3394,11 @@ void Menue::ShowHighscore() {
        sprintf(highScoreValStr, "%u", pntrTable->at(cnt)->highscoreVal);
 
        newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
        newLabel->drawPositionTxt.X =
                313 - this->myGameTextRenderer->GetWidthPixelsGameText(
                    highScoreValStr,
-                   this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA) / 2;
+                   newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = highScoreValStr;
@@ -3356,10 +3414,11 @@ void Menue::ShowHighscore() {
                    pntrTable->at(cnt)->playerAssessementVal);
 
        newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
        newLabel->drawPositionTxt.X =
                592 - this->myGameTextRenderer->GetWidthPixelsGameText(
                    assessementStr,
-                   this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA);
+                   newLabel->whichFont);
 
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = assessementStr;
@@ -3378,6 +3437,506 @@ void Menue::ShowHighscore() {
    currSelMenueSingleEntry = gameHiscoreMenueDummyEntry;
 
    absTimeElapsedAtHighScorePage = 0.0f;
+
+   //do we use typewriter effect?
+   if (MENUE_ENABLETYPEWRITEREFFECT) {
+     //reset typewriter effect to build
+     //next page correctly
+     currNrCharsShownCnter = 0;
+     finalNrChardsShownMenuePageFinished = nrCharsOverall;
+     typeWriterEffectNextCharacterAbsTime = absoluteTime;
+
+     //for typewriter effect we need to set menue state again
+     //to typewriter inbetween state
+     currMenueState = MENUE_STATE_TYPETEXT;
+   } else {
+     //no skip this effect
+     currMenueState = MENUE_STATE_SELACTIVE;
+   }
+}
+
+void Menue::CleanupRaceStatsPage() {
+    std::vector<MenueTextLabel*>::iterator it;
+    MenueTextLabel* labelPntr;
+
+    for (it = this->raceStatsPageTextVec->begin(); it != this->raceStatsPageTextVec->end(); ) {
+        labelPntr = (*it);
+
+        it = this->raceStatsPageTextVec->erase(it);
+
+        //Reuse the visible bool variable in the MenueTextLabel struct
+        //here for another purpose. If we set visible to true we know
+        //that during the Cleanup process of variables of highscore screen
+        //in function CleanupRaceStatsPage we need to delete also the
+        //pntr to the text variable; if visible is false, then we must not
+        //delete the text string pointer!
+        if ((*it)->visible) {
+           //visible was set to true, delete text pointer!
+           delete[] labelPntr->text;
+        }
+
+        //delete MenueTextLabel as well
+        delete labelPntr;
+    }
+
+    //also delete the vector of MenueTextLabels we have used
+    delete raceStatsPageTextVec;
+}
+
+void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistics) {
+   //prepare text for this page
+   raceStatsPageTextVec = new std::vector<MenueTextLabel*>();
+   raceStatsPageTextVec->clear();
+
+   MenueTextLabel* newLabel;
+   irr::u32 columnXcoord;
+   irr::u32 rowYCoord;
+   irr::u32 nrCharsOverall = 0;
+   char* titleText;
+
+   //******************** Draw title ****************
+
+   titleText = new char[12];
+   strcpy(titleText, (char*)"STATISTICS");
+
+   //first add menue page title text
+   newLabel = new MenueTextLabel();
+   newLabel->drawPositionTxt.X = 225;
+   newLabel->drawPositionTxt.Y = 25;
+   newLabel->text = titleText;
+   newLabel->whichFont = this->myGameTextRenderer->HudWhiteTextBannerFont;
+
+   //Reuse the visible bool variable in the MenueTextLabel struct
+   //here for another purpose. If we set visible to true we know
+   //that during the Cleanup process of variables of highscore screen
+   //in function CleanupHighScorepage we need to delete also the
+   //pntr to the text variable; if visible is false, then we must not
+   //delete the text string pointer!
+   newLabel->visible = true; //set to true, delete text pointer afterwards!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   // ****************** Write player names ***********
+
+   irr::u8 nrPlayers = finalRaceStatistics->size();
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+        //first calculate columnXcoord according to entry column from
+        //left of screen to right
+        columnXcoord = 50 + cnt * 78;
+
+        //for the player name
+        newLabel = new MenueTextLabel();
+        newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                    finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont) / 2;
+        if (cnt % 2 == 0) {
+           //even entries draw in the upper name line
+           newLabel->drawPositionTxt.Y = 59;
+        } else {
+           //uneven entries, draw the name in lower line
+            newLabel->drawPositionTxt.Y = 75;
+        }
+
+        newLabel->text = finalRaceStatistics->at(cnt)->playerName;
+        newLabel->visible = false; //we must not delete this text pointer!
+
+        raceStatsPageTextVec->push_back(newLabel);
+
+        nrCharsOverall += strlen(newLabel->text);
+   }
+
+   // ****************** HIT ACCURACY ***********
+
+   char* hitAccLbl = new char[14];
+   strcpy(hitAccLbl, "HIT ACCURACY");
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 235;
+   newLabel->drawPositionTxt.Y = 91;
+
+   newLabel->text = hitAccLbl;
+   newLabel->visible = true; //we must delete this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   // ****************** KILLS ***********
+
+   char* killsLbl = new char[14];
+   strcpy(killsLbl, "KILLS");
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 287;
+   newLabel->drawPositionTxt.Y = 123;
+
+   newLabel->text = killsLbl;
+   newLabel->visible = true; //we must delete this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   // ****************** DEATHS ***********
+
+   char* deathsLbl = new char[14];
+   strcpy(deathsLbl, "DEATHS");
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 278;
+   newLabel->drawPositionTxt.Y = 155;
+
+   newLabel->text = deathsLbl;
+   newLabel->visible = true; //we must delete this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   // ****************** AVERAGE LAP ***********
+
+   char* avgLapLbl = new char[14];
+   strcpy(avgLapLbl, "AVERAGE LAP");
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 241;
+   newLabel->drawPositionTxt.Y = 187;
+
+   newLabel->text = avgLapLbl;
+   newLabel->visible = true; //we must delete this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   // ****************** BEST LAP ***********
+
+    char* bestLapLbl = new char[14];
+    strcpy(bestLapLbl, "BEST LAP");
+
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 263;
+    newLabel->drawPositionTxt.Y = 219;
+
+    newLabel->text = bestLapLbl;
+    newLabel->visible = true; //we must delete this text pointer!
+
+    raceStatsPageTextVec->push_back(newLabel);
+
+    nrCharsOverall += strlen(newLabel->text);
+
+    // ****************** RACE TIME ***********
+
+    char* raceTime = new char[14];
+    strcpy(raceTime, "RACE TIME");
+
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 255;
+    newLabel->drawPositionTxt.Y = 251;
+
+    newLabel->text = raceTime;
+    newLabel->visible = true; //we must delete this text pointer!
+
+    raceStatsPageTextVec->push_back(newLabel);
+
+    nrCharsOverall += strlen(newLabel->text);
+
+    // ****************** RATING ***********
+
+    char* ratingLbl = new char[14];
+    strcpy(ratingLbl, "RATING");
+
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 281;
+    newLabel->drawPositionTxt.Y = 283;
+
+    newLabel->text = ratingLbl;
+    newLabel->visible = true; //we must delete this text pointer!
+
+    raceStatsPageTextVec->push_back(newLabel);
+
+    nrCharsOverall += strlen(newLabel->text);
+
+    // ****************** POSITION ***********
+
+    char* positionLbl = new char[14];
+    strcpy(positionLbl, "POSITION");
+
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 269;
+    newLabel->drawPositionTxt.Y = 315;
+
+    newLabel->text = positionLbl;
+    newLabel->visible = true; //we must delete this text pointer!
+
+    raceStatsPageTextVec->push_back(newLabel);
+
+    nrCharsOverall += strlen(newLabel->text);
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 0 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->hitAccuracy);
+       strcat(newText, "%");
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 1 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->nrKills);
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 2 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->nrDeaths);
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 3 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->avgLapTime);
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 4 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->bestLapTime);
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 5 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->raceTime);
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 6 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->rating);
+       strcat(newText, "/20");
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+       //first calculate columnXcoord according to entry column from
+       //left of screen to right
+       columnXcoord = 50 + cnt * 78;
+       rowYCoord = 113 + 7 * 32;
+
+       char* newText = new char[20];
+
+       newLabel = new MenueTextLabel();
+       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+
+       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->racePosition);
+
+       newLabel->text = newText;
+       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+                 newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->text, newLabel->whichFont) / 2;
+
+       newLabel->visible = true; //we must delete this text pointer!
+
+       raceStatsPageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+   }
+
+   // ****************** MAIN PLAYER ASSESSEMENT ***********
+
+   char* playerAssessement = new char[30];
+   playerAssessement = this->mGameAssets->GetDriverAssessementString(
+               this->mGameAssets->GetNumberDriverAssessementStrings() - finalRaceStatistics->at(0)->rating);
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = this->myGameTextRenderer->HudWhiteTextBannerFont;
+   newLabel->drawPositionTxt.X = 320 - this->myGameTextRenderer->GetWidthPixelsGameText(
+               playerAssessement, newLabel->whichFont) / 2;
+
+   newLabel->drawPositionTxt.Y = 363;
+
+   newLabel->text = playerAssessement;
+   newLabel->visible = true; //we must delete this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   //now we have all the text prepared
+   currSelMenuePage = this->raceStatsMenuePage;
+
+   //there is a non visible dummy menue entry
+   //we need to use it, because we need at least one item
+   currSelMenueSingleEntry = this->raceStatsMenueDummyEntry;
 
    //do we use typewriter effect?
    if (MENUE_ENABLETYPEWRITEREFFECT) {

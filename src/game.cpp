@@ -88,8 +88,6 @@ bool Game::InitGameAssets() {
     /***********************************************************/
     /* Load and define game assets (Meshes, Tracks, Craft)     */
     /***********************************************************/
-    bool keepConfigDataFileUpdated = false;
-
     GameAssets = new Assets(device, driver, smgr, keepConfigDataFileUpdated);
 
     return true;
@@ -162,6 +160,11 @@ void Game::RunGame() {
       //go immediately to the game title screen
       MainMenue->ShowGameTitle();
       mGameState = DEF_GAMESTATE_GAMETITLE;
+
+      //lastRaceStat = this->mCurrentRace->RetrieveFinalRaceStatistics();
+
+      //MainMenue->ShowRaceStats(lastRaceStat);
+      //mGameState = DEF_GAMESTATE_MENUE;
     }
 
     showTitleAbsTime = 0.0f;
@@ -199,6 +202,9 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
     if (MainMenue->HandleActions(pendingAction)) {
         //user triggered an menue action
         if (pendingAction == MainMenue->ActQuitToOS) {
+            //make sure config.dat is updated
+            GameAssets->UpdateGameConfigFileExitGame();
+
             //user wants to quit the program
             ExitGame = true;
         }
@@ -229,6 +235,8 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
         }
 
         if (pendingAction == MainMenue->ActRace) {
+            //MainMenue->ShowGameLoadingScreen();
+
             //player wants to start the race
             if (this->CreateNewRace(pendingAction->currSetValue)) {
                  mGameState = DEF_GAMESTATE_RACE;
@@ -242,6 +250,24 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
                  //yes, change to game title screen
                  mGameState = DEF_GAMESTATE_GAMETITLE;
                  MainMenue->ShowGameTitle();
+        }
+
+        if (pendingAction == MainMenue->ActCloseRaceStatPage) {
+                 //user pressed Return at race stat page
+                 //cleanup race stat page and return back to
+                 //main menue
+
+                 //first cleanup data of race stats page
+                 MainMenue->CleanupRaceStatsPage();
+
+                 //do not forget to also cleanup last
+                 //racestat struct memory!
+                 mCurrentRace->CleanupRaceStatistics(lastRaceStat);
+
+                 mGameState = DEF_GAMESTATE_MENUE;
+
+                 //go back to main menue top page
+                 MainMenue->ShowMainMenue();
         }
     }
 
