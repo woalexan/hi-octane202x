@@ -77,6 +77,10 @@ private:
     //game intro
     bool SkipGameIntro = true;
 
+    //if true config.dat file is updated
+    //with latest selected choices
+    bool keepConfigDataFileUpdated = false;
+
     //Returns true for success, false for error occured
     bool InitIrrlicht();
     bool InitGameAssets();
@@ -84,6 +88,8 @@ private:
 
     int lastFPS = -1;
     MenueAction* pendingAction = NULL;
+
+    std::vector<RaceStatsEntryStruct*>* lastRaceStat;
 
     void GameLoop();
     void GameLoopMenue(irr::f32 frameDeltaTime);

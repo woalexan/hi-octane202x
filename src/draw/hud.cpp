@@ -1685,6 +1685,13 @@ void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
 
 void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
     if (monitorWhichPlayer != NULL) {
+
+        DrawFinishedPlayerList();
+
+        if ((this->monitorWhichPlayer->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_FINISHED) ||
+            (this->monitorWhichPlayer->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_BEFORESTART))
+                return;
+
         //any broken glas?
         if (this->brokenGlasVec->size() > 0) {
             std::vector<HudDisplayPart*>::iterator itGlasBreak;
@@ -2986,6 +2993,37 @@ HUD::~HUD() {
     if (currentBigGreenText != NULL) {
         delete[] currentBigGreenText;
         currentBigGreenText = NULL;
+    }
+}
+
+void HUD::DrawFinishedPlayerList() {
+    irr::u8 nrFinishedPlayers = this->monitorWhichPlayer->mRace->playerRaceFinishedVec.size();
+
+    if (nrFinishedPlayers > 0) {
+        irr::u32 posXNr = 3;
+        irr::u32 posXPlayerName = 25;
+        irr::u32 posYPlayerName = 125;
+        irr::u32 posY = 120;
+
+        char posStr[5];
+
+        //at least one player has finished race already
+        //therefore we need to show position list in HUD
+        for (irr::u8 position = 1; position <= nrFinishedPlayers; position++) {
+
+            //first draw 2 red arrow symbol next to lap number display
+            sprintf(posStr, "%d", position);
+
+            myTextRenderer->DrawGameNumberText(posStr, myTextRenderer->HudLaptimeNumberGrey,
+                                               irr::core::vector2d<irr::s32>(posXNr, posY));
+
+            myTextRenderer->DrawHudSmallText(
+                        this->monitorWhichPlayer->mRace->playerRaceFinishedVec.at(position - 1)->mPlayerStats->name,
+                        this->myTextRenderer->HudTargetNameRed,  irr::core::vector2d<irr::s32>(posXPlayerName, posYPlayerName));
+
+            posY += 24;
+            posYPlayerName += 24;
+        }
     }
 }
 

@@ -184,6 +184,12 @@ private:
     void DrawHUD1PlayerRace(irr::f32 deltaTime);
     void DrawHUD1PlayerStartSignal(irr::f32 deltaTime);
 
+    //************************************
+    //* Render list of finished players  *
+    //************************************
+
+    void DrawFinishedPlayerList();
+
 public:
     HUD(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* TextRenderer);
     ~HUD();

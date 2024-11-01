@@ -27,6 +27,10 @@ void Player::DamageGlas() {
 }
 
 void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints) {
+    //if this player has already finished the race ignore checkpoints
+    if (this->GetCurrentState() == STATE_PLAYER_FINISHED)
+        return;
+
     //crossed checkpoint is the one we need to cross next?
     if (this->nextCheckPointValue == valueCrossedCheckPoint) {
         //did the cross the finish line?
@@ -2183,11 +2187,11 @@ void Player::FollowWayPointLink() {
 }
 
 void Player::Update(irr::f32 frameDeltaTime) {
-    //advance current lap lap time, frameDeltaTime is in seconds
-    mPlayerStats->currLapTimeExact += frameDeltaTime;
-
-    //if we are currently grabbed by recovery vehicle
-    //just move the model according to the claw
+    if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
+        && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)) {
+            //advance current lap lap time, frameDeltaTime is in seconds
+            mPlayerStats->currLapTimeExact += frameDeltaTime;
+       }
 
     updateSlowCnter += frameDeltaTime;
 
@@ -4051,6 +4055,14 @@ void Player::FinishedLap() {
     mPlayerStats->lapTimeList.insert(idx, newEntry);
 
     mPlayerStats->currLapNumber++;
+
+    //has this player finished the last lap of this race?
+    if (mPlayerStats->currLapNumber > mPlayerStats->raceNumberLaps) {
+        SetNewState(STATE_PLAYER_FINISHED);
+
+        //also tell the race that I am finished
+        mRace->PlayerHasFinishedLastLapOfRace(this);
+    }
 
     //reset current lap time
     mPlayerStats->currLapTimeExact = 0.0;

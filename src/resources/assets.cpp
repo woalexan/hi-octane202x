@@ -18,7 +18,7 @@ Assets::Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, ir
 
     mCurrentConfigFileRead = false;
 
-    if (ReadGameConfigFile()) {
+    if (ReadGameConfigFile(&currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen)) {
         mCurrentConfigFileRead = true;
     }
 
@@ -26,9 +26,13 @@ Assets::Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, ir
     if (mCurrentConfigFileRead) {
         DecodeMainPlayerName();
         DecodeHighScoreTable();
+        DecodeCurrentGameLanguage();
+        DecodeCurrentCraftColorScheme();
+        DecodeCurrentChampionshipName();
     } else {
         //set default player name
         strcpy(currMainPlayerName, "PLAYER");
+        strcpy(currChampionshipName, "");
     }
 
     InitDriverAssessementStrings();
@@ -102,6 +106,47 @@ Assets::~Assets() {
     }
 }
 
+//Helper function which compares our internal config data
+//with the current contents from the config.dat file
+//if there are differences the config.dat file is written
+//when exiting the game
+void Assets::UpdateGameConfigFileExitGame() {
+    //if we never read the config.file
+    //or should not modify game config file simply exit
+    if (!mCurrentConfigFileRead || !mUpdateGameConfigFile)
+        return;
+
+    char* compDataArrStr = NULL;
+    size_t compDataLength;
+
+    //reread current file contents in config.dat for
+    //comparing with internal config data
+    if (!ReadGameConfigFile(&compDataArrStr, compDataLength)) {
+        return;
+    }
+
+    bool rewriteFile = false;
+
+    //now compare data
+    if (currentConfigFileDataByteArrayLen != compDataLength) {
+        rewriteFile = true;
+    } else {
+        for (size_t pos = 0; pos < compDataLength; pos++) {
+            if (compDataArrStr[pos] != currentConfigFileDataByteArray[pos]) {
+                rewriteFile = true;
+                break;
+            }
+        }
+    }
+
+    if (rewriteFile) {
+        //write modified CONFIG.DAT file
+        WriteGameConfigFile();
+    }
+
+    delete[] compDataArrStr;
+}
+
 void Assets::ReadNullTerminatedString(char* bytes, size_t start_position, char* outString, irr::u8 maxStrLen) {
   if (!mCurrentConfigFileRead)
         return;
@@ -156,9 +201,9 @@ void Assets::WriteNullTerminatedString(char* bytes, size_t start_position, char*
 }
 
 //nrRaceTrack = level number starting with 1
-void Assets::DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct) {
+bool Assets::DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct) {
     if (!mCurrentConfigFileRead)
-        return;
+        return false;
 
     //config file offsets found for the current
     //racetrack stats (each racetrack seems to have 74 bytes of stat
@@ -192,18 +237,36 @@ void Assets::DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStru
 
     //get current number of set laps for this race track
     targetInfoStruct->currSelNrLaps = (irr::u8)(currentConfigFileDataByteArray[dataOffset + 72]);
+
+    return true;
 }
 
 //helper function which reads the current set main player (player1)
 //name from CONFIG.DAT file
-void Assets::DecodeMainPlayerName() {
+bool Assets::DecodeMainPlayerName() {
     if (!mCurrentConfigFileRead)
-        return;
+        return false;
 
     //current player 1 name is stored in CONFIG.DAT
     //at offset 0x094F
     //player names in Hi-Octane are limited to max 8 characters
     ReadNullTerminatedString(currentConfigFileDataByteArray, 0x094F, this->currMainPlayerName, 8);
+
+    return true;
+}
+
+//helper function which reads the current championship
+//name from CONFIG.DAT file
+bool Assets::DecodeCurrentChampionshipName() {
+    if (!mCurrentConfigFileRead)
+        return false;
+
+    //current championship name is stored in CONFIG.DAT
+    //at offset 0x0
+    //championship name in Hi-Octane is limited to max 12 characters
+    ReadNullTerminatedString(currentConfigFileDataByteArray, 0x0, this->currChampionshipName, 12);
+
+    return true;
 }
 
 int32_t Assets::ConvertByteArray_ToInt32(char* bytes, size_t start_position) {
@@ -246,11 +309,6 @@ void Assets::SetNewRaceTrackDefaultNrLaps(irr::u32 nrRaceTrack, irr::u8 newNumbe
 
         //set new current number of laps for this race track
         currentConfigFileDataByteArray[dataOffset + 72] = char(newNumberLaps);
-
-        if (mUpdateGameConfigFile) {
-            //write modified default lap number into CONFIG.DAT file
-            WriteGameConfigFile();
-        }
     }
 }
 
@@ -293,7 +351,14 @@ void Assets::InitDriverAssessementStrings() {
   AddDriverAssessementString((char*)"VICTIM");
   AddDriverAssessementString((char*)"SCRAP");
   AddDriverAssessementString((char*)"SMEAR");
-  AddDriverAssessementString((char*)"CHEATING SUCKS");
+  //I believe the following string does not actually belong
+  //to the driver assessement strings in Hi-Octance, because
+  //the race stats page lists 20 different ratings, and not 21
+  //AddDriverAssessementString((char*)"CHEATING SUCKS");
+}
+
+irr::u8 Assets::GetNumberDriverAssessementStrings() {
+    return this->driverAssessementStrings->size();
 }
 
 char* Assets::GetDriverAssessementString(irr::u8 assessementLevel) {
@@ -319,7 +384,7 @@ void Assets::CleanUpDriverAssessementStrings() {
 //config file
 //returns true if a config file was read
 //false otherwise
-bool Assets::ReadGameConfigFile() {
+bool Assets::ReadGameConfigFile(char** targetBuf, size_t &outBufSize) {
   //is there already an existing subfolder "HIOCTANE.CD"?
   char dirName[40];
   char fileName[60];
@@ -349,21 +414,21 @@ bool Assets::ReadGameConfigFile() {
 
   size_t counter = 0;
 
-  currentConfigFileDataByteArray = new char[size];
+  *targetBuf = new char[size];
 
   //remember amount of data for the next write
-  currentConfigFileDataByteArrayLen = size;
+  outBufSize = size;
 
   if (iFile != NULL)
   {
       do {
-          currentConfigFileDataByteArray[counter] = fgetc(iFile);
+          (*targetBuf)[counter] = fgetc(iFile);
           counter++;
       } while (counter < size);
       fclose(iFile);
   } else {
-      delete[] currentConfigFileDataByteArray;
-      currentConfigFileDataByteArray = NULL;
+      delete[] *targetBuf;
+      *targetBuf = NULL;
 
       return false;
   }
@@ -372,25 +437,41 @@ bool Assets::ReadGameConfigFile() {
 }
 
 void Assets::SetNewMainPlayerName(char* newName) {
-    strcpy(this->currMainPlayerName, newName);
+    if (strcmp(newName, this->currMainPlayerName) != 0) {
+        strcpy(this->currMainPlayerName, newName);
 
-    //write new name also in the config file
-    //data array
-    //main player name is stored at offset 0x094F in CONFIG.DAT
-    //name is limited to 8 characters only!
-    WriteNullTerminatedString(currentConfigFileDataByteArray, 0x094F, currMainPlayerName, 8);
+        //write new name also in the config file
+        //data array
+        //main player name is stored at offset 0x094F in CONFIG.DAT
+        //name is limited to 8 characters only!
+        WriteNullTerminatedString(currentConfigFileDataByteArray, 0x094F, currMainPlayerName, 8);
 
-    //make sure at byte 9 after this offset with store a 0 character (string termination)
-    currentConfigFileDataByteArray[0x094F + 9] = 0;
-
-    if (mUpdateGameConfigFile) {
-        //write modified name into CONFIG.DAT file
-        WriteGameConfigFile();
+        //make sure at byte 9 after this offset with store a 0 character (string termination)
+        currentConfigFileDataByteArray[0x094F + 9] = 0;
     }
 }
 
 char* Assets::GetNewMainPlayerName() {
     return this->currMainPlayerName;
+}
+
+void Assets::SetCurrentChampionshipName(char* newName) {
+    if (strcmp(newName, this->currChampionshipName) != 0) {
+        strcpy(this->currChampionshipName, newName);
+
+        //write new name also in the config file
+        //data array
+        //current championship name is stored at offset 0x0 in CONFIG.DAT
+        //name is limited to 12 characters only!
+        WriteNullTerminatedString(currentConfigFileDataByteArray, 0x0, currChampionshipName, 12);
+
+        //make sure at byte 13 after this offset with store a 0 character (string termination)
+        currentConfigFileDataByteArray[0x0 + 13] = 0;
+    }
+}
+
+char* Assets::GetCurrentChampionshipName() {
+    return this->currChampionshipName;
 }
 
 //returns NULL in case of an unexpected error
@@ -442,7 +523,7 @@ bool Assets::WriteGameConfigFile() {
 }
 
 bool Assets::DecodeHighScoreTable() {
-  if (!ReadGameConfigFile()) {
+  if (!mCurrentConfigFileRead) {
       highScoreTableVec = NULL;
       return false;
   }
@@ -498,6 +579,121 @@ bool Assets::DecodeHighScoreTable() {
   }
 
   return true;
+}
+
+void Assets::SetCurrentGameLanguage(irr::u8 newLanguage) {
+    if (newLanguage != this->currSelectedGameLanguage) {
+        this->currSelectedGameLanguage = newLanguage;
+
+        //write new selected game language also into
+        //data array
+        //selected language is stored at offset 0x2C7A in CONFIG.DAT
+        //for LANGUAGE_ENGLISH 0x0
+        //for LANGUAGE_GERMAN 0x1
+        //for LANGUAGE_FRENCH 0x2
+        //for LANGUAGE_SPANISH 0x3
+        //for LANGUAGE_ITALIAN 0x4
+        currentConfigFileDataByteArray[0x2C7A] = char(newLanguage);
+    }
+}
+
+irr::u8 Assets::GetCurrentGameLanguage() {
+    return this->currSelectedGameLanguage;
+}
+
+bool Assets::DecodeCurrentGameLanguage() {
+    if (!mCurrentConfigFileRead) {
+        return false;
+    }
+
+    //read new selected game language from
+    //data array
+    //selected language is stored at offset 0x2C7A in CONFIG.DAT
+    //for LANGUAGE_ENGLISH 0x0
+    //for LANGUAGE_GERMAN 0x1
+    //for LANGUAGE_FRENCH 0x2
+    //for LANGUAGE_SPANISH 0x3
+    //for LANGUAGE_ITALIAN 0x4
+
+    this->currSelectedGameLanguage = (irr::u8)(currentConfigFileDataByteArray[0x2C7A]);
+
+    return true;
+}
+
+irr::u8 Assets::GetCurrentCraftColorScheme() {
+    irr::u8 result = 0;
+
+    //first translate from config.dat file value to
+    //number of color scheme we use in our project
+    std::vector<irr::u8>::iterator it;
+
+    for (it = this->mCraftColorSchemeConfigDatFileValue.begin(); it != this->mCraftColorSchemeConfigDatFileValue.end(); ++it) {
+        if ((*it) == this->currSelectedCraftColorScheme) {
+            return result;
+        }
+
+        result++;
+    }
+
+    //we did not find value, return default first color scheme
+    return 0;
+}
+
+void Assets::SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme) {
+    irr::u8 result;
+
+    //first we need to translate from color scheme numbering with use in our project
+    //to the value used in the games config.dat file for this setting
+    if (newCraftColorScheme >= this->mCraftColorSchemeConfigDatFileValue.size()) {
+        //invalid value, just set default color scheme
+        result = GAME_CRAFTCOLSCHEME_MADMEDICINE;
+    } else {
+        //valid value
+        result = this->mCraftColorSchemeConfigDatFileValue.at(newCraftColorScheme);
+    }
+
+    if (result != this->currSelectedCraftColorScheme) {
+        this->currSelectedCraftColorScheme = result;
+
+        //write currently selected craft color scheme into
+        //data array
+        //current selected craft color scheme is stored at offset 0x26 in CONFIG.DAT
+        //this are the actual used values for each
+        //color scheme in this file
+        //MADMEDICINE 0x06
+        //ASSASSINS 0xAA
+        //GOREHOUNDS 0x4A
+        //FOOFIGHTERS 0x10
+        //DETHFEST 0x8C
+        //FIREPHREAKS 0x16
+        //STORMRIDERS 0x17
+        //BULLFROG 0x8F
+        currentConfigFileDataByteArray[0x26] = char(result);
+    }
+}
+
+bool Assets::DecodeCurrentCraftColorScheme() {
+    if (!mCurrentConfigFileRead) {
+        return false;
+    }
+
+    //read currently selected craft color scheme
+    //data array
+    //current selected craft color scheme is stored at offset 0x26 in CONFIG.DAT
+    //this are the actual used values for each
+    //color scheme in this file
+    //MADMEDICINE 0x06
+    //ASSASSINS 0xAA
+    //GOREHOUNDS 0x4A
+    //FOOFIGHTERS 0x10
+    //DETHFEST 0x8C
+    //FIREPHREAKS 0x16
+    //STORMRIDERS 0x17
+    //BULLFROG 0x8F
+
+    this->currSelectedCraftColorScheme = (irr::u8)(currentConfigFileDataByteArray[0x26]);
+
+    return true;
 }
 
 void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, irr::u8 statArmour, irr::u8 statWeight, irr::u8 statFirePower) {
@@ -592,34 +788,42 @@ void Assets::InitCrafts() {
     schemeName = new char [20];
     strcpy(schemeName, (char*)"MAD MEDICINE");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_MADMEDICINE);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"ASSASSINS");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_ASSASSINS);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"GOREHOUNDS");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_GOREHOUNDS);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"FOO FIGHTERS");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_FOOFIGHTERS);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"DETHFEST");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_DETHFEST);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"FIRE PHREAKS");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_FIREPHREAKS);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"STORM RIDERS");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_STORMRIDERS);
 
     schemeName = new char [20];
     strcpy(schemeName, (char*)"BULLFROG");
     mCraftColorSchemeNames.push_back(schemeName);
+    mCraftColorSchemeConfigDatFileValue.push_back(GAME_CRAFTCOLSCHEME_BULLFROG);
 }
 
 void Assets::InitRaceTracks() {

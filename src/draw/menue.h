@@ -19,6 +19,7 @@
 #include "../audio/sound.h"
 #include "../audio/music.h"
 #include "../resources/assets.h"
+#include "../race.h"
 
 //definition of available menue pages
 #define MENUE_AFTERGAMESTART 0
@@ -39,6 +40,7 @@
 #define MENUE_LOADRACESCREEN 201
 #define MENUE_INTRO 202
 #define MENUE_HIGHSCORE 203
+#define MENUE_RACESTATS 204
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION NULL
@@ -52,6 +54,7 @@
 
 //special "menue" actions
 #define MENUE_ACTION_INTROSTOP 100
+#define MENUE_ACTION_CLOSERACESTATPAGE 101
 
 //definition of possible menue states
 #define MENUE_STATE_TRANSITION 0  //menue window is currently moving, no item selection possible
@@ -211,6 +214,7 @@ struct MenueTextLabel {
     char* text;
     irr::core::vector2di drawPositionTxt;
     bool visible = true;
+    GameTextFont* whichFont = NULL;
 };
 
 class Menue {
@@ -533,10 +537,15 @@ private:
     MenuePage* raceLoadingMenuePage;
     MenuePage* gameIntroMenuePage;
     MenuePage* gameHighscoreMenuePage;
+    MenuePage* raceStatsMenuePage;
 
     //dummy menue entry which is not visible
     //for gameHiscoreMenuePage
     MenueSingleEntry* gameHiscoreMenueDummyEntry;
+
+    //dummy menue entry which is not visible
+    //for raceStatsMenuePage
+    MenueSingleEntry* raceStatsMenueDummyEntry;
 
     void CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord);
     void InitStatLabels();
@@ -594,6 +603,9 @@ private:
     //stuff for the highscore page
     std::vector<MenueTextLabel*>* highScorePageTextVec;
 
+    //stuff for the race stat page
+    std::vector<MenueTextLabel*>* raceStatsPageTextVec;
+
     void RenderStatTextPage(irr::f32 frameDeltaTime);
     void CleanupHighScorepage();
     irr::f32 absTimeElapsedAtHighScorePage;
@@ -619,6 +631,7 @@ public:
 
     //special menue actions
     MenueAction* ActIntroStop;
+    MenueAction* ActCloseRaceStatPage;
 
     void Render(irr::f32 frameDeltaTime);
     void HandleInput();
@@ -626,9 +639,12 @@ public:
     void AdvanceTime(irr::f32 frameDeltaTime);
 
     void ShowGameTitle();
+    void ShowGameLoadingScreen();
     void ShowMainMenue();
     void ShowIntro();
     void ShowHighscore();
+    void ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistics);
+    void CleanupRaceStatsPage();
 };
 
 #endif // MENUE_H
