@@ -611,6 +611,9 @@ void Player::UpdateHMapCollisionPointData() {
 //NewFrontAt = defines where player craft front is located at (world coordinates)
 void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt) {
 
+    //simply set the craft original coodinates
+    LocalCraftOrigin.set(0.0f, 0.0f, 0.0f);
+
     irr::core::vector3df pos_in_worldspace_frontPos(NewFrontAt);
     this->Player_node->updateAbsolutePosition();
     irr::core::matrix4 matr = this->Player_node->getAbsoluteTransformation();
@@ -801,15 +804,82 @@ void Player::Left() {
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
 
-        currentSideForce += 10.0f;
+        currentSideForce += 30.0f;
 
-        if (currentSideForce > 100.0f)
-            currentSideForce = 100.0f;
-
+        if (currentSideForce > 200.0f)
+            currentSideForce = 200.0f;
 
   //appliedForceSideways = 100.0;    
+
+   //original line 10.11.2024
+  /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                   PHYSIC_APPLYFORCE_ONLYROT);*/
+
+  //experimental line
   this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                  PHYSIC_APPLYFORCE_ONLYROT);
+                                         PHYSIC_APPLYFORCE_ONLYROT);
+}
+
+void Player::Right() {
+  //limit maximum possible steeringAngle
+ /* if ((targetSteerAngle - 3.0f) > -45.0f) {
+      targetSteerAngle -= 3.0f;
+  }*/
+
+    //targetSteerDir.rotateXZBy(-3.0f);
+
+    //for a computer player we need to limit the max possible leaning angle
+  /*  if (!mHumanPlayer) {
+        steerRightPanic++;
+        steerLeftPanic = 0;
+        if (steerRightPanic > 10) {
+            computerPlayerCurrSteerForce += 30;
+        }
+
+        if ((currPlayerCraftLeaningOrientation == CRAFT_LEANINGRIGHT) && (abs(this->currPlayerCraftLeaningAngleDeg) > 40.0)) {
+           // currentSideForce += computerPlayerCurrSteerForce;
+            computerPlayerCurrSteerForce = 10.0f;
+            return;
+        }
+
+       if ((computerPlayerCurrShipWayPointLinkSide > 0.0f) || (this->computerPlayerCurrSteerAngle > 30.0f)) {
+           // currentSideForce += computerPlayerCurrSteerForce;
+            computerPlayerCurrSteerForce = 10.0f;
+            return;
+        }
+    }*/
+
+    //if player can not move right now simply
+    //exit
+    if (!this->mPlayerStats->mPlayerCanMove)
+        return;
+
+    currentSideForce -= 30.0f;
+
+    if (currentSideForce < -200.0f)
+        currentSideForce = -200.0f;
+
+    //original line 10.11.2024
+    /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                     PHYSIC_APPLYFORCE_ONLYROT);*/
+
+    //experimental
+    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                     PHYSIC_APPLYFORCE_ONLYROT);
+}
+
+void Player::NoTurningKeyPressed() {
+    //stop turning sideways
+
+    //add a counter force against the sideways movement
+    //to prevent endlessly going sideways without any sideways key
+    //pressed
+    irr::f32 craftWorldSpeedSideWays = this->phobj->physicState.velocity.dotProduct(this->craftSidewaysToRightVec);
+    irr::core::vector3df counterForceSideWaysMotion = irr::core::vector3df(craftWorldSpeedSideWays * CRAFT_SIDEWAYS_BRAKING, 0.0f, 0.0f);
+    this->phobj->AddLocalCoordForce(this->LocalCraftOrigin, counterForceSideWaysMotion,
+                                        PHYSIC_APPLYFORCE_ONLYTRANS);
+
+    currentSideForce = 0.0f;
 }
 
 void Player::CPForceController() {
@@ -888,66 +958,6 @@ void Player::CPForceController() {
   mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
 }
 
-void Player::Right() {
-  //limit maximum possible steeringAngle
- /* if ((targetSteerAngle - 3.0f) > -45.0f) {
-      targetSteerAngle -= 3.0f;
-  }*/
-
-    //targetSteerDir.rotateXZBy(-3.0f);
-
-    //for a computer player we need to limit the max possible leaning angle
-  /*  if (!mHumanPlayer) {
-        steerRightPanic++;
-        steerLeftPanic = 0;
-        if (steerRightPanic > 10) {
-            computerPlayerCurrSteerForce += 30;
-        }
-
-        if ((currPlayerCraftLeaningOrientation == CRAFT_LEANINGRIGHT) && (abs(this->currPlayerCraftLeaningAngleDeg) > 40.0)) {
-           // currentSideForce += computerPlayerCurrSteerForce;
-            computerPlayerCurrSteerForce = 10.0f;
-            return;
-        }
-
-       if ((computerPlayerCurrShipWayPointLinkSide > 0.0f) || (this->computerPlayerCurrSteerAngle > 30.0f)) {
-           // currentSideForce += computerPlayerCurrSteerForce;
-            computerPlayerCurrSteerForce = 10.0f;
-            return;
-        }
-    }*/
-
-    //if player can not move right now simply
-    //exit
-    if (!this->mPlayerStats->mPlayerCanMove)
-        return;
-
-    currentSideForce -= 10.0f;
-
-    if (currentSideForce < -100.0f)
-        currentSideForce = -100.0f;
-
-     this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                     PHYSIC_APPLYFORCE_ONLYROT);
-}
-
-void Player::NoTurningKeyPressed() {
-    //stop turning sideways
-
-   if (altCntrlMode) {
-    if (firstNoKeyPressed) {
-        currentSideForce = -currentSideForce;
-        firstNoKeyPressed = false;
-    }
-
-    currentSideForce *= 0.10f;
-
-    if (currentSideForce < 1.0f)
-        currentSideForce = 0.0f;
-   } else {
-        currentSideForce = 0.0f;
-   }
-}
 /*
 void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df collResolutionDirVec, bool isForCraftBack = false) {
     irr::f32 dist;
@@ -2367,12 +2377,12 @@ void Player::Update(irr::f32 frameDeltaTime) {
     irr::f32 rightMore = 0.0f;
 
     if (true) {
-       // if (abs(currentSideForce) > 40.0f) {
+        if (abs(currentSideForce) > 40.0f) {
             //leftMore = 2.0f * (-currentSideForce / 100.0f);  original line, works best until 04.09.2024
             //rightMore = 2.0f * (currentSideForce / 100.0f);  original line, works best until 04.09.2024
 
-            leftMore = 1.0f * (-currentSideForce / 100.0f);   //new attempt since 04.09.2024
-            rightMore = 1.0f * (currentSideForce / 100.0f);    //new attempt since 04.09.2024
+            leftMore = 1.0f * (-currentSideForce / 200.0f);   //new attempt since 04.09.2024
+            rightMore = 1.0f * (currentSideForce / 200.0f);    //new attempt since 04.09.2024
 
 
         if (leftMore < 0.0f)
@@ -2380,7 +2390,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
         if (rightMore < 0.0f)
             rightMore = 0.0f;
-        //}
+        }
     }
 
     irr::f32 deltah1 = cameraSensor->wCoordPnt1.Y  - cameraSensor->wCoordPnt1.Y;

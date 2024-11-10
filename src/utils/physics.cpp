@@ -851,14 +851,19 @@ bool Physics::HandleSphereWallCollision(const PhysicsCollisionArea& collArea, Ph
             repulsion.setLength(0.001f+radius_-sqrt(nearestDistSq));
 
             if (collisionResolutionActive) {
-             // *center += repulsion;
+             *center += repulsion;
              irr::core::vector3df collResolutionForce = repulsion;
              collResolutionForce.normalize();
 
              //float impulse = obj->physicState.mass * obj->physicState.speed * 0.05f;
 
              //add a force that pushes the object away from the object we collided with
-             obj->AddWorldCoordForce(*center, *center + collResolutionForce * 2.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
+             //line used until 10.11.2024, felt a little bit too much force
+             //obj->AddWorldCoordForce(*center, *center + collResolutionForce * 2.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
+             //new line since 10.11.2024
+             obj->AddWorldCoordForce(*center, *center + collResolutionForce * 1.3f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
 
              //Also slow the craft down considerably by adding friction
              //because otherwise the player gets no penalty by colliding with walls

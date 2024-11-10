@@ -140,7 +140,7 @@ void Game::DebugGame() {
 
     mDebugGame = true;
 
-    int debugLevelNr = 1;
+    int debugLevelNr = 2;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
