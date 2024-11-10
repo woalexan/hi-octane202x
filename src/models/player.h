@@ -32,6 +32,8 @@ const irr::f32 HOVER_HEIGHT = 0.6f;
 
 const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
+const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
+
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
 
@@ -235,7 +237,6 @@ public:
     irr::f32 dbgDistance;
 
     bool firstNoKeyPressed = false;
-    bool altCntrlMode = true;
 
     //True means humanPlayer
     //False is for computer player
@@ -286,6 +287,8 @@ public:
     irr::core::vector3d<irr::f32> LocalCraftBackPnt;
     irr::core::vector3d<irr::f32> LocalCraftLeftPnt;
     irr::core::vector3d<irr::f32> LocalCraftRightPnt;
+
+    irr::core::vector3d<irr::f32> LocalCraftOrigin;
 
     irr::core::vector3d<irr::f32> LocalCraftFrontPnt2;
 

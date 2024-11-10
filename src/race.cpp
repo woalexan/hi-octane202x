@@ -1348,15 +1348,6 @@ void Race::HandleInput() {
         this->CallRecoveryVehicleForHelp(this->player);
     }
 
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
-    {
-      //   remoPerm();
-       // player->mHUD->RepairGlasBreaks();
-      if (player->altCntrlMode == false) {
-          player->altCntrlMode = true;
-      } else player->altCntrlMode = false;
-    }
-
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
        // player->StartRecordingHeightMapCollisionDbgData(player->mHMapCollPntData.front);
     }
