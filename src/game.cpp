@@ -120,10 +120,10 @@ bool Game::InitGame() {
     dbgTimeProfiler = guienv->addStaticText(L"Location",
            rect<s32>(100,150,300,200), false, true, NULL, -1, true);
 
-    dbgText = guienv->addStaticText(L"",
+    /*dbgText = guienv->addStaticText(L"",
            rect<s32>(100,250,300,350), false, true, NULL, -1, true);
 
-    /*dbgText2 = guienv->addStaticText(L"",
+    dbgText2 = guienv->addStaticText(L"",
            rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
 
     smgr->addLightSceneNode(0, vector3df(0, 100, 0),
@@ -137,10 +137,9 @@ bool Game::InitGame() {
 //This function allows to quickly enter a race for
 //game debugging, and to skip the menue etc.
 void Game::DebugGame() {
-
     mDebugGame = true;
 
-    int debugLevelNr = 2;
+    int debugLevelNr = 1;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -297,7 +296,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     //mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
 
-    irr::f32 deltah1 = mCurrentRace->player->cameraSensor->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+/*    irr::f32 deltah1 = mCurrentRace->player->cameraSensor->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
     irr::f32 deltah2 = mCurrentRace->player->cameraSensor2->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
     irr::f32 deltah3 = mCurrentRace->player->cameraSensor3->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
     irr::f32 deltah4 = mCurrentRace->player->cameraSensor4->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
@@ -326,10 +325,23 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                  deltah5,
              deltah6,
              deltah7,
-             maxh);
+             maxh);*/
+
+   /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
+                mCurrentRace->player->dbgCameraVal,
+              mCurrentRace->player->dbgCameraTargetVal,
+                 mCurrentRace->player->dbgCameraAvgVAl,
+                 mCurrentRace->player->dbgNewCameraVal,
+                 mCurrentRace->player->dbgMaxh,
+                 mCurrentRace->player->dbgMinCeilingFound);*/
+
+   /* irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
+
+      swprintf(text2, 390, L"%lf\n%lf\n",
+                     absolutePlayerAngle, this->mCurrentRace->player->absSkyAngleValue);*/
 
     dbgTimeProfiler->setText(text);
-    dbgText->setText(text2);
+    //dbgText->setText(text2);
 
     delete[] text;
     delete[] text2;

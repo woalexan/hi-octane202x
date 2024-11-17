@@ -57,6 +57,10 @@ public:
 
     bool PreparationOk;
 
+    //This helper function modifies the original sky image so that we can use it easier
+    //in this project. The result is stored in another new image file
+    bool ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName);
+
 private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
@@ -117,10 +121,7 @@ private:
     //return false if at least one file is missing
     bool ExtractSky();
 
-    //extracts the Skyboxes (only available in VGA it seems) in data\sky0-*.dat and data\sky0-*.tab
-    //* is from 0 up to 5
-    //returns true in case of success, returns false in case of unexpected error
-    bool ExtractSkyBoxes();
+
 
     //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
     //returns true in case of success, returns false in case of unexpected error

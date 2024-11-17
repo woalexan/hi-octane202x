@@ -2196,6 +2196,85 @@ void Player::FollowWayPointLink() {
      CPForceController();
 }
 
+void Player::GetPlayerCameraDataFirstPerson(irr::core::vector3df &world1stPersonCamPosPnt, irr::core::vector3df &world1stPersonCamTargetPnt) {
+    world1stPersonCamPosPnt = this->World1stPersonCamPosPnt;
+    world1stPersonCamTargetPnt = this->World1stPersonCamTargetPnt;
+}
+
+void Player::GetPlayerCameraDataThirdPerson(irr::core::vector3df &worldTopLookingCamPosPnt, irr::core::vector3df &worldTopLookingCamTargetPnt) {
+    worldTopLookingCamPosPnt = this->WorldTopLookingCamPosPnt;
+    worldTopLookingCamTargetPnt = this->WorldTopLookingCamTargetPnt;
+}
+
+//returns true if the return parameter was modified, that means if a new minimum was
+//found and set
+bool Player::GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
+                                                    irr::core::vector3df &currMinPos, bool firstElement) {
+
+   bool valSet = false;
+   bool fElement = firstElement;
+
+   irr::f32 height1;
+   bool ceil1 =
+           mRace->mLevelBlocks->GetCurrentCeilingHeightForTileCoord(sensor->cellPnt1, height1);
+
+   irr::f32 height2;
+   bool ceil2 = false;
+
+   if (sensor->cellPnt1 != sensor->cellPnt2) {
+       ceil2 = mRace->mLevelBlocks->GetCurrentCeilingHeightForTileCoord(sensor->cellPnt2, height2);
+   }
+
+   if (ceil1) {
+      if ((height1 < currMinPos.Y) || (fElement)) {
+           currMinPos.Y = height1;
+
+           currMinPos.X = -sensor->cellPnt1.X * this->mRace->mLevelBlocks->segmentSize;
+           currMinPos.Z = sensor->cellPnt1.Y * this->mRace->mLevelBlocks->segmentSize;
+           valSet = true;
+           fElement = false;
+      }
+   }
+
+   if (ceil2) {
+      if ((height2 < currMinPos.Y) || (fElement)) {
+           currMinPos.Y = height2;
+
+           currMinPos.X = -sensor->cellPnt2.X * this->mRace->mLevelBlocks->segmentSize;
+           currMinPos.Z = sensor->cellPnt2.Y * this->mRace->mLevelBlocks->segmentSize;
+           valSet = true;
+      }
+   }
+
+   return valSet;
+}
+
+bool Player::GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos) {
+    bool minValSet = false;
+
+    irr::core::vector3df minPosVec(1000.0f, 1000.0f, 1000.0f);
+
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor, minPosVec, true);
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor2, minPosVec);
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor3, minPosVec);
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor4, minPosVec);
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor5, minPosVec);
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor6, minPosVec);
+    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor7, minPosVec);
+
+    if (minValSet) {
+        currMinPos = minPosVec;
+        irr::core::vector2di outCell;
+
+        currMinPos.Y += mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+        (minPosVec.X,
+         minPosVec.Z,
+            outCell);
+    }
+
+    return minValSet;
+}
+
 void Player::Update(irr::f32 frameDeltaTime) {
     if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
         && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)) {
@@ -2358,6 +2437,10 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     cameraSensor7->stepness = cameraSensor7->wCoordPnt2.Y - cameraSensor7->wCoordPnt1.Y;
 
+    //*****************************************************
+    //* Get minimum height above player craft
+    //*****************************************************
+    minCeilingFound = GetCurrentCeilingMinimumPosition(dbgCurrCeilingMinPos);
 
    // StabilizeCraft(frameDeltaTime);
 
@@ -2410,9 +2493,11 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     irr::f32 adjusth;
 
-    if (maxh > 0.0f) {
+  /*  if (maxh > 0.0f) {
         adjusth = maxh * 0.5f;
-    } else adjusth = 0.0f;
+    } else adjusth = 0.0f;*/
+
+    adjusth = 0.0f;
 
     irr::f32 heightErrorFront = (WorldCoordCraftFrontPnt.Y - (currHeightFront + HOVER_HEIGHT + adjusth));
     irr::f32 heightErrorBack = (WorldCoordCraftBackPnt.Y - (currHeightBack + HOVER_HEIGHT + adjusth));
@@ -2465,6 +2550,52 @@ void Player::Update(irr::f32 frameDeltaTime) {
     irr::f32 corrForceRight = heightErrorRight * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y * corrDampingHeight;
     this->phobj->AddLocalCoordForce(LocalCraftRightPnt, LocalCraftRightPnt - irr::core::vector3df(0.0f, corrForceRight, 0.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
+    /************ Update player camera stuff ***************/
+    //update 3rd person camera coordinates
+    WorldTopLookingCamPosPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamPosPnt);
+    WorldTopLookingCamTargetPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamTargetPnt);
+
+    //1st person camera selected
+    World1stPersonCamPosPnt = this->phobj->ConvertToWorldCoord(this->Local1stPersonCamPosPnt);
+    World1stPersonCamTargetPnt = this->phobj->ConvertToWorldCoord(this->Local1stPersonCamTargetPnt);
+
+    if (playerCamHeightListElementNr > 20) {
+        this->playerCamHeightList.pop_front();
+        playerCamHeightListElementNr--;
+    }
+
+    irr::f32 newCameraHeight = maxh * 0.5f;
+
+    if (minCeilingFound) {
+        if (World1stPersonCamPosPnt.Y > (dbgCurrCeilingMinPos.Y - 1.0f)) {
+            newCameraHeight -= (World1stPersonCamPosPnt.Y - (dbgCurrCeilingMinPos.Y - 0.6f));
+        }
+    }
+
+    this->playerCamHeightList.push_back(newCameraHeight);
+    playerCamHeightListElementNr++;
+
+    std::list<irr::f32>::iterator itList;
+    irr::f32 avgVal = 0.0f;
+
+    for (itList = this->playerCamHeightList.begin(); itList != this->playerCamHeightList.end(); ++itList) {
+        avgVal += (*itList);
+    }
+
+    avgVal = (avgVal / (irr::f32)(playerCamHeightListElementNr));
+
+    World1stPersonCamPosPnt.Y += avgVal;
+    World1stPersonCamTargetPnt.Y += avgVal;
+
+    dbgMaxh = maxh;
+    dbgCameraVal = World1stPersonCamPosPnt.Y;
+    dbgCameraTargetVal = World1stPersonCamTargetPnt.Y;
+    dbgNewCameraVal = newCameraHeight;
+    dbgCameraAvgVAl = avgVal;
+    dbgMinCeilingFound = dbgCurrCeilingMinPos.Y;
+
+    /************ Update player camera stuff end ************/
 
     //check if this player is located at a charging station (gasoline, ammo or shield)
     CheckForChargingStation();
@@ -2530,6 +2661,26 @@ void Player::Update(irr::f32 frameDeltaTime) {
      }
 
     CalcPlayerCraftLeaningAngle();
+
+    /* calculate player abs angle average list for sky rendering */
+    if (playerAbsAngleSkytListElementNr > 20) {
+        this->playerAbsAngleSkyList.pop_front();
+        playerAbsAngleSkytListElementNr--;
+    }
+
+    this->playerAbsAngleSkyList.push_back(this->currPlayerCraftLeaningAngleDeg);
+    playerAbsAngleSkytListElementNr++;
+
+    irr::f32 avgSkyVal = 0.0f;
+
+    for (itList = this->playerAbsAngleSkyList.begin(); itList != this->playerAbsAngleSkyList.end(); ++itList) {
+        avgSkyVal += (*itList);
+    }
+
+    avgSkyVal = (avgSkyVal / (irr::f32)(playerAbsAngleSkytListElementNr));
+    absSkyAngleValue = avgSkyVal;
+
+    /* calculate player abs angle average list for sky rendering end */
 
     mLastBoosterActive = mBoosterActive;
     mLastMaxTurboActive = mMaxTurboActive;
