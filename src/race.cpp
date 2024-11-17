@@ -1074,6 +1074,8 @@ void Race::Init() {
     mCamera = mSmgr->addCameraSceneNodeFPS(0,100.0f,0.05f,-1,
                                                        0,0,false,0.0f);
 
+    //mCamera->setFOV(PI / 2.5);
+
     //create a DrawDebug object
     this->mDrawDebug = new DrawDebug(this->mDriver);
 
@@ -1215,24 +1217,25 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mTimeProfiler->Profile(mTimeProfiler->tIntAdvancePhysics);
 
     irr::core::vector3df worldCoordPlayerCam;
-     irr::core::vector3df worldCoordPlayerCamTarget;
+    irr::core::vector3df worldCoordPlayerCamTarget;
 
     //move camera
     if (this->currPlayerFollow != NULL) {
         if (!this->currPlayerFollow->mFirstPlayerCam) {
             //outside 3rd person camera selected
-            worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamPosPnt);
-            worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamTargetPnt);
+            //worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamPosPnt);
+            //worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamTargetPnt);
+            currPlayerFollow->GetPlayerCameraDataThirdPerson(worldCoordPlayerCam, worldCoordPlayerCamTarget);
         } else {
-            irr::f32 maxStep = fmax(player->cameraSensor->stepness, player->cameraSensor2->stepness);
+           /* irr::f32 maxStep = fmax(player->cameraSensor->stepness, player->cameraSensor2->stepness);
             maxStep = fmax(maxStep, player->cameraSensor3->stepness);
             maxStep = fmax(maxStep, player->cameraSensor4->stepness);
-            maxStep = fmax(maxStep, player->cameraSensor5->stepness);
-
+            maxStep = fmax(maxStep, player->cameraSensor5->stepness);*/
 
             //1st person camera selected
-            worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamPosPnt);
-            worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamTargetPnt);
+            //worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamPosPnt);
+            //worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamTargetPnt);
+            currPlayerFollow->GetPlayerCameraDataFirstPerson(worldCoordPlayerCam, worldCoordPlayerCamTarget);
         }
     }
 
@@ -1553,12 +1556,19 @@ void Race::DrawSky() {
     if (mSkyImage != NULL) {
 
         //Draw sky
-        /*mDriver->draw2DImage(mSkyImage, irr::core::vector2di(0, 0), irr::core::recti(0, 0, mGameScreenRes.Width, mGameScreenRes.Height)
-                        , 0, irr::video::SColor(255,255,255,255), true);*/
+        irr::core::vector2di movingWindowSize(640, 480);
+        irr::u32 moveX = 0;
 
-        draw2DImage(mDriver, mSkyImage ,irr::core::recti(0, 0, mGameScreenRes.Width, mGameScreenRes.Height),
-             irr::core::vector2di(0, 0), irr::core::vector2di( mGameScreenRes.Width / 2.0, mGameScreenRes.Height / 2.0),
-             player->currPlayerCraftLeaningAngleDeg, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
+        moveX = (irr::u32)(((player->absSkyAngleValue - 180.0f) / 180.0f) * 150.0f);
+
+        irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
+                                          mSkyImage->getSize().Width / 2 + (1024 / 2) - 75 + moveX , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
+
+        irr::core::vector2di middlePos = (locMovingWindow.LowerRightCorner - locMovingWindow.UpperLeftCorner) / 2 + locMovingWindow.UpperLeftCorner;
+
+        draw2DImage(mDriver, mSkyImage ,locMovingWindow,
+             irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
+             player->absSkyAngleValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
     }
 }
 
@@ -1687,7 +1697,7 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
 
 void Race::Render() {
     //we need to draw sky image first, the remaining scene will be drawn on top of it
-    //DrawSky();
+    DrawSky();
 
     //draw 3D world coordinate axis with arrows
     mDrawDebug->DrawWorldCoordinateSystemArrows();
@@ -1853,96 +1863,6 @@ void Race::Render() {
               mDrawDebug->Draw3DTriangle(&playerPhysicsObj->mNearestTriangle,  irr::video::SColor(0, 255, 0,127));
       }
 
-      //Draw debug stuff for player Terrain Collision
-    //  if (this->player != NULL) {
-      if (false) {
-         /* if (this->player->currTileBelowPlayer != NULL) {
-            DebugDrawHeightMapTileOutline(this->player->currTileBelowPlayer->get_X(),
-                                          this->player->currTileBelowPlayer->get_Z(),
-                                          this->mDrawDebug->blue);
-          }*/
-
-          if (this->player->mNextNeighboringTileInFrontOfMe != NULL) {
-            DebugDrawHeightMapTileOutline(this->player->mNextNeighboringTileInFrontOfMe->get_X(),
-                                          this->player->mNextNeighboringTileInFrontOfMe->get_Z(),
-                                          this->mDrawDebug->green);
-
-//            mDrawDebug->Draw3DLine(this->player->dbgcollPlanePos1, this->player->dbgcollPlanePos1 + irr::core::vector3df(0.0f, 1.0f, 0.0f)
-//                                   , this->mDrawDebug->pink);
-
-//            mDrawDebug->Draw3DLine(this->player->dbgcollPlanePos2, this->player->dbgcollPlanePos2 + irr::core::vector3df(0.0f, 1.0f, 0.0f)
-//                                   , this->mDrawDebug->pink);
-
-//            mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->phobj->physicState.position + this->player->dbgcollResolutionDirVec
-//                                   , this->mDrawDebug->blue);
-
-            mDrawDebug->Draw3DLine(this->player->WorldCoordCraftFrontPnt, this->player->WorldCoordCraftFrontPnt + irr::core::vector3df(0.0f, 1.0f, 0.0f)
-                                   , this->mDrawDebug->green);
-
-            mDrawDebug->Draw3DLine(this->player->WorldCoordCraftBackPnt, this->player->WorldCoordCraftBackPnt + irr::core::vector3df(0.0f, 1.0f, 0.0f)
-                                   , this->mDrawDebug->blue);
-
-            mDrawDebug->Draw3DLine(this->player->WorldCoordCraftRightPnt, this->player->WorldCoordCraftRightPnt + irr::core::vector3df(0.0f, 1.0f, 0.0f)
-                                   , this->mDrawDebug->red);
-
-            mDrawDebug->Draw3DLine(this->player->WorldCoordCraftLeftPnt, this->player->WorldCoordCraftLeftPnt + irr::core::vector3df(0.0f, 1.0f, 0.0f)
-                                   , this->mDrawDebug->pink);
-
-
-            //lets also draw surface normal of tile
-            /*irr::core::vector3df surfNormal = -mLevelTerrain->computeTileSurfaceNormalFromPositionsBuffer(this->player->mNextNeighboringTileInFrontOfMe->get_X(),
-                                                                       this->player->mNextNeighboringTileInFrontOfMe->get_Z());
-            surfNormal.Y = 0.0f;*/
-            /*if (surfNormal.dotProduct(this->player->craftForwardDirVec) > 0.0f) {
-                surfNormal = -surfNormal;
-            }*/
-
-
-           /* surfNormal.normalize();
-            irr::core::vector3df middleTile;
-            irr::f32 segSize = this->mLevelTerrain->segmentSize;
-            middleTile.X = -this->player->mNextNeighboringTileInFrontOfMe->get_X() * segSize + 0.5f * segSize;
-            middleTile.Z = this->player->mNextNeighboringTileInFrontOfMe->get_Z() * segSize + 0.5f * segSize;
-            middleTile.Y = this->player->mNextNeighboringTileInFrontOfMe->m_Height;
-
-            mDrawDebug->Draw3DLine(middleTile, middleTile + surfNormal * 2.0f, this->mDrawDebug->pink);*/
-
-          }
-
-          if (this->player->mNextNeighboringTileBehindOfMe != NULL) {
-            DebugDrawHeightMapTileOutline(this->player->mNextNeighboringTileBehindOfMe->get_X(),
-                                          this->player->mNextNeighboringTileBehindOfMe->get_Z(),
-                                          this->mDrawDebug->blue);
-          }
-
-          if (this->player->mNextNeighboringTileLeftOfMe != NULL) {
-            DebugDrawHeightMapTileOutline(this->player->mNextNeighboringTileLeftOfMe->get_X(),
-                                          this->player->mNextNeighboringTileLeftOfMe->get_Z(),
-                                          this->mDrawDebug->pink);
-          }
-
-          if (this->player->mNextNeighboringTileRightOfMe != NULL) {
-            DebugDrawHeightMapTileOutline(this->player->mNextNeighboringTileRightOfMe->get_X(),
-                                          this->player->mNextNeighboringTileRightOfMe->get_Z(),
-                                          this->mDrawDebug->red);
-          }
-
-
-
-
-          /*
-          if (this->player->m2ndNextNeigboringTileInFrontOfMe != NULL) {
-            DebugDrawHeightMapTileOutline(this->player->m2ndNextNeigboringTileInFrontOfMe->get_X(),
-                                          this->player->m2ndNextNeigboringTileInFrontOfMe->get_Z(),
-                                          this->mDrawDebug->red);
-
-
-          }*/
-
-          //this->player->phobj->DebugDrawCurrentWorldCoordForces(this->mDrawDebug, this->mDrawDebug->red, PHYSIC_DBG_FORCETYPE_GENERICALL);
-
-      }
-
     /*  irr::core::vector2di hlpe;
 
       irr::core::vector3df pnt1 = this->player->WorldCoordCraftFrontPnt;
@@ -1975,9 +1895,11 @@ void Race::Render() {
                              this->player->mHMapCollPntData.backRight45deg->planePnt2,
                              this->mDrawDebug->blue);*/
 
-
-      /*mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), this->player->dbgInterset,
-                             this->mDrawDebug->green);*/
+      /*
+      if (this->player->minCeilingFound) {
+        mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->dbgCurrCeilingMinPos,
+                             this->mDrawDebug->red);
+      }
 
       mDrawDebug->Draw3DLine(this->player->cameraSensor->wCoordPnt1, this->player->cameraSensor->wCoordPnt2,
                                    this->mDrawDebug->green);
@@ -1998,7 +1920,7 @@ void Race::Render() {
                                    this->mDrawDebug->green);
 
       mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
-                                   this->mDrawDebug->green);
+                                   this->mDrawDebug->green);*/
 
 }
 
@@ -2103,15 +2025,15 @@ bool Race::LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core
 
     //which sky to load for which level?
     switch (levelNr) {
-        case 1: {strcat(filename, (char*)"sky0-0.png"); break;}
-        case 2: {strcat(filename, (char*)"sky0-1.png"); break;}
-        case 3: {strcat(filename, (char*)"sky0-2.png"); break;}
-        case 4: {strcat(filename, (char*)"sky0-3.png"); break;}
-        case 5: {strcat(filename, (char*)"sky0-4.png"); break;}
-        case 6: {strcat(filename, (char*)"sky0-5.png"); break;}
-        case 7: {strcat(filename, (char*)"sky0-0.png"); break;} //I do not know which sky this map uses right now TODO
-        case 8: {strcat(filename, (char*)"sky0-0.png"); break;} //I do not know which sky this map uses right now TODO
-        case 9: {strcat(filename, (char*)"sky0-0.png"); break;} //I do not know which sky this map uses right now TODO
+        case 1: {strcat(filename, (char*)"modsky0-0.png"); break;}
+        case 2: {strcat(filename, (char*)"modsky0-1.png"); break;}
+        case 3: {strcat(filename, (char*)"modsky0-2.png"); break;}
+        case 4: {strcat(filename, (char*)"modsky0-3.png"); break;}
+        case 5: {strcat(filename, (char*)"modsky0-4.png"); break;}
+        case 6: {strcat(filename, (char*)"modsky0-5.png"); break;}
+        case 7: {strcat(filename, (char*)"modsky0-0.png"); break;} //I do not know which sky this map uses right now TODO
+        case 8: {strcat(filename, (char*)"modsky0-0.png"); break;} //I do not know which sky this map uses right now TODO
+        case 9: {strcat(filename, (char*)"modsky0-0.png"); break;} //I do not know which sky this map uses right now TODO
         default: {
             //unknown levelNr
             return false;
@@ -3240,7 +3162,8 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
            irr::core::vector3d<irr::f32> newlocation = entity.get_Center();
            //for my corrdinate system X axis is negative
            newlocation.X = - newlocation.X;
-           SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 12);
+           //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 12);
+           SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 48);
            sf->Activate();
 
            //add new steam fontain to my list of fontains
@@ -3252,7 +3175,8 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
            irr::core::vector3d<irr::f32> newlocation = entity.get_Center();
            //for my corrdinate system X axis is negative
            newlocation.X = - newlocation.X;
-           SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 7);
+           //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 7);
+           SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 24);
            sf->Activate();
 
            //add new steam fontain to my list of fontains

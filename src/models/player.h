@@ -28,7 +28,7 @@
 #include "levelterrain.h"
 
 //The target hover height of the craft above the race track
-const irr::f32 HOVER_HEIGHT = 0.6f;
+const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
 
 const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
@@ -236,6 +236,13 @@ public:
     irr::core::vector3df dbgcollResolutionDirVec;
     irr::f32 dbgDistance;
 
+    irr::f32 dbgMaxh;
+    irr::f32 dbgNewCameraVal;
+    irr::f32 dbgCameraAvgVAl;
+    irr::f32 dbgMinCeilingFound;
+    irr::f32 dbgCameraVal;
+    irr::f32 dbgCameraTargetVal;
+
     bool firstNoKeyPressed = false;
 
     //True means humanPlayer
@@ -279,6 +286,15 @@ public:
 
     irr::core::vector3d<irr::f32> Local1stPersonCamPosPnt;
     irr::core::vector3d<irr::f32> Local1stPersonCamTargetPnt;
+
+    irr::core::vector3df WorldTopLookingCamPosPnt;
+    irr::core::vector3df WorldTopLookingCamTargetPnt;
+
+    irr::core::vector3df World1stPersonCamPosPnt;
+    irr::core::vector3df World1stPersonCamTargetPnt;
+
+    void GetPlayerCameraDataFirstPerson(irr::core::vector3df &world1stPersonCamPosPnt, irr::core::vector3df &world1stPersonCamTargetPnt);
+    void GetPlayerCameraDataThirdPerson(irr::core::vector3df &worldTopLookingCamPosPnt, irr::core::vector3df &worldTopLookingCamTargetPnt);
 
     bool mFirstPlayerCam = true;
 
@@ -394,13 +410,6 @@ public:
     void CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints);
 
     Race *mRace;
-
-    //is derived in function GetHeightRaceTrackBelowCraft
-    //if not available is NULL
-    MapEntry* mNextNeighboringTileInFrontOfMe;
-    MapEntry* mNextNeighboringTileRightOfMe;
-    MapEntry* mNextNeighboringTileLeftOfMe;
-    MapEntry* mNextNeighboringTileBehindOfMe;
 
     //debug height calculation variables
     LineStruct debug;
@@ -539,6 +548,11 @@ public:
     void SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle);
     void FreedFromRecoveryVehicleAgain();
 
+    irr::core::vector3df dbgCurrCeilingMinPos;
+    bool minCeilingFound;
+
+    irr::f32 absSkyAngleValue;
+
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
 
@@ -560,12 +574,16 @@ private:
     void UpdateHMapCollisionPointData();
     void HeightMapCollision(HMAPCOLLSENSOR &collSensor);
 
+    bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
+    bool GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
+                                                irr::core::vector3df &currMinPos, bool firstElement = false);
+
     float updateSlowCnter = 0.0f;
 
     bool CanIFindTextureIdAroundPlayer(int posX, int posY, int textureId);
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
     void ApplyWheelForces(irr::f32 deltaTime);
-    void GetHeightRaceTrackBelowWheels(irr::f32 &frontLeft, irr::f32 &frontRight, irr::f32 &backLeft, irr::f32 &backRight);
+    //void GetHeightRaceTrackBelowWheels(irr::f32 &frontLeft, irr::f32 &frontRight, irr::f32 &backLeft, irr::f32 &backRight);
     //void StabilizeCraft(irr::f32 deltaTime);
 
     void CheckForChargingStation();
@@ -575,6 +593,12 @@ private:
     void UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor);
 
     void CreateHMapCollisionPointData();
+
+    std::list<irr::f32> playerCamHeightList;
+    irr::u8 playerCamHeightListElementNr = 0;
+
+    std::list<irr::f32> playerAbsAngleSkyList;
+    irr::u8 playerAbsAngleSkytListElementNr = 0;
 
     //variables to remember if during the last
     //gameloop this player did any charging

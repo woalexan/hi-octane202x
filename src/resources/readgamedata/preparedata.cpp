@@ -1237,6 +1237,14 @@ bool PrepareData::ExtractSky() {
 
  remove(unpackfile);
 
+ char modfile[50];
+ strcpy(unpackfile, "extract/sky/sky0-0.png");
+ strcpy(modfile, "extract/sky/modsky0-0.png");
+
+ //create new modified sky image for us
+ //for easier usage
+ ModifySkyImage(unpackfile, modfile);
+
  strcpy(unpackfile, "extract/sky/sky0-1-unpacked.dat");
  strcpy(outputFile, "extract/sky/sky0-1.png");
 
@@ -1244,6 +1252,13 @@ bool PrepareData::ExtractSky() {
  ConvertRawImageData(&unpackfile[0], palette, 256, 256, outputFile, 2.0);
 
  remove(unpackfile);
+
+ strcpy(unpackfile, "extract/sky/sky0-1.png");
+ strcpy(modfile, "extract/sky/modsky0-1.png");
+
+ //create new modified sky image for us
+ //for easier usage
+ ModifySkyImage(unpackfile, modfile);
 
  strcpy(unpackfile, "extract/sky/sky0-2-unpacked.dat");
  strcpy(outputFile, "extract/sky/sky0-2.png");
@@ -1253,6 +1268,13 @@ bool PrepareData::ExtractSky() {
 
  remove(unpackfile);
 
+ strcpy(unpackfile, "extract/sky/sky0-2.png");
+ strcpy(modfile, "extract/sky/modsky0-2.png");
+
+ //create new modified sky image for us
+ //for easier usage
+ ModifySkyImage(unpackfile, modfile);
+
  strcpy(unpackfile, "extract/sky/sky0-3-unpacked.dat");
  strcpy(outputFile, "extract/sky/sky0-3.png");
 
@@ -1260,6 +1282,13 @@ bool PrepareData::ExtractSky() {
  ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
 
  remove(unpackfile);
+
+ strcpy(unpackfile, "extract/sky/sky0-3.png");
+ strcpy(modfile, "extract/sky/modsky0-3.png");
+
+ //create new modified sky image for us
+ //for easier usage
+ ModifySkyImage(unpackfile, modfile);
 
  strcpy(unpackfile, "extract/sky/sky0-4-unpacked.dat");
  strcpy(outputFile, "extract/sky/sky0-4.png");
@@ -1269,6 +1298,13 @@ bool PrepareData::ExtractSky() {
 
  remove(unpackfile);
 
+ strcpy(unpackfile, "extract/sky/sky0-4.png");
+ strcpy(modfile, "extract/sky/modsky0-4.png");
+
+ //create new modified sky image for us
+ //for easier usage
+ ModifySkyImage(unpackfile, modfile);
+
  strcpy(unpackfile, "extract/sky/sky0-5-unpacked.dat");
  strcpy(outputFile, "extract/sky/sky0-5.png");
 
@@ -1277,7 +1313,68 @@ bool PrepareData::ExtractSky() {
 
  remove(unpackfile);
 
+ strcpy(unpackfile, "extract/sky/sky0-5.png");
+ strcpy(modfile, "extract/sky/modsky0-5.png");
+
+ //create new modified sky image for us
+ //for easier usage
+ ModifySkyImage(unpackfile, modfile);
+
  return true;
+}
+
+//This helper function modifies the original sky image so that we can use it easier
+//in this project. The result is stored in another new image file
+bool PrepareData::ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName) {
+    //first open original sky image again
+    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(origSkyFileName);
+
+    irr::video::IImage* origSky = myDriver->createImageFromFile(file);
+
+    //get original sky image dimension
+    irr::core::dimension2d<irr::u32> origDimension = origSky->getDimension();
+
+    //we want to add in the modified sky image three copies of the original sky next to each other
+    //the height should not change
+    //calculate new image dimensions
+
+    //create the new empty image for the modified sky file
+    irr::video::IImage* imgNew =
+        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(3 * origDimension.Width, origDimension.Height - 1));
+
+    //first change: take lower part of picture starting with line 148, and move it to the top of the new picture
+    origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                   irr::core::rect<irr::s32>(0, 148, origDimension.Width, origDimension.Height));
+
+    //second change: take upper part of the picture until line 147 and add it to the modified new picture to the lower part
+    origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, (origDimension.Height - 148)),
+                   irr::core::rect<irr::s32>(0, 0, origDimension.Width, 147));
+
+    //now repeat this two more times, to add 2 copies next to it to fill the whole width of the new picture
+    origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(origDimension.Width, 0),
+                   irr::core::rect<irr::s32>(0, 148, origDimension.Width, origDimension.Height));
+
+    origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(origDimension.Width, (origDimension.Height - 148)),
+                  irr::core::rect<irr::s32>(0, 0, origDimension.Width, 147));
+
+    origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(origDimension.Width * 2, 0),
+                  irr::core::rect<irr::s32>(0, 148, origDimension.Width, origDimension.Height));
+
+    origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(origDimension.Width * 2, (origDimension.Height - 148)),
+                  irr::core::rect<irr::s32>(0, 0, origDimension.Width, 147));
+
+    //create new file for writting
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputModifiedSkyFileName, false);
+
+    myDriver->writeImageToFile(imgNew, outputPic);
+
+    //close output file
+    outputPic->drop();
+
+    //close the original picture file
+    file->drop();
+
+    return true;
 }
 
 //the original Terrain texture Atlas stored within the game has all tiles

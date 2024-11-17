@@ -380,6 +380,48 @@ SMesh* LevelBlocks::getBlocksMesh(int collisionSelector) {
     return(BuildingMesh);
 }
 
+bool LevelBlocks::GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::f32 &heightVal) {
+
+    //get pntr to this tile
+    MapEntry* pntr = this->levelRes->pMap[cellCoord.X][cellCoord.Y];
+
+    irr::u8 firstCollDetBlock = 0;
+    irr::u8 nrBlocks = 0;
+
+    if (pntr != NULL) {
+        ColumnDefinition* colDef = pntr->get_Column();
+        if (colDef != NULL) {
+            //mInCollisionMesh has a "thermometer code" inside
+            //for all the blocks beginning at the terrain level
+            //in upwards direction where no collision detection can take place
+            //there is a 0 inside; from the moment when collision detection is activated
+            //there are 1 values inside for the remaining blocks upwards
+            nrBlocks = colDef->mInCollisionMesh.size();
+
+            firstCollDetBlock = nrBlocks;
+
+            for (irr::u8 blockCnt = 0; blockCnt < nrBlocks; blockCnt++) {
+                if (colDef->mInCollisionMesh[blockCnt] == 1) {
+                    //there is already collision detection inside this block
+                    //there is no ceiling anymore beginning from this position
+                    firstCollDetBlock = blockCnt;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (firstCollDetBlock > 0) {
+        //return the height where the ceiling is located
+        //at this cell; return true because we found a ceiling
+        heightVal = firstCollDetBlock * this->segmentSize;
+        return true;
+    }
+
+    //there is no ceiling, return false
+    return false;
+}
+
 void LevelBlocks::SwitchViewMode() {
     switch (myCurrentViewMode) {
         case LEVELBLOCKS_VIEW_WIREFRAME: {

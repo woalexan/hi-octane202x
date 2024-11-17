@@ -39,11 +39,13 @@ public:
     LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource);
     ~LevelBlocks();
 
-    MapEntry* GetMapEntry(int x, int y);
+    //MapEntry* GetMapEntry(int x, int y);
 
     SMesh * getBlocksMesh(int collisionSelector);
     std::vector<Column*> ColumnsInRange(int sx, int sz, float w, float h);
     void SetColumnVerticeSMeshBufferVerticePositionsDirty();
+
+    bool GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::f32 &heightVal);
 
     vector3d<irr::f32> Size;
 
