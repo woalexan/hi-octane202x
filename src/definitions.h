@@ -15,7 +15,7 @@
 //Top level setup
 #define DEF_INSPECT_LEVEL true
 #define DEF_DBG_WALLCOLLISIONS false
-#define DEF_PLAYERCANGOBACKWARDS true
+#define DEF_PLAYERCANGOBACKWARDS false
 
 //Player settings
 #define DEBUG_PLAYER_HEIGHT_CONTROL false

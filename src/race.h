@@ -157,7 +157,7 @@ class Race {
 public:
     Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
          GameText* gameText, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-         dimension2d<u32> gameScreenRes, int loadLevelNr);
+         dimension2d<u32> gameScreenRes, int loadLevelNr, bool useAutoGenMiniMapParam = false);
 
     ~Race();
 
@@ -254,8 +254,12 @@ public:
     //finished the race in the order how the have finished
     std::vector<Player*> playerRaceFinishedVec;
 
+
+    void PlayerFindClosestWaypointLink(Player* player);
+
 private:
     int levelNr;
+    bool useAutoGenMinimap;
 
     //the image for the base of the minimap
     //without the player location dots
@@ -274,6 +278,10 @@ private:
     irr::u32 miniMapStartH;
     irr::u32 miniMapEndH;
 
+    //holds the pixels coordinates inside the minimap texture
+    //image which are actually used by non transparent pixels
+    irr::core::rect<irr::s32> miniMapImageUsedArea;
+
     //precalculated value for miniMap so that we safe
     //unnecessary calculations during game
     irr::f32 miniMapPixelPerCellW;
@@ -284,6 +292,17 @@ private:
 
     void InitMiniMap(irr::u32 levelNr);
     irr::core::dimension2di CalcPlayerMiniMapPosition(Player* whichPlayer);
+
+    //Initializes the games original
+    //minimap
+    void InitMiniMapOriginal(irr::u32 levelNr);
+
+    //Searches for the used space inside the minimap picture
+    //while removing unnecessary transparent columns of pixels
+    //Parameters:
+    //  miniMapTexture = pointer to the minimap texture
+    //In case of an unexpected error this function returns succesFlag = false, True otherwise
+    irr::core::rect<irr::s32> FindMiniMapImageUsedArea(irr::video::ITexture* miniMapTexture, bool &succesFlag);
 
     //handles the file data structure of the
     //level
@@ -340,7 +359,7 @@ private:
     bool playerCamera = true;
 
     //variables to switch different debugging functions on and off
-    bool DebugShowWaypoints = false;
+    bool DebugShowWaypoints = true;
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;
@@ -407,7 +426,6 @@ private:
     void createCheckpointMeshData(CheckPointInfoStruct &newStruct);
     std::vector<CheckPointInfoStruct*> *checkPointVec;
 
-    void PlayerFindClosestWaypointLink(Player* player);
     void UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer);
     void UpdatePlayerRacePositionRanking();
     void UpdatePlayerRacePositionRankingHelper2(std::vector< pair <irr::s32, Player*> > vecNextCheckPointExpected);

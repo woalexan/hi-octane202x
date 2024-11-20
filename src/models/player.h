@@ -435,7 +435,7 @@ public:
 
 
     //computer player stuff
-    irr::f32 computerPlayerTargetSpeed = 1.3f; //3.0f; //10.0f
+    irr::f32 computerPlayerTargetSpeed = 3.0f; //1.3f;
 
     irr::f32 cPTargetRelativeAngle = 0.0f; //0.0f means go straight in parallel to current followed
                                                     //waypoint link
