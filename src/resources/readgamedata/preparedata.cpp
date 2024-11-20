@@ -132,6 +132,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
                  PreparationOk = false;
             } else {
                 PreparationOk = PreparationOk && ExtractMiniMapsSVGA();
+                PreparationOk = PreparationOk && StitchMiniMaps();
             }
 
             //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
@@ -673,6 +674,276 @@ bool PrepareData::ExtractMiniMapsSVGA() {
  }
 
  return true;
+}
+
+bool PrepareData::StitchMiniMaps() {
+    /********************************************
+     *  Map for level 1                         *
+     * ******************************************/
+
+    char filename[50];
+
+    strcpy(filename, "extract/minimaps/track0-1-0000.bmp");
+
+    //open image part1
+    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    irr::video::IImage* part1 = myDriver->createImageFromFile(file);
+
+    //close the part1 picture file
+    file->drop();
+
+    //get part 1 image dimension
+    irr::core::dimension2d<irr::u32> part1Dimension = part1->getDimension();
+
+    //lock texture for only reading of pixel data
+    //irr::u8* datapntr = (irr::u8*)part1->lock();
+
+    irr::video::SColor texel;
+
+    //get games transparent color at the upper leftmost pixel (0,0)
+    irr::video::SColor texelTrans = part1->getPixel(0,0);
+
+    //unlock image again!
+    //part1->unlock();
+
+    strcpy(filename, "extract/minimaps/track0-1-0001.bmp");
+
+    //open image part2
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    irr::video::IImage* part2 = myDriver->createImageFromFile(file);
+
+    //close the part2 picture file
+    file->drop();
+
+    //get part 2 image dimension
+    irr::core::dimension2d<irr::u32> part2Dimension = part2->getDimension();
+
+    //stitch together
+    //create the new empty image for the modified sky file
+    irr::video::IImage* imgNew =
+        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width, part1Dimension.Height
+                                                                                                        + part2Dimension.Height - 1));
+
+    //first make sure new image is filled completely
+    //with the transparent color of the game
+    imgNew->fill(texelTrans);
+
+    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
+
+    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(6, 120),
+                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
+
+    part1->drop();
+    part2->drop();
+
+    strcpy(filename, "extract/minimaps/track0-1.png");
+
+    //create new file for writting
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
+
+    myDriver->writeImageToFile(imgNew, outputPic);
+
+    //close output file
+    outputPic->drop();
+    imgNew->drop();
+
+    /********************************************
+     *  Map for level 2                         *
+     * ******************************************/
+
+    strcpy(filename, "extract/minimaps/track0-1-0002.bmp");
+
+    //open image part1
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    part1 = myDriver->createImageFromFile(file);
+
+    //close the part1 picture file
+    file->drop();
+
+    //get part 1 image dimension
+    part1Dimension = part1->getDimension();
+
+    strcpy(filename, "extract/minimaps/track0-1-0003.bmp");
+
+    //open image part2
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    part2 = myDriver->createImageFromFile(file);
+
+    //close the part2 picture file
+    file->drop();
+
+    //get part 2 image dimension
+    part2Dimension = part2->getDimension();
+
+    //open image part3
+
+    strcpy(filename, "extract/minimaps/track0-1-0004.bmp");
+
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    irr::video::IImage* part3 = myDriver->createImageFromFile(file);
+
+    //close the part3 picture file
+    file->drop();
+
+    //get part 3 image dimension
+    irr::core::dimension2d<irr::u32> part3Dimension = part3->getDimension();
+
+    //stitch together
+    //create the new empty image for the modified sky file
+    imgNew =
+        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width + part2Dimension.Width, part1Dimension.Height
+                                                                                                        + part3Dimension.Height - 1));
+
+    //first make sure new image is filled completely
+    //with the transparent color of the game
+    imgNew->fill(texelTrans);
+
+    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
+
+    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(120, 5),
+                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
+
+    part3->copyTo(imgNew, irr::core::vector2d<irr::s32>(74, 120),
+                   irr::core::rect<irr::s32>(0, 0, part3Dimension.Width, part3Dimension.Height));
+
+    strcpy(filename, "extract/minimaps/track0-2.png");
+
+    //create new file for writting
+    outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
+
+    myDriver->writeImageToFile(imgNew, outputPic);
+
+    //close output file
+    outputPic->drop();
+    imgNew->drop();
+
+    /********************************************
+     *  Map for level 3                         *
+     * ******************************************/
+
+    //is alreay finished in file track0-1-0005.bmp
+    //no need for stitching
+
+    /********************************************
+     *  Map for level 4                         *
+     * ******************************************/
+
+    strcpy(filename, "extract/minimaps/track0-1-0006.bmp");
+
+    //open image part1
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    part1 = myDriver->createImageFromFile(file);
+
+    //close the part1 picture file
+    file->drop();
+
+    //get part 1 image dimension
+    part1Dimension = part1->getDimension();
+
+    strcpy(filename, "extract/minimaps/track0-1-0007.bmp");
+
+    //open image part2
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    part2 = myDriver->createImageFromFile(file);
+
+    //close the part2 picture file
+    file->drop();
+
+    //get part 2 image dimension
+    part2Dimension = part2->getDimension();
+
+    //stitch together
+    //create the new empty image for the modified sky file
+    imgNew =
+        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width, part1Dimension.Height
+                                                                                                        + part2Dimension.Height - 1));
+
+    //first make sure new image is filled completely
+    //with the transparent color of the game
+    imgNew->fill(texelTrans);
+
+    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
+
+    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(27, 120),
+                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
+
+    strcpy(filename, "extract/minimaps/track0-4.png");
+
+    //create new file for writting
+    outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
+
+    myDriver->writeImageToFile(imgNew, outputPic);
+
+    //close output file
+    outputPic->drop();
+    imgNew->drop();
+
+    /********************************************
+     *  Map for level 5                         *
+     * ******************************************/
+
+    strcpy(filename, "extract/minimaps/track0-1-0008.bmp");
+
+    //open image part1
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    part1 = myDriver->createImageFromFile(file);
+
+    //close the part1 picture file
+    file->drop();
+
+    //get part 1 image dimension
+    part1Dimension = part1->getDimension();
+
+    strcpy(filename, "extract/minimaps/track0-1-0009.bmp");
+
+    //open image part2
+    file = myDevice->getFileSystem()->createAndOpenFile(filename);
+    part2 = myDriver->createImageFromFile(file);
+
+    //close the part2 picture file
+    file->drop();
+
+    //get part 2 image dimension
+    part2Dimension = part2->getDimension();
+
+    //stitch together
+    //create the new empty image for the modified sky file
+    imgNew =
+        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width, part1Dimension.Height
+                                                                                                        + part2Dimension.Height - 1));
+
+    //first make sure new image is filled completely
+    //with the transparent color of the game
+    imgNew->fill(texelTrans);
+
+    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
+
+    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(18, 120),
+                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
+
+    strcpy(filename, "extract/minimaps/track0-5.png");
+
+    //create new file for writting
+    outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
+
+    myDriver->writeImageToFile(imgNew, outputPic);
+
+    //close output file
+    outputPic->drop();
+    imgNew->drop();
+
+    /********************************************
+     *  Map for level 6                         *
+     * ******************************************/
+
+    //is alreay finished in file track0-1-0010.bmp
+    //no need for stitching
+
+    return true;
 }
 
 //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab

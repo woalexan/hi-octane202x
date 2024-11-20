@@ -57,10 +57,6 @@ public:
 
     bool PreparationOk;
 
-    //This helper function modifies the original sky image so that we can use it easier
-    //in this project. The result is stored in another new image file
-    bool ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName);
-
 private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
@@ -121,11 +117,17 @@ private:
     //return false if at least one file is missing
     bool ExtractSky();
 
-
+    //This helper function modifies the original sky image so that we can use it easier
+    //in this project. The result is stored in another new image file
+    bool ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName);
 
     //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
     //returns true in case of success, returns false in case of unexpected error
     bool ExtractMiniMapsSVGA();
+
+    //helper function to stich the original games minimap
+    //parts together
+    bool StitchMiniMaps();
 
     //void ReorganizeTerrainAtlas(char* targetFile, char* outputFileName);
 
@@ -199,7 +201,6 @@ private:
                                           char* outputFilename, int scaleFactor, bool flipY);
 
     bool ExtractMusic();
-
 
     bool ExtractMusicFiles(char* outputNameStr, FILE *iFile,
            MUSICTABLEENTRY* VecMusicTableEntries,

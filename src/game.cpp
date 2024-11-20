@@ -452,7 +452,7 @@ bool Game::CreateNewRace(int load_levelnr) {
 
     //create a new Race
     mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, gameMusicPlayer, gameSoundEngine,
-                           mTimeProfiler, this->mGameScreenRes, load_levelnr);
+                           mTimeProfiler, this->mGameScreenRes, load_levelnr, false);
 
     mCurrentRace->Init();
 
