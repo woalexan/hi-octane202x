@@ -337,8 +337,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     //irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
 
-      swprintf(text2, 390, L"currDist = %lf\n currAngle = %lf\ncurrTargetAngle = %lf\ntargetOffsetAngle = %lf\n",
+      swprintf(text2, 390, L"currDist = %lf\nTargetDist = %lf\ncurrAngle = %lf\ncurrTargetAngle = %lf\ntargetOffsetAngle = %lf\n",
                      this->mCurrentRace->player2->mCurrentCraftDistToWaypointLink,
+                     this->mCurrentRace->player2->mCurrentCraftDistWaypointLinkTarget,
                      this->mCurrentRace->player2->mCurrentCraftOrientationAngle,
                      this->mCurrentRace->player2->mCurrentWaypointLinkAngle,
                      this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);

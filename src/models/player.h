@@ -394,6 +394,8 @@ public:
 
     irr::f32 mCurrentCraftDistToWaypointLink = 0.0f;
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;
+    irr::f32 mCurrentCraftDistWaypointLinkTarget = 0.0f;
+
 
     irr::f32 cPStartTurnAngle;
     irr::f32 cpEndTurnAngle;
@@ -449,7 +451,7 @@ public:
 
 
     //computer player stuff
-    irr::f32 computerPlayerTargetSpeed = 3.0f; //1.3f;
+    irr::f32 computerPlayerTargetSpeed = 5.0f; //3.0f;
 
     irr::f32 cPTargetRelativeAngle = 0.0f; //0.0f means go straight in parallel to current followed
                                                     //waypoint link
@@ -470,11 +472,6 @@ public:
     irr::f32 computerPlayerCurrDistanceFromWayPointLinkBack;
     irr::f32 computerPlayerCurrDistanceFromWayPointLinkAvg;
     irr::f32 computerPlayerCurrSteerForce = 10.0f;
-    irr::u8 steerLeftPanic = 0;
-    irr::u8 steerRightPanic = 0;
-
-    irr::s32 computerPlayerCurrSteering = 0; //0 means straight (no steering applied, forward direction)
-                                             //positive numbers mean left turn, negative numbers mean right turn applied
 
     void RunComputerPlayerLogic();
     void FollowWayPointLink();
@@ -500,8 +497,6 @@ public:
     irr::f32 currPlayerCraftLeaningAngleDeg = 0.0f;
     irr::u8 currPlayerCraftLeaningOrientation = CRAFT_NOLEANING;
 
-    irr::f32 targetPlayerCraftLeaningAngle = 0.0f;
-    irr::u8 targetPlayerCraftLeaningOrientation = CRAFT_NOLEANING;
 
     void CPForceController();
 
@@ -596,9 +591,6 @@ private:
 
     bool CanIFindTextureIdAroundPlayer(int posX, int posY, int textureId);
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
-    void ApplyWheelForces(irr::f32 deltaTime);
-    //void GetHeightRaceTrackBelowWheels(irr::f32 &frontLeft, irr::f32 &frontRight, irr::f32 &backLeft, irr::f32 &backRight);
-    //void StabilizeCraft(irr::f32 deltaTime);
 
     void CheckForChargingStation();
     void CalcPlayerCraftLeaningAngle();
