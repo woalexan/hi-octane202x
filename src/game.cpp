@@ -120,10 +120,10 @@ bool Game::InitGame() {
     dbgTimeProfiler = guienv->addStaticText(L"Location",
            rect<s32>(100,150,300,200), false, true, NULL, -1, true);
 
-    /*dbgText = guienv->addStaticText(L"",
+    dbgText = guienv->addStaticText(L"",
            rect<s32>(100,250,300,350), false, true, NULL, -1, true);
 
-    dbgText2 = guienv->addStaticText(L"",
+    /*dbgText2 = guienv->addStaticText(L"",
            rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
 
     smgr->addLightSceneNode(0, vector3df(0, 100, 0),
@@ -335,13 +335,16 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                  mCurrentRace->player->dbgMaxh,
                  mCurrentRace->player->dbgMinCeilingFound);*/
 
-   /* irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
+    //irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
 
-      swprintf(text2, 390, L"%lf\n%lf\n",
-                     absolutePlayerAngle, this->mCurrentRace->player->absSkyAngleValue);*/
+      swprintf(text2, 390, L"currDist = %lf\n currAngle = %lf\ncurrTargetAngle = %lf\ntargetOffsetAngle = %lf\n",
+                     this->mCurrentRace->player2->mCurrentCraftDistToWaypointLink,
+                     this->mCurrentRace->player2->mCurrentCraftOrientationAngle,
+                     this->mCurrentRace->player2->mCurrentWaypointLinkAngle,
+                     this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);
 
     dbgTimeProfiler->setText(text);
-    //dbgText->setText(text2);
+    dbgText->setText(text2);
 
     delete[] text;
     delete[] text2;
