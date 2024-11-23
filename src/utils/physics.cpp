@@ -1032,6 +1032,9 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
                     //between physics objects themselves (via bounding boxes)
                     HandleObjToObjCollision(frameDeltaTime);
 
+                    this->mParentRace->PlayerFindClosestWaypointLink(this->mParentRace->player2);
+                    this->mParentRace->player2->CPForceController();
+
                     //Wolf Alexander 24.10.2024: For the heightmap collision to work we
                     //need to immediately update the sceneNodes here inside the loop
                     //which is kind of dirty, but regarding the CPU load I did not

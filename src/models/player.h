@@ -255,6 +255,12 @@ public:
     void Right();
     void NoTurningKeyPressed();
 
+    void CPForward();
+    void CPBackward();
+    void CPLeft(irr::f32 currAbsOrientationAngleError);
+    void CPRight(irr::f32 currAbsOrientationAngleError);
+    void CPNoTurningKeyPressed();
+
     void CollectedCollectable(Collectable* whichCollectable);
 
     void StartPlayingWarningSound();
@@ -381,6 +387,14 @@ public:
     uint8_t cPCurrentTurnMode = CP_TURN_NOTURN;
     irr::f32 mCurrentCraftOrientationAngle;
     irr::f32 mLastCurrentCraftOrientationAngle;
+
+    irr::f32 mCurrentWaypointLinkAngle;
+
+    irr::f32 mCurrentCraftTargetOrientationOffsetAngle = 0.0f;
+
+    irr::f32 mCurrentCraftDistToWaypointLink = 0.0f;
+    irr::f32 mLastCraftDistToWaypointLink = 0.0f;
+
     irr::f32 cPStartTurnAngle;
     irr::f32 cpEndTurnAngle;
     irr::f32 cPAngleTurned;

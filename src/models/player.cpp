@@ -751,6 +751,20 @@ void Player::Forward() {
             mPlayerStats->throttleVal++;
 }
 
+void Player::CPForward() {
+    //if player can not move right now simply
+    //exit
+    if (!this->mPlayerStats->mPlayerCanMove)
+        return;
+
+        //to accelerate player add force in craft forward direction
+        this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
+                                    PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
+
+        if (mPlayerStats->throttleVal < mPlayerStats->throttleMax)
+            mPlayerStats->throttleVal++;
+}
+
 void Player::Backward() {
     //if player can not move right now simply
     //exit
@@ -774,7 +788,50 @@ void Player::Backward() {
     }
 }
 
+void Player::CPBackward() {
+    //if player can not move right now simply
+    //exit
+    if (!this->mPlayerStats->mPlayerCanMove)
+        return;
+
+    if (!DEF_PLAYERCANGOBACKWARDS) {
+        //we can not go backwards in Hioctane
+        //we can only add friction to brake
+        this->phobj->AddFriction(10.0f);
+
+        if (mPlayerStats->throttleVal > 0)
+            mPlayerStats->throttleVal--;
+    } else {
+            //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
+            this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
+                                    PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
+
+            if (mPlayerStats->throttleVal > 0)
+                mPlayerStats->throttleVal--;
+    }
+}
+
 void Player::Left() {
+    //if player can not move right now simply
+    //exit
+    if (!this->mPlayerStats->mPlayerCanMove)
+        return;
+
+        currentSideForce += 3.0f;
+
+        if (currentSideForce > 20.0f)
+            currentSideForce = 20.0f;
+
+   //original line 10.11.2024
+  /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                   PHYSIC_APPLYFORCE_ONLYROT);*/
+
+  //experimental line
+  this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                         PHYSIC_APPLYFORCE_ONLYROT);
+}
+
+void Player::CPLeft(irr::f32 currAbsOrientationAngleError) {
   //limit maximum possible steeringAngle
   /*if ((targetSteerAngle + 3.0f) < 45.0f) {
       targetSteerAngle += 3.0f;
@@ -808,12 +865,13 @@ void Player::Left() {
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
 
-        currentSideForce += 30.0f;
+        //currentSideForce += 3.0f * (currAbsOrientationAngleError / 45.0f);
+          currentSideForce = 3.0f * (currAbsOrientationAngleError / 45.0f);
 
-        if (currentSideForce > 200.0f)
-            currentSideForce = 200.0f;
+        if (currentSideForce > 20.0f)
+            currentSideForce = 20.0f;
 
-  //appliedForceSideways = 100.0;    
+  //appliedForceSideways = 100.0;
 
    //original line 10.11.2024
   /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
@@ -825,6 +883,26 @@ void Player::Left() {
 }
 
 void Player::Right() {
+    //if player can not move right now simply
+    //exit
+    if (!this->mPlayerStats->mPlayerCanMove)
+        return;
+
+    currentSideForce -= 3.0f;
+
+    if (currentSideForce < -20.0f)
+        currentSideForce = -20.0f;
+
+    //original line 10.11.2024
+    /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                     PHYSIC_APPLYFORCE_ONLYROT);*/
+
+    //experimental
+    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                     PHYSIC_APPLYFORCE_ONLYROT);
+}
+
+void Player::CPRight(irr::f32 currAbsOrientationAngleError) {
   //limit maximum possible steeringAngle
  /* if ((targetSteerAngle - 3.0f) > -45.0f) {
       targetSteerAngle -= 3.0f;
@@ -858,10 +936,11 @@ void Player::Right() {
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
 
-    currentSideForce -= 30.0f;
+   // currentSideForce -= 3.0f * (currAbsOrientationAngleError / 45.0f);
+     currentSideForce = -3.0f * (currAbsOrientationAngleError / 45.0f);
 
-    if (currentSideForce < -200.0f)
-        currentSideForce = -200.0f;
+    if (currentSideForce < -20.0f)
+        currentSideForce = -20.0f;
 
     //original line 10.11.2024
     /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
@@ -886,61 +965,104 @@ void Player::NoTurningKeyPressed() {
     currentSideForce = 0.0f;
 }
 
+void Player::CPNoTurningKeyPressed() {
+    //stop turning sideways
+
+    //add a counter force against the sideways movement
+    //to prevent endlessly going sideways without any sideways key
+    //pressed
+    irr::f32 craftWorldSpeedSideWays = this->phobj->physicState.velocity.dotProduct(this->craftSidewaysToRightVec);
+    irr::core::vector3df counterForceSideWaysMotion = irr::core::vector3df(craftWorldSpeedSideWays * CRAFT_SIDEWAYS_BRAKING, 0.0f, 0.0f);
+    this->phobj->AddLocalCoordForce(this->LocalCraftOrigin, counterForceSideWaysMotion,
+                                        PHYSIC_APPLYFORCE_ONLYTRANS);
+
+    currentSideForce = 0.0f;
+}
+
 void Player::CPForceController() {
+
+    mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
+    mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
+
     //control computer player speed
     if (this->phobj->physicState.speed < (computerPlayerTargetSpeed * 0.9f))
     {
         //go faster
-        this->Forward();
+        this->CPForward();
          //this->mHUD->ShowBannerText((char*)"FORWARD", 4.0f);
     } else if (this->phobj->physicState.speed > (computerPlayerTargetSpeed * 1.1f)) {
         //go slower
-       this->Backward();
+       this->CPBackward();
          //this->mHUD->ShowBannerText((char*)"BACKWARD", 4.0f);
     }
 
     if (this->currClosestWayPointLink != NULL) {
         irr::core::vector3df dirVecToLink = (this->projPlayerPositionClosestWayPointLink - this->phobj->physicState.position);
+        dirVecToLink.Y = 0.0f;
+
+        mCurrentCraftDistToWaypointLink = dirVecToLink.getLength();
 
         //what is our relation towards the currClosestWayPoint link?
         irr::f32 absAngleLinkForwardDir =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(this->currClosestWayPointLink->LinkDirectionVec);
 
-        irr::f32 absAnglePlayerForwardDir =
+        mCurrentWaypointLinkAngle = absAngleLinkForwardDir;
+
+        mCurrentCraftOrientationAngle =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
 
-        irr::f32 angleError = absAngleLinkForwardDir - absAnglePlayerForwardDir;
-        irr::f32 absAngleError = fabs(angleError);
+        irr::f32 angleError = absAngleLinkForwardDir - mCurrentCraftOrientationAngle + mCurrentCraftTargetOrientationOffsetAngle;
+        irr::f32 currAngleVelocityCraft =  (mCurrentCraftOrientationAngle - mLastCurrentCraftOrientationAngle);
 
-        if ((absAngleError < 45.0f) && (absAngleError > 2.0f)) {
+        irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
+
+        //irr::f32 absAngleError = fabs(angleError);
+
+        //if ((absAngleError < 45.0f) && (absAngleError > 2.0f)) {
             //we are flying in forward link direction, and are only "slightly" off
-
+           /*
             if (angleError > 0.0f) {
-                this->Left();
+                this->CPLeft(absAngleError);
             } else {
-                this->Right();
-            }
+                this->CPRight(absAngleError);
+            }*/
 
-        } else {
-            NoTurningKeyPressed();
-        }
+            irr::f32 corrForceOrientationAngle = 3.0f;
+            irr::f32 corrDampingOrientationAngle = 100.0f;
 
-        irr::f32 distToLink = dirVecToLink.getLength();
+            irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
+            this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
+                                             PHYSIC_APPLYFORCE_ONLYROT);
 
-        if (distToLink > 0.4f) {
+        /*} else {
+            CPNoTurningKeyPressed();
+        }*/
+
+
+
+        if (mCurrentCraftDistToWaypointLink > 0.4f) {
 
          if (dirVecToLink.dotProduct(this->craftSidewaysToRightVec) > 0.0f) {
             //link line is on our right side, move ship towards right
-            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(-5.0f, 0.0f, 0.0f),
-                                              PHYSIC_APPLYFORCE_ONLYTRANS);
+           /* this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(-5.0f, 0.0f, 0.0f),
+                                              PHYSIC_APPLYFORCE_ONLYTRANS);*/
+
+             mCurrentCraftTargetOrientationOffsetAngle = -10.0f;
+             //currentSideForce = -5.0f;
 
         } else {
             //link line is on our left side, move ship towards left
-            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(5.0f, 0.0f, 0.0f),
-                                               PHYSIC_APPLYFORCE_ONLYTRANS);
+            /*this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(5.0f, 0.0f, 0.0f),
+                                               PHYSIC_APPLYFORCE_ONLYTRANS);*/
+
+             mCurrentCraftTargetOrientationOffsetAngle = +10.0f;
+
+             //currentSideForce = 5.0f;
 
         }
 
+        } else {
+            //mCurrentCraftTargetOrientationOffsetAngle = 0.0f;
         }
     }
 

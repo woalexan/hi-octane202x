@@ -1520,8 +1520,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
                                   player->phobj->physicState.position, player->phobj->physicState.position + player->craftForwardDirVec * irr::core::vector3df(50.0f, 50.0f, 50.0f),
                                                                   true);*/
 
-    PlayerFindClosestWaypointLink(player);
-    PlayerFindClosestWaypointLink(player2);
+    //PlayerFindClosestWaypointLink(player);
+    //PlayerFindClosestWaypointLink(player2);
     UpdatePlayerDistanceToNextCheckpoint(player);
     UpdatePlayerDistanceToNextCheckpoint(player2);
 
@@ -1594,7 +1594,7 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
 
 void Race::HandleComputerPlayers() {
     //player2->RunComputerPlayerLogic();
-    player2->CPForceController();
+    //player2->CPForceController();
 /*
     if (player2->currClosestWayPointLink != NULL) {
         player2->FlyTowardsEntityRunComputerPlayerLogic(player2->currClosestWayPointLink->pEndEntity);
@@ -2384,7 +2384,8 @@ void Race::createPlayers(int levelNr) {
     std::vector<irr::core::vector3df> playerStartLocations = this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
 
     //getPlayerStartPosition(levelNr, Startpos, Startdirection);
-    Startpos = playerStartLocations.at(0);
+    //Startpos = playerStartLocations.at(0);
+    Startpos = playerStartLocations.at(4);
     Startdirection.X = Startpos.X;
     Startdirection.Y = Startpos.Y;
   //Startdirection.Z = Startpos.Z - 2.0f;  original line 04.09.2024, worked best until now
