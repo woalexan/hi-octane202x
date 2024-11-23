@@ -1000,7 +1000,23 @@ void Player::CPForceController() {
         irr::core::vector3df dirVecToLink = (this->projPlayerPositionClosestWayPointLink - this->phobj->physicState.position);
         dirVecToLink.Y = 0.0f;
 
-        mCurrentCraftDistToWaypointLink = dirVecToLink.getLength();
+        irr::core::vector3df currDirVecCraftSide = craftSidewaysToRightVec;
+        irr::core::vector3df currDirVecLink = dirVecToLink;
+        currDirVecLink.normalize();
+
+        currDirVecCraftSide.Y = 0.0f;
+        currDirVecCraftSide.normalize();
+
+        irr::f32 dotProd = currDirVecCraftSide.dotProduct(currDirVecLink);
+
+        //define distance to current waypoint in a way, that if craft is left
+        //of current waypoint link the distance is negative, and if the craft is right
+        //of the current waypoint link the distance is positive
+        if (dotProd < 0.0f) {
+            mCurrentCraftDistToWaypointLink = dirVecToLink.getLength();
+        } else {
+            mCurrentCraftDistToWaypointLink = -dirVecToLink.getLength();
+        }
 
         //what is our relation towards the currClosestWayPoint link?
         irr::f32 absAngleLinkForwardDir =
@@ -1027,43 +1043,68 @@ void Player::CPForceController() {
                 this->CPRight(absAngleError);
             }*/
 
+            /***************************************/
+            /*  Control Craft absolute angle start */
+            /***************************************/
+
             irr::f32 corrForceOrientationAngle = 3.0f;
-            irr::f32 corrDampingOrientationAngle = 100.0f;
+            irr::f32 corrDampingOrientationAngle = 2000.0f;
 
             irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
             this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
                                              PHYSIC_APPLYFORCE_ONLYROT);
 
+            /****************************************************/
+            /*  Control Craft distance to current waypoint link */
+            /****************************************************/
+
+            irr::f32 corrForceDist = 3.0f;
+            irr::f32 corrDampingDist = 2000.0f;
+
+            irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
+
+           // if (fabs(distError) > 0.3f) {
+
+                irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
+
+                if (corrForceDistance > 1.0f) {
+                    corrForceDistance = 1.0f;
+                } else if (corrForceDistance < -1.0f) {
+                    corrForceDistance = -1.0f;
+                }
+
+                this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
+                                                  PHYSIC_APPLYFORCE_ONLYTRANS);
+            //}
+
         /*} else {
             CPNoTurningKeyPressed();
         }*/
 
-
-
-        if (mCurrentCraftDistToWaypointLink > 0.4f) {
+        /*if (mCurrentCraftDistToWaypointLink > 0.4f) {
 
          if (dirVecToLink.dotProduct(this->craftSidewaysToRightVec) > 0.0f) {
             //link line is on our right side, move ship towards right
-           /* this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(-5.0f, 0.0f, 0.0f),
-                                              PHYSIC_APPLYFORCE_ONLYTRANS);*/
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(-5.0f, 0.0f, 0.0f),
+                                              PHYSIC_APPLYFORCE_ONLYTRANS);
 
-             mCurrentCraftTargetOrientationOffsetAngle = -10.0f;
-             //currentSideForce = -5.0f;
+             //mCurrentCraftTargetOrientationOffsetAngle = -5.0f;
+             //currentSideForce = -100.0f;
 
         } else {
             //link line is on our left side, move ship towards left
-            /*this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(5.0f, 0.0f, 0.0f),
-                                               PHYSIC_APPLYFORCE_ONLYTRANS);*/
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(5.0f, 0.0f, 0.0f),
+                                               PHYSIC_APPLYFORCE_ONLYTRANS);
 
-             mCurrentCraftTargetOrientationOffsetAngle = +10.0f;
+             //mCurrentCraftTargetOrientationOffsetAngle = +5.0f;
 
-             //currentSideForce = 5.0f;
+             //currentSideForce = 100.0f;
 
         }
 
         } else {
             //mCurrentCraftTargetOrientationOffsetAngle = 0.0f;
-        }
+        }*/
     }
 
   /*  irr::f32 corrForce = 10.0f;
@@ -1658,35 +1699,6 @@ void Player::CalcPlayerCraftLeaningAngle() {
     //Important: Here do not correct angle calculation result outside of valid range!
    // mCurrentCraftOrientationAngle = mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec, false);
 }
-
-/*void Player::StabilizeCraft(irr::f32 deltaTime) {
-   irr::core::vector3df upVec(0.0f, 1.0f, 0.0f);
-
-   this->Player_node->updateAbsolutePosition();
-   irr::core::vector3df craftUpwardsVec = (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
-
-   //calculate angle between upVec and craftUpwardsVec
-   irr::f32 angleRad = acosf(craftUpwardsVec.dotProduct(upVec));
-
-   DbgShipUpAngle = (angleRad / irr::core::PI) * 180.0f;
-
-   if ((angleRad / irr::core::PI) * 180.0f > 15.0f) {
-       irr::core::vector3df stabilizeVec = (upVec - LocalCraftAboveCOGStabilizationPoint).normalize() * (DbgShipUpAngle - 40.0f) * 0.1f;
-
-       //try to stabilize situation with additional local force to reduce the lean of the craft
-       this->phobj->AddLocalCoordForce(LocalCraftAboveCOGStabilizationPoint, LocalCraftAboveCOGStabilizationPoint + stabilizeVec, PHYSIC_APPLYFORCE_REAL);
-   }
-}*/
-/*
-void Player::buttonL() {
-    this->phobj->AddLocalCoordForce(LocalCraftLeftPnt, LocalCraftLeftPnt - irr::core::vector3df(0.0f, 500.0f, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-}
-
-void Player::buttonR() {
-    this->phobj->AddLocalCoordForce(LocalCraftRightPnt, LocalCraftRightPnt - irr::core::vector3df(0.0f, 500.0f, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-}*/
 
 //returns false if waypoint we want project player on is not sideways of player
 //returns true otherwise
@@ -2731,7 +2743,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //WorldCoordWheelDir.normalize();
     //LocalCoordWheelDir.normalize();
 
-    //ApplyWheelForces(frameDeltaTime);
 }
 
 void Player::SetName(char* playerName) {
