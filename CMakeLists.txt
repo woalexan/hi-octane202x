@@ -164,6 +164,10 @@ add_executable(hi-octane202x
     src/utils/tprofile.cpp
     src/utils/worldaware.h
     src/utils/worldaware.cpp
+    src/utils/bezier.h
+    src/utils/bezier.cpp
+    src/utils/path.h
+    src/utils/path.cpp
 
     src/utils/boundingbox/coord_frame.h
     src/utils/boundingbox/basis.h

@@ -63,6 +63,9 @@ const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 #define STATE_PLAYER_FINISHED 4
 #define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 5
 
+#define CP_MISSION_WAITFORRACESTART 0
+#define CP_MISSION_FINISHLAPS 1
+
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 
@@ -71,6 +74,13 @@ typedef struct {
     EntityItem* targetEntity = NULL;
     irr::core::vector3df* targetPosition = NULL;
     WayPointLinkInfoStruct* targetWaypointLink = NULL;
+
+    //if true this was a temporary dynamically
+    //created waypoint link for a specific purpose
+    //and not present in the original level data
+    //will be deleted again after command was executed
+    //by player craft
+    bool WayPointLinkTemporary = false;
 } CPCOMMANDENTRY;
 
 typedef struct {
@@ -444,6 +454,9 @@ public:
     WayPointLinkInfoStruct* currClosestWayPointLink = NULL;
     WayPointLinkInfoStruct* computerCurrFollowWayPointLink = NULL;
 
+    WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
+    irr::core::vector3df projPlayerPositionFollowSeg;
+
     void SetCurrClosestWayPointLink(WayPointLinkInfoStruct* newClosestWayPointLink);
     irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
 
@@ -451,7 +464,7 @@ public:
 
 
     //computer player stuff
-    irr::f32 computerPlayerTargetSpeed = 5.0f; //3.0f;
+    irr::f32 computerPlayerTargetSpeed = 2.0f; //3.0f;
 
     irr::f32 cPTargetRelativeAngle = 0.0f; //0.0f means go straight in parallel to current followed
                                                     //waypoint link
@@ -475,11 +488,16 @@ public:
 
     void RunComputerPlayerLogic();
     void FollowWayPointLink();
-    void FlyTowardsEntityRunComputerPlayerLogic(EntityItem* targetEntity);
+    void FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand);
     CPCOMMANDENTRY* PullNextCommandFromCmdList();
     CPCOMMANDENTRY* CreateNoCommand();
     void CurrentCommandFinished();
     void CleanUpCommandList();
+
+    irr::u32 CpCurrMissionState = CP_MISSION_WAITFORRACESTART;
+
+    void CpDefineNextAction();
+    void CpAddCommandTowardsNextCheckpoint();
 
     CPCOMMANDENTRY* currCommand = NULL;
 
@@ -497,8 +515,8 @@ public:
     irr::f32 currPlayerCraftLeaningAngleDeg = 0.0f;
     irr::u8 currPlayerCraftLeaningOrientation = CRAFT_NOLEANING;
 
-
     void CPForceController();
+    void ProjectPlayerAtCurrentSegment();
 
     void FinishedLap();
 

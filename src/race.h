@@ -41,6 +41,8 @@
 #include "utils/fileutils.h"
 #include "utils/tprofile.h"
 #include "models/explosion.h"
+#include "utils/bezier.h"
+#include "utils/path.h"
 
 using namespace std;
 
@@ -152,6 +154,7 @@ class LevelBlocks; //Forward declaration
 class Physics; //Forward declaration
 class PhysicsObject; //Forward declaration
 class Recovery; //Forward declaration
+class Bezier; //Forward declaration
 
 class Race {
 public:
@@ -191,6 +194,8 @@ public:
     //of the level
     LevelTerrain *mLevelTerrain;
 
+    Bezier *testBezier;
+
     SoundEngine* mSoundEngine;
 
     std::vector<LineStruct*> *ENTWallsegmentsLine_List;
@@ -205,6 +210,7 @@ public:
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
     EntityItem* FindNearestWayPointToPlayer(Player* whichPlayer);
     std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint);
+    irr::f32 CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink);
 
     //attacker is the enemy player that does damage the player targetToHit
     //for damage that an entity does cause (for example steamFountain) attacker is set
@@ -254,8 +260,13 @@ public:
     //finished the race in the order how the have finished
     std::vector<Player*> playerRaceFinishedVec;
 
-
     void PlayerFindClosestWaypointLink(Player* player);
+    std::vector<EntityItem*> FindAllWayPointsInArea(irr::core::vector3df location, irr::f32 radius);
+
+    //my drawDebug object
+    DrawDebug *mDrawDebug;
+
+    irr::core::vector3df dbgCoord;
 
 private:
     int levelNr;
@@ -326,9 +337,6 @@ private:
     //my sky image for the level background
     irr::video::ITexture* mSkyImage = NULL;
 
-    //my drawDebug object
-    DrawDebug *mDrawDebug;
-
     //my texture loader
     TextureLoader *mTexLoader;
 
@@ -374,6 +382,9 @@ private:
     void DrawSky();
     void DrawTestShape();
 
+    EntityItem* FindFirstWayPointAfterRaceStartPoint();
+    EntityItem* FindNearestWayPointToLocation(irr::core::vector3df location);
+
     void draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
          irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
          irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color);
@@ -400,7 +411,7 @@ private:
     //std::list<LineStruct*> *ENTCheckpointLine_List;
 
     std::list<EntityItem*> *ENTTriggers_List;
-    std::list<Collectable*> *ENTCollectables_List;
+    std::vector<Collectable*> *ENTCollectablesVec;
 
     //holds a list of all available level morphs
     std::list<Morph*> Morphs;

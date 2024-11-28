@@ -325,17 +325,46 @@ void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newCmd->cmdType = CMD_FLYTO_TARGETENTITY;
     newCmd->targetEntity = targetEntity;
 
-    //add the new command to the end of the command list
-    this->cmdList->push_back(newCmd);
-}
+    //create a new temporary waypoint link from computer player crafts current
+    //position towards the entity we want to fly to
+    WayPointLinkInfoStruct* newStruct = new WayPointLinkInfoStruct();
 
-void Player::AddCommand(uint8_t cmdType, irr::core::vector3df* targetLocation) {
-    if (cmdType != CMD_FLYTO_TARGETPOSITION || targetLocation == NULL)
-        return;
+    LineStruct* newLineStr = new LineStruct();
+    newLineStr->A = this->phobj->physicState.position;
 
-    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
-    newCmd->cmdType = CMD_FLYTO_TARGETPOSITION;
-    newCmd->targetPosition = targetLocation;
+    irr::core::vector3df posEntity = targetEntity->get_Pos();
+    //our universe is flipped for X axis
+    posEntity.X = - posEntity.X;
+    newLineStr->B = posEntity;
+
+    //set white as default color
+    newLineStr->color = this->mRace->mDrawDebug->white;
+    newLineStr->name = new char[10];
+    strcpy(newLineStr->name, "");
+
+    newStruct->pLineStruct = newLineStr;
+    irr::core::vector3df vec3D = (newLineStr->B - newLineStr->A);
+
+    this->mRace->dbgCoord = newStruct->pLineStruct->B;
+
+    //precalculate and store length as we will need this very often
+    //during the game loop for race position update
+    newStruct->length3D = vec3D.getLength();
+    vec3D.normalize();
+
+    newStruct->LinkDirectionVec = vec3D;
+    newStruct->LinkDirectionVec.normalize();
+
+    //also store this temporary waypointlink struct info
+    //in the command, so that we can cleanup after this command was
+    //executed
+    newCmd->targetWaypointLink = newStruct;
+
+    //mark waypoint link as temporary created, so that
+    //we delete it again after command was fully executed
+    newCmd->WayPointLinkTemporary = true;
+
+    newStruct->pEndEntity = targetEntity;
 
     //add the new command to the end of the command list
     this->cmdList->push_back(newCmd);
@@ -817,61 +846,10 @@ void Player::Left() {
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
 
-        currentSideForce += 3.0f;
+        currentSideForce += 30.0f;
 
-        if (currentSideForce > 20.0f)
-            currentSideForce = 20.0f;
-
-   //original line 10.11.2024
-  /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                   PHYSIC_APPLYFORCE_ONLYROT);*/
-
-  //experimental line
-  this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                         PHYSIC_APPLYFORCE_ONLYROT);
-}
-
-void Player::CPLeft(irr::f32 currAbsOrientationAngleError) {
-  //limit maximum possible steeringAngle
-  /*if ((targetSteerAngle + 3.0f) < 45.0f) {
-      targetSteerAngle += 3.0f;
-  }*/
-
-   //targetSteerDir.rotateXZBy(3.0f);
-
-    //for a computer player we need to limit the max possible leaning angle
-    /*if (!mHumanPlayer) {
-        steerLeftPanic++;
-        steerRightPanic = 0;
-        if (steerLeftPanic > 10) {
-            computerPlayerCurrSteerForce += 30;
-        }
-
-        if ((currPlayerCraftLeaningOrientation == CRAFT_LEANINGLEFT) && (abs(this->currPlayerCraftLeaningAngleDeg) > 40.0)) {
-              //currentSideForce -= computerPlayerCurrSteerForce;
-              computerPlayerCurrSteerForce = 10.0f;
-              return;
-        }
-
-       if ((computerPlayerCurrShipWayPointLinkSide < 0.0f) || (this->computerPlayerCurrSteerAngle > 30.0f)) {
-           //currentSideForce -= computerPlayerCurrSteerForce;
-           computerPlayerCurrSteerForce = 10.0f;
-           return;
-       }
-    }*/
-
-    //if player can not move right now simply
-    //exit
-    if (!this->mPlayerStats->mPlayerCanMove)
-        return;
-
-        //currentSideForce += 3.0f * (currAbsOrientationAngleError / 45.0f);
-          currentSideForce = 3.0f * (currAbsOrientationAngleError / 45.0f);
-
-        if (currentSideForce > 20.0f)
-            currentSideForce = 20.0f;
-
-  //appliedForceSideways = 100.0;
+        if (currentSideForce > 200.0f)
+            currentSideForce = 200.0f;
 
    //original line 10.11.2024
   /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
@@ -888,59 +866,10 @@ void Player::Right() {
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
 
-    currentSideForce -= 3.0f;
+    currentSideForce -= 30.0f;
 
-    if (currentSideForce < -20.0f)
-        currentSideForce = -20.0f;
-
-    //original line 10.11.2024
-    /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                     PHYSIC_APPLYFORCE_ONLYROT);*/
-
-    //experimental
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                     PHYSIC_APPLYFORCE_ONLYROT);
-}
-
-void Player::CPRight(irr::f32 currAbsOrientationAngleError) {
-  //limit maximum possible steeringAngle
- /* if ((targetSteerAngle - 3.0f) > -45.0f) {
-      targetSteerAngle -= 3.0f;
-  }*/
-
-    //targetSteerDir.rotateXZBy(-3.0f);
-
-    //for a computer player we need to limit the max possible leaning angle
-  /*  if (!mHumanPlayer) {
-        steerRightPanic++;
-        steerLeftPanic = 0;
-        if (steerRightPanic > 10) {
-            computerPlayerCurrSteerForce += 30;
-        }
-
-        if ((currPlayerCraftLeaningOrientation == CRAFT_LEANINGRIGHT) && (abs(this->currPlayerCraftLeaningAngleDeg) > 40.0)) {
-           // currentSideForce += computerPlayerCurrSteerForce;
-            computerPlayerCurrSteerForce = 10.0f;
-            return;
-        }
-
-       if ((computerPlayerCurrShipWayPointLinkSide > 0.0f) || (this->computerPlayerCurrSteerAngle > 30.0f)) {
-           // currentSideForce += computerPlayerCurrSteerForce;
-            computerPlayerCurrSteerForce = 10.0f;
-            return;
-        }
-    }*/
-
-    //if player can not move right now simply
-    //exit
-    if (!this->mPlayerStats->mPlayerCanMove)
-        return;
-
-   // currentSideForce -= 3.0f * (currAbsOrientationAngleError / 45.0f);
-     currentSideForce = -3.0f * (currAbsOrientationAngleError / 45.0f);
-
-    if (currentSideForce < -20.0f)
-        currentSideForce = -20.0f;
+    if (currentSideForce < -200.0f)
+        currentSideForce = -200.0f;
 
     //original line 10.11.2024
     /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
@@ -952,20 +881,6 @@ void Player::CPRight(irr::f32 currAbsOrientationAngleError) {
 }
 
 void Player::NoTurningKeyPressed() {
-    //stop turning sideways
-
-    //add a counter force against the sideways movement
-    //to prevent endlessly going sideways without any sideways key
-    //pressed
-    irr::f32 craftWorldSpeedSideWays = this->phobj->physicState.velocity.dotProduct(this->craftSidewaysToRightVec);
-    irr::core::vector3df counterForceSideWaysMotion = irr::core::vector3df(craftWorldSpeedSideWays * CRAFT_SIDEWAYS_BRAKING, 0.0f, 0.0f);
-    this->phobj->AddLocalCoordForce(this->LocalCraftOrigin, counterForceSideWaysMotion,
-                                        PHYSIC_APPLYFORCE_ONLYTRANS);
-
-    currentSideForce = 0.0f;
-}
-
-void Player::CPNoTurningKeyPressed() {
     //stop turning sideways
 
     //add a counter force against the sideways movement
@@ -996,8 +911,16 @@ void Player::CPForceController() {
          //this->mHUD->ShowBannerText((char*)"BACKWARD", 4.0f);
     }
 
-    if (this->currClosestWayPointLink != NULL) {
-        irr::core::vector3df dirVecToLink = (this->projPlayerPositionClosestWayPointLink - this->phobj->physicState.position);
+    if (this->cPCurrentFollowSeg != NULL) {
+        computerPlayerTargetSpeed = 2.0f;
+
+        //we need to project current computer player craft
+        //position onto the current segment we follow
+        //this recalculates the current projPlayerPositionClosestWayPointLink member
+        //variable for the further calculation steps below
+        ProjectPlayerAtCurrentSegment();
+
+        irr::core::vector3df dirVecToLink = (this->projPlayerPositionFollowSeg - this->phobj->physicState.position);
         dirVecToLink.Y = 0.0f;
 
         irr::core::vector3df currDirVecCraftSide = craftSidewaysToRightVec;
@@ -1020,7 +943,7 @@ void Player::CPForceController() {
 
         //what is our relation towards the currClosestWayPoint link?
         irr::f32 absAngleLinkForwardDir =
-                this->mRace->GetAbsOrientationAngleFromDirectionVec(this->currClosestWayPointLink->LinkDirectionVec);
+                this->mRace->GetAbsOrientationAngleFromDirectionVec(this->cPCurrentFollowSeg->LinkDirectionVec);
 
         mCurrentWaypointLinkAngle = absAngleLinkForwardDir;
 
@@ -1032,193 +955,81 @@ void Player::CPForceController() {
 
         irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
 
-        //irr::f32 absAngleError = fabs(angleError);
+        /***************************************/
+        /*  Control Craft absolute angle start */
+        /***************************************/
 
-        //if ((absAngleError < 45.0f) && (absAngleError > 2.0f)) {
-            //we are flying in forward link direction, and are only "slightly" off
-           /*
-            if (angleError > 0.0f) {
-                this->CPLeft(absAngleError);
-            } else {
-                this->CPRight(absAngleError);
-            }*/
+        irr::f32 corrForceOrientationAngle = 3.0f;
+        irr::f32 corrDampingOrientationAngle = 2000.0f;
 
-            /***************************************/
-            /*  Control Craft absolute angle start */
-            /***************************************/
-
-            irr::f32 corrForceOrientationAngle = 3.0f;
-            irr::f32 corrDampingOrientationAngle = 2000.0f;
-
-            irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
-            this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
+        irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
+        this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
                                              PHYSIC_APPLYFORCE_ONLYROT);
 
-            /****************************************************/
-            /*  Control Craft distance to current waypoint link */
-            /****************************************************/
+        /****************************************************/
+        /*  Control Craft distance to current waypoint link */
+        /****************************************************/
 
-            irr::f32 corrForceDist = 3.0f;
-            irr::f32 corrDampingDist = 2000.0f;
+        irr::f32 corrForceDist = 3.0f;
+        irr::f32 corrDampingDist = 2000.0f;
 
-            irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
+        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
 
-           // if (fabs(distError) > 0.3f) {
+        irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
-                irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
-
-                if (corrForceDistance > 1.0f) {
-                    corrForceDistance = 1.0f;
-                } else if (corrForceDistance < -1.0f) {
-                    corrForceDistance = -1.0f;
-                }
-
-                this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
-                                                  PHYSIC_APPLYFORCE_ONLYTRANS);
-            //}
-
-        /*} else {
-            CPNoTurningKeyPressed();
-        }*/
-
-        /*if (mCurrentCraftDistToWaypointLink > 0.4f) {
-
-         if (dirVecToLink.dotProduct(this->craftSidewaysToRightVec) > 0.0f) {
-            //link line is on our right side, move ship towards right
-            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(-5.0f, 0.0f, 0.0f),
-                                              PHYSIC_APPLYFORCE_ONLYTRANS);
-
-             //mCurrentCraftTargetOrientationOffsetAngle = -5.0f;
-             //currentSideForce = -100.0f;
-
-        } else {
-            //link line is on our left side, move ship towards left
-            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(5.0f, 0.0f, 0.0f),
-                                               PHYSIC_APPLYFORCE_ONLYTRANS);
-
-             //mCurrentCraftTargetOrientationOffsetAngle = +5.0f;
-
-             //currentSideForce = 100.0f;
-
+        if (corrForceDistance > 1.0f) {
+            corrForceDistance = 1.0f;
+        } else if (corrForceDistance < -1.0f) {
+            corrForceDistance = -1.0f;
         }
 
-        } else {
-            //mCurrentCraftTargetOrientationOffsetAngle = 0.0f;
-        }*/
+        this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
+                                            PHYSIC_APPLYFORCE_ONLYTRANS);
+    } else {
+        //no segment to follow, stop craft
+        this->computerPlayerTargetSpeed = 0.0f;
     }
-
-  /*  irr::f32 corrForce = 10.0f;
-    irr::f32 startTurnAbsAngle;
-  if (cPCurrentTurnMode != CP_TURN_NOTURN) {
-
-       mCurrentCraftOrientationAngle = mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec, true);
-
-       startTurnAbsAngle = mRace->GetAbsOrientationAngleFromDirectionVec(cPStartTurnOrientation, true);
-
-      if (cPCurrentTurnMode == CP_TURN_LEFT) {
-          currentSideForce += corrForce;
-
-          cPAngleTurned = mCurrentCraftOrientationAngle - startTurnAbsAngle;
-
-          //we jumped from > 360° back to 0°?
-           if (mCurrentCraftOrientationAngle < mLastCurrentCraftOrientationAngle) {
-               startTurnAbsAngle -= 360.0f;
-           }
-
-          //is current turn finished?
-          if (abs(cPAngleTurned) >= cPTargetTurnAngle) {
-              //yes, it is
-              cPCurrentTurnMode = CP_TURN_NOTURN;
-              corrForce = 0.0f; 
-             // currentSideForce = -currentSideForce;
-              currentSideForce = 0.0f;
-          }
-      } else  if (cPCurrentTurnMode == CP_TURN_RIGHT) {
-          currentSideForce -= corrForce;
-
-          cPAngleTurned = startTurnAbsAngle - mCurrentCraftOrientationAngle;
-
-          //we jumped from < 0° back to 360°?
-           if (mCurrentCraftOrientationAngle > mLastCurrentCraftOrientationAngle) {
-               startTurnAbsAngle += 360.0f;
-           }
-
-          //is current turn finished?
-        if (abs(cPAngleTurned) >= cPTargetTurnAngle) {
-              //yes, it is
-              cPCurrentTurnMode = CP_TURN_NOTURN;
-              corrForce = 0.0f;
-            // currentSideForce = -currentSideForce;
-              currentSideForce = 0.0f;
-          }
-      }
-
-     if (currentSideForce > 100.0f)
-         currentSideForce = 100.0f;
-
-     if (currentSideForce < -100.0f)
-         currentSideForce = -100.0f;
-
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                  PHYSIC_APPLYFORCE_ONLYROT);
-
-  } else {
-      currentSideForce = 0.0f;
-  }
-
-  mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;*/
 }
 
-/*
-void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df collResolutionDirVec, bool isForCraftBack = false) {
-    irr::f32 dist;
+void Player::ProjectPlayerAtCurrentSegment() {
+    irr::core::vector3df dA;
+    irr::core::vector3df dB;
 
-    irr::core::vector3df *center = &this->phobj->physicState.position;
+    irr::f32 projecteddA;
+    irr::f32 projecteddB;
+    irr::f32 projectedPl;
+    //irr::f32 distance;
 
-    //allow max 10 iterations to resolve collision
-    //to prevent endless loops
-    for (int resolvCnt = 0; resolvCnt < 10; resolvCnt++) {
-        dist = cplane.getDistanceTo(*center);
+    irr::core::vector3df projPlayerPosition;
 
-        if (!isForCraftBack) {
-            dist = 1.0f - abs(dist);
-        } else {
-            dist = abs(dist);
-        }
+    dA = phobj->physicState.position - cPCurrentFollowSeg->pLineStruct->A;
+    dB = phobj->physicState.position - cPCurrentFollowSeg->pLineStruct->B;
 
-        dbgDistance = dist;
+    projecteddA = dA.dotProduct(cPCurrentFollowSeg->LinkDirectionVec);
+    projecteddB = dB.dotProduct(cPCurrentFollowSeg->LinkDirectionVec);
 
-        //if we have enough distance exit
-        if (dist > 0.2f)
-            break;
+    //if craft position is parallel (sideways) to current waypoint link the two projection
+    //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
+    //this path segment
+    if (sgn(projecteddA) != sgn(projecteddB)) {
+        //we seem to be still parallel to this segment => projection will still give useful results
+        //calculate distance from player position to this line, where connecting line meets path segment
+        //in a 90° angle
+        projectedPl =  dA.dotProduct(cPCurrentFollowSeg->LinkDirectionVec);
 
-        if (resolvCnt == 0) {
-            //a collision should occur, play collision sound
-            this->Collided();
-        }
+        /*
+        (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
+                                                                                  projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
+                                                                                    player->phobj->physicState.position);*/
 
-        //prevent collision detection to modify Y coordinate, this should
-        //eliminate all kind of unwanted effects, like moving the craft
-        //upwards a hill during a continious collision situation
-        //with the terrain etc.
-        collResolutionDirVec.Y = 0.0f;
+        projPlayerPosition = (cPCurrentFollowSeg->pLineStruct->A +
+                irr::core::vector3df(projectedPl, projectedPl, projectedPl) * (cPCurrentFollowSeg->LinkDirectionVec));
 
-        //debugMaxStep = dist;
+        //distance = (projPlayerPosition - phobj->physicState.position).getLength();
 
-        if (!isForCraftBack) {
-            //add a force that pushes the object away from the terrain tile we collided with
-            *center += collResolutionDirVec * dist;
-            this->phobj->AddWorldCoordForce(*center, *center + collResolutionDirVec * 2.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
-        } else {
-            *center += collResolutionDirVec * dist;
-            this->phobj->AddWorldCoordForce(*center, *center + collResolutionDirVec * 2.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
-        }
+        projPlayerPositionFollowSeg = projPlayerPosition;
     }
-
-    //Also slow the craft down considerably by adding friction
-    //because otherwise the player gets no penalty by colliding with walls
-    this->phobj->AddFriction(2.0f);
-}*/
+}
 
 void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2) {
     irr::f32 dist;
@@ -1755,7 +1566,8 @@ irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct
         alpha.set(progressCurrWayPoint, progressCurrWayPoint, progressCurrWayPoint);
         invAlpha.set(inv, inv, inv);
 
-        calcDirVec = currentWayPointLine->LinkDirectionVec * invAlpha + currentWayPointLine->PathNextLinkDirectionVec * alpha;
+        calcDirVec = currentWayPointLine->LinkDirectionVec * invAlpha +
+                currentWayPointLine->PathNextLinkDirectionVec * alpha;
 
         return calcDirVec;
     } else
@@ -1768,143 +1580,41 @@ void Player::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowText
     this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec);
 }
 
-void Player::FlyTowardsEntityRunComputerPlayerLogic(EntityItem* targetEntity) {
+void Player::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand) {
     //if we run this method for human player
     //just exit
 
     if (mHumanPlayer)
         return;
 
-    //is there really a target entity?
-     if (targetEntity != NULL) {
+    //is there really a target entity and waypoint link information?
+     if ((currCommand->targetWaypointLink != NULL) && (currCommand->targetEntity != NULL)) {
         //yes, there is
 
-         cPTargetEntity = targetEntity;
+        cPCurrentFollowSeg = currCommand->targetWaypointLink;
 
-        //first make sure our craft forwards direction vector is still aligned towards
-        //the target entity
-        irr::core::vector3df entPos = targetEntity->get_Center();
-        //in my universe X axis is swapped
+        irr::core::vector3df entPos = currCommand->targetEntity->get_Pos();
         entPos.X = -entPos.X;
 
-        //calc direction vector from player craft to target entity
-        irr::core::vector3df dirToTarget = (entPos - this->phobj->physicState.position);
-
-        irr::f32 distToTarget = dirToTarget.getLength();
+        //have we reached the target yet?
+        irr::f32 distToTarget = (this->phobj->physicState.position -
+                                 entPos).getLength();
 
         if (distToTarget < 2.0f) {
             //we reached the target
-            this->mHUD->ShowBannerText((char*)"TARGET REACHED", 4.0f);
+            //this->mHUD->ShowBannerText((char*)"TARGET REACHED", 4.0f);
 
             //mark current command as finished, pull the next one
             CurrentCommandFinished();
 
-            std::vector<WayPointLinkInfoStruct*> foundLinks;
-
-            foundLinks = this->mRace->FindWaypointLinksForWayPoint(cPTargetEntity);
-            std::vector<WayPointLinkInfoStruct*>::iterator it;
-
-            if (foundLinks.size() > 0) {
-                for (it = foundLinks.begin(); it < foundLinks.end(); ++it) {
-
-                if (cPTargetEntity == (*it)->pStartEntity) {
-                    AddCommand(CMD_FLYTO_TARGETENTITY, (*it)->pEndEntity);
-                    break;
-                }
-              }
-            }
-
-            cPTargetEntity = NULL;
+            cPCurrentFollowSeg = NULL;
 
             return;
         }
-
-        //in which angle should we point or player craft front?
-        irr::f32 pointCraftFrontAngle = mRace->GetAbsOrientationAngleFromDirectionVec(dirToTarget.normalize());
-
-        irr::f32 errorAbsAngle = abs(pointCraftFrontAngle - mCurrentCraftOrientationAngle);
-
-        if (errorAbsAngle > 3.0f) {  //3.0f
-            //we need to correct our ship orientation
-            //in which direction should we turn? take the direction
-            //where we need to rotate the least towards the target
-            //turning left increase the angle
-            //turning right decreases the angle
-            irr::f32 deltaAngleTurningLeft = (pointCraftFrontAngle - mCurrentCraftOrientationAngle);
-            irr::f32 deltaAngleTurningRight = (mCurrentCraftOrientationAngle + (360.0f - pointCraftFrontAngle));
-
-            if (deltaAngleTurningLeft < 0.0f)
-                deltaAngleTurningLeft += 360.0f;
-
-            if (deltaAngleTurningLeft > 360.0f)
-                deltaAngleTurningLeft -= 360.0f;
-
-            if (deltaAngleTurningRight < 0.0f)
-                deltaAngleTurningRight += 360.0f;
-
-            if (deltaAngleTurningRight > 360.0f)
-                deltaAngleTurningRight -= 360.0f;
-
-            dbgdeltaAngleTurningLeft = deltaAngleTurningLeft;
-            dbgdeltaAngleTurningRight = deltaAngleTurningRight;
-
-            irr::f32 corrForce = errorAbsAngle * 0.6f;
-
-            if (corrForce > 60.0f)
-                corrForce = 60.0f;
-
-            dbgForce = corrForce;
-
-            //when turning, and deciding and the direction of turn, do not
-            //only consider the smallest angle we need to turn, but also consider
-            //the remaining distance on the sides to the end of the race-track,
-            //so that we do not turn into a wall and get stuck there!
-            //the current distances to the race track are gathered using ray-casts
-            //in worldaware class; This results are stored in
-            //mCraftDistanceAvailFront, mCraftDistanceAvailBack, mCraftDistanceAvailLeft and mCraftDistanceAvailRight
-
-            //if current distances to left and right a similar (0.2 to 0.8) let deltaTurningAngle decided to make turn
-            //with least of turning angle, if distance to left and right is very different, always turn towards side with more
-            //distance remaining (this has priority)
-
-            irr::f32 distRatio;
-
-            //If we do need turn a lot (high error angle) take distance to wall into account
-            //if error small do not care about safety distance to wall
-
-          /*  if (errorAbsAngle < 30.0f) {
-            */    distRatio = 1.0f;
-            /*} else {
-                distRatio = this->mCraftDistanceAvailLeft / this->mCraftDistanceAvailRight;
-            }*/
-
-            if (distRatio < 0.2) {
-                //right is much more distance remaining, turn right
-                CpTriggerTurn(CP_TURN_RIGHT, corrForce);
-            } else if (distRatio > 0.8) {
-                //on the left side there is much more distance remaining, turn left
-                CpTriggerTurn(CP_TURN_LEFT, corrForce);
-            } else {
-             //remaining distance between left and right is similar, let turn angle decide!
-             if (deltaAngleTurningLeft < deltaAngleTurningRight) {
-                 //lets turn left towards the target
-                 CpTriggerTurn(CP_TURN_LEFT, corrForce);
-             } else {
-                    //lets turn right towards the target
-                    CpTriggerTurn(CP_TURN_RIGHT, corrForce);
-                }
-            }
-        } else {
-            //our ship orientation is correct, just go towards the target
-            this->CpInterruptTurn();
-            //this->phobj->StopRotation();
-
-            this->mHUD->ShowBannerText((char*)"TARGET ANGLE CORR", 4.0f);
-        }
     }
-
-   CPForceController();
 }
+
+
 
 CPCOMMANDENTRY* Player::CreateNoCommand() {
     CPCOMMANDENTRY* newcmd = new CPCOMMANDENTRY();
@@ -1919,8 +1629,15 @@ CPCOMMANDENTRY* Player::CreateNoCommand() {
 CPCOMMANDENTRY* Player::PullNextCommandFromCmdList() {
     if (this->cmdList->size() <= 0) {
         //there is no other command in the queue
-        //create an empty command
-        return CreateNoCommand();
+
+        //create a new command
+        CpDefineNextAction();
+
+        //if still no command available, create no command "cmd"
+        if (this->cmdList->size() <= 0) {
+            //create an empty command
+            return CreateNoCommand();
+        }
     }
 
     CPCOMMANDENTRY* cmd = (CPCOMMANDENTRY*)(this->cmdList->front());
@@ -1942,6 +1659,24 @@ void Player::CleanUpCommandList() {
 
            //free command struct itself
            //as well
+           if (pntrCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
+               //we have to do maybe more cleanup
+               if (pntrCmd->targetWaypointLink != NULL) {
+                   //if temporary waypoint link (created for a specific purpose,
+                   //not part of level file), clean up again
+                   if (pntrCmd->WayPointLinkTemporary) {
+                       //clean up waypoint link structure again
+                       //we need to clean up the LineStruct inside
+                       LineStruct* pntrLineStruct = pntrCmd->targetWaypointLink->pLineStruct;
+
+                       delete[] pntrLineStruct->name;
+                       delete pntrLineStruct;
+
+                       delete pntrCmd->targetWaypointLink;
+                   }
+               }
+           }
+
            delete pntrCmd;
        }
     }
@@ -1960,11 +1695,31 @@ void Player::CurrentCommandFinished() {
     //RunComputerPlayerLogic
     currCommand = NULL;
 
+    if (oldCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
+        //we have to do maybe more cleanup
+        if (oldCmd->targetWaypointLink != NULL) {
+            //if temporary waypoint link (created for a specific purpose,
+            //not part of level file), clean up again
+            if (oldCmd->WayPointLinkTemporary) {
+                //clean up waypoint link structure again
+                //we need to clean up the LineStruct inside
+                LineStruct* pntrLineStruct = oldCmd->targetWaypointLink->pLineStruct;
+
+                delete[] pntrLineStruct->name;
+                delete pntrLineStruct;
+
+                delete oldCmd->targetWaypointLink;
+            }
+        }
+    }
+
     //delete old command struct
     delete oldCmd;
 }
 
 void Player::RunComputerPlayerLogic() {
+    this->CpCurrMissionState = CP_MISSION_FINISHLAPS;
+
     if (currCommand == NULL) {
         currCommand = PullNextCommandFromCmdList();
     }
@@ -1976,7 +1731,7 @@ void Player::RunComputerPlayerLogic() {
     }
 
          case CMD_FLYTO_TARGETENTITY: {
-            FlyTowardsEntityRunComputerPlayerLogic(currCommand->targetEntity);
+            FlyTowardsEntityRunComputerPlayerLogic(currCommand);
         break;
     }
 
@@ -1992,6 +1747,116 @@ void Player::RunComputerPlayerLogic() {
     }
 
     return;
+}
+
+void Player::CpAddCommandTowardsNextCheckpoint() {
+    //which waypoint is currently close to the player
+    /*WayPointLinkInfoStruct* closest = this->mRace->PlayerFindClosestWaypointLink(this);
+
+    std::vector<WayPointLinkInfoStruct*> foundLinks;
+
+    foundLinks = this->mRace->FindWaypointLinksForWayPoint(cPCurrentFollowSeg->pStartEntity);
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    if (foundLinks.size() > 0) {
+        for (it = foundLinks.begin(); it < foundLinks.end(); ++it) {
+
+        if (cPCurrentFollowSeg->pEndEntity == (*it)->pStartEntity) {
+            AddCommand(CMD_FLYTO_TARGETENTITY, (*it)->pStartEntity);
+            break;
+        }
+      }
+    }*/
+
+    //what waypoint entities do I see currently?
+    std::vector<EntityItem*> wayPointAroundMeVec =
+            this->mRace->FindAllWayPointsInArea(this->phobj->physicState.position, 10.0f);
+
+    //if there is no waypoint, I do not know what to do, exit
+    if (wayPointAroundMeVec.size() <= 0) {
+        return;
+    }
+
+    std::vector<EntityItem*>::iterator it;
+    std::vector<WayPointLinkInfoStruct*> structPntrVec;
+    std::vector<WayPointLinkInfoStruct*> overallWaypointLinkList;
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it2;
+
+    vector< pair <irr::f32, WayPointLinkInfoStruct*> > availWayPointLinksWithDistanceVecPair;
+    availWayPointLinksWithDistanceVecPair.clear();
+    overallWaypointLinkList.clear();
+
+    for (it = wayPointAroundMeVec.begin(); it != wayPointAroundMeVec.end(); ++it) {
+        structPntrVec = mRace->FindWaypointLinksForWayPoint(*it);
+
+        for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
+            overallWaypointLinkList.push_back(*it2);
+        }
+    }
+
+    //irr::core::vector3df dirVecStart;
+    //irr::core::vector3df dirVecEnd;
+
+    //irr::f32 dotProdStart;
+    //irr::f32 dotProdEnd;
+
+    //now we have a vector all close waypoint links available
+    for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
+
+      /*  dirVecStart = (this->phobj->physicState.position - (*it2)->pStartEntity->get_Pos()).normalize();
+        dirVecEnd = (this->phobj->physicState.position - (*it2)->pEndEntity->get_Pos()).normalize();
+
+        dotProdStart = this->craftForwardDirVec.dotProduct(dirVecStart);
+        dotProdEnd = this->craftForwardDirVec.dotProduct(dirVecEnd);
+
+        if ((dotProdStart > 0.0f) && (dotProdEnd > 0.0f)) {*/
+            availWayPointLinksWithDistanceVecPair.push_back(
+                    //for each option calculate the distance until we hit the next checkpoint
+                    make_pair( this->mRace->CalculateDistanceFromWaypointLinkToNextCheckpoint(*it2), (*it2)));
+        //}
+    }
+
+    //sort vector pairs in descending value for remaining distance to next checkpoint
+   std::sort(availWayPointLinksWithDistanceVecPair.rbegin(), availWayPointLinksWithDistanceVecPair.rend());
+
+   //start with the last element in sorted vector (which is the waypoint link with the
+   //least remaining distance to next checkpoint
+   auto it4 = availWayPointLinksWithDistanceVecPair.rbegin();
+
+   WayPointLinkInfoStruct* currLink;
+
+   //take the waypoint link with the shortest distance
+   currLink = (*it4).second;
+
+   //are we closer to the start or end of this waypoint link?
+   irr::f32 distStart = (this->phobj->physicState.position - currLink->pStartEntity->get_Pos()).getLength();
+   irr::f32 distEnd = (this->phobj->physicState.position - currLink->pEndEntity->get_Pos()).getLength();
+
+   if (distStart < distEnd) {
+            //we are closer to the start point of this waypoint link
+            //next command is to go to the end of this waypoint link
+            AddCommand(CMD_FLYTO_TARGETENTITY, currLink->pEndEntity);
+            return;
+        } else {
+            //we are closer to the end point of this waypoint link
+            //next command is to go to the start to the following waypoint link
+            AddCommand(CMD_FLYTO_TARGETENTITY, currLink->pntrPathNextLink->pStartEntity);
+            return;
+          }
+}
+
+void Player::CpDefineNextAction() {
+    //depending on the current computer player logic
+    //mission state, define the next players action
+    switch (CpCurrMissionState) {
+        case CP_MISSION_FINISHLAPS: {
+            //This Mission means we are happy with fuel, shield, etc..
+            //we simply want to finish laps as fast as possible
+            CpAddCommandTowardsNextCheckpoint();
+            break;
+        }
+    }
 }
 
 void Player::FollowWayPointLink() {
