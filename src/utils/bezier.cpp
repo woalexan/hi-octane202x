@@ -1,0 +1,92 @@
+/*
+ I implemented this source code in this file based on the following article and source code examples from Keith Peters
+ https://www.bit-101.com/2017/2022/12/coding-curves-08-bezier-curves/
+
+ Copyright (C) 2024 Wolf Alexander              (for the put together source code based on the Keith Peters article and his source code examples)
+
+ This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+ */
+
+#include "bezier.h"
+
+Bezier::Bezier(LevelTerrain* terrain, DrawDebug* pntrDrawDebug)
+{
+    mLevelTerrain = terrain;
+    mDrawDebug = pntrDrawDebug;
+}
+
+void Bezier::QuadBezierCurveDrawAtTerrain(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
+                                          irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color, bool goThrough) {
+  irr::core::vector3df drawPnt1(startPnt.X, 0.0f, startPnt.Y);
+  irr::core::vector3df drawPnt2;
+  irr::core::vector2df helper2D;
+  irr::core::vector2di outCell;
+
+  //get the correct Terrain Y coordinate from terrain
+  drawPnt1.Y = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+          (drawPnt1.X,
+           drawPnt1.Z,
+           outCell);
+
+  for (irr::f32 t = resolution; t < 1.0f; t += resolution) {
+      if (!goThrough) {
+         helper2D = QuadBezierPoint(startPnt, endPnt, cntrlPoint, t);
+      } else {
+        helper2D = QuadBezierPointThrough(startPnt, endPnt, cntrlPoint, t);
+      }
+    drawPnt2.X = helper2D.X;
+    drawPnt2.Z = helper2D.Y;
+
+    //get the correct Terrain Y coordinate from terrain
+    drawPnt2.Y = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+            (drawPnt2.X,
+             drawPnt2.Z,
+             outCell);
+
+    //draw this line in 3D space at the terrain
+    mDrawDebug->Draw3DLine(drawPnt1, drawPnt2, color);
+
+    //update drawPnt1, next line starts where the end point
+    //of the last drawn line was
+    drawPnt1 = drawPnt2;
+  }
+}
+
+irr::core::vector2df Bezier::QuadBezierPoint(irr::core::vector2df startPnt, irr::core::vector2df endPnt, irr::core::vector2df cntrlPoint, irr::f32 t) {
+  irr::f32 m = (1.0f - t);
+  irr::f32 a = m * m;
+  irr::f32 b = 2 * m * t;
+  irr::f32 c = t * t;
+  //x = a * x0 + b * x1 + c * x2
+  //y = a * y0 + b * y1 + c * y2
+
+  irr::core::vector2df out = a * startPnt + b * cntrlPoint + c * endPnt;
+  return out;
+}
+
+//if this function is used the bezier curve is forced to go exactly through
+//the control point, and is not simply bend towards the control point
+irr::core::vector2df Bezier::QuadBezierPointThrough(irr::core::vector2df startPnt, irr::core::vector2df endPnt, irr::core::vector2df cntrlPoint, irr::f32 t) {
+  irr::f32 m = (1.0f - t);
+  irr::f32 a = m * m;
+  irr::f32 b = 2 * m * t;
+  irr::f32 c = t * t;
+  //x = a * x0 + b * x1 + c * x2
+  //y = a * y0 + b * y1 + c * y2
+
+  //calculate a new "control point" that is set in a way
+  //that the final curve goes throw the specified control point
+  irr::core::vector2df cntrlNew;
+  //xc = x1 * 2 - x0 / 2 - x2 / 2
+  //yc = y1 * 2 - y0 / 2 - y2 / 2
+
+  cntrlNew = cntrlPoint * 2.0f - startPnt * 0.5f - endPnt * 0.5f;
+
+  irr::core::vector2df out = a * startPnt + b * cntrlNew + c * endPnt;
+  return out;
+}

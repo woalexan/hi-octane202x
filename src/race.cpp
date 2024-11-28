@@ -253,12 +253,12 @@ void Race::CleanUpEntities() {
    delete ENTTriggers_List;
    ENTTriggers_List = NULL;
 
-   if (ENTCollectables_List->size() > 0) {
-       std::list<Collectable*>::iterator it;
+   if (ENTCollectablesVec->size() > 0) {
+       std::vector<Collectable*>::iterator it;
        Collectable* pntr;
-       for (it = ENTCollectables_List->begin(); it != ENTCollectables_List->end(); ) {
+       for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ) {
            pntr = (Collectable*)(*it);
-           it = ENTCollectables_List->erase(it);
+           it = ENTCollectablesVec->erase(it);
 
            //delete Collectable itself
            //this frees SceneNode and texture inside
@@ -267,8 +267,8 @@ void Race::CleanUpEntities() {
        }
    }
 
-   delete ENTCollectables_List;
-   ENTCollectables_List = NULL;
+   delete ENTCollectablesVec;
+   ENTCollectablesVec = NULL;
 }
 
 void Race::CleanUpSteamFountains() {
@@ -819,6 +819,45 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
         //into the player object
         whichPlayer->remainingDistanceToNextCheckPoint = sumDistance;
     }
+}
+
+irr::f32 Race::CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink) {
+    irr::f32 sumDistance = 0.0f;
+    WayPointLinkInfoStruct* currLink;
+
+    currLink = startWaypointLink;
+
+    //create sum of all distances
+
+    //The next line is for debugging
+    //currLink->pLineStruct->color = mDrawDebug->green;
+
+    //calculate length of vector from current 3D Player projected position on waypoint line to start of line
+
+    sumDistance += (currLink->length3D);
+
+    //now follow the waypoint links forward until we hit the next checkpoint
+    while (currLink->pntrCheckPoint == NULL) {  //follow one link after another until we hit the next checkpoint
+        currLink = currLink->pntrPathNextLink;
+
+        if (currLink != NULL) {
+             if (currLink->pntrCheckPoint == NULL) {
+                    //The next line is for debugging
+                    //currLink->pLineStruct->color = mDrawDebug->blue;
+
+                    //for this links add up the whole length
+                    sumDistance += currLink->length3D;
+                } else {
+                    //there is a checkpoint within this waypoint link
+                    //for this one add only the distance from the start point until the checkpoint location
+                    sumDistance += currLink->distanceStartLinkToCheckpoint;
+                    //currLink->pLineStruct->color = mDrawDebug->red;
+                    break;
+                }
+            }
+        }
+
+    return sumDistance;
 }
 
 void Race::removePlayerTest() {
@@ -1398,6 +1437,9 @@ void Race::Init() {
         //create my ExplosionLauncher
         mExplosionLauncher = new ExplosionLauncher(this, mSmgr, mDriver);
 
+        //create a new Bezier object for testing
+        testBezier = new Bezier(mLevelTerrain, mDrawDebug);
+
         ready = true;
     }
 }
@@ -1520,8 +1562,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
                                   player->phobj->physicState.position, player->phobj->physicState.position + player->craftForwardDirVec * irr::core::vector3df(50.0f, 50.0f, 50.0f),
                                                                   true);*/
 
-    //PlayerFindClosestWaypointLink(player);
-    //PlayerFindClosestWaypointLink(player2);
+    PlayerFindClosestWaypointLink(player);
+    PlayerFindClosestWaypointLink(player2);
     UpdatePlayerDistanceToNextCheckpoint(player);
     UpdatePlayerDistanceToNextCheckpoint(player2);
 
@@ -1593,7 +1635,7 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
 }
 
 void Race::HandleComputerPlayers() {
-    //player2->RunComputerPlayerLogic();
+    player2->RunComputerPlayerLogic();
     //player2->CPForceController();
 /*
     if (player2->currClosestWayPointLink != NULL) {
@@ -1612,7 +1654,8 @@ void Race::HandleInput() {
     {
         // testPerm();
         //player->mHUD->AddGlasBreak();
-        this->CallRecoveryVehicleForHelp(this->player);
+        //this->CallRecoveryVehicleForHelp(this->player);
+        this->player2->AddCommand(CMD_FLYTO_TARGETENTITY, ENTCollectablesVec->at(0)->mEntityItem);
     }
 
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
@@ -2030,9 +2073,12 @@ void Race::Render() {
     dbgText->setText(text);
     free(text);*/
 
-    if (player2->currClosestWayPointLink != NULL) {
-        mDriver->setMaterial(*mDrawDebug->white);
+    if (player2->cPCurrentFollowSeg != NULL) {
+        mDriver->setMaterial(*mDrawDebug->green);
         mDriver->draw3DLine(player2->phobj->physicState.position, player2->projPlayerPositionClosestWayPointLink);
+
+        mDrawDebug->Draw3DLine(this->player2->cPCurrentFollowSeg->pLineStruct->A,
+                               this->player2->cPCurrentFollowSeg->pLineStruct->B, this->mDrawDebug->red);
     }
 /*
     if (player2->computerCurrFollowWayPointLink != NULL) {
@@ -2190,6 +2236,31 @@ void Race::Render() {
       mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
                                    this->mDrawDebug->green);*/
 
+      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), dbgCoord, this->mDrawDebug->green);
+
+      irr::core::vector2df bezierPnt1;
+      irr::core::vector3df bezierPnt13D = this->wayPointLinkVec->at(0)->pLineStruct->A;
+
+      bezierPnt1.X = bezierPnt13D.X;
+      bezierPnt1.Y = bezierPnt13D.Z;
+
+      irr::core::vector2df bezierPnt2;
+      irr::core::vector3df bezierPnt23D = this->wayPointLinkVec->at(1)->pLineStruct->A;
+
+      bezierPnt2.X = bezierPnt23D.X;
+      bezierPnt2.Y = bezierPnt23D.Z;
+
+      irr::core::vector2df bezierPntcntrl;
+      irr::core::vector3df bezierPntcntrl3D = this->wayPointLinkVec->at(0)->pLineStruct->B;
+
+      bezierPntcntrl.X = bezierPntcntrl3D.X;
+      bezierPntcntrl.Y = bezierPntcntrl3D.Z;
+
+      testBezier->QuadBezierCurveDrawAtTerrain(bezierPnt1, bezierPnt2, bezierPntcntrl, 0.01f, mDrawDebug->red);
+
+      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt13D, this->mDrawDebug->green);
+      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt23D, this->mDrawDebug->blue);
+      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPntcntrl3D, this->mDrawDebug->pink);
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
@@ -2234,17 +2305,13 @@ void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* co
     }
 }
 
-EntityItem* Race::FindNearestWayPointToPlayer(Player* whichPlayer) {
+EntityItem* Race::FindNearestWayPointToLocation(irr::core::vector3df location) {
    std::vector<EntityItem*>::iterator it;
    irr::f32 minDistance;
    bool firstElement = true;
    irr::f32 currDist;
    EntityItem* nearestWayPoint;
 
-   if (whichPlayer == NULL)
-       return NULL;
-
-   irr::core::vector3df playerPos = whichPlayer->phobj->physicState.position;
    irr::core::vector3df wPos;
 
    if (ENTWaypoints_List->size() <= 0)
@@ -2254,7 +2321,7 @@ EntityItem* Race::FindNearestWayPointToPlayer(Player* whichPlayer) {
        wPos = (*it)->get_Center();
        //my X-axis is flipped
        wPos.X = -wPos.X;
-       currDist = (wPos - playerPos).getLengthSQ();
+       currDist = (wPos - location).getLengthSQ();
        if (firstElement) {
            firstElement = false;
            minDistance = currDist;
@@ -2266,6 +2333,41 @@ EntityItem* Race::FindNearestWayPointToPlayer(Player* whichPlayer) {
    }
 
    return nearestWayPoint;
+}
+
+std::vector<EntityItem*> Race::FindAllWayPointsInArea(irr::core::vector3df location, irr::f32 radius) {
+    std::vector<EntityItem*>::iterator it;
+    std::vector<EntityItem*> result;
+
+    result.clear();
+
+    irr::f32 currDist;
+
+    irr::core::vector3df wPos;
+
+    if (ENTWaypoints_List->size() <= 0)
+        return result;
+
+    for (it = ENTWaypoints_List->begin(); it != ENTWaypoints_List->end(); ++it) {
+        wPos = (*it)->get_Center();
+        //my X-axis is flipped
+        wPos.X = -wPos.X;
+        currDist = (wPos - location).getLength();
+        if (currDist < radius) {
+            result.push_back(*it);
+        }
+    }
+
+    return result;
+}
+
+EntityItem* Race::FindNearestWayPointToPlayer(Player* whichPlayer) {
+   if (whichPlayer == NULL)
+       return NULL;
+
+   irr::core::vector3df playerPos = whichPlayer->phobj->physicState.position;
+
+   return FindNearestWayPointToLocation(playerPos);
 }
 
 std::vector<WayPointLinkInfoStruct*> Race::FindWaypointLinksForWayPoint(EntityItem* wayPoint) {
@@ -2477,7 +2579,7 @@ void Race::createPlayers(int levelNr) {
     currPlayerFollow = player;
 
     //add first command for computer player player2
-    EntityItem* nearestWayPoint = FindNearestWayPointToPlayer(player2);
+    /*EntityItem* nearestWayPoint = FindNearestWayPointToPlayer(player2);
     if (nearestWayPoint != NULL) {
         std::vector<WayPointLinkInfoStruct*> foundLinks;
         foundLinks = FindWaypointLinksForWayPoint(nearestWayPoint);
@@ -2485,7 +2587,14 @@ void Race::createPlayers(int levelNr) {
             player2->AddCommand(CMD_FLYTO_TARGETENTITY, foundLinks[0]->pEndEntity);
             //player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, wl);
         }
+    }*/
+
+    EntityItem* entItem = this->FindFirstWayPointAfterRaceStartPoint();
+    if (entItem != NULL) {
+        player2->AddCommand(CMD_FLYTO_TARGETENTITY, entItem);
     }
+
+
 }
 
 bool Race::LoadLevel(int loadLevelNr) {
@@ -3033,9 +3142,9 @@ void Race::createFinalCollisionData() {
 }
 
 void Race::CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f32> playerBox) {
-    std::list<Collectable*>::iterator it;
+    std::vector<Collectable*>::iterator it;
 
-    for (it = ENTCollectables_List->begin(); it != ENTCollectables_List->end(); ++it) {
+    for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ++it) {
         //only allow player to collect currently visible collectibles
         if ((*it)->GetIfVisible()) {
             //does player bounding box intersect the bounding box of the collectible
@@ -3068,8 +3177,8 @@ void Race::createLevelEntities() {
     ENTTriggers_List = new std::list<EntityItem*>;
     ENTTriggers_List->clear();
 
-    ENTCollectables_List = new std::list<Collectable*>;
-    ENTCollectables_List->clear();
+    ENTCollectablesVec = new std::vector<Collectable*>;
+    ENTCollectablesVec->clear();
 
     //create all level entities
     for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
@@ -3128,6 +3237,19 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
 
     //we also keep a list of all waypoint pointers
     ENTWaypoints_List->push_back(entity);
+}
+
+EntityItem* Race::FindFirstWayPointAfterRaceStartPoint() {
+    //get the player start positions
+    std::vector<irr::core::vector3df> playerStartLocations =
+            this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
+
+    //just take player 1 start position as the reference
+    irr::core::vector3df Startpos = playerStartLocations.at(0);
+
+    EntityItem* item = FindNearestWayPointToLocation(Startpos);
+
+    return (item);
 }
 
 void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver) {
@@ -3336,77 +3458,77 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
         case entity.EntityType::ExtraFuel:
     {
             collectable = new Collectable(p_entity, 29, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
 
         case entity.EntityType::FuelFull:
     {
             collectable = new Collectable(p_entity, 30, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::DoubleFuel:
     {
             collectable = new Collectable(p_entity, 31, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
 
         case entity.EntityType::ExtraAmmo:
     {
             collectable = new Collectable(p_entity, 32, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::AmmoFull:
     {
             collectable = new Collectable(p_entity, 33, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::DoubleAmmo:
     {
             collectable = new Collectable(p_entity, 34, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
 
         case entity.EntityType::ExtraShield:
     {
             collectable = new Collectable(p_entity, 35, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::ShieldFull:
     {
             collectable = new Collectable(p_entity, 36, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::DoubleShield:
     {
             collectable = new Collectable(p_entity, 37, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
 
         case entity.EntityType::BoosterUpgrade:
     {
             collectable = new Collectable(p_entity, 40, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::MissileUpgrade:
     {
             collectable = new Collectable(p_entity, 39, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
         case entity.EntityType::MinigunUpgrade:
     {
             collectable = new Collectable(p_entity, 38, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectables_List->push_back(collectable);
+            ENTCollectablesVec->push_back(collectable);
             break;
     }
 
