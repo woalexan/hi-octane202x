@@ -26,6 +26,7 @@
 #include "mgun.h"
 #include "missile.h"
 #include "levelterrain.h"
+#include "../utils/path.h"
 
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
@@ -265,11 +266,21 @@ public:
     void Right();
     void NoTurningKeyPressed();
 
+    void CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path);
+    std::vector<WayPointLinkInfoStruct*> mFollowPath;
+    irr::s32 mFollowPathNrLinks;
+    irr::s32 mFollowPathCurrentNrLink;
+
+    std::vector<WayPointLinkInfoStruct*> mCurrentPathSeg;
+    irr::u32 mCurrentPathSegNrSegments;
+    irr::u32 mCurrentPathSegCurrSegmentNr;
+
     void CPForward();
     void CPBackward();
     void CPLeft(irr::f32 currAbsOrientationAngleError);
     void CPRight(irr::f32 currAbsOrientationAngleError);
     void CPNoTurningKeyPressed();
+    void ProjectPlayerAtCurrentSegments();
 
     void CollectedCollectable(Collectable* whichCollectable);
 
@@ -455,13 +466,14 @@ public:
     WayPointLinkInfoStruct* computerCurrFollowWayPointLink = NULL;
 
     WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
+    WayPointLinkInfoStruct* cpLastFollowSeg = NULL;
     irr::core::vector3df projPlayerPositionFollowSeg;
 
     void SetCurrClosestWayPointLink(WayPointLinkInfoStruct* newClosestWayPointLink);
     irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
+    void FollowPathDefineNextSegment(irr::u32 nrCurrentLink);
 
     irr::f32 GetHoverHeight();
-
 
     //computer player stuff
     irr::f32 computerPlayerTargetSpeed = 2.0f; //3.0f;
@@ -517,6 +529,7 @@ public:
 
     void CPForceController();
     void ProjectPlayerAtCurrentSegment();
+    void ReachedEndCurrentFollowingSegments();
 
     void FinishedLap();
 

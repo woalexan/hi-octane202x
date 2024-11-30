@@ -26,7 +26,7 @@ void Player::DamageGlas() {
     }
 }
 
-void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints) {
+void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints) {    
     //if this player has already finished the race ignore checkpoints
     if (this->GetCurrentState() == STATE_PLAYER_FINISHED)
         return;
@@ -50,6 +50,14 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
 
         //remember value of last crossed way point
         lastCrossedCheckPointValue = valueCrossedCheckPoint;
+    }
+
+    //if this is a computer player setup the path to the next
+    //correct checkpoint
+    if (!this->mHumanPlayer) {
+        mRace->testPathResult = mRace->mPath->FindPathToNextCheckPoint(this);
+
+        this->CpPlayerFollowPath(mRace->testPathResult);
     }
 }
 
@@ -898,6 +906,7 @@ void Player::CPForceController() {
 
     mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
     mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
+    //cpLastFollowSeg = cPCurrentFollowSeg;
 
     //control computer player speed
     if (this->phobj->physicState.speed < (computerPlayerTargetSpeed * 0.9f))
@@ -918,7 +927,15 @@ void Player::CPForceController() {
         //position onto the current segment we follow
         //this recalculates the current projPlayerPositionClosestWayPointLink member
         //variable for the further calculation steps below
-        ProjectPlayerAtCurrentSegment();
+        //ProjectPlayerAtCurrentSegment();
+        ProjectPlayerAtCurrentSegments();
+  /*
+        if (cPCurrentFollowSeg != cpLastFollowSeg) {
+            cpLastFollowSeg = cPCurrentFollowSeg;
+
+            mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
+            mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
+        }*/
 
         irr::core::vector3df dirVecToLink = (this->projPlayerPositionFollowSeg - this->phobj->physicState.position);
         dirVecToLink.Y = 0.0f;
@@ -963,6 +980,13 @@ void Player::CPForceController() {
         irr::f32 corrDampingOrientationAngle = 2000.0f;
 
         irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
+
+        //we need to limit max force, if force is too high just
+        //set it zero, so that not bad physical things will happen!
+        if (fabs(corrForceAngle) > 1000.0f) {
+            corrForceAngle = 0.0f;
+        }
+
         this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
                                              PHYSIC_APPLYFORCE_ONLYROT);
 
@@ -1028,6 +1052,152 @@ void Player::ProjectPlayerAtCurrentSegment() {
         //distance = (projPlayerPosition - phobj->physicState.position).getLength();
 
         projPlayerPositionFollowSeg = projPlayerPosition;
+    }
+}
+
+void Player::ProjectPlayerAtCurrentSegments() {
+    std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
+    irr::core::vector3df dA;
+    irr::core::vector3df dB;
+
+    irr::f32 projecteddA;
+    irr::f32 projecteddB;
+    irr::f32 projectedPl;
+    irr::f32 distance;
+    irr::f32 minDistance;
+    bool firstElement = true;
+    irr::core::vector3df projPlayerPosition;
+    WayPointLinkInfoStruct* closestLink = NULL;
+    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = NULL;
+    irr::f32 minStartEndPointDistance;
+    bool firstElementStartEndPoint = true;
+
+    irr::f32 startPointDistHlper;
+    irr::f32 endPointDistHlper;
+    irr::core::vector3d<irr::f32> posH;
+
+    //iterate through all player follow way segments
+    for(WayPointLink_iterator = mCurrentPathSeg.begin(); WayPointLink_iterator != mCurrentPathSeg.end(); ++WayPointLink_iterator) {
+
+        //for the workaround later (in case first waypoint link search does not work) also find in parallel the waypoint link that
+        //has a start or end-point closest to the current player location
+        posH = (*WayPointLink_iterator)->pLineStruct->A;
+        startPointDistHlper = ((phobj->physicState.position - posH)).getLengthSQ();
+
+        posH = (*WayPointLink_iterator)->pLineStruct->B;
+        endPointDistHlper = ((phobj->physicState.position - posH)).getLengthSQ();
+
+        if (endPointDistHlper < startPointDistHlper) {
+             startPointDistHlper = endPointDistHlper;
+         }
+
+        if (firstElementStartEndPoint) {
+           LinkWithClosestStartEndPoint = (*WayPointLink_iterator);
+           minStartEndPointDistance = startPointDistHlper;
+           firstElementStartEndPoint = false;
+        } else {
+            if (startPointDistHlper < minStartEndPointDistance) {
+                //we have a new closest start/end point
+                LinkWithClosestStartEndPoint = (*WayPointLink_iterator);
+                minStartEndPointDistance = startPointDistHlper;
+            }
+        }
+
+        //we want to find the waypoint link (line) to which the player is currently closest too (which the player currently tries to follow)
+        //we also want to only find the line which is sideways of the player
+        //first check if player is parallel to current line, or if the line is far away
+        dA = phobj->physicState.position - (*WayPointLink_iterator)->pLineStruct->A;
+        dB = phobj->physicState.position - (*WayPointLink_iterator)->pLineStruct->B;
+
+        projecteddA = dA.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
+        projecteddB = dB.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
+
+        //if craft position is parallel (sideways) to current waypoint link the two projection
+        //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
+        //this path segment
+        if (sgn(projecteddA) != sgn(projecteddB)) {
+            //this waypoint is interesting for further analysis
+            //calculate distance from player position to this line, where connecting line meets path segment
+            //in a 90° angle
+            projectedPl =  dA.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
+
+            /*
+            (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
+                                                                                      projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
+                                                                                      player->phobj->physicState.position);*/
+
+            projPlayerPosition = (*WayPointLink_iterator)->pLineStruct->A +
+                    irr::core::vector3df(projectedPl, projectedPl, projectedPl) * ((*WayPointLink_iterator)->LinkDirectionVec);
+
+            distance = (projPlayerPosition - phobj->physicState.position).getLength();
+
+            //(*WayPointLink_iterator)->pLineStruct->color = mDrawDebug->pink;
+
+            //prevent picking far away waypoint links
+            //accidently (this happens especially when we are between
+            //the end of the current waypoint link and the start
+            //of the next one)
+            if (distance < 10.0f) {
+
+            if (firstElement) {
+                minDistance = distance;
+                closestLink = (*WayPointLink_iterator);
+                projPlayerPositionFollowSeg = projPlayerPosition;
+                firstElement = false;
+            } else {
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestLink = (*WayPointLink_iterator);
+                    projPlayerPositionFollowSeg = projPlayerPosition;
+                 }
+              }
+          }
+        }
+    }
+
+    //did we still not find the closest link? try some workaround
+    if (closestLink == NULL) {
+       //workaround, take the waypoint with either the closest
+       //start or end entity
+       closestLink = LinkWithClosestStartEndPoint;
+    }
+
+    /*if ((closestLink != NULL) && (whichPlayer == player)) {
+        closestLink->pLineStruct->color = mDrawDebug->green;
+    }*/
+
+/*    if ((LinkWithClosestStartEndPoint != NULL) && (whichPlayer == player)) {
+       LinkWithClosestStartEndPoint->pLineStruct->color = mDrawDebug->red;
+    }*/
+
+   cPCurrentFollowSeg = closestLink;
+
+   //at which number of segment are we currently?
+   mCurrentPathSegCurrSegmentNr = 0;
+
+   for(WayPointLink_iterator = mCurrentPathSeg.begin(); WayPointLink_iterator != mCurrentPathSeg.end(); ++WayPointLink_iterator) {
+       if ((*WayPointLink_iterator) == cPCurrentFollowSeg) {
+           break;
+       }
+
+       mCurrentPathSegCurrSegmentNr++;
+   }
+
+   //have we reached the end of the following path we follow?
+   if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
+      ReachedEndCurrentFollowingSegments();
+   }
+}
+
+void Player::ReachedEndCurrentFollowingSegments() {
+    mFollowPathCurrentNrLink--;
+
+    if (mFollowPathCurrentNrLink < 0) {
+        //path has no more links
+    } else {
+        //create bezier curve for the next link
+        //of the specified path
+        FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
     }
 }
 
@@ -1553,6 +1723,85 @@ bool Player::ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::
     return false;
 }
 
+void Player::FollowPathDefineNextSegment(irr::u32 nrCurrentLink) {
+    //create bezier curve
+    //start point is the current players position
+    //control point is the start point of the link
+    //in the path with the specified number
+    //end point is the end point of the link in the
+    //path with the defined number
+    irr::core::vector2df bezierPnt1;
+    //irr::core::vector3df bezierPnt13D = this->phobj->physicState.position;
+    irr::core::vector3df bezierPnt13D = this->WorldCoordCraftBackPnt;
+
+    bezierPnt1.X = bezierPnt13D.X;
+    bezierPnt1.Y = bezierPnt13D.Z;
+
+    irr::core::vector2df bezierPnt2;
+    irr::core::vector3df bezierPnt23D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
+
+    bezierPnt2.X = -bezierPnt23D.X;
+    bezierPnt2.Y = bezierPnt23D.Z;
+
+    irr::core::vector2df bezierPntcntrl;
+    irr::core::vector3df bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pStartEntity->get_Pos();
+
+    bezierPntcntrl.X = -bezierPntcntrl3D.X;
+    bezierPntcntrl.Y = bezierPntcntrl3D.Z;
+
+    mCurrentPathSeg = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierPntcntrl,
+                                                                    0.1f, mRace->mDrawDebug->blue);
+
+    mCurrentPathSegNrSegments = mCurrentPathSeg.size();
+
+    ProjectPlayerAtCurrentSegments();
+}
+
+void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
+    if (path.size() > 0) {
+        mFollowPath = path;
+        mFollowPathNrLinks = path.size();
+        bool didFindPlayerInPath = false;
+
+        //we need to make sure that the waypoint link of this path
+        //where the start from lies completely in front of the player
+        //otherwise the craft would fly backwards
+        std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+        mFollowPathCurrentNrLink = mFollowPathNrLinks - 1;
+
+        for (it = mFollowPath.begin(); it != mFollowPath.end(); ++it) {
+            if (this->currClosestWayPointLink == (*it)) {
+               if (mFollowPathCurrentNrLink > 0) {
+                  mFollowPathCurrentNrLink--;
+                }
+
+               didFindPlayerInPath = true;
+
+               break;
+            }
+
+            if (mFollowPathCurrentNrLink > 0) {
+              mFollowPathCurrentNrLink--;
+            }
+        }
+
+        //we did not find player, assume player
+        //is slightly before path, first element is the
+        //the fist waypoint link of the path
+        if (!didFindPlayerInPath) {
+             mFollowPathCurrentNrLink = mFollowPathNrLinks - 1;
+        }
+
+    } else {
+        return;
+    }
+
+    //create bezier curve for the first link
+    //of the specified path
+    FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
+}
+
 irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {
     if (currentWayPointLine->pntrPathNextLink != NULL) {
         //we have the next path link as well, we should be able to find out in which direction
@@ -1613,8 +1862,6 @@ void Player::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand)
         }
     }
 }
-
-
 
 CPCOMMANDENTRY* Player::CreateNoCommand() {
     CPCOMMANDENTRY* newcmd = new CPCOMMANDENTRY();
@@ -1730,7 +1977,7 @@ void Player::RunComputerPlayerLogic() {
         break;
     }
 
-         case CMD_FLYTO_TARGETENTITY: {
+    case CMD_FLYTO_TARGETENTITY: {
             FlyTowardsEntityRunComputerPlayerLogic(currCommand);
         break;
     }
@@ -1770,7 +2017,7 @@ void Player::CpAddCommandTowardsNextCheckpoint() {
 
     //what waypoint entities do I see currently?
     std::vector<EntityItem*> wayPointAroundMeVec =
-            this->mRace->FindAllWayPointsInArea(this->phobj->physicState.position, 10.0f);
+            this->mRace->mPath->FindAllWayPointsInArea(this->phobj->physicState.position, 10.0f);
 
     //if there is no waypoint, I do not know what to do, exit
     if (wayPointAroundMeVec.size() <= 0) {
@@ -1788,7 +2035,7 @@ void Player::CpAddCommandTowardsNextCheckpoint() {
     overallWaypointLinkList.clear();
 
     for (it = wayPointAroundMeVec.begin(); it != wayPointAroundMeVec.end(); ++it) {
-        structPntrVec = mRace->FindWaypointLinksForWayPoint(*it);
+        structPntrVec = mRace->mPath->FindWaypointLinksForWayPoint(*it);
 
         for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
             overallWaypointLinkList.push_back(*it2);
@@ -1813,7 +2060,7 @@ void Player::CpAddCommandTowardsNextCheckpoint() {
         if ((dotProdStart > 0.0f) && (dotProdEnd > 0.0f)) {*/
             availWayPointLinksWithDistanceVecPair.push_back(
                     //for each option calculate the distance until we hit the next checkpoint
-                    make_pair( this->mRace->CalculateDistanceFromWaypointLinkToNextCheckpoint(*it2), (*it2)));
+                    make_pair( this->mRace->mPath->CalculateDistanceFromWaypointLinkToNextCheckpoint(*it2), (*it2)));
         //}
     }
 
@@ -1853,7 +2100,7 @@ void Player::CpDefineNextAction() {
         case CP_MISSION_FINISHLAPS: {
             //This Mission means we are happy with fuel, shield, etc..
             //we simply want to finish laps as fast as possible
-            CpAddCommandTowardsNextCheckpoint();
+            //CpAddCommandTowardsNextCheckpoint();
             break;
         }
     }
