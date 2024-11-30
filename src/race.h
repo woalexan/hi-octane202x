@@ -50,69 +50,6 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-struct CheckPointInfoStruct {
-    //pntr to checkpoint Irrlicht sceneNode
-    irr::scene::IMeshSceneNode* SceneNode;
-    //pntr to checkpoint Irrlich Mesh
-    irr::scene::SMesh* Mesh;
-
-    //value for checkpoint, is defined
-    //within level file with increasing
-    //integer values
-    irr::s32 value = 0;
-
-    EntityItem* pEntity;
-    LineStruct* pLineStruct;
-
-    //if we want to figure out if a player
-    //craft flies in normal race direction
-    //or reverse through the checkpoint
-    //we want to figure out a forward
-    //race direction pointer
-    irr::core::vector3df RaceDirectionVec;
-};
-
-struct WayPointLinkInfoStruct {
-    EntityItem* pStartEntity;
-    EntityItem* pEndEntity;
-
-    //3D line that links two waypoints together
-    LineStruct* pLineStruct;
-
-    //normalized link direction vector
-    irr::core::vector3df LinkDirectionVec;
-
-    irr::f32 length3D;
-
-    //if a checkpoint is crossing this waypoint line
-    //segment add a pointer to this checkpoint here
-    //otherwise this pointer will be kept NULL
-    CheckPointInfoStruct* pntrCheckPoint = NULL;
-
-    //if there is a checkpoint crossing this WaypointLink
-    //the following variable will hold the Distance
-    //between Start of Waypoint location (also equal to pLineStruct->A
-    //and the point where the checkpoint crosses the waypoint line
-    irr::f32 distanceStartLinkToCheckpoint = 0.0f;
-
-    //pointer to next WayPointLinkInfoStruct on the way
-    //if a next element is existing
-    //we can use this pointer for faster path search
-    //during the game; if not existing stays NULL
-    WayPointLinkInfoStruct *pntrPathNextLink = NULL;
-
-    //if existing keep also direction vector of next element
-    //so that we can adjust orientation of craft before we reach
-    //next waypoint link
-    irr::core::vector3df PathNextLinkDirectionVec;
-
-    //automatic created (interpolated) waypoint links between
-    //this elements start point and the next elements end point
-    //is used if necessary during the transition from this element
-    //to next if we loose your way temporarily
-    WayPointLinkInfoStruct *pntrTransitionLink = NULL;
-};
-
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
     //to 8 characters, plus 1 termination char + 1 extra
@@ -155,6 +92,8 @@ class Physics; //Forward declaration
 class PhysicsObject; //Forward declaration
 class Recovery; //Forward declaration
 class Bezier; //Forward declaration
+class Path; //Forward declaration
+struct CheckPointInfoStruct; //Forward declaration
 
 class Race {
 public:
@@ -208,9 +147,7 @@ public:
     irr::core::vector3d<irr::f32>* zAxisDirVector;
 
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
-    EntityItem* FindNearestWayPointToPlayer(Player* whichPlayer);
-    std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint);
-    irr::f32 CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink);
+    void CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<f32> playerBox);
 
     //attacker is the enemy player that does damage the player targetToHit
     //for damage that an entity does cause (for example steamFountain) attacker is set
@@ -253,20 +190,27 @@ public:
     //debugging function which allows to draw a rectangle around a selected
     //tile of the heightmap of the terrain level
     void DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color);
-
     void PlayerHasFinishedLastLapOfRace(Player *whichPlayer);
 
     //this list contains all players that have already
     //finished the race in the order how the have finished
     std::vector<Player*> playerRaceFinishedVec;
 
-    void PlayerFindClosestWaypointLink(Player* player);
-    std::vector<EntityItem*> FindAllWayPointsInArea(irr::core::vector3df location, irr::f32 radius);
-
     //my drawDebug object
     DrawDebug *mDrawDebug;
 
+    //object for pathfinding and services
+    Path* mPath;
+
     irr::core::vector3df dbgCoord;
+
+    std::vector<EntityItem*> *ENTWaypoints_List;
+    std::vector<WayPointLinkInfoStruct*> *wayPointLinkVec;
+
+    void TestFindPath();
+
+    std::vector<WayPointLinkInfoStruct*> testPathResult;
+    WayPointLinkInfoStruct* dbgFirstLink = NULL;
 
 private:
     int levelNr;
@@ -369,7 +313,7 @@ private:
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = true;
     bool DebugShowWallCollisionMesh = false;
-    bool DebugShowCheckpoints = false;
+    bool DebugShowCheckpoints = true;
     bool DebugShowWallSegments = false;
     bool DebugShowTransitionLinks = false;
 
@@ -381,9 +325,6 @@ private:
     void createPlayers(int levelNr);
     void DrawSky();
     void DrawTestShape();
-
-    EntityItem* FindFirstWayPointAfterRaceStartPoint();
-    EntityItem* FindNearestWayPointToLocation(irr::core::vector3df location);
 
     void draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
          irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
@@ -398,12 +339,11 @@ private:
     void CheckPointPostProcessing();
 
     void AddWayPoint(EntityItem *entity, EntityItem *next);
-    std::vector<WayPointLinkInfoStruct*> *wayPointLinkVec;
+
     void CreateTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink);
  //   WayPointLinkInfoStruct* SearchTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink);
     std::vector<WayPointLinkInfoStruct*> *transitionLinkVec;
 
-    std::vector<EntityItem*> *ENTWaypoints_List;
 
     std::list<EntityItem*> *ENTWallsegments_List;
 

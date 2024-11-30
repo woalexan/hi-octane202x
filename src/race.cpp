@@ -151,6 +151,8 @@ Race::~Race() {
     //free the mesh
     mSmgr->getMeshCache()->removeMesh(wallCollisionMesh);
 
+    delete mPath;
+
     CleanUpMorphs();
     CleanUpSteamFountains();
     CleanUpEntities();
@@ -505,138 +507,7 @@ void Race::DeliverMusicFileName(unsigned int levelNr, char *musicFileName) {
   }
 }
 
-void Race::PlayerFindClosestWaypointLink(Player* whichPlayer) {
-    std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
-    irr::core::vector3df dA;
-    irr::core::vector3df dB;
 
-    irr::f32 projecteddA;
-    irr::f32 projecteddB;
-    irr::f32 projectedPl;
-    irr::f32 distance;
-    irr::f32 minDistance;
-    bool firstElement = true;
-    irr::core::vector3df projPlayerPosition;
-    WayPointLinkInfoStruct* closestLink = NULL;
-    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = NULL;
-    irr::f32 minStartEndPointDistance;
-    bool firstElementStartEndPoint = true;
-
-    irr::f32 startPointDistHlper;
-    irr::f32 endPointDistHlper;
-    irr::core::vector3d<irr::f32> posH;
-
-    if (whichPlayer == player) {
-
-    //first reset colors of all waypoint links to white for debugging (white for unselected lines)
-    for(WayPointLink_iterator = wayPointLinkVec->begin(); WayPointLink_iterator != wayPointLinkVec->end(); ++WayPointLink_iterator) {
-        (*WayPointLink_iterator)->pLineStruct->color = mDrawDebug->white;
-       // (*WayPointLink_iterator)->pLineStruct->debugLine = NULL;
-    }
-    }
-
-    //iterate through all waypoint links
-    for(WayPointLink_iterator = wayPointLinkVec->begin(); WayPointLink_iterator != wayPointLinkVec->end(); ++WayPointLink_iterator) {
-
-        //for the workaround later (in case first waypoint link search does not work) also find in parallel the waypoint link that
-        //has a start or end-point closest to the current player location
-        posH = (*WayPointLink_iterator)->pStartEntity->get_Pos();
-        posH.X = -posH.X;
-
-         startPointDistHlper = ((whichPlayer->phobj->physicState.position - posH)).getLengthSQ();
-
-         posH = (*WayPointLink_iterator)->pEndEntity->get_Pos();
-         posH.X = -posH.X;
-
-         endPointDistHlper = ((whichPlayer->phobj->physicState.position - posH)).getLengthSQ();
-
-         if (endPointDistHlper < startPointDistHlper) {
-             startPointDistHlper = endPointDistHlper;
-         }
-
-        if (firstElementStartEndPoint) {
-           LinkWithClosestStartEndPoint = (*WayPointLink_iterator);
-           minStartEndPointDistance = startPointDistHlper;
-           firstElementStartEndPoint = false;
-        } else {
-            if (startPointDistHlper < minStartEndPointDistance) {
-                //we have a new closest start/end point
-                LinkWithClosestStartEndPoint = (*WayPointLink_iterator);
-                minStartEndPointDistance = startPointDistHlper;
-            }
-        }
-
-        //we want to find the waypoint link (line) to which the player is currently closest too (which the player currently tries to follow)
-        //we also want to only find the line which is sideways of the player
-        //first check if player is parallel to current line, or if the line is far away
-        dA = whichPlayer->phobj->physicState.position - (*WayPointLink_iterator)->pLineStruct->A;
-        dB = whichPlayer->phobj->physicState.position - (*WayPointLink_iterator)->pLineStruct->B;
-
-        projecteddA = dA.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
-        projecteddB = dB.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
-
-        //if craft position is parallel (sideways) to current waypoint link the two projection
-        //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
-        //this path segment
-        if (sgn(projecteddA) != sgn(projecteddB)) {
-            //this waypoint is interesting for further analysis
-            //calculate distance from player position to this line, where connecting line meets path segment
-            //in a 90° angle
-            projectedPl =  dA.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
-
-            /*
-            (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
-                                                                                      projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
-                                                                                      player->phobj->physicState.position);*/
-
-            projPlayerPosition = (*WayPointLink_iterator)->pLineStruct->A +
-                    irr::core::vector3df(projectedPl, projectedPl, projectedPl) * ((*WayPointLink_iterator)->LinkDirectionVec);
-
-            distance = (projPlayerPosition - whichPlayer->phobj->physicState.position).getLength();
-
-            //(*WayPointLink_iterator)->pLineStruct->color = mDrawDebug->pink;
-
-            //prevent picking far away waypoint links
-            //accidently (this happens especially when we are between
-            //the end of the current waypoint link and the start
-            //of the next one)
-            if (distance < 10.0f) {
-
-            if (firstElement) {
-                minDistance = distance;
-                closestLink = (*WayPointLink_iterator);
-                whichPlayer->projPlayerPositionClosestWayPointLink = projPlayerPosition;
-                firstElement = false;
-            } else {
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestLink = (*WayPointLink_iterator);
-                    whichPlayer->projPlayerPositionClosestWayPointLink = projPlayerPosition;
-                 }
-              }
-          }
-        }
-    }
-
-    //did we still not find the closest link? try some workaround
-    if (closestLink == NULL) {
-       //workaround, take the waypoint with either the closest
-       //start or end entity
-       closestLink = LinkWithClosestStartEndPoint;
-    }
-
-    /*if ((closestLink != NULL) && (whichPlayer == player)) {
-        closestLink->pLineStruct->color = mDrawDebug->green;
-    }*/
-
-/*    if ((LinkWithClosestStartEndPoint != NULL) && (whichPlayer == player)) {
-       LinkWithClosestStartEndPoint->pLineStruct->color = mDrawDebug->red;
-    }*/
-
-    if (closestLink != NULL) {
-        whichPlayer->SetCurrClosestWayPointLink(closestLink);
-    }
-}
 
 //Stage 3 of player race ranking sorting: Sort by ascending remaining distance to next checkpoint
 void Race::UpdatePlayerRacePositionRankingHelper3(vector< pair <irr::f32, Player*> > vecRemainingDistanceToNextCheckpoint) {
@@ -819,45 +690,6 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
         //into the player object
         whichPlayer->remainingDistanceToNextCheckPoint = sumDistance;
     }
-}
-
-irr::f32 Race::CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink) {
-    irr::f32 sumDistance = 0.0f;
-    WayPointLinkInfoStruct* currLink;
-
-    currLink = startWaypointLink;
-
-    //create sum of all distances
-
-    //The next line is for debugging
-    //currLink->pLineStruct->color = mDrawDebug->green;
-
-    //calculate length of vector from current 3D Player projected position on waypoint line to start of line
-
-    sumDistance += (currLink->length3D);
-
-    //now follow the waypoint links forward until we hit the next checkpoint
-    while (currLink->pntrCheckPoint == NULL) {  //follow one link after another until we hit the next checkpoint
-        currLink = currLink->pntrPathNextLink;
-
-        if (currLink != NULL) {
-             if (currLink->pntrCheckPoint == NULL) {
-                    //The next line is for debugging
-                    //currLink->pLineStruct->color = mDrawDebug->blue;
-
-                    //for this links add up the whole length
-                    sumDistance += currLink->length3D;
-                } else {
-                    //there is a checkpoint within this waypoint link
-                    //for this one add only the distance from the start point until the checkpoint location
-                    sumDistance += currLink->distanceStartLinkToCheckpoint;
-                    //currLink->pLineStruct->color = mDrawDebug->red;
-                    break;
-                }
-            }
-        }
-
-    return sumDistance;
 }
 
 void Race::removePlayerTest() {
@@ -1401,6 +1233,9 @@ void Race::Init() {
         //handover pointer to wall collision line (based on level file entities) data
         this->mPhysics->SetLevelCollisionWallLineData(ENTWallsegmentsLine_List);
 
+        //create the object for path finding and services
+        mPath = new Path(this, mDrawDebug);
+
         //create my players and setup their physics
         createPlayers(levelNr);
 
@@ -1562,46 +1397,29 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
                                   player->phobj->physicState.position, player->phobj->physicState.position + player->craftForwardDirVec * irr::core::vector3df(50.0f, 50.0f, 50.0f),
                                                                   true);*/
 
-    PlayerFindClosestWaypointLink(player);
-    PlayerFindClosestWaypointLink(player2);
+    WayPointLinkInfoStruct* resLink;
+    resLink = mPath->PlayerFindClosestWaypointLink(player);
+
+    if (resLink != NULL) {
+        player->SetCurrClosestWayPointLink(resLink);
+    }
+
+    resLink = mPath->PlayerFindClosestWaypointLink(player2);
+
+    if (resLink != NULL) {
+        player2->SetCurrClosestWayPointLink(resLink);
+    }
+
     UpdatePlayerDistanceToNextCheckpoint(player);
     UpdatePlayerDistanceToNextCheckpoint(player2);
 
-    std::vector<CheckPointInfoStruct*>::iterator it;
-
     irr::core::aabbox3d<f32> playerBox = this->player->Player_node->getTransformedBoundingBox();
-    irr::core::aabbox3d<f32> checkPointBox;
-
-    for (it = this->checkPointVec->begin(); it != this->checkPointVec->end(); ++it) {
-        checkPointBox = (*it)->SceneNode->getTransformedBoundingBox();
-        if (playerBox.intersectsWithBox(checkPointBox)) {
-
-            //player crosses waypoint, figure out if player crosses waypoint in the normal
-            //race direction, if not ignore event
-            irr::core::vector3df velNormalized = player->phobj->physicState.velocity.normalize();
-
-            //if the player crosses checkPoint in normal RaceDirection
-            //the dotProduct should be positive
-            irr::f32 dotProduct = velNormalized.dotProduct((*it)->RaceDirectionVec);
-
-            if (dotProduct > 0.0f) {
-                //next lines only for debugging of checkpoint functionality
-                //TODO: The char below produces a memory leak! bug for debugging the value is helpful!
-                //char *txt = new char[20];
-                //char nrtxt[4];
-                //strcpy(txt, "CHECKPOINT ");
-                //sprintf(nrtxt, "%d", (*it)->value);
-                //strcat(txt, nrtxt);
-
-                //player->GetMyHUD()->ShowBannerText(&txt[0], 0.2f);
-
-                //tell player object about crossed checkpoint
-                player->CrossedCheckPoint((*it)->value, checkPointVec->size());
-            }
-        }
-    }
-
+    CheckPlayerCrossedCheckPoint(player, playerBox);
     CheckPlayerCollidedCollectible(player, playerBox);
+
+    irr::core::aabbox3d<f32> playerBox2 = this->player2->Player_node->getTransformedBoundingBox();
+    CheckPlayerCrossedCheckPoint(player2, playerBox2);
+    CheckPlayerCollidedCollectible(player2, playerBox2);
 
     //update player race position ranking
     UpdatePlayerRacePositionRanking();
@@ -1623,6 +1441,41 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mWorldAware->Analyse(player2);
 
     mTimeProfiler->Profile(mTimeProfiler->tIntWorldAware);
+}
+
+void Race::CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<f32> playerBox) {
+
+    std::vector<CheckPointInfoStruct*>::iterator it;
+    irr::core::aabbox3d<f32> checkPointBox;
+
+    for (it = this->checkPointVec->begin(); it != this->checkPointVec->end(); ++it) {
+        checkPointBox = (*it)->SceneNode->getTransformedBoundingBox();
+        if (playerBox.intersectsWithBox(checkPointBox)) {
+
+            //player crosses waypoint, figure out if player crosses waypoint in the normal
+            //race direction, if not ignore event
+            irr::core::vector3df velNormalized = whichPlayer->phobj->physicState.velocity.normalize();
+
+            //if the player crosses checkPoint in normal RaceDirection
+            //the dotProduct should be positive
+            irr::f32 dotProduct = velNormalized.dotProduct((*it)->RaceDirectionVec);
+
+            if (dotProduct > 0.0f) {
+                //next lines only for debugging of checkpoint functionality
+                //TODO: The char below produces a memory leak! bug for debugging the value is helpful!
+                //char *txt = new char[20];
+                //char nrtxt[4];
+                //strcpy(txt, "CHECKPOINT ");
+                //sprintf(nrtxt, "%d", (*it)->value);
+                //strcat(txt, nrtxt);
+
+                //player->GetMyHUD()->ShowBannerText(&txt[0], 0.2f);
+
+                //tell player object about crossed checkpoint
+                whichPlayer->CrossedCheckPoint((*it)->value, checkPointVec->size());
+            }
+        }
+    }
 }
 
 void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
@@ -1655,7 +1508,8 @@ void Race::HandleInput() {
         // testPerm();
         //player->mHUD->AddGlasBreak();
         //this->CallRecoveryVehicleForHelp(this->player);
-        this->player2->AddCommand(CMD_FLYTO_TARGETENTITY, ENTCollectablesVec->at(0)->mEntityItem);
+        //this->player2->AddCommand(CMD_FLYTO_TARGETENTITY, ENTCollectablesVec->at(0)->mEntityItem);
+        this->TestFindPath();
     }
 
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
@@ -2073,13 +1927,15 @@ void Race::Render() {
     dbgText->setText(text);
     free(text);*/
 
-    if (player2->cPCurrentFollowSeg != NULL) {
+   /* if (player2->cPCurrentFollowSeg != NULL) {
         mDriver->setMaterial(*mDrawDebug->green);
         mDriver->draw3DLine(player2->phobj->physicState.position, player2->projPlayerPositionClosestWayPointLink);
 
         mDrawDebug->Draw3DLine(this->player2->cPCurrentFollowSeg->pLineStruct->A,
                                this->player2->cPCurrentFollowSeg->pLineStruct->B, this->mDrawDebug->red);
-    }
+    }*/
+
+
 /*
     if (player2->computerCurrFollowWayPointLink != NULL) {
       player2->computerCurrFollowWayPointLink->pLineStruct->color = mDrawDebug->blue;
@@ -2122,6 +1978,13 @@ void Race::Render() {
           }*/
       }
      }
+
+    if (player2->currClosestWayPointLink != NULL) {
+        mDriver->setMaterial(*mDrawDebug->green);
+
+        mDrawDebug->Draw3DLine(this->player2->currClosestWayPointLink->pLineStruct->A,
+                               this->player2->currClosestWayPointLink->pLineStruct->B, this->mDrawDebug->green);
+    }
 
     if (DebugShowTransitionLinks) {
       //draw all automatic generated transition links
@@ -2236,7 +2099,7 @@ void Race::Render() {
       mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
                                    this->mDrawDebug->green);*/
 
-      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), dbgCoord, this->mDrawDebug->green);
+      /*mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), dbgCoord, this->mDrawDebug->green);
 
       irr::core::vector2df bezierPnt1;
       irr::core::vector3df bezierPnt13D = this->wayPointLinkVec->at(0)->pLineStruct->A;
@@ -2260,7 +2123,31 @@ void Race::Render() {
 
       mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt13D, this->mDrawDebug->green);
       mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt23D, this->mDrawDebug->blue);
-      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPntcntrl3D, this->mDrawDebug->pink);
+      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPntcntrl3D, this->mDrawDebug->pink);*/
+
+      if (player2->mCurrentPathSeg.size() > 0) {
+          std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+          for (itPathEl = player2->mCurrentPathSeg.begin(); itPathEl != player2->mCurrentPathSeg.end(); ++itPathEl) {
+               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->pink);
+          }
+      }
+
+      if (player2->mFollowPath.size() > 0) {
+          std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+      /*    for (itPathEl = player2->mFollowPath.begin(); itPathEl != player2->mFollowPath.end(); ++itPathEl) {
+               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->blue);
+          }*/
+
+              mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
+      }
+
+
+
+    /*  if (dbgFirstLink != NULL) {
+           mDrawDebug->Draw3DLine(dbgFirstLink->pLineStruct->A, dbgFirstLink->pLineStruct->B, this->mDrawDebug->blue);
+      }*/
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
@@ -2303,88 +2190,6 @@ void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* co
 
         mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
     }
-}
-
-EntityItem* Race::FindNearestWayPointToLocation(irr::core::vector3df location) {
-   std::vector<EntityItem*>::iterator it;
-   irr::f32 minDistance;
-   bool firstElement = true;
-   irr::f32 currDist;
-   EntityItem* nearestWayPoint;
-
-   irr::core::vector3df wPos;
-
-   if (ENTWaypoints_List->size() <= 0)
-       return NULL;
-
-   for (it = ENTWaypoints_List->begin(); it != ENTWaypoints_List->end(); ++it) {
-       wPos = (*it)->get_Center();
-       //my X-axis is flipped
-       wPos.X = -wPos.X;
-       currDist = (wPos - location).getLengthSQ();
-       if (firstElement) {
-           firstElement = false;
-           minDistance = currDist;
-           nearestWayPoint = (*it);
-       } else if (currDist < minDistance) {
-           minDistance = currDist;
-           nearestWayPoint = (*it);
-       }
-   }
-
-   return nearestWayPoint;
-}
-
-std::vector<EntityItem*> Race::FindAllWayPointsInArea(irr::core::vector3df location, irr::f32 radius) {
-    std::vector<EntityItem*>::iterator it;
-    std::vector<EntityItem*> result;
-
-    result.clear();
-
-    irr::f32 currDist;
-
-    irr::core::vector3df wPos;
-
-    if (ENTWaypoints_List->size() <= 0)
-        return result;
-
-    for (it = ENTWaypoints_List->begin(); it != ENTWaypoints_List->end(); ++it) {
-        wPos = (*it)->get_Center();
-        //my X-axis is flipped
-        wPos.X = -wPos.X;
-        currDist = (wPos - location).getLength();
-        if (currDist < radius) {
-            result.push_back(*it);
-        }
-    }
-
-    return result;
-}
-
-EntityItem* Race::FindNearestWayPointToPlayer(Player* whichPlayer) {
-   if (whichPlayer == NULL)
-       return NULL;
-
-   irr::core::vector3df playerPos = whichPlayer->phobj->physicState.position;
-
-   return FindNearestWayPointToLocation(playerPos);
-}
-
-std::vector<WayPointLinkInfoStruct*> Race::FindWaypointLinksForWayPoint(EntityItem* wayPoint) {
-   std::vector<WayPointLinkInfoStruct*>::iterator it;
-
-   std::vector<WayPointLinkInfoStruct*> res;
-
-   if (wayPointLinkVec->size() <= 0)
-       return res;
-
-   for (it = wayPointLinkVec->begin(); it != wayPointLinkVec->end(); ++it) {
-       if (((*it)->pStartEntity == wayPoint) || ((*it)->pEndEntity == wayPoint)) {
-           res.push_back(*it);
-       }
-   }
-
-   return res;
 }
 
 //returns true if succesfull, false otherwise
@@ -2550,7 +2355,7 @@ void Race::createPlayers(int levelNr) {
     Startdirection2.Y = Startpos2.Y;
     Startdirection2.Z = Startpos2.Z - 2.0f;
 
-    //Startpos2.Z -= 5.0f;
+    //Startpos2.Z -= 10.0f;
 
     player2 = new Player(this, player_model2, Startpos2, Startdirection2, this->mSmgr, false);
 
@@ -2587,12 +2392,12 @@ void Race::createPlayers(int levelNr) {
             player2->AddCommand(CMD_FLYTO_TARGETENTITY, foundLinks[0]->pEndEntity);
             //player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, wl);
         }
-    }*/
-
-    EntityItem* entItem = this->FindFirstWayPointAfterRaceStartPoint();
+    } */
+   /*
+    EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
     if (entItem != NULL) {
         player2->AddCommand(CMD_FLYTO_TARGETENTITY, entItem);
-    }
+    }*/
 
 
 }
@@ -2958,6 +2763,12 @@ irr::f32 Race::GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVe
    return angleResult;
 }
 
+void Race::TestFindPath() {
+    testPathResult = mPath->FindPathToNextCheckPoint(player2);
+
+    player2->CpPlayerFollowPath(testPathResult);
+}
+
 //This routine uses all defined waypoints to figure out for each Checkpoint
 //what the normal expected race direction is
 //we also try to link all waypoint links together, that means each link
@@ -3237,19 +3048,6 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
 
     //we also keep a list of all waypoint pointers
     ENTWaypoints_List->push_back(entity);
-}
-
-EntityItem* Race::FindFirstWayPointAfterRaceStartPoint() {
-    //get the player start positions
-    std::vector<irr::core::vector3df> playerStartLocations =
-            this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
-
-    //just take player 1 start position as the reference
-    irr::core::vector3df Startpos = playerStartLocations.at(0);
-
-    EntityItem* item = FindNearestWayPointToLocation(Startpos);
-
-    return (item);
 }
 
 void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver) {

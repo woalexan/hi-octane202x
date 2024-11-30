@@ -89,7 +89,7 @@ void Recovery::Update(irr::f32 deltaTime) {
 
             //where do we want to drop of player again?
             //find closest waypoint to player
-            EntityItem* closestWayPoint = this->repairTarget->mRace->FindNearestWayPointToPlayer(this->repairTarget);
+            EntityItem* closestWayPoint = this->repairTarget->mRace->mPath->FindNearestWayPointToPlayer(this->repairTarget);
 
             //if we do not find anything, just drop player off here again
             //Fallback, but should hopefully never happen in game later
@@ -101,7 +101,7 @@ void Recovery::Update(irr::f32 deltaTime) {
                 //we need the waypoint link to now the racing direction, because
                 //we want to turn the player into race direction when we drop him off again
                 std::vector<WayPointLinkInfoStruct*> wayPointLinks =
-                        this->repairTarget->mRace->FindWaypointLinksForWayPoint(closestWayPoint);
+                        this->repairTarget->mRace->mPath->FindWaypointLinksForWayPoint(closestWayPoint);
 
                 if (wayPointLinks.size() <= 0) {
                     //we did not find anything

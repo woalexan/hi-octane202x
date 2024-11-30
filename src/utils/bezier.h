@@ -15,6 +15,7 @@
 #ifndef BEZIER_H
 #define BEZIER_H
 
+#include "../utils/path.h"
 #include "irrlicht/irrlicht.h"
 #include "../draw/drawdebug.h"
 #include "../models/levelterrain.h"
@@ -32,6 +33,9 @@ public:
                                             irr::core::vector2df endPnt, irr::core::vector2df cntrlPoint, irr::f32 t);
 
     void QuadBezierCurveDrawAtTerrain(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
+                                        irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color, bool goThrough = true);
+
+    std::vector<WayPointLinkInfoStruct*> QuadBezierCurveGetSegments(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
                                         irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color, bool goThrough = true);
 
     //if this function is used the bezier curve is forced to go exactly through

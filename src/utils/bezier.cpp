@@ -57,6 +57,72 @@ void Bezier::QuadBezierCurveDrawAtTerrain(irr::core::vector2df startPnt, irr::co
   }
 }
 
+std::vector<WayPointLinkInfoStruct*> Bezier::QuadBezierCurveGetSegments(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
+                                          irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color,
+                                              bool goThrough) {
+  irr::core::vector3df drawPnt1(startPnt.X, 0.0f, startPnt.Y);
+  irr::core::vector3df drawPnt2;
+  irr::core::vector2df helper2D;
+  irr::core::vector2di outCell;
+  std::vector<WayPointLinkInfoStruct*> finalVec;
+  finalVec.clear();
+
+  //get the correct Terrain Y coordinate from terrain
+  drawPnt1.Y = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+          (drawPnt1.X,
+           drawPnt1.Z,
+           outCell);
+
+  for (irr::f32 t = resolution; t < 1.0f; t += resolution) {
+      if (!goThrough) {
+         helper2D = QuadBezierPoint(startPnt, endPnt, cntrlPoint, t);
+      } else {
+        helper2D = QuadBezierPointThrough(startPnt, endPnt, cntrlPoint, t);
+      }
+    drawPnt2.X = helper2D.X;
+    drawPnt2.Z = helper2D.Y;
+
+    //get the correct Terrain Y coordinate from terrain
+    drawPnt2.Y = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
+            (drawPnt2.X,
+             drawPnt2.Z,
+             outCell);
+
+    //create a new temporary waypointlink to control the movement
+    //of the player
+    WayPointLinkInfoStruct* newStruct = new WayPointLinkInfoStruct();
+
+    LineStruct* newLineStr = new LineStruct();
+    newLineStr->A = drawPnt1;
+    newLineStr->B = drawPnt2;
+
+    //set white as default color
+    newLineStr->color = color;
+    newLineStr->name = new char[10];
+    strcpy(newLineStr->name, "");
+
+    newStruct->pLineStruct = newLineStr;
+    irr::core::vector3df vec3D = (newLineStr->B - newLineStr->A);
+
+    //precalculate and store length as we will need this very often
+    //during the game loop for race position update
+    newStruct->length3D = vec3D.getLength();
+    vec3D.normalize();
+
+    newStruct->LinkDirectionVec = vec3D;
+    newStruct->LinkDirectionVec.normalize();
+
+    //add new segement to the vector of segments
+    finalVec.push_back(newStruct);
+
+    //update drawPnt1, next line starts where the end point
+    //of the last drawn line was
+    drawPnt1 = drawPnt2;
+  }
+
+  return finalVec;
+}
+
 irr::core::vector2df Bezier::QuadBezierPoint(irr::core::vector2df startPnt, irr::core::vector2df endPnt, irr::core::vector2df cntrlPoint, irr::f32 t) {
   irr::f32 m = (1.0f - t);
   irr::f32 a = m * m;
