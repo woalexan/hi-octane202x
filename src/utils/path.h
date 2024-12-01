@@ -91,7 +91,10 @@ public:
     std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint);
     irr::f32 CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink);
 
-    WayPointLinkInfoStruct* PlayerFindClosestWaypointLink(Player* player);
+    std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> PlayerDeriveClosestWaypointLink(std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>>
+                                                            inputWayPointLinkVector);
+    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> PlayerFindCloseWaypointLinks(Player* player);
+
     std::vector<EntityItem*> FindAllWayPointsInArea(irr::core::vector3df location, irr::f32 radius);
 
     EntityItem* FindFirstWayPointAfterRaceStartPoint();
@@ -101,9 +104,18 @@ public:
                 WayPointLinkInfoStruct* wayPointLinkNearPlayer, std::vector<WayPointLinkInfoStruct*> &resultPath,
                                      WayPointLinkInfoStruct* interruptLink, bool firstLink);
 
+    WayPointLinkInfoStruct* PlayerFindClosestWaypointLinkHelper(irr::core::vector3df inputPosition,
+                                                                irr::core::vector3df &projectedPlayerPosition);
+
 private:
     Race* mRace;
     DrawDebug* mDrawDebug;
+
+    void AddWayPointLinkToOccurenceList(std::vector<std::pair <irr::u8, WayPointLinkInfoStruct*>> &wayPointLinkOccurenceList,
+                                                WayPointLinkInfoStruct* newWayPointLink);
+
+    void AddWayPointLinkResultToVector(std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> &wayPointLinkList,
+                                                WayPointLinkInfoStruct* newWayPointLink, irr::core::vector3df newProjectedPlayerPosition);
 
 };
 
