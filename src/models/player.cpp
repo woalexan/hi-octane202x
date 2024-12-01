@@ -390,19 +390,10 @@ void Player::AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointL
     this->cmdList->push_back(newCmd);
 }
 
-void Player::SetCurrClosestWayPointLink(WayPointLinkInfoStruct* newClosestWayPointLink) {
-    this->currClosestWayPointLink = newClosestWayPointLink;
-
-    //non human player start following first closest waypoint link
-    //we see via race logic
-    if (!mHumanPlayer) {
-        if (computerCurrFollowWayPointLink == NULL) {
-            computerCurrFollowWayPointLink = newClosestWayPointLink;
-        } else {
-            if (computerCurrFollowWayPointLink->pntrPathNextLink == newClosestWayPointLink) {
-                computerCurrFollowWayPointLink = newClosestWayPointLink;
-            }
-        }
+void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
+    if (newClosestWayPointLink.first != NULL) {
+        this->currClosestWayPointLink = newClosestWayPointLink;
+        this->projPlayerPositionClosestWayPointLink = newClosestWayPointLink.second;
     }
 }
 
@@ -1768,10 +1759,14 @@ void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
         //otherwise the craft would fly backwards
         std::vector<WayPointLinkInfoStruct*>::iterator it;
 
-        mFollowPathCurrentNrLink = mFollowPathNrLinks - 1;
+        mFollowPathCurrentNrLink = 0;
 
-        for (it = mFollowPath.begin(); it != mFollowPath.end(); ++it) {
-            if (this->currClosestWayPointLink == (*it)) {
+        std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> >::iterator it2;
+
+        for (it = mFollowPath.begin(); it != mFollowPath.end() && (didFindPlayerInPath == false); ++it) {
+            //if (this->currClosestWayPointLink.first == (*it)) {
+            for (it2 = this->currCloseWayPointLinks.begin(); it2 != this->currCloseWayPointLinks.end(); ++it2) {
+              if ((*it2).first == (*it)) {
                if (mFollowPathCurrentNrLink > 0) {
                   mFollowPathCurrentNrLink--;
                 }
@@ -1780,9 +1775,10 @@ void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
 
                break;
             }
+        }
 
-            if (mFollowPathCurrentNrLink > 0) {
-              mFollowPathCurrentNrLink--;
+          if (!didFindPlayerInPath) {
+              mFollowPathCurrentNrLink++;
             }
         }
 

@@ -462,14 +462,16 @@ public:
                            irr::core::vector3df *projPlayerPosition,
                            irr::core::vector3d<irr::f32>* distanceVec, irr::f32 *remainingDistanceToTravel);
 
-    WayPointLinkInfoStruct* currClosestWayPointLink = NULL;
+    std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> currClosestWayPointLink;
+    std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> > currCloseWayPointLinks;
+
     WayPointLinkInfoStruct* computerCurrFollowWayPointLink = NULL;
 
     WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
     WayPointLinkInfoStruct* cpLastFollowSeg = NULL;
     irr::core::vector3df projPlayerPositionFollowSeg;
 
-    void SetCurrClosestWayPointLink(WayPointLinkInfoStruct* newClosestWayPointLink);
+    void SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink);
     irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
     void FollowPathDefineNextSegment(irr::u32 nrCurrentLink);
 

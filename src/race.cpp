@@ -652,9 +652,9 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
     //start at current waypoint link closest to current player
     //then follow this link forward until we hit the next checkpoint
     //create sum of all distances
-    if (whichPlayer->currClosestWayPointLink != NULL) {
+    if (whichPlayer->currClosestWayPointLink.first != NULL) {
         //we have currently a closest waypoint link for this player
-        currLink = whichPlayer->currClosestWayPointLink;
+        currLink = whichPlayer->currClosestWayPointLink.first;
 
         //The next line is for debugging
         //currLink->pLineStruct->color = mDrawDebug->green;
@@ -1397,18 +1397,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
                                   player->phobj->physicState.position, player->phobj->physicState.position + player->craftForwardDirVec * irr::core::vector3df(50.0f, 50.0f, 50.0f),
                                                                   true);*/
 
-    WayPointLinkInfoStruct* resLink;
-    resLink = mPath->PlayerFindClosestWaypointLink(player);
+    player->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(player);
+    player->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player->currCloseWayPointLinks);
+    player->SetCurrClosestWayPointLink(player->currClosestWayPointLink);
 
-    if (resLink != NULL) {
-        player->SetCurrClosestWayPointLink(resLink);
-    }
-
-    resLink = mPath->PlayerFindClosestWaypointLink(player2);
-
-    if (resLink != NULL) {
-        player2->SetCurrClosestWayPointLink(resLink);
-    }
+    player2->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(player2);
+    player2->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player2->currCloseWayPointLinks);
+    player2->SetCurrClosestWayPointLink(player2->currClosestWayPointLink);
 
     UpdatePlayerDistanceToNextCheckpoint(player);
     UpdatePlayerDistanceToNextCheckpoint(player2);
@@ -1979,12 +1974,6 @@ void Race::Render() {
       }
      }
 
-    if (player2->currClosestWayPointLink != NULL) {
-        mDriver->setMaterial(*mDrawDebug->green);
-
-        mDrawDebug->Draw3DLine(this->player2->currClosestWayPointLink->pLineStruct->A,
-                               this->player2->currClosestWayPointLink->pLineStruct->B, this->mDrawDebug->green);
-    }
 
     if (DebugShowTransitionLinks) {
       //draw all automatic generated transition links
@@ -2136,13 +2125,20 @@ void Race::Render() {
       if (player2->mFollowPath.size() > 0) {
           std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
-      /*    for (itPathEl = player2->mFollowPath.begin(); itPathEl != player2->mFollowPath.end(); ++itPathEl) {
+         for (itPathEl = player2->mFollowPath.begin(); itPathEl != player2->mFollowPath.end(); ++itPathEl) {
                mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->blue);
-          }*/
+          }
 
-              mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
+         //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
       }
 
+
+      if (player2->currClosestWayPointLink.first != NULL) {
+          mDriver->setMaterial(*mDrawDebug->green);
+
+          mDrawDebug->Draw3DLine(this->player2->currClosestWayPointLink.first->pLineStruct->A,
+                                 this->player2->currClosestWayPointLink.first->pLineStruct->B, this->mDrawDebug->green);
+      }
 
 
     /*  if (dbgFirstLink != NULL) {
