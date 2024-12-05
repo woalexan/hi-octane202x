@@ -34,7 +34,15 @@ DrawDebug::DrawDebug(irr::video::IVideoDriver *driver) {
 
     brown = new irr::video::SMaterial();
     brown->MaterialType = irr::video::EMT_SOLID;
-    brown->AmbientColor = irr::video::SColor(255, 210, 125, 45);
+    brown->AmbientColor = irr::video::SColor(255, 128, 64, 0);
+
+    cyan = new irr::video::SMaterial();
+    cyan->MaterialType = irr::video::EMT_SOLID;
+    cyan->AmbientColor = irr::video::SColor(255, 0, 255, 255);
+
+    orange = new irr::video::SMaterial();
+    orange->MaterialType = irr::video::EMT_SOLID;
+    orange->AmbientColor = irr::video::SColor(255, 255, 128, 0);
 
     origin = new irr::core::vector3df(0.0f, 0.0f, 0.0f);
     XAxis = new irr::core::vector3df(10.0f, 0.0f, 0.0f);
@@ -71,6 +79,8 @@ DrawDebug::~DrawDebug() {
     delete red;
     delete pink;
     delete brown;
+    delete cyan;
+    delete orange;
 }
 
 irr::core::vector3df DrawDebug::GetOrthogonalVector(irr::core::vector3df inVec) {

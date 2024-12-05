@@ -50,14 +50,14 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
 
         //remember value of last crossed way point
         lastCrossedCheckPointValue = valueCrossedCheckPoint;
-    }
 
-    //if this is a computer player setup the path to the next
-    //correct checkpoint
-    if (!this->mHumanPlayer) {
-        mRace->testPathResult = mRace->mPath->FindPathToNextCheckPoint(this);
+        //if this is a computer player setup the path to the next
+        //correct checkpoint
+        if (!this->mHumanPlayer) {
+            mRace->testPathResult = mRace->mPath->FindPathToNextCheckPoint(this);
 
-        this->CpPlayerFollowPath(mRace->testPathResult);
+            this->CpPlayerFollowPath(mRace->testPathResult);
+        }
     }
 }
 
@@ -249,6 +249,18 @@ irr::u32 Player::GetCurrentState() {
     return this->mPlayerStats->mPlayerCurrentState;
 }
 
+void Player::AdvanceDbgColor() {
+    if (currDbgColor == this->mRace->mDrawDebug->red)  {
+        currDbgColor = this->mRace->mDrawDebug->cyan;
+    } else if (currDbgColor == this->mRace->mDrawDebug->cyan)  {
+        currDbgColor = this->mRace->mDrawDebug->pink;
+    } else if (currDbgColor == this->mRace->mDrawDebug->pink)  {
+        currDbgColor = this->mRace->mDrawDebug->green;
+    } else if (currDbgColor == this->mRace->mDrawDebug->green)  {
+        currDbgColor = this->mRace->mDrawDebug->red;
+    }
+}
+
 Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
                bool humanPlayer) {
 
@@ -274,6 +286,8 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     mPlayerStats->LapBeforeLastLap.lapTimeMultiple100mSec = 0;
 
     mRace = race;
+
+    currDbgColor = this->mRace->mDrawDebug->red;
 
     //create the player command list
     cmdList = new std::list<CPCOMMANDENTRY*>();
@@ -967,16 +981,22 @@ void Player::CPForceController() {
         /*  Control Craft absolute angle start */
         /***************************************/
 
+        //Note 02.12.2024: best values until now
+        //irr::f32 corrForceOrientationAngle = 3.0f;
+        //irr::f32 corrDampingOrientationAngle = 2000.0f;
+
         irr::f32 corrForceOrientationAngle = 3.0f;
-        irr::f32 corrDampingOrientationAngle = 2000.0f;
+        irr::f32 corrDampingOrientationAngle = 500.0f;
 
         irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
 
         //we need to limit max force, if force is too high just
         //set it zero, so that not bad physical things will happen!
-        if (fabs(corrForceAngle) > 1000.0f) {
-            corrForceAngle = 0.0f;
-        }
+        if (fabs(corrForceAngle) > 10.0f) {
+            //corrForceAngle = 0.0f;
+            corrForceAngle = sgn(corrForceAngle) * 10.0f;
+           // currentSideForce = sgn(corrForceAngle) * corrForceAngle * 3.0f;
+        } //else currentSideForce = 0.0f;
 
         this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
                                              PHYSIC_APPLYFORCE_ONLYROT);
@@ -985,17 +1005,21 @@ void Player::CPForceController() {
         /*  Control Craft distance to current waypoint link */
         /****************************************************/
 
+        //Note 02.12.2024: best values until now
+        //irr::f32 corrForceDist = 3.0f;
+        //irr::f32 corrDampingDist = 2000.0f;
+
         irr::f32 corrForceDist = 3.0f;
-        irr::f32 corrDampingDist = 2000.0f;
+        irr::f32 corrDampingDist = 500.0f;
 
         irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
 
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
-        if (corrForceDistance > 1.0f) {
-            corrForceDistance = 1.0f;
-        } else if (corrForceDistance < -1.0f) {
-            corrForceDistance = -1.0f;
+        if (corrForceDistance > 10.0f) {
+            corrForceDistance = 10.0f;
+        } else if (corrForceDistance < -10.0f) {
+            corrForceDistance = -10.0f;
         }
 
         this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
@@ -1175,7 +1199,8 @@ void Player::ProjectPlayerAtCurrentSegments() {
    }
 
    //have we reached the end of the following path we follow?
-   if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
+   //if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
+   if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments - 1)) {
       ReachedEndCurrentFollowingSegments();
    }
 }
@@ -1714,7 +1739,7 @@ bool Player::ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::
     return false;
 }
 
-void Player::FollowPathDefineNextSegment(irr::u32 nrCurrentLink) {
+void Player::FollowPathDefineFirstSegment(irr::u32 nrCurrentLink) {
     //create bezier curve
     //start point is the current players position
     //control point is the start point of the link
@@ -1729,15 +1754,32 @@ void Player::FollowPathDefineNextSegment(irr::u32 nrCurrentLink) {
     bezierPnt1.Y = bezierPnt13D.Z;
 
     irr::core::vector2df bezierPnt2;
-    irr::core::vector3df bezierPnt23D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
+    //irr::core::vector3df bezierPnt23D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
 
-    bezierPnt2.X = -bezierPnt23D.X;
+    irr::core::vector3df bezierPnt23D =  mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
+    bezierPnt23D.X = -bezierPnt23D.X;
+
+    //attempt 02.12.2024:
+    //irr::core::vector3df bezierPnt23D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
+    bezierPnt2.X = bezierPnt23D.X;
     bezierPnt2.Y = bezierPnt23D.Z;
 
-    irr::core::vector2df bezierPntcntrl;
-    irr::core::vector3df bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pStartEntity->get_Pos();
+    irr::core::vector3df bezierPntcntrl3D;
+    irr::core::vector3df zero(0.0f, 0.0f, 0.0f);
 
-    bezierPntcntrl.X = -bezierPntcntrl3D.X;
+    if (!currClosestWayPointLink.second.equals(zero)) {
+        bezierPntcntrl3D = currClosestWayPointLink.second +
+            (bezierPnt23D - currClosestWayPointLink.second) * irr::core::vector3df(0.5f, 0.5f, 0.5f);
+    } else {
+        //is zero
+        bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pStartEntity->get_Pos();
+        bezierPntcntrl3D.X = -bezierPntcntrl3D.X;
+    }
+
+    irr::core::vector2df bezierPntcntrl;
+    //irr::core::vector3df bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pStartEntity->get_Pos();
+
+    bezierPntcntrl.X = bezierPntcntrl3D.X;
     bezierPntcntrl.Y = bezierPntcntrl3D.Z;
 
     mCurrentPathSeg = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierPntcntrl,
@@ -1746,6 +1788,83 @@ void Player::FollowPathDefineNextSegment(irr::u32 nrCurrentLink) {
     mCurrentPathSegNrSegments = mCurrentPathSeg.size();
 
     ProjectPlayerAtCurrentSegments();
+
+    //this->mRace->mGame->StopTime();
+}
+
+void Player::FollowPathDefineNextSegment(irr::u32 nrCurrentLink) {
+    //create bezier curve
+    //start point is the current end point of the path
+    //control point is the start point of the link
+    //in the path with the specified number
+    //end point is the end point of the link in the
+    //path with the defined number
+    irr::core::vector2df bezierPnt1;
+
+    irr::u32 nrNextLink = nrCurrentLink;
+   /* if (nrNextLink > 0) {
+      nrNextLink--;
+    }*/
+
+    //irr::core::vector3df bezierPnt13D = this->phobj->physicState.position;
+    irr::core::vector3df bezierPnt13D = mFollowPath.at(nrNextLink)->pStartEntity->get_Pos();
+   //mCurrentPathSeg.at(mCurrentPathSeg.size() - 1)->pLineStruct->B;
+    bezierPnt13D.X = -bezierPnt13D.X;
+
+    debugPathPnt1 = bezierPnt13D;
+
+    bezierPnt1.X = bezierPnt13D.X;
+    bezierPnt1.Y = bezierPnt13D.Z;
+
+    irr::core::vector2df bezierPnt2;
+
+    irr::u32 nrNextLink2 = nrNextLink;
+    if (nrNextLink2 > 0) {
+      nrNextLink2--;
+    }
+
+    //start point is the start entity for the next link
+    //irr::core::vector3df bezierPnt23D = mFollowPath.at(nrNextLink)->pStartEntity->get_Pos();
+    irr::core::vector3df bezierPnt23D = mFollowPath.at(nrNextLink2)->pEndEntity->get_Pos();
+    bezierPnt23D.X = -bezierPnt23D.X;
+
+    bezierPnt2.X = bezierPnt23D.X;
+    bezierPnt2.Y = bezierPnt23D.Z;
+
+    debugPathPnt3 = bezierPnt23D;
+
+    irr::core::vector2df bezierPntcntrl;
+    //irr::core::vector3df bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
+    irr::core::vector3df bezierPntcntrl3D =  mFollowPath.at(nrNextLink)->pEndEntity->get_Pos();
+    bezierPntcntrl3D.X = -bezierPntcntrl3D.X;
+
+    bezierPntcntrl.X = bezierPntcntrl3D.X;
+    bezierPntcntrl.Y = bezierPntcntrl3D.Z;
+
+    debugPathPnt2 = bezierPntcntrl3D;
+
+    std::vector<WayPointLinkInfoStruct*> newPoints;
+    newPoints.clear();
+
+    this->AdvanceDbgColor();
+
+    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierPntcntrl,
+                                                                    0.1f, currDbgColor);
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    mCurrentPathSeg.clear();
+
+    //add new waypoints to the existing ones
+    for (it = newPoints.begin(); it != newPoints.end(); ++it) {
+        mCurrentPathSeg.push_back(*it);
+    }
+
+    mCurrentPathSegNrSegments = mCurrentPathSeg.size();
+
+    ProjectPlayerAtCurrentSegments();
+
+    //this->mRace->mGame->StopTime();
 }
 
 void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
@@ -1764,17 +1883,17 @@ void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
         std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> >::iterator it2;
 
         for (it = mFollowPath.begin(); it != mFollowPath.end() && (didFindPlayerInPath == false); ++it) {
-            //if (this->currClosestWayPointLink.first == (*it)) {
-            for (it2 = this->currCloseWayPointLinks.begin(); it2 != this->currCloseWayPointLinks.end(); ++it2) {
-              if ((*it2).first == (*it)) {
-               if (mFollowPathCurrentNrLink > 0) {
+           if (this->currClosestWayPointLink.first == (*it)) {
+           // for (it2 = this->currCloseWayPointLinks.begin(); it2 != this->currCloseWayPointLinks.end(); ++it2) {
+             // if ((*it2).first == (*it)) {
+
+               /*if (mFollowPathCurrentNrLink > 0) {
                   mFollowPathCurrentNrLink--;
                 }
-
+*/
                didFindPlayerInPath = true;
-
                break;
-            }
+           // }
         }
 
           if (!didFindPlayerInPath) {
@@ -1784,7 +1903,7 @@ void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
 
         //we did not find player, assume player
         //is slightly before path, first element is the
-        //the fist waypoint link of the path
+        //the first waypoint link of the path
         if (!didFindPlayerInPath) {
              mFollowPathCurrentNrLink = mFollowPathNrLinks - 1;
         }
@@ -1795,7 +1914,13 @@ void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
 
     //create bezier curve for the first link
     //of the specified path
-    FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
+    //FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
+    if (currCommand->cmdType != CMD_FOLLOW_PATH) {
+        FollowPathDefineFirstSegment(mFollowPathCurrentNrLink);
+        currCommand->cmdType = CMD_FOLLOW_PATH;
+    } else {
+        //  FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
+    }
 }
 
 irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {

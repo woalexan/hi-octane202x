@@ -87,7 +87,7 @@
 
 //this struct holds the information for a sound trigger event
 //used during the games intro playing
-typedef struct {
+typedef struct IntroSoundTriggerStruct {
     //absolute time of intro playing progress
     //when to trigger this sound
     irr::f32 triggerAbsTime;
@@ -112,13 +112,13 @@ typedef struct {
 
 //this struct holds the information for a menue
 //graphical element (mostly logo)
-typedef struct {
+typedef struct MenueGraphicPart {
      irr::core::vector2d<irr::s32> drawScrPosition;
      irr::video::ITexture* texture;
      irr::core::dimension2d<irr::s32> sizeTex;
 } MenueGraphicPart;
 
-typedef struct {
+typedef struct MenueAction {
     //integer index for type of action
     irr::u32 actionNr;
 
@@ -136,10 +136,11 @@ typedef struct {
 } MenueAction;
 
 struct MenuePage; //Forward declaration
+struct RaceStatsEntryStruct; //Forward declaration
 
 //this struct holds the information about a single
 //menue entry
-typedef struct {
+typedef struct MenueSingleEntry {
     irr::u8 entryNumber;
     irr::core::vector2d<irr::s32> drawTextScrPosition;
     char* entryText;

@@ -19,7 +19,7 @@
 #include "race.h"
 
 Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver, GameText* gameText,
-           MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
+           Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
            dimension2d<u32> gameScreenRes, int loadLevelNr, bool useAutoGenMiniMapParam) {
     this->mDriver = driver;
     this->mSmgr = smgr;
@@ -33,6 +33,7 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     levelNr = loadLevelNr;
     ready = false;
     useAutoGenMinimap = useAutoGenMiniMapParam;
+    mGame = mParentGame;
 
     //IrrlichtStats("before Race constructor");
 
@@ -1266,6 +1267,8 @@ void Race::Init() {
 
         this->mSmgr->setActiveCamera(mCamera);
 
+        SetupTopRaceTrackPointerOrigin();
+
         //create the world awareness class
         mWorldAware = new WorldAwareness(this->mDevice, this->mDriver, this);
 
@@ -1277,6 +1280,16 @@ void Race::Init() {
 
         ready = true;
     }
+}
+
+void Race::SetupTopRaceTrackPointerOrigin() {
+    //get race track terrain bounding box
+    this->mLevelTerrain->TerrainSceneNode->updateAbsolutePosition();
+    irr::core::aabbox3df bbox = this->mLevelTerrain->TerrainSceneNode->getTransformedBoundingBox();
+
+    irr::f32 addYcoord = bbox.getExtent().Y / 2.0f;
+
+    this->topRaceTrackerPointerOrigin = bbox.getCenter() + irr::core::vector3df(0.0f, addYcoord, 0.0f);
 }
 
 void Race::TestVoxels() {
@@ -1491,12 +1504,66 @@ void Race::HandleComputerPlayers() {
     }*/
 }
 
-void Race::HandleInput() {
-    bool playerNoTurningKeyPressed = true;
+void Race::HandleBasicInput() {
 
     //only for debugging purposes, to trigger
     //a breakpoint via a keyboard press
     DebugHitBreakpoint = false;
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
+      this->mGame->StopTime();
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7)) {
+        this->mGame->StartTime();
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
+    {
+         this->currPlayerFollow = player;
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
+    {
+         this->currPlayerFollow = player2;
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
+    {
+         this->mGame->AdvanceFrame(10);
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
+    {
+         DebugHitBreakpoint = true;
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
+        playerCamera = !playerCamera;
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
+        mLevelTerrain->SwitchViewMode();
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
+        mLevelBlocks->SwitchViewMode();
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+        this->exitRace = true;
+    }
+
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
+        if (this->currPlayerFollow != NULL)
+        {
+            this->currPlayerFollow->mFirstPlayerCam = !this->currPlayerFollow->mFirstPlayerCam;
+        }
+    }
+}
+
+void Race::HandleInput() {
+    bool playerNoTurningKeyPressed = true;
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
@@ -1505,16 +1572,6 @@ void Race::HandleInput() {
         //this->CallRecoveryVehicleForHelp(this->player);
         //this->player2->AddCommand(CMD_FLYTO_TARGETENTITY, ENTCollectablesVec->at(0)->mEntityItem);
         this->TestFindPath();
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
-       // player->StartRecordingHeightMapCollisionDbgData(player->mHMapCollPntData.front);
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7)) {
-        /*char fileName[80];
-        strcpy(fileName, "HMAPCOLLDBG.CSV");
-        player->StopRecordingHeightMapCollisionDbgData(fileName);*/
     }
 
     if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_W)) {
@@ -1538,21 +1595,6 @@ void Race::HandleInput() {
         player->IsSpaceDown(false);
     }
 
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
-    {
-         this->currPlayerFollow = player;
-    }
-
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
-    {
-         this->currPlayerFollow = player2;
-    }
-
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
-    {
-         DebugHitBreakpoint = true;
-    }
-
     if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_A)) {
          player->Left();
            player->firstNoKeyPressed = true;
@@ -1570,19 +1612,6 @@ void Race::HandleInput() {
 
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
         player2->CpTriggerTurn(CP_TURN_RIGHT, 20.0f);
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
-        playerCamera = !playerCamera;
-
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
-        mLevelTerrain->SwitchViewMode();
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
-        mLevelBlocks->SwitchViewMode();
     }
 
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
@@ -1608,10 +1637,6 @@ void Race::HandleInput() {
         mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
     }
 
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
-        this->exitRace = true;
-    }
-
     if (this->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
         player->mMGun->Trigger();
     }
@@ -1619,14 +1644,6 @@ void Race::HandleInput() {
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
         player->mMissileLauncher->Trigger();
     }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
-        if (this->currPlayerFollow != NULL)
-        {
-            this->currPlayerFollow->mFirstPlayerCam = !this->currPlayerFollow->mFirstPlayerCam;
-        }
-    }
-
 }
 
 //the routine below is from:
@@ -2118,27 +2135,44 @@ void Race::Render() {
           std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
           for (itPathEl = player2->mCurrentPathSeg.begin(); itPathEl != player2->mCurrentPathSeg.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->pink);
+               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
           }
       }
 
-      if (player2->mFollowPath.size() > 0) {
+   /*   if (player2->mFollowPath.size() > 0) {
           std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
          for (itPathEl = player2->mFollowPath.begin(); itPathEl != player2->mFollowPath.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->blue);
+               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->pink);
           }
 
          //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
-      }
+      }*/
 
 
-      if (player2->currClosestWayPointLink.first != NULL) {
+      /*if (player2->currClosestWayPointLink.first != NULL) {
           mDriver->setMaterial(*mDrawDebug->green);
 
           mDrawDebug->Draw3DLine(this->player2->currClosestWayPointLink.first->pLineStruct->A,
                                  this->player2->currClosestWayPointLink.first->pLineStruct->B, this->mDrawDebug->green);
-      }
+      }*/
+/*
+      if (player2->currCloseWayPointLinks.size() > 0) {
+          mDriver->setMaterial(*mDrawDebug->pink);
+
+       std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> >::iterator itPathEl;
+
+         for (itPathEl = player2->currCloseWayPointLinks.begin(); itPathEl != player2->currCloseWayPointLinks.end(); ++itPathEl) {
+               mDrawDebug->Draw3DLine((*itPathEl).first->pLineStruct->A, (*itPathEl).first->pLineStruct->B, this->mDrawDebug->pink);
+          }
+      }*/
+
+      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt1, this->mDrawDebug->cyan);
+      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt2, this->mDrawDebug->orange);
+      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt3, this->mDrawDebug->red);
+
+
+    //  mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->currClosestWayPointLink.second, this->mDrawDebug->brown);
 
 
     /*  if (dbgFirstLink != NULL) {
@@ -2360,8 +2394,8 @@ void Race::createPlayers(int levelNr) {
     //setup player 2 physics properties
     player2PhysicsObj = this->mPhysics->GetObjectPntr(player2->Player_node);
     if (player2PhysicsObj != NULL) {
-        player2PhysicsObj->physicState.SetMass(3.0f);   //3.0f
-        player2PhysicsObj->physicState.SetInertia(30.0f);  //30.0f
+        player2PhysicsObj->physicState.SetMass(5.0f);   //3.0f
+        player2PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
         player2PhysicsObj->physicState.position = Startpos2;
         player2PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
 

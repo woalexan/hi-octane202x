@@ -50,6 +50,7 @@ const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 #define CMD_FLYTO_TARGETENTITY 1
 #define CMD_FLYTO_TARGETPOSITION 2
 #define CMD_FOLLOW_TARGETWAYPOINTLINK 3
+#define CMD_FOLLOW_PATH 4
 
 #define STATE_HMAP_COLL_IDLE 0
 #define STATE_HMAP_COLL_WATCH 1
@@ -275,12 +276,18 @@ public:
     irr::u32 mCurrentPathSegNrSegments;
     irr::u32 mCurrentPathSegCurrSegmentNr;
 
+    irr::core::vector3df debugPathPnt1;
+    irr::core::vector3df debugPathPnt2;
+    irr::core::vector3df debugPathPnt3;
+
     void CPForward();
     void CPBackward();
     void CPLeft(irr::f32 currAbsOrientationAngleError);
     void CPRight(irr::f32 currAbsOrientationAngleError);
     void CPNoTurningKeyPressed();
     void ProjectPlayerAtCurrentSegments();
+
+    void FollowPathDefineFirstSegment(irr::u32 nrCurrentLink);
 
     void CollectedCollectable(Collectable* whichCollectable);
 
@@ -632,6 +639,9 @@ private:
     void UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor);
 
     void CreateHMapCollisionPointData();
+
+    irr::video::SMaterial* currDbgColor;
+    void AdvanceDbgColor();
 
     std::list<irr::f32> playerCamHeightList;
     irr::u8 playerCamHeightListElementNr = 0;
