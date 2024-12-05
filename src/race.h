@@ -43,6 +43,7 @@
 #include "models/explosion.h"
 #include "utils/bezier.h"
 #include "utils/path.h"
+#include "game.h"
 
 using namespace std;
 
@@ -94,11 +95,12 @@ class Recovery; //Forward declaration
 class Bezier; //Forward declaration
 class Path; //Forward declaration
 struct CheckPointInfoStruct; //Forward declaration
+class Game; //Forward declaration
 
 class Race {
 public:
     Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
-         GameText* gameText, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
+         GameText* gameText, Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
          dimension2d<u32> gameScreenRes, int loadLevelNr, bool useAutoGenMiniMapParam = false);
 
     ~Race();
@@ -106,6 +108,7 @@ public:
     bool ready;
 
     void HandleInput();
+    void HandleBasicInput();
     void HandleComputerPlayers();
     void Render();
     void DrawHUD(irr::f32 frameDeltaTime);
@@ -212,6 +215,10 @@ public:
     std::vector<WayPointLinkInfoStruct*> testPathResult;
     WayPointLinkInfoStruct* dbgFirstLink = NULL;
 
+    irr::core::vector3df topRaceTrackerPointerOrigin;
+
+    Game* mGame;
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -222,6 +229,8 @@ private:
     irr::core::dimension2di miniMapSize;
     irr::core::vector2d<irr::s32> miniMapDrawLocation;
     MyMusicStream* mMusicPlayer;
+
+    void SetupTopRaceTrackPointerOrigin();
 
     //stores the detected minimap race track positions
     //referenced to Terrain tile coordinates from level

@@ -33,6 +33,10 @@ public:
     irr::video::SMaterial *white;
     irr::video::SMaterial *pink;
     irr::video::SMaterial *brown;
+    irr::video::SMaterial *cyan;
+    irr::video::SMaterial *orange;
+
+    irr::core::vector3df *origin;
 
 private:
     irr::video::IVideoDriver* myDriver;
@@ -40,7 +44,6 @@ private:
     irr::core::vector3df GetOrthogonalVector(irr::core::vector3df inVec);
 
     //coordinates for drawing 3D world coordinate system with arrows
-    irr::core::vector3df *origin;
     irr::core::vector3df *XAxis;
     irr::core::vector3df *YAxis;
     irr::core::vector3df *ZAxis;

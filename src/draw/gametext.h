@@ -16,7 +16,7 @@
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
 
-typedef struct {
+typedef struct GameTextCharacterInfo {
       //contains the raw texture for the character
      irr::video::ITexture* texture;
 
@@ -32,7 +32,7 @@ typedef struct {
      irr::video::SColor transColor;
 } GameTextCharacterInfo;
 
-typedef struct {
+typedef struct GameTextFont {
     std::vector<GameTextCharacterInfo*> CharacterVector;
 } GameTextFont;
 

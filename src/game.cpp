@@ -38,6 +38,19 @@ bool Game::InitIrrlicht() {
     return true;
 }
 
+void Game::StopTime() {
+    if (!mTimeStopped) {
+        mTimeStopped = true;
+    }
+}
+
+void Game::StartTime() {
+    if (mTimeStopped) {
+        mTimeStopped = false;
+        mAdvanceFrameMode = false;
+    }
+}
+
 bool Game::InitSFMLAudio() {
     /************************************************/
     /************** Init SFML for Audio use *********/
@@ -139,7 +152,7 @@ bool Game::InitGame() {
 void Game::DebugGame() {
     mDebugGame = true;
 
-    int debugLevelNr = 1;
+    int debugLevelNr = 2;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -169,6 +182,13 @@ void Game::RunGame() {
     showTitleAbsTime = 0.0f;
 
     GameLoop();
+}
+
+void Game::AdvanceFrame(irr::s32 advanceFrameCount) {
+    if (this->mTimeStopped) {
+        mAdvanceFrameMode = true;
+        mAdvanceFrameCnt = advanceFrameCount;
+    }
 }
 
 void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
@@ -277,17 +297,36 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->StartOfGameLoop();
 
-    //handle main player keyboard input
-    mCurrentRace->HandleInput();
+    mCurrentRace->HandleBasicInput();
+
+    if (mAdvanceFrameMode) {
+        mAdvanceFrameCnt--;
+
+        if (mAdvanceFrameCnt > 0) {
+            mTimeStopped = false;
+        } else {
+            mTimeStopped = true;
+            mAdvanceFrameMode = false;
+        }
+    }
+
+    if (!this->mTimeStopped) {
+        //handle main player keyboard input
+        mCurrentRace->HandleInput();
+    }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
-    mCurrentRace->HandleComputerPlayers();
+    if (!this->mTimeStopped) {
+        mCurrentRace->HandleComputerPlayers();
+    }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
 
-    //advance race time, execute physics, move players...
-    mCurrentRace->AdvanceTime(frameDeltaTime);
+    if (!this->mTimeStopped) {
+        //advance race time, execute physics, move players...
+        mCurrentRace->AdvanceTime(frameDeltaTime);
+    }
 
     wchar_t* text = new wchar_t[200];
     wchar_t* text2 = new wchar_t[400];
@@ -460,7 +499,7 @@ bool Game::CreateNewRace(int load_levelnr) {
     gameSoundEngine->StartEngineSound();
 
     //create a new Race
-    mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, gameMusicPlayer, gameSoundEngine,
+    mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
                            mTimeProfiler, this->mGameScreenRes, load_levelnr, false);
 
     mCurrentRace->Init();

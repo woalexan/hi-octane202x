@@ -35,6 +35,10 @@ using namespace irr::video;
 using namespace irr::scene;
 using namespace irr::gui;
 
+class Menue; //Forward declaration
+struct RaceStatsEntryStruct; //Forward declaration
+struct MenueAction; //Forward declaration
+
 class Game {
 private:
     //Irrlicht stuff
@@ -96,9 +100,13 @@ private:
     void GameLoopRace(irr::f32 frameDeltaTime);
 
     Race* mCurrentRace = NULL;
+    bool mTimeStopped = false;
 
     bool CreateNewRace(int load_levelnr);
     void CleanUpRace();
+
+    bool mAdvanceFrameMode = false;
+    irr::s32 mAdvanceFrameCnt = 0;
 
 public:
     dimension2d<u32> mGameScreenRes;
@@ -107,6 +115,10 @@ public:
     bool InitGame();
     void RunGame();
     void DebugGame();
+
+    void StopTime();
+    void StartTime();
+    void AdvanceFrame(irr::s32 advanceFrameCount);
 
     Game();
     ~Game();

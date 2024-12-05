@@ -486,6 +486,10 @@ std::vector<WayPointLinkInfoStruct*> Path::FindPathToNextCheckPoint(Player *whic
         linkPntr = linkPntr->pntrPathNextLink;
     }
 
+    if (linkPntr->pntrPathNextLink != NULL) {
+        linkPntr = linkPntr->pntrPathNextLink;
+    }
+
     //start recursive search backwards for player
     playerFound = ContinuePathSearchForPlayer(linkPntr, linkNearPlayer, result, linkPntr, true);
 
