@@ -209,7 +209,6 @@ class Recovery; //Forward declaration
 
 class Player {
 public:
-    //Player(LevelTerrain *Terrain, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr);
     Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
            bool humanPlayer);
     ~Player();
@@ -279,6 +278,11 @@ public:
     irr::core::vector3df debugPathPnt1;
     irr::core::vector3df debugPathPnt2;
     irr::core::vector3df debugPathPnt3;
+    irr::core::vector3df debugPathPnt4;
+    irr::core::vector3df debugPathPnt5;
+
+    irr::f32 dbgAngleError;
+    irr::f32 dbgDistError;
 
     void CPForward();
     void CPBackward();
@@ -313,7 +317,7 @@ public:
 
     void ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec);
 
-    irr::f32 currentSideForce = 20.0f;
+    irr::f32 currentSideForce = 0.0f;
 
     irr::core::vector3d<irr::f32> LocalTopLookingCamPosPnt;
     irr::core::vector3d<irr::f32> LocalTopLookingCamTargetPnt;
@@ -397,24 +401,15 @@ public:
 
     void SetTarget(Player* newTarget);
 
-    //irr::core::vector3d<irr::f32> Position;  //current player position
-    //irr::core::vector3d<irr::f32> FrontDir;  //is direction vector which points forward of the craft
-    //irr::core::vector3d<irr::f32> SideDir; //direction vector to right side of craft
-
-    /*
-    irr::core::quaternion WheelSteerDir;
-    irr::core::vector3df WorldCoordWheelDir;
-    irr::core::vector3df LocalCoordWheelDir;
-    irr::core::vector3df targetSteerDir;
-    irr::f32 targetSteerAngle;
-    irr::core::vector3df WorldCoordCraftTravelDir;*/
-
     irr::core::vector3df craftUpwardsVec;
     irr::core::vector3df craftSidewaysToRightVec;
 
     uint8_t cPCurrentTurnMode = CP_TURN_NOTURN;
     irr::f32 mCurrentCraftOrientationAngle;
     irr::f32 mLastCurrentCraftOrientationAngle;
+
+    irr::f32 mLastAngleError;
+    irr::f32 mAngleError;
 
     irr::f32 mCurrentWaypointLinkAngle;
 
@@ -424,10 +419,6 @@ public:
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;
     irr::f32 mCurrentCraftDistWaypointLinkTarget = 0.0f;
 
-
-    irr::f32 cPStartTurnAngle;
-    irr::f32 cpEndTurnAngle;
-    irr::f32 cPAngleTurned;
     irr::f32 cPTargetTurnAngle;
     irr::core::vector3df cPStartTurnOrientation;
 
@@ -480,7 +471,7 @@ public:
 
     void SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink);
     irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
-    void FollowPathDefineNextSegment(irr::u32 nrCurrentLink);
+    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, WayPointLinkInfoStruct* nextnextLink);
 
     irr::f32 GetHoverHeight();
 
@@ -601,6 +592,10 @@ public:
     bool minCeilingFound;
 
     irr::f32 absSkyAngleValue;
+
+    irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
+    irr::core::vector2df GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord);
+
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
