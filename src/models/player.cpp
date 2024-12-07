@@ -910,6 +910,8 @@ void Player::NoTurningKeyPressed() {
 void Player::CPForceController() {
 
     mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
+    mLastAngleError = mAngleError;
+
     mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
     //cpLastFollowSeg = cPCurrentFollowSeg;
 
@@ -926,7 +928,7 @@ void Player::CPForceController() {
     }
 
     if (this->cPCurrentFollowSeg != NULL) {
-        computerPlayerTargetSpeed = 2.0f;
+        computerPlayerTargetSpeed = 3.0f;
 
         //we need to project current computer player craft
         //position onto the current segment we follow
@@ -964,18 +966,29 @@ void Player::CPForceController() {
         }
 
         //what is our relation towards the currClosestWayPoint link?
-        irr::f32 absAngleLinkForwardDir =
+        /*irr::f32 absAngleLinkForwardDir =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(this->cPCurrentFollowSeg->LinkDirectionVec);
 
         mCurrentWaypointLinkAngle = absAngleLinkForwardDir;
-
+            */
         mCurrentCraftOrientationAngle =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
 
-        irr::f32 angleError = absAngleLinkForwardDir - mCurrentCraftOrientationAngle + mCurrentCraftTargetOrientationOffsetAngle;
+        //irr::f32 angleError = absAngleLinkForwardDir - mCurrentCraftOrientationAngle + mCurrentCraftTargetOrientationOffsetAngle;
+
+         irr::f32 angleDotProduct = this->cPCurrentFollowSeg->LinkDirectionVec.dotProduct(craftForwardDirVec);
+
+        irr::f32 angleRad = acosf(angleDotProduct);
+        mAngleError = (angleRad / irr::core::PI) * 180.0f;
+
+        if (craftSidewaysToRightVec.dotProduct(this->cPCurrentFollowSeg->LinkDirectionVec) > 0.0f) {
+            mAngleError = -mAngleError;
+        }
+
         irr::f32 currAngleVelocityCraft =  (mCurrentCraftOrientationAngle - mLastCurrentCraftOrientationAngle);
 
         irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
+
 
         /***************************************/
         /*  Control Craft absolute angle start */
@@ -983,17 +996,19 @@ void Player::CPForceController() {
 
         //Note 02.12.2024: best values until now
         //irr::f32 corrForceOrientationAngle = 3.0f;
-        //irr::f32 corrDampingOrientationAngle = 2000.0f;
+        //irr::f32 corrDampingOrientationAngle = 500.0f;
 
         irr::f32 corrForceOrientationAngle = 3.0f;
-        irr::f32 corrDampingOrientationAngle = 500.0f;
+        irr::f32 corrDampingOrientationAngle = 5000.0f;
 
-        irr::f32 corrForceAngle = angleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
+        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
 
         //we need to limit max force, if force is too high just
         //set it zero, so that not bad physical things will happen!
+        //if (fabs(corrForceAngle) > 10.0f) {
         if (fabs(corrForceAngle) > 10.0f) {
             //corrForceAngle = 0.0f;
+            //corrForceAngle = sgn(corrForceAngle) * 10.0f;
             corrForceAngle = sgn(corrForceAngle) * 10.0f;
            // currentSideForce = sgn(corrForceAngle) * corrForceAngle * 3.0f;
         } //else currentSideForce = 0.0f;
@@ -1013,6 +1028,8 @@ void Player::CPForceController() {
         irr::f32 corrDampingDist = 500.0f;
 
         irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
+
+         dbgDistError = distError;
 
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
@@ -1206,14 +1223,21 @@ void Player::ProjectPlayerAtCurrentSegments() {
 }
 
 void Player::ReachedEndCurrentFollowingSegments() {
-    mFollowPathCurrentNrLink--;
+    WayPointLinkInfoStruct* nextLink = NULL;
+    WayPointLinkInfoStruct* nextnextLink = NULL;
 
-    if (mFollowPathCurrentNrLink < 0) {
-        //path has no more links
-    } else {
-        //create bezier curve for the next link
-        //of the specified path
-        FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
+    if (this->currClosestWayPointLink.first != NULL) {
+        if (this->currClosestWayPointLink.first->pntrPathNextLink != NULL) {
+            nextLink = this->currClosestWayPointLink.first->pntrPathNextLink;
+        }
+    }
+
+    if (nextLink != NULL) {
+        if (nextLink->pntrPathNextLink != NULL) {
+            nextnextLink = nextLink->pntrPathNextLink;
+
+             FollowPathDefineNextSegment(nextLink, nextnextLink);
+        }
     }
 }
 
@@ -1792,63 +1816,52 @@ void Player::FollowPathDefineFirstSegment(irr::u32 nrCurrentLink) {
     //this->mRace->mGame->StopTime();
 }
 
-void Player::FollowPathDefineNextSegment(irr::u32 nrCurrentLink) {
+irr::core::vector2df Player::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
+    threeDCoord = this->phobj->physicState.position;
+
+    irr::core::vector2df result(this->phobj->physicState.position.X, this->phobj->physicState.position.Z);
+
+    return result;
+}
+
+irr::core::vector2df Player::GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord) {
+     irr::core::vector3df midPoint = (point2 - point1) * irr::core::vector3df(0.5f, 0.5f, 0.5f) +  point1;
+     threeDCoord = midPoint;
+
+    irr::core::vector2df result(midPoint.X, midPoint.Z);
+
+    return result;
+}
+
+void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, WayPointLinkInfoStruct* nextnextLink) {
     //create bezier curve
     //start point is the current end point of the path
     //control point is the start point of the link
     //in the path with the specified number
     //end point is the end point of the link in the
     //path with the defined number
-    irr::core::vector2df bezierPnt1;
+    irr::core::vector3df link1Start3D;
+    irr::core::vector3df link1End3D;
 
-    irr::u32 nrNextLink = nrCurrentLink;
-   /* if (nrNextLink > 0) {
-      nrNextLink--;
-    }*/
+    //current player position, is start point for bezier curve 1
+    irr::core::vector2df bezierPnt1 = this->GetMyBezierCurvePlaningCoord(debugPathPnt1);
 
-    //irr::core::vector3df bezierPnt13D = this->phobj->physicState.position;
-    irr::core::vector3df bezierPnt13D = mFollowPath.at(nrNextLink)->pStartEntity->get_Pos();
-   //mCurrentPathSeg.at(mCurrentPathSeg.size() - 1)->pLineStruct->B;
-    bezierPnt13D.X = -bezierPnt13D.X;
+    //next link start point => is the control point for bezier curve 1
+    irr::core::vector2df bezierCntrlPnt1 = nextLink->pStartEntity->GetMyBezierCurvePlaningCoord(link1Start3D);
+    debugPathPnt2 = link1Start3D;
 
-    debugPathPnt1 = bezierPnt13D;
+    //end point for next link is needed to calculate midpoint
+    irr::core::vector2df link1End = nextLink->pEndEntity->GetMyBezierCurvePlaningCoord(link1End3D);
 
-    bezierPnt1.X = bezierPnt13D.X;
-    bezierPnt1.Y = bezierPnt13D.Z;
-
-    irr::core::vector2df bezierPnt2;
-
-    irr::u32 nrNextLink2 = nrNextLink;
-    if (nrNextLink2 > 0) {
-      nrNextLink2--;
-    }
-
-    //start point is the start entity for the next link
-    //irr::core::vector3df bezierPnt23D = mFollowPath.at(nrNextLink)->pStartEntity->get_Pos();
-    irr::core::vector3df bezierPnt23D = mFollowPath.at(nrNextLink2)->pEndEntity->get_Pos();
-    bezierPnt23D.X = -bezierPnt23D.X;
-
-    bezierPnt2.X = bezierPnt23D.X;
-    bezierPnt2.Y = bezierPnt23D.Z;
-
-    debugPathPnt3 = bezierPnt23D;
-
-    irr::core::vector2df bezierPntcntrl;
-    //irr::core::vector3df bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
-    irr::core::vector3df bezierPntcntrl3D =  mFollowPath.at(nrNextLink)->pEndEntity->get_Pos();
-    bezierPntcntrl3D.X = -bezierPntcntrl3D.X;
-
-    bezierPntcntrl.X = bezierPntcntrl3D.X;
-    bezierPntcntrl.Y = bezierPntcntrl3D.Z;
-
-    debugPathPnt2 = bezierPntcntrl3D;
+    //calculate midpoint for next link, is the bezier curve 1 end point
+    irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
 
     std::vector<WayPointLinkInfoStruct*> newPoints;
     newPoints.clear();
 
     this->AdvanceDbgColor();
 
-    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierPntcntrl,
+    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
                                                                     0.1f, currDbgColor);
 
     std::vector<WayPointLinkInfoStruct*>::iterator it;

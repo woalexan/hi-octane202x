@@ -2170,6 +2170,8 @@ void Race::Render() {
       mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt1, this->mDrawDebug->cyan);
       mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt2, this->mDrawDebug->orange);
       mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt3, this->mDrawDebug->red);
+      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt4, this->mDrawDebug->blue);
+      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt5, this->mDrawDebug->green);
 
 
     //  mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->currClosestWayPointLink.second, this->mDrawDebug->brown);

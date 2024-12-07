@@ -36,6 +36,16 @@ unsigned char EntityItem::get_Type() {
     return(this->m_Bytes.at(0));
 }
 
+irr::core::vector2df EntityItem::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
+    irr::core::vector3df threeDCoordMyUniverse(-get_X(), get_Y(), get_Z());
+
+    threeDCoord = threeDCoordMyUniverse;
+
+    irr::core::vector2df result(threeDCoordMyUniverse.X, threeDCoordMyUniverse.Z);
+
+    return result;
+}
+
 unsigned char EntityItem::get_SubType() {
     return (this->m_Bytes.at(1));
 }

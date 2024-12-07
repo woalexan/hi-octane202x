@@ -38,6 +38,8 @@ public:
     irr::core::vector3d<float> get_Pos();
     irr::core::vector3d<float> get_Center();
 
+    irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
+
     int get_Group();
     int get_TargetGroup();
     int get_Value();

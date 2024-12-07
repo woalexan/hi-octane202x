@@ -152,7 +152,7 @@ bool Game::InitGame() {
 void Game::DebugGame() {
     mDebugGame = true;
 
-    int debugLevelNr = 2;
+    int debugLevelNr = 1;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -384,9 +384,13 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                      this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
 
 
-    swprintf(text2, 390, L"nCurrSeg = %d\NrSegments = %d\n",
+    /*swprintf(text2, 390, L"nCurrSeg = %d\nSegments = %d\n",
                    this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                   this->mCurrentRace->player2->mCurrentPathSegNrSegments);
+                   this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
+
+    swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
+                   this->mCurrentRace->player2->mAngleError,
+                   this->mCurrentRace->player2->dbgDistError);
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);
