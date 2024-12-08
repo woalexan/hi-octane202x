@@ -1975,10 +1975,11 @@ void HUD::SetMonitorWhichPlayer(Player* newPlayer) {
     //old player is stopped
     if (monitorWhichPlayer != NULL) {
         monitorWhichPlayer->StopPlayingWarningSound();
+        monitorWhichPlayer->SetMyHUD(NULL);
     }
 
     monitorWhichPlayer = newPlayer;
-    monitorWhichPlayer->SetMyHUD(this);
+    newPlayer->SetMyHUD(this);
 }
 
 void HUD::InitHudBannerText() {

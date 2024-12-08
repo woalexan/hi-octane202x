@@ -35,8 +35,11 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 PLAYER_FAST_SPEED = 8.0f;
-const irr::f32 PLAYER_SLOW_SPEED = 4.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 8.0f;
+const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;
+
+const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
+const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
 
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
@@ -45,15 +48,14 @@ const irr::f32 PLAYER_SLOW_SPEED = 4.0f;
 #define CRAFT_LEANINGLEFT 1
 #define CRAFT_LEANINGRIGHT 2
 
-#define CP_TURN_NOTURN 0
-#define CP_TURN_LEFT 1
-#define CP_TURN_RIGHT 2
-
 #define CMD_NOCMD 0
 #define CMD_FLYTO_TARGETENTITY 1
 #define CMD_FLYTO_TARGETPOSITION 2
 #define CMD_FOLLOW_TARGETWAYPOINTLINK 3
 #define CMD_FOLLOW_PATH 4
+#define CMD_CHARGE_SHIELD 5
+#define CMD_CHARGE_FUEL 6
+#define CMD_CHARGE_AMMO 7
 
 #define STATE_HMAP_COLL_IDLE 0
 #define STATE_HMAP_COLL_WATCH 1
@@ -233,10 +235,6 @@ public:
     irr::f32 currHeightLeft;
     irr::f32 currHeightRight;
 
-    irr::f32 dbgdeltaAngleTurningLeft;
-    irr::f32 dbgdeltaAngleTurningRight;
-    irr::f32 dbgForce;
-
     irr::f32 mCraftDistanceAvailRight;
     irr::f32 mCraftDistanceAvailLeft;
     irr::f32 mCraftDistanceAvailBack;
@@ -294,13 +292,9 @@ public:
 
     void CPForward();
     void CPBackward();
-    void CPLeft(irr::f32 currAbsOrientationAngleError);
-    void CPRight(irr::f32 currAbsOrientationAngleError);
-    void CPNoTurningKeyPressed();
     void ProjectPlayerAtCurrentSegments();
 
     void FollowPathDefineFirstSegment(irr::u32 nrCurrentLink);
-
     void CollectedCollectable(Collectable* whichCollectable);
 
     void StartPlayingWarningSound();
@@ -310,6 +304,10 @@ public:
     void AddCommand(uint8_t cmdType, EntityItem* targetEntity);
     void AddCommand(uint8_t cmdType, irr::core::vector3df* targetLocation);
     void AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink);
+    void AddCommand(uint8_t cmdType);
+
+    void CheckAndRemoveNoCommand();
+    void CpHandleCharging();
 
     //void buttonL();
     //void buttonR();
@@ -418,26 +416,17 @@ public:
     irr::core::vector3df craftUpwardsVec;
     irr::core::vector3df craftSidewaysToRightVec;
 
-    uint8_t cPCurrentTurnMode = CP_TURN_NOTURN;
     irr::f32 mCurrentCraftOrientationAngle;
     irr::f32 mLastCurrentCraftOrientationAngle;
 
     irr::f32 mLastAngleError;
     irr::f32 mAngleError;
 
-    irr::f32 mCurrentWaypointLinkAngle;
-
-    irr::f32 mCurrentCraftTargetOrientationOffsetAngle = 0.0f;
-
     irr::f32 mCurrentCraftDistToWaypointLink = 0.0f;
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;
     irr::f32 mCurrentCraftDistWaypointLinkTarget = 0.0f;
 
-    irr::f32 cPTargetTurnAngle;
-    irr::core::vector3df cPStartTurnOrientation;
-
-    void CpTriggerTurn(uint8_t newTurnMode, irr::f32 turnAngle);
-    void CpInterruptTurn();
+    irr::f32 mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
 
     PhysicsObject* phobj;
 
@@ -483,7 +472,7 @@ public:
 
     void SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink);
     irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
-    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, WayPointLinkInfoStruct* nextnextLink);
+    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink);
 
     irr::f32 GetHoverHeight();
 
@@ -491,28 +480,8 @@ public:
     irr::f32 computerPlayerTargetSpeed = 0.0f;
     irr::f32 computerPlayerCurrentSpeed = 0.0f;
 
-    irr::f32 cPTargetRelativeAngle = 0.0f; //0.0f means go straight in parallel to current followed
-                                                    //waypoint link
-    irr::f32 cPCurrRelativeAngle;
-    irr::f32 cPCurrRelativeAngleErr;
-
-    irr::f32 cPTargetDistance = 10.0f;
-    irr::f32 cPcurrDistanceErr;
-    irr::f32 cPcurrDistance;
-
-    irr::f32 CPcurrWaypointLinkFinishedPerc = 0.0f;
-
-    bool cPCurrCorrectingPos = false;
-    irr::f32 cPCorrectingPosErr;
-
-    irr::f32 computerPlayerCurrShipWayPointLinkSide;
-    irr::f32 computerPlayerCurrDistanceFromWayPointLinkFront;
-    irr::f32 computerPlayerCurrDistanceFromWayPointLinkBack;
-    irr::f32 computerPlayerCurrDistanceFromWayPointLinkAvg;
-    irr::f32 computerPlayerCurrSteerForce = 10.0f;
-
     void RunComputerPlayerLogic();
-    void FollowWayPointLink();
+
     void FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand);
     CPCOMMANDENTRY* PullNextCommandFromCmdList();
     CPCOMMANDENTRY* CreateNoCommand();
@@ -560,10 +529,6 @@ public:
 
     void SetMyHUD(HUD* pntrHUD);
     HUD* GetMyHUD();
-
-    uint8_t cPCntrlCycle = 0;
-    uint8_t cPProbTurnLeft = 0;
-    uint8_t cPProbTurnRight = 0;
 
     bool mBoosterActive = false;
     bool mLastBoosterActive = false;
@@ -699,7 +664,7 @@ private:
     std::vector<irr::s32> *dirtTexIdsVec;
 
 public:
-       HUD* mHUD;
+    HUD* mHUD = NULL;
 };
 
 #endif // PLAYER_H

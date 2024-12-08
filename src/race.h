@@ -210,8 +210,6 @@ public:
     std::vector<EntityItem*> *ENTWaypoints_List;
     std::vector<WayPointLinkInfoStruct*> *wayPointLinkVec;
 
-    void TestFindPath();
-
     std::vector<WayPointLinkInfoStruct*> testPathResult;
     WayPointLinkInfoStruct* dbgFirstLink = NULL;
 
