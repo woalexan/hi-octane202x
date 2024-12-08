@@ -14,6 +14,10 @@ void Player::SetPlayerObject(PhysicsObject* phObjPtr) {
    this->phobj = phObjPtr;
 }
 
+int Player::randRangeInt(int min, int max) {
+   return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+}
+
 void Player::DamageGlas() {
     //with a certain probability damage glas if another player
     //shoots with the machine gun at me
@@ -915,21 +919,25 @@ void Player::CPForceController() {
     mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
     //cpLastFollowSeg = cPCurrentFollowSeg;
 
+    if (computerPlayerTargetSpeed > computerPlayerCurrentSpeed) {
+        computerPlayerCurrentSpeed += 0.002f;
+    } else if (computerPlayerCurrentSpeed > computerPlayerTargetSpeed) {
+        computerPlayerCurrentSpeed -= 0.002f;
+    }
+
     //control computer player speed
-    if (this->phobj->physicState.speed < (computerPlayerTargetSpeed * 0.9f))
+    if (this->phobj->physicState.speed < (computerPlayerCurrentSpeed * 0.9f))
     {
         //go faster
         this->CPForward();
          //this->mHUD->ShowBannerText((char*)"FORWARD", 4.0f);
-    } else if (this->phobj->physicState.speed > (computerPlayerTargetSpeed * 1.1f)) {
+    } else if (this->phobj->physicState.speed > (computerPlayerCurrentSpeed * 1.1f)) {
         //go slower
        this->CPBackward();
          //this->mHUD->ShowBannerText((char*)"BACKWARD", 4.0f);
     }
 
     if (this->cPCurrentFollowSeg != NULL) {
-        computerPlayerTargetSpeed = 3.0f;
-
         //we need to project current computer player craft
         //position onto the current segment we follow
         //this recalculates the current projPlayerPositionClosestWayPointLink member
@@ -1217,28 +1225,185 @@ void Player::ProjectPlayerAtCurrentSegments() {
 
    //have we reached the end of the following path we follow?
    //if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
-   if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments - 1)) {
+   if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments - 2)) {
       ReachedEndCurrentFollowingSegments();
    }
 }
 
+WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks) {
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+    WayPointLinkInfoStruct* linkForFuel = NULL;
+    WayPointLinkInfoStruct* linkForShield = NULL;
+    WayPointLinkInfoStruct* linkForAmmo = NULL;
+    std::vector<WayPointLinkInfoStruct*> linksNothingSpecial;
+
+    linksNothingSpecial.clear();
+
+    EntityItem* ent;
+
+    for (it = availLinks.begin(); it != availLinks.end(); ++it) {
+        //what kind of waypoint is this?
+        ent = (*it)->pStartEntity;
+
+        switch (ent->get_GameType()) {
+            case EntityItem::WaypointFuel: {
+                linkForFuel = (*it);
+                break;
+            }
+
+            case EntityItem::WaypointAmmo: {
+                linkForAmmo = (*it);
+                break;
+            }
+
+            case EntityItem::WaypointShield: {
+                linkForShield = (*it);
+                break;
+            }
+
+            //need to go slower
+            case EntityItem::WaypointSlow: {
+                linksNothingSpecial.push_back(*it);
+                break;
+            }
+
+            //need to go faster
+            case EntityItem::WaypointFast: {
+                linksNothingSpecial.push_back(*it);
+                break;
+            }
+
+            case EntityItem::WaypointSpecial1:
+            case EntityItem::WaypointSpecial2:
+            case EntityItem::WaypointSpecial3:
+            case EntityItem::WaypointShortcut: {
+                linksNothingSpecial.push_back(*it);
+                break;
+            }
+
+        }
+    }
+
+    //now handle stuff in terms of priority, most important stuff first
+
+    //do we have link to shield?
+    if (linkForShield) {
+        //do we need shield? nothing more important!
+        if (this->mPlayerStats->shieldVal < (0.4 * this->mPlayerStats->shieldMax)) {
+            //I need shield
+            return (linkForShield);
+        }
+    }
+
+    //do we have link to fuel?
+    if (linkForFuel) {
+        //do we need fuel?
+        if (this->mPlayerStats->gasolineVal < (0.5 * this->mPlayerStats->gasolineMax)) {
+            //I need fuel
+            return (linkForFuel);
+        }
+    }
+
+    //do we have link to ammo?
+    if (linkForAmmo) {
+        //do we need ammo?
+        if (this->mPlayerStats->ammoVal < (0.3 * this->mPlayerStats->ammoMax)) {
+            //I need ammo
+            return (linkForAmmo);
+        }
+    }
+
+    //if there is only one waypoint link available
+    //just return this one
+    int nrWays = linksNothingSpecial.size();
+    if (nrWays > 0) {
+        //return (linksNothingSpecial.at(0));
+
+        //choose available path random
+        int rNum;
+        rNum = randRangeInt(0, nrWays - 1);
+
+        return linksNothingSpecial.at(rNum);
+    }
+
+    if (linkForFuel) {
+      return (linkForFuel);
+    }
+
+    if (linkForAmmo) {
+      return (linkForAmmo);
+    }
+
+    //we still have no way to go
+    if (linkForShield) {
+      return (linkForShield);
+    }
+
+    return NULL;
+}
+
 void Player::ReachedEndCurrentFollowingSegments() {
-    WayPointLinkInfoStruct* nextLink = NULL;
-    WayPointLinkInfoStruct* nextnextLink = NULL;
+  //  if (this->currClosestWayPointLink.first != NULL) {
 
-    if (this->currClosestWayPointLink.first != NULL) {
-        if (this->currClosestWayPointLink.first->pntrPathNextLink != NULL) {
-            nextLink = this->currClosestWayPointLink.first->pntrPathNextLink;
+        //which waypoint options do we have at the end of
+        //our closest waypoint link?
+        irr::core::vector3df endPointLink;
+
+        //endPointLink = this->currClosestWayPointLink.first->pEndEntity->get_Pos();
+        endPointLink = this->mCpFollowThisWayPointLink->pEndEntity->get_Pos();
+        endPointLink.X = -endPointLink.X;
+
+        std::vector<EntityItem*> availWaypoints =
+              this->mRace->mPath->FindAllWayPointsInArea(endPointLink, 2.0f);
+
+        mDbgCpAvailWaypointNr = availWaypoints.size();
+
+        if (mDbgCpAvailWaypointNr > 0) {
+             std::vector<EntityItem*>::iterator it;
+             mCpAvailWayPointLinks.clear();
+
+              std::vector<WayPointLinkInfoStruct*> fndLinks;
+              std::vector<WayPointLinkInfoStruct*>::iterator it2;
+
+             for (it = availWaypoints.begin(); it != availWaypoints.end(); ++it) {
+                 //if ((*it) != this->currClosestWayPointLink.first->pEndEntity) {
+                     fndLinks = this->mRace->mPath->FindWaypointLinksForWayPoint((*it), true, false);
+
+                     if (fndLinks.size() > 0) {
+                         for (it2 = fndLinks.begin(); it2 != fndLinks.end(); ++it2) {
+                            mCpAvailWayPointLinks.push_back(*it2);
+                         }
+                     }
+                // }
+             }
+
+             mDbgCpAvailWayPointLinksNr = mCpAvailWayPointLinks.size();
         }
-    }
 
-    if (nextLink != NULL) {
-        if (nextLink->pntrPathNextLink != NULL) {
-            nextnextLink = nextLink->pntrPathNextLink;
+        WayPointLinkInfoStruct* nextLink = NULL;
+        WayPointLinkInfoStruct* nextnextLink = NULL;
 
-             FollowPathDefineNextSegment(nextLink, nextnextLink);
+        //ask computer player logic what to do
+        nextLink = CpPlayerWayPointLinkSelectionLogic(mCpAvailWayPointLinks);
+        this->mCpFollowThisWayPointLink = nextLink;
+
+        if (nextLink != NULL) {
+            EntityItem::EntityType entType = nextLink->pStartEntity->get_GameType();
+
+            //we need to go slower?
+            if (entType == EntityItem::WaypointSlow) {
+                this->computerPlayerTargetSpeed = PLAYER_SLOW_SPEED;
+            } else if (entType == EntityItem::WaypointFast) {
+                this->computerPlayerTargetSpeed = PLAYER_FAST_SPEED;
+            }
+
+            if (nextLink->pntrPathNextLink != NULL) {
+                nextnextLink = nextLink->pntrPathNextLink;
+
+                 FollowPathDefineNextSegment(nextLink, nextnextLink);
         }
-    }
+      }
+  //  }
 }
 
 void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2) {
@@ -2121,7 +2286,6 @@ void Player::RunComputerPlayerLogic() {
     }
 
     case CMD_FOLLOW_TARGETWAYPOINTLINK: {
-        FollowWayPointLink();
         break;
     }
 
@@ -2169,7 +2333,7 @@ void Player::CpAddCommandTowardsNextCheckpoint() {
     overallWaypointLinkList.clear();
 
     for (it = wayPointAroundMeVec.begin(); it != wayPointAroundMeVec.end(); ++it) {
-        structPntrVec = mRace->mPath->FindWaypointLinksForWayPoint(*it);
+        structPntrVec = mRace->mPath->FindWaypointLinksForWayPoint((*it), true, true);
 
         for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
             overallWaypointLinkList.push_back(*it2);
@@ -2238,218 +2402,6 @@ void Player::CpDefineNextAction() {
             break;
         }
     }
-}
-
-void Player::FollowWayPointLink() {
-    //if we run this method for human player
-    //just exit
-
-    if (mHumanPlayer)
-        return;
-
-    //do we already follow a Waypoint link?
-    //if (computerCurrFollowWayPointLink != NULL) {
-     if (computerCurrFollowWayPointLink != NULL) {
-        //yes, we do
-        /*
-        //control computer player speed
-        if (this->phobj->physicState.speed < (computerPlayerTargetSpeed * 0.9f))
-        {
-            //go faster
-            this->Forward();
-             //this->mHUD->ShowBannerText((char*)"FORWARD", 4.0f);
-        } else if (this->phobj->physicState.speed > (computerPlayerTargetSpeed * 1.1f)) {
-            //go slower
-           this->Backward();
-             //this->mHUD->ShowBannerText((char*)"BACKWARD", 4.0f);
-        }*/
-
-        irr::core::vector3d<irr::f32> mDirVecToMyRightSide = (WorldCoordCraftRightPnt - this->phobj->physicState.position);
-
-        //control craft sideways
-        //project player on waypoint link we currently
-        //follow
-        irr::core::vector3d<irr::f32> projPlayerPositionFrontCraft;
-        irr::core::vector3d<irr::f32> distanceVecFrontCraft;
-        irr::f32 remainingDistanceToTravelFront;
-
-        irr::core::vector3d<irr::f32> projPlayerPositionBackCraft;
-        irr::core::vector3d<irr::f32> distanceVecBackCraft;
-        irr::f32 remainingDistanceToTravelBack;
-        WayPointLinkInfoStruct* controlLink = computerCurrFollowWayPointLink;
-
-        bool sideWaysOfWaypointFront = true;
-        bool SideWaysofWayPointBack = true;
-
-      //  if (ProjectOnWayPoint(computerCurrFollowWayPointLink, &projPlayerPosition, &distanceVec, &remainingDistanceToTravel)) {
-        sideWaysOfWaypointFront = sideWaysOfWaypointFront && ProjectOnWayPoint(computerCurrFollowWayPointLink, this->WorldCoordCraftFrontPnt ,&projPlayerPositionFrontCraft, &distanceVecFrontCraft, &remainingDistanceToTravelFront);
-        SideWaysofWayPointBack = SideWaysofWayPointBack && ProjectOnWayPoint(computerCurrFollowWayPointLink, this->WorldCoordCraftBackPnt ,&projPlayerPositionBackCraft, &distanceVecBackCraft, &remainingDistanceToTravelBack);
-
-        //if we are not sideways of any waypoint link the
-        //following calculations would lead to temporary false
-        //computer player steer inputs, and would throw us of track
-        //therefore in this case just exit, and hope the next time we get
-        //an acceptable waypoint again
-        if (!sideWaysOfWaypointFront || !SideWaysofWayPointBack) {
-            if (!sideWaysOfWaypointFront && !SideWaysofWayPointBack) {
-                this->mHUD->ShowBannerText((char*)"NO REF FRONT BACK", 0.1f);
-             } else
-
-            if (!sideWaysOfWaypointFront) {
-                this->mHUD->ShowBannerText((char*)"NO REF FRONT", 0.1f);
-             } else
-            if (!SideWaysofWayPointBack) {
-                this->mHUD->ShowBannerText((char*)"NO REF BACK", 0.1f);
-            }
-
-            if (computerCurrFollowWayPointLink->pntrTransitionLink != NULL)
-                controlLink = computerCurrFollowWayPointLink->pntrTransitionLink;
-
-            if (controlLink == NULL) {
-                return;
-            } else {
-                //project again, this time on the alternative transition waypoint link
-                sideWaysOfWaypointFront = sideWaysOfWaypointFront && ProjectOnWayPoint(controlLink, this->WorldCoordCraftFrontPnt ,&projPlayerPositionFrontCraft, &distanceVecFrontCraft, &remainingDistanceToTravelFront);
-                SideWaysofWayPointBack = SideWaysofWayPointBack && ProjectOnWayPoint(controlLink, this->WorldCoordCraftBackPnt ,&projPlayerPositionBackCraft, &distanceVecBackCraft, &remainingDistanceToTravelBack);
-            }
-        }
-
-        CPcurrWaypointLinkFinishedPerc = 100.0f - (remainingDistanceToTravelFront / (controlLink->length3D / 100.0f));
-
-        irr::core::vector3df dirVectorFollow = DeriveCurrentDirectionVector(controlLink, CPcurrWaypointLinkFinishedPerc / 100.0f);
-
-        //calculate angle between craft forward direction and current waypoint link direction
-        //so that we know if we are parallel to the waypoint link or not
-        irr::f32 angleRad = acosf(this->craftForwardDirVec.dotProduct(dirVectorFollow));
-        computerPlayerCurrShipWayPointLinkSide = distanceVecFrontCraft.dotProduct(mDirVecToMyRightSide);
-
-        computerPlayerCurrDistanceFromWayPointLinkFront = distanceVecFrontCraft.getLength();
-        computerPlayerCurrDistanceFromWayPointLinkBack = distanceVecBackCraft.getLength();
-
-        //define cPCurrRelativeAngle in a way, that a craft flying towards the current waypoint line
-        //leads to a negative relative angle, and a craft flying aways from the current
-        //refererence waypoint link leads to a positive result
-        if (computerPlayerCurrShipWayPointLinkSide < 0) {
-           cPCurrRelativeAngle = -(angleRad / irr::core::PI) * 180.0f;
-        } else {
-            cPCurrRelativeAngle = (angleRad / irr::core::PI) * 180.0f;
-        }
-
-        irr::core::vector3d<irr::f32> avgDistanceVec = (distanceVecFrontCraft + distanceVecBackCraft)*irr::core::vector3df(0.5f, 0.5f, 0.5f);
-        computerPlayerCurrDistanceFromWayPointLinkAvg = avgDistanceVec.getLength();
-
-        //I want to define distance in a way, that if player ship is left of current waypoint link, then distance is negative
-        //and if player is right of current waypoint link the distance becomes positive
-        if (computerPlayerCurrShipWayPointLinkSide < 0.0) {
-            cPcurrDistance = computerPlayerCurrDistanceFromWayPointLinkAvg;
-        } else {
-            cPcurrDistance = -computerPlayerCurrDistanceFromWayPointLinkAvg;
-        }
-
-        cPTargetDistance = 0.0f;
-        cPcurrDistanceErr = cPTargetDistance - cPcurrDistance;
-
-        //define current
-
-        //distance error is too high, we have to correct something
-        if ((abs(cPcurrDistanceErr) > 0.3f)/* && (abs(cPcurrDistanceErr) < 2.0f)*/) {
-            if (cPcurrDistanceErr > 0.0f) {
-                //we are too far at the left
-                //we have to place ourself more right on the race track
-                //if we are left of the current waypoint line this means
-                //we need a negative target steer angle to go towards the
-                //waypoint line and more to the right
-                cPTargetRelativeAngle = -5.0f;
-
-                cPCorrectingPosErr = (abs(cPcurrDistanceErr) / 2.0f);
-                cPCurrCorrectingPos = true;
-
-                this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(-3.0f, 0.0f, 0.0f),
-                                              PHYSIC_APPLYFORCE_ONLYTRANS);
-
-                 this->mHUD->ShowBannerText((char*)"DIST TOO LEFT", 0.1f);
-             } else {
-                //we are too far right on the race track
-                //we have to go more to the left
-                cPTargetRelativeAngle = 5.0f;
-
-                cPCorrectingPosErr = (cPcurrDistanceErr / 2.0f);
-                cPCurrCorrectingPos = true;
-
-                this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(+3.0f, 0.0f, 0.0f),
-                                              PHYSIC_APPLYFORCE_ONLYTRANS);
-
-                this->mHUD->ShowBannerText((char*)"DIST TOO RIGHT", 0.1f);
-            }
-        } else  {
-            //just go straight
-            cPTargetRelativeAngle = 0.0f;
-            cPCurrCorrectingPos = false;
-
-            this->mHUD->ShowBannerText((char*)"DIST OK", 0.1f);
-            CpTriggerTurn(CP_TURN_NOTURN, 0.0f);
-        }
-
-        /*if (cPCurrCorrectingPos) {
-            if (abs(cPcurrDistanceErr) < abs(cPCorrectingPosErr)) {
-                //start turning in the other direction
-                //to prevent craft reaction overshoot
-                cPTargetRelativeAngle = -cPTargetRelativeAngle;
-                cPCurrCorrectingPos = false;
-                this->mHUD->ShowBannerText((char*)"GEGEN", 0.1f);
-            }
-        }*/
-
-        cPCurrRelativeAngleErr = cPTargetRelativeAngle - cPCurrRelativeAngle;
-        irr::f32 turnAngle = 2.0f;
-
-        turnAngle = turnAngle * ((abs(cPcurrDistanceErr)) / 1.0f);
-
-        if (turnAngle < 1.0f)
-            turnAngle = 1.0f;
-
-        if (turnAngle > 5.0f)
-            turnAngle = 5.0f;
-
-        //too high error on target relative angle
-        //we need to do something
-        if (abs(cPCurrRelativeAngleErr) > 3.0f) {
-            //if (abs(cPCurrRelativeAngle) < 30.0f) {
-            if (true) {
-
-            if (cPCurrRelativeAngleErr > 0.0f) {
-               CpTriggerTurn(CP_TURN_LEFT, turnAngle);
-            } else {
-               CpTriggerTurn(CP_TURN_RIGHT, turnAngle);
-            }
-            }
-            else {
-
-                this->NoTurningKeyPressed();
-               /* if (cPCurrRelativeAngleErr > 0.0f) {
-                   CpTriggerTurn(CP_TURN_RIGHT, 2.0f);
-                } else {
-                   CpTriggerTurn(CP_TURN_LEFT, 2.0f);
-                }*/
-
-            }
-        } else {
-            //just go straight
-            //NoTurningKeyPressed();
-            cPProbTurnLeft = 0;
-            cPProbTurnRight = 0;
-            CpTriggerTurn(CP_TURN_NOTURN, 0.0f);
-
-        }
-
-    } else {
-         //we have no waypoint link anymore
-  //       this->NoTurningKeyPressed();
-          this->mHUD->ShowBannerText((char*)"NO WAY", 4.0f);
-             CpTriggerTurn(CP_TURN_NOTURN, 0.0f);
-     }
-
-     CPForceController();
 }
 
 void Player::GetPlayerCameraDataFirstPerson(irr::core::vector3df &world1stPersonCamPosPnt, irr::core::vector3df &world1stPersonCamTargetPnt) {

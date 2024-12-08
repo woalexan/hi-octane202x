@@ -88,7 +88,7 @@ public:
     EntityItem* FindNearestWayPointToLocation(irr::core::vector3df location);
     EntityItem* FindNearestWayPointToPlayer(Player* whichPlayer);
 
-    std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint);
+    std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint, bool whenStart, bool whenEnd);
     irr::f32 CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink);
 
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> PlayerDeriveClosestWaypointLink(std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>>

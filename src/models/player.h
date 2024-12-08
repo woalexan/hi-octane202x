@@ -35,6 +35,9 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
+const irr::f32 PLAYER_FAST_SPEED = 8.0f;
+const irr::f32 PLAYER_SLOW_SPEED = 4.0f;
+
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
 
@@ -275,6 +278,11 @@ public:
     irr::u32 mCurrentPathSegNrSegments;
     irr::u32 mCurrentPathSegCurrSegmentNr;
 
+    WayPointLinkInfoStruct* mCpFollowThisWayPointLink;
+    WayPointLinkInfoStruct* mCpLastFollowThisWayPointLink;
+
+    int randRangeInt(int min, int max);
+
     irr::core::vector3df debugPathPnt1;
     irr::core::vector3df debugPathPnt2;
     irr::core::vector3df debugPathPnt3;
@@ -305,6 +313,12 @@ public:
 
     //void buttonL();
     //void buttonR();
+
+    irr::s32 mDbgCpAvailWaypointNr = 0;
+    std::vector<WayPointLinkInfoStruct*> mCpAvailWayPointLinks;
+    irr::s32 mDbgCpAvailWayPointLinksNr = 0;
+
+    WayPointLinkInfoStruct* CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks);
 
     void Update(irr::f32 frameDeltaTime);
     void AddTextureID(irr::s32 newTexId);
@@ -463,8 +477,6 @@ public:
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> currClosestWayPointLink;
     std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> > currCloseWayPointLinks;
 
-    WayPointLinkInfoStruct* computerCurrFollowWayPointLink = NULL;
-
     WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
     WayPointLinkInfoStruct* cpLastFollowSeg = NULL;
     irr::core::vector3df projPlayerPositionFollowSeg;
@@ -476,7 +488,8 @@ public:
     irr::f32 GetHoverHeight();
 
     //computer player stuff
-    irr::f32 computerPlayerTargetSpeed = 2.0f; //3.0f;
+    irr::f32 computerPlayerTargetSpeed = 0.0f;
+    irr::f32 computerPlayerCurrentSpeed = 0.0f;
 
     irr::f32 cPTargetRelativeAngle = 0.0f; //0.0f means go straight in parallel to current followed
                                                     //waypoint link

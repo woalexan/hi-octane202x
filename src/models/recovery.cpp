@@ -101,7 +101,7 @@ void Recovery::Update(irr::f32 deltaTime) {
                 //we need the waypoint link to now the racing direction, because
                 //we want to turn the player into race direction when we drop him off again
                 std::vector<WayPointLinkInfoStruct*> wayPointLinks =
-                        this->repairTarget->mRace->mPath->FindWaypointLinksForWayPoint(closestWayPoint);
+                        this->repairTarget->mRace->mPath->FindWaypointLinksForWayPoint(closestWayPoint, true, true);
 
                 if (wayPointLinks.size() <= 0) {
                     //we did not find anything

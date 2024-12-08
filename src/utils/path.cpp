@@ -80,7 +80,7 @@ EntityItem* Path::FindNearestWayPointToPlayer(Player* whichPlayer) {
    return FindNearestWayPointToLocation(playerPos);
 }
 
-std::vector<WayPointLinkInfoStruct*> Path::FindWaypointLinksForWayPoint(EntityItem* wayPoint) {
+std::vector<WayPointLinkInfoStruct*> Path::FindWaypointLinksForWayPoint(EntityItem* wayPoint, bool whenStart, bool whenEnd) {
    std::vector<WayPointLinkInfoStruct*>::iterator it;
 
    std::vector<WayPointLinkInfoStruct*> res;
@@ -88,9 +88,21 @@ std::vector<WayPointLinkInfoStruct*> Path::FindWaypointLinksForWayPoint(EntityIt
    if (mRace->wayPointLinkVec->size() <= 0)
        return res;
 
+   bool alreadyAdded;
+
    for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
-       if (((*it)->pStartEntity == wayPoint) || ((*it)->pEndEntity == wayPoint)) {
-           res.push_back(*it);
+       alreadyAdded = false;
+       if (whenStart) {
+        if ((*it)->pStartEntity == wayPoint) {
+            res.push_back(*it);
+            alreadyAdded = true;
+        }
+       }
+
+       if ((!alreadyAdded) && whenEnd) {
+        if ((*it)->pEndEntity == wayPoint) {
+            res.push_back(*it);
+        }
        }
    }
 
