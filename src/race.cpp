@@ -2167,11 +2167,19 @@ void Race::Render() {
           }
       }*/
 
-      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt1, this->mDrawDebug->cyan);
+    /*  mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt1, this->mDrawDebug->cyan);
       mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt2, this->mDrawDebug->orange);
       mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt3, this->mDrawDebug->red);
       mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt4, this->mDrawDebug->blue);
-      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt5, this->mDrawDebug->green);
+      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt5, this->mDrawDebug->green);*/
+
+      if (this->player2->mCpAvailWayPointLinks.size() > 0) {
+          std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+          for (itPathEl = player2->mCpAvailWayPointLinks.begin(); itPathEl != player2->mCpAvailWayPointLinks.end(); ++itPathEl) {
+               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->red);
+          }
+      }
 
 
     //  mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->currClosestWayPointLink.second, this->mDrawDebug->brown);
@@ -2320,7 +2328,8 @@ void Race::createPlayers(int levelNr) {
     irr::core::vector3d<irr::f32> Startdirection;
 
     //get player start locations from the level file
-    std::vector<irr::core::vector3df> playerStartLocations = this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
+    std::vector<irr::core::vector3df> playerStartLocations =
+            this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
 
     //getPlayerStartPosition(levelNr, Startpos, Startdirection);
     //Startpos = playerStartLocations.at(0);
@@ -2416,22 +2425,18 @@ void Race::createPlayers(int levelNr) {
     currPlayerFollow = player;
 
     //add first command for computer player player2
-    /*EntityItem* nearestWayPoint = FindNearestWayPointToPlayer(player2);
-    if (nearestWayPoint != NULL) {
-        std::vector<WayPointLinkInfoStruct*> foundLinks;
-        foundLinks = FindWaypointLinksForWayPoint(nearestWayPoint);
-        if (foundLinks.size() > 0) {
-            player2->AddCommand(CMD_FLYTO_TARGETENTITY, foundLinks[0]->pEndEntity);
-            //player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, wl);
-        }
-    } */
-   /*
     EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
     if (entItem != NULL) {
-        player2->AddCommand(CMD_FLYTO_TARGETENTITY, entItem);
-    }*/
+       //get waypoint link for this waypoint
+        std::vector<WayPointLinkInfoStruct*> foundLinks;
 
+       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false);
 
+       if (foundLinks.size() > 0) {
+             this->player2->mCpFollowThisWayPointLink = foundLinks.at(0);
+             this->player2->mCpLastFollowThisWayPointLink = this->player2->mCpFollowThisWayPointLink;
+       }
+    }
 }
 
 bool Race::LoadLevel(int loadLevelNr) {
@@ -2799,6 +2804,7 @@ void Race::TestFindPath() {
     testPathResult = mPath->FindPathToNextCheckPoint(player2);
 
     player2->CpPlayerFollowPath(testPathResult);
+    player2->computerPlayerTargetSpeed = PLAYER_FAST_SPEED;
 }
 
 //This routine uses all defined waypoints to figure out for each Checkpoint
@@ -3413,13 +3419,4 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
     }
 
 
-   // if (collectable != NULL) {
-    //    Entities.AddNode(collectable);
-   // }
-
-   // if (boxSize > 0f)
-  //  {
-   //     box = new Box(boxSize, entity.Center - 0.5f * boxSize * Vector3.One, color);
-    //    Entities.AddNode(box);
-   // }
 }

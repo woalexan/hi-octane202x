@@ -388,9 +388,16 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                    this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
                    this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
 
-    swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
+    swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
+                   this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
+                   this->mCurrentRace->player2->mDbgCpAvailWayPointLinksNr,
+                 this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
+                  this->mCurrentRace->player2->mCurrentPathSegNrSegments);
+
+
+   /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
                    this->mCurrentRace->player2->mAngleError,
-                   this->mCurrentRace->player2->dbgDistError);
+                   this->mCurrentRace->player2->dbgDistError);*/
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);
