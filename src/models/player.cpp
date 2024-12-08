@@ -26,7 +26,9 @@ void Player::DamageGlas() {
 
     //with 10% probability damage glas of player HUD
     if (rFloat < 0.1f) {
-       this->mHUD->AddGlasBreak();
+       if (mHUD != NULL) {
+        this->mHUD->AddGlasBreak();
+       }
     }
 }
 
@@ -57,11 +59,11 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
 
         //if this is a computer player setup the path to the next
         //correct checkpoint
-        if (!this->mHumanPlayer) {
+        /*if (!this->mHumanPlayer) {
             mRace->testPathResult = mRace->mPath->FindPathToNextCheckPoint(this);
 
             this->CpPlayerFollowPath(mRace->testPathResult);
-        }
+        }*/
     }
 }
 
@@ -347,6 +349,8 @@ void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     if (cmdType != CMD_FLYTO_TARGETENTITY || targetEntity == NULL)
         return;
 
+    CheckAndRemoveNoCommand();
+
     CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
     newCmd->cmdType = CMD_FLYTO_TARGETENTITY;
     newCmd->targetEntity = targetEntity;
@@ -400,12 +404,41 @@ void Player::AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointL
     if (cmdType != CMD_FOLLOW_TARGETWAYPOINTLINK || targetWayPointLink == NULL)
         return;
 
+    CheckAndRemoveNoCommand();
+
     CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
     newCmd->cmdType = CMD_FOLLOW_TARGETWAYPOINTLINK;
     newCmd->targetWaypointLink = targetWayPointLink;
 
     //add the new command to the end of the command list
     this->cmdList->push_back(newCmd);
+}
+
+void Player::AddCommand(uint8_t cmdType) {
+    CheckAndRemoveNoCommand();
+
+    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
+    newCmd->cmdType = cmdType;
+
+    //add the new command to the end of the command list
+    this->cmdList->push_back(newCmd);
+}
+
+void Player::CheckAndRemoveNoCommand() {
+    if (currCommand == NULL)
+        return;
+
+    if (currCommand->cmdType == CMD_NOCMD) {
+        CPCOMMANDENTRY* oldCmd = currCommand;
+
+        //if we set currCommand to NULL then the program
+        //will pull the next available command in
+        //RunComputerPlayerLogic
+        currCommand = NULL;
+
+        //delete old command struct
+        delete oldCmd;
+    }
 }
 
 void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
@@ -920,9 +953,12 @@ void Player::CPForceController() {
     //cpLastFollowSeg = cPCurrentFollowSeg;
 
     if (computerPlayerTargetSpeed > computerPlayerCurrentSpeed) {
-        computerPlayerCurrentSpeed += 0.002f;
+       // computerPlayerCurrentSpeed += 0.002f;
+        computerPlayerCurrentSpeed += mCpCurrentAccelDeaccelRate;
+
     } else if (computerPlayerCurrentSpeed > computerPlayerTargetSpeed) {
-        computerPlayerCurrentSpeed -= 0.002f;
+        //computerPlayerCurrentSpeed -= 0.002f;
+        computerPlayerCurrentSpeed -= mCpCurrentAccelDeaccelRate;
     }
 
     //control computer player speed
@@ -1291,6 +1327,14 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
         //do we need shield? nothing more important!
         if (this->mPlayerStats->shieldVal < (0.4 * this->mPlayerStats->shieldMax)) {
             //I need shield
+
+            AddCommand(CMD_CHARGE_SHIELD);
+
+            //we want to accel/deaccelerate computer player craft
+            //now much quicker, so that if we reach the charging area
+            //finally we stop fast enough and do not overshoot the
+            //charging area itself
+            mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
             return (linkForShield);
         }
     }
@@ -1300,6 +1344,14 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
         //do we need fuel?
         if (this->mPlayerStats->gasolineVal < (0.5 * this->mPlayerStats->gasolineMax)) {
             //I need fuel
+
+            AddCommand(CMD_CHARGE_FUEL);
+
+            //we want to accel/deaccelerate computer player craft
+            //now much quicker, so that if we reach the charging area
+            //finally we stop fast enough and do not overshoot the
+            //charging area itself
+            mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
             return (linkForFuel);
         }
     }
@@ -1309,6 +1361,14 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
         //do we need ammo?
         if (this->mPlayerStats->ammoVal < (0.3 * this->mPlayerStats->ammoMax)) {
             //I need ammo
+
+            AddCommand(CMD_CHARGE_AMMO);
+
+            //we want to accel/deaccelerate computer player craft
+            //now much quicker, so that if we reach the charging area
+            //finally we stop fast enough and do not overshoot the
+            //charging area itself
+            mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
             return (linkForAmmo);
         }
     }
@@ -1381,7 +1441,6 @@ void Player::ReachedEndCurrentFollowingSegments() {
         }
 
         WayPointLinkInfoStruct* nextLink = NULL;
-        WayPointLinkInfoStruct* nextnextLink = NULL;
 
         //ask computer player logic what to do
         nextLink = CpPlayerWayPointLinkSelectionLogic(mCpAvailWayPointLinks);
@@ -1392,16 +1451,12 @@ void Player::ReachedEndCurrentFollowingSegments() {
 
             //we need to go slower?
             if (entType == EntityItem::WaypointSlow) {
-                this->computerPlayerTargetSpeed = PLAYER_SLOW_SPEED;
+                this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
             } else if (entType == EntityItem::WaypointFast) {
-                this->computerPlayerTargetSpeed = PLAYER_FAST_SPEED;
+                this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
             }
 
-            if (nextLink->pntrPathNextLink != NULL) {
-                nextnextLink = nextLink->pntrPathNextLink;
-
-                 FollowPathDefineNextSegment(nextLink, nextnextLink);
-        }
+            FollowPathDefineNextSegment(nextLink);
       }
   //  }
 }
@@ -1998,7 +2053,7 @@ irr::core::vector2df Player::GetBezierCurvePlaningCoordMidPoint(irr::core::vecto
     return result;
 }
 
-void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, WayPointLinkInfoStruct* nextnextLink) {
+void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink) {
     //create bezier curve
     //start point is the current end point of the path
     //control point is the start point of the link
@@ -2125,7 +2180,9 @@ irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct
 }
 
 void Player::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec) {
-    this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec);
+    if (mHUD != NULL) {
+        this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec);
+    }
 }
 
 void Player::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand) {
@@ -2272,7 +2329,9 @@ void Player::RunComputerPlayerLogic() {
 
     switch (currCommand->cmdType) {
     case CMD_NOCMD: {
+        if (mHUD != NULL) {
           this->mHUD->ShowBannerText((char*)"NO CMD", 4.0f);
+        }
         break;
     }
 
@@ -2285,13 +2344,85 @@ void Player::RunComputerPlayerLogic() {
         break;
     }
 
+    case CMD_CHARGE_FUEL:
+    case CMD_CHARGE_AMMO:
+    case CMD_CHARGE_SHIELD: {
+        CpHandleCharging();
+        break;
+    }
+
     case CMD_FOLLOW_TARGETWAYPOINTLINK: {
+        mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
+        mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
+        FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink);
+        computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+
+        CurrentCommandFinished();
         break;
     }
 
     }
 
     return;
+}
+
+void Player::CpHandleCharging() {
+   //what charging do we need to do?
+   switch(currCommand->cmdType) {
+    case CMD_CHARGE_AMMO: {
+      if (mLastChargingAmmo) {
+          if (this->mPlayerStats->ammoVal >= (0.95 * this->mPlayerStats->ammoMax)) {
+              //charging finished
+              mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+              CurrentCommandFinished();
+              AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+              computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+          } else {
+              //lets stop computer player until
+              //charging is finished
+              computerPlayerTargetSpeed = 0.0f;
+          }
+
+          break;
+      }
+   }
+
+   case CMD_CHARGE_SHIELD: {
+     if (mLastChargingShield) {
+         if (this->mPlayerStats->shieldVal >= (0.95 * this->mPlayerStats->shieldMax)) {
+             //charging finished
+             mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+             CurrentCommandFinished();
+             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+         } else {
+             //lets stop computer player until
+             //charging is finished
+             computerPlayerTargetSpeed = 0.0f;
+         }
+
+         break;
+     }
+  }
+
+   case CMD_CHARGE_FUEL: {
+     if (mLastChargingFuel) {
+         if (this->mPlayerStats->gasolineVal >= (0.95 * this->mPlayerStats->gasolineMax)) {
+             //charging finished
+             mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+             CurrentCommandFinished();
+             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+         } else {
+             //lets stop computer player until
+             //charging is finished
+             computerPlayerTargetSpeed = 0.0f;
+         }
+
+         break;
+     }
+  }
+ }
 }
 
 void Player::CpAddCommandTowardsNextCheckpoint() {
@@ -2814,8 +2945,10 @@ void Player::Update(irr::f32 frameDeltaTime) {
         mPlayerStats->gasolineVal -= 0.02f;
 
         if (mPlayerStats->gasolineVal <= 0.0f) {
-            if ((mHUD != NULL) && !mEmptyFuelWarningAlreadyShown) {
-                this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
+            if (!mEmptyFuelWarningAlreadyShown) {
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
+                }
                 mEmptyFuelWarningAlreadyShown = true;
 
                 if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) {
@@ -2827,8 +2960,10 @@ void Player::Update(irr::f32 frameDeltaTime) {
                 }
             }
         } else if (mPlayerStats->gasolineVal < (mPlayerStats->gasolineMax * 0.25f)) {
-            if ((mHUD != NULL) && !mLowFuelWarningAlreadyShown) {
-                this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
+            if (!mLowFuelWarningAlreadyShown) {
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
+                }
                 mLowFuelWarningAlreadyShown = true;
             }
         }
@@ -2849,13 +2984,17 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //TODO: check with actual game how ammo warnings and reduction works exactly
     if (mPlayerStats->ammoVal <= 0.0f) {
-        if ((mHUD != NULL) && !mEmptyAmmoWarningAlreadyShown) {
-            this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
+        if (!mEmptyAmmoWarningAlreadyShown) {
+            if (mHUD != NULL) {
+                this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
+            }
             mEmptyAmmoWarningAlreadyShown = true;
         }
     } else if (mPlayerStats->ammoVal < (mPlayerStats->ammoMax * 0.25f)) {
-        if ((mHUD != NULL) && !mLowAmmoWarningAlreadyShown) {
-            this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
+        if (!mLowAmmoWarningAlreadyShown) {
+            if (mHUD != NULL) {
+                this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
+            }
             mLowAmmoWarningAlreadyShown = true;
         }
     }
@@ -3078,9 +3217,10 @@ void Player::CheckForChargingStation() {
            atCharger = true;
 
             this->mPlayerStats->shieldVal++;
-            this->mHUD->RepairGlasBreaks();
 
             if (mHUD != NULL) {
+                this->mHUD->RepairGlasBreaks();
+
                 if (mPlayerStats->shieldVal >= mPlayerStats->shieldMax) {
                     mPlayerStats->shieldVal = mPlayerStats->shieldMax;
                     if (!this->mBlockAdditionalShieldFullMsg) {
@@ -3149,13 +3289,17 @@ void Player::CheckForChargingStation() {
     if (currChargingFuel != mLastChargingFuel) {
         if (currChargingFuel) {
             //charging fuel started
-             if (mHUD != NULL && atCharger) {
-               //make this a permanent message by specification of showDurationSec = -1.0f
-               this->mHUD->ShowBannerText((char*)"FUEL RECHARGING", -1.0f);
+             if (atCharger) {
+               if (mHUD != NULL) {
+                //make this a permanent message by specification of showDurationSec = -1.0f
+                this->mHUD->ShowBannerText((char*)"FUEL RECHARGING", -1.0f);
+               }
              }
 
         } else {
-            this->mHUD->CancelAllPermanentBannerTextMsg();
+            if (mHUD != NULL) {
+                this->mHUD->CancelAllPermanentBannerTextMsg();
+            }
             mBlockAdditionalFuelFullMsg = false;
         }
     }
@@ -3163,13 +3307,17 @@ void Player::CheckForChargingStation() {
     if (currChargingAmmo != mLastChargingAmmo) {
         if (currChargingAmmo) {
             //charging Ammo started
-             if (mHUD != NULL && atCharger) {
-               //make this a permanent message by specification of showDurationSec = -1.0f
-               this->mHUD->ShowBannerText((char*)"AMMO RECHARGING", -1.0f);
+             if (atCharger) {
+               if (mHUD != NULL) {
+                //make this a permanent message by specification of showDurationSec = -1.0f
+                this->mHUD->ShowBannerText((char*)"AMMO RECHARGING", -1.0f);
+               }
              }
 
         } else {
-            this->mHUD->CancelAllPermanentBannerTextMsg();
+            if (mHUD != NULL) {
+                this->mHUD->CancelAllPermanentBannerTextMsg();
+            }
             mBlockAdditionalAmmoFullMsg = false;
         }
     }
@@ -3177,13 +3325,17 @@ void Player::CheckForChargingStation() {
     if (currChargingShield != mLastChargingShield) {
         if (currChargingShield) {
             //charging shield started
-             if (mHUD != NULL && atCharger) {
-               //make this a permanent message by specification of showDurationSec = -1.0f
-               this->mHUD->ShowBannerText((char*)"SHIELD RECHARGING", -1.0f);
+             if (atCharger) {
+               if (mHUD != NULL) {
+                //make this a permanent message by specification of showDurationSec = -1.0f
+                this->mHUD->ShowBannerText((char*)"SHIELD RECHARGING", -1.0f);
+               }
              }
 
         } else {
-            this->mHUD->CancelAllPermanentBannerTextMsg();
+            if (mHUD != NULL) {
+                this->mHUD->CancelAllPermanentBannerTextMsg();
+            }
             mBlockAdditionalShieldFullMsg = false;
         }
     }
@@ -3369,476 +3521,6 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
     irr::f32 terrainTiltCraftLeftRightRad = asinf(hdiff/vdiff) ;
     terrainTiltCraftLeftRightDeg = (terrainTiltCraftLeftRightRad / irr::core::PI) * 180.0f;
 }
-
-void Player::CpTriggerTurn(uint8_t newTurnMode, irr::f32 turnAngle) {
-   // if (cPCurrentTurnMode == CP_TURN_NOTURN) {
-        //we are currently making no turn, we can start a
-        //new turn
-        cPCurrentTurnMode = newTurnMode;
-        //cPStartTurnAngle = mCurrentCraftOrientationAngle;
-        cPStartTurnOrientation = this->craftForwardDirVec;
-        cPTargetTurnAngle = turnAngle;
-
-/*        if (newTurnMode == CP_TURN_LEFT) {
-            cpEndTurnAngle = cPStartTurnAngle + turnAngle;
-
-        } else if (newTurnMode == CP_TURN_RIGHT) {
-            //cpEndTurnAngle = cPStartTurnAngle - turnAngle;
-            cPTargetTurnAngle = turnAngle;
-        }*/
-
-        if (cPTargetTurnAngle > 360.0f)
-            cPTargetTurnAngle -= 360.0f;
-
-        if (cPTargetTurnAngle < 0.0f) {
-            cPTargetTurnAngle += 360.0f;
-        }
-   // }
-}
-
-void Player::CpInterruptTurn() {
-    cPCurrentTurnMode = CP_TURN_NOTURN;
-    currentSideForce = 0.0f;
-}
-
-/*void Player::Update(irr::f32 frameDeltaTime) {
-
-   irr::core::vector3d<irr::f32> VectorUp(0.0f, 1.0f, 0.0f);
-
-   currentLapTimeMultiple100mSec += (frameDeltaTime / 0.1);
-
-   //we have currently some forces applied (appliedForceForwards and appliedForceSideways)
-   //forces divided by mass is acceleration
-   accelForward = (appliedForceForwards / shipMass);
-   accelSideways = (appliedForceSideways / shipMass);
-
-   velForward += accelForward;
-   velSideways += accelSideways;
-
-   irr::core::vector3d<irr::f32> lastPosition = Position;
-
-   //FrontDir.X = speedForward;
-   //FrontDir.Y = speedSideways;
-   //speed = speedForward;
-
-   SideDir = FrontDir.crossProduct(VectorUp);
-
-   Position += FrontDir * velForward * MOVEMENT_SPEED * frameDeltaTime;
-   Position += SideDir * velSideways * MOVEMENT_SPEED * frameDeltaTime;
-
-   //FrontDir = Position - lastPosition;
-   //FrontDir.normalize();
-
-   //SideDir = FrontDir.crossProduct(VectorUp);
-
-   //we need to control the height of the player according to the Terrain below
-   irr::core::vector3d<irr::f32> SearchPosition;
-
-   irr::f32 next_height;
-
-   if (DEBUG_PLAYER_HEIGHT_CONTROL == true)
-        debug_player_heightcalc_lines.clear();
-
-   MapEntry* FrontTerrainTiles[3];
-   MapEntry* BackTerrainTiles[3];
-   MapEntry* RightTerrainTiles[3];
-   MapEntry* LeftTerrainTiles[3];
-
-   //calculate current cell below player
-   int current_cell_calc_x, current_cell_calc_y;
-
-   current_cell_calc_y = (Position.Z / MyTerrain->segmentSize);
-   current_cell_calc_x = -(Position.X / MyTerrain->segmentSize);
-
-   //*** search the Terrain cells in front of the player ***
-
-   //search next cell in front of the player
-   int next_cell_x, next_cell_y;
-   SearchPosition = Position;
-   int kmax = 1;
-
-   for (int k = 0; k < kmax; k++) {
-       FrontTerrainTiles[k] = NULL;
-    //search next cell, but max 10 iterations to not lock up the game if something is wrong
-    for (int j = 0; j < 10; j++) {
-        next_cell_y = (SearchPosition.Z / MyTerrain->segmentSize);
-        next_cell_x = -(SearchPosition.X / MyTerrain->segmentSize);
-
-      if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-          //we found the next cell
-          next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-          FrontTerrainTiles[k] = MyTerrain->GetMapEntry(next_cell_x, next_cell_y);
-          j = 10;
-      }
-
-      SearchPosition += FrontDir;
-   }
-
-      //have not found the next cell?
-     if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-           //have not found another cell, just take the current cell height, thats the best we have
-         next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-    }
-  }
-
-   //*** search the Terrain cells back of the player ***
-
-   //search cells back of the player
-   SearchPosition = Position;
-
-   for (int k = 0; k < kmax; k++) {
-       BackTerrainTiles[k] = NULL;
-    //search cells behind the player, but max 10 iterations to not lock up the game if something is wrong
-    for (int j = 0; j < 10; j++) {
-        next_cell_y = (SearchPosition.Z / MyTerrain->segmentSize);
-        next_cell_x = -(SearchPosition.X / MyTerrain->segmentSize);
-
-      if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-          //we found the next cell
-          next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-          BackTerrainTiles[k] = MyTerrain->GetMapEntry(next_cell_x, next_cell_y);
-          j = 10;
-      }
-
-      SearchPosition -= FrontDir; //follow path behind the player
-   }
-
-      //have not found the next cell?
-     if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-           //have not found another cell, just take the current cell height, thats the best we have
-         next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-    }
-  }
-
-   // search the Terrain cells in right of the player
-
-   //search next cell right of the player
-    SearchPosition = Position;
-
-
-   for (int k = 0; k < kmax; k++) {
-       RightTerrainTiles[k] = NULL;
-    //search next cell, but max 10 iterations to not lock up the game if something is wrong
-    for (int j = 0; j < 10; j++) {
-        next_cell_y = (SearchPosition.Z / MyTerrain->segmentSize);
-        next_cell_x = -(SearchPosition.X / MyTerrain->segmentSize);
-
-      if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-          //we found the next cell
-          next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-          RightTerrainTiles[k] = MyTerrain->GetMapEntry(next_cell_x, next_cell_y);
-          j = 10;
-      }
-
-      SearchPosition += SideDir;
-   }
-
-      //have not found the next cell?
-     if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-           //have not found another cell, just take the current cell height, thats the best we have
-         next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-    }
-  }
-
-   // search the Terrain cells in left of the player
-
-   //search next cell right of the player
-    SearchPosition = Position;
-
-   for (int k = 0; k < kmax; k++) {
-       LeftTerrainTiles[k] = NULL;
-    //search next cell, but max 10 iterations to not lock up the game if something is wrong
-    for (int j = 0; j < 10; j++) {
-        next_cell_y = (SearchPosition.Z / MyTerrain->segmentSize);
-        next_cell_x = -(SearchPosition.X / MyTerrain->segmentSize);
-
-      if ((next_cell_x != current_cell_calc_x) or (next_cell_y != current_cell_calc_y)) {
-          //we found the next cell
-          next_height = MyTerrain->GetMapEntry(next_cell_x, next_cell_y)->m_Height;
-          LeftTerrainTiles[k] = MyTerrain->GetMapEntry(next_cell_x, next_cell_y);
-          j = 10;
-      }
-
-      SearchPosition -= SideDir;
-   }
-
-      //have not found the next cell?
-     if ((next_cell_x == current_cell_calc_x) and (next_cell_y == current_cell_calc_y)) {
-           //have not found another cell, just take the current cell height, thats the best we have
-         next_height = MyTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y)->m_Height;
-    }
-  }
-
-   irr::u32 lastIdxLeft = 0;
-   irr::u32 lastIdxRight = 0;
-   irr::u32 lastIdxFront = 0;
-   irr::u32 lastIdxBack = 0;
-
-   for (irr::u32 tidx = 0; tidx < kmax; tidx++) {
-       if (LeftTerrainTiles[tidx] != NULL) {
-           lastIdxLeft = tidx;
-       } else break;
-    }
-
-   for (irr::u32 tidx = 0; tidx < kmax; tidx++) {
-       if (RightTerrainTiles[tidx] != NULL) {
-           lastIdxRight = tidx;
-       } else break;
-    }
-
-   for (irr::u32 tidx = 0; tidx < kmax; tidx++) {
-       if (FrontTerrainTiles[tidx] != NULL) {
-           lastIdxFront = tidx;
-       } else break;
-    }
-
-   for (irr::u32 tidx = 0; tidx < kmax; tidx++) {
-       if (BackTerrainTiles[tidx] != NULL) {
-           lastIdxBack = tidx;
-       } else break;
-    }
-
-   //irr::f32 SideSlope = (LeftTerrainTiles[lastIdxLeft]->m_Height - RightTerrainTiles[lastIdxRight]->m_Height) / (1.0f * (lastIdxLeft + lastIdxRight + 2));
-   //irr::f32 DirSlope = (FrontTerrainTiles[lastIdxFront]->m_Height - BackTerrainTiles[lastIdxBack]->m_Height) / (1.0f * (lastIdxFront + lastIdxBack + 2));
-   //calculate final vectors for current ship orientation
-
-   irr::core::vector3d<irr::f32> debugpos;
-   irr::core::vector3d<irr::f32> debugpos2;
-   debugpos.Z =  FrontTerrainTiles[lastIdxFront]->get_Z()*MyTerrain->segmentSize;
-   debugpos.X =  -FrontTerrainTiles[lastIdxFront]->get_X()*MyTerrain->segmentSize;
-   debugpos.Y =  FrontTerrainTiles[lastIdxFront]->m_Height;
-
-   debugpos2.Z =  BackTerrainTiles[lastIdxBack]->get_Z()*MyTerrain->segmentSize;
-   debugpos2.X =  -BackTerrainTiles[lastIdxBack]->get_X()*MyTerrain->segmentSize;
-   debugpos2.Y =  BackTerrainTiles[lastIdxBack]->m_Height;
-
-   irr::core::vector3d<irr::f32> vec1 = debugpos - debugpos2;
-   vec1.normalize();
-
-    LineStruct* NewDebugLine = new LineStruct;
-
-   NewDebugLine->A = debugpos;
-   NewDebugLine->B = debugpos2;
-
-   debug_player_heightcalc_lines.push_back(NewDebugLine);
-
-
-   debugpos.Z =  LeftTerrainTiles[lastIdxLeft]->get_Z()*MyTerrain->segmentSize;
-   debugpos.X =  -LeftTerrainTiles[lastIdxLeft]->get_X()*MyTerrain->segmentSize;
-   debugpos.Y =  LeftTerrainTiles[lastIdxLeft]->m_Height;
-
-
-   debugpos2.Z =  RightTerrainTiles[lastIdxRight]->get_Z()*MyTerrain->segmentSize;
-   debugpos2.X =  -RightTerrainTiles[lastIdxRight]->get_X()*MyTerrain->segmentSize;
-   debugpos2.Y =  RightTerrainTiles[lastIdxRight]->m_Height;
-
-     irr::core::vector3d<irr::f32> vec2 = debugpos - debugpos2;
-     vec2.normalize();
-
-   NewDebugLine = new LineStruct;
-   NewDebugLine->A = debugpos;
-   NewDebugLine->B = debugpos2;
-
-   debug_player_heightcalc_lines.push_back(NewDebugLine);
-
-
-   irr::core::vector3d<irr::f32> shipZVec = vec2.crossProduct(vec1);
-   shipZVec.normalize();
-
-   NewDebugLine = new LineStruct;
-   NewDebugLine->A = Position;
-   NewDebugLine->B = Position + shipZVec;
-
-   debug_player_heightcalc_lines.push_back(NewDebugLine);
-
-   //FrontDir = -shipZVec.crossProduct(SideDir);
-
-
-   irr::f32 maxh;
-   maxh = -1000.0f;
-
-   //irr::core::vector3d<irr::f32> debugpos;
-   int maxk = 0;
-
-   for (int k = 0; k < kmax; k++) {
-       if (FrontTerrainTiles[k] != NULL) {
-
-       /* if (DEBUG_PLAYER_HEIGHT_CONTROL == true) {
-           debugpos.Z =  FrontTerrainTiles[k]->get_Z()*MyTerrain->segmentSize;
-           debugpos.X =  -FrontTerrainTiles[k]->get_X()*MyTerrain->segmentSize;
-           debugpos.Y =  FrontTerrainTiles[k]->m_Height;
-
-           LineStruct* NewDebugLine = new LineStruct;
-           NewDebugLine->A = Position;
-           NewDebugLine->B = debugpos;
-
-           debug_player_heightcalc_lines.push_back(NewDebugLine);
-        }*//*
-
-      if (FrontTerrainTiles[k]->m_Height > maxh)
-           maxh = FrontTerrainTiles[k]->m_Height;
-           maxk = k;
-       }
-   }
-
-   for (int k = 0; k < kmax; k++) {
-       if (BackTerrainTiles[k] != NULL) {
-             /*  if (DEBUG_PLAYER_HEIGHT_CONTROL == true) {
-                debugpos.Z =  BackTerrainTiles[k]->get_Z()*MyTerrain->segmentSize;
-                debugpos.X =  -BackTerrainTiles[k]->get_X()*MyTerrain->segmentSize;
-                debugpos.Y =  BackTerrainTiles[k]->m_Height;
-
-                LineStruct* NewDebugLine = new LineStruct;
-                NewDebugLine->A = Position;
-                NewDebugLine->B = debugpos;
-
-                debug_player_heightcalc_lines.push_back(NewDebugLine);
-           }*/
-/*
-      if (BackTerrainTiles[k]->m_Height > maxh)
-           maxh = BackTerrainTiles[k]->m_Height;
-           maxk = k;
-       }
-   }
-
-   for (int k = 0; k < kmax; k++) {
-       if (RightTerrainTiles[k] != NULL) {
-              /* if (DEBUG_PLAYER_HEIGHT_CONTROL == true) {
-                debugpos.Z =  RightTerrainTiles[k]->get_Z()*MyTerrain->segmentSize;
-                debugpos.X =  -RightTerrainTiles[k]->get_X()*MyTerrain->segmentSize;
-                debugpos.Y =  RightTerrainTiles[k]->m_Height;
-
-                LineStruct* NewDebugLine = new LineStruct;
-                NewDebugLine->A = Position;
-                NewDebugLine->B = debugpos;
-
-                debug_player_heightcalc_lines.push_back(NewDebugLine);
-           }*/
-/*
-      if (RightTerrainTiles[k]->m_Height > maxh)
-           maxh = RightTerrainTiles[k]->m_Height;
-           maxk = k;
-       }
-   }
-
-   for (int k = 0; k < kmax; k++) {
-       if (LeftTerrainTiles[k] != NULL) {
-          /*     if (DEBUG_PLAYER_HEIGHT_CONTROL == true) {
-                debugpos.Z =  LeftTerrainTiles[k]->get_Z()*MyTerrain->segmentSize;
-                debugpos.X =  -LeftTerrainTiles[k]->get_X()*MyTerrain->segmentSize;
-                debugpos.Y =  LeftTerrainTiles[k]->m_Height;
-
-                LineStruct* NewDebugLine = new LineStruct;
-                NewDebugLine->A = Position;
-                NewDebugLine->B = debugpos;
-
-                debug_player_heightcalc_lines.push_back(NewDebugLine);
-           }*/
-/*
-      if (LeftTerrainTiles[k]->m_Height > maxh)
-           maxh = LeftTerrainTiles[k]->m_Height;
-           maxk = k;
-       }
-   }
-
-  //debugpos.Z =  FrontTerrainTiles[maxk]->get_X()*MyTerrain->segmentSize;
-  //debugpos.X =  -FrontTerrainTiles[maxk]->get_Z()*MyTerrain->segmentSize;
-  //debugpos.Y =  FrontTerrainTiles[maxk]->m_Height;
-
-  //how steep is the area in front of the craft?
-  //take the maximum observed height for calculation
-  //irr::core::vector3d<irr::f32> stepness;
-  //stepness = -(debugpos-Position).normalize();
-
-  //first_player_update is only true after creating player once, to make sure the player is immediately at the correct height after start of game
-  //afterwards height changes are slowed down to prevent step response of player height when cell is changed
-  if (first_player_Update == false) {
-
-    //define new target height
-    TargetHeight = maxh + HOVER_HEIGHT;
-
-    irr::f32 absdiff;
-
-    absdiff = abs(TargetHeight-current_Height);
-
-    if ((TargetHeight > current_Height) && (absdiff > 1e-4))
-        current_Height += (TargetHeight - current_Height) * SPEED_CLIMB * frameDeltaTime;
-
-    if ((TargetHeight < current_Height) && (absdiff > 1e-4))
-        current_Height += (TargetHeight - current_Height)* SPEED_FALL * frameDeltaTime;
-
-    //Position.Y = current_Height;
-
-  } else {
-        first_player_Update = false;
-
-        //right after start update player position immediately without any delay
-        TargetHeight = maxh + HOVER_HEIGHT;
-        current_Height = TargetHeight;
-
-       // Position.Y = TargetHeight;
-   }
-
-  //we can later experiment with this line to let craft model have an angle when going hills up and down
-  //to make this work also other calculations above need to be enabled!
-  //FrontDir.Y = stepness.Y;
-
-  if (DEF_INSPECT_LEVEL == true) {
-    //Player_node->setPosition(Position);
-    //Player_node->setRotation(FrontDir.getHorizontalAngle()+ irr::core::vector3df(0.0f, 180.0f, 0.0f) );
-
-    //for the "neigung" of ship model in driving direction
-   /* working code irr::core::vector3d othervector(0.0f, 0.0f, 1.0f);
-    testAngle = acos((shipZVec.dotProduct(othervector)) / (shipZVec.getLength() * othervector.getLength()));*/
-/*
-    irr::core::vector3d othervector(0.0f, 0.0f, 1.0f);
-    testAngle = acos((shipZVec.dotProduct(othervector)) / (shipZVec.getLength() * othervector.getLength()));
-
-   //for the "neigung" of ship model in sideways direction
-    irr::core::vector3d othervector2(-1.0f, 0.0f, 0.0f);
-    irr::f32 testAngle2 = acos((shipZVec.dotProduct(othervector2)) / (shipZVec.getLength() * othervector2.getLength()));
-
-    //for the "drehung" of ship model when player steers left or right
-     irr::core::vector3d othervector3(1.0f, 0.0f, 0.0f);
-     irr::f32 testAngle3 = acos((FrontDir.dotProduct(othervector3)) / (FrontDir.getLength() * othervector3.getLength()));
-
-     //for the "drehung" of ship model when player steers left or right
-      irr::core::vector3d othervector4(0.0f, 0.0f, 1.0f);
-      irr::f32 testAngle4 = acos((FrontDir.dotProduct(othervector4)) / (FrontDir.getLength() * othervector4.getLength()));
-
-    //rotate player model in the "correct" way according the terrain
-   // Player_node->setRotation(irr::core::vector3df((testAngle / PI) * 180.0f - 90.0f, 0.0f, (testAngle2 / PI) * 180.0f - 90.0f));
-    //Player_node->setRotation(irr::core::vector3df((testAngle / PI) * 180.0f - 90.0f, (testAngle3 / PI) * 180.0f, (testAngle2 / PI) * 180.0f - 90.0f));
-
-       core::quaternion test;
-       test.fromAngleAxis(testAngle - (PI/2), core::vector3df(1,0,0));
-       test.normalize();
-
-       core::quaternion test2;
-       test2.fromAngleAxis(testAngle2 - (PI/2), core::vector3df(0,0,1));
-       test2.normalize();
-
-//       core::quaternion test3;
- //      test3.fromAngleAxis(testAngle3, core::vector3df(1,0,0));
-  //     test3.normalize();
-
-//       core::quaternion test5;
- //      test5.fromAngleAxis(testAngle4, core::vector3df(0,0,1));
-  //     test5.normalize();
-
-       core::quaternion test4 = test * test2;
-
-       core::vector3df rot;
-       test4.toEuler(rot);
-     //  Player_node->setRotation(rot * core::RADTODEG);
-
-  } else {
-      irr::core::vector3d camUpVec = -shipZVec.normalize();
-      Player_camera->setPosition(Position);
-      Player_camera->setTarget(Position+FrontDir);
-      Player_camera->setUpVector(camUpVec);
-  }
-}*/
 
 //is called when the player collected a collectable item of the
 //level

@@ -1246,7 +1246,7 @@ void Race::Init() {
 
         //the next line is only for computerPlayer movement debugging
         //remove this line later again!
-        player2->SetMyHUD(Hud1Player);
+        //player2->SetMyHUD(Hud1Player);
 
         //give physics the triangle selectors for overall collision detection
         this->mPhysics->AddCollisionMesh(triangleSelectorWallCollision);
@@ -1521,11 +1521,13 @@ void Race::HandleBasicInput() {
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
     {
          this->currPlayerFollow = player;
+         Hud1Player->SetMonitorWhichPlayer(player);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
     {
          this->currPlayerFollow = player2;
+         Hud1Player->SetMonitorWhichPlayer(player2);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
@@ -1571,7 +1573,7 @@ void Race::HandleInput() {
         //player->mHUD->AddGlasBreak();
         //this->CallRecoveryVehicleForHelp(this->player);
         //this->player2->AddCommand(CMD_FLYTO_TARGETENTITY, ENTCollectablesVec->at(0)->mEntityItem);
-        this->TestFindPath();
+        //this->TestFindPath();
     }
 
     if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_W)) {
@@ -1604,14 +1606,6 @@ void Race::HandleInput() {
          player->Right();
          player->firstNoKeyPressed = true;
          playerNoTurningKeyPressed = false;
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_L)) {
-        player2->CpTriggerTurn(CP_TURN_LEFT, 20.0f);
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
-        player2->CpTriggerTurn(CP_TURN_RIGHT, 20.0f);
     }
 
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
@@ -1732,7 +1726,7 @@ void Race::DrawSky() {
         irr::core::vector2di movingWindowSize(640, 480);
         irr::u32 moveX = 0;
 
-        moveX = (irr::u32)(((player->absSkyAngleValue - 180.0f) / 180.0f) * 150.0f);
+        moveX = (irr::u32)(((currPlayerFollow->absSkyAngleValue - 180.0f) / 180.0f) * 150.0f);
 
         irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
                                           mSkyImage->getSize().Width / 2 + (1024 / 2) - 75 + moveX , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
@@ -1741,7 +1735,7 @@ void Race::DrawSky() {
 
         draw2DImage(mDriver, mSkyImage ,locMovingWindow,
              irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
-             player->absSkyAngleValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
+             currPlayerFollow->absSkyAngleValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
     }
 }
 
@@ -2433,8 +2427,7 @@ void Race::createPlayers(int levelNr) {
        foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false);
 
        if (foundLinks.size() > 0) {
-             this->player2->mCpFollowThisWayPointLink = foundLinks.at(0);
-             this->player2->mCpLastFollowThisWayPointLink = this->player2->mCpFollowThisWayPointLink;
+           player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
        }
     }
 }
@@ -2798,13 +2791,6 @@ irr::f32 Race::GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVe
    }
 
    return angleResult;
-}
-
-void Race::TestFindPath() {
-    testPathResult = mPath->FindPathToNextCheckPoint(player2);
-
-    player2->CpPlayerFollowPath(testPathResult);
-    player2->computerPlayerTargetSpeed = PLAYER_FAST_SPEED;
 }
 
 //This routine uses all defined waypoints to figure out for each Checkpoint
