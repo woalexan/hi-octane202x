@@ -388,11 +388,14 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                    this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
                    this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
 
-    swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
+   /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
                    this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
                    this->mCurrentRace->player2->mDbgCpAvailWayPointLinksNr,
                  this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                  this->mCurrentRace->player2->mCurrentPathSegNrSegments);
+                  this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
+
+    swprintf(text2, 390, L"nCollectable = %d\n",
+                   this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());
 
 
    /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",

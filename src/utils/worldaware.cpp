@@ -407,7 +407,9 @@ RayHitInfoStruct WorldAwareness::CastRay(IImage &image, irr::core::vector3df sta
     ~~~~~~
     David Barr, aka javidx9, ©OneLoneCoder 2019, 2020, 2021
 */
-RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df startPos, irr::core::vector3df dirVec, irr::f32 maxRange) {
+RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df startPos,
+                                            irr::core::vector3df dirVec, irr::f32 maxRange,
+                                            std::vector<irr::core::vector2di> &visitedCells) {
    RayHitInfoStruct result;
 
    irr::core::vector2df currRayPos;
@@ -438,7 +440,8 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
    // Lodev.org also explains this additional optimistaion (but it's beyond scope of video)
    // olc::vf2d vRayUnitStepSize = { abs(1.0f / vRayDir.x), abs(1.0f / vRayDir.y) };
 
-   irr::core::vector2df vRayUnitStepSize = { sqrt(1 + (vRayDir.Y / vRayDir.X) * (vRayDir.Y / vRayDir.X)), sqrt(1 + (vRayDir.X / vRayDir.Y) * (vRayDir.X / vRayDir.Y)) };
+   irr::core::vector2df vRayUnitStepSize =
+   { sqrt(1 + (vRayDir.Y / vRayDir.X) * (vRayDir.Y / vRayDir.X)), sqrt(1 + (vRayDir.X / vRayDir.Y) * (vRayDir.X / vRayDir.Y)) };
    irr::core::vector2di vMapCheck;
 
    vMapCheck.X = vRayStart.X;   //truncates to integer
@@ -498,6 +501,12 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
        // Test tile at new test point
        if (vMapCheck.X >= 0 && vMapCheck.X < vMapSize.X && vMapCheck.Y >= 0 && vMapCheck.Y < vMapSize.Y)
         {
+           //remember that we visited this cell
+           //we could need this information later, for example
+           //to check what entities (collectables) the computer
+           //player is able to see in its view field
+           visitedCells.push_back(irr::core::vector2di(vMapCheck.X, vMapCheck.Y));
+
          if (this->mStaticWorldMap->at(vMapCheck.Y * vMapSize.X + vMapCheck.X) == 1)
           {
             bTileFound = true;
@@ -570,6 +579,9 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     UpdateDynamicWorldMap(whichPlayer);
 
+    std::vector<irr::core::vector2di> visitedCells;
+    visitedCells.clear();
+
     //when finding out the free movement space around the player craft we do not care how far the distance is
     //if there is no obstruction in a certain direction the ray will in the worst case exit the 2D Map, and CastRay
     //will return with RAY_HIT_NOTHING and the HitDistance in this case will be 0.0f, which means the player will not go into this direction
@@ -581,7 +593,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //rayInfo = CastRay(*dynamicWorld, whichPlayer->WorldCoordCraftRightPnt, whichPlayer->craftSidewaysToRightVec);
     //rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->WorldCoordCraftRightPnt, whichPlayer->craftSidewaysToRightVec, 1000.0f);
-    rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position, whichPlayer->craftSidewaysToRightVec, 1000.0f);
+    rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position,
+                         whichPlayer->craftSidewaysToRightVec, 1000.0f, visitedCells);
     whichPlayer->mCraftDistanceAvailRight = rayInfo.HitDistance;
 
     if (WA_ALLOW_DEBUGGING) {
@@ -593,7 +606,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //rayInfo = CastRay(*dynamicWorld, whichPlayer->WorldCoordCraftLeftPnt, -whichPlayer->craftSidewaysToRightVec);
     //rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->WorldCoordCraftLeftPnt, -whichPlayer->craftSidewaysToRightVec, 1000.0f);
-    rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position, -whichPlayer->craftSidewaysToRightVec, 1000.0f);
+    rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position,
+                         -whichPlayer->craftSidewaysToRightVec, 1000.0f, visitedCells);
     whichPlayer->mCraftDistanceAvailLeft = rayInfo.HitDistance;
 
     if (WA_ALLOW_DEBUGGING) {
@@ -605,7 +619,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //rayInfo = CastRay(*dynamicWorld, whichPlayer->WorldCoordCraftFrontPnt, whichPlayer->craftForwardDirVec);
    // rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->WorldCoordCraftFrontPnt, whichPlayer->craftForwardDirVec, 1000.0f);
-    rayInfo = CastRayDDA(*dynamicWorld,  whichPlayer->phobj->physicState.position, whichPlayer->craftForwardDirVec, 1000.0f);
+    rayInfo = CastRayDDA(*dynamicWorld,  whichPlayer->phobj->physicState.position,
+                         whichPlayer->craftForwardDirVec, 1000.0f, visitedCells);
     whichPlayer->mCraftDistanceAvailFront = rayInfo.HitDistance;
 
      if (WA_ALLOW_DEBUGGING) {
@@ -617,7 +632,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //rayInfo = CastRay(*dynamicWorld, whichPlayer->WorldCoordCraftBackPnt, -whichPlayer->craftForwardDirVec);
     //rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->WorldCoordCraftBackPnt, -whichPlayer->craftForwardDirVec, 1000.0f);
-    rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position, -whichPlayer->craftForwardDirVec, 1000.0f);
+    rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position,
+                         -whichPlayer->craftForwardDirVec, 1000.0f, visitedCells);
     whichPlayer->mCraftDistanceAvailBack = rayInfo.HitDistance;
 
     if (WA_ALLOW_DEBUGGING) {
@@ -626,6 +642,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
                DebugSavePicture((char*)"rayBack.png", debugWorld);
         }
     }
+
+    visitedCells.clear();
 
     //now simulate the view of the player forwards, and send raycasts forward with different angles and with a defined max length
     //we want to figure out which players the current player can see (important for tagging of opponents)
@@ -644,6 +662,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     std::vector<RayHitInfoStruct> PlayerSeenList;
     std::vector<irr::f32> PlayerSeenAngleList;
+    PlayerSeenList.clear();
+    PlayerSeenAngleList.clear();
 
     for (currRay = 0; currRay < nrRays; currRay++) {
         forwVect = whichPlayer->craftForwardDirVec;
@@ -658,7 +678,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
         //forwVect is the direction we want the ray to shoot in
         //rayInfo = CastRay(*dynamicWorld, whichPlayer->WorldCoordCraftFrontPnt, forwVect);
         //rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->WorldCoordCraftFrontPnt, forwVect, 1000.0f);
-        rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position, forwVect, 1000.0f);
+        rayInfo = CastRayDDA(*dynamicWorld, whichPlayer->phobj->physicState.position,
+                             forwVect, 1000.0f, visitedCells);
         if (rayInfo.HitType == RAY_HIT_PLAYER) {
             if ((rayInfo.HitDistance < maxViewDistance) && (rayInfo.HitPlayerPntr != whichPlayer)) {
                 //we see an opponement player!
@@ -684,6 +705,11 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
         //increase current angle by delta Angle
         currRAngle += deltaAngle;
     }
+
+    //store this player seen information also in the player
+    //object itself
+    whichPlayer->PlayerSeenList = PlayerSeenList;
+    whichPlayer->PlayerSeenAngleList = PlayerSeenAngleList;
 
     //now run other player selection/targeting logic
 
@@ -723,6 +749,63 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
                WriteOneDbgPic = false;
            }
          }
+        }
+    }
+
+    //now analyze which entities (more precise collectables) the
+    //computer player is able to see in the view field
+    whichPlayer->mCpCollectablesSeenByPlayer.clear();
+
+    if (!whichPlayer->mHumanPlayer) {
+        std::vector<Collectable*> CollToVerify;
+        CollToVerify.clear();
+
+        //first determine which collectibles are even close enough to the
+        //player position so that we should consider them
+        std::vector<Collectable*>::iterator itCollect;
+
+        irr::f32 distanceSQ;
+        //we want to reduce view distance for computer players and collectables
+        //a little bit more, because otherwise the computer player will do
+        //sometimes trying to catch crazy collectables far away
+        irr::f32 maxViewDistance2ndStage = 15.0f;
+        irr::f32 distanceSQMaxLimit = maxViewDistance2ndStage * maxViewDistance2ndStage;
+        irr::core::vector3df posCol;
+
+        for (itCollect = this->mRace->ENTCollectablesVec->begin();
+             itCollect != this->mRace->ENTCollectablesVec->end();
+             ++itCollect) {
+                posCol = (*itCollect)->Position;
+                posCol.X = -posCol.X;
+               distanceSQ = (posCol - whichPlayer->phobj->physicState.position).getLengthSQ();
+
+               if (distanceSQ < distanceSQMaxLimit) {
+                   //collectible is close enough to the player
+                   //we need to check it later afterwards
+                   CollToVerify.push_back(*itCollect);
+               }
+        }
+
+        std::vector<irr::core::vector2di>::iterator itCells;
+
+        irr::core::vector2di currCell;
+        irr::core::vector2di cellPos;
+
+        if (visitedCells.size() > 0) {
+            for (itCells = visitedCells.begin(); itCells != visitedCells.end(); ++itCells) {
+               currCell = (*itCells);
+
+               for (itCollect = CollToVerify.begin();
+                    itCollect != CollToVerify.end();
+                    ++itCollect) {
+                        cellPos.X = (int)((*itCollect)->Position.X);
+                        cellPos.Y = (int)((*itCollect)->Position.Z);
+
+                        if (currCell == cellPos) {
+                           whichPlayer->mCpCollectablesSeenByPlayer.push_back(*itCollect);
+                    }
+               }
+            }
         }
     }
 }

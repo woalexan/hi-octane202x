@@ -35,7 +35,7 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 8.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 8.0f; //8.0f
 const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;
 
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
@@ -56,6 +56,7 @@ const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
 #define CMD_CHARGE_SHIELD 5
 #define CMD_CHARGE_FUEL 6
 #define CMD_CHARGE_AMMO 7
+#define CMD_PICKUP_COLLECTABLE 8
 
 #define STATE_HMAP_COLL_IDLE 0
 #define STATE_HMAP_COLL_WATCH 1
@@ -75,12 +76,14 @@ const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
 
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
+struct RayHitInfoStruct; //Forward declaration
 
 typedef struct {
     uint8_t cmdType;
     EntityItem* targetEntity = NULL;
     irr::core::vector3df* targetPosition = NULL;
     WayPointLinkInfoStruct* targetWaypointLink = NULL;
+    Collectable* targetCollectible = NULL;
 
     //if true this was a temporary dynamically
     //created waypoint link for a specific purpose
@@ -305,6 +308,7 @@ public:
     void AddCommand(uint8_t cmdType, irr::core::vector3df* targetLocation);
     void AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink);
     void AddCommand(uint8_t cmdType);
+    void AddCommand(uint8_t cmdType, Collectable* whichCollectable);
 
     void CheckAndRemoveNoCommand();
     void CpHandleCharging();
@@ -315,6 +319,10 @@ public:
     irr::s32 mDbgCpAvailWaypointNr = 0;
     std::vector<WayPointLinkInfoStruct*> mCpAvailWayPointLinks;
     irr::s32 mDbgCpAvailWayPointLinksNr = 0;
+
+    Collectable* mCpTargetCollectableToPickUp = NULL;
+    WayPointLinkInfoStruct* mCpWayPointLinkClosestToCollectable = NULL;
+    bool DoISeeACertainCollectable(Collectable* whichItem);
 
     WayPointLinkInfoStruct* CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks);
 
@@ -512,6 +520,7 @@ public:
     void CPForceController();
     void ProjectPlayerAtCurrentSegment();
     void ReachedEndCurrentFollowingSegments();
+    void PickupCollectableDefineNextSegment(Collectable* whichCollectable);
 
     void FinishedLap();
 
@@ -586,6 +595,12 @@ private:
 
     //from which recovery vehicle are we currently grabbed?
     Recovery* mGrabedByThisRecoveryVehicle = NULL;
+
+    bool DoIWantToChargeShield();
+    bool DoIWantToChargeFuel();
+    bool DoIWantToChargeAmmo();
+
+    void CpPlayerCollectableSelectionLogic();
 
     void SetNewState(irr::u32 newPlayerState);
     irr::u32 GetCurrentState();
@@ -665,6 +680,11 @@ private:
 
 public:
     HUD* mHUD = NULL;
+
+    std::vector<Collectable*> mCpCollectablesSeenByPlayer;
+
+    std::vector<RayHitInfoStruct> PlayerSeenList;
+    std::vector<irr::f32> PlayerSeenAngleList;
 };
 
 #endif // PLAYER_H

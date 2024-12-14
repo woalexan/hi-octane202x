@@ -424,6 +424,17 @@ void Player::AddCommand(uint8_t cmdType) {
     this->cmdList->push_back(newCmd);
 }
 
+void Player::AddCommand(uint8_t cmdType, Collectable* whichCollectable) {
+    CheckAndRemoveNoCommand();
+
+    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
+    newCmd->cmdType = cmdType;
+    newCmd->targetCollectible = whichCollectable;
+
+    //add the new command to the end of the command list
+    this->cmdList->push_back(newCmd);
+}
+
 void Player::CheckAndRemoveNoCommand() {
     if (currCommand == NULL)
         return;
@@ -1325,9 +1336,8 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     //do we have link to shield?
     if (linkForShield) {
         //do we need shield? nothing more important!
-        if (this->mPlayerStats->shieldVal < (0.4 * this->mPlayerStats->shieldMax)) {
+        if (DoIWantToChargeShield()) {
             //I need shield
-
             AddCommand(CMD_CHARGE_SHIELD);
 
             //we want to accel/deaccelerate computer player craft
@@ -1342,9 +1352,8 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     //do we have link to fuel?
     if (linkForFuel) {
         //do we need fuel?
-        if (this->mPlayerStats->gasolineVal < (0.5 * this->mPlayerStats->gasolineMax)) {
+        if (DoIWantToChargeFuel()) {
             //I need fuel
-
             AddCommand(CMD_CHARGE_FUEL);
 
             //we want to accel/deaccelerate computer player craft
@@ -1359,9 +1368,8 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     //do we have link to ammo?
     if (linkForAmmo) {
         //do we need ammo?
-        if (this->mPlayerStats->ammoVal < (0.3 * this->mPlayerStats->ammoMax)) {
+        if (DoIWantToChargeAmmo()) {
             //I need ammo
-
             AddCommand(CMD_CHARGE_AMMO);
 
             //we want to accel/deaccelerate computer player craft
@@ -1402,6 +1410,27 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     return NULL;
 }
 
+bool Player::DoIWantToChargeShield() {
+     if (this->mPlayerStats->shieldVal < (0.4 * this->mPlayerStats->shieldMax))
+         return true;
+
+     return false;
+}
+
+bool Player::DoIWantToChargeFuel() {
+    if (this->mPlayerStats->gasolineVal < (0.5 * this->mPlayerStats->gasolineMax))
+       return true;
+
+    return false;
+}
+
+bool Player::DoIWantToChargeAmmo() {
+    if (this->mPlayerStats->ammoVal < (0.3 * this->mPlayerStats->ammoMax))
+        return true;
+
+    return false;
+}
+
 void Player::ReachedEndCurrentFollowingSegments() {
   //  if (this->currClosestWayPointLink.first != NULL) {
 
@@ -1438,6 +1467,34 @@ void Player::ReachedEndCurrentFollowingSegments() {
              }
 
              mDbgCpAvailWayPointLinksNr = mCpAvailWayPointLinks.size();
+        }
+
+        //do we currently want to pickup a collectible, this has priority
+        if (this->mCpTargetCollectableToPickUp != NULL) {
+            //is the waypoint link next to the collectible one of the waypoint links in front
+            //of me, if so select this one and add a new path to the collectible
+            if (this->mCpWayPointLinkClosestToCollectable != NULL) {
+               std::vector<WayPointLinkInfoStruct*>::iterator it3;
+               for (it3 = mCpAvailWayPointLinks.begin(); it3 != mCpAvailWayPointLinks.end(); ++it3) {
+                   if ((*it3) == mCpWayPointLinkClosestToCollectable) {
+                       //yes, we found it
+                       //define path through it
+                       PickupCollectableDefineNextSegment(mCpTargetCollectableToPickUp);
+                       this->mCpFollowThisWayPointLink = (*it3);
+
+                       EntityItem::EntityType entType = (*it3)->pStartEntity->get_GameType();
+
+                       //we need to go slower?
+                       if (entType == EntityItem::WaypointSlow) {
+                           this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+                       } else if (entType == EntityItem::WaypointFast) {
+                           this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
+                       }
+
+                       return;
+                   }
+               }
+            }
         }
 
         WayPointLinkInfoStruct* nextLink = NULL;
@@ -1983,6 +2040,128 @@ bool Player::ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::
     return false;
 }
 
+bool Player::DoISeeACertainCollectable(Collectable* whichItem) {
+    std::vector<Collectable*>::iterator it;
+
+    for (it = this->mCpCollectablesSeenByPlayer.begin(); it != this->mCpCollectablesSeenByPlayer.end(); ++it) {
+        if ((*it) == whichItem)
+            return true;
+    }
+
+    return false;
+}
+
+void Player::CpPlayerCollectableSelectionLogic() {
+    //does this player want to pickup a collectable right now?
+    if (mCpTargetCollectableToPickUp != NULL) {
+        //verify that the player still sees the collectable in his view region, if not remove
+        //current command again, and return to normal path
+        if (!DoISeeACertainCollectable(mCpTargetCollectableToPickUp)) {
+            //I do not see it anymore
+            //change back to normal race path
+
+            mCpTargetCollectableToPickUp = NULL;
+            mCpWayPointLinkClosestToCollectable = NULL;
+
+            this->CurrentCommandFinished();
+        }
+
+        //continue to pickup current targeted collectable item
+        return;
+    }
+
+    //player has no target currently
+    //do we see something we want to have?
+    std::vector<Collectable*>::iterator it;
+    Collectable* wantPickup = NULL;
+
+    for (it = this->mCpCollectablesSeenByPlayer.begin(); (it != this->mCpCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
+        if ((*it)->GetIfVisible()) {
+            switch ((*it)->mEntityItem->get_GameType()) {
+                case EntityItem::ExtraShield: {
+                    break;
+                }
+
+                case EntityItem::ShieldFull: {
+                    break;
+                }
+
+                case EntityItem::DoubleShield: {
+                    break;
+                }
+
+                case EntityItem::ExtraAmmo: {
+                    break;
+                }
+
+                case EntityItem::AmmoFull: {
+                    break;
+                }
+
+                case EntityItem::DoubleAmmo: {
+                    break;
+                }
+
+                case EntityItem::ExtraFuel: {
+                    break;
+                }
+
+                case EntityItem::FuelFull: {
+                    break;
+                }
+
+                case EntityItem::DoubleFuel: {
+                    break;
+                }
+
+                case EntityItem::MinigunUpgrade: {
+                    //we only want to pick this up if minigun is not
+                    //already at highest level
+                    if (this->mPlayerStats->currMinigunUpgradeLevel < 3) {
+                        wantPickup = (*it);
+                    }
+
+                    break;
+                }
+
+                case EntityItem::MissileUpgrade: {
+                    //we only want to pick this up if missile is not
+                    //already at highest level
+                    if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
+                        wantPickup = (*it);
+                    }
+                    break;
+                }
+
+                case EntityItem::BoosterUpgrade: {
+                    //we only want to pick this up if booster is not
+                    //already at highest level
+                    if (this->mPlayerStats->currBoosterUpgradeLevel < 3) {
+                        wantPickup = (*it);
+                    }
+                    break;
+                }
+
+                case EntityItem::UnknownShieldItem: {
+                    break;
+                }
+
+                case EntityItem::UnknownItem: {
+                    break;
+                }
+
+            }
+        }
+    }
+
+    if (wantPickup != NULL) {
+        //we found something we want to have
+        AddCommand(CMD_PICKUP_COLLECTABLE, wantPickup);
+    }
+
+    //we do not want to pickup anything
+}
+
 void Player::FollowPathDefineFirstSegment(irr::u32 nrCurrentLink) {
     //create bezier curve
     //start point is the current players position
@@ -2051,6 +2230,52 @@ irr::core::vector2df Player::GetBezierCurvePlaningCoordMidPoint(irr::core::vecto
     irr::core::vector2df result(midPoint.X, midPoint.Z);
 
     return result;
+}
+
+void Player::PickupCollectableDefineNextSegment(Collectable* whichCollectable) {
+    //create bezier curve
+    //start point is the current end point of the path
+    //control point is the start point of the link
+    //in the path with the specified number
+    //end point is the end point of the link in the
+    //path with the defined number
+    irr::core::vector3df link1Start3D;
+    irr::core::vector3df link1End3D;
+
+    //current player position, is start point for bezier curve 1
+    irr::core::vector2df bezierPnt1 = this->GetMyBezierCurvePlaningCoord(debugPathPnt1);
+
+    //collectable => is the control point for bezier curve 1
+    irr::core::vector2df bezierCntrlPnt1 = whichCollectable->GetMyBezierCurvePlaningCoord(debugPathPnt2);
+
+    //end point for next link is needed to calculate midpoint
+    //irr::core::vector2df link1End = nextLink->pEndEntity->GetMyBezierCurvePlaningCoord(link1End3D);
+
+    //take endpoint of link closest to collectable, is the bezier curve 1 end point
+    irr::core::vector2df bezierPnt2 =  mCpWayPointLinkClosestToCollectable->pEndEntity->GetMyBezierCurvePlaningCoord(debugPathPnt3);
+
+    std::vector<WayPointLinkInfoStruct*> newPoints;
+    newPoints.clear();
+
+    this->AdvanceDbgColor();
+
+    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
+                                                                    0.1f, currDbgColor);
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    mCurrentPathSeg.clear();
+
+    //add new waypoints to the existing ones
+    for (it = newPoints.begin(); it != newPoints.end(); ++it) {
+        mCurrentPathSeg.push_back(*it);
+    }
+
+    mCurrentPathSegNrSegments = mCurrentPathSeg.size();
+
+    ProjectPlayerAtCurrentSegments();
+
+    //this->mRace->mGame->StopTime();
 }
 
 void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink) {
@@ -2328,40 +2553,58 @@ void Player::RunComputerPlayerLogic() {
     }
 
     switch (currCommand->cmdType) {
-    case CMD_NOCMD: {
-        if (mHUD != NULL) {
-          this->mHUD->ShowBannerText((char*)"NO CMD", 4.0f);
+        case CMD_NOCMD: {
+            if (mHUD != NULL) {
+              this->mHUD->ShowBannerText((char*)"NO CMD", 4.0f);
+            }
+            break;
         }
-        break;
+
+        case CMD_FLYTO_TARGETENTITY: {
+                FlyTowardsEntityRunComputerPlayerLogic(currCommand);
+            break;
+        }
+
+        case CMD_FLYTO_TARGETPOSITION: {
+            break;
+        }
+
+        case CMD_CHARGE_FUEL:
+        case CMD_CHARGE_AMMO:
+        case CMD_CHARGE_SHIELD: {
+            CpHandleCharging();
+            break;
+        }
+
+        case CMD_PICKUP_COLLECTABLE: {
+            this->mCpTargetCollectableToPickUp = currCommand->targetCollectible;
+
+            if (mCpWayPointLinkClosestToCollectable == NULL) {
+                //figure out which target link is closest to this collectable
+                std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> wayPointLinkCloseToCollectable =
+                        this->mRace->mPath->FindClosestWayPointLinkToCollectible(mCpTargetCollectableToPickUp);
+
+                if (wayPointLinkCloseToCollectable.first != NULL) {
+                   mCpWayPointLinkClosestToCollectable = wayPointLinkCloseToCollectable.first;
+                }
+            }
+
+            break;
+        }
+
+        case CMD_FOLLOW_TARGETWAYPOINTLINK: {
+            mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
+            mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
+            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink);
+            computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+
+            CurrentCommandFinished();
+            break;
+        }
+
     }
 
-    case CMD_FLYTO_TARGETENTITY: {
-            FlyTowardsEntityRunComputerPlayerLogic(currCommand);
-        break;
-    }
-
-    case CMD_FLYTO_TARGETPOSITION: {
-        break;
-    }
-
-    case CMD_CHARGE_FUEL:
-    case CMD_CHARGE_AMMO:
-    case CMD_CHARGE_SHIELD: {
-        CpHandleCharging();
-        break;
-    }
-
-    case CMD_FOLLOW_TARGETWAYPOINTLINK: {
-        mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
-        mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
-        FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink);
-        computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-
-        CurrentCommandFinished();
-        break;
-    }
-
-    }
+    CpPlayerCollectableSelectionLogic();
 
     return;
 }
@@ -3685,6 +3928,20 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
         default:
             break;
     }
+
+//    //if this is a computer player, was this item planed to be picked
+//    //up? if so reset variables for collectable logic
+//    if (!this->mHumanPlayer) {
+//        if (this->mCpTargetCollectableToPickUp == whichCollectable) {
+//            //yes, correct item picked up
+//            //set back to NULL, so that player can lookup
+//            //next item he wants to collect
+//            mCpTargetCollectableToPickUp = NULL;
+//            this->mCpWayPointLinkClosestToCollectable = NULL;
+
+//            CurrentCommandFinished();
+//        }
+//    }
 }
 
 irr::f32 Player::GetHoverHeight() {

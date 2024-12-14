@@ -2175,6 +2175,29 @@ void Race::Render() {
           }
       }
 
+    /*  if (this->player2->mCpCollectablesSeenByPlayer.size() > 0) {
+          std::vector<Collectable*>::iterator itColl;
+          irr::core::vector3df fixedPos;
+
+          for (itColl = player2->mCpCollectablesSeenByPlayer.begin(); itColl != player2->mCpCollectablesSeenByPlayer.end(); ++itColl) {
+               fixedPos = (*itColl)->Position;
+               fixedPos.X = -fixedPos.X;
+               mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos, this->mDrawDebug->pink);
+          }
+      }*/
+
+      if (player2->mCpTargetCollectableToPickUp != NULL) {
+           irr::core::vector3df fixedPos = player2->mCpTargetCollectableToPickUp->Position;
+           fixedPos.X = -fixedPos.X;
+           mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos,
+                                  this->mDrawDebug->pink);
+      }
+
+      if (player2->mCpWayPointLinkClosestToCollectable != NULL) {
+          mDrawDebug->Draw3DLine(player2->mCpWayPointLinkClosestToCollectable->pLineStruct->A,
+                                 player2->mCpWayPointLinkClosestToCollectable->pLineStruct->B,
+                                 this->mDrawDebug->cyan);
+      }
 
     //  mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->currClosestWayPointLink.second, this->mDrawDebug->brown);
 
@@ -2447,19 +2470,12 @@ bool Race::LoadLevel(int loadLevelNr) {
    char levelfilename[50];
    char str[20];
 
-   if (loadLevelNr < 7) {
-       strcpy(levelfilename, "extract/level0-");
-       sprintf(str, "%d", loadLevelNr);
-       strcat(levelfilename, str);
-       strcat(levelfilename, "/level0-");
-       strcat(levelfilename, str);
-       strcat(levelfilename, "-unpacked.dat");
-   } else {
-       strcpy(levelfilename, "addedData/level0-");
-       sprintf(str, "%d", loadLevelNr);
-       strcat(levelfilename, str);
-       strcat(levelfilename, ".dat");
-   }
+   strcpy(levelfilename, "extract/level0-");
+   sprintf(str, "%d", loadLevelNr);
+   strcat(levelfilename, str);
+   strcat(levelfilename, "/level0-");
+   strcat(levelfilename, str);
+   strcat(levelfilename, "-unpacked.dat");
 
    char texfilename[50];
    strcpy(texfilename, "extract/level0-");

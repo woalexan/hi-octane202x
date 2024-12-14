@@ -217,6 +217,8 @@ public:
 
     Game* mGame;
 
+    std::vector<Collectable*> *ENTCollectablesVec;
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -358,7 +360,6 @@ private:
     //std::list<LineStruct*> *ENTCheckpointLine_List;
 
     std::list<EntityItem*> *ENTTriggers_List;
-    std::vector<Collectable*> *ENTCollectablesVec;
 
     //holds a list of all available level morphs
     std::list<Morph*> Morphs;

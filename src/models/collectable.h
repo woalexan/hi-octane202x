@@ -16,7 +16,8 @@
 
 class Collectable  {
 public:
-    Collectable(EntityItem* entityItem, int number, vector3d<irr::f32> pos, irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver);
+    Collectable(EntityItem* entityItem, int number, vector3d<irr::f32> pos,
+                irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver);
     ~Collectable();
 
     vector3d<irr::f32> Position;
@@ -33,6 +34,8 @@ public:
     void TriggerCollected();
 
     EntityItem* mEntityItem;
+
+    irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
 
 protected:
     irr::video::IVideoDriver* m_driver;
