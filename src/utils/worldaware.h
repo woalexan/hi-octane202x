@@ -141,7 +141,9 @@ private:
     void DebugSavePicture(char* fileName, irr::video::IImage* image);
     void DrawPlayer(irr::video::IImage &image, irr::video::SColor &color, Player* whichPlayer);
     RayHitInfoStruct CastRay(irr::video::IImage &image, irr::core::vector3df startPos, irr::core::vector3df dirVec);
-    RayHitInfoStruct CastRayDDA(irr::video::IImage &image, irr::core::vector3df startPos, irr::core::vector3df dirVec, irr::f32 maxRange);
+    RayHitInfoStruct CastRayDDA(irr::video::IImage &image, irr::core::vector3df startPos,
+                                irr::core::vector3df dirVec, irr::f32 maxRange,
+                                std::vector<irr::core::vector2di> &visitedCells);
 
     void SetPixelDynamicWorldMap(int playerNr, irr::f32 x1, irr::f32 y1);
     void DrawLineIntoDynamicWorldMap(int playerNr, irr::f32 x1, irr::f32 y1,
@@ -179,6 +181,8 @@ public:
 
     void Analyse(Player *whichPlayer);
     bool WriteOneDbgPic = false;
+
+
 };
 
 #endif // WORLDAWARE_H

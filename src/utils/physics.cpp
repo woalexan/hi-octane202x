@@ -549,6 +549,8 @@ void Physics::RemoveObjToObjCollisionPair(PhysicsObject* obj1, PhysicsObject* ob
 
             it = currObjToObjCollisionPairs.erase(it);
 
+            //TODO: I need to comment this, otherwise game crashes
+            //but fix this!
             //delete removePair;
         } else
             ++it;
@@ -612,24 +614,31 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
                       irr::f32 velChange2 = -Jn / ((*it2)->physicState.mass);
 
                       irr::f32 force1 = (velChange1 * (*it)->physicState.mass) / deltaTime;
-                      irr::f32 force2 = -(velChange2 * (*it2)->physicState.mass) / deltaTime;
+                      irr::f32 force2 = (velChange2 * (*it2)->physicState.mass) / deltaTime;
 
+                      //better limit forces, because otherwise horrible
+                      //things may happen with the world
+                      if (fabs(force1) > 500.0f) {
+                          force1 = sgn(force1) * 500.0f;
+                      }
 
-            //    (*it)->physicState.velocity += velChange1;
+                      if (fabs(force2) > 500.0f) {
+                          force2 = sgn(force2) * 500.0f;
+                      }
 
-                (*it)->AddWorldCoordForce((*it)->physicState.position, ((*it)->physicState.position + collNormal) * force1 * 0.05f, PHYSIC_APPLYFORCE_ONLYTRANS,
-                                          PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+                      (*it)->AddFriction(100.0f);
+                      (*it2)->AddFriction(100.0f);
 
-              //      (*it2)->physicState.velocity += velChange2;
+                    (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
+                                            PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
 
-                    (*it2)->AddWorldCoordForce((*it2)->physicState.position, ((*it2)->physicState.position + collNormal) * force2 * 0.05f, PHYSIC_APPLYFORCE_ONLYTRANS,
-                                              PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+                      (*it2)->AddWorldCoordForce((*it2)->physicState.position, collNormal * force2, PHYSIC_APPLYFORCE_ONLYTRANS,
+                                                PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
 
                       (*it)->CollidedOtherObjectLastTime = true;
                       (*it2)->CollidedOtherObjectLastTime = true;
               }
-
-
 
             //TODO: calculate new velocities
             //see this page: https://www.euclideanspace.com/physics/dynamics/collision/index.htm

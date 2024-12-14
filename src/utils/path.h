@@ -107,6 +107,9 @@ public:
     WayPointLinkInfoStruct* PlayerFindClosestWaypointLinkHelper(irr::core::vector3df inputPosition,
                                                                 irr::core::vector3df &projectedPlayerPosition);
 
+    std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>
+        FindClosestWayPointLinkToCollectible(Collectable* whichCollectable);
+
 private:
     Race* mRace;
     DrawDebug* mDrawDebug;

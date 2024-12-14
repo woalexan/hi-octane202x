@@ -185,6 +185,19 @@ std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::PlayerDeriveClos
     return ( std::make_pair(nullLink, irr::core::vector3df(0.0f, 0.0f, 0.0f)));
 }
 
+std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::FindClosestWayPointLinkToCollectible(Collectable* whichCollectable) {
+   std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> result;
+
+   irr::core::vector3df targetPos = whichCollectable->Position;
+   irr::core::vector3df projPos(0.0f, 0.0f, 0.0f);
+   targetPos.X = -targetPos.X;
+
+   result.first = PlayerFindClosestWaypointLinkHelper(targetPos, projPos);
+   result.second = projPos;
+
+   return result;
+}
+
 //this function returns (if more are existing) multiple close waypoint links to the player craft
 std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::PlayerFindCloseWaypointLinks(Player* whichPlayer) {
 

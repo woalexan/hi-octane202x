@@ -57,6 +57,16 @@ Collectable::Collectable(EntityItem* entityItem,
     this->boundingBox = this->billSceneNode->getTransformedBoundingBox();
 }
 
+irr::core::vector2df Collectable::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
+    irr::core::vector3df rest = this->Position;
+    rest.X = -rest.X;
+
+    threeDCoord = rest;
+    irr::core::vector2df result(rest.X, rest.Z);
+
+    return result;
+}
+
 Collectable::~Collectable() {
     //cleanup collectable stuff
 
