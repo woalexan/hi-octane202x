@@ -385,6 +385,13 @@ void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newStruct->LinkDirectionVec = vec3D;
     newStruct->LinkDirectionVec.normalize();
 
+    //precalculate a direction vector which stands at a 90 degree
+    //angle at the original waypoint direction vector, and always points
+    //to the right direction when looking into race direction
+    //this direction vector is later used during the game to offset the player
+    //path sideways
+    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*this->mRace->yAxisDirVector).normalize();
+
     //also store this temporary waypointlink struct info
     //in the command, so that we can cleanup after this command was
     //executed
@@ -1102,45 +1109,7 @@ void Player::CPForceController() {
     }
 }
 
-void Player::ProjectPlayerAtCurrentSegment() {
-    irr::core::vector3df dA;
-    irr::core::vector3df dB;
 
-    irr::f32 projecteddA;
-    irr::f32 projecteddB;
-    irr::f32 projectedPl;
-    //irr::f32 distance;
-
-    irr::core::vector3df projPlayerPosition;
-
-    dA = phobj->physicState.position - cPCurrentFollowSeg->pLineStruct->A;
-    dB = phobj->physicState.position - cPCurrentFollowSeg->pLineStruct->B;
-
-    projecteddA = dA.dotProduct(cPCurrentFollowSeg->LinkDirectionVec);
-    projecteddB = dB.dotProduct(cPCurrentFollowSeg->LinkDirectionVec);
-
-    //if craft position is parallel (sideways) to current waypoint link the two projection
-    //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
-    //this path segment
-    if (sgn(projecteddA) != sgn(projecteddB)) {
-        //we seem to be still parallel to this segment => projection will still give useful results
-        //calculate distance from player position to this line, where connecting line meets path segment
-        //in a 90° angle
-        projectedPl =  dA.dotProduct(cPCurrentFollowSeg->LinkDirectionVec);
-
-        /*
-        (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
-                                                                                  projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
-                                                                                    player->phobj->physicState.position);*/
-
-        projPlayerPosition = (cPCurrentFollowSeg->pLineStruct->A +
-                irr::core::vector3df(projectedPl, projectedPl, projectedPl) * (cPCurrentFollowSeg->LinkDirectionVec));
-
-        //distance = (projPlayerPosition - phobj->physicState.position).getLength();
-
-        projPlayerPositionFollowSeg = projPlayerPosition;
-    }
-}
 
 void Player::ProjectPlayerAtCurrentSegments() {
     std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
@@ -1513,7 +1482,11 @@ void Player::ReachedEndCurrentFollowingSegments() {
                 this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
             }
 
-            FollowPathDefineNextSegment(nextLink);
+            FollowPathDefineNextSegment(nextLink, mCpCurrPathOffset);
+
+            pathClose = 0;
+
+
       }
   //  }
 }
@@ -2278,36 +2251,106 @@ void Player::PickupCollectableDefineNextSegment(Collectable* whichCollectable) {
     //this->mRace->mGame->StopTime();
 }
 
-void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink) {
-    //create bezier curve
-    //start point is the current end point of the path
-    //control point is the start point of the link
-    //in the path with the specified number
-    //end point is the end point of the link in the
-    //path with the defined number
-    irr::core::vector3df link1Start3D;
-    irr::core::vector3df link1End3D;
+void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay) {
 
-    //current player position, is start point for bezier curve 1
-    irr::core::vector2df bezierPnt1 = this->GetMyBezierCurvePlaningCoord(debugPathPnt1);
-
-    //next link start point => is the control point for bezier curve 1
-    irr::core::vector2df bezierCntrlPnt1 = nextLink->pStartEntity->GetMyBezierCurvePlaningCoord(link1Start3D);
-    debugPathPnt2 = link1Start3D;
-
-    //end point for next link is needed to calculate midpoint
-    irr::core::vector2df link1End = nextLink->pEndEntity->GetMyBezierCurvePlaningCoord(link1End3D);
-
-    //calculate midpoint for next link, is the bezier curve 1 end point
-    irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
+    bool freeWayFound = false;
+    irr::f32 currOffset = startOffsetWay;
 
     std::vector<WayPointLinkInfoStruct*> newPoints;
     newPoints.clear();
 
     this->AdvanceDbgColor();
 
-    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
-                                                                    0.1f, currDbgColor);
+    //in which direction should we shift the new way to clear target?
+    //in which direction do we have more free space available?
+    irr::f32 freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShift;
+    irr::f32 freeSpaceRightOfPath = nextLink->maxOffsetShift - currOffset;
+
+    //do we need to change offset, because in front of us there is not enough
+    //space available?
+    if (freeSpaceLeftOfPath < 1.0f) {
+        currOffset = nextLink->minOffsetShift * 0.5f;
+    }
+
+    if (freeSpaceRightOfPath < 1.0f) {
+         currOffset = nextLink->maxOffsetShift * 0.5f;
+    }
+
+    freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShift;
+    freeSpaceRightOfPath = nextLink->maxOffsetShift - currOffset;
+
+    bool goleft = false;
+    bool leftFailed = false;
+    bool rightFailed = false;
+    bool lastCalc = false;
+
+    if (freeSpaceLeftOfPath > freeSpaceRightOfPath) {
+        //go left
+        goleft = true;
+    }
+
+    while (!freeWayFound && !lastCalc) {
+            //create bezier curve
+            //start point is the current end point of the path
+            //control point is the start point of the link
+            //in the path with the specified number
+            //end point is the end point of the link in the
+            //path with the defined number
+            irr::core::vector3df link1Start3D;
+            irr::core::vector3df link1End3D;
+
+            if (rightFailed && leftFailed) {
+                lastCalc = true;
+            }
+
+            //current player position, is start point for bezier curve 1
+            irr::core::vector2df bezierPnt1 = this->GetMyBezierCurvePlaningCoord(debugPathPnt1);
+
+            //next link start point => is the control point for bezier curve 1
+            irr::core::vector2df bezierCntrlPnt1 = nextLink->pStartEntity->GetMyBezierCurvePlaningCoord(link1Start3D);
+            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(bezierCntrlPnt1, link1Start3D, nextLink, currOffset);
+
+            debugPathPnt2 = link1Start3D;
+
+            //end point for next link is needed to calculate midpoint
+            irr::core::vector2df link1End = nextLink->pEndEntity->GetMyBezierCurvePlaningCoord(link1End3D);
+            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(link1End, link1End3D, nextLink, currOffset);
+
+            //calculate midpoint for next link, is the bezier curve 1 end point
+            irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
+
+            newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
+                                                                            0.1f, currDbgColor);
+
+            //now check if the new "way" is free from other players
+            if (this == this->mRace->player2) {
+                if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, this)) {
+                        freeWayFound = true;
+                } else {
+                    //no free way found
+                    if (goleft) {
+                        currOffset -= 0.75f;
+                        if (currOffset < (nextLink->minOffsetShift + 1.0f)) {
+                            leftFailed = true;
+                            goleft = false;
+                        }
+
+                    } else {
+                        //go right
+                        currOffset += 0.75f;
+
+                        if (currOffset > (nextLink->maxOffsetShift - 1.0f)) {
+                            rightFailed = true;
+                            goleft = true;
+                        }
+                    }
+                }
+            } else freeWayFound = true;
+
+            if (leftFailed && rightFailed) {
+                currOffset = 0.0f;
+            }
+    }
 
     std::vector<WayPointLinkInfoStruct*>::iterator it;
 
@@ -2317,6 +2360,9 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink) {
     for (it = newPoints.begin(); it != newPoints.end(); ++it) {
         mCurrentPathSeg.push_back(*it);
     }
+
+    //update current player offset path value
+    mCpCurrPathOffset = currOffset;
 
     mCurrentPathSegNrSegments = mCurrentPathSeg.size();
 
@@ -2381,7 +2427,7 @@ void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
     }
 }
 
-irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {
+/*irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {
     if (currentWayPointLine->pntrPathNextLink != NULL) {
         //we have the next path link as well, we should be able to find out in which direction
         //we will have to go next
@@ -2402,7 +2448,7 @@ irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct
         //if there is no link to the next element, return
         //direction vec of this current waypoint segment
         return currentWayPointLine->LinkDirectionVec;
-}
+}*/
 
 void Player::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec) {
     if (mHUD != NULL) {
@@ -2595,7 +2641,7 @@ void Player::RunComputerPlayerLogic() {
         case CMD_FOLLOW_TARGETWAYPOINTLINK: {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
             mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
-            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink);
+            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset);
             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 
             CurrentCommandFinished();

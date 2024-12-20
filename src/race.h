@@ -132,6 +132,9 @@ public:
     //a second player for debugging purposes
     Player *player2;
 
+    //a third player for debugging purposes
+    Player *player3;
+
     //handles the height map terrain
     //of the level
     LevelTerrain *mLevelTerrain;
@@ -184,8 +187,6 @@ public:
     //my explosion launcher
     ExplosionLauncher* mExplosionLauncher;
 
-    void testPerm();
-    void remoPerm();
     HUD *Hud1Player;
 
     bool DebugHitBreakpoint = false;
@@ -272,10 +273,6 @@ private:
     //level
     LevelFile *mLevelRes;
 
-    //class for world awareness functions
-    //which are needed by computer player control functions
-    WorldAwareness* mWorldAware;
-
     TimeProfiler* mTimeProfiler;
 
     //my Irrlicht event receiver
@@ -293,6 +290,10 @@ private:
     //my texture loader
     TextureLoader *mTexLoader;
 
+    //class for world awareness functions
+    //which are needed by computer player control functions
+    WorldAwareness* mWorldAware;
+
     //the main player object
 
     //Player physics object
@@ -303,6 +304,9 @@ private:
 
     //Player 2 physics object
     PhysicsObject* player2PhysicsObj;
+
+    //Player 3 physics object
+    PhysicsObject* player3PhysicsObj;
 
     std::vector<Player*> playerRanking;
 
@@ -324,7 +328,6 @@ private:
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = true;
     bool DebugShowWallSegments = false;
-    bool DebugShowTransitionLinks = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
@@ -349,16 +352,7 @@ private:
 
     void AddWayPoint(EntityItem *entity, EntityItem *next);
 
-    void CreateTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink);
- //   WayPointLinkInfoStruct* SearchTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink);
-    std::vector<WayPointLinkInfoStruct*> *transitionLinkVec;
-
-
     std::list<EntityItem*> *ENTWallsegments_List;
-
-    //std::list<EntityItem*> *ENTCheckpoint_List;
-    //std::list<LineStruct*> *ENTCheckpointLine_List;
-
     std::list<EntityItem*> *ENTTriggers_List;
 
     //holds a list of all available level morphs

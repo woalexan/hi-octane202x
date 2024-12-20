@@ -160,6 +160,7 @@ private:
     irr::video::SColor* colorRed;
     irr::video::SColor* colorPlayer;
     irr::video::SColor* colorPlayer2;
+    irr::video::SColor* colorPlayer3;
 
     //static world map contains info about static
     //Terrain and Cubes; 0 means in the tile there is no obstacle
@@ -180,9 +181,10 @@ public:
     ~WorldAwareness();
 
     void Analyse(Player *whichPlayer);
+
+    void PreAnalyzeWaypointLinksOffsetRange();
+
     bool WriteOneDbgPic = false;
-
-
 };
 
 #endif // WORLDAWARE_H

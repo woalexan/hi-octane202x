@@ -1042,6 +1042,7 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
                     HandleObjToObjCollision(frameDeltaTime);
 
                     this->mParentRace->player2->CPForceController();
+                    this->mParentRace->player3->CPForceController();
 
                     //Wolf Alexander 24.10.2024: For the heightmap collision to work we
                     //need to immediately update the sceneNodes here inside the loop

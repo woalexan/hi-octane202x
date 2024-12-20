@@ -50,9 +50,6 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     wayPointLinkVec = new std::vector<WayPointLinkInfoStruct*>;
     wayPointLinkVec->clear();
 
-    transitionLinkVec = new std::vector<WayPointLinkInfoStruct*>;
-    transitionLinkVec->clear();
-
     steamFountainVec = new std::vector<SteamFountain*>;
     steamFountainVec->clear();
 
@@ -124,6 +121,7 @@ Race::~Race() {
     //unregister existing HUD in all players
     player->SetMyHUD(NULL);
     player2->SetMyHUD(NULL);
+    player3->SetMyHUD(NULL);
 
     //now we can free the HUD
     delete Hud1Player;
@@ -135,6 +133,7 @@ Race::~Race() {
     //free all players
     delete player;
     delete player2;
+    delete player3;
 
     //remove camera SceneNode
     mCamera->remove();
@@ -162,7 +161,6 @@ Race::~Race() {
     CleanUpCones();
 
     CleanUpWayPointLinks(*this->wayPointLinkVec);
-    CleanUpWayPointLinks(*this->transitionLinkVec);
     CleanUpAllCheckpoints();
     CleanUpSky();
     CleanMiniMap();
@@ -415,6 +413,7 @@ void Race::StopAllSounds() {
     //make sure all warning sounds are off
     player->StopPlayingWarningSound();
     player2->StopPlayingWarningSound();
+    player3->StopPlayingWarningSound();
 
     //make sure engine sounds are off
     //this function internally also stops
@@ -1272,6 +1271,10 @@ void Race::Init() {
         //create the world awareness class
         mWorldAware = new WorldAwareness(this->mDevice, this->mDriver, this);
 
+        //now use the new world aware class to further analyze all
+        //waypoint links for computer player movement control later
+        mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
+
         //create my ExplosionLauncher
         mExplosionLauncher = new ExplosionLauncher(this, mSmgr, mDriver);
 
@@ -1359,8 +1362,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //update players
     player->Update(frameDeltaTime);
-    if (!player2Removed)
-        player2->Update(frameDeltaTime);
+    player2->Update(frameDeltaTime);
+    player3->Update(frameDeltaTime);
 
     mTimeProfiler->Profile(mTimeProfiler->tIntUpdatePlayers);
 
@@ -1418,8 +1421,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     player2->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player2->currCloseWayPointLinks);
     player2->SetCurrClosestWayPointLink(player2->currClosestWayPointLink);
 
+    player3->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(player3);
+    player3->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player3->currCloseWayPointLinks);
+    player3->SetCurrClosestWayPointLink(player3->currClosestWayPointLink);
+
     UpdatePlayerDistanceToNextCheckpoint(player);
     UpdatePlayerDistanceToNextCheckpoint(player2);
+    UpdatePlayerDistanceToNextCheckpoint(player3);
 
     irr::core::aabbox3d<f32> playerBox = this->player->Player_node->getTransformedBoundingBox();
     CheckPlayerCrossedCheckPoint(player, playerBox);
@@ -1428,6 +1436,10 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     irr::core::aabbox3d<f32> playerBox2 = this->player2->Player_node->getTransformedBoundingBox();
     CheckPlayerCrossedCheckPoint(player2, playerBox2);
     CheckPlayerCollidedCollectible(player2, playerBox2);
+
+    irr::core::aabbox3d<f32> playerBox3 = this->player3->Player_node->getTransformedBoundingBox();
+    CheckPlayerCrossedCheckPoint(player3, playerBox3);
+    CheckPlayerCollidedCollectible(player3, playerBox3);
 
     //update player race position ranking
     UpdatePlayerRacePositionRanking();
@@ -1447,6 +1459,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     mWorldAware->Analyse(player);
     mWorldAware->Analyse(player2);
+    mWorldAware->Analyse(player3);
 
     mTimeProfiler->Profile(mTimeProfiler->tIntWorldAware);
 }
@@ -1497,11 +1510,7 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
 
 void Race::HandleComputerPlayers() {
     player2->RunComputerPlayerLogic();
-    //player2->CPForceController();
-/*
-    if (player2->currClosestWayPointLink != NULL) {
-        player2->FlyTowardsEntityRunComputerPlayerLogic(player2->currClosestWayPointLink->pEndEntity);
-    }*/
+    //player3->RunComputerPlayerLogic();
 }
 
 void Race::HandleBasicInput() {
@@ -1528,6 +1537,12 @@ void Race::HandleBasicInput() {
     {
          this->currPlayerFollow = player2;
          Hud1Player->SetMonitorWhichPlayer(player2);
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
+    {
+         this->currPlayerFollow = player3;
+         Hud1Player->SetMonitorWhichPlayer(player3);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
@@ -1864,6 +1879,29 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
     mDriver->draw2DRectangle(player2LocationBlock,
                              core::rect<s32>(player2Location.Width - 3, player2Location.Height - 3,
                                              player2Location.Width + 3, player2Location.Height + 3));
+
+    /**********************************
+     * MiniMap for Player 3           *
+     * ******************************** */
+
+    //draw player position
+    irr::video::SColor player3LocationBlock(255, 254, 254, 250);  //the main location block inside color, is always visible
+    irr::video::SColor player3LocationFrameColor(255, 194, 189, 206);  //this color is drawn around the main white block to create a blinking effect
+
+    irr::core::dimension2di player3Location = CalcPlayerMiniMapPosition(player3);
+
+    //for blinking effect draw bigger frame block for player 3
+    //only draw it for blinking effect
+    if (miniMapBlinkActive) {
+        mDriver->draw2DRectangle(player3LocationFrameColor,
+                             core::rect<s32>(player3Location.Width - 5, player3Location.Height -5,
+                                             player3Location.Width + 5, player3Location.Height + 5));
+    }
+
+    //draw main position marker block for player 3
+    mDriver->draw2DRectangle(player3LocationBlock,
+                             core::rect<s32>(player3Location.Width - 3, player3Location.Height - 3,
+                                             player3Location.Width + 3, player3Location.Height + 3));
 }
 
 void Race::Render() {
@@ -1978,23 +2016,21 @@ void Race::Render() {
           } else mDriver->setMaterial(*mDrawDebug->blue);*/
           mDriver->draw3DLine((*WayPointLink_iterator)->pLineStruct->A, (*WayPointLink_iterator)->pLineStruct->B);
 
-        /*  if ((*WayPointLink_iterator)->pLineStruct->debugLine != NULL) {
-            mDriver->setMaterial(*mDrawDebug->brown);
-             mDriver->draw3DLine((*WayPointLink_iterator)->pLineStruct->debugLine->start, (*WayPointLink_iterator)->pLineStruct->debugLine->end);
-          }*/
-      }
-     }
+          //also draw min/max offset shift limit lines for graphical representation of possible computer player
+          //movement area
+          mDrawDebug->Draw3DLine(
+                      (*WayPointLink_iterator)->pLineStruct->A + (*WayPointLink_iterator)->offsetDirVec *
+                      (*WayPointLink_iterator)->minOffsetShift,
+                      (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
+                      (*WayPointLink_iterator)->minOffsetShift,
+                      this->mDrawDebug->blue);
 
-
-    if (DebugShowTransitionLinks) {
-      //draw all automatic generated transition links
-      mDriver->setMaterial(*mDrawDebug->green);
-      for(WayPointLink_iterator = transitionLinkVec->begin(); WayPointLink_iterator != transitionLinkVec->end(); ++WayPointLink_iterator) {
-          /*
-          if ((*WayPointLink_iterator)->pntrCheckPoint != NULL) {
-                mDriver->setMaterial(*mDrawDebug->red);
-          } else mDriver->setMaterial(*mDrawDebug->blue);*/
-          mDriver->draw3DLine((*WayPointLink_iterator)->pLineStruct->A, (*WayPointLink_iterator)->pLineStruct->B);
+          mDrawDebug->Draw3DLine(
+                      (*WayPointLink_iterator)->pLineStruct->A + (*WayPointLink_iterator)->offsetDirVec *
+                      (*WayPointLink_iterator)->maxOffsetShift,
+                      (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
+                      (*WayPointLink_iterator)->maxOffsetShift,
+                      this->mDrawDebug->red);
 
         /*  if ((*WayPointLink_iterator)->pLineStruct->debugLine != NULL) {
             mDriver->setMaterial(*mDrawDebug->brown);
@@ -2003,7 +2039,7 @@ void Race::Render() {
       }
      }
 
-      std::vector<LineStruct*>::iterator Linedraw_iterator2;
+    std::vector<LineStruct*>::iterator Linedraw_iterator2;
 
     if (DebugShowWallSegments) {
       //draw all wallsegments for debugging purposes
@@ -2439,6 +2475,53 @@ void Race::createPlayers(int levelNr) {
 
     mPlayerList.push_back(player2);
 
+    //***************************************************
+    // Player 3 (for debugging right now)               *
+    //***************************************************
+
+    //create a thrid player as well
+    //std::string player_model("extract/models/jet0-0.obj");
+    std::string player_model3("extract/models/jugga0-3.obj");
+    //std::string player_model("extract/models/car0-0.obj");
+    //std::string player_model("extract/models/jugga0-0.obj");
+    //std::string player_model("extract/models/marsh0-0.obj");
+    //std::string player_model("extract/models/skim0-0.obj");
+
+    irr::core::vector3d<irr::f32> Startpos3;
+    irr::core::vector3d<irr::f32> Startdirection3;
+
+    //getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
+    Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
+    Startdirection3.X = Startpos3.X;
+    Startdirection3.Y = Startpos3.Y;
+    Startdirection3.Z = Startpos3.Z - 2.0f;
+
+    //Startpos2.Z -= 10.0f;
+
+    player3 = new Player(this, player_model3, Startpos3, Startdirection3, this->mSmgr, false);
+
+    this->mPhysics->AddObject(player3->Player_node);
+
+    //setup player 3 physics properties
+    player3PhysicsObj = this->mPhysics->GetObjectPntr(player3->Player_node);
+    if (player3PhysicsObj != NULL) {
+        player3PhysicsObj->physicState.SetMass(5.0f);   //3.0f
+        player3PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
+        player3PhysicsObj->physicState.position = Startpos3;
+        player3PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
+
+        player3PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+        player3PhysicsObj->physicState.recalculate();
+
+       player3PhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
+    }
+
+    //inform player control object about its physics object pointer
+    player3->SetPlayerObject(player3PhysicsObj);
+    player3->SetName((char*)"KI2");
+
+    mPlayerList.push_back(player3);
+
     currPlayerFollow = player;
 
     //add first command for computer player player2
@@ -2451,6 +2534,19 @@ void Race::createPlayers(int levelNr) {
 
        if (foundLinks.size() > 0) {
            player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
+       }
+    }
+
+    //add first command for computer player player3
+    entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
+    if (entItem != NULL) {
+       //get waypoint link for this waypoint
+        std::vector<WayPointLinkInfoStruct*> foundLinks;
+
+       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false);
+
+       if (foundLinks.size() > 0) {
+           player3->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
        }
     }
 }
@@ -2716,68 +2812,6 @@ void Race::CleanUpWayPointLinks(std::vector<WayPointLinkInfoStruct*> &vec) {
     delete &vec;
 }
 
-void Race::CreateTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink) {
-    WayPointLinkInfoStruct* newTransLink = new WayPointLinkInfoStruct();
-
-    newTransLink->pStartEntity = startLink->pStartEntity;
-    newTransLink->pEndEntity = endLink->pEndEntity;
-
-    //create and store a 3D line for later drawing and
-    //debugging, also calculations will be done with this struct
-    LineStruct *line = new LineStruct;
-
-    line->A = newTransLink->pStartEntity->get_Center();
-    line->A.X = -line->A.X;    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-    line->B = newTransLink->pEndEntity->get_Center();
-    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-   line->B.X = -line->B.X;    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-
-    //line->name.clear();
-    //line->name.append("Transition Link Waypoint line ");
-    //line->name.append(std::to_string(newTransLink->pStartEntity->get_ID()));
-    //line->name.append(" to ");
-    //line->name.append(std::to_string(newTransLink->pEndEntity->get_ID()));
-    line->name = new char[100];
-    sprintf(&line->name[0], "Transition Link Waypoint line %d to %d",
-            newTransLink->pStartEntity->get_ID(), newTransLink->pEndEntity->get_ID());
-
-    //set white as default color
-    line->color = mDrawDebug->white;
-
-    irr::core::vector3df vec3D = (line->B - line->A);
-
-    //precalculate and store length
-    newTransLink->length3D = vec3D.getLength();
-    vec3D.normalize();
-
-    newTransLink->pLineStruct = line;
-    //store precalculated direction vector
-    newTransLink->LinkDirectionVec = vec3D;
-
-    //add new waypoint link info struct to vector of all
-    //interpolated transition waypoint links
-    this->transitionLinkVec->push_back(newTransLink);
-
-    //also keep a pointer in the start segment to the new transition
-    //element to find it faster during the race later
-    startLink->pntrTransitionLink = newTransLink;
-}
-
-/*
-WayPointLinkInfoStruct* Race::SearchTransitionLink(WayPointLinkInfoStruct* startLink, WayPointLinkInfoStruct* endLink) {
-
-    int16_t startId = startLink->pStartEntity->get_ID();
-    int16_t endId = endLink->pEndEntity->get_ID();
-
-    std::vector<WayPointLinkInfoStruct*>::iterator it;
-    for (it = transitionLinkVec->begin(); it != transitionLinkVec->end(); ++it) {
-        if (((*it)->pStartEntity->get_ID() == startId) && (((*it)->pEndEntity->get_ID() == endId)))
-            return (*it);
-    }
-
-    return NULL;
-}*/
-
 //Helper function that is used in many different ways for computer player control
 //The purpose of this function is that it takes a 3D direction vector, it ignores
 //the Y-Axis (simply looks from the top at the play field in 2D), and then assigns the
@@ -2830,12 +2864,7 @@ void Race::CheckPointPostProcessing() {
                //also store direction vector of next waypoint
                //segment in this struct, to allow easier
                //computer player control later
-               (*it1)->PathNextLinkDirectionVec = (*it2)->LinkDirectionVec;
-
-               //also create a transition link
-               //this information is used for computer player control logic
-               //when transitioning from one waypoint link to the other
-               CreateTransitionLink((*it1), (*it2));
+               //(*it1)->PathNextLinkDirectionVec = (*it2)->LinkDirectionVec;
            }
         }
     }
@@ -3080,6 +3109,13 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
         newStruct->pLineStruct = line;
         //store precalculated direction vector
         newStruct->LinkDirectionVec = vec3D;
+
+        //precalculate a direction vector which stands at a 90 degree
+        //angle at the original waypoint direction vector, and always points
+        //to the right direction when looking into race direction
+        //this direction vector is later used during the game to offset the player
+        //path sideways
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*yAxisDirVector).normalize();
 
         //add new waypoint link info struct to vector of all
         //waypoint links
