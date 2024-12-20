@@ -45,7 +45,14 @@ struct WayPointLinkInfoStruct {
     //normalized link direction vector
     irr::core::vector3df LinkDirectionVec;
 
+    //the 3D length from Start entity center to
+    //end entity center
     irr::f32 length3D;
+
+    //precalculate new direction vector which stands 90 deg onto the link direction vector,
+    //so that it points always in a 90 degree angle into direction right of waypoint link
+    //we use this during game to offset computer player paths sideways
+    irr::core::vector3df offsetDirVec;
 
     //if a checkpoint is crossing this waypoint line
     //segment add a pointer to this checkpoint here
@@ -67,13 +74,16 @@ struct WayPointLinkInfoStruct {
     //if existing keep also direction vector of next element
     //so that we can adjust orientation of craft before we reach
     //next waypoint link
-    irr::core::vector3df PathNextLinkDirectionVec;
+    //irr::core::vector3df PathNextLinkDirectionVec;
 
-    //automatic created (interpolated) waypoint links between
-    //this elements start point and the next elements end point
-    //is used if necessary during the transition from this element
-    //to next if we loose your way temporarily
-    WayPointLinkInfoStruct *pntrTransitionLink = NULL;
+    //maximum possible offset waypoint link path shift
+    //in positive direction (towards right side if looking in race
+    //direction)
+    irr::f32 maxOffsetShift;
+
+    //minimum possible offset waypoint link path shift (negative)
+    //tells us who far we can offset to the left of waypoint link
+    irr::f32 minOffsetShift;
 };
 
 class Race;       //Forward declaration
@@ -109,6 +119,19 @@ public:
 
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>
         FindClosestWayPointLinkToCollectible(Collectable* whichCollectable);
+
+    void OffsetWayPointLinkCoordByOffset(irr::core::vector2df &coord2D,
+                                           irr::core::vector3df &coord3D, WayPointLinkInfoStruct* waypoint, irr::f32 offset);
+
+    //returns all waypoint links of a defined input path that come closer to a defined player than a distance of distanceLowLimit
+    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> WhereDoesPathComeCloseToPlayer
+        (std::vector<WayPointLinkInfoStruct*> path, irr::f32 distanceLowLimit, Player* checkForWhichPlayer);
+
+    bool ProjectPositionAtWayPointLink(irr::core::vector3df position, WayPointLinkInfoStruct* link,
+                                                            irr::core::vector3df &projPosition);
+
+    bool DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStruct*> path,
+                                      Player* pathOfWhichPlayer);
 
 private:
     Race* mRace;

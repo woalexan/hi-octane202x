@@ -45,6 +45,18 @@ EntityItem* Path::FindNearestWayPointToLocation(irr::core::vector3df location) {
    return nearestWayPoint;
 }
 
+void Path::OffsetWayPointLinkCoordByOffset(irr::core::vector2df &coord2D,
+                                           irr::core::vector3df &coord3D, WayPointLinkInfoStruct* waypoint, irr::f32 offset) {
+
+    //use the precalculated "offset" direction vector
+    coord3D = coord3D + offset * waypoint->offsetDirVec;
+
+    irr::core::vector2df dirVec2D(waypoint->offsetDirVec.X, waypoint->offsetDirVec.Z);
+    dirVec2D.normalize();
+
+    coord2D = coord2D + offset * dirVec2D;
+}
+
 std::vector<EntityItem*> Path::FindAllWayPointsInArea(irr::core::vector3df location, irr::f32 radius) {
     std::vector<EntityItem*>::iterator it;
     std::vector<EntityItem*> result;
@@ -172,8 +184,6 @@ std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::PlayerDeriveClos
     //sort vector pairs in descending number of occurences
     std::sort(vecWayPointLinkOccurence.rbegin(), vecWayPointLinkOccurence.rend());
 
-    //the most likely transparent color is now the one at the beginning of
-    //the list
     WayPointLinkInfoStruct* closestLink = vecWayPointLinkOccurence.begin()->second;
 
     for (it = inputWayPointLinkVector.begin(); it != inputWayPointLinkVector.end(); ++it) {
@@ -196,6 +206,52 @@ std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::FindClosestWayPo
    result.second = projPos;
 
    return result;
+}
+
+//returns all waypoint links of a defined input path that come closer to a defined player than a distance of distanceLowLimit
+std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::WhereDoesPathComeCloseToPlayer(std::vector<WayPointLinkInfoStruct*> path,
+                                                                                         irr::f32 distanceLowLimit, Player* checkForWhichPlayer) {
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
+    result.clear();
+
+    irr::core::vector3df playerLoc = checkForWhichPlayer->phobj->physicState.position;
+    irr::core::vector3df projPos;
+    irr::f32 distance;
+
+    for (it = path.begin(); it != path.end(); ++it) {
+        if (this->mRace->mPath->ProjectPositionAtWayPointLink(playerLoc, (*it), projPos)) {
+            distance = (playerLoc - projPos).getLength();
+
+            if (distance < distanceLowLimit) {
+                result.push_back(std::make_pair((*it), projPos));
+            }
+        }
+    }
+
+    return result;
+}
+
+bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStruct*> path,
+                                  Player* pathOfWhichPlayer) {
+
+   std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
+
+   result = WhereDoesPathComeCloseToPlayer(path, 1.0f, this->mRace->player3);
+
+   if (result.size() > 0) {
+       return true;
+   }
+
+   result = WhereDoesPathComeCloseToPlayer(path, 1.0f, this->mRace->player);
+
+   if (result.size() > 0) {
+       return true;
+   }
+
+
+   return false;
 }
 
 //this function returns (if more are existing) multiple close waypoint links to the player craft
@@ -224,6 +280,48 @@ std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::Pla
     }
 
     return vecWayPointLinkResult;
+}
+
+//returns true if the position seems to be next to the specified waypoint link, false otherwise
+//the resulting projected position is returned in projPosition reference
+bool Path::ProjectPositionAtWayPointLink(irr::core::vector3df position, WayPointLinkInfoStruct* link,
+                                                         irr::core::vector3df &projPosition) {
+    irr::core::vector3df dA;
+    irr::core::vector3df dB;
+
+    irr::f32 projecteddA;
+    irr::f32 projecteddB;
+    irr::f32 projectedPl;
+    //irr::f32 distance;
+
+    dA = position - link->pLineStruct->A;
+    dB = position - link->pLineStruct->B;
+
+    projecteddA = dA.dotProduct(link->LinkDirectionVec);
+    projecteddB = dB.dotProduct(link->LinkDirectionVec);
+
+    //if craft position is parallel (sideways) to current waypoint link the two projection
+    //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
+    //this path segment
+    if (sgn(projecteddA) != sgn(projecteddB))
+    {
+        //we seem to be still parallel to this segment => projection will still give useful results
+        //calculate distance from player position to this line, where connecting line meets path segment
+        //in a 90° angle
+        projectedPl =  dA.dotProduct(link->LinkDirectionVec);
+
+        /*
+        (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
+                                                                                  projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
+                                                                                    player->phobj->physicState.position);*/
+
+        projPosition = (link->pLineStruct->A +
+                irr::core::vector3df(projectedPl, projectedPl, projectedPl) * (link->LinkDirectionVec));
+
+        return true;
+    }
+
+    return false;
 }
 
 WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vector3df inputPosition, irr::core::vector3df

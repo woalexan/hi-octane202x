@@ -78,6 +78,165 @@
 
 #include "worldaware.h"
 
+void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
+    if (mRace->wayPointLinkVec ->size() <= 0)
+        return;
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    //because CastRayDDA we will reuse here also looks at the dynamic map (which we do not want)
+    //first fill dynamic world map with all zeros
+    //to remove all existing player locations
+    //so dynamic map is empty and does not interfere when casting the ray
+    std::fill(mDynamicWorldMap->begin(), mDynamicWorldMap->end(), 0);
+
+    irr::f32 distStartEntity = 0.0f;
+    irr::f32 distEndEntity = 0.0f;
+    RayHitInfoStruct rayInfo;
+    irr::core::vector3df coord3D;
+    std::vector<irr::core::vector2di> cells;
+    irr::f32 minVal;
+    irr::f32 testOffset;
+    irr::f32 resolution = 0.2f;
+
+    //process one waypoint link after each other
+    for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
+        //use world aware to shoot one 2D ray from start entity towards right side
+        //to see how far we can go
+        coord3D = (*it)->pLineStruct->A;
+
+        rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, (*it)->offsetDirVec, 1000.0f, cells);
+        if (rayInfo.HitType == RAY_HIT_TERRAIN) {
+            distStartEntity = rayInfo.HitDistance;
+        }
+
+        //do the same from the end entity
+        coord3D = (*it)->pLineStruct->B;
+
+        rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, (*it)->offsetDirVec, 1000.0f, cells);
+        if (rayInfo.HitType == RAY_HIT_TERRAIN) {
+            distEndEntity = rayInfo.HitDistance;
+        }
+
+        //which is the minimum of the two results?
+        minVal = distStartEntity;
+
+        if (distEndEntity < minVal) {
+            minVal = distEndEntity;
+        }
+
+        //now check if there is any obstacle from the side pointing towards the waypoint link
+        //we can find out by shooting rays in parallel to the original waypoint link, but with
+        //changing positive offset shifts (in steps)
+        //for each iteration we determine after which distance we hit something
+        //if we hit something in a distance less then the original length of the waypoint link, then
+        //hit hit an obstacle on the way
+        testOffset = resolution;
+
+        coord3D = (*it)->pLineStruct->A;
+        bool hitEnd = false;
+
+        while ((testOffset < minVal) && (!hitEnd)) {
+            rayInfo = this->CastRayDDA(*dynamicWorld, coord3D + testOffset * (*it)->offsetDirVec,
+                                       (*it)->LinkDirectionVec, 1000.0f, cells);
+
+            if (rayInfo.HitType == RAY_HIT_TERRAIN) {
+                //ray hit distance significantly shorter then original waypoint link
+                //distance
+                if (rayInfo.HitDistance < (0.9 * (*it)->length3D)) {
+                    //we seem to have hit an obstacle on the way -> we can not
+                    //go further to the right
+                    hitEnd = true;
+                }
+            }
+
+            if (!hitEnd) {
+                testOffset += resolution;
+            }
+        }
+
+        //if we found an additional obstacle from the side
+        //and its making the available space smaller, then
+        //make it the new limitiation
+        if (hitEnd && (testOffset < minVal)) {
+            minVal = testOffset;
+        }
+
+        //minVal has now the minimum we found inside
+        (*it)->maxOffsetShift = minVal;
+
+        //*************************************************************/
+        /* repeat everything, but this time for direction to the left */
+        /* use world aware to shoot one 2D ray from start entity      */
+        /* towards right side to see how far we can go                */
+        /**************************************************************/
+
+        coord3D = (*it)->pLineStruct->A;
+
+        rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, -(*it)->offsetDirVec, 1000.0f, cells);
+        if (rayInfo.HitType == RAY_HIT_TERRAIN) {
+            distStartEntity = rayInfo.HitDistance;
+        }
+
+        //do the same from the end entity
+        coord3D = (*it)->pLineStruct->B;
+
+        rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, -(*it)->offsetDirVec, 1000.0f, cells);
+        if (rayInfo.HitType == RAY_HIT_TERRAIN) {
+            distEndEntity = rayInfo.HitDistance;
+        }
+
+        //which is the minimum of the two results?
+        minVal = distStartEntity;
+
+        if (distEndEntity < minVal) {
+            minVal = distEndEntity;
+        }
+
+        //now check if there is any obstacle from the side pointing towards the waypoint link
+        //we can find out by shooting rays in parallel to the original waypoint link, but with
+        //changing negative offset shifts (in steps)
+        //for each iteration we determine after which distance we hit something
+        //if we hit something in a distance less then the original length of the waypoint link, then
+        //hit hit an obstacle on the way
+        testOffset = resolution;
+
+        coord3D = (*it)->pLineStruct->A;
+        hitEnd = false;
+
+        while ((testOffset < minVal) && (!hitEnd)) {
+            rayInfo = this->CastRayDDA(*dynamicWorld, coord3D - testOffset * (*it)->offsetDirVec,
+                                       (*it)->LinkDirectionVec, 1000.0f, cells);
+
+            if (rayInfo.HitType == RAY_HIT_TERRAIN) {
+                //ray hit distance significantly shorter then original waypoint link
+                //distance
+                if (rayInfo.HitDistance < (0.9 * (*it)->length3D)) {
+                    //we seem to have hit an obstacle on the way -> we can not
+                    //go further to the left
+                    hitEnd = true;
+                }
+            }
+
+            if (!hitEnd) {
+                testOffset += resolution;
+            }
+        }
+
+        //if we found an additional obstacle from the side
+        //and its making the available space smaller, then
+        //make it the new limitiation
+        if (hitEnd && (testOffset < minVal)) {
+            minVal = testOffset;
+        }
+
+        //minVal has now the minimum we found inside
+        //a movement towards the left is negative for us later
+        //for reverse the sign
+        (*it)->minOffsetShift = -minVal;
+    }
+}
+
 void WorldAwareness::CreateStaticWorld() {
    //create a new image for the static
    //world
@@ -102,6 +261,7 @@ void WorldAwareness::CreateStaticWorld() {
    colorRed = new irr::video::SColor(255, 255, 0, 0);
    colorPlayer = new irr::video::SColor(255, 0, 0, 255);
    colorPlayer2 = new irr::video::SColor(255, 0, 255, 0);
+   colorPlayer3 = new irr::video::SColor(255, 255, 0, 0);
 
    staticWorld->fill(*colorEmptySpace);
 
@@ -176,6 +336,9 @@ void WorldAwareness::UpdateDynamicWorldMap(Player* whichPlayer) {
 
   if (whichPlayer != mRace->player2)
     DrawPlayerDynamicWorldMap(2, mRace->player2);
+
+  if (whichPlayer != mRace->player3)
+    DrawPlayerDynamicWorldMap(3, mRace->player3);
 }
 
 void WorldAwareness::CreateStaticWorldMap() {
@@ -330,6 +493,10 @@ RayHitInfoStruct WorldAwareness::CastRay(IImage &image, irr::core::vector3df sta
                 //we hit second player
                 result.HitType = RAY_HIT_PLAYER;
                 result.HitPlayerPntr = this->mRace->player2;
+            } else if (currCol == *colorPlayer3) {
+                //we hit third player
+                result.HitType = RAY_HIT_PLAYER;
+                result.HitPlayerPntr = this->mRace->player3;
             }
            } else {
                //we did not seen free space yet
@@ -544,6 +711,8 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
            result.HitPlayerPntr = this->mRace->player;
        } else if (playerVal == 2) {
            result.HitPlayerPntr = this->mRace->player2;
+       } else if (playerVal == 3) {
+           result.HitPlayerPntr = this->mRace->player3;
        }
    } else if (bTileFound)
      {
@@ -1007,6 +1176,9 @@ void WorldAwareness::CreateDynamicWorld(Player* whichPlayer) {
     if (whichPlayer != mRace->player2)
         DrawPlayer(*dynamicWorld, *colorPlayer2, mRace->player2);
 
+    if (whichPlayer != mRace->player3)
+        DrawPlayer(*dynamicWorld, *colorPlayer3, mRace->player3);
+
     //only for debugging, save picture on disk
   //  DebugSavePicture((char*)"dbgDynamicWorld.png", dynamicWorld);
 }
@@ -1021,5 +1193,6 @@ WorldAwareness::~WorldAwareness() {
     delete colorRed;
     delete colorPlayer;
     delete colorPlayer2;
+    delete colorPlayer3;
     delete colorEmptySpace;
 }

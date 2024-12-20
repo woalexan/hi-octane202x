@@ -394,13 +394,28 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                  this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
                   this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
 
-    swprintf(text2, 390, L"nCollectable = %d\n",
-                   this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());
+    /*swprintf(text2, 390, L"nCollectable = %d\n",
+                   this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());*/
 
 
    /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
                    this->mCurrentRace->player2->mAngleError,
                    this->mCurrentRace->player2->dbgDistError);*/
+
+    /*swprintf(text2, 390, L"x = %lf\n y = %lf\n z = %lf\n",
+                      this->mCurrentRace->player->phobj->physicState.position.X,
+                    this->mCurrentRace->player->phobj->physicState.position.Y,
+                  this->mCurrentRace->player->phobj->physicState.position.Z);*/
+/*
+    swprintf(text2, 390, L"front = %lf\n left = %lf\n right = %lf\n back = %lf\n",
+                      this->mCurrentRace->player2->mCraftDistanceAvailFront,
+                      this->mCurrentRace->player2->mCraftDistanceAvailLeft,
+                      this->mCurrentRace->player2->mCraftDistanceAvailRight,
+                this->mCurrentRace->player2->mCraftDistanceAvailBack
+                    );*/
+
+    swprintf(text2, 390, L"pathClose = %d\n",
+                       this->mCurrentRace->player2->pathClose);
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);

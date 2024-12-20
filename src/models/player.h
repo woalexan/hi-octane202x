@@ -35,7 +35,7 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 8.0f; //8.0f
+const irr::f32 CP_PLAYER_FAST_SPEED = 7.0f; //8.0f
 const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;
 
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
@@ -313,6 +313,8 @@ public:
     void CheckAndRemoveNoCommand();
     void CpHandleCharging();
 
+    irr::s32 pathClose = 0;
+
     //void buttonL();
     //void buttonR();
 
@@ -394,6 +396,8 @@ public:
     irr::core::vector3df WorldCoordCraftAboveCOGStabilizationPoint;
 
     irr::core::vector3d<irr::f32> craftForwardDirVec;
+
+    irr::f32 mCpCurrPathOffset = 0.0f;
 
     irr::f32 DbgShipUpAngle;
 
@@ -479,8 +483,8 @@ public:
     irr::core::vector3df projPlayerPositionFollowSeg;
 
     void SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink);
-    irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
-    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink);
+    //irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
+    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay);
 
     irr::f32 GetHoverHeight();
 
