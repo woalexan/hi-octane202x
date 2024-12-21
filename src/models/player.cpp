@@ -910,26 +910,23 @@ void Player::CPBackward() {
     }
 }
 
+//this function is only used for the human player
 void Player::Left() {
     //if player can not move right now simply
     //exit
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
 
-        currentSideForce += 30.0f;
+    currentSideForce += 30.0f;
 
-        if (currentSideForce > 200.0f)
-            currentSideForce = 200.0f;
+    if (currentSideForce > 200.0f)
+        currentSideForce = 200.0f;
 
-   //original line 10.11.2024
-  /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                   PHYSIC_APPLYFORCE_ONLYROT);*/
-
-  //experimental line
-  this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
                                          PHYSIC_APPLYFORCE_ONLYROT);
 }
 
+//this function is only used for the human player
 void Player::Right() {
     //if player can not move right now simply
     //exit
@@ -941,15 +938,11 @@ void Player::Right() {
     if (currentSideForce < -200.0f)
         currentSideForce = -200.0f;
 
-    //original line 10.11.2024
-    /*this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                     PHYSIC_APPLYFORCE_ONLYROT);*/
-
-    //experimental
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
                                      PHYSIC_APPLYFORCE_ONLYROT);
 }
 
+//this function is only used for the human player
 void Player::NoTurningKeyPressed() {
     //stop turning sideways
 
@@ -970,14 +963,10 @@ void Player::CPForceController() {
     mLastAngleError = mAngleError;
 
     mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
-    //cpLastFollowSeg = cPCurrentFollowSeg;
 
     if (computerPlayerTargetSpeed > computerPlayerCurrentSpeed) {
-       // computerPlayerCurrentSpeed += 0.002f;
         computerPlayerCurrentSpeed += mCpCurrentAccelDeaccelRate;
-
     } else if (computerPlayerCurrentSpeed > computerPlayerTargetSpeed) {
-        //computerPlayerCurrentSpeed -= 0.002f;
         computerPlayerCurrentSpeed -= mCpCurrentAccelDeaccelRate;
     }
 
@@ -986,11 +975,9 @@ void Player::CPForceController() {
     {
         //go faster
         this->CPForward();
-         //this->mHUD->ShowBannerText((char*)"FORWARD", 4.0f);
     } else if (this->phobj->physicState.speed > (computerPlayerCurrentSpeed * 1.1f)) {
         //go slower
        this->CPBackward();
-         //this->mHUD->ShowBannerText((char*)"BACKWARD", 4.0f);
     }
 
     if (this->cPCurrentFollowSeg != NULL) {
@@ -998,15 +985,7 @@ void Player::CPForceController() {
         //position onto the current segment we follow
         //this recalculates the current projPlayerPositionClosestWayPointLink member
         //variable for the further calculation steps below
-        //ProjectPlayerAtCurrentSegment();
         ProjectPlayerAtCurrentSegments();
-  /*
-        if (cPCurrentFollowSeg != cpLastFollowSeg) {
-            cpLastFollowSeg = cPCurrentFollowSeg;
-
-            mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
-            mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
-        }*/
 
         irr::core::vector3df dirVecToLink = (this->projPlayerPositionFollowSeg - this->phobj->physicState.position);
         dirVecToLink.Y = 0.0f;
@@ -1029,16 +1008,8 @@ void Player::CPForceController() {
             mCurrentCraftDistToWaypointLink = -dirVecToLink.getLength();
         }
 
-        //what is our relation towards the currClosestWayPoint link?
-        /*irr::f32 absAngleLinkForwardDir =
-                this->mRace->GetAbsOrientationAngleFromDirectionVec(this->cPCurrentFollowSeg->LinkDirectionVec);
-
-        mCurrentWaypointLinkAngle = absAngleLinkForwardDir;
-            */
         mCurrentCraftOrientationAngle =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
-
-        //irr::f32 angleError = absAngleLinkForwardDir - mCurrentCraftOrientationAngle + mCurrentCraftTargetOrientationOffsetAngle;
 
          irr::f32 angleDotProduct = this->cPCurrentFollowSeg->LinkDirectionVec.dotProduct(craftForwardDirVec);
 
@@ -1053,43 +1024,30 @@ void Player::CPForceController() {
 
         irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
 
-
         /***************************************/
         /*  Control Craft absolute angle start */
         /***************************************/
 
-        //Note 02.12.2024: best values until now
-        //irr::f32 corrForceOrientationAngle = 3.0f;
-        //irr::f32 corrDampingOrientationAngle = 500.0f;
-
-        irr::f32 corrForceOrientationAngle = 3.0f;
-        irr::f32 corrDampingOrientationAngle = 5000.0f;
+        irr::f32 corrForceOrientationAngle = 0.5f;
+        irr::f32 corrDampingOrientationAngle = 2000.0f;
 
         irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
 
         //we need to limit max force, if force is too high just
         //set it zero, so that not bad physical things will happen!
-        //if (fabs(corrForceAngle) > 10.0f) {
-        if (fabs(corrForceAngle) > 10.0f) {
-            //corrForceAngle = 0.0f;
-            //corrForceAngle = sgn(corrForceAngle) * 10.0f;
-            corrForceAngle = sgn(corrForceAngle) * 10.0f;
-            //currentSideForce = sgn(corrForceAngle) * corrForceAngle * 10.0f;
-        } //else currentSideForce = 0.0f;
+        if (fabs(corrForceAngle) > 20.0f) {
+            corrForceAngle = sgn(corrForceAngle) * 20.0f;
+        }
 
-        this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
+        this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
                                              PHYSIC_APPLYFORCE_ONLYROT);
 
         /****************************************************/
         /*  Control Craft distance to current waypoint link */
         /****************************************************/
 
-        //Note 02.12.2024: best values until now
-        //irr::f32 corrForceDist = 3.0f;
-        //irr::f32 corrDampingDist = 2000.0f;
-
-        irr::f32 corrForceDist = 3.0f;
-        irr::f32 corrDampingDist = 500.0f;  //500.0f
+        irr::f32 corrForceDist = 0.5f;
+        irr::f32 corrDampingDist = 2000.0f;
 
         irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
 
@@ -1097,13 +1055,13 @@ void Player::CPForceController() {
 
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
-        if (corrForceDistance > 10.0f) {
-            corrForceDistance = 10.0f;
-        } else if (corrForceDistance < -10.0f) {
-            corrForceDistance = -10.0f;
+        if (corrForceDistance > 20.0f) {
+            corrForceDistance = 20.0f;
+        } else if (corrForceDistance < -20.0f) {
+            corrForceDistance = -20.0f;
         }
 
-        this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin + irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
+        this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
                                             PHYSIC_APPLYFORCE_ONLYTRANS);
     } else {
         //no segment to follow, stop craft
@@ -1171,6 +1129,8 @@ void Player::CpCheckCurrentPathForObstacles() {
 
     if (updatePath) {
          FollowPathDefineNextSegment(this->mCpFollowThisWayPointLink, mCpCurrPathOffset);
+
+         //next line is only for debugging purposes
          //this->mRace->mGame->StopTime();
     }
 }
@@ -2303,7 +2263,12 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
         goleft = true;
     }
 
-    while (!freeWayFound && !lastCalc) {
+    irr::s32 iterationCnt = 0;
+    irr::s32 maxIterations = 20;
+
+    while (!freeWayFound && !lastCalc && (iterationCnt < maxIterations)) {
+            iterationCnt++;
+
             //create bezier curve
             //start point is the current end point of the path
             //control point is the start point of the link
@@ -2313,7 +2278,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
             irr::core::vector3df link1Start3D;
             irr::core::vector3df link1End3D;
 
-            if (rightFailed && leftFailed) {
+            if ((rightFailed && leftFailed) || (iterationCnt >= maxIterations)) {
                 lastCalc = true;
             }
 
@@ -2388,7 +2353,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
             } else freeWayFound = true;
     }
 
-            if (leftFailed && rightFailed) {
+            if ((leftFailed && rightFailed) || (iterationCnt >= (maxIterations - 1))) {
                 currOffset = 0.0f;
             }
     }
@@ -3067,38 +3032,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
    // StabilizeCraft(frameDeltaTime);
 
-    //*****************************************************
-    //* Hovercraft height control force calculation Start *  solution 1: with the 4 local points left, right, front and back of craft
-    //*****************************************************
-
-    //establish height information of race track below player craft
-    GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
-
-    DbgCurrRaceTrackHeightFront = currHeightFront;
-    DbgCurrRaceTrackHeightBack = currHeightBack;
-    DbgCurrRaceTrackHeightLeft = currHeightLeft;
-    DbgCurrRaceTrackHeightRight = currHeightRight;
-
-    irr::f32 leftMore = 0.0f;
-    irr::f32 rightMore = 0.0f;
-
-    if (true) {
-        if (abs(currentSideForce) > 40.0f) {
-            //leftMore = 2.0f * (-currentSideForce / 100.0f);  original line, works best until 04.09.2024
-            //rightMore = 2.0f * (currentSideForce / 100.0f);  original line, works best until 04.09.2024
-
-            leftMore = 1.0f * (-currentSideForce / 200.0f);   //new attempt since 04.09.2024
-            rightMore = 1.0f * (currentSideForce / 200.0f);    //new attempt since 04.09.2024
-
-
-        if (leftMore < 0.0f)
-            leftMore = 0.0f;
-
-        if (rightMore < 0.0f)
-            rightMore = 0.0f;
-        }
-    }
-
     irr::f32 deltah1 = cameraSensor->wCoordPnt1.Y  - cameraSensor->wCoordPnt1.Y;
     irr::f32 deltah2 = cameraSensor2->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
     irr::f32 deltah3 = cameraSensor3->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
@@ -3114,65 +3047,11 @@ void Player::Update(irr::f32 frameDeltaTime) {
     maxh = fmax(maxh, deltah6);
     maxh = fmax(maxh, deltah7);
 
-    irr::f32 adjusth;
+    /*  if (maxh > 0.0f) {
+          adjusth = maxh * 0.5f;
+      } else adjusth = 0.0f;*/
 
-  /*  if (maxh > 0.0f) {
-        adjusth = maxh * 0.5f;
-    } else adjusth = 0.0f;*/
-
-    adjusth = 0.0f;
-
-    irr::f32 heightErrorFront = (WorldCoordCraftFrontPnt.Y - (currHeightFront + HOVER_HEIGHT + adjusth));
-    irr::f32 heightErrorBack = (WorldCoordCraftBackPnt.Y - (currHeightBack + HOVER_HEIGHT + adjusth));
-    irr::f32 heightErrorLeft = (WorldCoordCraftLeftPnt.Y - (currHeightLeft + HOVER_HEIGHT + leftMore + adjusth));
-    irr::f32 heightErrorRight = (WorldCoordCraftRightPnt.Y - (currHeightRight + HOVER_HEIGHT+ rightMore + adjusth));
-
-    //if we are close to terrain heightmap collision stop the height control loop
-    //because otherwise we are pulled upwards of steep slopes etc.
-    if (this->mHMapCollPntData.front->currState != STATE_HMAP_COLL_IDLE) {
-        heightErrorFront = 0.0f;
-        heightErrorBack = 0.0f;
-    }
-
-    if (this->mHMapCollPntData.back->currState != STATE_HMAP_COLL_IDLE) {
-        heightErrorFront = 0.0f;
-        heightErrorBack = 0.0f;
-    }
-
-    if (this->mHMapCollPntData.left->currState != STATE_HMAP_COLL_IDLE) {
-        heightErrorLeft = 0.0f;
-        heightErrorRight = 0.0f;
-    }
-
-    if (this->mHMapCollPntData.right->currState != STATE_HMAP_COLL_IDLE) {
-        heightErrorLeft = 0.0f;
-        heightErrorRight = 0.0f;
-    }
-
-    //best values until now 01.08.2024
-    irr::f32 corrForceHeight = 100.0f;
-    irr::f32 corrDampingHeight = 10.0f;
-
-    //if craft is at all points higher than racetrack let it go towards racetrack slower (too allow something like a jump)
-    if ((heightErrorFront > 0.0f) && (heightErrorBack > 0.0f) && (heightErrorLeft > 0.0f) && (heightErrorRight > 0.0f)) {
-        corrForceHeight = 40.0f;
-    }
-
-    irr::f32 corrForceFront = heightErrorFront * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y * corrDampingHeight;
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt - irr::core::vector3df(0.0f, corrForceFront, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-
-    irr::f32 corrForceBack = heightErrorBack * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftBackPnt).Y * corrDampingHeight;
-    this->phobj->AddLocalCoordForce(LocalCraftBackPnt, LocalCraftBackPnt - irr::core::vector3df(0.0f, corrForceBack, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-
-    irr::f32 corrForceLeft = heightErrorLeft * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftLeftPnt).Y * corrDampingHeight;
-    this->phobj->AddLocalCoordForce(LocalCraftLeftPnt, LocalCraftLeftPnt - irr::core::vector3df(0.0f, corrForceLeft, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-
-    irr::f32 corrForceRight = heightErrorRight * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y * corrDampingHeight;
-    this->phobj->AddLocalCoordForce(LocalCraftRightPnt, LocalCraftRightPnt - irr::core::vector3df(0.0f, corrForceRight, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+    PlayerCraftHeightControl();
 
     /************ Update player camera stuff ***************/
     //update 3rd person camera coordinates
@@ -3364,6 +3243,73 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //WorldCoordWheelDir.normalize();
     //LocalCoordWheelDir.normalize();
 
+}
+
+void Player::PlayerCraftHeightControl() {
+    //*****************************************************
+    //* Hovercraft height control force calculation Start *  solution 1: with the 4 local points left, right, front and back of craft
+    //*****************************************************
+
+    //establish height information of race track below player craft
+    GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
+
+    /*DbgCurrRaceTrackHeightFront = currHeightFront;
+    DbgCurrRaceTrackHeightBack = currHeightBack;
+    DbgCurrRaceTrackHeightLeft = currHeightLeft;
+    DbgCurrRaceTrackHeightRight = currHeightRight;*/
+
+    irr::f32 heightErrorFront = (WorldCoordCraftFrontPnt.Y - (currHeightFront + HOVER_HEIGHT));
+    irr::f32 heightErrorBack = (WorldCoordCraftBackPnt.Y - (currHeightBack + HOVER_HEIGHT));
+    irr::f32 heightErrorLeft = (WorldCoordCraftLeftPnt.Y - (currHeightLeft + HOVER_HEIGHT));
+    irr::f32 heightErrorRight = (WorldCoordCraftRightPnt.Y - (currHeightRight + HOVER_HEIGHT));
+
+    //if we are close to terrain heightmap collision stop the height control loop
+    //because otherwise we are pulled upwards of steep slopes etc.
+    if (this->mHMapCollPntData.front->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorFront = 0.0f;
+        heightErrorBack = 0.0f;
+    }
+
+    if (this->mHMapCollPntData.back->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorFront = 0.0f;
+        heightErrorBack = 0.0f;
+    }
+
+    if (this->mHMapCollPntData.left->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorLeft = 0.0f;
+        heightErrorRight = 0.0f;
+    }
+
+    if (this->mHMapCollPntData.right->currState != STATE_HMAP_COLL_IDLE) {
+        heightErrorLeft = 0.0f;
+        heightErrorRight = 0.0f;
+    }
+
+    //best values until now 01.08.2024
+    irr::f32 corrForceHeight = 100.0f;
+    irr::f32 corrDampingHeight = 10.0f;
+
+    //if craft is at all points higher than racetrack let it go towards racetrack slower (too allow something like a jump)
+    if ((heightErrorFront > 0.0f) && (heightErrorBack > 0.0f) && (heightErrorLeft > 0.0f) && (heightErrorRight > 0.0f)) {
+        corrForceHeight = 40.0f;
+    }
+
+    //original lines until 21.12.2024
+    irr::f32 corrForceFront = heightErrorFront * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y * corrDampingHeight;
+    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt - irr::core::vector3df(0.0f, corrForceFront, 0.0f), PHYSIC_APPLYFORCE_REAL,
+                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
+    irr::f32 corrForceBack = heightErrorBack * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftBackPnt).Y * corrDampingHeight;
+    this->phobj->AddLocalCoordForce(LocalCraftBackPnt, LocalCraftBackPnt - irr::core::vector3df(0.0f, corrForceBack, 0.0f), PHYSIC_APPLYFORCE_REAL,
+                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
+    irr::f32 corrForceLeft = heightErrorLeft * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftLeftPnt).Y * corrDampingHeight;
+    this->phobj->AddLocalCoordForce(LocalCraftLeftPnt, LocalCraftLeftPnt - irr::core::vector3df(0.0f, corrForceLeft, 0.0f), PHYSIC_APPLYFORCE_REAL,
+                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
+    irr::f32 corrForceRight = heightErrorRight * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y * corrDampingHeight;
+    this->phobj->AddLocalCoordForce(LocalCraftRightPnt, LocalCraftRightPnt - irr::core::vector3df(0.0f, corrForceRight, 0.0f), PHYSIC_APPLYFORCE_REAL,
+                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 }
 
 void Player::SetName(char* playerName) {

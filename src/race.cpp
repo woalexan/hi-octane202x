@@ -1509,8 +1509,8 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
 }
 
 void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
-    player2->RunComputerPlayerLogic(frameDeltaTime);
-   // player3->RunComputerPlayerLogic(frameDeltaTime);
+     player2->RunComputerPlayerLogic(frameDeltaTime);
+     //player3->RunComputerPlayerLogic(frameDeltaTime);
 }
 
 void Race::HandleBasicInput() {
@@ -2472,7 +2472,6 @@ void Race::createPlayers(int levelNr) {
     //inform player control object about its physics object pointer
     player2->SetPlayerObject(player2PhysicsObj);
     player2->SetName((char*)"KI");
-    //player2->mCpCurrPathOffset = -1.0f;
 
     mPlayerList.push_back(player2);
 
@@ -2491,11 +2490,12 @@ void Race::createPlayers(int levelNr) {
     irr::core::vector3d<irr::f32> Startpos3;
     irr::core::vector3d<irr::f32> Startdirection3;
 
- /*   getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
+    /*getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
     Startpos3 = playerStartLocations.at(5);
     Startdirection3.X = Startpos3.X;
     Startdirection3.Y = Startpos3.Y;
     Startdirection3.Z = Startpos3.Z - 2.0f;*/
+
 
     Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
     Startdirection3.X = Startpos3.X;
