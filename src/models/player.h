@@ -505,6 +505,8 @@ public:
     void CpDefineNextAction();
     void CpAddCommandTowardsNextCheckpoint();
 
+    void PlayerCraftHeightControl();
+
     CPCOMMANDENTRY* currCommand = NULL;
 
     EntityItem* cPTargetEntity = NULL;
@@ -534,10 +536,10 @@ public:
     irr::core::vector3df pos_in_worldspace_leftPos;
     irr::core::vector3df pos_in_worldspace_rightPos;
 
-    irr::f32 DbgCurrRaceTrackHeightFront;
+    /*irr::f32 DbgCurrRaceTrackHeightFront;
     irr::f32 DbgCurrRaceTrackHeightBack;
     irr::f32 DbgCurrRaceTrackHeightLeft;
-    irr::f32 DbgCurrRaceTrackHeightRight;
+    irr::f32 DbgCurrRaceTrackHeightRight;*/
 
     void DebugCraftLocalFeatureCoordinates();
 
