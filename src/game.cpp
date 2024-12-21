@@ -152,7 +152,7 @@ bool Game::InitGame() {
 void Game::DebugGame() {
     mDebugGame = true;
 
-    int debugLevelNr = 1;
+    int debugLevelNr = 3;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -318,7 +318,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
     if (!this->mTimeStopped) {
-        mCurrentRace->HandleComputerPlayers();
+        mCurrentRace->HandleComputerPlayers(frameDeltaTime);
     }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
@@ -406,16 +406,17 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                       this->mCurrentRace->player->phobj->physicState.position.X,
                     this->mCurrentRace->player->phobj->physicState.position.Y,
                   this->mCurrentRace->player->phobj->physicState.position.Z);*/
-/*
-    swprintf(text2, 390, L"front = %lf\n left = %lf\n right = %lf\n back = %lf\n",
+
+    swprintf(text2, 390, L"front = %lf\n left = %lf\n right = %lf\n back = %lf\n currOffset = %lf\n",
                       this->mCurrentRace->player2->mCraftDistanceAvailFront,
                       this->mCurrentRace->player2->mCraftDistanceAvailLeft,
                       this->mCurrentRace->player2->mCraftDistanceAvailRight,
-                this->mCurrentRace->player2->mCraftDistanceAvailBack
-                    );*/
+                      this->mCurrentRace->player2->mCraftDistanceAvailBack,
+                      this->mCurrentRace->player2->mCpCurrPathOffset
+                    );
 
-    swprintf(text2, 390, L"pathClose = %d\n",
-                       this->mCurrentRace->player2->pathClose);
+    /*swprintf(text2, 390, L"pathClose = %d\n",
+                       this->mCurrentRace->player2->pathClose);*/
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);

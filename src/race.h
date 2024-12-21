@@ -109,7 +109,7 @@ public:
 
     void HandleInput();
     void HandleBasicInput();
-    void HandleComputerPlayers();
+    void HandleComputerPlayers(irr::f32 frameDeltaTime);
     void Render();
     void DrawHUD(irr::f32 frameDeltaTime);
     void DrawMiniMap(irr::f32 frameDeltaTime);
@@ -326,7 +326,7 @@ private:
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = true;
     bool DebugShowWallCollisionMesh = false;
-    bool DebugShowCheckpoints = true;
+    bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);

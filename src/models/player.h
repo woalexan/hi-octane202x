@@ -238,10 +238,12 @@ public:
     irr::f32 currHeightLeft;
     irr::f32 currHeightRight;
 
-    irr::f32 mCraftDistanceAvailRight;
-    irr::f32 mCraftDistanceAvailLeft;
-    irr::f32 mCraftDistanceAvailBack;
-    irr::f32 mCraftDistanceAvailFront;
+    //set high reset values, so that the values have no
+    //influence until first worldAware calculation has been done
+    irr::f32 mCraftDistanceAvailRight = 100.0f;
+    irr::f32 mCraftDistanceAvailLeft = 100.0f;
+    irr::f32 mCraftDistanceAvailBack = 100.0f;
+    irr::f32 mCraftDistanceAvailFront = 100.0f;
 
     irr::f32 debugMaxStep;
     MapEntry* currTileBelowPlayer;
@@ -270,10 +272,7 @@ public:
     void Right();
     void NoTurningKeyPressed();
 
-    void CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path);
-    std::vector<WayPointLinkInfoStruct*> mFollowPath;
-    irr::s32 mFollowPathNrLinks;
-    irr::s32 mFollowPathCurrentNrLink;
+    std::vector<WayPointLinkInfoStruct*> mPathHistoryVec;
 
     std::vector<WayPointLinkInfoStruct*> mCurrentPathSeg;
     irr::u32 mCurrentPathSegNrSegments;
@@ -297,7 +296,6 @@ public:
     void CPBackward();
     void ProjectPlayerAtCurrentSegments();
 
-    void FollowPathDefineFirstSegment(irr::u32 nrCurrentLink);
     void CollectedCollectable(Collectable* whichCollectable);
 
     void StartPlayingWarningSound();
@@ -484,7 +482,7 @@ public:
 
     void SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink);
     //irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
-    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay);
+    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay, bool updatePathReachedEndWayPointLink = false);
 
     irr::f32 GetHoverHeight();
 
@@ -492,7 +490,9 @@ public:
     irr::f32 computerPlayerTargetSpeed = 0.0f;
     irr::f32 computerPlayerCurrentSpeed = 0.0f;
 
-    void RunComputerPlayerLogic();
+    void RunComputerPlayerLogic(irr::f32 deltaTime);
+
+    irr::f32 mCpAbsCheckObstacleTimerCounter = 0.0f;
 
     void FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand);
     CPCOMMANDENTRY* PullNextCommandFromCmdList();
@@ -525,6 +525,7 @@ public:
     void ProjectPlayerAtCurrentSegment();
     void ReachedEndCurrentFollowingSegments();
     void PickupCollectableDefineNextSegment(Collectable* whichCollectable);
+    void CpCheckCurrentPathForObstacles();
 
     void FinishedLap();
 

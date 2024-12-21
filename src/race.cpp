@@ -1508,9 +1508,9 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
     }
 }
 
-void Race::HandleComputerPlayers() {
-    player2->RunComputerPlayerLogic();
-    //player3->RunComputerPlayerLogic();
+void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
+    player2->RunComputerPlayerLogic(frameDeltaTime);
+   // player3->RunComputerPlayerLogic(frameDeltaTime);
 }
 
 void Race::HandleBasicInput() {
@@ -2018,7 +2018,7 @@ void Race::Render() {
 
           //also draw min/max offset shift limit lines for graphical representation of possible computer player
           //movement area
-          mDrawDebug->Draw3DLine(
+       /*   mDrawDebug->Draw3DLine(
                       (*WayPointLink_iterator)->pLineStruct->A + (*WayPointLink_iterator)->offsetDirVec *
                       (*WayPointLink_iterator)->minOffsetShift,
                       (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
@@ -2030,7 +2030,7 @@ void Race::Render() {
                       (*WayPointLink_iterator)->maxOffsetShift,
                       (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
                       (*WayPointLink_iterator)->maxOffsetShift,
-                      this->mDrawDebug->red);
+                      this->mDrawDebug->red);*/
 
         /*  if ((*WayPointLink_iterator)->pLineStruct->debugLine != NULL) {
             mDriver->setMaterial(*mDrawDebug->brown);
@@ -2161,23 +2161,23 @@ void Race::Render() {
       mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt23D, this->mDrawDebug->blue);
       mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPntcntrl3D, this->mDrawDebug->pink);*/
 
-      if (player2->mCurrentPathSeg.size() > 0) {
+     /* if (player2->mCurrentPathSeg.size() > 0) {
           std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
           for (itPathEl = player2->mCurrentPathSeg.begin(); itPathEl != player2->mCurrentPathSeg.end(); ++itPathEl) {
                mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
           }
-      }
+      }*/
 
-   /*   if (player2->mFollowPath.size() > 0) {
+      if (player2->mPathHistoryVec.size() > 0) {
           std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
-         for (itPathEl = player2->mFollowPath.begin(); itPathEl != player2->mFollowPath.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->pink);
+         for (itPathEl = player2->mPathHistoryVec.begin(); itPathEl != player2->mPathHistoryVec.end(); ++itPathEl) {
+               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
           }
 
          //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
-      }*/
+      }
 
 
       /*if (player2->currClosestWayPointLink.first != NULL) {
@@ -2472,6 +2472,7 @@ void Race::createPlayers(int levelNr) {
     //inform player control object about its physics object pointer
     player2->SetPlayerObject(player2PhysicsObj);
     player2->SetName((char*)"KI");
+    //player2->mCpCurrPathOffset = -1.0f;
 
     mPlayerList.push_back(player2);
 
@@ -2490,7 +2491,12 @@ void Race::createPlayers(int levelNr) {
     irr::core::vector3d<irr::f32> Startpos3;
     irr::core::vector3d<irr::f32> Startdirection3;
 
-    //getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
+ /*   getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
+    Startpos3 = playerStartLocations.at(5);
+    Startdirection3.X = Startpos3.X;
+    Startdirection3.Y = Startpos3.Y;
+    Startdirection3.Z = Startpos3.Z - 2.0f;*/
+
     Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
     Startdirection3.X = Startpos3.X;
     Startdirection3.Y = Startpos3.Y;
@@ -2519,6 +2525,7 @@ void Race::createPlayers(int levelNr) {
     //inform player control object about its physics object pointer
     player3->SetPlayerObject(player3PhysicsObj);
     player3->SetName((char*)"KI2");
+    player3->mCpCurrPathOffset = 1.0f;
 
     mPlayerList.push_back(player3);
 
