@@ -293,6 +293,8 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
 
     mRace = race;
 
+    mPathHistoryVec.clear();
+
     currDbgColor = this->mRace->mDrawDebug->red;
 
     //create the player command list
@@ -1072,7 +1074,7 @@ void Player::CPForceController() {
             //corrForceAngle = 0.0f;
             //corrForceAngle = sgn(corrForceAngle) * 10.0f;
             corrForceAngle = sgn(corrForceAngle) * 10.0f;
-           // currentSideForce = sgn(corrForceAngle) * corrForceAngle * 3.0f;
+            //currentSideForce = sgn(corrForceAngle) * corrForceAngle * 10.0f;
         } //else currentSideForce = 0.0f;
 
         this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt + irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
@@ -1087,7 +1089,7 @@ void Player::CPForceController() {
         //irr::f32 corrDampingDist = 2000.0f;
 
         irr::f32 corrForceDist = 3.0f;
-        irr::f32 corrDampingDist = 500.0f;
+        irr::f32 corrDampingDist = 500.0f;  //500.0f
 
         irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
 
@@ -1109,7 +1111,69 @@ void Player::CPForceController() {
     }
 }
 
+void Player::CpCheckCurrentPathForObstacles() {
+    bool updatePath = false;
 
+    if (this == this->mRace->player2) {
+        irr::f32 missingSpace;
+
+        //are we too close to the race track edge / available space runs out?
+        if (this->mCraftDistanceAvailLeft < 1.0f) {
+            //go more right
+            //missingSpace = (1.5f - this->mCraftDistanceAvailLeft);
+            missingSpace = 0.5f;
+
+            if (mCpCurrPathOffset < (mCpFollowThisWayPointLink->maxOffsetShift - 0.5f - missingSpace)) {
+                if (!(mCpCurrPathOffset + missingSpace > (0.5f))) {
+                    mCpCurrPathOffset += missingSpace;
+                    updatePath = true;
+                }
+            }
+        }
+
+        if (this->mCraftDistanceAvailRight < 1.0f) {
+            //go more left
+            //missingSpace = (1.5f - this->mCraftDistanceAvailRight);
+             missingSpace = 0.5f;
+            if (mCpCurrPathOffset > (mCpFollowThisWayPointLink->minOffsetShift + 0.5f + missingSpace)) {
+                 if (!(mCpCurrPathOffset - missingSpace < (-0.5f))) {
+                   mCpCurrPathOffset -= missingSpace;
+                   updatePath = true;
+                 }
+            }
+        }
+
+        //only check possible collision with players we do actually see in front of us
+        //otherwise we would report an possible collision with our path, when the other
+        //player comes close to our current path behind us
+        //and we do not want to detect this
+        std::vector<Player*> playerISee;
+        std::vector<RayHitInfoStruct>::iterator it;
+
+        playerISee.clear();
+        for (it = this->PlayerSeenList.begin(); it != this->PlayerSeenList.end(); ++it) {
+            if ((*it).HitType == RAY_HIT_PLAYER) {
+                playerISee.push_back((*it).HitPlayerPntr);
+            }
+        }
+        if (playerISee.size() > 0) {
+            if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(
+                        this->mCurrentPathSeg, playerISee)) {
+                   this->pathClose = 0;
+            } else {
+                //we have to react, and find another path
+                //without any obstacle
+                updatePath = true;
+
+            }
+        } else this->pathClose = 0;
+    }
+
+    if (updatePath) {
+         FollowPathDefineNextSegment(this->mCpFollowThisWayPointLink, mCpCurrPathOffset);
+         //this->mRace->mGame->StopTime();
+    }
+}
 
 void Player::ProjectPlayerAtCurrentSegments() {
     std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
@@ -1482,11 +1546,7 @@ void Player::ReachedEndCurrentFollowingSegments() {
                 this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
             }
 
-            FollowPathDefineNextSegment(nextLink, mCpCurrPathOffset);
-
-            pathClose = 0;
-
-
+            FollowPathDefineNextSegment(nextLink, mCpCurrPathOffset, true);
       }
   //  }
 }
@@ -2135,59 +2195,6 @@ void Player::CpPlayerCollectableSelectionLogic() {
     //we do not want to pickup anything
 }
 
-void Player::FollowPathDefineFirstSegment(irr::u32 nrCurrentLink) {
-    //create bezier curve
-    //start point is the current players position
-    //control point is the start point of the link
-    //in the path with the specified number
-    //end point is the end point of the link in the
-    //path with the defined number
-    irr::core::vector2df bezierPnt1;
-    //irr::core::vector3df bezierPnt13D = this->phobj->physicState.position;
-    irr::core::vector3df bezierPnt13D = this->WorldCoordCraftBackPnt;
-
-    bezierPnt1.X = bezierPnt13D.X;
-    bezierPnt1.Y = bezierPnt13D.Z;
-
-    irr::core::vector2df bezierPnt2;
-    //irr::core::vector3df bezierPnt23D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
-
-    irr::core::vector3df bezierPnt23D =  mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
-    bezierPnt23D.X = -bezierPnt23D.X;
-
-    //attempt 02.12.2024:
-    //irr::core::vector3df bezierPnt23D = mFollowPath.at(nrCurrentLink)->pEndEntity->get_Pos();
-    bezierPnt2.X = bezierPnt23D.X;
-    bezierPnt2.Y = bezierPnt23D.Z;
-
-    irr::core::vector3df bezierPntcntrl3D;
-    irr::core::vector3df zero(0.0f, 0.0f, 0.0f);
-
-    if (!currClosestWayPointLink.second.equals(zero)) {
-        bezierPntcntrl3D = currClosestWayPointLink.second +
-            (bezierPnt23D - currClosestWayPointLink.second) * irr::core::vector3df(0.5f, 0.5f, 0.5f);
-    } else {
-        //is zero
-        bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pStartEntity->get_Pos();
-        bezierPntcntrl3D.X = -bezierPntcntrl3D.X;
-    }
-
-    irr::core::vector2df bezierPntcntrl;
-    //irr::core::vector3df bezierPntcntrl3D = mFollowPath.at(nrCurrentLink)->pStartEntity->get_Pos();
-
-    bezierPntcntrl.X = bezierPntcntrl3D.X;
-    bezierPntcntrl.Y = bezierPntcntrl3D.Z;
-
-    mCurrentPathSeg = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierPntcntrl,
-                                                                    0.1f, mRace->mDrawDebug->blue);
-
-    mCurrentPathSegNrSegments = mCurrentPathSeg.size();
-
-    ProjectPlayerAtCurrentSegments();
-
-    //this->mRace->mGame->StopTime();
-}
-
 irr::core::vector2df Player::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
     threeDCoord = this->phobj->physicState.position;
 
@@ -2251,7 +2258,8 @@ void Player::PickupCollectableDefineNextSegment(Collectable* whichCollectable) {
     //this->mRace->mGame->StopTime();
 }
 
-void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay) {
+void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay,
+                                         bool updatePathReachedEndWayPointLink) {
 
     bool freeWayFound = false;
     irr::f32 currOffset = startOffsetWay;
@@ -2261,19 +2269,25 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
 
     this->AdvanceDbgColor();
 
-    //in which direction should we shift the new way to clear target?
-    //in which direction do we have more free space available?
-    irr::f32 freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShift;
-    irr::f32 freeSpaceRightOfPath = nextLink->maxOffsetShift - currOffset;
+    irr::f32 freeSpaceLeftOfPath;
+    irr::f32 freeSpaceRightOfPath;
 
-    //do we need to change offset, because in front of us there is not enough
-    //space available?
-    if (freeSpaceLeftOfPath < 1.0f) {
-        currOffset = nextLink->minOffsetShift * 0.5f;
-    }
+    if (updatePathReachedEndWayPointLink) {
 
-    if (freeSpaceRightOfPath < 1.0f) {
-         currOffset = nextLink->maxOffsetShift * 0.5f;
+        //in which direction should we shift the new way to clear target?
+        //in which direction do we have more free space available?
+        freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShift;
+        freeSpaceRightOfPath = nextLink->maxOffsetShift - currOffset;
+
+        //do we need to change offset, because in front of us there is not enough
+        //space available?
+        if (freeSpaceLeftOfPath < 1.0f) {
+            currOffset = nextLink->minOffsetShift * 0.35f;
+        }
+
+        if (freeSpaceRightOfPath < 1.0f) {
+            currOffset = nextLink->maxOffsetShift * 0.35f;
+        }
     }
 
     freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShift;
@@ -2319,12 +2333,38 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
             //calculate midpoint for next link, is the bezier curve 1 end point
             irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
 
-            newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
+            if (!this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierCntrlPnt1, bezierPnt2)) {
+                //sometimes the player has already moved passed the start point of the next waypoint link
+                //in this case the curve will go backwards, which could cause weird problems
+                //in this case rearrange curve so that backwards movement is prevented
+                newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierCntrlPnt1, bezierPnt2, bezierPnt1,
+                                                                                0.1f, currDbgColor);
+                //this->mRace->mGame->StopTime();
+            } else {
+                    //bezier curve point order makes "sense"
+                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
                                                                             0.1f, currDbgColor);
+            }
 
             //now check if the new "way" is free from other players
             if (this == this->mRace->player2) {
-                if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, this)) {
+
+                //only check possible collision with players we do actually see in front of us
+                //otherwise we would report an possible collision with our path, when the other
+                //player comes close to our current path behind us
+                //and we do not want to detect this
+                std::vector<Player*> playerISee;
+                std::vector<RayHitInfoStruct>::iterator it;
+
+                playerISee.clear();
+                for (it = this->PlayerSeenList.begin(); it != this->PlayerSeenList.end(); ++it) {
+                    if ((*it).HitType == RAY_HIT_PLAYER) {
+                        playerISee.push_back((*it).HitPlayerPntr);
+                    }
+                }
+                if (playerISee.size() > 0) {
+
+                if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, playerISee)) {
                         freeWayFound = true;
                 } else {
                     //no free way found
@@ -2346,6 +2386,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                     }
                 }
             } else freeWayFound = true;
+    }
 
             if (leftFailed && rightFailed) {
                 currOffset = 0.0f;
@@ -2359,6 +2400,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
     //add new waypoints to the existing ones
     for (it = newPoints.begin(); it != newPoints.end(); ++it) {
         mCurrentPathSeg.push_back(*it);
+        mPathHistoryVec.push_back(*it);
     }
 
     //update current player offset path value
@@ -2369,62 +2411,6 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
     ProjectPlayerAtCurrentSegments();
 
     //this->mRace->mGame->StopTime();
-}
-
-void Player::CpPlayerFollowPath(std::vector<WayPointLinkInfoStruct*> path) {
-    if (path.size() > 0) {
-        mFollowPath = path;
-        mFollowPathNrLinks = path.size();
-        bool didFindPlayerInPath = false;
-
-        //we need to make sure that the waypoint link of this path
-        //where the start from lies completely in front of the player
-        //otherwise the craft would fly backwards
-        std::vector<WayPointLinkInfoStruct*>::iterator it;
-
-        mFollowPathCurrentNrLink = 0;
-
-        std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> >::iterator it2;
-
-        for (it = mFollowPath.begin(); it != mFollowPath.end() && (didFindPlayerInPath == false); ++it) {
-           if (this->currClosestWayPointLink.first == (*it)) {
-           // for (it2 = this->currCloseWayPointLinks.begin(); it2 != this->currCloseWayPointLinks.end(); ++it2) {
-             // if ((*it2).first == (*it)) {
-
-               /*if (mFollowPathCurrentNrLink > 0) {
-                  mFollowPathCurrentNrLink--;
-                }
-*/
-               didFindPlayerInPath = true;
-               break;
-           // }
-        }
-
-          if (!didFindPlayerInPath) {
-              mFollowPathCurrentNrLink++;
-            }
-        }
-
-        //we did not find player, assume player
-        //is slightly before path, first element is the
-        //the first waypoint link of the path
-        if (!didFindPlayerInPath) {
-             mFollowPathCurrentNrLink = mFollowPathNrLinks - 1;
-        }
-
-    } else {
-        return;
-    }
-
-    //create bezier curve for the first link
-    //of the specified path
-    //FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
-    if (currCommand->cmdType != CMD_FOLLOW_PATH) {
-        FollowPathDefineFirstSegment(mFollowPathCurrentNrLink);
-        currCommand->cmdType = CMD_FOLLOW_PATH;
-    } else {
-        //  FollowPathDefineNextSegment(mFollowPathCurrentNrLink);
-    }
 }
 
 /*irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {
@@ -2591,7 +2577,7 @@ void Player::CurrentCommandFinished() {
     delete oldCmd;
 }
 
-void Player::RunComputerPlayerLogic() {
+void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
     this->CpCurrMissionState = CP_MISSION_FINISHLAPS;
 
     if (currCommand == NULL) {
@@ -2641,7 +2627,7 @@ void Player::RunComputerPlayerLogic() {
         case CMD_FOLLOW_TARGETWAYPOINTLINK: {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
             mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
-            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset);
+            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 
             CurrentCommandFinished();
@@ -2651,6 +2637,15 @@ void Player::RunComputerPlayerLogic() {
     }
 
     CpPlayerCollectableSelectionLogic();
+
+    //check for obstacles only every 300 ms
+    mCpAbsCheckObstacleTimerCounter += deltaTime;
+
+    if (mCpAbsCheckObstacleTimerCounter >= 0.3f) {
+        mCpAbsCheckObstacleTimerCounter -= 0.3f;
+
+        CpCheckCurrentPathForObstacles();
+    }
 
     return;
 }

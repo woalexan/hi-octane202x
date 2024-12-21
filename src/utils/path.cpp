@@ -45,6 +45,22 @@ EntityItem* Path::FindNearestWayPointToLocation(irr::core::vector3df location) {
    return nearestWayPoint;
 }
 
+//returns false if sani check of bezier input points is "crazy", means one of the points is "not" in line
+//the player
+bool Path::SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::vector2df cntrlPnt,
+                                      irr::core::vector2df endPnt) {
+
+   irr::core::vector2df dirCntrlPnt = (cntrlPnt - startPnt).normalize();
+   irr::core::vector2df dirEndPnt = (endPnt - startPnt).normalize();
+
+   if (dirCntrlPnt.dotProduct(dirEndPnt) < 0.0f)
+       return false;
+
+   //all ok
+   return true;
+}
+
+
 void Path::OffsetWayPointLinkCoordByOffset(irr::core::vector2df &coord2D,
                                            irr::core::vector3df &coord3D, WayPointLinkInfoStruct* waypoint, irr::f32 offset) {
 
@@ -234,23 +250,23 @@ std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::Whe
 }
 
 bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStruct*> path,
-                                  Player* pathOfWhichPlayer) {
+                                  std::vector<Player*> checkCollisionForWhichPlayers) {
 
    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
+   std::vector<Player*>::iterator itPlayer;
 
-   result = WhereDoesPathComeCloseToPlayer(path, 1.0f, this->mRace->player3);
+   for (itPlayer = checkCollisionForWhichPlayers.begin(); itPlayer != checkCollisionForWhichPlayers.end(); ++itPlayer) {
 
-   if (result.size() > 0) {
-       return true;
+       result = WhereDoesPathComeCloseToPlayer(path, 1.0f, (*itPlayer));
+
+         if (result.size() > 0) {
+             //other player comes close to our path
+             //return true
+             return true;
+         }
    }
 
-   result = WhereDoesPathComeCloseToPlayer(path, 1.0f, this->mRace->player);
-
-   if (result.size() > 0) {
-       return true;
-   }
-
-
+   //no collision problem, return false
    return false;
 }
 
