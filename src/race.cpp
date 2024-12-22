@@ -1510,7 +1510,7 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
 
 void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
      player2->RunComputerPlayerLogic(frameDeltaTime);
-     //player3->RunComputerPlayerLogic(frameDeltaTime);
+     player3->RunComputerPlayerLogic(frameDeltaTime);
 }
 
 void Race::HandleBasicInput() {
@@ -1915,91 +1915,6 @@ void Race::Render() {
     //playerPhysicsObj->DebugDrawCurrentWorldCoordForces(mDrawDebug, mDrawDebug->green, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
     //player2PhysicsObj->DebugDrawCurrentWorldCoordForces(mDrawDebug, mDrawDebug->green, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
 
-    //DrawTestShape();
-
-    //player->DebugCraftLocalFeatureCoordinates();
-
-    //player->Player_node->updateAbsolutePosition();
-    //drawDebug.Draw3DArrow(player->Player_node->getAbsolutePosition(), player->Player_node->getAbsolutePosition() + player->targetSteerDir, drawDebug.white);
-   // irr::core::vector3df ShipFrontWorldCoor = player->phobj->ConvertToWorldCoord(player->LocalCraftFrontPnt);
-   // drawDebug.Draw3DArrow(ShipFrontWorldCoor, ShipFrontWorldCoor + player->WorldCoordWheelDir * 2.0f, drawDebug.blue);
-
-    //drawDebug.Draw3DArrow(physics.DbgCollStartVec, physics.DbgCollEndVec, drawDebug.blue);
-
-    //drawDebug.Draw3DArrow(player->pos_in_worldspace_backPos, player->pos_in_worldspace_frontPos, drawDebug.white);
-    //drawDebug.Draw3DArrow(player->pos_in_worldspace_rightPos, player->pos_in_worldspace_leftPos, drawDebug.blue);
-
-    //player->Position = playerShipState.position;
-    //player->Player_node->setPosition(interpolatedRenderState.position);
-
-    //core::vector3df rot;
-    //interpolatedRenderState.orientation.toEuler(rot);
-    //player->Player_node->setRotation(rot * core::RADTODEG);
-    //  driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
-
-    //draw coordinate system at 3d origin
-   // driver->setMaterial(*red);
-    //driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
-   // driver->draw3DLine(vector3df(0.0f, 0.0f, 0.0f), vector3df(10.0f, 0.0f, 0.0f));
-
-    //driver->setMaterial(*green);
-    //driver->draw3DLine(vector3df(0.0f, 0.0f, 0.0f), vector3df(0.0f, 10.0f, 0.0f));
-
-    //driver->setMaterial(*blue);
-    //driver->draw3DLine(vector3df(0.0f, 0.0f, 0.0f), vector3df(0.0f, 0.0f, 10.0f));
-
-    //driver->setMaterial(*white);
-    //driver->draw3DLine(   debugvec1,    debugvec2);
-
-
-    //wchar_t* text2 = new wchar_t[50];
-    /*swprintf(text2, 50, L"%lf %lf %lf %lf", player->phobj->physicState.angularVelocity.X,
-             player->phobj->physicState.angularVelocity.Y, player->phobj->physicState.angularVelocity.Z,
-             player->phobj->physicState.angularVelocity.getLength());
-    swprintf(text2, 50, L"%lf %lf %lf %lf", player->phobj->physicState.position.Y-player->currHeightFront,
-             player->phobj->physicState.position.Y-player->currHeightBack,
-             player->phobj->physicState.position.Y-player->currHeightLeft,
-             player->phobj->physicState.position.Y-player->currHeightRight);*/
-    /*dbgText2->setText(text2);
-    free(text2);*/
-
-    //swprintf(text, 50, L"%lf %lf %lf", playerShipState.position.X, playerShipState.position.Y, playerShipState.position.Z);
-
-     //swprintf(text, 50, L"%lf %lf %lf", playerShipState.orientation.X, playerShipState.orientation.Y, playerShipState.orientation.Z);
-
-  /*     swprintf(text, 50, L"%lf %lf %lf", playerShipState.spin.X, playerShipState.spin.Y, playerShipState.spin.Z);
-    dbgText->setText(text);
-    free(text);*/
-
-   /* if (player2->cPCurrentFollowSeg != NULL) {
-        mDriver->setMaterial(*mDrawDebug->green);
-        mDriver->draw3DLine(player2->phobj->physicState.position, player2->projPlayerPositionClosestWayPointLink);
-
-        mDrawDebug->Draw3DLine(this->player2->cPCurrentFollowSeg->pLineStruct->A,
-                               this->player2->cPCurrentFollowSeg->pLineStruct->B, this->mDrawDebug->red);
-    }*/
-
-
-/*
-    if (player2->computerCurrFollowWayPointLink != NULL) {
-      player2->computerCurrFollowWayPointLink->pLineStruct->color = mDrawDebug->blue;
-    }*/
-
-  /*  if (player2->cPTargetEntity != NULL) {
-        mDriver->setMaterial(*mDrawDebug->green);
-        irr::core::vector3df vecHlp = player2->cPTargetEntity->get_Center();
-        vecHlp.X = -vecHlp.X;
-        mDriver->draw3DLine(player2->phobj->physicState.position, vecHlp);
-    }*/
-
-
-/*
-    if (player2->computerCurrFollowWayPointLink != NULL) {
-        mDriver->setMaterial(*mDrawDebug->blue);
-        mDriver->draw3DLine(player2->phobj->physicState.position,
-                            (player2->computerCurrFollowWayPointLink->pLineStruct->A + player2->computerCurrFollowWayPointLink->pLineStruct->B) * irr::core::vector3d<irr::f32>(0.5f, 0.5f, 0.5f));
-    }*/
-
     std::list<LineStruct*>::iterator Linedraw_iterator;
     std::vector<CheckPointInfoStruct*>::iterator CheckPoint_iterator;
 
@@ -2135,81 +2050,29 @@ void Race::Render() {
       mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
                                    this->mDrawDebug->green);*/
 
-      /*mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), dbgCoord, this->mDrawDebug->green);
+      if (currPlayerFollow != NULL) {
 
-      irr::core::vector2df bezierPnt1;
-      irr::core::vector3df bezierPnt13D = this->wayPointLinkVec->at(0)->pLineStruct->A;
+            if (currPlayerFollow->mPathHistoryVec.size() > 0) {
+              std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
-      bezierPnt1.X = bezierPnt13D.X;
-      bezierPnt1.Y = bezierPnt13D.Z;
+             for (itPathEl = currPlayerFollow->mPathHistoryVec.begin(); itPathEl != currPlayerFollow->mPathHistoryVec.end(); ++itPathEl) {
+                   mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+              }
 
-      irr::core::vector2df bezierPnt2;
-      irr::core::vector3df bezierPnt23D = this->wayPointLinkVec->at(1)->pLineStruct->A;
-
-      bezierPnt2.X = bezierPnt23D.X;
-      bezierPnt2.Y = bezierPnt23D.Z;
-
-      irr::core::vector2df bezierPntcntrl;
-      irr::core::vector3df bezierPntcntrl3D = this->wayPointLinkVec->at(0)->pLineStruct->B;
-
-      bezierPntcntrl.X = bezierPntcntrl3D.X;
-      bezierPntcntrl.Y = bezierPntcntrl3D.Z;
-
-      testBezier->QuadBezierCurveDrawAtTerrain(bezierPnt1, bezierPnt2, bezierPntcntrl, 0.01f, mDrawDebug->red);
-
-      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt13D, this->mDrawDebug->green);
-      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPnt23D, this->mDrawDebug->blue);
-      mDrawDebug->Draw3DLine(irr::core::vector3df(0.0f, 0.0f, 0.0f), bezierPntcntrl3D, this->mDrawDebug->pink);*/
-
-     /* if (player2->mCurrentPathSeg.size() > 0) {
-          std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
-
-          for (itPathEl = player2->mCurrentPathSeg.begin(); itPathEl != player2->mCurrentPathSeg.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
-          }
-      }*/
-
-      if (player2->mPathHistoryVec.size() > 0) {
-          std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
-
-         for (itPathEl = player2->mPathHistoryVec.begin(); itPathEl != player2->mPathHistoryVec.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
-          }
-
-         //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
-      }
-
-
-      /*if (player2->currClosestWayPointLink.first != NULL) {
-          mDriver->setMaterial(*mDrawDebug->green);
-
-          mDrawDebug->Draw3DLine(this->player2->currClosestWayPointLink.first->pLineStruct->A,
-                                 this->player2->currClosestWayPointLink.first->pLineStruct->B, this->mDrawDebug->green);
-      }*/
-/*
-      if (player2->currCloseWayPointLinks.size() > 0) {
-          mDriver->setMaterial(*mDrawDebug->pink);
-
-       std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> >::iterator itPathEl;
-
-         for (itPathEl = player2->currCloseWayPointLinks.begin(); itPathEl != player2->currCloseWayPointLinks.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl).first->pLineStruct->A, (*itPathEl).first->pLineStruct->B, this->mDrawDebug->pink);
-          }
-      }*/
-
-    /*  mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt1, this->mDrawDebug->cyan);
-      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt2, this->mDrawDebug->orange);
-      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt3, this->mDrawDebug->red);
-      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt4, this->mDrawDebug->blue);
-      mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, this->player2->debugPathPnt5, this->mDrawDebug->green);*/
-
-      if (this->player2->mCpAvailWayPointLinks.size() > 0) {
-          std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
-
-          for (itPathEl = player2->mCpAvailWayPointLinks.begin(); itPathEl != player2->mCpAvailWayPointLinks.end(); ++itPathEl) {
-               mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->red);
+             //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
           }
       }
+
+        if (currPlayerFollow != NULL) {
+
+              if (this->currPlayerFollow->mCpAvailWayPointLinks.size() > 0) {
+                  std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+                  for (itPathEl = currPlayerFollow->mCpAvailWayPointLinks.begin(); itPathEl != currPlayerFollow->mCpAvailWayPointLinks.end(); ++itPathEl) {
+                       mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->red);
+                  }
+              }
+        }
 
     /*  if (this->player2->mCpCollectablesSeenByPlayer.size() > 0) {
           std::vector<Collectable*>::iterator itColl;
@@ -2222,25 +2085,22 @@ void Race::Render() {
           }
       }*/
 
-      if (player2->mCpTargetCollectableToPickUp != NULL) {
-           irr::core::vector3df fixedPos = player2->mCpTargetCollectableToPickUp->Position;
-           fixedPos.X = -fixedPos.X;
-           mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos,
-                                  this->mDrawDebug->pink);
-      }
+        if (currPlayerFollow != NULL) {
 
-      if (player2->mCpWayPointLinkClosestToCollectable != NULL) {
-          mDrawDebug->Draw3DLine(player2->mCpWayPointLinkClosestToCollectable->pLineStruct->A,
-                                 player2->mCpWayPointLinkClosestToCollectable->pLineStruct->B,
-                                 this->mDrawDebug->cyan);
-      }
+              if (currPlayerFollow->mCpTargetCollectableToPickUp != NULL) {
+                   irr::core::vector3df fixedPos = currPlayerFollow->mCpTargetCollectableToPickUp->Position;
+                   fixedPos.X = -fixedPos.X;
+                   mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos,
+                                          this->mDrawDebug->pink);
+              }
 
-    //  mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->currClosestWayPointLink.second, this->mDrawDebug->brown);
+              if (currPlayerFollow->mCpWayPointLinkClosestToCollectable != NULL) {
+                  mDrawDebug->Draw3DLine(currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->A,
+                                         currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->B,
+                                         this->mDrawDebug->cyan);
+              }
+        }
 
-
-    /*  if (dbgFirstLink != NULL) {
-           mDrawDebug->Draw3DLine(dbgFirstLink->pLineStruct->A, dbgFirstLink->pLineStruct->B, this->mDrawDebug->blue);
-      }*/
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
@@ -2454,6 +2314,7 @@ void Race::createPlayers(int levelNr) {
     player2 = new Player(this, player_model2, Startpos2, Startdirection2, this->mSmgr, false);
 
     this->mPhysics->AddObject(player2->Player_node);
+    player2->mCpCurrPathOffset = -1.0f;
 
     //setup player 2 physics properties
     player2PhysicsObj = this->mPhysics->GetObjectPntr(player2->Player_node);
@@ -2490,23 +2351,23 @@ void Race::createPlayers(int levelNr) {
     irr::core::vector3d<irr::f32> Startpos3;
     irr::core::vector3d<irr::f32> Startdirection3;
 
-    /*getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
+    getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
     Startpos3 = playerStartLocations.at(5);
     Startdirection3.X = Startpos3.X;
     Startdirection3.Y = Startpos3.Y;
-    Startdirection3.Z = Startpos3.Z - 2.0f;*/
+    Startdirection3.Z = Startpos3.Z - 2.0f;
 
-
-    Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
+    /*Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
     Startdirection3.X = Startpos3.X;
     Startdirection3.Y = Startpos3.Y;
-    Startdirection3.Z = Startpos3.Z - 2.0f;
+    Startdirection3.Z = Startpos3.Z - 2.0f;*/
 
     //Startpos2.Z -= 10.0f;
 
     player3 = new Player(this, player_model3, Startpos3, Startdirection3, this->mSmgr, false);
 
     this->mPhysics->AddObject(player3->Player_node);
+    player3->mCpCurrPathOffset = 3.0f;
 
     //setup player 3 physics properties
     player3PhysicsObj = this->mPhysics->GetObjectPntr(player3->Player_node);

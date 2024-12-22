@@ -35,8 +35,8 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 10.0f; //8.0f
-const irr::f32 CP_PLAYER_SLOW_SPEED = 7.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 7.0f; //8.0f
+const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;
 
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
@@ -286,8 +286,6 @@ public:
     irr::core::vector3df debugPathPnt1;
     irr::core::vector3df debugPathPnt2;
     irr::core::vector3df debugPathPnt3;
-    irr::core::vector3df debugPathPnt4;
-    irr::core::vector3df debugPathPnt5;
 
     irr::f32 dbgAngleError;
     irr::f32 dbgDistError;
@@ -310,11 +308,7 @@ public:
 
     void CheckAndRemoveNoCommand();
     void CpHandleCharging();
-
-    irr::s32 pathClose = 0;
-
-    //void buttonL();
-    //void buttonR();
+    void RemoveAllPendingCommands();
 
     irr::s32 mDbgCpAvailWaypointNr = 0;
     std::vector<WayPointLinkInfoStruct*> mCpAvailWayPointLinks;
@@ -649,6 +643,12 @@ private:
     bool mLastChargingFuel = false;
     bool mLastChargingShield = false;
     bool mLastChargingAmmo = false;
+
+    //variables to know if we do currently
+    //charging
+    bool mCurrChargingFuel = false;
+    bool mCurrChargingShield = false;
+    bool mCurrChargingAmmo = false;
 
     //variables to remember if certain banner texts
     //were already shown to the player once, to prevent

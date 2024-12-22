@@ -324,7 +324,7 @@ private:
     bool playerCamera = true;
 
     //variables to switch different debugging functions on and off
-    bool DebugShowWaypoints = true;
+    bool DebugShowWaypoints = false;
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;

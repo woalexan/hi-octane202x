@@ -461,6 +461,41 @@ void Player::CheckAndRemoveNoCommand() {
     }
 }
 
+void Player::RemoveAllPendingCommands() {
+    std::list<CPCOMMANDENTRY*>::iterator it;
+    CPCOMMANDENTRY* pntrCmd;
+
+    if (this->cmdList->size() > 0) {
+       for (it = this->cmdList->begin(); it != cmdList->end(); ) {
+           pntrCmd = (*it);
+
+           it = this->cmdList->erase(it);
+
+           //free command struct itself
+           //as well
+           if (pntrCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
+               //we have to do maybe more cleanup
+               if (pntrCmd->targetWaypointLink != NULL) {
+                   //if temporary waypoint link (created for a specific purpose,
+                   //not part of level file), clean up again
+                   if (pntrCmd->WayPointLinkTemporary) {
+                       //clean up waypoint link structure again
+                       //we need to clean up the LineStruct inside
+                       LineStruct* pntrLineStruct = pntrCmd->targetWaypointLink->pLineStruct;
+
+                       delete[] pntrLineStruct->name;
+                       delete pntrLineStruct;
+
+                       delete pntrCmd->targetWaypointLink;
+                   }
+               }
+           }
+
+           delete pntrCmd;
+       }
+    }
+}
+
 void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
     if (newClosestWayPointLink.first != NULL) {
         this->currClosestWayPointLink = newClosestWayPointLink;
@@ -1072,7 +1107,6 @@ void Player::CPForceController() {
 void Player::CpCheckCurrentPathForObstacles() {
     bool updatePath = false;
 
-    if (this == this->mRace->player2) {
         irr::f32 missingSpace;
 
         //are we too close to the race track edge / available space runs out?
@@ -1117,18 +1151,19 @@ void Player::CpCheckCurrentPathForObstacles() {
         if (playerISee.size() > 0) {
             if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(
                         this->mCurrentPathSeg, playerISee)) {
-                   this->pathClose = 0;
             } else {
                 //we have to react, and find another path
                 //without any obstacle
                 updatePath = true;
 
             }
-        } else this->pathClose = 0;
-    }
+        }
 
     if (updatePath) {
          FollowPathDefineNextSegment(this->mCpFollowThisWayPointLink, mCpCurrPathOffset);
+         /*if (mHUD != NULL) {
+           this->mHUD->ShowBannerText((char*)"OBSTACLE", 4.0f);
+         }*/
 
          //next line is only for debugging purposes
          //this->mRace->mGame->StopTime();
@@ -1330,7 +1365,20 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     if (linkForShield) {
         //do we need shield? nothing more important!
         if (DoIWantToChargeShield()) {
-            //I need shield
+            //with the current command implementation I have an issue:
+            //if for example the computer player craft sees an Collectable it
+            //wants to pickup up, (so there is a command for that active), and
+            //then the player ship runs out of shield/ammo/fuel it adds
+            //a second command for that below, this section command for charging will not
+            //get pulled in the command processing routine, because this source code
+            //will only see the older Collectable collection command; so charging does not
+            //work properly. I should improve this whole concept in future. As a workaround now
+            //I will just delete all active commands when we want to charge something. This will
+            //remove possible pending collectable commands; Additional I have prevented somewhere else
+            //that collectables are commanded to be picked up as soon as a charging command was added to the list
+            RemoveAllPendingCommands();
+
+            //I need shield  
             AddCommand(CMD_CHARGE_SHIELD);
 
             //we want to accel/deaccelerate computer player craft
@@ -1346,8 +1394,18 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     if (linkForFuel) {
         //do we need fuel?
         if (DoIWantToChargeFuel()) {
+            //please see important comment in shield section above
+            //why we do this
+            RemoveAllPendingCommands();
+
             //I need fuel
             AddCommand(CMD_CHARGE_FUEL);
+
+            if (mHUD != NULL) {
+              this->mHUD->ShowBannerText((char*)"FUEL CMD", 4.0f);
+            }
+
+            //this->mRace->mGame->StopTime();
 
             //we want to accel/deaccelerate computer player craft
             //now much quicker, so that if we reach the charging area
@@ -1362,6 +1420,10 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
     if (linkForAmmo) {
         //do we need ammo?
         if (DoIWantToChargeAmmo()) {
+            //please see important comment in shield section above
+            //why we do this
+            RemoveAllPendingCommands();
+
             //I need ammo
             AddCommand(CMD_CHARGE_AMMO);
 
@@ -1477,6 +1539,9 @@ void Player::ReachedEndCurrentFollowingSegments() {
                        //define path through it
                        PickupCollectableDefineNextSegment(mCpTargetCollectableToPickUp);
                        this->mCpFollowThisWayPointLink = (*it3);
+                       /*if (mHUD != NULL) {
+                         this->mHUD->ShowBannerText((char*)"COLLECT", 4.0f);
+                       }*/
 
                        EntityItem::EntityType entType = (*it3)->pStartEntity->get_GameType();
 
@@ -1510,6 +1575,9 @@ void Player::ReachedEndCurrentFollowingSegments() {
             }
 
             FollowPathDefineNextSegment(nextLink, mCpCurrPathOffset, true);
+           /* if (mHUD != NULL) {
+               this->mHUD->ShowBannerText((char*)"REACHED END", 4.0f);
+             }*/
       }
   //  }
 }
@@ -2059,100 +2127,114 @@ void Player::CpPlayerCollectableSelectionLogic() {
             mCpTargetCollectableToPickUp = NULL;
             mCpWayPointLinkClosestToCollectable = NULL;
 
-            this->CurrentCommandFinished();
+            //only remove current computer player command to pickup the collectable
+            //if we really wanted to pickup this collectable in the first place
+            //otherwise we get wrong player behavior afterwards
+            if ((currCommand->cmdType == CMD_PICKUP_COLLECTABLE) &&
+                    (currCommand->targetCollectible == mCpTargetCollectableToPickUp)) {
+
+                this->CurrentCommandFinished();
+            }
+
+            //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, mCpFollowThisWayPointLink);
         }
 
         //continue to pickup current targeted collectable item
         return;
     }
 
-    //player has no target currently
+    //player has no collectable target currently
+    //and no other special command as well
     //do we see something we want to have?
-    std::vector<Collectable*>::iterator it;
-    Collectable* wantPickup = NULL;
+    if (currCommand != NULL) {
+        if ((currCommand->cmdType == CMD_NOCMD) || (currCommand->cmdType == CMD_FOLLOW_TARGETWAYPOINTLINK)) {
+            std::vector<Collectable*>::iterator it;
+            Collectable* wantPickup = NULL;
 
-    for (it = this->mCpCollectablesSeenByPlayer.begin(); (it != this->mCpCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
-        if ((*it)->GetIfVisible()) {
-            switch ((*it)->mEntityItem->get_GameType()) {
-                case EntityItem::ExtraShield: {
-                    break;
-                }
+            for (it = this->mCpCollectablesSeenByPlayer.begin(); (it != this->mCpCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
+                if ((*it)->GetIfVisible()) {
+                    switch ((*it)->mEntityItem->get_GameType()) {
+                        case EntityItem::ExtraShield: {
+                            break;
+                        }
 
-                case EntityItem::ShieldFull: {
-                    break;
-                }
+                        case EntityItem::ShieldFull: {
+                            break;
+                        }
 
-                case EntityItem::DoubleShield: {
-                    break;
-                }
+                        case EntityItem::DoubleShield: {
+                            break;
+                        }
 
-                case EntityItem::ExtraAmmo: {
-                    break;
-                }
+                        case EntityItem::ExtraAmmo: {
+                            break;
+                        }
 
-                case EntityItem::AmmoFull: {
-                    break;
-                }
+                        case EntityItem::AmmoFull: {
+                            break;
+                        }
 
-                case EntityItem::DoubleAmmo: {
-                    break;
-                }
+                        case EntityItem::DoubleAmmo: {
+                            break;
+                        }
 
-                case EntityItem::ExtraFuel: {
-                    break;
-                }
+                        case EntityItem::ExtraFuel: {
+                            break;
+                        }
 
-                case EntityItem::FuelFull: {
-                    break;
-                }
+                        case EntityItem::FuelFull: {
+                            break;
+                        }
 
-                case EntityItem::DoubleFuel: {
-                    break;
-                }
+                        case EntityItem::DoubleFuel: {
+                            break;
+                        }
 
-                case EntityItem::MinigunUpgrade: {
-                    //we only want to pick this up if minigun is not
-                    //already at highest level
-                    if (this->mPlayerStats->currMinigunUpgradeLevel < 3) {
-                        wantPickup = (*it);
+                        case EntityItem::MinigunUpgrade: {
+                            //we only want to pick this up if minigun is not
+                            //already at highest level
+                            if (this->mPlayerStats->currMinigunUpgradeLevel < 3) {
+                                wantPickup = (*it);
+                            }
+
+                            break;
+                        }
+
+                        case EntityItem::MissileUpgrade: {
+                            //we only want to pick this up if missile is not
+                            //already at highest level
+                            if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
+                                wantPickup = (*it);
+                            }
+                            break;
+                        }
+
+                        case EntityItem::BoosterUpgrade: {
+                            //we only want to pick this up if booster is not
+                            //already at highest level
+                            if (this->mPlayerStats->currBoosterUpgradeLevel < 3) {
+                                wantPickup = (*it);
+                            }
+                            break;
+                        }
+
+                        case EntityItem::UnknownShieldItem: {
+                            break;
+                        }
+
+                        case EntityItem::UnknownItem: {
+                            break;
+                        }
+
                     }
-
-                    break;
                 }
+            }
 
-                case EntityItem::MissileUpgrade: {
-                    //we only want to pick this up if missile is not
-                    //already at highest level
-                    if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
-                        wantPickup = (*it);
-                    }
-                    break;
-                }
-
-                case EntityItem::BoosterUpgrade: {
-                    //we only want to pick this up if booster is not
-                    //already at highest level
-                    if (this->mPlayerStats->currBoosterUpgradeLevel < 3) {
-                        wantPickup = (*it);
-                    }
-                    break;
-                }
-
-                case EntityItem::UnknownShieldItem: {
-                    break;
-                }
-
-                case EntityItem::UnknownItem: {
-                    break;
-                }
-
+            if (wantPickup != NULL) {
+                //we found something we want to have
+                AddCommand(CMD_PICKUP_COLLECTABLE, wantPickup);
             }
         }
-    }
-
-    if (wantPickup != NULL) {
-        //we found something we want to have
-        AddCommand(CMD_PICKUP_COLLECTABLE, wantPickup);
     }
 
     //we do not want to pickup anything
@@ -2318,7 +2400,6 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
             }
 
             //now check if the new "way" is free from other players
-            if (this == this->mRace->player2) {
 
                 //only check possible collision with players we do actually see in front of us
                 //otherwise we would report an possible collision with our path, when the other
@@ -2357,7 +2438,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                     }
                 }
             } else freeWayFound = true;
-    }
+
 
             if ((leftFailed && rightFailed) || (iterationCnt >= (maxIterations - 1))) {
                 currOffset = 0.0f;
@@ -2557,9 +2638,9 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
 
     switch (currCommand->cmdType) {
         case CMD_NOCMD: {
-            if (mHUD != NULL) {
+           /* if (mHUD != NULL) {
               this->mHUD->ShowBannerText((char*)"NO CMD", 4.0f);
-            }
+            }*/
             break;
         }
 
@@ -2598,7 +2679,11 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
         case CMD_FOLLOW_TARGETWAYPOINTLINK: {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
             mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
-            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
+            //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
+            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, false);
+            if (mHUD != NULL) {
+              this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
+            }
             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 
             CurrentCommandFinished();
@@ -2624,60 +2709,64 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
 void Player::CpHandleCharging() {
    //what charging do we need to do?
    switch(currCommand->cmdType) {
-    case CMD_CHARGE_AMMO: {
-      if (mLastChargingAmmo) {
-          if (this->mPlayerStats->ammoVal >= (0.95 * this->mPlayerStats->ammoMax)) {
-              //charging finished
-              mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
-              CurrentCommandFinished();
-              AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-              computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-          } else {
-              //lets stop computer player until
-              //charging is finished
-              computerPlayerTargetSpeed = 0.0f;
+        case CMD_CHARGE_AMMO: {
+          if (mCurrChargingAmmo) {
+              if (this->mPlayerStats->ammoVal >= (0.95 * this->mPlayerStats->ammoMax)) {
+                  //charging finished
+                  mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+                  CurrentCommandFinished();
+
+                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+                  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+              } else {
+                  //lets stop computer player until
+                  //charging is finished
+                  computerPlayerTargetSpeed = 0.0f;
+              }
+
+              break;
           }
+       }
 
-          break;
+       case CMD_CHARGE_SHIELD: {
+         if (mCurrChargingShield) {
+             if (this->mPlayerStats->shieldVal >= (0.95 * this->mPlayerStats->shieldMax)) {
+                 //charging finished
+                 mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+                 CurrentCommandFinished();
+
+                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+             } else {
+                 //lets stop computer player until
+                 //charging is finished
+                 computerPlayerTargetSpeed = 0.0f;
+             }
+
+             break;
+         }
       }
+
+       case CMD_CHARGE_FUEL: {
+         if (mCurrChargingFuel) {
+             if (this->mPlayerStats->gasolineVal >= (0.95 * this->mPlayerStats->gasolineMax)) {
+                 //charging finished
+                 mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+
+                 CurrentCommandFinished();
+
+                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+             } else {
+                 //lets stop computer player until
+                 //charging is finished
+                 computerPlayerTargetSpeed = 0.0f;
+             }
+
+             break;
+         }
+        }
    }
-
-   case CMD_CHARGE_SHIELD: {
-     if (mLastChargingShield) {
-         if (this->mPlayerStats->shieldVal >= (0.95 * this->mPlayerStats->shieldMax)) {
-             //charging finished
-             mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
-             CurrentCommandFinished();
-             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-         } else {
-             //lets stop computer player until
-             //charging is finished
-             computerPlayerTargetSpeed = 0.0f;
-         }
-
-         break;
-     }
-  }
-
-   case CMD_CHARGE_FUEL: {
-     if (mLastChargingFuel) {
-         if (this->mPlayerStats->gasolineVal >= (0.95 * this->mPlayerStats->gasolineMax)) {
-             //charging finished
-             mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
-             CurrentCommandFinished();
-             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-         } else {
-             //lets stop computer player until
-             //charging is finished
-             computerPlayerTargetSpeed = 0.0f;
-         }
-
-         break;
-     }
-  }
- }
 }
 
 void Player::CpAddCommandTowardsNextCheckpoint() {
@@ -3401,9 +3490,9 @@ bool Player::CanIFindTextureIdAroundPlayer(int posX, int posY, int textureId) {
 }
 
 void Player::CheckForChargingStation() {
-    bool currChargingFuel = false;
-    bool currChargingAmmo = false;
-    bool currChargingShield = false;
+    mCurrChargingFuel = false;
+    mCurrChargingAmmo = false;
+    mCurrChargingShield = false;
 
     //get information about current tile below player craft
 
@@ -3446,7 +3535,7 @@ void Player::CheckForChargingStation() {
     }
 
     if (cShield) {
-       currChargingShield = true;
+       mCurrChargingShield = true;
 
        if (mPlayerStats->shieldVal < mPlayerStats->shieldMax)
         {
@@ -3475,7 +3564,7 @@ void Player::CheckForChargingStation() {
     }
 
     if (cAmmo) {
-       currChargingAmmo = true;
+       mCurrChargingAmmo = true;
 
        if (mPlayerStats->ammoVal < mPlayerStats->ammoMax)
         {
@@ -3501,7 +3590,7 @@ void Player::CheckForChargingStation() {
     }
 
     if (cFuel) {
-       currChargingFuel = true;
+       mCurrChargingFuel = true;
 
        if (mPlayerStats->gasolineVal < mPlayerStats->gasolineMax)
         {
@@ -3522,8 +3611,8 @@ void Player::CheckForChargingStation() {
         }
     }
 
-    if (currChargingFuel != mLastChargingFuel) {
-        if (currChargingFuel) {
+    if (mCurrChargingFuel != mLastChargingFuel) {
+        if (mCurrChargingFuel) {
             //charging fuel started
              if (atCharger) {
                if (mHUD != NULL) {
@@ -3540,8 +3629,8 @@ void Player::CheckForChargingStation() {
         }
     }
 
-    if (currChargingAmmo != mLastChargingAmmo) {
-        if (currChargingAmmo) {
+    if (mCurrChargingAmmo != mLastChargingAmmo) {
+        if (mCurrChargingAmmo) {
             //charging Ammo started
              if (atCharger) {
                if (mHUD != NULL) {
@@ -3558,8 +3647,8 @@ void Player::CheckForChargingStation() {
         }
     }
 
-    if (currChargingShield != mLastChargingShield) {
-        if (currChargingShield) {
+    if (mCurrChargingShield != mLastChargingShield) {
+        if (mCurrChargingShield) {
             //charging shield started
              if (atCharger) {
                if (mHUD != NULL) {
@@ -3576,9 +3665,9 @@ void Player::CheckForChargingStation() {
         }
     }
 
-    mLastChargingFuel = currChargingFuel;
-    mLastChargingAmmo = currChargingAmmo;
-    mLastChargingShield = currChargingShield;
+    mLastChargingFuel = mCurrChargingFuel;
+    mLastChargingAmmo = mCurrChargingAmmo;
+    mLastChargingShield = mCurrChargingShield;
 
     if (atCharger) {
          if (mPlayerCurrentlyCharging == false) {
