@@ -158,9 +158,12 @@ private:
 
     irr::video::SColor* colorEmptySpace;
     irr::video::SColor* colorRed;
-    irr::video::SColor* colorPlayer;
-    irr::video::SColor* colorPlayer2;
-    irr::video::SColor* colorPlayer3;
+    //irr::video::SColor* colorPlayer;
+    //irr::video::SColor* colorPlayer2;
+    //irr::video::SColor* colorPlayer3;
+
+    //predefined vector with colors for max 8 players
+    std::vector<irr::video::SColor*> mColorPlayerVec;
 
     //static world map contains info about static
     //Terrain and Cubes; 0 means in the tile there is no obstacle

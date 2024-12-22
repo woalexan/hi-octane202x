@@ -1026,6 +1026,7 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     physicsAccumulator += frameDeltaTime;
 
     irr::core::vector3df rot2;
+    std::vector<Player*>::iterator itPlayer;
 
     //advance physics time
     while ( physicsAccumulator >= dt ) {
@@ -1041,8 +1042,15 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
                     //between physics objects themselves (via bounding boxes)
                     HandleObjToObjCollision(frameDeltaTime);
 
-                    this->mParentRace->player2->CPForceController();
-                    this->mParentRace->player3->CPForceController();
+                    //for all computer players in this race we need to call the
+                    //CPForceController which has the job to control the crafts movement
+                    //so that the computer is following the currenty definded target path
+
+                    for (itPlayer = this->mParentRace->mPlayerVec.begin(); itPlayer != this->mParentRace->mPlayerVec.end(); ++itPlayer) {
+                      if (!(*itPlayer)->mHumanPlayer) {
+                            (*itPlayer)->CPForceController();
+                      }
+                    }
 
                     //Wolf Alexander 24.10.2024: For the heightmap collision to work we
                     //need to immediately update the sceneNodes here inside the loop

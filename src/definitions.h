@@ -17,9 +17,6 @@
 #define DEF_DBG_WALLCOLLISIONS false
 #define DEF_PLAYERCANGOBACKWARDS false
 
-//Player settings
-#define DEBUG_PLAYER_HEIGHT_CONTROL false
-
 //Audio settings
 #define AUDIO_SAMPLERATE 44100
 

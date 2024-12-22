@@ -494,6 +494,8 @@ void Player::RemoveAllPendingCommands() {
            delete pntrCmd;
        }
     }
+
+    currCommand = NULL;
 }
 
 void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
@@ -1400,12 +1402,6 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
 
             //I need fuel
             AddCommand(CMD_CHARGE_FUEL);
-
-            if (mHUD != NULL) {
-              this->mHUD->ShowBannerText((char*)"FUEL CMD", 4.0f);
-            }
-
-            //this->mRace->mGame->StopTime();
 
             //we want to accel/deaccelerate computer player craft
             //now much quicker, so that if we reach the charging area
@@ -2681,9 +2677,9 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
             mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
             //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
             FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, false);
-            if (mHUD != NULL) {
+            /*if (mHUD != NULL) {
               this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
-            }
+            }*/
             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 
             CurrentCommandFinished();

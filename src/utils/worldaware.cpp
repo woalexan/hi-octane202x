@@ -259,16 +259,24 @@ void WorldAwareness::CreateStaticWorld() {
 
    colorEmptySpace = new irr::video::SColor(255, 0, 0, 0);
    colorRed = new irr::video::SColor(255, 255, 0, 0);
-   colorPlayer = new irr::video::SColor(255, 0, 0, 255);
-   colorPlayer2 = new irr::video::SColor(255, 0, 255, 0);
-   colorPlayer3 = new irr::video::SColor(255, 255, 0, 0);
+
+   //carefull! all of the following defined colors in the list below
+   //must be unique, so that we can differentate the players afterwards
+   mColorPlayerVec.clear();
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 0, 0, 255));      //player 1 color
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 0, 255, 0));      //player 2 color
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 0, 255, 255));    //player 3 color
+
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 128, 0, 255));    //player 4 color
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 128, 255, 0));    //player 5 color
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 128, 255, 255));  //player 6 color
+
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 200, 255, 0));    //player 7 color
+   mColorPlayerVec.push_back(new irr::video::SColor(255, 200, 255, 255));  //player 8 color
 
    staticWorld->fill(*colorEmptySpace);
 
    for (it = mRace->ENTWallsegmentsLine_List->begin(); it != mRace->ENTWallsegmentsLine_List->end(); it++) {
-         //p1 = Project3DPointTo2DPlane((*it)->A, *XZPlane);
-         //p2 = Project3DPointTo2DPlane((*it)->B, *XZPlane);
-
          p1.X = -(*it)->A.X * 5.0f;
          p1.Y = (*it)->A.Z * 5.0f;
 
@@ -331,14 +339,18 @@ void WorldAwareness::UpdateDynamicWorldMap(Player* whichPlayer) {
   //to remove all existing player locations
   std::fill(mDynamicWorldMap->begin(), mDynamicWorldMap->end(), 0);
 
-  if (whichPlayer != mRace->player)
-    DrawPlayerDynamicWorldMap(1, mRace->player);
+  std::vector<Player*>::iterator itPlayer;
+  int playerNr = 1;
 
-  if (whichPlayer != mRace->player2)
-    DrawPlayerDynamicWorldMap(2, mRace->player2);
+  //draw all the players into the world map which
+  //are not the player we analyse right now
+  for (itPlayer = this->mRace->mPlayerVec.begin(); itPlayer != this->mRace->mPlayerVec.end(); ++itPlayer) {
+      if (whichPlayer != (*itPlayer)) {
+        DrawPlayerDynamicWorldMap(playerNr, (*itPlayer));
+      }
 
-  if (whichPlayer != mRace->player3)
-    DrawPlayerDynamicWorldMap(3, mRace->player3);
+      playerNr++;
+  }
 }
 
 void WorldAwareness::CreateStaticWorldMap() {
@@ -396,41 +408,6 @@ void WorldAwareness::CreateStaticWorldMap() {
     //map creation finished
 }
 
-/*
-void WorldAwareness::CreateStaticWorld() {
-   //create a new image for the static
-   //world
-   staticWorld =
-       mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
-                irr::core::dimension2d<irr::u32>(worldSizeX, worldSizeY));
-
-         //p1 = Project3DPointTo2DPlane((*it)->A, *XZPlane);
-         //p2 = Project3DPointTo2DPlane((*it)->B, *XZPlane);
-
-   int maxX = mRace->mLevelTerrain->get_width();
-   int maxY = mRace->mLevelTerrain->get_heigth();
-
-   irr::f32 h1;
-   irr::f32 h2;
-   irr::f32 h3;
-   irr::f32 h4;
-
-   for (int ix = 1; ix < maxX; ix++)
-       for (int iy = 1; iy < maxY; iy++) {
-
-           h1 = mRace->mLevelTerrain->GetMapEntry(ix - 1, iy - 1)->m_Height;
-           h2 = mRace->mLevelTerrain->GetMapEntry(ix , iy - 1)->m_Height;
-           h3 = mRace->mLevelTerrain->GetMapEntry(ix, iy)->m_Height
-
-           if (mRace->mLevelTerrain->GetMapEntry(ix, iy)->m_Height > 2.0f) {
-                DrawRectangle(*staticWorld, *colorRed, ix * PixelScaleFactor, iy * PixelScaleFactor, (ix + 1) * PixelScaleFactor, (iy +1)* PixelScaleFactor);
-           }
-    }
-
-   //only for debugging, save picture on disk
-   DebugSavePicture((char*)"dbgStaticWorld.png", staticWorld);
-}*/
-
 RayHitInfoStruct WorldAwareness::CastRay(IImage &image, irr::core::vector3df startPos, irr::core::vector3df dirVec) {
    RayHitInfoStruct result;
 
@@ -478,26 +455,34 @@ RayHitInfoStruct WorldAwareness::CastRay(IImage &image, irr::core::vector3df sta
        if (currCol != *colorEmptySpace) {
            //we hit something
            if (seenEmptySpace) {
-            hitPos = currRayPos;
-            rayHitObject = true;
+                hitPos = currRayPos;
+                rayHitObject = true;
 
-            //what have we hit?
-            if (currCol == *colorRed) {
-                //we hit the terrain
-                result.HitType = RAY_HIT_TERRAIN;
-            } else if (currCol == *colorPlayer) {
-                //we hit first player
-                result.HitType = RAY_HIT_PLAYER;
-                result.HitPlayerPntr = this->mRace->player;
-            } else if (currCol == *colorPlayer2) {
-                //we hit second player
-                result.HitType = RAY_HIT_PLAYER;
-                result.HitPlayerPntr = this->mRace->player2;
-            } else if (currCol == *colorPlayer3) {
-                //we hit third player
-                result.HitType = RAY_HIT_PLAYER;
-                result.HitPlayerPntr = this->mRace->player3;
-            }
+                //what have we hit?
+                if (currCol == *colorRed) {
+                    //we hit the terrain
+                    result.HitType = RAY_HIT_TERRAIN;
+                } else {
+                   //check if we hit a player
+                   std::vector<irr::video::SColor*>::iterator itColor;
+                   unsigned long idx = 0;
+
+                   for (itColor = mColorPlayerVec.begin(); itColor != mColorPlayerVec.end(); ++itColor) {
+                       if (currCol == *(*itColor)) {
+                            //we hit this player
+                            result.HitType = RAY_HIT_PLAYER;
+                            result.HitPlayerPntr = this->mRace->mPlayerVec.at(idx);
+                       }
+
+                       idx++;
+
+                       //stop if we have already reached the last available
+                       //player
+                       if (idx >= this->mRace->mPlayerVec.size()) {
+                           break;
+                       }
+                   }
+                }
            } else {
                //we did not seen free space yet
                seenEmptySpace = true;
@@ -707,12 +692,10 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
        vIntersection = vRayStart + vRayDir * fDistance;
        result.HitType = RAY_HIT_PLAYER;
        result.HitDistance = fDistance;
-       if (playerVal == 1) {
-           result.HitPlayerPntr = this->mRace->player;
-       } else if (playerVal == 2) {
-           result.HitPlayerPntr = this->mRace->player2;
-       } else if (playerVal == 3) {
-           result.HitPlayerPntr = this->mRace->player3;
+       result.HitPlayerPntr = NULL;
+
+       if ((playerVal > 0) && (playerVal <= (int)(this->mRace->mPlayerVec.size()))) {
+            result.HitPlayerPntr = this->mRace->mPlayerVec.at(playerVal - 1);
        }
    } else if (bTileFound)
      {
@@ -768,7 +751,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     if (WA_ALLOW_DEBUGGING) {
         //for ray debugging
-        if (WriteOneDbgPic && whichPlayer == mRace->player) {
+        if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
             DebugSavePicture((char*)"rayRight.png", debugWorld);
         }
     }
@@ -781,7 +764,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     if (WA_ALLOW_DEBUGGING) {
         //for ray debugging
-        if (WriteOneDbgPic && whichPlayer == mRace->player) {
+        if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
             DebugSavePicture((char*)"rayLeft.png", debugWorld);
         }
     }
@@ -794,7 +777,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
      if (WA_ALLOW_DEBUGGING) {
         //for ray debugging
-          if (WriteOneDbgPic && whichPlayer == mRace->player) {
+          if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
             DebugSavePicture((char*)"rayFront.png", debugWorld);
             }
         }
@@ -807,7 +790,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     if (WA_ALLOW_DEBUGGING) {
         //for ray debugging
-        if (WriteOneDbgPic && whichPlayer == mRace->player) {
+        if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
                DebugSavePicture((char*)"rayBack.png", debugWorld);
         }
     }
@@ -863,7 +846,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
         if (WA_ALLOW_DEBUGGING) {
             //for ray debugging
-            if (WriteOneDbgPic && whichPlayer == mRace->player) {
+            if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
                    char dbgFileName[60];
                    sprintf (dbgFileName, "rayView%0*d.png", 2, currRay);
 
@@ -912,8 +895,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
     whichPlayer->SetTarget(resPlayer);
 
     if (WA_ALLOW_DEBUGGING) {
-        if (WriteOneDbgPic && whichPlayer == mRace->player) {
-          if (whichPlayer == this->mRace->player) {
+        if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
+          if (whichPlayer == mRace->mPlayerVec.at(0)) {
            if (WriteOneDbgPic) {
                WriteOneDbgPic = false;
            }
@@ -1124,7 +1107,8 @@ void WorldAwareness::DrawPlayer(IImage &image, irr::video::SColor &color, Player
     bbox.getEdges(&edges[0]);
 
     //our universe has swapped X axis
-    DrawRectangle(image, color, -edges[1].X * PixelScaleFactor, edges[1].Z * PixelScaleFactor, -edges[7].X * PixelScaleFactor, edges[7].Z * PixelScaleFactor);
+    DrawRectangle(image, color, -edges[1].X * PixelScaleFactor, edges[1].Z * PixelScaleFactor,
+            -edges[7].X * PixelScaleFactor, edges[7].Z * PixelScaleFactor);
 }
 
 void WorldAwareness::DrawPlayerDynamicWorldMap(int playerNr, Player* whichPlayer) {
@@ -1134,7 +1118,8 @@ void WorldAwareness::DrawPlayerDynamicWorldMap(int playerNr, Player* whichPlayer
     bbox.getEdges(&edges[0]);
 
     //our universe has swapped X axis
-    DrawRectangleDynamicWorldMap(playerNr, -edges[1].X * PixelScaleFactor, edges[1].Z * PixelScaleFactor, -edges[7].X * PixelScaleFactor, edges[7].Z * PixelScaleFactor);
+    DrawRectangleDynamicWorldMap(playerNr, -edges[1].X * PixelScaleFactor, edges[1].Z * PixelScaleFactor,
+            -edges[7].X * PixelScaleFactor, edges[7].Z * PixelScaleFactor);
 }
 
 WorldAwareness::WorldAwareness(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, Race* race) {
@@ -1170,14 +1155,18 @@ void WorldAwareness::CreateDynamicWorld(Player* whichPlayer) {
     //first copy static world into dynamic world
     staticWorld->copyTo(dynamicWorld);
 
-    if (whichPlayer != mRace->player)
-        DrawPlayer(*dynamicWorld, *colorPlayer, mRace->player);
+    std::vector<Player*>::iterator itPlayer;
+    int playerNr = 0;
 
-    if (whichPlayer != mRace->player2)
-        DrawPlayer(*dynamicWorld, *colorPlayer2, mRace->player2);
+    //draw all the players into the world map which
+    //are not the player we analyse right now
+    for (itPlayer = this->mRace->mPlayerVec.begin(); itPlayer != this->mRace->mPlayerVec.end(); ++itPlayer) {
+        if (whichPlayer != (*itPlayer)) {
+            DrawPlayer(*dynamicWorld, *mColorPlayerVec.at(playerNr), mRace->mPlayerVec.at(playerNr));
+        }
 
-    if (whichPlayer != mRace->player3)
-        DrawPlayer(*dynamicWorld, *colorPlayer3, mRace->player3);
+        playerNr++;
+    }
 
     //only for debugging, save picture on disk
   //  DebugSavePicture((char*)"dbgDynamicWorld.png", dynamicWorld);
@@ -1191,8 +1180,17 @@ WorldAwareness::~WorldAwareness() {
     delete mDynamicWorldMap;
 
     delete colorRed;
-    delete colorPlayer;
-    delete colorPlayer2;
-    delete colorPlayer3;
     delete colorEmptySpace;
+
+    //also clean up all player colors
+    std::vector<irr::video::SColor*>::iterator itColor;
+    irr::video::SColor* pntrColor;
+
+    for (itColor = this->mColorPlayerVec.begin(); itColor != this->mColorPlayerVec.end(); ) {
+        pntrColor = (*itColor);
+
+        itColor = mColorPlayerVec.erase(itColor);
+
+        delete pntrColor;
+    }
 }

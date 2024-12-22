@@ -115,11 +115,13 @@ public:
     void DrawMiniMap(irr::f32 frameDeltaTime);
     void AdvanceTime(irr::f32 frameDeltaTime);
     void Init();
-    void AddPlayer();
+    void AddPlayer(bool humanPlayer, char* name, std::string player_model);
     void End();
 
     std::vector<RaceStatsEntryStruct*>* RetrieveFinalRaceStatistics();
     void CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr);
+
+    std::vector<irr::core::vector3df> mPlayerStartLocations;
 
     void HandleCraftHeightMapCollisions();
 
@@ -127,13 +129,13 @@ public:
 
     bool exitRace = false;
 
-    Player *player;
+    //Player *player;
 
     //a second player for debugging purposes
-    Player *player2;
+    //Player *player2;
 
     //a third player for debugging purposes
-    Player *player3;
+    //Player *player3;
 
     //handles the height map terrain
     //of the level
@@ -160,7 +162,7 @@ public:
     //to NULL
     void DamagePlayer(Player* targetToHit, irr::f32 damageVal, Player* attacker = NULL);
 
-    Player* currPlayerFollow;
+    Player* currPlayerFollow = NULL;
 
     //my Irrlicht video driver
     irr::video::IVideoDriver *mDriver;
@@ -175,7 +177,7 @@ public:
     //of the level
     LevelBlocks *mLevelBlocks;
 
-    void TestVoxels();
+    //void TestVoxels();
     //int getNrTrianglesCollected();
     //int getNrHitTrianglesRay();
 
@@ -219,6 +221,9 @@ public:
     Game* mGame;
 
     std::vector<Collectable*> *ENTCollectablesVec;
+
+    //vector of players in this race
+    std::vector<Player*> mPlayerVec;
 
 private:
     int levelNr;
@@ -299,8 +304,8 @@ private:
     //Player physics object
     PhysicsObject* playerPhysicsObj;
 
-    //vector of players in this race
-    std::vector<Player*> mPlayerList;
+    //vector for player physic objects
+    std::vector<PhysicsObject*> mPlayerPhysicObjVec;
 
     //Player 2 physics object
     PhysicsObject* player2PhysicsObj;
@@ -324,7 +329,7 @@ private:
     bool playerCamera = true;
 
     //variables to switch different debugging functions on and off
-    bool DebugShowWaypoints = false;
+    bool DebugShowWaypoints = true;
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;
@@ -334,7 +339,7 @@ private:
     bool LoadLevel(int loadLevelNr);
     void createLevelEntities();
     void getPlayerStartPosition(int levelNr, irr::core::vector3d<irr::f32> &startPos, irr::core::vector3d<irr::f32> &startDirection);
-    void createPlayers(int levelNr);
+    //void createPlayers(int levelNr);
     void DrawSky();
     void DrawTestShape();
 
@@ -400,6 +405,8 @@ private:
 
     //my vector of cones
     std::vector<Cone*>* coneVec;
+
+    std::vector<irr::video::SColor*> mMiniMapMarkerColors;
 
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
 

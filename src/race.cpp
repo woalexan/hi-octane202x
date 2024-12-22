@@ -67,7 +67,8 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     coneVec = new std::vector<Cone*>;
     coneVec->clear();
 
-    mPlayerList.clear();
+    mPlayerVec.clear();
+    mPlayerPhysicObjVec.clear();
     playerRaceFinishedVec.clear();
 
     //load the correct music file for this level
@@ -119,21 +120,32 @@ Race::~Race() {
     delete zAxisDirVector;
 
     //unregister existing HUD in all players
-    player->SetMyHUD(NULL);
-    player2->SetMyHUD(NULL);
-    player3->SetMyHUD(NULL);
+    std::vector<Player*>::iterator it;
+
+    for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+        (*it)->SetMyHUD(NULL);
+    }
 
     //now we can free the HUD
     delete Hud1Player;
 
     //delete physics and all
     //linked physics Objects
+    //also the PhysicObjects are deleted here
+    //therefore we MUST NOT delete them here
+    //again! otherwise we corrupt memory
     delete mPhysics;
 
     //free all players
-    delete player;
-    delete player2;
-    delete player3;
+    Player* playerPntr;
+
+    for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end();) {
+        playerPntr = (*it);
+
+        it = mPlayerVec.erase(it);
+
+        delete playerPntr;
+    }
 
     //remove camera SceneNode
     mCamera->remove();
@@ -411,9 +423,11 @@ void Race::StopMusic() {
 
 void Race::StopAllSounds() {
     //make sure all warning sounds are off
-    player->StopPlayingWarningSound();
-    player2->StopPlayingWarningSound();
-    player3->StopPlayingWarningSound();
+    std::vector<Player*>::iterator itPlayer;
+
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        (*itPlayer)->StopPlayingWarningSound();
+    }
 
     //make sure engine sounds are off
     //this function internally also stops
@@ -507,8 +521,6 @@ void Race::DeliverMusicFileName(unsigned int levelNr, char *musicFileName) {
   }
 }
 
-
-
 //Stage 3 of player race ranking sorting: Sort by ascending remaining distance to next checkpoint
 void Race::UpdatePlayerRacePositionRankingHelper3(vector< pair <irr::f32, Player*> > vecRemainingDistanceToNextCheckpoint) {
 
@@ -568,8 +580,103 @@ void Race::UpdatePlayerRacePositionRankingHelper2(vector< pair <irr::s32, Player
     }
 }
 
-void Race::AddPlayer() {
+void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
+    Player* newPlayer;
 
+    //***************************************************
+    // Create and add a new player to the race          *
+    //***************************************************
+
+    //already more players then available starting locations in map
+    //if so simply exit
+    if (mPlayerVec.size() >=  mPlayerStartLocations.size())
+        return;
+
+    //for the start just get hardcoded starting positions for the player
+    irr::core::vector3d<irr::f32> Startpos;
+    irr::core::vector3d<irr::f32> Startdirection;
+
+    //get new player map start location
+    Startpos = mPlayerStartLocations.at(mPlayerVec.size());
+
+    Startdirection.X = Startpos.X;
+    Startdirection.Y = Startpos.Y;
+
+    //the start direction for the player is simply derived by subtracting
+    //from the Z position of the player origin; This is only possible because in HiOctane
+    //all level start locations always go in the same direction; There does not seem to be
+    //any way to change/set the start direction in the level file; There is only a start
+    //point location
+    Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
+
+    //create the new player (controlled by human)
+    newPlayer = new Player(this, player_model, Startpos, Startdirection, this->mSmgr, humanPlayer);
+
+    //Setup physics for new player, we handover pointer to Irrlicht
+    //player node, as the node (3D model) is now fully controlled
+    //by physics
+    this->mPhysics->AddObject(newPlayer->Player_node);
+
+    //retrieve a pointer to the player physics object that the physics code has
+    //created for me, we need this pointer to get access to get player info/control cameras, etc...
+    PhysicsObject* newPlayerPhysicsObj = mPhysics->GetObjectPntr(newPlayer->Player_node);
+
+    //setup player physic properties
+    //give the computer player slightly different values
+    //for optimization
+    if (newPlayerPhysicsObj != NULL) {
+        if (humanPlayer) {
+            newPlayerPhysicsObj->physicState.SetMass(3.0f);
+            newPlayerPhysicsObj->physicState.SetInertia(30.0f);
+        } else {
+           newPlayerPhysicsObj->physicState.SetMass(5.0f);
+           newPlayerPhysicsObj->physicState.SetInertia(60.0f);
+        }
+
+        newPlayerPhysicsObj->physicState.position = Startpos;
+        newPlayerPhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
+        newPlayerPhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+        newPlayerPhysicsObj->physicState.recalculate();
+        newPlayerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
+    }
+
+    //give the player a pointer to its physics object
+    newPlayer->SetPlayerObject(newPlayerPhysicsObj);
+    newPlayer->SetName(name);
+
+    //add new player to the vector of available players
+    //the same is true for the player physics object
+    mPlayerVec.push_back(newPlayer);
+    mPlayerPhysicObjVec.push_back(newPlayerPhysicsObj);
+
+    if (!humanPlayer) {
+            //for a computer player additional add first player command
+            EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
+            if (entItem != NULL) {
+               //get waypoint link for this waypoint
+                std::vector<WayPointLinkInfoStruct*> foundLinks;
+
+               foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
+
+               if (foundLinks.size() > 0) {
+                   newPlayer->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
+
+                   //we also want to preset the waypoint link follow logic offset
+                   //to prevent collision of all the player craft at the tight start situation
+                   //preset by X coordinate difference between player origin and found waypoint link start entity
+                   irr::core::vector3df startWayPoint = foundLinks.at(0)->pStartEntity->get_Center();
+                   startWayPoint.X = -startWayPoint.X;
+
+                   irr::core::vector3df deltaVec = Startpos - startWayPoint;
+                   deltaVec.Y = 0.0f;
+                   deltaVec.Z = 0.0f;
+
+                   irr::f32 setOffset = deltaVec.getLength();
+
+                   newPlayer->mCpCurrPathOffset = setOffset;
+               }
+            }
+    }
 }
 
 //Ranks the active players in order of their race progress
@@ -590,7 +697,7 @@ void Race::UpdatePlayerRacePositionRanking() {
     //and pointer to player
     vector< pair <irr::s32, Player*> > vecLapsFinished;
 
-    for (it = mPlayerList.begin(); it != mPlayerList.end(); ++it) {
+    for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
           vecLapsFinished.push_back( make_pair((*it)->mPlayerStats->currLapNumber, (*it)));
     }
 
@@ -633,7 +740,7 @@ void Race::UpdatePlayerRacePositionRanking() {
    }
 
    int currPos = 1;
-   int numPlayers = mPlayerList.size();
+   int numPlayers = mPlayerVec.size();
 
    //all player rankings are done and stored in this->playerRanking
    //Update player objects with this new ranking information
@@ -693,33 +800,33 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
 }
 
 void Race::removePlayerTest() {
-    HUD* plHUD;
-    //get possible pointer from player than an HUD
-    //if no HUD connection is there we will get NULL
-    plHUD = player2->GetMyHUD();
+//    HUD* plHUD;
+//    //get possible pointer from player than an HUD
+//    //if no HUD connection is there we will get NULL
+//    plHUD = player2->GetMyHUD();
 
-    //player has an HUD attached
-    if (plHUD != NULL) {
-        //tell HUD to stop monitoring player we want to remove
-        plHUD->SetMonitorWhichPlayer(NULL);
+//    //player has an HUD attached
+//    if (plHUD != NULL) {
+//        //tell HUD to stop monitoring player we want to remove
+//        plHUD->SetMonitorWhichPlayer(NULL);
 
-        //remove HUD pnter also from player object
-        //we want to remove
-        player2->SetMyHUD(NULL);
-    }
+//        //remove HUD pnter also from player object
+//        //we want to remove
+//        player2->SetMyHUD(NULL);
+//    }
 
-    //remove Player2 from physics
-    mPhysics->RemoveObject(player2->Player_node);
+//    //remove Player2 from physics
+//    mPhysics->RemoveObject(player2->Player_node);
 
-    //reset pointer in player to physics-object
-    player2->SetPlayerObject(NULL);
+//    //reset pointer in player to physics-object
+//    player2->SetPlayerObject(NULL);
 
-    //remove Scenenode from Irrlicht SceneManager
-    player2->Player_node->remove();
+//    //remove Scenenode from Irrlicht SceneManager
+//    player2->Player_node->remove();
 
-    delete player2;
+//    delete player2;
 
-    player2Removed = true;
+//    player2Removed = true;
 }
 
 void Race::CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr) {
@@ -1182,16 +1289,14 @@ void Race::InitMiniMap(irr::u32 levelNr) {
     miniMapPixelPerCellH = (irr::f32)(miniMapSize.Height) / ((irr::f32)(miniMapEndH) - (irr::f32)(miniMapStartH));
 }
 
-/*int Race::getNrTrianglesCollected() {
-    return mPhysics->mRayTargetTrianglesSize;
-}
-
-int Race::getNrHitTrianglesRay() {
-    return  TestRayTrianglesSelector.size();
-}*/
-
 void Race::HandleCraftHeightMapCollisions() {
-    player->ExecuteHeightMapCollisionDetection();
+    std::vector<Player*>::iterator itPlayer;
+
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        (*itPlayer)->ExecuteHeightMapCollisionDetection();
+    }
+
+    //player->ExecuteHeightMapCollisionDetection();
 }
 
 void Race::Init() {
@@ -1209,6 +1314,18 @@ void Race::Init() {
         ready = false;
     } else {
         //level was loaded ok, we can continue setup
+
+        //predefine mini map marker colors
+        //for max 8 players
+        mMiniMapMarkerColors.clear();
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 254, 254, 250)); //player 1 marker color (human player)
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  70, 121,  99)); //player 2 marker color
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 114,  53,  60)); //player 3 marker color
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 235, 112,  46)); //player 4 marker color
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 251, 220,  56)); //player 5 marker color
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 182,  32, 130)); //player 6 marker color
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  57,  77, 145)); //player 7 marker color
+        mMiniMapMarkerColors.push_back(new irr::video::SColor(255,   4,   6,   8)); //player 8 marker color
 
         if (useAutoGenMinimap) {
             //try to auto generate a own minimap
@@ -1237,15 +1354,19 @@ void Race::Init() {
         mPath = new Path(this, mDrawDebug);
 
         //create my players and setup their physics
-        createPlayers(levelNr);
+        //Wolf 22.12.2024: commented out, since add player we have no player object
+        //here anymore
+        //createPlayers(levelNr);
+
+        //get player start locations from the level file
+        mPlayerStartLocations =
+                this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
 
         //HUD should show main player stats
-        Hud1Player->SetMonitorWhichPlayer(player);
+        //Wolf 22.12.2024: commented out, since add player we have no player object
+        //here anymore
+        // Hud1Player->SetMonitorWhichPlayer(player);
         Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
-
-        //the next line is only for computerPlayer movement debugging
-        //remove this line later again!
-        //player2->SetMyHUD(Hud1Player);
 
         //give physics the triangle selectors for overall collision detection
         this->mPhysics->AddCollisionMesh(triangleSelectorWallCollision);
@@ -1261,8 +1382,10 @@ void Race::Init() {
         mPhysics->collisionResolutionActive = true;
 
         //set initial camera location
-        mCamera->setPosition(playerPhysicsObj->physicState.position + irr::core::vector3df(2.0f, 2.0f, 00.0f));
-        mCamera->setTarget(playerPhysicsObj->physicState.position);
+        //Wolf 22.12.2024: commented out, since add player we have no player object
+        //here anymore
+        //mCamera->setPosition(playerPhysicsObj->physicState.position + irr::core::vector3df(2.0f, 2.0f, 00.0f));
+        //mCamera->setTarget(playerPhysicsObj->physicState.position);
 
         this->mSmgr->setActiveCamera(mCamera);
 
@@ -1295,41 +1418,41 @@ void Race::SetupTopRaceTrackPointerOrigin() {
     this->topRaceTrackerPointerOrigin = bbox.getCenter() + irr::core::vector3df(0.0f, addYcoord, 0.0f);
 }
 
-void Race::TestVoxels() {
-    irr::core::vector3df testStart(-20.0f, 16.0f, 60.0f);
-    irr::core::vector3df testEnd;
-    std::vector<irr::core::vector3di> voxels;
+//void Race::TestVoxels() {
+//    irr::core::vector3df testStart(-20.0f, 16.0f, 60.0f);
+//    irr::core::vector3df testEnd;
+//    std::vector<irr::core::vector3di> voxels;
 
-    testEnd = player->phobj->physicState.position;
+//    testEnd = player->phobj->physicState.position;
 
-    voxels = mPhysics->voxel_traversal(testStart, testEnd);
+//    voxels = mPhysics->voxel_traversal(testStart, testEnd);
 
-    irr::video::SColor col2(255, 0, 255, 0);
+//    irr::video::SColor col2(255, 0, 255, 0);
 
-    mDriver->setMaterial(*mDrawDebug->green);
-    mDriver->draw3DLine(testStart, testEnd, col2);
+//    mDriver->setMaterial(*mDrawDebug->green);
+//    mDriver->draw3DLine(testStart, testEnd, col2);
 
-    std::vector<irr::core::vector3di>::iterator it;
-    irr::core::vector3df boxVertex1;
-    irr::core::vector3df boxVertex2;
+//    std::vector<irr::core::vector3di>::iterator it;
+//    irr::core::vector3df boxVertex1;
+//    irr::core::vector3df boxVertex2;
 
-    irr::video::SColor col(255, 0, 0, 255);
+//    irr::video::SColor col(255, 0, 0, 255);
 
-    for (it = voxels.begin(); it != voxels.end(); ++it) {
-       boxVertex1.X = (*it).X * DEF_SEGMENTSIZE;
-       boxVertex1.Y = (*it).Y * DEF_SEGMENTSIZE;
-       boxVertex1.Z = (*it).Z * DEF_SEGMENTSIZE;
+//    for (it = voxels.begin(); it != voxels.end(); ++it) {
+//       boxVertex1.X = (*it).X * DEF_SEGMENTSIZE;
+//       boxVertex1.Y = (*it).Y * DEF_SEGMENTSIZE;
+//       boxVertex1.Z = (*it).Z * DEF_SEGMENTSIZE;
 
-       boxVertex2.X = ((*it).X + 1) * DEF_SEGMENTSIZE;
-       boxVertex2.Y = ((*it).Y + 1) * DEF_SEGMENTSIZE;
-       boxVertex2.Z = ((*it).Z + 1) * DEF_SEGMENTSIZE;
+//       boxVertex2.X = ((*it).X + 1) * DEF_SEGMENTSIZE;
+//       boxVertex2.Y = ((*it).Y + 1) * DEF_SEGMENTSIZE;
+//       boxVertex2.Z = ((*it).Z + 1) * DEF_SEGMENTSIZE;
 
-       irr::core::aabbox3df box(boxVertex1.X, boxVertex1.Y, boxVertex1.Z, boxVertex2.X, boxVertex2.Y, boxVertex2.Z);
+//       irr::core::aabbox3df box(boxVertex1.X, boxVertex1.Y, boxVertex1.Z, boxVertex2.X, boxVertex2.Y, boxVertex2.Z);
 
-       mDriver->setMaterial(*mDrawDebug->blue);
-       mDriver->draw3DBox(box, col);
-    }
-}
+//       mDriver->setMaterial(*mDrawDebug->blue);
+//       mDriver->draw3DBox(box, col);
+//    }
+//}
 
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     float progressMorph;
@@ -1360,10 +1483,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->Profile(mTimeProfiler->tIntMorphing);
 
-    //update players
-    player->Update(frameDeltaTime);
-    player2->Update(frameDeltaTime);
-    player3->Update(frameDeltaTime);
+    //update all players
+    std::vector<Player*>::iterator itPlayer;
+
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+          (*itPlayer)->Update(frameDeltaTime);
+    }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntUpdatePlayers);
 
@@ -1400,7 +1525,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
        mCamera->setTarget(worldCoordPlayerCamTarget);
      }
 
-    player->AfterPhysicsUpdate();
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+          (*itPlayer)->AfterPhysicsUpdate();
+    }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntAfterPhysicsUpdate);
 
@@ -1413,33 +1540,21 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
                                   player->phobj->physicState.position, player->phobj->physicState.position + player->craftForwardDirVec * irr::core::vector3df(50.0f, 50.0f, 50.0f),
                                                                   true);*/
 
-    player->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(player);
-    player->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player->currCloseWayPointLinks);
-    player->SetCurrClosestWayPointLink(player->currClosestWayPointLink);
+     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        (*itPlayer)->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks((*itPlayer));
+        (*itPlayer)->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink((*itPlayer)->currCloseWayPointLinks);
+        (*itPlayer)->SetCurrClosestWayPointLink((*itPlayer)->currClosestWayPointLink);
+     }
 
-    player2->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(player2);
-    player2->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player2->currCloseWayPointLinks);
-    player2->SetCurrClosestWayPointLink(player2->currClosestWayPointLink);
+     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        UpdatePlayerDistanceToNextCheckpoint(*itPlayer);
+     }
 
-    player3->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(player3);
-    player3->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink(player3->currCloseWayPointLinks);
-    player3->SetCurrClosestWayPointLink(player3->currClosestWayPointLink);
-
-    UpdatePlayerDistanceToNextCheckpoint(player);
-    UpdatePlayerDistanceToNextCheckpoint(player2);
-    UpdatePlayerDistanceToNextCheckpoint(player3);
-
-    irr::core::aabbox3d<f32> playerBox = this->player->Player_node->getTransformedBoundingBox();
-    CheckPlayerCrossedCheckPoint(player, playerBox);
-    CheckPlayerCollidedCollectible(player, playerBox);
-
-    irr::core::aabbox3d<f32> playerBox2 = this->player2->Player_node->getTransformedBoundingBox();
-    CheckPlayerCrossedCheckPoint(player2, playerBox2);
-    CheckPlayerCollidedCollectible(player2, playerBox2);
-
-    irr::core::aabbox3d<f32> playerBox3 = this->player3->Player_node->getTransformedBoundingBox();
-    CheckPlayerCrossedCheckPoint(player3, playerBox3);
-    CheckPlayerCollidedCollectible(player3, playerBox3);
+     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        irr::core::aabbox3d<f32> playerBox = (*itPlayer)->Player_node->getTransformedBoundingBox();
+        CheckPlayerCrossedCheckPoint((*itPlayer), playerBox);
+        CheckPlayerCollidedCollectible((*itPlayer), playerBox);
+    }
 
     //update player race position ranking
     UpdatePlayerRacePositionRanking();
@@ -1457,9 +1572,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->Profile(mTimeProfiler->tIntUpdateParticleSystems);
 
-    mWorldAware->Analyse(player);
-    mWorldAware->Analyse(player2);
-    mWorldAware->Analyse(player3);
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        mWorldAware->Analyse(*itPlayer);
+    }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntWorldAware);
 }
@@ -1509,8 +1624,13 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
 }
 
 void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
-     player2->RunComputerPlayerLogic(frameDeltaTime);
-     player3->RunComputerPlayerLogic(frameDeltaTime);
+    std::vector<Player*>::iterator itPlayer;
+
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        if (!(*itPlayer)->mHumanPlayer) {
+           (*itPlayer)->RunComputerPlayerLogic(frameDeltaTime);
+        }
+    }
 }
 
 void Race::HandleBasicInput() {
@@ -1529,20 +1649,26 @@ void Race::HandleBasicInput() {
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
     {
-         this->currPlayerFollow = player;
-         Hud1Player->SetMonitorWhichPlayer(player);
+        if (mPlayerVec.size() > 0) {
+            this->currPlayerFollow = mPlayerVec.at(0);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(0));
+        }
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
     {
-         this->currPlayerFollow = player2;
-         Hud1Player->SetMonitorWhichPlayer(player2);
+        if (mPlayerVec.size() > 1) {
+            this->currPlayerFollow = mPlayerVec.at(1);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(1));
+        }
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
-         this->currPlayerFollow = player3;
-         Hud1Player->SetMonitorWhichPlayer(player3);
+        if (mPlayerVec.size() > 2) {
+            this->currPlayerFollow = mPlayerVec.at(2);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(2));
+        }
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
@@ -1580,79 +1706,65 @@ void Race::HandleBasicInput() {
 }
 
 void Race::HandleInput() {
-    bool playerNoTurningKeyPressed = true;
 
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
-    {
-        // testPerm();
-        //player->mHUD->AddGlasBreak();
-        //this->CallRecoveryVehicleForHelp(this->player);
-        //this->player2->AddCommand(CMD_FLYTO_TARGETENTITY, ENTCollectablesVec->at(0)->mEntityItem);
-        //this->TestFindPath();
-    }
+     if (mPlayerVec.at(0)->mHumanPlayer) {
+            bool playerNoTurningKeyPressed = true;
 
-    if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_W)) {
-         player->Forward();
-    }
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_W)) {
+                mPlayerVec.at(0)->Forward();
+             }
 
-    if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_S))
-    {
-          player->Backward();
-    }
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_S))
+             {
+                mPlayerVec.at(0)->Backward();
+             }
+
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_SPACE))
+             {
+                mPlayerVec.at(0)->IsSpaceDown(true);
+             } else {
+                mPlayerVec.at(0)->IsSpaceDown(false);
+             }
+
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_A)) {
+                  mPlayerVec.at(0)->Left();
+                  mPlayerVec.at(0)->firstNoKeyPressed = true;
+                  playerNoTurningKeyPressed = false;
+             }
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_D)) {
+                  mPlayerVec.at(0)->Right();
+                  mPlayerVec.at(0)->firstNoKeyPressed = true;
+                  playerNoTurningKeyPressed = false;
+             }
+
+             //if player has not pressed any turning key run this code
+             //as well
+             if (playerNoTurningKeyPressed) {
+                 mPlayerVec.at(0)->NoTurningKeyPressed();
+             }
+
+             if (this->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
+                 mPlayerVec.at(0)->mMGun->Trigger();
+             }
+
+             if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
+                 mPlayerVec.at(0)->mMissileLauncher->Trigger();
+             }
+     }
 
     if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_M))
     {
          runMorph =true;
     }
 
-    if(this->mEventReceiver->IsKeyDown(irr::KEY_SPACE))
-    {
-         player->IsSpaceDown(true);
-    } else {
-        player->IsSpaceDown(false);
-    }
-
-    if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_A)) {
-         player->Left();
-           player->firstNoKeyPressed = true;
-         playerNoTurningKeyPressed = false;
-    }
-    if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_D)) {
-         player->Right();
-         player->firstNoKeyPressed = true;
-         playerNoTurningKeyPressed = false;
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
-        player->mPlayerStats->shieldVal -= 10.0f;
-    }
-
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
         this->mWorldAware->WriteOneDbgPic = true;
-    }
-
-   /* if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
-        this->removePlayerTest();
-    }*/
-
-    //if player has not pressed any turning key run this code
-    //as well
-    if (playerNoTurningKeyPressed) {
-        player->NoTurningKeyPressed();
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
         //toggle collision resolution active state
         mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
-    }
-
-    if (this->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
-        player->mMGun->Trigger();
-    }
-
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
-        player->mMissileLauncher->Trigger();
-    }
+    } 
 }
 
 //the routine below is from:
@@ -1819,15 +1931,13 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
 }
 
 void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
-    //Draw race base of minimap
-   /* mDriver->draw2DImage(baseMiniMap, miniMapDrawLocation,
-          irr::core::rect<irr::s32>(0,0, miniMapSize.Width, miniMapSize.Height), 0,
-          irr::video::SColor(255,255,255,255), true);*/
 
     mDriver->draw2DImage(baseMiniMap, miniMapDrawLocation,
              miniMapImageUsedArea, 0,
              irr::video::SColor(255,255,255,255), true);
 
+    //we want to blink the human player location
+    //marker
     miniMapAbsTime += frameDeltaTime * 1000.0f;
     if (miniMapAbsTime > 500.0f) {
         miniMapAbsTime = 0.0f;
@@ -1835,73 +1945,40 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
     }
 
     /**********************************
-     * MiniMap for Player 1           *
+     * Draw MiniMap for all players   *
      * ******************************** */
 
-    //draw player position
-    irr::video::SColor player1LocationBlock(255, 254, 254, 250);  //the main location block inside color, is always visible
-    irr::video::SColor player1LocationFrameColor(255, 194, 189, 206);  //this color is drawn around the main white block to create a blinking effect
+    std::vector<Player*>::iterator itPlayer;
+    int playerIdx = 0;
+    irr::core::dimension2di playerLocation;
 
-    irr::core::dimension2di player1Location = CalcPlayerMiniMapPosition(player);
+    for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
+        //draw player position
+        playerLocation = CalcPlayerMiniMapPosition(*itPlayer);
 
-    //for blinking effect draw bigger frame block for player 1
-    //only draw it for blinking effect
-    if (miniMapBlinkActive) {
-        mDriver->draw2DRectangle(player1LocationFrameColor,
-                             core::rect<s32>(player1Location.Width - 5, player1Location.Height -5,
-                                             player1Location.Width + 5, player1Location.Height + 5));
+        //player 0 is the human player if one is in the race
+        if (playerIdx == 0) {
+            if (mPlayerVec.at(0)->mHumanPlayer) {
+                //player 0 is human player, draw blinking cursor
+                irr::video::SColor player1LocationFrameColor(255, 194, 189, 206);  //this color is drawn around the main white block to create a blinking effect
+
+                //for blinking effect draw bigger frame block for player 1
+                //only draw it for blinking effect
+                if (miniMapBlinkActive) {
+                    mDriver->draw2DRectangle(player1LocationFrameColor,
+                                         core::rect<s32>(playerLocation.Width - 5, playerLocation.Height -5,
+                                                         playerLocation.Width + 5, playerLocation.Height + 5));
+                }
+            }
+        }
+
+        //draw the default marker for all available players
+        mDriver->draw2DRectangle(*mMiniMapMarkerColors.at(playerIdx),
+                                 core::rect<s32>(playerLocation.Width - 3, playerLocation.Height - 3,
+                                                 playerLocation.Width + 3, playerLocation.Height + 3));
+
+        playerIdx++;
     }
-
-    //draw main position marker block for player 1
-    mDriver->draw2DRectangle(player1LocationBlock,
-                             core::rect<s32>(player1Location.Width - 3, player1Location.Height - 3,
-                                             player1Location.Width + 3, player1Location.Height + 3));
-
-    /**********************************
-     * MiniMap for Player 2           *
-     * ******************************** */
-
-    //draw player position
-    irr::video::SColor player2LocationBlock(255, 254, 254, 250);  //the main location block inside color, is always visible
-    irr::video::SColor player2LocationFrameColor(255, 194, 189, 206);  //this color is drawn around the main white block to create a blinking effect
-
-    irr::core::dimension2di player2Location = CalcPlayerMiniMapPosition(player2);
-
-    //for blinking effect draw bigger frame block for player 2
-    //only draw it for blinking effect
-    if (miniMapBlinkActive) {
-        mDriver->draw2DRectangle(player2LocationFrameColor,
-                             core::rect<s32>(player2Location.Width - 5, player2Location.Height -5,
-                                             player2Location.Width + 5, player2Location.Height + 5));
-    }
-
-    //draw main position marker block for player 2
-    mDriver->draw2DRectangle(player2LocationBlock,
-                             core::rect<s32>(player2Location.Width - 3, player2Location.Height - 3,
-                                             player2Location.Width + 3, player2Location.Height + 3));
-
-    /**********************************
-     * MiniMap for Player 3           *
-     * ******************************** */
-
-    //draw player position
-    irr::video::SColor player3LocationBlock(255, 254, 254, 250);  //the main location block inside color, is always visible
-    irr::video::SColor player3LocationFrameColor(255, 194, 189, 206);  //this color is drawn around the main white block to create a blinking effect
-
-    irr::core::dimension2di player3Location = CalcPlayerMiniMapPosition(player3);
-
-    //for blinking effect draw bigger frame block for player 3
-    //only draw it for blinking effect
-    if (miniMapBlinkActive) {
-        mDriver->draw2DRectangle(player3LocationFrameColor,
-                             core::rect<s32>(player3Location.Width - 5, player3Location.Height -5,
-                                             player3Location.Width + 5, player3Location.Height + 5));
-    }
-
-    //draw main position marker block for player 3
-    mDriver->draw2DRectangle(player3LocationBlock,
-                             core::rect<s32>(player3Location.Width - 3, player3Location.Height - 3,
-                                             player3Location.Width + 3, player3Location.Height + 3));
 }
 
 void Race::Render() {
@@ -1972,14 +2049,6 @@ void Race::Render() {
           mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
       }
     }
-
-      if (DEBUG_PLAYER_HEIGHT_CONTROL == true) {
-        //for debugging of player height calculation
-        mDriver->setMaterial(*mDrawDebug->blue);
-        for(Linedraw_iterator = player->debug_player_heightcalc_lines.begin(); Linedraw_iterator !=  player->debug_player_heightcalc_lines.end(); ++Linedraw_iterator) {
-            mDriver->draw3DLine((*Linedraw_iterator)->A, (*Linedraw_iterator)->B);
-        }
-      }
 
       //mPhysics->DrawSelectedCollisionMeshTriangles(player->phobj->GetCollisionArea());
       //mPhysics->DrawSelectedRayTargetMeshTriangles(TestRayTrianglesSelector);
@@ -2208,216 +2277,207 @@ void Race::CleanMiniMap() {
         mDriver->removeTexture(baseMiniMap);
         baseMiniMap = NULL;
     }
-}
 
-//according to HioctaneTools the level start positions are most
-//likely not contained within a map file, but could be instead
-//hardcoded in the game code itself
-void Race::getPlayerStartPosition(int levelNr, irr::core::vector3d<irr::f32> &startPos, irr::core::vector3d<irr::f32> &startDirection) {
-    switch (levelNr) {
-        case 1: {startPos.set(-12.0f, 16.5f, 118.0f);  startDirection.set(-12.0f, 16.5f, 116.0f);break;}
-        case 2: {startPos.set(-79.0f, 7.0f, 114.0f);  startDirection.set(-79.0f, 7.0f, 111.0f);break;}
-        case 3: {startPos.set(-69.0f, 12.0f, 114.0f);  startDirection.set(-69.0f, 12.0f, 112.0f);break;}
-        case 4: {startPos.set(-14.0f, 8.5f, 96.0f);  startDirection.set(-14.0f, 8.5f, 94.0f);break;}
-        case 5: {startPos.set(-22.0f, 6.0f, 94.0f);  startDirection.set(-22.0f, 6.0f, 92.0f);break;}
-        case 6: {startPos.set(-56.0f, 9.0f, 20.0f);  startDirection.set(-56.0f, 9.0f, 17.0f);break;}
-        case 7: {startPos.set(-68.5f, 9.0f, 152.5f);  startDirection.set(-68.5f, 9.0f, 150.5f);break;}
-        case 8: {startPos.set(-74.5f, 8.5f, 100.5f);  startDirection.set(-74.5f, 8.5f, 98.0f);break;}
-        case 9: {startPos.set(-19.5f, 7.0f, 41.5f);  startDirection.set(-19.5f, 7.0f, 39.5f);break;}
+    //also clean up all minimap marker colors
+    std::vector<irr::video::SColor*>::iterator itColor;
+    irr::video::SColor* pntrColor;
+
+    for (itColor = this->mMiniMapMarkerColors.begin(); itColor != this->mMiniMapMarkerColors.end(); ) {
+        pntrColor = (*itColor);
+
+        itColor = mMiniMapMarkerColors.erase(itColor);
+
+        delete pntrColor;
     }
 }
 
-void Race::createPlayers(int levelNr) {
+//void Race::createPlayers(int levelNr) {
 
-    //***************************************************
-    // Player 1 (main human player)                     *
-    //***************************************************
+//    //***************************************************
+//    // Player 1 (main human player)                     *
+//    //***************************************************
 
-    //std::string player_model("/TANK0-0.obj");
-    std::string player_model("extract/models/car0-0.obj");
+//    //std::string player_model("/TANK0-0.obj");
+//    std::string player_model("extract/models/car0-0.obj");
 
-    //for the start just get hardcoded starting positions for the player
-    irr::core::vector3d<irr::f32> Startpos;
-    irr::core::vector3d<irr::f32> Startdirection;
+//    //for the start just get hardcoded starting positions for the player
+//    irr::core::vector3d<irr::f32> Startpos;
+//    irr::core::vector3d<irr::f32> Startdirection;
 
-    //get player start locations from the level file
-    std::vector<irr::core::vector3df> playerStartLocations =
-            this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
+//    //get player start locations from the level file
+//    std::vector<irr::core::vector3df> playerStartLocations =
+//            this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
 
-    //getPlayerStartPosition(levelNr, Startpos, Startdirection);
-    //Startpos = playerStartLocations.at(0);
-    Startpos = playerStartLocations.at(4);
-    Startdirection.X = Startpos.X;
-    Startdirection.Y = Startpos.Y;
-  //Startdirection.Z = Startpos.Z - 2.0f;  original line 04.09.2024, worked best until now
+//    Startpos = playerStartLocations.at(4);
+//    Startdirection.X = Startpos.X;
+//    Startdirection.Y = Startpos.Y;
+//  //Startdirection.Z = Startpos.Z - 2.0f;  original line 04.09.2024, worked best until now
 
-    Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
+//    Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
 
-    //create the main player (controlled by human)
-    player = new Player(this, player_model, Startpos, Startdirection, this->mSmgr, true);
+//    //create the main player (controlled by human)
+//    player = new Player(this, player_model, Startpos, Startdirection, this->mSmgr, true);
 
-    //Setup physics for player1, we handover pointer to Irrlicht
-    //player node, as the node (3D model) is now fully controlled
-    //by physics
-    this->mPhysics->AddObject(player->Player_node);
+//    //Setup physics for player1, we handover pointer to Irrlicht
+//    //player node, as the node (3D model) is now fully controlled
+//    //by physics
+//    this->mPhysics->AddObject(player->Player_node);
 
-    //retrieve a pointer to the player physics object that the physics code has
-    //created for me, we need this pointer to get access to get player info/control cameras, etc...
-    playerPhysicsObj = mPhysics->GetObjectPntr(player->Player_node);
+//    //retrieve a pointer to the player physics object that the physics code has
+//    //created for me, we need this pointer to get access to get player info/control cameras, etc...
+//    playerPhysicsObj = mPhysics->GetObjectPntr(player->Player_node);
 
-    //setup player physic properties
-    if (playerPhysicsObj != NULL) {
-        playerPhysicsObj->physicState.SetMass(3.0f);   //3.0f
-        playerPhysicsObj->physicState.SetInertia(30.0f);  //30.0f
-        playerPhysicsObj->physicState.position = Startpos;
-        playerPhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
+//    //setup player physic properties
+//    if (playerPhysicsObj != NULL) {
+//        playerPhysicsObj->physicState.SetMass(3.0f);   //3.0f
+//        playerPhysicsObj->physicState.SetInertia(30.0f);  //30.0f
+//        playerPhysicsObj->physicState.position = Startpos;
+//        playerPhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
 
-        playerPhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+//        playerPhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
 
-        playerPhysicsObj->physicState.recalculate();
+//        playerPhysicsObj->physicState.recalculate();
 
-        playerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
+//        playerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
 
-        //playerPhysicsObj->AddWorldCoordForce(obj->physicState.position + irr::core::vector3df(1.0f, 00.0f, 0.0f), obj->physicState.position + irr::core::vector3df(1.0f, 2.0f, 0.0f));
-        //playerPhysicsObj->AddLocalCoordForce(irr::core::vector3df(2.0f, 00.0f, 0.0f), irr::core::vector3df(1.0f, 2.0f, 0.0f));
-    }
+//        //playerPhysicsObj->AddWorldCoordForce(obj->physicState.position + irr::core::vector3df(1.0f, 00.0f, 0.0f), obj->physicState.position + irr::core::vector3df(1.0f, 2.0f, 0.0f));
+//        //playerPhysicsObj->AddLocalCoordForce(irr::core::vector3df(2.0f, 00.0f, 0.0f), irr::core::vector3df(1.0f, 2.0f, 0.0f));
+//    }
 
-    //give the player a pointer to its physics object
-    player->SetPlayerObject(playerPhysicsObj);
-    player->SetName((char*)"PLAYER");
+//    //give the player a pointer to its physics object
+//    player->SetPlayerObject(playerPhysicsObj);
+//    player->SetName((char*)"PLAYER");
 
-    mPlayerList.push_back(player);
+//    mPlayerVec.push_back(player);
 
-    //***************************************************
-    // Player 2 (for debugging right now)               *
-    //***************************************************
+//    //***************************************************
+//    // Player 2 (for debugging right now)               *
+//    //***************************************************
 
-    //create a second player as well
-    //std::string player_model("extract/models/jet0-0.obj");
-    std::string player_model2("extract/models/bike0-0.obj");
-    //std::string player_model("extract/models/car0-0.obj");
-    //std::string player_model("extract/models/jugga0-0.obj");
-    //std::string player_model("extract/models/marsh0-0.obj");
-    //std::string player_model("extract/models/skim0-0.obj");
+//    //create a second player as well
+//    //std::string player_model("extract/models/jet0-0.obj");
+//    std::string player_model2("extract/models/bike0-0.obj");
+//    //std::string player_model("extract/models/car0-0.obj");
+//    //std::string player_model("extract/models/jugga0-0.obj");
+//    //std::string player_model("extract/models/marsh0-0.obj");
+//    //std::string player_model("extract/models/skim0-0.obj");
 
-    irr::core::vector3d<irr::f32> Startpos2;
-    irr::core::vector3d<irr::f32> Startdirection2;
+//    irr::core::vector3d<irr::f32> Startpos2;
+//    irr::core::vector3d<irr::f32> Startdirection2;
 
-    //getPlayerStartPosition(levelNr, Startpos2, Startdirection2);
-    Startpos2 = playerStartLocations.at(1);
-    Startdirection2.X = Startpos2.X;
-    Startdirection2.Y = Startpos2.Y;
-    Startdirection2.Z = Startpos2.Z - 2.0f;
+//    Startpos2 = playerStartLocations.at(1);
+//    Startdirection2.X = Startpos2.X;
+//    Startdirection2.Y = Startpos2.Y;
+//    Startdirection2.Z = Startpos2.Z - 2.0f;
 
-    //Startpos2.Z -= 10.0f;
+//    //Startpos2.Z -= 10.0f;
 
-    player2 = new Player(this, player_model2, Startpos2, Startdirection2, this->mSmgr, false);
+//    player2 = new Player(this, player_model2, Startpos2, Startdirection2, this->mSmgr, false);
 
-    this->mPhysics->AddObject(player2->Player_node);
-    player2->mCpCurrPathOffset = -1.0f;
+//    this->mPhysics->AddObject(player2->Player_node);
+//    player2->mCpCurrPathOffset = -1.0f;
 
-    //setup player 2 physics properties
-    player2PhysicsObj = this->mPhysics->GetObjectPntr(player2->Player_node);
-    if (player2PhysicsObj != NULL) {
-        player2PhysicsObj->physicState.SetMass(5.0f);   //3.0f
-        player2PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
-        player2PhysicsObj->physicState.position = Startpos2;
-        player2PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
+//    //setup player 2 physics properties
+//    player2PhysicsObj = this->mPhysics->GetObjectPntr(player2->Player_node);
+//    if (player2PhysicsObj != NULL) {
+//        player2PhysicsObj->physicState.SetMass(5.0f);   //3.0f
+//        player2PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
+//        player2PhysicsObj->physicState.position = Startpos2;
+//        player2PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
 
-        player2PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
-        player2PhysicsObj->physicState.recalculate();
+//        player2PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+//        player2PhysicsObj->physicState.recalculate();
 
-       playerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
-    }
+//       playerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
+//    }
 
-    //inform player control object about its physics object pointer
-    player2->SetPlayerObject(player2PhysicsObj);
-    player2->SetName((char*)"KI");
+//    //inform player control object about its physics object pointer
+//    player2->SetPlayerObject(player2PhysicsObj);
+//    player2->SetName((char*)"KI");
 
-    mPlayerList.push_back(player2);
+//    mPlayerVec.push_back(player2);
 
-    //***************************************************
-    // Player 3 (for debugging right now)               *
-    //***************************************************
+//    //***************************************************
+//    // Player 3 (for debugging right now)               *
+//    //***************************************************
 
-    //create a thrid player as well
-    //std::string player_model("extract/models/jet0-0.obj");
-    std::string player_model3("extract/models/jugga0-3.obj");
-    //std::string player_model("extract/models/car0-0.obj");
-    //std::string player_model("extract/models/jugga0-0.obj");
-    //std::string player_model("extract/models/marsh0-0.obj");
-    //std::string player_model("extract/models/skim0-0.obj");
+//    //create a thrid player as well
+//    //std::string player_model("extract/models/jet0-0.obj");
+//    std::string player_model3("extract/models/jugga0-3.obj");
+//    //std::string player_model("extract/models/car0-0.obj");
+//    //std::string player_model("extract/models/jugga0-0.obj");
+//    //std::string player_model("extract/models/marsh0-0.obj");
+//    //std::string player_model("extract/models/skim0-0.obj");
 
-    irr::core::vector3d<irr::f32> Startpos3;
-    irr::core::vector3d<irr::f32> Startdirection3;
+//    irr::core::vector3d<irr::f32> Startpos3;
+//    irr::core::vector3d<irr::f32> Startdirection3;
 
-    getPlayerStartPosition(levelNr, Startpos3, Startdirection3);
-    Startpos3 = playerStartLocations.at(5);
-    Startdirection3.X = Startpos3.X;
-    Startdirection3.Y = Startpos3.Y;
-    Startdirection3.Z = Startpos3.Z - 2.0f;
+//    Startpos3 = playerStartLocations.at(5);
+//    Startdirection3.X = Startpos3.X;
+//    Startdirection3.Y = Startpos3.Y;
+//    Startdirection3.Z = Startpos3.Z - 2.0f;
 
-    /*Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
-    Startdirection3.X = Startpos3.X;
-    Startdirection3.Y = Startpos3.Y;
-    Startdirection3.Z = Startpos3.Z - 2.0f;*/
+//    /*Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
+//    Startdirection3.X = Startpos3.X;
+//    Startdirection3.Y = Startpos3.Y;
+//    Startdirection3.Z = Startpos3.Z - 2.0f;*/
 
-    //Startpos2.Z -= 10.0f;
+//    //Startpos2.Z -= 10.0f;
 
-    player3 = new Player(this, player_model3, Startpos3, Startdirection3, this->mSmgr, false);
+//    player3 = new Player(this, player_model3, Startpos3, Startdirection3, this->mSmgr, false);
 
-    this->mPhysics->AddObject(player3->Player_node);
-    player3->mCpCurrPathOffset = 3.0f;
+//    this->mPhysics->AddObject(player3->Player_node);
+//    player3->mCpCurrPathOffset = 3.0f;
 
-    //setup player 3 physics properties
-    player3PhysicsObj = this->mPhysics->GetObjectPntr(player3->Player_node);
-    if (player3PhysicsObj != NULL) {
-        player3PhysicsObj->physicState.SetMass(5.0f);   //3.0f
-        player3PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
-        player3PhysicsObj->physicState.position = Startpos3;
-        player3PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
+//    //setup player 3 physics properties
+//    player3PhysicsObj = this->mPhysics->GetObjectPntr(player3->Player_node);
+//    if (player3PhysicsObj != NULL) {
+//        player3PhysicsObj->physicState.SetMass(5.0f);   //3.0f
+//        player3PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
+//        player3PhysicsObj->physicState.position = Startpos3;
+//        player3PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
 
-        player3PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
-        player3PhysicsObj->physicState.recalculate();
+//        player3PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+//        player3PhysicsObj->physicState.recalculate();
 
-       player3PhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
-    }
+//       player3PhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
+//    }
 
-    //inform player control object about its physics object pointer
-    player3->SetPlayerObject(player3PhysicsObj);
-    player3->SetName((char*)"KI2");
-    player3->mCpCurrPathOffset = 1.0f;
+//    //inform player control object about its physics object pointer
+//    player3->SetPlayerObject(player3PhysicsObj);
+//    player3->SetName((char*)"KI2");
+//    player3->mCpCurrPathOffset = 1.0f;
 
-    mPlayerList.push_back(player3);
+//    mPlayerVec.push_back(player3);
 
-    currPlayerFollow = player;
+//    currPlayerFollow = player;
 
-    //add first command for computer player player2
-    EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
-    if (entItem != NULL) {
-       //get waypoint link for this waypoint
-        std::vector<WayPointLinkInfoStruct*> foundLinks;
+//    //add first command for computer player player2
+//    EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
+//    if (entItem != NULL) {
+//       //get waypoint link for this waypoint
+//        std::vector<WayPointLinkInfoStruct*> foundLinks;
 
-       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
+//       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
 
-       if (foundLinks.size() > 0) {
-           player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
-       }
-    }
+//       if (foundLinks.size() > 0) {
+//           player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
+//       }
+//    }
 
-    //add first command for computer player player3
-    entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
-    if (entItem != NULL) {
-       //get waypoint link for this waypoint
-        std::vector<WayPointLinkInfoStruct*> foundLinks;
+//    //add first command for computer player player3
+//    entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
+//    if (entItem != NULL) {
+//       //get waypoint link for this waypoint
+//        std::vector<WayPointLinkInfoStruct*> foundLinks;
 
-       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
+//       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
 
-       if (foundLinks.size() > 0) {
-           player3->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
-       }
-    }
-}
+//       if (foundLinks.size() > 0) {
+//           player3->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
+//       }
+//    }
+//}
 
 bool Race::LoadLevel(int loadLevelNr) {
     if ((loadLevelNr < 1) || (loadLevelNr > 9)) {
