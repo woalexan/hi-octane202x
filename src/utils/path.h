@@ -98,7 +98,8 @@ public:
     EntityItem* FindNearestWayPointToLocation(irr::core::vector3df location);
     EntityItem* FindNearestWayPointToPlayer(Player* whichPlayer);
 
-    std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint, bool whenStart, bool whenEnd);
+    std::vector<WayPointLinkInfoStruct*> FindWaypointLinksForWayPoint(EntityItem* wayPoint, bool whenStart, bool whenEnd,
+                                                                      WayPointLinkInfoStruct* excludeWhichLink);
     irr::f32 CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInfoStruct* startWaypointLink);
 
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> PlayerDeriveClosestWaypointLink(std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>>
@@ -136,7 +137,9 @@ public:
     //returns false if sani check of bezier input points is "crazy", means one of the points is "behind"
     //the player
     bool SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::vector2df cntrlPnt,
-                                    irr::core::vector2df endPnt);
+                                    irr::core::vector2df endPnt, irr::core::vector2df raceDirection);
+
+    irr::core::vector2df WayPointLinkGetRaceDirection2D(WayPointLinkInfoStruct* whichWayPointLink);
 
 private:
     Race* mRace;

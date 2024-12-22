@@ -35,8 +35,8 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 7.0f; //8.0f
-const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 10.0f; //8.0f
+const irr::f32 CP_PLAYER_SLOW_SPEED = 7.0f;
 
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;

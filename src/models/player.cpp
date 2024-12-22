@@ -1449,7 +1449,10 @@ void Player::ReachedEndCurrentFollowingSegments() {
 
              for (it = availWaypoints.begin(); it != availWaypoints.end(); ++it) {
                  //if ((*it) != this->currClosestWayPointLink.first->pEndEntity) {
-                     fndLinks = this->mRace->mPath->FindWaypointLinksForWayPoint((*it), true, false);
+                     //important: we need to exclude the waypoint link from the search we
+                     //came from! otherwise we can loop around to the link we came from (mCpFollowThisWayPointLink)
+                     fndLinks = this->mRace->mPath->FindWaypointLinksForWayPoint((*it), true, false,
+                                this->mCpFollowThisWayPointLink);
 
                      if (fndLinks.size() > 0) {
                          for (it2 = fndLinks.begin(); it2 != fndLinks.end(); ++it2) {
@@ -2266,6 +2269,9 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
     irr::s32 iterationCnt = 0;
     irr::s32 maxIterations = 20;
 
+    //for bezier curve sanity check we also need the 2D waypoint link race direction
+    irr::core::vector2df raceDirection = this->mRace->mPath->WayPointLinkGetRaceDirection2D(nextLink);
+
     while (!freeWayFound && !lastCalc && (iterationCnt < maxIterations)) {
             iterationCnt++;
 
@@ -2298,7 +2304,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
             //calculate midpoint for next link, is the bezier curve 1 end point
             irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
 
-            if (!this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierCntrlPnt1, bezierPnt2)) {
+            if (!this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierCntrlPnt1, bezierPnt2, raceDirection)) {
                 //sometimes the player has already moved passed the start point of the next waypoint link
                 //in this case the curve will go backwards, which could cause weird problems
                 //in this case rearrange curve so that backwards movement is prevented
@@ -2713,7 +2719,7 @@ void Player::CpAddCommandTowardsNextCheckpoint() {
     overallWaypointLinkList.clear();
 
     for (it = wayPointAroundMeVec.begin(); it != wayPointAroundMeVec.end(); ++it) {
-        structPntrVec = mRace->mPath->FindWaypointLinksForWayPoint((*it), true, true);
+        structPntrVec = mRace->mPath->FindWaypointLinksForWayPoint((*it), true, true, NULL);
 
         for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
             overallWaypointLinkList.push_back(*it2);
