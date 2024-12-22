@@ -384,9 +384,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                      this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
 
 
-    swprintf(text2, 390, L"nCurrSeg = %d\nSegments = %d\n",
+    /*swprintf(text2, 390, L"nCurrSeg = %d\nSegments = %d\n",
                    this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                   this->mCurrentRace->player2->mCurrentPathSegNrSegments);
+                   this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
 
    /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
                    this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
@@ -415,8 +415,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                       this->mCurrentRace->player2->mCpCurrPathOffset
                     );*/
 
-   /* swprintf(text2, 390, L"currentSideForce = %lf\n",
-                       this->mCurrentRace->player->currentSideForce);*/
+    swprintf(text2, 390, L"");
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);
@@ -533,6 +532,50 @@ bool Game::CreateNewRace(int load_levelnr) {
                            mTimeProfiler, this->mGameScreenRes, load_levelnr, false);
 
     mCurrentRace->Init();
+
+    //add first human player
+    std::string pl1Model("extract/models/car0-0.obj");
+    mCurrentRace->AddPlayer(true, (char*)"PLAYER", pl1Model);
+
+    //std::string player_model("extract/models/jet0-0.obj");
+   //    std::string player_model2("extract/models/bike0-0.obj");
+   //    //std::string player_model("extract/models/car0-0.obj");
+   //    //std::string player_model("extract/models/jugga0-0.obj");
+   //    //std::string player_model("extract/models/marsh0-0.obj");
+   //    //std::string player_model("extract/models/skim0-0.obj");
+
+    //add computer player 1
+    //std::string pl2Model("extract/models/bike0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+
+    //add computer player 2
+    std::string pl3Model("extract/models/jugga0-3.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
+
+    //add computer player 3
+    //std::string pl4Model("extract/models/skim0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
+
+    //add computer player 4
+    //std::string pl5Model("extract/models/bike0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
+
+    //add computer player 5
+    //std::string pl6Model("extract/models/marsh0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
+
+    //add computer player 6
+    //std::string pl7Model("extract/models/jet0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
+
+    //add computer player 7
+    std::string pl8Model("extract/models/tank0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+
+    mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(1);
+    mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(1));
+
+    //StopTime();
 
     if (!mCurrentRace->ready) {
         //there was a problem with Race initialization
