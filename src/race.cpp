@@ -2537,7 +2537,7 @@ void Race::createPlayers(int levelNr) {
        //get waypoint link for this waypoint
         std::vector<WayPointLinkInfoStruct*> foundLinks;
 
-       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false);
+       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
 
        if (foundLinks.size() > 0) {
            player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
@@ -2550,7 +2550,7 @@ void Race::createPlayers(int levelNr) {
        //get waypoint link for this waypoint
         std::vector<WayPointLinkInfoStruct*> foundLinks;
 
-       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false);
+       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
 
        if (foundLinks.size() > 0) {
            player3->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));

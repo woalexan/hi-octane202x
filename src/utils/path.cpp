@@ -48,7 +48,7 @@ EntityItem* Path::FindNearestWayPointToLocation(irr::core::vector3df location) {
 //returns false if sani check of bezier input points is "crazy", means one of the points is "not" in line
 //the player
 bool Path::SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::vector2df cntrlPnt,
-                                      irr::core::vector2df endPnt) {
+                                      irr::core::vector2df endPnt, irr::core::vector2df raceDirection) {
 
    irr::core::vector2df dirCntrlPnt = (cntrlPnt - startPnt).normalize();
    irr::core::vector2df dirEndPnt = (endPnt - startPnt).normalize();
@@ -56,10 +56,25 @@ bool Path::SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::
    if (dirCntrlPnt.dotProduct(dirEndPnt) < 0.0f)
        return false;
 
+   //both direction vectors must be in "race Direction" and not opposite
+   if (dirCntrlPnt.dotProduct(raceDirection) < 0.0f)
+       return false;
+
+   if (dirEndPnt.dotProduct(raceDirection) < 0.0f)
+       return false;
+
    //all ok
    return true;
 }
 
+irr::core::vector2df Path::WayPointLinkGetRaceDirection2D(WayPointLinkInfoStruct* whichWayPointLink) {
+  irr::core::vector2df result;
+
+  result.X = whichWayPointLink->LinkDirectionVec.X;
+  result.Y = whichWayPointLink->LinkDirectionVec.Z;
+
+  return result;
+}
 
 void Path::OffsetWayPointLinkCoordByOffset(irr::core::vector2df &coord2D,
                                            irr::core::vector3df &coord3D, WayPointLinkInfoStruct* waypoint, irr::f32 offset) {
@@ -108,7 +123,8 @@ EntityItem* Path::FindNearestWayPointToPlayer(Player* whichPlayer) {
    return FindNearestWayPointToLocation(playerPos);
 }
 
-std::vector<WayPointLinkInfoStruct*> Path::FindWaypointLinksForWayPoint(EntityItem* wayPoint, bool whenStart, bool whenEnd) {
+std::vector<WayPointLinkInfoStruct*> Path::FindWaypointLinksForWayPoint(EntityItem* wayPoint, bool whenStart, bool whenEnd,
+                                                                        WayPointLinkInfoStruct* excludeWhichLink) {
    std::vector<WayPointLinkInfoStruct*>::iterator it;
 
    std::vector<WayPointLinkInfoStruct*> res;
@@ -120,18 +136,23 @@ std::vector<WayPointLinkInfoStruct*> Path::FindWaypointLinksForWayPoint(EntityIt
 
    for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
        alreadyAdded = false;
-       if (whenStart) {
-        if ((*it)->pStartEntity == wayPoint) {
-            res.push_back(*it);
-            alreadyAdded = true;
-        }
-       }
 
-       if ((!alreadyAdded) && whenEnd) {
-        if ((*it)->pEndEntity == wayPoint) {
-            res.push_back(*it);
-        }
-       }
+       //we want to be able to exclude one
+       //choosen link
+       if ((*it) != excludeWhichLink) {
+           if (whenStart) {
+            if ((*it)->pStartEntity == wayPoint) {
+                res.push_back(*it);
+                alreadyAdded = true;
+            }
+           }
+
+           if ((!alreadyAdded) && whenEnd) {
+            if ((*it)->pEndEntity == wayPoint) {
+                res.push_back(*it);
+            }
+           }
+     }
    }
 
    return res;
