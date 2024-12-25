@@ -95,12 +95,23 @@ private:
     float decodeOffsetY();
 
     Entity::EntityType mEntityType;
+    //also store raw read Type and subType
+    //in case we have an undefined/unknown entity type,
+    //so when we save the level we can write the information back
+    //to the level file
+    int8_t mRawType;
+    int8_t mRawSubType;
+
     int16_t mGroup;
     int16_t mTargetGroup;
     int16_t mNextId;
     int16_t mValue;
     irr::core::vector3df mCenter;
     irr::core::vector2di mCell;
+
+    int16_t mUnknown1;
+    int16_t mUnknown2;
+    int16_t mUnknown3;
 
     float mOffsetX;
     float mOffsetY;

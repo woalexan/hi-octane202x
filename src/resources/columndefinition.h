@@ -38,12 +38,10 @@ public:
     int16_t get_G();
     int16_t get_H();
 
-    std::vector<int> get_Blocks();
-
     bool WriteChanges() override;
 
     //for level editor, write into data
-    void set_Shape(unsigned char newVal);
+    void set_Shape(uint8_t newVal);
     void set_FloorTextureID(int16_t newVal);
     void set_Unknown1(int16_t newVal);
     void set_Unknown2(int16_t newVal);
@@ -65,10 +63,37 @@ public:
     //in the column
     std::vector<int> mInCollisionMesh;
 
-protected:
-    std::vector<int> m_Blocks;
+private:
+    int16_t mA;
+    int16_t mB;
+    int16_t mC;
+    int16_t mD;
+    int16_t mE;
+    int16_t mF;
+    int16_t mG;
+    int16_t mH;
 
-    void set_Blocks(std::vector<int> new_blocks);
+    int16_t mUnknown1;
+    int16_t mUnknown2;
+    int16_t mUnknown3;
+    uint8_t mUnknown4;
+
+    int16_t mFloorTextureID;
+    uint8_t mShape;
+
+    uint8_t decode_Shape();
+    int16_t decode_FloorTextureID();
+    int16_t decode_Unknown1();
+    int16_t decode_Unknown2();
+    int16_t decode_Unknown3();
+    int16_t decode_A();
+    int16_t decode_B();
+    int16_t decode_C();
+    int16_t decode_D();
+    int16_t decode_E();
+    int16_t decode_F();
+    int16_t decode_G();
+    int16_t decode_H();
 };
 
 #endif // COLUMNDEFINITION_H

@@ -19,6 +19,24 @@ BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)
    this->m_Bytes = bytes;
    this->m_Offset = offset;
 
+   //is blockDefinition is 16 bytes long
+   //Byte 0:   N
+   //Byte 1:   E
+   //Byte 2:   S
+   //Byte 3:   W
+   //Byte 4:   T
+   //Byte 5:   B
+   //Byte 6:   NMod
+   //Byte 7:   EMod
+   //Byte 8:   SMod
+   //Byte 9:   WMod
+   //Byte 10:  TMod
+   //Byte 11:  BMod
+   //Byte 12:  Unknown1
+   //Byte 13:  Unknown1
+   //Byte 14:  Unknown2
+   //Byte 15:  Unknown2
+
    mN = decode_N();
    mE = decode_E();
    mS = decode_S();
@@ -32,6 +50,10 @@ BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)
    mWMod = decode_WMod();
    mTMod = decode_TMod();
    mBMod = decode_BMod();
+
+   //read unknown data
+   mUnknown1 = ConvertByteArray_ToInt16(bytes, 12);
+   mUnknown2 = ConvertByteArray_ToInt16(bytes, 14);
 
    //for debugging of level saving, comment out later
    this->m_wBytes.resize(this->m_Bytes.size());
@@ -55,6 +77,10 @@ bool BlockDefinition::WriteChanges() {
    save_WMod(mWMod);
    save_TMod(mTMod);
    save_BMod(mBMod);
+
+   //write unknown data
+   ConvertAndWriteInt16ToByteArray(mUnknown1, this->m_wBytes, 12);
+   ConvertAndWriteInt16ToByteArray(mUnknown2, this->m_wBytes, 14);
 
    return(true);
 }

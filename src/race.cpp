@@ -1405,6 +1405,10 @@ void Race::Init() {
 
         ready = true;
     }
+
+    //only to test if we can save a levelfile properly!
+    //std::string testsaveName("testsave.dat");
+    //this->mLevelRes->Save(testsaveName);
 }
 
 void Race::SetupTopRaceTrackPointerOrigin() {
