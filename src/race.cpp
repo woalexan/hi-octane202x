@@ -664,8 +664,7 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
                    //we also want to preset the waypoint link follow logic offset
                    //to prevent collision of all the player craft at the tight start situation
                    //preset by X coordinate difference between player origin and found waypoint link start entity
-                   irr::core::vector3df startWayPoint = foundLinks.at(0)->pStartEntity->get_Center();
-                   startWayPoint.X = -startWayPoint.X;
+                   irr::core::vector3df startWayPoint = foundLinks.at(0)->pStartEntity->getCenter();
 
                    irr::core::vector3df deltaVec = Startpos - startWayPoint;
                    deltaVec.Y = 0.0f;
@@ -2649,12 +2648,10 @@ void Race::createCheckpointMeshData(CheckPointInfoStruct &newStruct) {
 
 void Race::AddCheckPoint(EntityItem entity) {
     LineStruct *line = new LineStruct;
-    line->A = entity.get_Center();
-    line->A.X = -line->A.X;    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
+    line->A = entity.getCenter();
 
-    line->B = entity.get_Center() + irr::core::vector3d<irr::f32>(entity.get_OffsetX(), 0, entity.get_OffsetY());
-     //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-    line->B.X = -line->B.X;    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
+    //my Irrlicht coordinate system is swapped at the x axis; correct this issue for getOffsetX with a - sign
+    line->B = entity.getCenter() + irr::core::vector3d<irr::f32>(-entity.getOffsetX(), 0, entity.getOffsetY());
 
     //line->name.clear();
     //line->name.append("Checkpoint line ");
@@ -2671,7 +2668,7 @@ void Race::AddCheckPoint(EntityItem entity) {
     //mesh creation
     newStruct->pLineStruct = line;
     //store value of checkpoint
-    newStruct->value = entity.get_Value();
+    newStruct->value = entity.getValue();
 
     //Also create and add SceneNode
     createCheckpointMeshData(*newStruct);
@@ -3010,10 +3007,8 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
         //debugging, also calculations will be done with this struct
         LineStruct *line = new LineStruct;
 
-        line->A = entity->get_Center();
-        line->A.X = -line->A.X;   //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-        line->B = next->get_Center();
-        line->B.X = -line->B.X;   //my Irrlicht coordinate system is swapped at the x axis; correct this issue
+        line->A = entity->getCenter();
+        line->B = next->getCenter();
 
         //line->name.clear();
         //line->name.append("Waypoint line ");
@@ -3070,7 +3065,7 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
     float boxSize = 0;
     collectable = NULL;
 
-    int next_ID = entity.get_NextID();
+    int next_ID = entity.getNextID();
     bool exists;
 
     if (next_ID != 0) {
@@ -3078,31 +3073,29 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
         exists = levelRes->ReturnEntityItemWithId(next_ID, &next);
     }
 
-    EntityItem::EntityType type = entity.get_GameType();
+    Entity::EntityType type = entity.getEntityType();
 
     switch (type) {
-        case entity.EntityType::WaypointAmmo:
-        case entity.EntityType::WaypointFuel:
-        case entity.EntityType::WaypointShield:
-        case entity.EntityType::WaypointShortcut:
-        case entity.EntityType::WaypointSpecial1:
-        case entity.EntityType::WaypointSpecial2:
-        case entity.EntityType::WaypointSpecial3:
-        case entity.EntityType::WaypointFast:
-        case entity.EntityType::WaypointSlow: {
+        case Entity::EntityType::WaypointAmmo:
+        case Entity::EntityType::WaypointFuel:
+        case Entity::EntityType::WaypointShield:
+        case Entity::EntityType::WaypointShortcut:
+        case Entity::EntityType::WaypointSpecial1:
+        case Entity::EntityType::WaypointSpecial2:
+        case Entity::EntityType::WaypointSpecial3:
+        case Entity::EntityType::WaypointFast:
+        case Entity::EntityType::WaypointSlow: {
             //add a level waypoint
             AddWayPoint(p_entity, next);
             break;
         }
 
-        case entity.EntityType::WallSegment: {
+        case Entity::EntityType::WallSegment: {
 
             if (next != NULL) {
                 LineStruct *line = new LineStruct;
-                line->A = entity.get_Center();
-                line->A.X = -line->A.X;   //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-                line->B = next->get_Center();
-                line->B.X = -line->B.X;   //my Irrlicht coordinate system is swapped at the x axis; correct this issue
+                line->A = entity.getCenter();
+                line->B = next->getCenter();
                 //line = new Line(entity.Center, next.Center, color);
                 //line->name.clear();
                 //line->name.append("Wall segment line ");
@@ -3120,115 +3113,117 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
            break;
         }
 
-      /*  case entity.EntityType::TriggerCraft:
-        case entity.EntityType::TriggerRocket:
-            w = entity.OffsetX + 1f;
-            h = entity.OffsetY + 1f;
-            box = new Box(0, 0, 0, w, 2, h, new Vector4(0.9f, 0.3f, 0.6f, 0.5f));
-            box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-            Entities.AddNode(box);
-            break;
-        case entity.EntityType::TriggerTimed:
-            Billboard timer = new Billboard("images/stopwatch.png", 0.4f, 0.4f);
-            timer.Position = entity.Center;
-            Entities.AddNode(timer);
-            break;*/
+          /*  case EntityType::TriggerCraft:
+            case entity.EntityType::TriggerRocket:
+                w = entity.OffsetX + 1f;
+                h = entity.OffsetY + 1f;
+                box = new Box(0, 0, 0, w, 2, h, new Vector4(0.9f, 0.3f, 0.6f, 0.5f));
+                box.Position = entity.Pos + Vector3.UnitY * 0.01f;
+                Entities.AddNode(box);
+                break;
+            case EntityType::TriggerTimed:
+                Billboard timer = new Billboard("images/stopwatch.png", 0.4f, 0.4f);
+                timer.Position = entity.Center;
+                Entities.AddNode(timer);
+                break;*/
 
 
-    case entity.EntityType::MorphOnce:
-    case entity.EntityType::MorphPermanent: {
-            w = entity.get_OffsetX() + 1.0f;
-            h = entity.get_OffsetY() + 1.0f;
-            //box = new Box(0, 0, 0, w, 1, h, new Vector4(0.1f, 0.3f, 0.9f, 0.5f));
-            //box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-            //AddNode(box);
+            case Entity::EntityType::MorphOnce:
+            case Entity::EntityType::MorphPermanent: {
+                    w = entity.getOffsetX() + 1.0f;
+                    h = entity.getOffsetY() + 1.0f;
+                    //box = new Box(0, 0, 0, w, 1, h, new Vector4(0.1f, 0.3f, 0.9f, 0.5f));
+                    //box.Position = entity.Pos + Vector3.UnitY * 0.01f;
+                    //AddNode(box);
 
-            EntityItem* source;
+                    EntityItem* source;
 
-            //see if a entity with this ID exists
-            bool entFound = levelRes->ReturnEntityItemWithId(entity.get_NextID(), &source);
+                    //see if a entity with this ID exists
+                    bool entFound = levelRes->ReturnEntityItemWithId(entity.getNextID(), &source);
 
-            // morph for this entity and its linked source
-            std::vector<Column*> targetColumns = levelBlocks->ColumnsInRange((int)entity.get_X() , (int)entity.get_Z(), w, h);
-            std::vector<Column*> sourceColumns = levelBlocks->ColumnsInRange((int)source->get_X() , (int)source->get_Z(), w, h);
+                    // morph for this entity and its linked source
+                    std::vector<Column*> targetColumns = levelBlocks->ColumnsInRange(entity.getCell().X , entity.getCell().Y, w, h);
+                    std::vector<Column*> sourceColumns = levelBlocks->ColumnsInRange(source->getCell().X , source->getCell().Y, w, h);
 
-            // regular morph
-            if (targetColumns.size() == sourceColumns.size())
-            {
-                    for (uint i = 0; i < targetColumns.size(); i++)
+                    // regular morph
+                    if (targetColumns.size() == sourceColumns.size())
                     {
-                        targetColumns[i]->MorphSource = sourceColumns[i];
-                        sourceColumns[i]->MorphSource = targetColumns[i];
+                            for (uint i = 0; i < targetColumns.size(); i++)
+                            {
+                                targetColumns[i]->MorphSource = sourceColumns[i];
+                                sourceColumns[i]->MorphSource = targetColumns[i];
+                            }
                     }
-            }
-            else
-            {
-                // permanent morphs dont destroy buildings, instead they morph the column based on terrain height
-                if (entity.get_GameType() == entity.EntityType::MorphPermanent)
-                {
-                    // we need to update surrounding columns too because they could be affected (one side of them)
-                    // (problem comes from not using terrain height for all columns in realtime)
-                    targetColumns = levelBlocks->ColumnsInRange((int)entity.get_X() - 1, (int)entity.get_Z() - 1, w + 1, h + 1);
+                    else
+                    {
+                        // permanent morphs dont destroy buildings, instead they morph the column based on terrain height
+                        if (entity.getEntityType() == Entity::EntityType::MorphPermanent)
+                        {
+                            // we need to update surrounding columns too because they could be affected (one side of them)
+                            // (problem comes from not using terrain height for all columns in realtime)
+                            targetColumns = levelBlocks->ColumnsInRange(entity.getCell().X - 1, entity.getCell().Y - 1, w + 1, h + 1);
 
-                    // create dummy morph source columns at source position
+                            // create dummy morph source columns at source position
+                            std::vector<Column*>::iterator colIt;
+
+                            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
+                                vector3d<irr::f32> colPos(0.0f, 0.0f, 0.0f);
+                                colPos.X = source->getCell().X + ((*colIt)->Position.X - entity.getCell().X);
+                                colPos.Y = 0.0f;
+                                colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
+
+                                (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes);
+                            }
+
+                            sourceColumns.clear();
+                        }
+                        else
+                        {
+                            // in this case (MorphOnce) there are no target columns and
+                            // (target and source areas are swapped from game perspective)
+                            // and buildings have to be destroyed as soon as the morph starts
+                            std::vector<Column*>::iterator colIt;
+
+                            for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
+                                (*colIt)->DestroyOnMorph = true;
+                            }
+
+                            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
+                                (*colIt)->DestroyOnMorph = true;
+                            }
+                        }
+                    }
+
+                    // create and collect morph instances
+                    Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h, entity.getEntityType() ==
+                                             Entity::EntityType::MorphPermanent);
                     std::vector<Column*>::iterator colIt;
 
                     for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                        vector3d<irr::f32> colPos(0.0f, 0.0f, 0.0f);
-                        colPos.X = source->get_X() + ((*colIt)->Position.X - entity.get_X());
-                        colPos.Y = 0.0f;
-                        colPos.Z = source->get_Z() + ((*colIt)->Position.Z - entity.get_Z());
-
-                        (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes);
+                        morph->Columns.push_back(*colIt);
                     }
 
-                    sourceColumns.clear();
-                }
-                else
-                {
-                    // in this case (MorphOnce) there are no target columns and
-                    // (target and source areas are swapped from game perspective)
-                    // and buildings have to be destroyed as soon as the morph starts
-                    std::vector<Column*>::iterator colIt;
+                    Morphs.push_back(morph);
 
+                    // source
+                    morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h, entity.getEntityType() ==
+                                      Entity::EntityType::MorphPermanent);
                     for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
-                        (*colIt)->DestroyOnMorph = true;
+                        morph->Columns.push_back(*colIt);
                     }
 
-                    for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                        (*colIt)->DestroyOnMorph = true;
-                    }
-                }
+                    Morphs.push_back(morph);
+                    break;
             }
 
-            // create and collect morph instances
-            Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h, entity.get_GameType() == entity.EntityType::MorphPermanent);
-            std::vector<Column*>::iterator colIt;
-
-            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                morph->Columns.push_back(*colIt);
-            }
-
-            Morphs.push_back(morph);
-
-            // source
-            morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h, entity.get_GameType() == entity.EntityType::MorphPermanent);
-            for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
-                morph->Columns.push_back(*colIt);
-            }
-
-            Morphs.push_back(morph);
-            break;
-    }
-
-        case entity.EntityType::MorphSource1:
-    case entity.EntityType::MorphSource2: {
+        case Entity::EntityType::MorphSource1:
+        case Entity::EntityType::MorphSource2: {
             // no need to display morph sources since they are handled above by their targets
             break;
     }
 
-        case entity.EntityType::RecoveryTruck: {
-            Recovery *recov1 = new Recovery(entity.get_Center().X, entity.get_Center().Y + 6.0f, entity.get_Center().Z, this->mSmgr);
+        case Entity::EntityType::RecoveryTruck: {
+            Recovery *recov1 = new Recovery(entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, this->mSmgr);
 
             //remember all recovery vehicles in a vector for later use
             this->recoveryVec->push_back(recov1);
@@ -3236,8 +3231,9 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
             break;
         }
 
-        case entity.EntityType::Cone: {
-            Cone *cone = new Cone(entity.get_X() + 0.5f, entity.get_Y() + 0.104f, entity.get_Z() + 0.5f, this->mSmgr);
+        case Entity::EntityType::Cone: {
+            irr::core::vector3df center = entity.getCenter();
+            Cone *cone = new Cone(center.X, center.Y + 0.104f, center.Z, this->mSmgr);
 
             //remember all cones in a vector for later use
             this->coneVec->push_back(cone);
@@ -3245,144 +3241,139 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
             break;
         }
 
-        case entity.EntityType::Checkpoint:     {
+        case Entity::EntityType::Checkpoint:     {
             AddCheckPoint(entity);
             break;
         }
 /*
-        case entity.EntityType::Explosion:
+        case EntityType::Explosion:
             BillboardAnimation explosion = new BillboardAnimation("images/tmaps/explosion.png", 1f, 1f, 88, 74, 10);
 
             explosion.Position = entity.Center;
             Entities.AddNode(explosion);
             break;
 */
-        case entity.EntityType::ExtraFuel:
-    {
-            collectable = new Collectable(p_entity, 29, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::ExtraFuel:
+            {
+                    collectable = new Collectable(p_entity, 29, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
 
-        case entity.EntityType::FuelFull:
-    {
-            collectable = new Collectable(p_entity, 30, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::DoubleFuel:
-    {
-            collectable = new Collectable(p_entity, 31, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::FuelFull:
+            {
+                    collectable = new Collectable(p_entity, 30, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::DoubleFuel:
+            {
+                    collectable = new Collectable(p_entity, 31, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
 
-        case entity.EntityType::ExtraAmmo:
-    {
-            collectable = new Collectable(p_entity, 32, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::AmmoFull:
-    {
-            collectable = new Collectable(p_entity, 33, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::DoubleAmmo:
-    {
-            collectable = new Collectable(p_entity, 34, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::ExtraAmmo:
+            {
+                    collectable = new Collectable(p_entity, 32, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::AmmoFull:
+            {
+                    collectable = new Collectable(p_entity, 33, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::DoubleAmmo:
+            {
+                    collectable = new Collectable(p_entity, 34, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
 
-        case entity.EntityType::ExtraShield:
-    {
-            collectable = new Collectable(p_entity, 35, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::ShieldFull:
-    {
-            collectable = new Collectable(p_entity, 36, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::DoubleShield:
-    {
-            collectable = new Collectable(p_entity, 37, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::ExtraShield:
+            {
+                    collectable = new Collectable(p_entity, 35, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::ShieldFull:
+            {
+                    collectable = new Collectable(p_entity, 36, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::DoubleShield:
+            {
+                    collectable = new Collectable(p_entity, 37, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
 
-        case entity.EntityType::BoosterUpgrade:
-    {
-            collectable = new Collectable(p_entity, 40, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::MissileUpgrade:
-    {
-            collectable = new Collectable(p_entity, 39, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
-        case entity.EntityType::MinigunUpgrade:
-    {
-            collectable = new Collectable(p_entity, 38, entity.get_Center(), this->mSmgr, driver);
-            ENTCollectablesVec->push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::BoosterUpgrade:
+            {
+                    collectable = new Collectable(p_entity, 40, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::MissileUpgrade:
+            {
+                    collectable = new Collectable(p_entity, 39, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
+        case Entity::EntityType::MinigunUpgrade:
+            {
+                    collectable = new Collectable(p_entity, 38, entity.getCenter(), this->mSmgr, driver);
+                    ENTCollectablesVec->push_back(collectable);
+                    break;
+            }
 
-        case entity.EntityType::UnknownShieldItem:
-    {
-           //uncomment the next 2 lines to show this items also to the player
-           // collectable = new Collectable(41, entity.get_Center(), color, driver);
-           // ENTCollectables_List.push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::UnknownShieldItem:
+            {
+                   //uncomment the next 2 lines to show this items also to the player
+                   // collectable = new Collectable(41, entity.get_Center(), color, driver);
+                   // ENTCollectables_List.push_back(collectable);
+                    break;
+            }
 
-        case entity.EntityType::UnknownItem:
-        case entity.EntityType::Unknown:
-    {
-           //uncomment the next 2 lines to show this items also to the player
-           // collectable = new Collectable(50, entity.get_Center(), color, driver);
-           // ENTCollectables_List.push_back(collectable);
-            break;
-    }
+        case Entity::EntityType::UnknownItem:
+        case Entity::EntityType::Unknown:
+            {
+                   //uncomment the next 2 lines to show this items also to the player
+                   // collectable = new Collectable(50, entity.get_Center(), color, driver);
+                   // ENTCollectables_List.push_back(collectable);
+                    break;
+            }
 
-    case entity.EntityType::SteamStrong: {
-           irr::core::vector3d<irr::f32> newlocation = entity.get_Center();
-           //for my corrdinate system X axis is negative
-           newlocation.X = - newlocation.X;
-           //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 12);
-           SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 48);
-           sf->Activate();
+        case Entity::EntityType::SteamStrong: {
+               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
+               //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 12);
+               SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 48);
+               sf->Activate();
 
-           //add new steam fontain to my list of fontains
-           steamFountainVec->push_back(sf);
-           break;
-    }
+               //add new steam fontain to my list of fontains
+               steamFountainVec->push_back(sf);
+               break;
+        }
 
-    case entity.EntityType::SteamLight: {
-           irr::core::vector3d<irr::f32> newlocation = entity.get_Center();
-           //for my corrdinate system X axis is negative
-           newlocation.X = - newlocation.X;
-           //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 7);
-           SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 24);
-           sf->Activate();
+        case Entity::EntityType::SteamLight: {
+               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
+               //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 7);
+               SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 24);
+               sf->Activate();
 
-           //add new steam fontain to my list of fontains
-           steamFountainVec->push_back(sf);
-           break;
-    }
+               //add new steam fontain to my list of fontains
+               steamFountainVec->push_back(sf);
+               break;
+        }
 
         default:
-    {
-            boxSize = 0.98f;
-            break;
+            {
+                    boxSize = 0.98f;
+                    break;
+            }
     }
-    }
-
 
 }

@@ -10,8 +10,10 @@
 #ifndef PATH_H
 #define PATH_H
 
-#include "../race.h"
 #include "../draw/drawdebug.h"
+#include "../resources/entityitem.h"
+#include "../models/collectable.h"
+#include "../race.h"
 
 struct CheckPointInfoStruct {
     //pntr to checkpoint Irrlicht sceneNode

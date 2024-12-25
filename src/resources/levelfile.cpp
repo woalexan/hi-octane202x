@@ -38,7 +38,7 @@ LevelFile::LevelFile(std::string filename) {
     ifile.seekg(0, std::ios::beg);
 
     // read the data:
-    std::vector<unsigned char> fileData(fileSize);
+    std::vector<uint8_t> fileData(fileSize);
     ifile.read((char*) &fileData[0], fileSize);
 
     this->m_bytes = fileData;
@@ -227,9 +227,9 @@ bool LevelFile::ReturnEntityItemWithId(int searchId, EntityItem **fndItem) {
 }
 
 bool LevelFile::loadEntitiesTable() {
-    std::vector<unsigned char>::const_iterator startslice;
-    std::vector<unsigned char>::const_iterator endslice;
-    std::vector<unsigned char> dataslice;
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
+    std::vector<uint8_t> dataslice;
 
     this->Entities.clear();
 
@@ -244,7 +244,7 @@ bool LevelFile::loadEntitiesTable() {
         dataslice.assign(startslice, endslice);
 
         EntityItem *item = new EntityItem(i, baseOffset, dataslice);
-        item->set_Y(this->pMap[(int)item->get_X()][(int)item->get_Z()]->m_Height);
+        item->setY(this->pMap[item->getCell().X][item->getCell().Y]->m_Height);
         this->Entities.push_back(item);
        }
 
@@ -252,9 +252,9 @@ bool LevelFile::loadEntitiesTable() {
 }
 
 bool LevelFile::loadBlockTexTable() {
-    std::vector<unsigned char>::const_iterator startslice;
-    std::vector<unsigned char>::const_iterator endslice;
-    std::vector<unsigned char> dataslice;
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
+    std::vector<uint8_t> dataslice;
 
     this->BlockDefinitions.clear();
 
@@ -276,9 +276,9 @@ bool LevelFile::loadBlockTexTable() {
 }
 
 bool LevelFile::loadColumnsTable() {
-    std::vector<unsigned char>::const_iterator startslice;
-    std::vector<unsigned char>::const_iterator endslice;
-    std::vector<unsigned char> dataslice;
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
+    std::vector<uint8_t> dataslice;
 
     this->ColumnDefinitions.clear();
 
@@ -300,9 +300,9 @@ bool LevelFile::loadColumnsTable() {
 }
 
 bool LevelFile::loadMap() {
-    std::vector<unsigned char>::const_iterator startslice;
-    std::vector<unsigned char>::const_iterator endslice;
-    std::vector<unsigned char> dataslice;
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
+    std::vector<uint8_t> dataslice;
 
     ColumnsStruct NewStruct;
     MapPointOfInterest poi;
@@ -352,9 +352,8 @@ bool LevelFile::loadMap() {
 
 bool LevelFile::Save(std::string filename) {
     MapEntry* entry;
-    std::vector<unsigned char> newdata;
-    std::vector<unsigned char>::iterator ptr;
-    int i;
+    std::vector<uint8_t> newdata;
+    std::vector<uint8_t>::iterator ptr;
 
     for (int y = 0; y < Height(); y++) {
         for (int x = 0; x < Width(); x++) {
@@ -378,8 +377,8 @@ bool LevelFile::Save(std::string filename) {
 }
 
 bool LevelFile::loadMapRegions() {
-    std::vector<unsigned char>::const_iterator startslice;
-    std::vector<unsigned char>::const_iterator endslice;
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
 
     int baseOffset = 247264;
 
@@ -462,7 +461,7 @@ bool LevelFile::loadMapRegions() {
 }
 
 bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
-    std::vector<unsigned char>::iterator it;
+    std::vector<uint8_t>::iterator it;
 
     int cnt = 0;
 
@@ -513,7 +512,7 @@ bool LevelFile::SaveUnknownTableOffset247264() {
        return false;
     }
 
-    std::vector<unsigned char>::iterator it;
+    std::vector<uint8_t>::iterator it;
     unsigned long pos = 0;
 
     for (it = this->unknownTable247264Data.begin(); it != this->unknownTable247264Data.end(); ++it) {
@@ -543,7 +542,7 @@ bool LevelFile::SaveUnknownTableOffset358222() {
        return false;
     }
 
-    std::vector<unsigned char>::iterator it;
+    std::vector<uint8_t>::iterator it;
     unsigned long pos = 0;
 
     for (it = this->unknownTable358222Data.begin(); it != this->unknownTable358222Data.end(); ++it) {
@@ -560,8 +559,8 @@ bool LevelFile::SaveUnknownTableOffset358222() {
 }
 
 bool LevelFile::loadUnknownTableOffset358222() {
-    std::vector<unsigned char>::const_iterator startslice;
-    std::vector<unsigned char>::const_iterator endslice;
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
 
     int baseOffset = 358222;
 

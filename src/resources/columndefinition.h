@@ -21,22 +21,22 @@
 
 class ColumnDefinition : public TableItem {
 public:
-    ColumnDefinition(int id, int offset, std::vector<unsigned char> bytes);
+    ColumnDefinition(int id, int offset, std::vector<uint8_t> bytes);
     ~ColumnDefinition();
 
-    unsigned char get_Shape();
-    int get_FloorTextureID();
-    int get_Unknown1();
-    int get_Unknown2();
-    int get_Unknown3();
-    int get_A();
-    int get_B();
-    int get_C();
-    int get_D();
-    int get_E();
-    int get_F();
-    int get_G();
-    int get_H();
+    uint8_t get_Shape();
+    int16_t get_FloorTextureID();
+    int16_t get_Unknown1();
+    int16_t get_Unknown2();
+    int16_t get_Unknown3();
+    int16_t get_A();
+    int16_t get_B();
+    int16_t get_C();
+    int16_t get_D();
+    int16_t get_E();
+    int16_t get_F();
+    int16_t get_G();
+    int16_t get_H();
 
     std::vector<int> get_Blocks();
 
@@ -44,18 +44,18 @@ public:
 
     //for level editor, write into data
     void set_Shape(unsigned char newVal);
-    void set_FloorTextureID(int newVal);
-    void set_Unknown1(int newVal);
-    void set_Unknown2(int newVal);
-    void set_Unknown3(int newVal);
-    void set_A(int newVal);
-    void set_B(int newVal);
-    void set_C(int newVal);
-    void set_D(int newVal);
-    void set_E(int newVal);
-    void set_F(int newVal);
-    void set_G(int newVal);
-    void set_H(int newVal);
+    void set_FloorTextureID(int16_t newVal);
+    void set_Unknown1(int16_t newVal);
+    void set_Unknown2(int16_t newVal);
+    void set_Unknown3(int16_t newVal);
+    void set_A(int16_t newVal);
+    void set_B(int16_t newVal);
+    void set_C(int16_t newVal);
+    void set_D(int16_t newVal);
+    void set_E(int16_t newVal);
+    void set_F(int16_t newVal);
+    void set_G(int16_t newVal);
+    void set_H(int16_t newVal);
 
     //if 0 block will not be part of collision mesh for
     //player craft collision detection

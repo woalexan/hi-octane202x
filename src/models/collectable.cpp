@@ -15,12 +15,16 @@ Collectable::Collectable(EntityItem* entityItem,
     this->m_smgr = mSmgr;
     this->mEntityItem = entityItem;
 
-    Position = pos;
-
     //preset values, also used in
     //HiOctaneTools
     irr::f32 w = 0.45f;
     irr::f32 h = 0.45f;
+
+    //Position is the center of the BillboardSceneNode
+    //Position in the level file could be the bottom location at the surface
+    //therefore we need to add the height of the billboard to the Y coordinate
+    Position = pos;
+    Position.Y += (h * 0.5f);
 
     this->m_Size.set(w, h, irr::f32(0.01f));
 
@@ -36,20 +40,13 @@ Collectable::Collectable(EntityItem* entityItem,
     collectable_tex = driver->getTexture(m_texfile.c_str());
     texturesize = collectable_tex->getSize();
 
-    irr::core::vector3df fixed_position;
-
     this->billSceneNode = this->m_smgr->addBillboardSceneNode();
     this->billSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
     this->billSceneNode->setMaterialTexture(0, collectable_tex);
     this->billSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, true);
     this->billSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
-    //my world x coordinates are inverted to hioctane level coordinates
-    fixed_position.X = -Position.X;
-    fixed_position.Y = Position.Y;
-    fixed_position.Z = Position.Z;
-
-    this->billSceneNode->setPosition(fixed_position);
+    this->billSceneNode->setPosition(Position);
     this->billSceneNode->setSize(irr::core::dimension2d<irr::f32>(w, h));
 
     //get bounding box for this collectible
@@ -58,11 +55,8 @@ Collectable::Collectable(EntityItem* entityItem,
 }
 
 irr::core::vector2df Collectable::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
-    irr::core::vector3df rest = this->Position;
-    rest.X = -rest.X;
-
-    threeDCoord = rest;
-    irr::core::vector2df result(rest.X, rest.Z);
+    threeDCoord = this->Position;
+    irr::core::vector2df result(this->Position.X, this->Position.Z);
 
     return result;
 }

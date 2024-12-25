@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "string.h"
+#include "stdlib.h"
 
 //-1 if item can not be accessed (unexpected error)
 //0 if item is not a directory

@@ -21,24 +21,24 @@
 
 class BlockDefinition : public TableItem {
 public:
-    BlockDefinition(int id, int offset, std::vector<unsigned char> bytes);
+    BlockDefinition(int id, int offset, std::vector<uint8_t> bytes);
     ~BlockDefinition();
 
     bool WriteChanges() override;
 
-    int get_N();
-    int get_E();
-    int get_S();
-    int get_W();
-    int get_T();
-    int get_B();
+    uint8_t get_N();
+    uint8_t get_E();
+    uint8_t get_S();
+    uint8_t get_W();
+    uint8_t get_T();
+    uint8_t get_B();
 
-    int NMod();
-    int EMod();
-    int SMod();
-    int WMod();
-    int TMod();
-    int BMod();
+    uint8_t NMod();
+    uint8_t EMod();
+    uint8_t SMod();
+    uint8_t WMod();
+    uint8_t TMod();
+    uint8_t BMod();
 
     //for the levelEditor functionality
     void set_N(int newVal);
@@ -54,6 +54,50 @@ public:
     void setWMod(int newVal);
     void setTMod(int newVal);
     void setBMod(int newVal);
+
+private:
+    uint8_t mN;
+    uint8_t mE;
+    uint8_t mS;
+    uint8_t mW;
+    uint8_t mT;
+    uint8_t mB;
+
+    uint8_t mNMod;
+    uint8_t mEMod;
+    uint8_t mSMod;
+    uint8_t mWMod;
+    uint8_t mTMod;
+    uint8_t mBMod;
+
+    uint8_t decode_N();
+    uint8_t decode_E();
+    uint8_t decode_S();
+    uint8_t decode_W();
+    uint8_t decode_T();
+    uint8_t decode_B();
+
+    uint8_t decode_NMod();
+    uint8_t decode_EMod();
+    uint8_t decode_SMod();
+    uint8_t decode_WMod();
+    uint8_t decode_TMod();
+    uint8_t decode_BMod();
+
+    void save_N(int newVal);
+    void save_E(int newVal);
+    void save_S(int newVal);
+    void save_W(int newVal);
+    void save_T(int newVal);
+    void save_B(int newVal);
+
+    void save_NMod(int newVal);
+    void save_EMod(int newVal);
+    void save_SMod(int newVal);
+    void save_WMod(int newVal);
+    void save_TMod(int newVal);
+    void save_BMod(int newVal);
+
 };
 
 #endif // BLOCKDEFINITION_H

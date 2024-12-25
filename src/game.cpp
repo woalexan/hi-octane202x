@@ -545,12 +545,12 @@ bool Game::CreateNewRace(int load_levelnr) {
    //    //std::string player_model("extract/models/skim0-0.obj");
 
     //add computer player 1
-    //std::string pl2Model("extract/models/bike0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+    std::string pl2Model("extract/models/bike0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
 
     //add computer player 2
-    std::string pl3Model("extract/models/jugga0-3.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
+    //std::string pl3Model("extract/models/jugga0-3.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
 
     //add computer player 3
     //std::string pl4Model("extract/models/skim0-0.obj");
@@ -569,11 +569,11 @@ bool Game::CreateNewRace(int load_levelnr) {
     //mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
 
     //add computer player 7
-    std::string pl8Model("extract/models/tank0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+    //std::string pl8Model("extract/models/tank0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
 
-    mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(1);
-    mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(1));
+    mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
+    mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
 
     //StopTime();
 

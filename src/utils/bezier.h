@@ -22,6 +22,7 @@
 
 class LevelTerrain; //Forward declaration
 class DrawDebug;    //Forward declaration
+struct WayPointLinkInfoStruct; //Forward declaration
 
 class Bezier
 {

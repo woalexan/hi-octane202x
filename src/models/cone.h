@@ -20,7 +20,7 @@ public:
     bool ready;
 
 private:
-    irr::core::vector3d<irr::f32> Position;
+    irr::core::vector3df Position;
 
     irr::scene::IAnimatedMesh*  coneMesh;
     irr::scene::IMeshSceneNode* cone_node;

@@ -1532,11 +1532,13 @@ void LevelTerrain::ApplyMorph(Morph morph)
           bool dirtyPos;
 
           //std::vector<irr::scene::SMeshBuffer*> dirtySMeshBuffers;
+          irr::core::vector2di cellSrc = morph.Source->getCell();
+          irr::core::vector2di cellTarget = morph.Target->getCell();
 
-          int xSource = (int)morph.Source->get_X() - 1;
-          int zSource = (int)morph.Source->get_Z() - 1;
-          int xTarget = (int)morph.Target->get_X() - 1;
-          int zTarget = (int)morph.Target->get_Z() - 1;
+          int xSource = cellSrc.X - 1;
+          int zSource = cellSrc.Y - 1;
+          int xTarget = cellTarget.X - 1;
+          int zTarget = cellTarget.Y - 1;
           //List<MapEntry> refreshNormals = new List<MapEntry>();
 
           // check if UVs need an update

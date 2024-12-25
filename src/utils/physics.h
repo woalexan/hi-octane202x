@@ -31,11 +31,8 @@
 
 #include <irrlicht/irrlicht.h>
 #include "../draw/drawdebug.h"
-#include "../race.h"
-#include <vector>
-#include <list>
-#include "../definitions.h"
 #include "boundingbox/collision.h"
+#include "../models/player.h"
 
 #define PHYSICS_MAX_COLLISION_TRIANGLES 4000
 #define PHYSICS_MAX_RAYTARGET_TRIANGLES 4000

@@ -22,11 +22,10 @@
 
 //Length of all sides of the cubes in Terrain
 //must be 1 for Hi-Octane !!
-#define DEF_SEGMENTSIZE 1.0f;
+#define DEF_SEGMENTSIZE 1.0f
 
 //User setup end
 
-#include <iostream>
 #include <irrlicht/irrlicht.h>
 
 struct LineStruct {
@@ -52,6 +51,10 @@ enum {
     // homonids can be highlighted, but the level mesh can't.
     IDFlag_IsHighlightable = 1 << 1
 };
+
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
 
 #endif // DEFINITIONS_H
 

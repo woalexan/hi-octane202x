@@ -12,7 +12,6 @@
 
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
-#include <irrlicht/irrlicht.h>
 
 class Collectable  {
 public:

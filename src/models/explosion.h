@@ -10,9 +10,10 @@
 #ifndef EXPLOSION_H
 #define EXPLOSION_H
 
-#include <irrlicht/irrlicht.h>
-#include "player.h"
 #include "../audio/sound.h"
+#include "../resources/mapentry.h"
+#include "explauncher.h"
+#include "../race.h"
 
 //defines for the animated exploding fire balls
 #define DEF_EXPLOSION_NRDETONATIONS 12
@@ -81,74 +82,37 @@ class ExplosionLauncher; //Forward declaration
 
 class Explosion {
 
-private:
-    irr::core::vector3df targetLocation;
+        private:
+            irr::core::vector3df targetLocation;
 
-    //vector which holds all animated exploding fire balls at the
-    //explosion location
-    std::vector<ExplosionDetonationStruct*> mExplosionSpriteVec;
+            //vector which holds all animated exploding fire balls at the
+            //explosion location
+            std::vector<ExplosionDetonationStruct*> mExplosionSpriteVec;
 
-    //vector which holds all non animated but flying explosion debris
-    //objects
-    std::vector<ExplosionFlyingDebrisStruct*> mExplosionDebrisVec;
+            //vector which holds all non animated but flying explosion debris
+            //objects
+            std::vector<ExplosionFlyingDebrisStruct*> mExplosionDebrisVec;
 
-    ExplosionLauncher* mParentExplosionLauncher;
+            ExplosionLauncher* mParentExplosionLauncher;
 
-    sf::Sound* mExplodeSound = NULL;
-    bool exploded = false;
-    bool exploding = false;
+            sf::Sound* mExplodeSound = NULL;
+            bool exploded = false;
+            bool exploding = false;
 
-    void UpdateExplosionSprites(irr::f32 DeltaTime);
+            void UpdateExplosionSprites(irr::f32 DeltaTime);
 
-    //adds a new sprite to a debris that is currently flying
-    void AddNewSpriteToDebris(ExplosionFlyingDebrisStruct &debrisPntr, irr::core::vector3df newLocation, irr::core::vector3df currVel,
-                              irr::core::dimension2d<irr::f32> newSpriteSize, irr::f32 lifeTime);
-  
-public:
-    Explosion(irr::core::vector3df targetLoc, ExplosionLauncher* parentExpLauncher);
-    ~Explosion();
+            //adds a new sprite to a debris that is currently flying
+            void AddNewSpriteToDebris(ExplosionFlyingDebrisStruct &debrisPntr, irr::core::vector3df newLocation, irr::core::vector3df currVel,
+                                      irr::core::dimension2d<irr::f32> newSpriteSize, irr::f32 lifeTime);
 
-    void UpdateDetonations(irr::f32 DeltaTime);
-    void UpdateDebris(irr::f32 DeltaTime);
+        public:
+            Explosion(irr::core::vector3df targetLoc, ExplosionLauncher* parentExpLauncher);
+            ~Explosion();
 
-    bool objToBeDeleted = false;
-};
+            void UpdateDetonations(irr::f32 DeltaTime);
+            void UpdateDebris(irr::f32 DeltaTime);
 
-class ExplosionLauncher {
-public:
-    ExplosionLauncher(Race* myParentRace, irr::scene::ISceneManager* smgr,  irr::video::IVideoDriver *driver);
-
-    bool ready;
-    bool exploding = false;
-
-    void Trigger(irr::core::vector3df targetLocation);
-    void Update(irr::f32 DeltaTime);
-
-    Race* mParentRace;
-    irr::scene::ISceneManager *mSmgr;
-    irr::video::IVideoDriver *mDriver;
-
-    irr::core::array<video::ITexture*> animTexList;
-
-private:
-
-    std::vector<Explosion*> mCurrentExplosionVec;
-    
-    //Returns true in case of success
-    //False otherwise
-    bool LoadSprites();
-
-    irr::f32 timeAccu = 0.0f;
-    irr::f32 coolOffTime = 0.0f;
-
-    //irr::core::vector3d<irr::f32> Position;
-
-    //irr::scene::IAnimatedMesh*  RecoveryMesh;
-    //irr::scene::IMeshSceneNode* Recovery_node;
-
-    //irr::core::vector3df GetBulletImpactPoint();
-
-    sf::Sound* mExplosionSound = NULL;
+            bool objToBeDeleted = false;
 };
 
 #endif // EXPLOSION_H

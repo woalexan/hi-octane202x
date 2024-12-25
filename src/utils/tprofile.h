@@ -10,9 +10,9 @@
 #ifndef TPROFILE_H
 #define TPROFILE_H
 
-#include "../definitions.h"
-#include "SFML/System.hpp"
+#include "irrlicht/irrlicht.h"
 #include <vector>
+#include "SFML/System.hpp"
 #include <algorithm>
 #include "wchar.h"
 

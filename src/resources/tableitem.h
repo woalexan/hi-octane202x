@@ -16,6 +16,7 @@
 #define TABLEITEM_H
 
 #include <vector>
+#include <cstdint>
 
 class TableItem {
 public:
@@ -24,7 +25,7 @@ public:
 
     int get_ID();
     int get_Offset();
-    std::vector<unsigned char> get_Bytes();
+    std::vector<uint8_t> get_Bytes();
 
     virtual bool WriteChanges();
 
@@ -32,14 +33,14 @@ public:
     int m_ID;
     int m_Offset;
 
-    std::vector<unsigned char> m_Bytes;
+    std::vector<uint8_t> m_Bytes;
 
     //for debugging of level saving, comment out later
-    std::vector<unsigned char> m_wBytes;
+    std::vector<uint8_t> m_wBytes;
 
     void set_ID(int newID);
     void set_Offset(int newOffset);
-    void set_Bytes(std::vector<unsigned char> new_bytes);
+    void set_Bytes(std::vector<uint8_t> new_bytes);
 };
 
 #endif // TABLEITEM_H

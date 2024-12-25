@@ -84,6 +84,7 @@
 #include "stdint.h"
 #include "../models/player.h"
 #include "stdlib.h"
+#include "../models/column.h"
 
 #define RAY_HIT_NOTHING 0
 #define RAY_HIT_TERRAIN 1
@@ -158,9 +159,6 @@ private:
 
     irr::video::SColor* colorEmptySpace;
     irr::video::SColor* colorRed;
-    //irr::video::SColor* colorPlayer;
-    //irr::video::SColor* colorPlayer2;
-    //irr::video::SColor* colorPlayer3;
 
     //predefined vector with colors for max 8 players
     std::vector<irr::video::SColor*> mColorPlayerVec;

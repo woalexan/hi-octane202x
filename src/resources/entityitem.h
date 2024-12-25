@@ -1,9 +1,9 @@
 /*
- The source code in this file was based on/derived from/translated from
+ The source code in this file was based on/derived from/translated/and afterwards modified from
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++)
+ Copyright (C) 2024 Wolf Alexander       (I did first a translation to C++, then modified it)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -17,37 +17,12 @@
 
 #include "tableitem.h"
 #include "irrlicht/irrlicht.h"
-#include <vector>
+#include "../definitions.h"
+#include "../utils/crc32.h"
 
 using namespace irr::core;
 
-class EntityItem : public TableItem {
-public:
-    EntityItem(int id, int offset, std::vector<unsigned char> bytes);
-    virtual ~EntityItem();
-
-    unsigned char get_Type();
-    unsigned char get_SubType();
-    int16_t get_NextID();
-    float get_X();
-    float get_Y();
-    float get_Z();
-
-    void set_Y(float newvalue);
-
-    irr::core::vector3d<float> get_Pos();
-    irr::core::vector3d<float> get_Center();
-
-    irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
-
-    int get_Group();
-    int get_TargetGroup();
-    int get_Value();
-    float get_OffsetX();
-    float get_OffsetY();
-
-    bool WriteChanges() override;
-
+namespace Entity {
     enum EntityType {
               Unknown, UnknownShieldItem, UnknownItem,
               ExtraShield, ShieldFull, DoubleShield,
@@ -62,18 +37,73 @@ public:
               TriggerCraft, TriggerTimed, TriggerRocket,
               DamageCraft,
               Explosion, ExplosionParticles
-    };
+        };
+}
 
-    EntityType get_GameType();
-    void set_GameType(EntityType new_GameType);
+class EntityItem : public TableItem {
+public:
+    EntityItem(int id, int offset, std::vector<unsigned char> bytes);
+    virtual ~EntityItem();
 
-    void UpdateGameType();
+    int16_t getNextID();
+    void setNextID(int16_t newNextID);
 
-protected:
-    EntityType m_GameType;
-    EntityType identify();
+    void setY(float newvalue);
 
-    float m_Y;
+    irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
+
+    int16_t getValue();
+    void setValue(int16_t newValue);
+
+    float getOffsetX();
+    float getOffsetY();
+    void setOffsetX(float newOffsetX);
+    void setOffsetY(float newOffsetY);
+
+    irr::core::vector3df getCenter();
+    irr::core::vector2di getCell();
+    void setCenter(irr::core::vector3df newCenter);
+
+    bool WriteChanges() override;
+
+    Entity::EntityType getEntityType();
+    void setEntityType(Entity::EntityType newEntityType);
+
+    int16_t getGroup();
+    void setGroup(int16_t newGroup);
+
+    int16_t getTargetGroup();
+    void setTargetGroup(int16_t newTargetGroup);
+
+private:
+    irr::core::vector3d<float> getPos();
+
+    float getX();
+    float getY();
+    float getZ();
+
+    int8_t getType();
+    int8_t getSubType();
+    void revIdentify(Entity::EntityType newEntityType, int8_t &newType, int8_t &newSubType);
+    Entity::EntityType identify();
+
+    int16_t decodeNextID();
+    int16_t decodeGroup();
+    int16_t decodeTargetGroup();
+    int16_t decodeValue();
+    float decodeOffsetX();
+    float decodeOffsetY();
+
+    Entity::EntityType mEntityType;
+    int16_t mGroup;
+    int16_t mTargetGroup;
+    int16_t mNextId;
+    int16_t mValue;
+    irr::core::vector3df mCenter;
+    irr::core::vector2di mCell;
+
+    float mOffsetX;
+    float mOffsetY;
 };
 
 #endif // ENTITYITEM_H

@@ -11,15 +11,12 @@
 #define GAME_H
 
 #include <irrlicht/irrlicht.h>
-#include "audio/music.h"
-#include "audio/sound.h"
 #include "utils/tprofile.h"
 #include "input/input.h"
 #include "resources/readgamedata/preparedata.h"
-#include "draw/gametext.h"
 #include "draw/menue.h"
 #include "race.h"
-#include "resources/assets.h"
+#include "draw/hud.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_INTRO 1

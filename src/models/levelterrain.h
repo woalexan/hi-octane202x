@@ -22,7 +22,6 @@
 #include "morph.h"
 #include "../definitions.h"
 #include "player.h"
-#include "../race.h"
 
 using namespace irr;
 using namespace video;

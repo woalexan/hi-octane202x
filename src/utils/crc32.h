@@ -39,15 +39,16 @@
 #include <vector>
 #include <cstdint>
 
-int16_t ConvertByteArray_ToInt16(std::vector<unsigned char> bytes, unsigned int start_position);
-void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<unsigned char> &bytes, unsigned int writeIndex);
+int16_t ConvertByteArray_ToInt16(std::vector<uint8_t> bytes, unsigned int start_position);
+void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex);
+void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex, bool dividerHighByte = false);
 
 class Crc32 {
 public:
     Crc32();
 
     unsigned int m_table[CRC32_TABLELEN];
-    unsigned int ComputeChecksum(std::vector<unsigned char> bytes);
+    unsigned int ComputeChecksum(std::vector<uint8_t> bytes);
 
     //not implemented yet, maybe not needed public byte[] ComputeChecksumBytes(byte[] bytes);
 };
