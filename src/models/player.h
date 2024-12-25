@@ -19,7 +19,6 @@
 #include "../draw/hud.h"
 #include "collectable.h"
 #include "../resources/entityitem.h"
-#include "../race.h"
 #include "SFML/Audio.hpp"
 #include <queue>
 #include "particle.h"
@@ -27,6 +26,7 @@
 #include "missile.h"
 #include "levelterrain.h"
 #include "../utils/path.h"
+#include "../utils/bezier.h"
 
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f

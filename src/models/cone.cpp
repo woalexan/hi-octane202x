@@ -13,8 +13,7 @@ Cone::Cone(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) 
     ready = false;
     mSmgr = smgr;
 
-    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-    Position.X = -x;
+    Position.X = x;
     Position.Y = y;
     Position.Z = z;
 

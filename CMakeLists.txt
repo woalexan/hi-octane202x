@@ -137,6 +137,8 @@ add_executable(hi-octane202x
     src/models/cone.cpp
     src/models/explosion.h
     src/models/explosion.cpp
+    src/models/explauncher.h
+    src/models/explauncher.cpp
     src/models/levelblocks.h
     src/models/levelblocks.cpp
     src/models/levelterrain.h

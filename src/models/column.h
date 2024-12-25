@@ -18,7 +18,6 @@
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
 #include "../resources/columndefinition.h"
-#include <irrlicht/irrlicht.h>
 #include "../resources/texture.h"
 #include "levelterrain.h"
 #include "levelblocks.h"

@@ -7,30 +7,33 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
-#include <iostream>
-#include <irrlicht/irrlicht.h>
-#include "resources/levelfile.h"
+
+/*#include "resources/levelfile.h"
 #include "resources/entityitem.h"
 #include "models/levelterrain.h"
-
 #include "models/player.h"
-#include "definitions.h"
 #include "utils/boundingbox/collision.h"
-#include "string.h"
-
 #include "draw/hud.h"
 #include "resources/texture.h"
 #include "models/column.h"
 #include "models/levelblocks.h"
 #include "models/morph.h"
-#include "wchar.h"
+
 
 #include "utils/physics.h"
 
 #include "draw/drawdebug.h"
+#include "math.h"*/
 
-#include "math.h"
 #include "game.h"
+#include "definitions.h"
+#include <vector>
+#include <iostream>
+#include "wchar.h"
+#include "string.h"
+#include <cstdint>
+#include <list>
+#include <algorithm>
 
 using namespace std;
 

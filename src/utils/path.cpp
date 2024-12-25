@@ -28,9 +28,7 @@ EntityItem* Path::FindNearestWayPointToLocation(irr::core::vector3df location) {
        return NULL;
 
    for (it = mRace->ENTWaypoints_List->begin(); it != mRace->ENTWaypoints_List->end(); ++it) {
-       wPos = (*it)->get_Center();
-       //my X-axis is flipped
-       wPos.X = -wPos.X;
+       wPos = (*it)->getCenter();
        currDist = (wPos - location).getLengthSQ();
        if (firstElement) {
            firstElement = false;
@@ -102,9 +100,7 @@ std::vector<EntityItem*> Path::FindAllWayPointsInArea(irr::core::vector3df locat
         return result;
 
     for (it = mRace->ENTWaypoints_List->begin(); it != mRace->ENTWaypoints_List->end(); ++it) {
-        wPos = (*it)->get_Center();
-        //my X-axis is flipped
-        wPos.X = -wPos.X;
+        wPos = (*it)->getCenter();
         currDist = (wPos - location).getLength();
         if (currDist < radius) {
             result.push_back(*it);
@@ -237,7 +233,6 @@ std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::FindClosestWayPo
 
    irr::core::vector3df targetPos = whichCollectable->Position;
    irr::core::vector3df projPos(0.0f, 0.0f, 0.0f);
-   targetPos.X = -targetPos.X;
 
    result.first = PlayerFindClosestWaypointLinkHelper(targetPos, projPos);
    result.second = projPos;
@@ -393,15 +388,13 @@ WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vec
 
         //for the workaround later (in case first waypoint link search does not work) also find in parallel the waypoint link that
         //has a start or end-point closest to the current player location
-        posH = (*WayPointLink_iterator)->pStartEntity->get_Pos();
-        posH.X = -posH.X;
+        posH = (*WayPointLink_iterator)->pStartEntity->getCenter();
 
-         startPointDistHlper = ((inputPosition - posH)).getLengthSQ();
+        startPointDistHlper = ((inputPosition - posH)).getLengthSQ();
 
-         posH = (*WayPointLink_iterator)->pEndEntity->get_Pos();
-         posH.X = -posH.X;
+        posH = (*WayPointLink_iterator)->pEndEntity->getCenter();
 
-         endPointDistHlper = ((inputPosition - posH)).getLengthSQ();
+        endPointDistHlper = ((inputPosition - posH)).getLengthSQ();
 
          if (endPointDistHlper < startPointDistHlper) {
              startPointDistHlper = endPointDistHlper;

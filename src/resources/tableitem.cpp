@@ -29,7 +29,7 @@ int TableItem::get_Offset() {
     return(this->m_Offset);
 }
 
-std::vector<unsigned char> TableItem::get_Bytes() {
+std::vector<uint8_t> TableItem::get_Bytes() {
     return(this->m_Bytes);
 }
 
@@ -41,7 +41,7 @@ void TableItem::set_Offset(int newOffset) {
     this->m_Offset = newOffset;
 }
 
-void TableItem::set_Bytes(std::vector<unsigned char> new_bytes) {
+void TableItem::set_Bytes(std::vector<uint8_t> new_bytes) {
     this->m_Bytes = new_bytes;
 }
 

@@ -364,9 +364,8 @@ void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     LineStruct* newLineStr = new LineStruct();
     newLineStr->A = this->phobj->physicState.position;
 
-    irr::core::vector3df posEntity = targetEntity->get_Pos();
+    irr::core::vector3df posEntity = targetEntity->getCenter();
     //our universe is flipped for X axis
-    posEntity.X = - posEntity.X;
     newLineStr->B = posEntity;
 
     //set white as default color
@@ -1322,38 +1321,38 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
         //what kind of waypoint is this?
         ent = (*it)->pStartEntity;
 
-        switch (ent->get_GameType()) {
-            case EntityItem::WaypointFuel: {
+        switch (ent->getEntityType()) {
+            case Entity::EntityType::WaypointFuel: {
                 linkForFuel = (*it);
                 break;
             }
 
-            case EntityItem::WaypointAmmo: {
+            case Entity::EntityType::WaypointAmmo: {
                 linkForAmmo = (*it);
                 break;
             }
 
-            case EntityItem::WaypointShield: {
+            case Entity::EntityType::WaypointShield: {
                 linkForShield = (*it);
                 break;
             }
 
             //need to go slower
-            case EntityItem::WaypointSlow: {
+            case Entity::EntityType::WaypointSlow: {
                 linksNothingSpecial.push_back(*it);
                 break;
             }
 
             //need to go faster
-            case EntityItem::WaypointFast: {
+            case Entity::EntityType::WaypointFast: {
                 linksNothingSpecial.push_back(*it);
                 break;
             }
 
-            case EntityItem::WaypointSpecial1:
-            case EntityItem::WaypointSpecial2:
-            case EntityItem::WaypointSpecial3:
-            case EntityItem::WaypointShortcut: {
+            case Entity::EntityType::WaypointSpecial1:
+            case Entity::EntityType::WaypointSpecial2:
+            case Entity::EntityType::WaypointSpecial3:
+            case Entity::EntityType::WaypointShortcut: {
                 linksNothingSpecial.push_back(*it);
                 break;
             }
@@ -1490,8 +1489,7 @@ void Player::ReachedEndCurrentFollowingSegments() {
         irr::core::vector3df endPointLink;
 
         //endPointLink = this->currClosestWayPointLink.first->pEndEntity->get_Pos();
-        endPointLink = this->mCpFollowThisWayPointLink->pEndEntity->get_Pos();
-        endPointLink.X = -endPointLink.X;
+        endPointLink = this->mCpFollowThisWayPointLink->pEndEntity->getCenter();
 
         std::vector<EntityItem*> availWaypoints =
               this->mRace->mPath->FindAllWayPointsInArea(endPointLink, 2.0f);
@@ -1539,12 +1537,12 @@ void Player::ReachedEndCurrentFollowingSegments() {
                          this->mHUD->ShowBannerText((char*)"COLLECT", 4.0f);
                        }*/
 
-                       EntityItem::EntityType entType = (*it3)->pStartEntity->get_GameType();
+                       Entity::EntityType entType = (*it3)->pStartEntity->getEntityType();
 
                        //we need to go slower?
-                       if (entType == EntityItem::WaypointSlow) {
+                       if (entType == Entity::EntityType::WaypointSlow) {
                            this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-                       } else if (entType == EntityItem::WaypointFast) {
+                       } else if (entType == Entity::EntityType::WaypointFast) {
                            this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
                        }
 
@@ -1561,12 +1559,12 @@ void Player::ReachedEndCurrentFollowingSegments() {
         this->mCpFollowThisWayPointLink = nextLink;
 
         if (nextLink != NULL) {
-            EntityItem::EntityType entType = nextLink->pStartEntity->get_GameType();
+            Entity::EntityType entType = nextLink->pStartEntity->getEntityType();
 
             //we need to go slower?
-            if (entType == EntityItem::WaypointSlow) {
+            if (entType == Entity::EntityType::WaypointSlow) {
                 this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-            } else if (entType == EntityItem::WaypointFast) {
+            } else if (entType == Entity::EntityType::WaypointFast) {
                 this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
             }
 
@@ -2149,44 +2147,44 @@ void Player::CpPlayerCollectableSelectionLogic() {
 
             for (it = this->mCpCollectablesSeenByPlayer.begin(); (it != this->mCpCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
                 if ((*it)->GetIfVisible()) {
-                    switch ((*it)->mEntityItem->get_GameType()) {
-                        case EntityItem::ExtraShield: {
+                    switch ((*it)->mEntityItem->getEntityType()) {
+                        case Entity::EntityType::ExtraShield: {
                             break;
                         }
 
-                        case EntityItem::ShieldFull: {
+                        case Entity::EntityType::ShieldFull: {
                             break;
                         }
 
-                        case EntityItem::DoubleShield: {
+                        case Entity::EntityType::DoubleShield: {
                             break;
                         }
 
-                        case EntityItem::ExtraAmmo: {
+                        case Entity::EntityType::ExtraAmmo: {
                             break;
                         }
 
-                        case EntityItem::AmmoFull: {
+                        case Entity::EntityType::AmmoFull: {
                             break;
                         }
 
-                        case EntityItem::DoubleAmmo: {
+                        case Entity::EntityType::DoubleAmmo: {
                             break;
                         }
 
-                        case EntityItem::ExtraFuel: {
+                        case Entity::EntityType::ExtraFuel: {
                             break;
                         }
 
-                        case EntityItem::FuelFull: {
+                        case Entity::EntityType::FuelFull: {
                             break;
                         }
 
-                        case EntityItem::DoubleFuel: {
+                        case Entity::EntityType::DoubleFuel: {
                             break;
                         }
 
-                        case EntityItem::MinigunUpgrade: {
+                        case Entity::EntityType::MinigunUpgrade: {
                             //we only want to pick this up if minigun is not
                             //already at highest level
                             if (this->mPlayerStats->currMinigunUpgradeLevel < 3) {
@@ -2196,7 +2194,7 @@ void Player::CpPlayerCollectableSelectionLogic() {
                             break;
                         }
 
-                        case EntityItem::MissileUpgrade: {
+                        case Entity::EntityType::MissileUpgrade: {
                             //we only want to pick this up if missile is not
                             //already at highest level
                             if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
@@ -2205,7 +2203,7 @@ void Player::CpPlayerCollectableSelectionLogic() {
                             break;
                         }
 
-                        case EntityItem::BoosterUpgrade: {
+                        case Entity::EntityType::BoosterUpgrade: {
                             //we only want to pick this up if booster is not
                             //already at highest level
                             if (this->mPlayerStats->currBoosterUpgradeLevel < 3) {
@@ -2214,11 +2212,11 @@ void Player::CpPlayerCollectableSelectionLogic() {
                             break;
                         }
 
-                        case EntityItem::UnknownShieldItem: {
+                        case Entity::EntityType::UnknownShieldItem: {
                             break;
                         }
 
-                        case EntityItem::UnknownItem: {
+                        case Entity::EntityType::UnknownItem: {
                             break;
                         }
 
@@ -2503,8 +2501,7 @@ void Player::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand)
 
         cPCurrentFollowSeg = currCommand->targetWaypointLink;
 
-        irr::core::vector3df entPos = currCommand->targetEntity->get_Pos();
-        entPos.X = -entPos.X;
+        irr::core::vector3df entPos = currCommand->targetEntity->getCenter();
 
         //have we reached the target yet?
         irr::f32 distToTarget = (this->phobj->physicState.position -
@@ -2846,8 +2843,8 @@ void Player::CpAddCommandTowardsNextCheckpoint() {
    currLink = (*it4).second;
 
    //are we closer to the start or end of this waypoint link?
-   irr::f32 distStart = (this->phobj->physicState.position - currLink->pStartEntity->get_Pos()).getLength();
-   irr::f32 distEnd = (this->phobj->physicState.position - currLink->pEndEntity->get_Pos()).getLength();
+   irr::f32 distStart = (this->phobj->physicState.position - currLink->pStartEntity->getCenter()).getLength();
+   irr::f32 distEnd = (this->phobj->physicState.position - currLink->pEndEntity->getCenter()).getLength();
 
    if (distStart < distEnd) {
             //we are closer to the start point of this waypoint link
@@ -3854,12 +3851,12 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
     EntityItem entity = *whichCollectable->mEntityItem;
 
   //depending on the type of entity/collectable alter player stats
-    EntityItem::EntityType type = whichCollectable->mEntityItem->get_GameType();
+    Entity::EntityType type = whichCollectable->mEntityItem->getEntityType();
 
     //Alex TODO important: figure out what the items do exactly with the player stats and how
     //much the effect is, right now this stuff does not make much sense to me
     switch (type) {
-        case entity.EntityType::ExtraFuel:
+        case Entity::EntityType::ExtraFuel:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"EXTRA FUEL", 4.0f);
             }
@@ -3870,7 +3867,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::FuelFull:
+        case Entity::EntityType::FuelFull:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"FUEL FULL", 4.0f);
             }
@@ -3881,7 +3878,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::DoubleFuel:
+        case Entity::EntityType::DoubleFuel:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE FULL", 4.0f);
             }
@@ -3892,7 +3889,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::ExtraAmmo:
+        case Entity::EntityType::ExtraAmmo:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"EXTRA AMMO", 4.0f);
             }
@@ -3902,7 +3899,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::AmmoFull:
+        case Entity::EntityType::AmmoFull:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"AMMO FULL", 4.0f);
             }
@@ -3912,7 +3909,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::DoubleAmmo:
+        case Entity::EntityType::DoubleAmmo:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE AMMO", 4.0f);
             }
@@ -3923,7 +3920,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::ExtraShield:
+        case Entity::EntityType::ExtraShield:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"EXTRA SHIELD", 4.0f);
             }
@@ -3934,7 +3931,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::ShieldFull:
+        case Entity::EntityType::ShieldFull:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"SHIELD FULL", 4.0f);
             }
@@ -3945,7 +3942,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::DoubleShield:
+        case Entity::EntityType::DoubleShield:
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE SHIELD", 4.0f);
             }
@@ -3956,7 +3953,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::BoosterUpgrade:
+        case Entity::EntityType::BoosterUpgrade:
             //upgrade players booster
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"BOOSTER UPGRADED", 4.0f);
@@ -3967,7 +3964,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::MissileUpgrade:
+        case Entity::EntityType::MissileUpgrade:
             //upgrade players rocket
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"MISSILE UPGRADED", 4.0f);
@@ -3978,7 +3975,7 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::MinigunUpgrade:
+        case Entity::EntityType::MinigunUpgrade:
             //upgrade players mini-gun
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"MINIGUN UPGRADED", 4.0f);
@@ -3989,14 +3986,14 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
 
             break;
 
-        case entity.EntityType::UnknownShieldItem:
+        case Entity::EntityType::UnknownShieldItem:
             //uncomment the next 2 lines to show this items also to the player
             // collectable = new Collectable(41, entity.get_Center(), color, driver);
             // ENTCollectables_List.push_back(collectable);
             break;
 
-        case entity.EntityType::UnknownItem:
-        case entity.EntityType::Unknown:
+        case Entity::EntityType::UnknownItem:
+        case Entity::EntityType::Unknown:
             //uncomment the next 2 lines to show this items also to the player
             // collectable = new Collectable(50, entity.get_Center(), color, driver);
             // ENTCollectables_List.push_back(collectable);

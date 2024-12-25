@@ -1,9 +1,9 @@
 /*
- The source code in this file was based on/derived from/translated from
+ The source code in this file was based on/derived from/translated/and afterwards modified from
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++)
+ Copyright (C) 2024 Wolf Alexander       (I did first a translation to C++, then modified it)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -14,7 +14,7 @@
 
 #include "entityitem.h"
 
-EntityItem::EntityItem(int id, int offset, std::vector<unsigned char> bytes) {
+EntityItem::EntityItem(int id, int offset, std::vector<uint8_t> bytes) {
    this->m_ID = id;
    this->m_Bytes = bytes;
    this->m_Offset = offset;
@@ -23,158 +23,455 @@ EntityItem::EntityItem(int id, int offset, std::vector<unsigned char> bytes) {
    this->m_wBytes.resize(this->m_Bytes.size());
    std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
-   this->m_Y = 0.0f;   // set by level loader
+   this->mEntityType = this->identify();
 
-   this->UpdateGameType();
+   mGroup = decodeGroup();
+   mTargetGroup = decodeTargetGroup();
+   mNextId = decodeNextID();
+   mValue = decodeValue();
+
+   mOffsetX = decodeOffsetX();
+   mOffsetY = decodeOffsetY();
+
+   //truncate position to get
+   //cell base X, Y indexes
+   mCell.X = (int)(getX());
+   mCell.Y = (int)(getZ());
+
+   //define my position
+   irr::core::vector3df vecHlp(0.0f, /*-DEF_SEGMENTSIZE * 0.5f*/ DEF_SEGMENTSIZE * 0.5f, 0.0f /*DEF_SEGMENTSIZE * 0.5f*/);
+   mCenter = this->getPos() + vecHlp;
 }
 
 EntityItem::~EntityItem() {
-
 }
 
-unsigned char EntityItem::get_Type() {
+void EntityItem::setCenter(irr::core::vector3df newCenter) {
+    mCenter = newCenter;
+
+    //recalculate also mCell information
+    irr::core::vector3df vecHlp(0.0f, /*-DEF_SEGMENTSIZE * 0.5f*/ DEF_SEGMENTSIZE * 0.5f, 0.0f /*DEF_SEGMENTSIZE * 0.5f*/);
+    irr::core::vector3df vecHlp2 =  mCenter - vecHlp;
+
+    //we also need to swap X coordinate again
+    //because my Irrlicht coordinate system is mirrored/swapped
+    //compared to HiOctane level file
+
+    //truncate position to get
+    //cell base X, Y indexes
+    mCell.X = (int)(-vecHlp2.X);
+    mCell.Y = (int)(vecHlp2.Z);
+}
+
+int8_t EntityItem::getType() {
     return(this->m_Bytes.at(0));
 }
 
 irr::core::vector2df EntityItem::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
-    irr::core::vector3df threeDCoordMyUniverse(-get_X(), get_Y(), get_Z());
+    threeDCoord = mCenter;
 
-    threeDCoord = threeDCoordMyUniverse;
-
-    irr::core::vector2df result(threeDCoordMyUniverse.X, threeDCoordMyUniverse.Z);
+    irr::core::vector2df result(mCenter.X, mCenter.Z);
 
     return result;
 }
 
-unsigned char EntityItem::get_SubType() {
+int8_t EntityItem::getSubType() {
     return (this->m_Bytes.at(1));
 }
 
-int16_t EntityItem::get_NextID() {
+int16_t EntityItem::decodeNextID() {
     int16_t result;
 
     result = static_cast<int16_t>((this->m_Bytes.at(13) << 8) | this->m_Bytes.at(12));
     return (result);
 }
 
-float EntityItem::get_X() {
-    float result = (float(this->m_Bytes.at(16)) / float(256))+float(this->m_Bytes.at(17));
+int16_t EntityItem::getNextID() {
+    return (mNextId);
+}
+
+void EntityItem::setNextID(int16_t newNextID) {
+    mNextId = newNextID;
+}
+
+irr::core::vector3d<float> EntityItem::getPos() {
+    //my Irrlicht coordinate system is swapped/mirrored at the x axis compared with the coordinate
+    //system in the level file, fix this issue here lowlevel
+    irr::core::vector3d<float> result(-this->getX(), this->getY(), this->getZ());
     return(result);
 }
 
-float EntityItem::get_Y() {
-    return(this->m_Y);   // set by level loader
-}
-
-float EntityItem::get_Z() {
-    float result = (float(this->m_Bytes.at(18)) / float(256))+float(this->m_Bytes.at(19));
-    return(result);
-}
-
-irr::core::vector3d<float> EntityItem::get_Pos() {
-    irr::core::vector3d<float> result(this->get_X(), this->get_Y(), this->get_Z());
-    return(result);
-}
-
-irr::core::vector3d<float> EntityItem::get_Center() {
-    irr::core::vector3d<float> vector_one(1.0f, 1.0f, 1.0f);
-    irr::core::vector3d<float> result = this->get_Pos()+0.5f*vector_one;
-    return(result);
-}
-
-int EntityItem::get_Group() {
+int16_t EntityItem::decodeGroup() {
    return(this->m_Bytes.at(2) + this->m_Bytes.at(3) * 256);
 }
 
-int EntityItem::get_TargetGroup() {
+int16_t EntityItem::getGroup() {
+    return mGroup;
+}
+
+void EntityItem::setGroup(int16_t newGroup) {
+    mGroup = newGroup;
+}
+
+int16_t EntityItem::decodeTargetGroup() {
    return(this->m_Bytes.at(4) + this->m_Bytes.at(5) * 256);
 }
 
-int EntityItem::get_Value() {
+int16_t EntityItem::getTargetGroup() {
+    return (mTargetGroup);
+}
+
+void EntityItem::setTargetGroup(int16_t newTargetGroup) {
+    mTargetGroup = newTargetGroup;
+}
+
+int16_t EntityItem::decodeValue() {
    return(this->m_Bytes.at(14) + this->m_Bytes.at(15) * 256);
 }
 
-void EntityItem::set_Y(float newvalue) {
-    this->m_Y = newvalue;  // set by level loader
+int16_t EntityItem::getValue() {
+    return (mValue);
 }
 
-float EntityItem::get_OffsetX() {
+void EntityItem::setValue(int16_t newValue) {
+    mValue = newValue;
+}
+
+irr::core::vector3df EntityItem::getCenter() {
+    return (mCenter);
+}
+
+irr::core::vector2di EntityItem::getCell() {
+    return (mCell);
+}
+
+//this function is used by the levelloader to set the
+//correct Y coordinate based on level terrain data
+void EntityItem::setY(float newvalue) {
+    //initially we have no Y information, until this information
+    //is set by the level loader based on the terrain information
+    mCenter.Y = newvalue;  // set by level loader
+}
+
+float EntityItem::decodeOffsetX() {
    float result = float(this->m_Bytes.at(20)) + float(this->m_Bytes.at(21)) * 256.0f;
    return(result);
 }
 
-float EntityItem::get_OffsetY() {
+float EntityItem::decodeOffsetY() {
    float result = float(this->m_Bytes.at(22)) + float(this->m_Bytes.at(23)) * 256.0f;
    return(result);
 }
 
-EntityItem::EntityType EntityItem::get_GameType() {
-    return(this->m_GameType);
+float EntityItem::getX() {
+    float result = ((float(this->m_Bytes.at(16)) / float(256)) + float(this->m_Bytes.at(17))) + DEF_SEGMENTSIZE * 0.5f;
+    return(result);
 }
 
-void EntityItem::set_GameType(EntityType new_GameType) {
-    this->m_GameType = new_GameType;
+float EntityItem::getY() {
+    //initially we have no Y information, until this information
+    //is set by the level loader based on the terrain information
+    return(0.0f);
 }
 
-void EntityItem::UpdateGameType() {
-    this->m_GameType = this->identify();
+float EntityItem::getZ() {
+    float result = (float(this->m_Bytes.at(18)) / float(256)) + float(this->m_Bytes.at(19)) + DEF_SEGMENTSIZE * 0.5f;
+    return(result);
 }
 
-EntityItem::EntityType EntityItem::identify() {
-    int Type = this->get_Type();
-    int SubType = this->get_SubType();
+float EntityItem::getOffsetX() {
+    return (mOffsetX);
+}
 
-    if (Type == 1 && SubType == 5) return(EntityItem::Checkpoint);
+float EntityItem::getOffsetY() {
+    return (mOffsetY);
+}
 
-    if (Type == 2 && SubType == 1) return(EntityItem::ExplosionParticles); // see level 4
-    if (Type == 2 && SubType == 2) return(EntityItem::DamageCraft);        // see level 8
-    if (Type == 2 && SubType == 3) return(EntityItem::Explosion);
-    if (Type == 2 && SubType == 5) return(EntityItem::SteamStrong);
-    if (Type == 2 && SubType == 7) return(EntityItem::MorphSource2);
-    if (Type == 2 && SubType == 8) return(EntityItem::SteamLight);
-    if (Type == 2 && SubType == 9) return(EntityItem::MorphSource1);
-    if (Type == 2 && SubType == 16) return(EntityItem::MorphOnce);
-    if (Type == 2 && SubType == 23) return(EntityItem::MorphPermanent);
+void EntityItem::setOffsetX(float newOffsetX) {
+    mOffsetX = newOffsetX;
+}
 
-    if (Type == 3 && SubType == 6) return(EntityItem::Cone);
+void EntityItem::setOffsetY(float newOffsetY) {
+    mOffsetY = newOffsetY;
+}
 
-    if (Type == 5 && SubType == 0) return(EntityItem::UnknownShieldItem);
-    if (Type == 5 && SubType == 1) return(EntityItem::UnknownItem);
+Entity::EntityType EntityItem::getEntityType() {
+    return(this->mEntityType);
+}
 
-    if (Type == 5 && SubType == 2) return(EntityItem::ExtraShield);
-    if (Type == 5 && SubType == 3) return(EntityItem::ShieldFull);
-    if (Type == 5 && SubType == 4) return(EntityItem::DoubleShield);
-    if (Type == 5 && SubType == 5) return(EntityItem::ExtraAmmo);
-    if (Type == 5 && SubType == 6) return(EntityItem::AmmoFull);
-    if (Type == 5 && SubType == 7) return(EntityItem::DoubleAmmo);
-    if (Type == 5 && SubType == 8) return(EntityItem::ExtraFuel);
-    if (Type == 5 && SubType == 9) return(EntityItem::FuelFull);
-    if (Type == 5 && SubType == 10) return(EntityItem::DoubleFuel);
-    if (Type == 5 && SubType == 11) return(EntityItem::MinigunUpgrade);
-    if (Type == 5 && SubType == 12) return(EntityItem::MissileUpgrade);
-    if (Type == 5 && SubType == 13) return(EntityItem::BoosterUpgrade);
+void EntityItem::setEntityType(Entity::EntityType newEntityType) {
+    this->mEntityType = newEntityType;
+}
 
-    if (Type == 8 && SubType == 0) return(EntityItem::TriggerCraft);
-    if (Type == 8 && SubType == 1) return(EntityItem::TriggerTimed);
-    if (Type == 8 && SubType == 3) return(EntityItem::TriggerRocket);
+Entity::EntityType EntityItem::identify() {
+    int8_t Type = this->getType();
+    int8_t SubType = this->getSubType();
 
-    if (Type == 9 && SubType == 0) return(EntityItem::WallSegment);
+    if (Type == 1 && SubType == 5) return(Entity::EntityType::Checkpoint);
 
-    if (Type == 9 && SubType == 1) return(EntityItem::WaypointSlow);
-    if (Type == 9 && SubType == 2) return(EntityItem::WaypointFuel);
-    if (Type == 9 && SubType == 3) return(EntityItem::WaypointAmmo);
-    if (Type == 9 && SubType == 4) return(EntityItem::WaypointShield);
-    if (Type == 9 && SubType == 6) return(EntityItem::WaypointShortcut);
-    if (Type == 9 && SubType == 7) return(EntityItem::WaypointSpecial1);
-    if (Type == 9 && SubType == 8) return(EntityItem::WaypointSpecial2);
-    if (Type == 9 && SubType == 9) return(EntityItem::WaypointFast);
-    if (Type == 9 && SubType == 10) return(EntityItem::WaypointSpecial3);
+    if (Type == 2 && SubType == 1) return(Entity::EntityType::ExplosionParticles); // see level 4
+    if (Type == 2 && SubType == 2) return(Entity::EntityType::DamageCraft);        // see level 8
+    if (Type == 2 && SubType == 3) return(Entity::EntityType::Explosion);
+    if (Type == 2 && SubType == 5) return(Entity::EntityType::SteamStrong);
+    if (Type == 2 && SubType == 7) return(Entity::EntityType::MorphSource2);
+    if (Type == 2 && SubType == 8) return(Entity::EntityType::SteamLight);
+    if (Type == 2 && SubType == 9) return(Entity::EntityType::MorphSource1);
+    if (Type == 2 && SubType == 16) return(Entity::EntityType::MorphOnce);
+    if (Type == 2 && SubType == 23) return(Entity::EntityType::MorphPermanent);
 
-    if (Type == 10 && SubType == 9) return(EntityItem::RecoveryTruck);
+    if (Type == 3 && SubType == 6) return(Entity::EntityType::Cone);
 
-    return(EntityItem::Unknown);
+    if (Type == 5 && SubType == 0) return(Entity::EntityType::UnknownShieldItem);
+    if (Type == 5 && SubType == 1) return(Entity::EntityType::UnknownItem);
+
+    if (Type == 5 && SubType == 2) return(Entity::EntityType::ExtraShield);
+    if (Type == 5 && SubType == 3) return(Entity::EntityType::ShieldFull);
+    if (Type == 5 && SubType == 4) return(Entity::EntityType::DoubleShield);
+    if (Type == 5 && SubType == 5) return(Entity::EntityType::ExtraAmmo);
+    if (Type == 5 && SubType == 6) return(Entity::EntityType::AmmoFull);
+    if (Type == 5 && SubType == 7) return(Entity::EntityType::DoubleAmmo);
+    if (Type == 5 && SubType == 8) return(Entity::EntityType::ExtraFuel);
+    if (Type == 5 && SubType == 9) return(Entity::EntityType::FuelFull);
+    if (Type == 5 && SubType == 10) return(Entity::EntityType::DoubleFuel);
+    if (Type == 5 && SubType == 11) return(Entity::EntityType::MinigunUpgrade);
+    if (Type == 5 && SubType == 12) return(Entity::EntityType::MissileUpgrade);
+    if (Type == 5 && SubType == 13) return(Entity::EntityType::BoosterUpgrade);
+
+    if (Type == 8 && SubType == 0) return(Entity::EntityType::TriggerCraft);
+    if (Type == 8 && SubType == 1) return(Entity::EntityType::TriggerTimed);
+    if (Type == 8 && SubType == 3) return(Entity::EntityType::TriggerRocket);
+
+    if (Type == 9 && SubType == 0) return(Entity::EntityType::WallSegment);
+
+    if (Type == 9 && SubType == 1) return(Entity::EntityType::WaypointSlow);
+    if (Type == 9 && SubType == 2) return(Entity::EntityType::WaypointFuel);
+    if (Type == 9 && SubType == 3) return(Entity::EntityType::WaypointAmmo);
+    if (Type == 9 && SubType == 4) return(Entity::EntityType::WaypointShield);
+    if (Type == 9 && SubType == 6) return(Entity::EntityType::WaypointShortcut);
+    if (Type == 9 && SubType == 7) return(Entity::EntityType::WaypointSpecial1);
+    if (Type == 9 && SubType == 8) return(Entity::EntityType::WaypointSpecial2);
+    if (Type == 9 && SubType == 9) return(Entity::EntityType::WaypointFast);
+    if (Type == 9 && SubType == 10) return(Entity::EntityType::WaypointSpecial3);
+
+    if (Type == 10 && SubType == 9) return(Entity::EntityType::RecoveryTruck);
+
+    return(Entity::EntityType::Unknown);
+}
+
+void EntityItem::revIdentify(Entity::EntityType newEntityType, int8_t &newType, int8_t &newSubType) {
+   switch (newEntityType) {
+       case Entity::EntityType::Checkpoint: {
+           newType = 1; newSubType = 5; break;
+       }
+
+       case Entity::EntityType::ExplosionParticles: {   // see level 4
+               newType = 2; newSubType = 1; break;
+           }
+
+       case Entity::EntityType::DamageCraft: {   // see level 8
+               newType = 2; newSubType = 2; break;
+           }
+
+       case Entity::EntityType::Explosion: {
+               newType = 2; newSubType = 3; break;
+           }
+
+       case Entity::EntityType::SteamStrong: {
+               newType = 2; newSubType = 5; break;
+           }
+
+       case Entity::EntityType::MorphSource2: {
+               newType = 2; newSubType = 7; break;
+           }
+
+       case Entity::EntityType::SteamLight: {
+               newType = 2; newSubType = 8; break;
+           }
+
+       case Entity::EntityType::MorphSource1: {
+               newType = 2; newSubType = 9; break;
+           }
+
+       case Entity::EntityType::MorphOnce: {
+               newType = 2; newSubType = 16; break;
+           }
+
+       case Entity::EntityType::MorphPermanent: {
+               newType = 2; newSubType = 23; break;
+           }
+
+       case Entity::EntityType::Cone: {
+               newType = 3; newSubType = 6; break;
+           }
+
+       case Entity::EntityType::UnknownShieldItem: {
+               newType = 5; newSubType = 0; break;
+           }
+
+       case Entity::EntityType::UnknownItem: {
+               newType = 5; newSubType = 1; break;
+           }
+
+       case Entity::EntityType::ExtraShield: {
+               newType = 5; newSubType = 2; break;
+           }
+
+       case Entity::EntityType::ShieldFull: {
+               newType = 5; newSubType = 3; break;
+           }
+
+       case Entity::EntityType::DoubleShield: {
+               newType = 5; newSubType = 4; break;
+           }
+
+       case Entity::EntityType::ExtraAmmo: {
+               newType = 5; newSubType = 5; break;
+           }
+
+       case Entity::EntityType::AmmoFull: {
+               newType = 5; newSubType = 6; break;
+           }
+
+       case Entity::EntityType::DoubleAmmo: {
+               newType = 5; newSubType = 7; break;
+           }
+
+       case Entity::EntityType::ExtraFuel: {
+               newType = 5; newSubType = 8; break;
+           }
+
+       case Entity::EntityType::FuelFull: {
+               newType = 5; newSubType = 9; break;
+           }
+
+       case Entity::EntityType::DoubleFuel: {
+               newType = 5; newSubType = 10; break;
+           }
+
+       case Entity::EntityType::MinigunUpgrade: {
+               newType = 5; newSubType = 11; break;
+           }
+
+       case Entity::EntityType::MissileUpgrade: {
+               newType = 5; newSubType = 12; break;
+           }
+
+       case Entity::EntityType::BoosterUpgrade: {
+               newType = 5; newSubType = 13; break;
+           }
+
+       case Entity::EntityType::TriggerCraft: {
+               newType = 8; newSubType = 0; break;
+           }
+
+       case Entity::EntityType::TriggerTimed: {
+               newType = 8; newSubType = 1; break;
+           }
+
+       case Entity::EntityType::TriggerRocket: {
+               newType = 8; newSubType = 3; break;
+           }
+
+       case Entity::EntityType::WallSegment: {
+               newType = 9; newSubType = 0; break;
+           }
+
+       case Entity::EntityType::WaypointSlow: {
+               newType = 9; newSubType = 1; break;
+           }
+
+       case Entity::EntityType::WaypointFuel: {
+               newType = 9; newSubType = 2; break;
+           }
+
+       case Entity::EntityType::WaypointAmmo: {
+               newType = 9; newSubType = 3; break;
+           }
+
+       case Entity::EntityType::WaypointShield: {
+               newType = 9; newSubType = 4; break;
+           }
+
+       case Entity::EntityType::WaypointShortcut: {
+               newType = 9; newSubType = 6; break;
+           }
+
+       case Entity::EntityType::WaypointSpecial1: {
+               newType = 9; newSubType = 7; break;
+           }
+
+       case Entity::EntityType::WaypointSpecial2: {
+               newType = 9; newSubType = 8; break;
+           }
+
+       case Entity::EntityType::WaypointFast: {
+               newType = 9; newSubType = 9; break;
+           }
+
+       case Entity::EntityType::WaypointSpecial3: {
+               newType = 9; newSubType = 10; break;
+           }
+
+       case Entity::EntityType::RecoveryTruck: {
+               newType = 10; newSubType = 9; break;
+           }
+
+       default: {
+           break;
+       }
+   }
 }
 
 bool EntityItem::WriteChanges() {
-   return(false);
+    //first get levelfile type
+    //and subtype back
+    int8_t type;
+    int8_t subtype;
+
+    revIdentify(mEntityType, type, subtype);
+
+    //store type again
+    this->m_wBytes.at(0) = (unsigned char)(type);
+
+    //store subType again
+    this->m_wBytes.at(1) = (unsigned char)(subtype);
+
+    //store group data again
+    ConvertAndWriteInt16ToByteArray(mGroup, this->m_wBytes, 2);
+
+    //store target group data again
+    ConvertAndWriteInt16ToByteArray(mTargetGroup, this->m_wBytes, 4);
+
+    //store nextID information
+    ConvertAndWriteInt16ToByteArray(mNextId, this->m_wBytes, 12);
+
+    //store value again
+    ConvertAndWriteInt16ToByteArray(mValue, this->m_wBytes, 14);
+
+    //store X, Z coordinates again
+    //Y information (height) does not seem to be stored for entities;
+    // I believe inside the game works mostly 2D (flat) for entities, collision
+    // detection, waypoint calculations etc...
+    irr::core::vector3df vecHlp(0.0f, /*-DEF_SEGMENTSIZE * 0.5f*/ DEF_SEGMENTSIZE * 0.5f, 0.0f /*DEF_SEGMENTSIZE * 0.5f*/);
+    irr::core::vector3df vecHlp2 =  mCenter - vecHlp;
+
+    //we also need to swap X coordinate again
+    //because my Irrlicht coordinate system is mirrored/swapped
+    //compared to HiOctane level file
+    float newX = (int)(-vecHlp2.X); //- (DEF_SEGMENTSIZE * 0.5f);
+    float newZ = (int)(vecHlp2.Z);  //- (DEF_SEGMENTSIZE * 0.5f);
+
+    //convert X information to bytes
+    ConvertAndWriteFloatToByteArray(newX, this->m_wBytes, 16);
+
+    //convert Z information to bytes
+    ConvertAndWriteFloatToByteArray(newZ, this->m_wBytes, 18);
+
+    //convert XOffset information to bytes
+    ConvertAndWriteFloatToByteArray(mOffsetX, this->m_wBytes, 20, true);
+
+    //convert YOffset information to bytes
+    ConvertAndWriteFloatToByteArray(mOffsetY, this->m_wBytes, 22, true);
+
+    return true;
 }

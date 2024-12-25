@@ -13,6 +13,7 @@
 #include <irrlicht/irrlicht.h>
 #include "player.h"
 #include "../audio/sound.h"
+#include "../models/explauncher.h"
 
 class Player; //Forwards declaration
 class MissileLauncher; //Forwards declaration

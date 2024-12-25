@@ -14,7 +14,7 @@
 
 #include "mapentry.h"
 
-MapEntry::MapEntry(int x, int z, int offset, std::vector<unsigned char> bytes, std::vector<ColumnDefinition*> columnDefinitions) {
+MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::vector<ColumnDefinition*> columnDefinitions) {
     this->m_X = x;
     this->m_Z = z;
 
@@ -26,9 +26,7 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<unsigned char> bytes, s
     this->m_wBytes.resize(this->m_Bytes.size());
     std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
-  //original line  this->m_Height = (((float)(bytes.at(2))) / 255.0f) + (float)(bytes.at(3));
-
-    this->m_Height = (((float)(bytes.at(2))) / 255.0f) + (float)(bytes.at(3));
+    this->m_Height = (((float)(bytes.at(2))) / 256.0f) + (float)(bytes.at(3));
 
     int16_t cid = ConvertByteArray_ToInt16(bytes, 4);
 
@@ -76,15 +74,18 @@ void MapEntry::set_Z(int new_Z) {
 
 bool MapEntry::WriteChanges() {
     //convert height information to bytes
-    unsigned char div = (unsigned char)(this->m_Height / 255.0f);
+    /*unsigned char div = (unsigned char)(this->m_Height / 255.0f);
     float remainder = (this->m_Height - float(div));
     unsigned char rem = (unsigned char)(remainder);
 
     this->m_wBytes.at(2) = div;
-    this->m_wBytes.at(3) = rem;
+    this->m_wBytes.at(3) = rem;*/
+
+    //convert height information to bytes
+    ConvertAndWriteFloatToByteArray(this->m_Height, this->m_wBytes, 2);
 
     ConvertAndWriteInt16ToByteArray(m_TextureId, this->m_wBytes, 4);
-    this->m_wBytes.at(10) = (unsigned char)(this->m_TextureModification << 4);
+    this->m_wBytes.at(10) = (uint8_t)(this->m_TextureModification << 4);
 
     return true;
 }

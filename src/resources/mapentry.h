@@ -15,21 +15,19 @@
 #ifndef MAPENTRY_H
 #define MAPENTRY_H
 
-#include <vector>
 #include "tableitem.h"
 #include "columndefinition.h"
 #include "../utils/crc32.h"
-#include <cstdint>
 #include <iostream>
 
 class MapEntry:public TableItem {
 public:
-    MapEntry(int x, int z, int offset, std::vector<unsigned char> bytes, std::vector<ColumnDefinition*> columnDefinitions);
+    MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::vector<ColumnDefinition*> columnDefinitions);
     virtual ~MapEntry();
 
     float m_Height;
-    int m_TextureId;
-    int m_TextureModification;
+    int16_t m_TextureId;
+    int8_t m_TextureModification;
 
    // ColumnDefinition Column { get; private set; }
     int get_X();

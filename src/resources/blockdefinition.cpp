@@ -14,10 +14,24 @@
 
 #include "blockdefinition.h"
 
-BlockDefinition::BlockDefinition(int id, int offset, std::vector<unsigned char> bytes)  {
+BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)  {
    this->m_ID = id;
    this->m_Bytes = bytes;
    this->m_Offset = offset;
+
+   mN = decode_N();
+   mE = decode_E();
+   mS = decode_S();
+   mW = decode_W();
+   mT = decode_T();
+   mB = decode_B();
+
+   mNMod = decode_NMod();
+   mEMod = decode_EMod();
+   mSMod = decode_SMod();
+   mWMod = decode_WMod();
+   mTMod = decode_TMod();
+   mBMod = decode_BMod();
 
    //for debugging of level saving, comment out later
    this->m_wBytes.resize(this->m_Bytes.size());
@@ -28,113 +42,223 @@ BlockDefinition::~BlockDefinition() {
 }
 
 bool BlockDefinition::WriteChanges() {
-   return(false);
+   save_N(mN);
+   save_E(mE);
+   save_S(mS);
+   save_W(mW);
+   save_T(mT);
+   save_B(mB);
+
+   save_NMod(mNMod);
+   save_EMod(mEMod);
+   save_SMod(mSMod);
+   save_WMod(mWMod);
+   save_TMod(mTMod);
+   save_BMod(mBMod);
+
+   return(true);
 }
 
-int BlockDefinition::get_N() {
+uint8_t BlockDefinition::decode_N() {
    return(m_Bytes.at(0));
 }
 
-int BlockDefinition::get_E() {
+uint8_t BlockDefinition::decode_E() {
    return(m_Bytes.at(1));
 }
 
-int BlockDefinition::get_S() {
+uint8_t BlockDefinition::decode_S() {
    return(m_Bytes.at(2));
 }
 
-int BlockDefinition::get_W() {
+uint8_t BlockDefinition::decode_W() {
    return(m_Bytes.at(3));
 }
 
-int BlockDefinition::get_T() {
+uint8_t BlockDefinition::decode_T() {
     return(m_Bytes.at(4));
 }
 
-int BlockDefinition::get_B() {
+uint8_t BlockDefinition::decode_B() {
     return(m_Bytes.at(5));
 }
 
-int BlockDefinition::NMod() {
+uint8_t BlockDefinition::decode_NMod() {
     return(m_Bytes.at(6));
 }
 
-int BlockDefinition::EMod() {
+uint8_t BlockDefinition::decode_EMod() {
     return(m_Bytes.at(7));
 }
 
-int BlockDefinition::SMod() {
+uint8_t BlockDefinition::decode_SMod() {
     return(m_Bytes.at(8));
 }
 
-int BlockDefinition::WMod() {
+uint8_t BlockDefinition::decode_WMod() {
     return(m_Bytes.at(9));
 }
 
-int BlockDefinition::TMod() {
+uint8_t BlockDefinition::decode_TMod() {
     return(m_Bytes.at(10));
 }
 
-int BlockDefinition::BMod() {
+uint8_t BlockDefinition::decode_BMod() {
     return(m_Bytes.at(11));
 }
 
 void BlockDefinition::set_N(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(0) = (unsigned char)(inVal & 0x00FF);
+  mN = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::set_E(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(1) = (unsigned char)(inVal & 0x00FF);
+  mE = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::set_S(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(2) = (unsigned char)(inVal & 0x00FF);
+  mS = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::set_W(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(3) = (unsigned char)(inVal & 0x00FF);
+  mW = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::set_T(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(4) = (unsigned char)(inVal & 0x00FF);
+  mT = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::set_B(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(5) = (unsigned char)(inVal & 0x00FF);
+  mB = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::setNMod(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(6) = (unsigned char)(inVal & 0x00FF);
+  mNMod = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::setEMod(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(7) = (unsigned char)(inVal & 0x00FF);
+  mEMod = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::setSMod(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(8) = (unsigned char)(inVal & 0x00FF);
+  mSMod = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::setWMod(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(9) = (unsigned char)(inVal & 0x00FF);
+  mWMod = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::setTMod(int newVal) {
-   uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(10) = (unsigned char)(inVal & 0x00FF);
+  mTMod = static_cast<uint8_t>(newVal);
 }
 
 void BlockDefinition::setBMod(int newVal) {
+  mBMod = static_cast<uint8_t>(newVal);
+}
+
+uint8_t BlockDefinition::get_N() {
+   return(mN);
+}
+
+uint8_t BlockDefinition::get_E() {
+   return(mE);
+}
+
+uint8_t BlockDefinition::get_S() {
+   return(mS);
+}
+
+uint8_t BlockDefinition::get_W() {
+   return(mW);
+}
+
+uint8_t BlockDefinition::get_T() {
+    return(mT);
+}
+
+uint8_t BlockDefinition::get_B() {
+    return(mB);
+}
+
+uint8_t BlockDefinition::NMod() {
+    return(mNMod);
+}
+
+uint8_t BlockDefinition::EMod() {
+    return(mEMod);
+}
+
+uint8_t BlockDefinition::SMod() {
+    return(mSMod);
+}
+
+uint8_t BlockDefinition::WMod() {
+    return(mWMod);
+}
+
+uint8_t BlockDefinition::TMod() {
+    return(mTMod);
+}
+
+uint8_t BlockDefinition::BMod() {
+    return(mBMod);
+}
+
+void BlockDefinition::save_N(int newVal) {
    uint16_t inVal = static_cast<uint16_t>(newVal);
-   this->m_wBytes.at(11) = (unsigned char)(inVal & 0x00FF);
+   this->m_wBytes.at(0) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_E(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(1) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_S(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(2) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_W(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(3) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_T(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(4) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_B(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(5) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_NMod(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(6) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_EMod(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(7) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_SMod(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(8) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_WMod(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(9) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_TMod(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(10) = (uint8_t)(inVal & 0x00FF);
+}
+
+void BlockDefinition::save_BMod(int newVal) {
+   uint16_t inVal = static_cast<uint16_t>(newVal);
+   this->m_wBytes.at(11) = (uint8_t)(inVal & 0x00FF);
 }

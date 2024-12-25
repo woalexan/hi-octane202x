@@ -19,37 +19,22 @@
 #ifndef RACE_H
 #define RACE_H
 
-#include <irrlicht/irrlicht.h>
-#include "resources/entityitem.h"
-#include <list>
-#include "models/morph.h"
-#include "definitions.h"
-#include "models/collectable.h"
 #include "models/cone.h"
+#include "models/morph.h"
 #include "models/recovery.h"
-#include "models/column.h"
 #include "draw/drawdebug.h"
 #include "models/player.h"
-#include "draw/hud.h"
 #include "draw/gametext.h"
 #include "input/input.h"
-#include <algorithm>
-#include "models/particle.h"
 #include "audio/music.h"
 #include "audio/sound.h"
 #include "utils/worldaware.h"
-#include "utils/fileutils.h"
 #include "utils/tprofile.h"
-#include "models/explosion.h"
-#include "utils/bezier.h"
 #include "utils/path.h"
 #include "game.h"
+#include "models/explauncher.h"
 
 using namespace std;
-
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
-}
 
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
@@ -86,7 +71,6 @@ class Player; //Forward declaration
 class HUD; //Forward declaration
 class WorldAwareness; //Forward declaration
 class SteamFountain; //Forward declaration
-class ExplosionLauncher; //Forward declaration
 class LevelTerrain; //Forward declaration
 class LevelBlocks; //Forward declaration
 class Physics; //Forward declaration
@@ -96,6 +80,8 @@ class Bezier; //Forward declaration
 class Path; //Forward declaration
 struct CheckPointInfoStruct; //Forward declaration
 class Game; //Forward declaration
+struct WayPointLinkInfoStruct; //Forward declaration
+class ExplosionLauncher;  //Forward declaration
 
 class Race {
 public:
@@ -331,7 +317,7 @@ private:
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = true;
     bool DebugShowWallCollisionMesh = false;
-    bool DebugShowCheckpoints = false;
+    bool DebugShowCheckpoints = true;
     bool DebugShowWallSegments = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);

@@ -50,20 +50,20 @@ Crc32::Crc32() {
     }
 }
 
-unsigned int Crc32::ComputeChecksum(std::vector<unsigned char> bytes) {
+unsigned int Crc32::ComputeChecksum(std::vector<uint8_t> bytes) {
   unsigned int crc = 0xffffffff;
   unsigned long len = bytes.size();
   unsigned char index;
 
   for (unsigned long i = 0; i < len; ++i) {
-        index = (unsigned char)(((crc) & 0xff) ^ bytes.at(i));
-        crc = (unsigned int)((crc >> 8) ^ m_table[index]);
+        index = (uint8_t)(((crc) & 0xff) ^ bytes.at(i));
+        crc = (uint8_t)((crc >> 8) ^ m_table[index]);
     }
 
   return ~crc;
 }
 
-int16_t ConvertByteArray_ToInt16(std::vector<unsigned char> bytes, unsigned int start_position) {
+int16_t ConvertByteArray_ToInt16(std::vector<uint8_t> bytes, unsigned int start_position) {
     int16_t result;
 
     result = static_cast<int16_t>((bytes.at(start_position+1) << 8) + bytes.at(start_position));
@@ -75,5 +75,19 @@ void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<unsigned char> 
 
     bytes.at(writeIndex+1) = static_cast<uint8_t>(inValue & 0xFF00) >> 8;
     bytes.at(writeIndex) = static_cast<uint8_t>(inValue & 0x00FF);
+}
+
+void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex, bool dividerHighByte) {
+    uint8_t div = static_cast<uint8_t>(inputValue / 256.0f);
+    float remainder = (inputValue - float(div));
+    uint8_t rem = static_cast<uint8_t>(remainder);
+
+    if (!dividerHighByte) {
+        bytes.at(writeIndex) = div;
+        bytes.at(writeIndex + 1) = rem;
+    } else {
+        bytes.at(writeIndex) = rem;
+        bytes.at(writeIndex + 1) = div;
+    }
 }
 

@@ -27,10 +27,6 @@
 #include "blockdefinition.h"
 #include <iostream>
 
-struct MyVector4 {
-    float w, x, y, z;
-};
-
 #define LEVELFILE_WIDTH 256
 #define LEVELFILE_HEIGHT 160
 
@@ -94,8 +90,8 @@ public:
 
     std::vector<ColumnsStruct> Columns;
 
-    std::vector<unsigned char> unknownTable247264Data;
-    std::vector<unsigned char> unknownTable358222Data;
+    std::vector<uint8_t> unknownTable247264Data;
+    std::vector<uint8_t> unknownTable358222Data;
 
     bool SaveUnknownTableOffset247264();
     bool SaveUnknownTableOffset358222();
@@ -114,7 +110,7 @@ protected:
      std::string m_Name;
      bool m_Ready;
 
-     std::vector<unsigned char> m_bytes;
+     std::vector<uint8_t> m_bytes;
      bool loadEntitiesTable();
      bool loadBlockTexTable();
      bool loadColumnsTable();

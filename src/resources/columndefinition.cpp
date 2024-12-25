@@ -14,7 +14,7 @@
 
 #include "columndefinition.h"
 
-ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<unsigned char> bytes) {
+ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> bytes) {
   this->m_ID = id;
   this->m_Bytes = bytes;
   this->m_Offset = offset;
@@ -99,7 +99,7 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<unsigned char
 ColumnDefinition::~ColumnDefinition() {
 }
 
-unsigned char ColumnDefinition::get_Shape() {
+uint8_t ColumnDefinition::get_Shape() {
     return this->m_Bytes.at(0);
 }
 
@@ -111,51 +111,51 @@ void ColumnDefinition::set_Blocks(std::vector<int> new_blocks) {
     this->m_Blocks = new_blocks;
 }
 
-int ColumnDefinition::get_FloorTextureID() {
+int16_t ColumnDefinition::get_FloorTextureID() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 2);
 }
 
-int ColumnDefinition::get_Unknown1() {
+int16_t ColumnDefinition::get_Unknown1() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 4);
 }
 
-int ColumnDefinition::get_A() {
+int16_t ColumnDefinition::get_A() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 6);
 }
 
-int ColumnDefinition::get_B() {
+int16_t ColumnDefinition::get_B() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 8);
 }
 
-int ColumnDefinition::get_C() {
+int16_t ColumnDefinition::get_C() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 10);
 }
 
-int ColumnDefinition::get_D() {
+int16_t ColumnDefinition::get_D() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 12);
 }
 
-int ColumnDefinition::get_E() {
+int16_t ColumnDefinition::get_E() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 14);
 }
 
-int ColumnDefinition::get_F() {
+int16_t ColumnDefinition::get_F() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 16);
 }
 
-int ColumnDefinition::get_G() {
+int16_t ColumnDefinition::get_G() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 18);
 }
 
-int ColumnDefinition::get_H() {
+int16_t ColumnDefinition::get_H() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 20);
 }
 
-int ColumnDefinition::get_Unknown2() {
+int16_t ColumnDefinition::get_Unknown2() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 22);
 }
 
-int ColumnDefinition::get_Unknown3() {
+int16_t ColumnDefinition::get_Unknown3() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 24);
 }
 
@@ -164,51 +164,51 @@ void ColumnDefinition::set_Shape(unsigned char newVal) {
     this->m_wBytes.at(0) = newVal;
 }
 
-void ColumnDefinition::set_FloorTextureID(int newVal) {
+void ColumnDefinition::set_FloorTextureID(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 2);
 }
 
-void ColumnDefinition::set_Unknown1(int newVal) {
+void ColumnDefinition::set_Unknown1(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 4);
 }
 
-void ColumnDefinition::set_A(int newVal) {
+void ColumnDefinition::set_A(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 6);
 }
 
-void ColumnDefinition::set_B(int newVal) {
+void ColumnDefinition::set_B(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 8);
 }
 
-void ColumnDefinition::set_C(int newVal) {
+void ColumnDefinition::set_C(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 10);
 }
 
-void ColumnDefinition::set_D(int newVal) {
+void ColumnDefinition::set_D(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 12);
 }
 
-void ColumnDefinition::set_E(int newVal) {
+void ColumnDefinition::set_E(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 14);
 }
 
-void ColumnDefinition::set_F(int newVal) {
+void ColumnDefinition::set_F(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 16);
 }
 
-void ColumnDefinition::set_G(int newVal) {
+void ColumnDefinition::set_G(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 18);
 }
 
-void ColumnDefinition::set_H(int newVal) {
+void ColumnDefinition::set_H(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 20);
 }
 
-void ColumnDefinition::set_Unknown2(int newVal) {
+void ColumnDefinition::set_Unknown2(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 22);
 }
 
-void ColumnDefinition::set_Unknown3(int newVal) {
+void ColumnDefinition::set_Unknown3(int16_t newVal) {
    ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 24);
 }
 

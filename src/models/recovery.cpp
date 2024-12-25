@@ -15,8 +15,7 @@ Recovery::Recovery(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager
 
     mCurrentState = STATE_RECOVERY_IDLE;
 
-    //my Irrlicht coordinate system is swapped at the x axis; correct this issue
-    mPosition.X = -x;
+    mPosition.X = x;
     mPosition.Y = y;
     mPosition.Z = z;
 
@@ -119,10 +118,7 @@ void Recovery::Update(irr::f32 deltaTime) {
                     mPlayerDropOfDirVecFound = true;
                 }
 
-                this->mPlayerDropOfPosition = closestWayPoint->get_Pos();
-
-                //x-coord is mirrored in my project compared with level file data
-                this->mPlayerDropOfPosition.X = -this->mPlayerDropOfPosition.X;
+                this->mPlayerDropOfPosition = closestWayPoint->getCenter();
             }
 
             irr::core::vector2di cellOut;
