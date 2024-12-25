@@ -21,6 +21,7 @@
 #include <fstream>
 #include <iterator>
 #include <list>
+#include <algorithm>
 #include "mapentry.h"
 #include "entityitem.h"
 #include "../utils/crc32.h"
@@ -90,8 +91,63 @@ public:
 
     std::vector<ColumnsStruct> Columns;
 
-    std::vector<uint8_t> unknownTable247264Data;
-    std::vector<uint8_t> unknownTable358222Data;
+    //table starts at 0x00000000 offset until 0x0000000f offset, and is 16 bytes long
+    std::vector<uint8_t> unknownTable0Data;
+
+    //table starts at 0x00017700 offset until 0x00017eff offset, and is 2048 bytes long
+    std::vector<uint8_t> unknownTable96000Data;
+
+    //table starts at 0x000226d0 offset until 0x0002271f offset, and is 80 bytes long
+    std::vector<uint8_t> unknownTable141008Data;
+
+    //table starts at 0x00023030 offset until 0x0002306f offset, and is 64 bytes long
+    std::vector<uint8_t> unknownTable143408Data;
+
+    //table starts at 0x00023990 offset until 0x000239cf  offset, and is 64 bytes long
+    std::vector<uint8_t> unknownTable145808Data;
+
+    //table starts at 0x000242e0 offset until 0x0002431f offset,  and is 64 bytes long
+    std::vector<uint8_t> unknownTable148192Data;
+
+    //table starts at 0x00024c40 offset until 0x00024c7f offset,  and is 64 bytes long
+    std::vector<uint8_t> unknownTable150592Data;
+
+    //table starts at 0x00025590 offset until 0x000255cf offset,  and is 64 bytes long
+    std::vector<uint8_t> unknownTable152976Data;
+
+    //table starts at 0x00025ef0 offset until 0x00025f2f offset, and is 64 bytes long
+    std::vector<uint8_t> unknownTable155376Data;
+
+    //table starts at 0x00026840 offset until 0x0002687f offset, and is 64 bytes long
+    std::vector<uint8_t> unknownTable157760Data;
+
+    //table starts at 0x000271a0 offset until 0x000271bf offset, and is 32 bytes long
+    std::vector<uint8_t> unknownTable160160Data;
+
+    std::vector<uint8_t> unknownTable247264Data;  //this table has 340 bytes (contains region definitions)
+
+    //table starts at 0x00047500 offset until 0x0004757f offset, and is 128 bytes long
+    std::vector<uint8_t> unknownTable292096Data;
+
+    //table starts at 0x00056a20 offset until 0x00056a8f offset, and is 112 bytes long
+    std::vector<uint8_t> unknownTable354848Data;
+
+    //table starts at 0x00056b20 offset until 0x00056b7f offset, and is 96 bytes long
+    std::vector<uint8_t> unknownTable355104Data;
+
+    //table starts at 0x00056c20 offset until 0x00056c9f offset, and is 128 bytes long
+    std::vector<uint8_t> unknownTable355360Data;
+
+    //table starts at 0x00057520 offset until 0x0005772f offset, and is 528 bytes long
+    std::vector<uint8_t> unknownTable357664Data;
+
+    //table starts at 0x000586e0 offset until 0x0005966f offset, and is 3984 bytes long
+    std::vector<uint8_t> unknownTable362208Data;
+
+    std::vector<uint8_t> unknownTable358222Data; //this table has 2704 bytes (unknown contents)
+
+    //table starts at 0x00062310 offset until 0x000625bf offset, and is 688 bytes long
+    std::vector<uint8_t> unknownTable402192Data;
 
     bool SaveUnknownTableOffset247264();
     bool SaveUnknownTableOffset358222();
@@ -111,6 +167,12 @@ protected:
      bool m_Ready;
 
      std::vector<uint8_t> m_bytes;
+
+     //for debugging of level write and
+     //modification function, disable later
+     //to save much memory
+     std::vector<uint8_t> m_wBytes;
+
      bool loadEntitiesTable();
      bool loadBlockTexTable();
      bool loadColumnsTable();
@@ -118,9 +180,31 @@ protected:
 
      bool loadMapRegions();
      bool loadUnknownTableOffset358222();
+     bool loadUnknownTableOffset0();
+     bool loadUnknownTableOffset96000();
+     bool loadUnknownTableOffset402192();
+     bool loadUnknownTableOffset362208();
+     bool loadUnknownTableOffset357664();
+     bool loadUnknownTableOffset355360();
+     bool loadUnknownTableOffset355104();
+     bool loadUnknownTableOffset354848();
+     bool loadUnknownTableOffset292096();
+     bool loadUnknownTableOffset160160();
+     bool loadUnknownTableOffset157760();
+     bool loadUnknownTableOffset155376();
+     bool loadUnknownTableOffset141008();
+     bool loadUnknownTableOffset143408();
+     bool loadUnknownTableOffset145808();
+     bool loadUnknownTableOffset148192();
+     bool loadUnknownTableOffset150592();
+     bool loadUnknownTableOffset152976();
 
      //for levelEditor functionality
      bool saveBlockTexTable();
+     bool saveEntitiesTable();
+     bool saveColumnsTable();
+     bool saveMap();
+     bool saveUnknownTables();
 };
 
 #endif // LEVELFILE_H

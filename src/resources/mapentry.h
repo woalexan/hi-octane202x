@@ -39,11 +39,17 @@ public:
 
     bool WriteChanges() override;
 
+    int16_t mPointOfInterest;
+
+    int16_t mUnknown1;
+    int16_t mUnknown2;
+    int8_t mUnknown3;
+
 protected:
     int m_X;
     int m_Z;
 
-    ColumnDefinition* m_Column;
+    ColumnDefinition* m_Column = NULL;
 };
 
 #endif // MAPENTRY_H

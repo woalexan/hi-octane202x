@@ -18,6 +18,7 @@
 #include "tableitem.h"
 #include <vector>
 #include <cstdint>
+#include "../utils/crc32.h"
 
 class BlockDefinition : public TableItem {
 public:
@@ -70,6 +71,9 @@ private:
     uint8_t mTMod;
     uint8_t mBMod;
 
+    int16_t mUnknown1;
+    int16_t mUnknown2;
+
     uint8_t decode_N();
     uint8_t decode_E();
     uint8_t decode_S();
@@ -97,7 +101,6 @@ private:
     void save_WMod(int newVal);
     void save_TMod(int newVal);
     void save_BMod(int newVal);
-
 };
 
 #endif // BLOCKDEFINITION_H

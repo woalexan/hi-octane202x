@@ -23,12 +23,40 @@ EntityItem::EntityItem(int id, int offset, std::vector<uint8_t> bytes) {
    this->m_wBytes.resize(this->m_Bytes.size());
    std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
-   this->mEntityType = this->identify();
+   //each EntityItem entry is 24 bytes long
+   //Byte 0:  Type
+   //Byte 1:  SubType
+   //Byte 2:  Group
+   //Byte 3:  Group
+   //Byte 4:  TargetGroup
+   //Byte 5:  TargetGroup
+   //Byte 6:  Unknown 1
+   //Byte 7:  Unknown 1
+   //Byte 8:  Unknown 2
+   //Byte 9:  Unknown 2
+   //Byte 10: Unknown 3
+   //Byte 11: Unknown 3
+   //Byte 12: NextID
+   //Byte 13: NextID
+   //Byte 14: Value
+   //Byte 15: Value
+   //Byte 16: X coord
+   //Byte 17: X coord
+   //Byte 18: Z coord (or Y whatever you want to call the 2nd coordinate in 2D map :) )
+   //Byte 19: Z coord (or Y whatever you want to call the 2nd coordinate in 2D map :) )
+   //Byte 20: OffsetX
+   //Byte 21: OffsetX
+   //Byte 22: OffsetY
+   //Byte 23: OffsetY
 
+   mRawType = getType();
+   mRawSubType = getSubType();
    mGroup = decodeGroup();
    mTargetGroup = decodeTargetGroup();
    mNextId = decodeNextID();
    mValue = decodeValue();
+
+   this->mEntityType = this->identify();
 
    mOffsetX = decodeOffsetX();
    mOffsetY = decodeOffsetY();
@@ -41,6 +69,11 @@ EntityItem::EntityItem(int id, int offset, std::vector<uint8_t> bytes) {
    //define my position
    irr::core::vector3df vecHlp(0.0f, /*-DEF_SEGMENTSIZE * 0.5f*/ DEF_SEGMENTSIZE * 0.5f, 0.0f /*DEF_SEGMENTSIZE * 0.5f*/);
    mCenter = this->getPos() + vecHlp;
+
+   //read unknown data
+   mUnknown1 = ConvertByteArray_ToInt16(bytes, 6);
+   mUnknown2 = ConvertByteArray_ToInt16(bytes, 8);
+   mUnknown3 = ConvertByteArray_ToInt16(bytes, 10);
 }
 
 EntityItem::~EntityItem() {
@@ -204,56 +237,53 @@ void EntityItem::setEntityType(Entity::EntityType newEntityType) {
 }
 
 Entity::EntityType EntityItem::identify() {
-    int8_t Type = this->getType();
-    int8_t SubType = this->getSubType();
+    if (mRawType == 1 && mRawSubType == 5) return(Entity::EntityType::Checkpoint);
 
-    if (Type == 1 && SubType == 5) return(Entity::EntityType::Checkpoint);
+    if (mRawType == 2 && mRawSubType == 1) return(Entity::EntityType::ExplosionParticles); // see level 4
+    if (mRawType == 2 && mRawSubType == 2) return(Entity::EntityType::DamageCraft);        // see level 8
+    if (mRawType == 2 && mRawSubType == 3) return(Entity::EntityType::Explosion);
+    if (mRawType == 2 && mRawSubType == 5) return(Entity::EntityType::SteamStrong);
+    if (mRawType == 2 && mRawSubType == 7) return(Entity::EntityType::MorphSource2);
+    if (mRawType == 2 && mRawSubType == 8) return(Entity::EntityType::SteamLight);
+    if (mRawType == 2 && mRawSubType == 9) return(Entity::EntityType::MorphSource1);
+    if (mRawType == 2 && mRawSubType == 16) return(Entity::EntityType::MorphOnce);
+    if (mRawType == 2 && mRawSubType == 23) return(Entity::EntityType::MorphPermanent);
 
-    if (Type == 2 && SubType == 1) return(Entity::EntityType::ExplosionParticles); // see level 4
-    if (Type == 2 && SubType == 2) return(Entity::EntityType::DamageCraft);        // see level 8
-    if (Type == 2 && SubType == 3) return(Entity::EntityType::Explosion);
-    if (Type == 2 && SubType == 5) return(Entity::EntityType::SteamStrong);
-    if (Type == 2 && SubType == 7) return(Entity::EntityType::MorphSource2);
-    if (Type == 2 && SubType == 8) return(Entity::EntityType::SteamLight);
-    if (Type == 2 && SubType == 9) return(Entity::EntityType::MorphSource1);
-    if (Type == 2 && SubType == 16) return(Entity::EntityType::MorphOnce);
-    if (Type == 2 && SubType == 23) return(Entity::EntityType::MorphPermanent);
+    if (mRawType == 3 && mRawSubType == 6) return(Entity::EntityType::Cone);
 
-    if (Type == 3 && SubType == 6) return(Entity::EntityType::Cone);
+    if (mRawType == 5 && mRawSubType == 0) return(Entity::EntityType::UnknownShieldItem);
+    if (mRawType == 5 && mRawSubType == 1) return(Entity::EntityType::UnknownItem);
 
-    if (Type == 5 && SubType == 0) return(Entity::EntityType::UnknownShieldItem);
-    if (Type == 5 && SubType == 1) return(Entity::EntityType::UnknownItem);
+    if (mRawType == 5 && mRawSubType == 2) return(Entity::EntityType::ExtraShield);
+    if (mRawType == 5 && mRawSubType == 3) return(Entity::EntityType::ShieldFull);
+    if (mRawType == 5 && mRawSubType == 4) return(Entity::EntityType::DoubleShield);
+    if (mRawType == 5 && mRawSubType == 5) return(Entity::EntityType::ExtraAmmo);
+    if (mRawType == 5 && mRawSubType == 6) return(Entity::EntityType::AmmoFull);
+    if (mRawType == 5 && mRawSubType == 7) return(Entity::EntityType::DoubleAmmo);
+    if (mRawType == 5 && mRawSubType == 8) return(Entity::EntityType::ExtraFuel);
+    if (mRawType == 5 && mRawSubType == 9) return(Entity::EntityType::FuelFull);
+    if (mRawType == 5 && mRawSubType == 10) return(Entity::EntityType::DoubleFuel);
+    if (mRawType == 5 && mRawSubType == 11) return(Entity::EntityType::MinigunUpgrade);
+    if (mRawType == 5 && mRawSubType == 12) return(Entity::EntityType::MissileUpgrade);
+    if (mRawType == 5 && mRawSubType == 13) return(Entity::EntityType::BoosterUpgrade);
 
-    if (Type == 5 && SubType == 2) return(Entity::EntityType::ExtraShield);
-    if (Type == 5 && SubType == 3) return(Entity::EntityType::ShieldFull);
-    if (Type == 5 && SubType == 4) return(Entity::EntityType::DoubleShield);
-    if (Type == 5 && SubType == 5) return(Entity::EntityType::ExtraAmmo);
-    if (Type == 5 && SubType == 6) return(Entity::EntityType::AmmoFull);
-    if (Type == 5 && SubType == 7) return(Entity::EntityType::DoubleAmmo);
-    if (Type == 5 && SubType == 8) return(Entity::EntityType::ExtraFuel);
-    if (Type == 5 && SubType == 9) return(Entity::EntityType::FuelFull);
-    if (Type == 5 && SubType == 10) return(Entity::EntityType::DoubleFuel);
-    if (Type == 5 && SubType == 11) return(Entity::EntityType::MinigunUpgrade);
-    if (Type == 5 && SubType == 12) return(Entity::EntityType::MissileUpgrade);
-    if (Type == 5 && SubType == 13) return(Entity::EntityType::BoosterUpgrade);
+    if (mRawType == 8 && mRawSubType == 0) return(Entity::EntityType::TriggerCraft);
+    if (mRawType == 8 && mRawSubType == 1) return(Entity::EntityType::TriggerTimed);
+    if (mRawType == 8 && mRawSubType == 3) return(Entity::EntityType::TriggerRocket);
 
-    if (Type == 8 && SubType == 0) return(Entity::EntityType::TriggerCraft);
-    if (Type == 8 && SubType == 1) return(Entity::EntityType::TriggerTimed);
-    if (Type == 8 && SubType == 3) return(Entity::EntityType::TriggerRocket);
+    if (mRawType == 9 && mRawSubType == 0) return(Entity::EntityType::WallSegment);
 
-    if (Type == 9 && SubType == 0) return(Entity::EntityType::WallSegment);
+    if (mRawType == 9 && mRawSubType == 1) return(Entity::EntityType::WaypointSlow);
+    if (mRawType == 9 && mRawSubType == 2) return(Entity::EntityType::WaypointFuel);
+    if (mRawType == 9 && mRawSubType == 3) return(Entity::EntityType::WaypointAmmo);
+    if (mRawType == 9 && mRawSubType == 4) return(Entity::EntityType::WaypointShield);
+    if (mRawType == 9 && mRawSubType == 6) return(Entity::EntityType::WaypointShortcut);
+    if (mRawType == 9 && mRawSubType == 7) return(Entity::EntityType::WaypointSpecial1);
+    if (mRawType == 9 && mRawSubType == 8) return(Entity::EntityType::WaypointSpecial2);
+    if (mRawType == 9 && mRawSubType == 9) return(Entity::EntityType::WaypointFast);
+    if (mRawType == 9 && mRawSubType == 10) return(Entity::EntityType::WaypointSpecial3);
 
-    if (Type == 9 && SubType == 1) return(Entity::EntityType::WaypointSlow);
-    if (Type == 9 && SubType == 2) return(Entity::EntityType::WaypointFuel);
-    if (Type == 9 && SubType == 3) return(Entity::EntityType::WaypointAmmo);
-    if (Type == 9 && SubType == 4) return(Entity::EntityType::WaypointShield);
-    if (Type == 9 && SubType == 6) return(Entity::EntityType::WaypointShortcut);
-    if (Type == 9 && SubType == 7) return(Entity::EntityType::WaypointSpecial1);
-    if (Type == 9 && SubType == 8) return(Entity::EntityType::WaypointSpecial2);
-    if (Type == 9 && SubType == 9) return(Entity::EntityType::WaypointFast);
-    if (Type == 9 && SubType == 10) return(Entity::EntityType::WaypointSpecial3);
-
-    if (Type == 10 && SubType == 9) return(Entity::EntityType::RecoveryTruck);
+    if (mRawType == 10 && mRawSubType == 9) return(Entity::EntityType::RecoveryTruck);
 
     return(Entity::EntityType::Unknown);
 }
@@ -416,6 +446,12 @@ void EntityItem::revIdentify(Entity::EntityType newEntityType, int8_t &newType, 
                newType = 10; newSubType = 9; break;
            }
 
+       case Entity::EntityType::Unknown: {
+               //in case of an unknown/undefined entity we read
+               //put the raw type and subtype back into the file
+               newType = mRawType; newSubType = mRawSubType; break;
+       }
+
        default: {
            break;
        }
@@ -472,6 +508,11 @@ bool EntityItem::WriteChanges() {
 
     //convert YOffset information to bytes
     ConvertAndWriteFloatToByteArray(mOffsetY, this->m_wBytes, 22, true);
+
+    //write unknown data
+    ConvertAndWriteInt16ToByteArray(mUnknown1, this->m_wBytes, 6);
+    ConvertAndWriteInt16ToByteArray(mUnknown2, this->m_wBytes, 8);
+    ConvertAndWriteInt16ToByteArray(mUnknown3, this->m_wBytes, 10);
 
     return true;
 }

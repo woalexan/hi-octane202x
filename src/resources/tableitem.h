@@ -29,14 +29,14 @@ public:
 
     virtual bool WriteChanges();
 
+    //for debugging of level saving, comment out later
+    std::vector<uint8_t> m_wBytes;
+
  protected:
     int m_ID;
     int m_Offset;
 
     std::vector<uint8_t> m_Bytes;
-
-    //for debugging of level saving, comment out later
-    std::vector<uint8_t> m_wBytes;
 
     void set_ID(int newID);
     void set_Offset(int newOffset);

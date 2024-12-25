@@ -23,17 +23,50 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   this->m_wBytes.resize(this->m_Bytes.size());
   std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
-  /*std::vector<int> new_blocks;
+  //each columndefinition is 26 bytes long
+  //Byte 0:   Shape
+  //Byte 1:   Unknown4
+  //Byte 2:   Floor Texture ID
+  //Byte 3:   Floor Texture ID
+  //Byte 4:   Unknown1
+  //Byte 5:   Unknown1
+  //Byte 6:   A
+  //Byte 7:   A
+  //Byte 8:   B
+  //Byte 9:   B
+  //Byte 10:  C
+  //Byte 11:  C
+  //Byte 12:  D
+  //Byte 13:  D
+  //Byte 14:  E
+  //Byte 15:  E
+  //Byte 16:  F
+  //Byte 17:  F
+  //Byte 18:  G
+  //Byte 19:  G
+  //Byte 20:  H
+  //Byte 21:  H
+  //Byte 22:  Unknown2
+  //Byte 23:  Unknown2
+  //Byte 24:  Unknown3
+  //Byte 25:  Unknown3
 
-  new_blocks.clear();
-  new_blocks.push_back(this->get_A());
-  new_blocks.push_back(this->get_B());
-  new_blocks.push_back(this->get_C());
-  new_blocks.push_back(this->get_D());
-  new_blocks.push_back(this->get_E());
-  new_blocks.push_back(this->get_F());
-  new_blocks.push_back(this->get_G());
-  new_blocks.push_back(this->get_H());*/
+  mShape = decode_Shape();
+  mFloorTextureID = decode_FloorTextureID();
+
+  mA = decode_A();
+  mB = decode_B();
+  mC = decode_C();
+  mD = decode_D();
+  mE = decode_E();
+  mF = decode_F();
+  mG = decode_G();
+  mH = decode_H();
+
+  mUnknown1 = decode_Unknown1();
+  mUnknown2 = decode_Unknown2();
+  mUnknown3 = decode_Unknown3();
+  mUnknown4 = this->m_Bytes.at(1);
 
   //we start from lowest block of colum upwards
   //first collision is active, the first time we find a gap in the
@@ -100,127 +133,190 @@ ColumnDefinition::~ColumnDefinition() {
 }
 
 uint8_t ColumnDefinition::get_Shape() {
-    return this->m_Bytes.at(0);
-}
-
-std::vector<int> ColumnDefinition::get_Blocks() {
-    return(this->m_Blocks);
-}
-
-void ColumnDefinition::set_Blocks(std::vector<int> new_blocks) {
-    this->m_Blocks = new_blocks;
+    return mShape;
 }
 
 int16_t ColumnDefinition::get_FloorTextureID() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 2);
+   return mFloorTextureID;
 }
 
 int16_t ColumnDefinition::get_Unknown1() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 4);
+   return mUnknown1;
 }
 
 int16_t ColumnDefinition::get_A() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 6);
+   return mA;
 }
 
 int16_t ColumnDefinition::get_B() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 8);
+   return mB;
 }
 
 int16_t ColumnDefinition::get_C() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 10);
+   return mC;
 }
 
 int16_t ColumnDefinition::get_D() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 12);
+   return mD;
 }
 
 int16_t ColumnDefinition::get_E() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 14);
+   return mE;
 }
 
 int16_t ColumnDefinition::get_F() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 16);
+   return mF;
 }
 
 int16_t ColumnDefinition::get_G() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 18);
+   return mG;
 }
 
 int16_t ColumnDefinition::get_H() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 20);
+   return mH;
 }
 
 int16_t ColumnDefinition::get_Unknown2() {
-   return ConvertByteArray_ToInt16(this->m_Bytes, 22);
+   return mUnknown2;
 }
 
 int16_t ColumnDefinition::get_Unknown3() {
+   return mUnknown3;
+}
+
+uint8_t ColumnDefinition::decode_Shape() {
+    return this->m_Bytes.at(0);
+}
+
+int16_t ColumnDefinition::decode_FloorTextureID() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 2);
+}
+
+int16_t ColumnDefinition::decode_Unknown1() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 4);
+}
+
+int16_t ColumnDefinition::decode_A() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 6);
+}
+
+int16_t ColumnDefinition::decode_B() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 8);
+}
+
+int16_t ColumnDefinition::decode_C() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 10);
+}
+
+int16_t ColumnDefinition::decode_D() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 12);
+}
+
+int16_t ColumnDefinition::decode_E() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 14);
+}
+
+int16_t ColumnDefinition::decode_F() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 16);
+}
+
+int16_t ColumnDefinition::decode_G() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 18);
+}
+
+int16_t ColumnDefinition::decode_H() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 20);
+}
+
+int16_t ColumnDefinition::decode_Unknown2() {
+   return ConvertByteArray_ToInt16(this->m_Bytes, 22);
+}
+
+int16_t ColumnDefinition::decode_Unknown3() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 24);
 }
 
 //the following functions are for the LevelEditor functionality
-void ColumnDefinition::set_Shape(unsigned char newVal) {
-    this->m_wBytes.at(0) = newVal;
+void ColumnDefinition::set_Shape(uint8_t newVal) {
+   mShape = newVal;
 }
 
 void ColumnDefinition::set_FloorTextureID(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 2);
+   mFloorTextureID = newVal;
 }
 
 void ColumnDefinition::set_Unknown1(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 4);
+   mUnknown1 = newVal;
 }
 
 void ColumnDefinition::set_A(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 6);
+   mA = newVal;
 }
 
 void ColumnDefinition::set_B(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 8);
+   mB = newVal;
 }
 
 void ColumnDefinition::set_C(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 10);
+   mC = newVal;
 }
 
 void ColumnDefinition::set_D(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 12);
+   mD = newVal;
 }
 
 void ColumnDefinition::set_E(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 14);
+   mE = newVal;
 }
 
 void ColumnDefinition::set_F(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 16);
+   mF = newVal;
 }
 
 void ColumnDefinition::set_G(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 18);
+   mG = newVal;
 }
 
 void ColumnDefinition::set_H(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 20);
+   mH = newVal;
 }
 
 void ColumnDefinition::set_Unknown2(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 22);
+   mUnknown2 = newVal;
 }
 
 void ColumnDefinition::set_Unknown3(int16_t newVal) {
-   ConvertAndWriteInt16ToByteArray(newVal, this->m_wBytes, 24);
+   mUnknown3 = newVal;
 }
 
 bool ColumnDefinition::WriteChanges() {
-    this->set_A(this->m_Blocks.at(0));
-    this->set_B(this->m_Blocks.at(1));
-    this->set_C(this->m_Blocks.at(2));
-    this->set_D(this->m_Blocks.at(3));
-    this->set_E(this->m_Blocks.at(4));
-    this->set_F(this->m_Blocks.at(5));
-    this->set_G(this->m_Blocks.at(6));
-    this->set_H(this->m_Blocks.at(7));
+    //store shape
+    this->m_wBytes.at(0) = static_cast<uint8_t>(mShape);
+
+    //store FloorTextureID
+    ConvertAndWriteInt16ToByteArray(mFloorTextureID, this->m_wBytes, 2);
+
+    //store unknown 1 field
+    ConvertAndWriteInt16ToByteArray(mUnknown1, this->m_wBytes, 4);
+
+    //store unknown 2 field
+    ConvertAndWriteInt16ToByteArray(mUnknown2, this->m_wBytes, 22);
+
+    //store unknown 3 field
+    ConvertAndWriteInt16ToByteArray(mUnknown3, this->m_wBytes, 24);
+
+    //store blocks A up to H
+    ConvertAndWriteInt16ToByteArray(mA, this->m_wBytes, 6);
+    ConvertAndWriteInt16ToByteArray(mB, this->m_wBytes, 8);
+    ConvertAndWriteInt16ToByteArray(mC, this->m_wBytes, 10);
+    ConvertAndWriteInt16ToByteArray(mD, this->m_wBytes, 12);
+    ConvertAndWriteInt16ToByteArray(mE, this->m_wBytes, 14);
+    ConvertAndWriteInt16ToByteArray(mF, this->m_wBytes, 16);
+    ConvertAndWriteInt16ToByteArray(mG, this->m_wBytes, 18);
+    ConvertAndWriteInt16ToByteArray(mH, this->m_wBytes, 20);
+
+    //write unknown4 data
+    this->m_wBytes.at(1) = static_cast<uint8_t>(mUnknown4);
 
     return (true);
 }

@@ -26,6 +26,20 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
     this->m_wBytes.resize(this->m_Bytes.size());
     std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
+    //each map entry is 12 bytes long
+    //Byte 0:  Unknown 1
+    //Byte 1:  Unknown 1
+    //Byte 2:  Height
+    //Byte 3:  Height
+    //Byte 4:  cid (cell id)
+    //Byte 5:  cid (cell id)
+    //Byte 6:  Point of Interest
+    //Byte 7:  Point of Interest
+    //Byte 8:  Unknown 2
+    //Byte 9:  Unknown 2
+    //Byte 10:  Texture Modification
+    //Byte 11:  Unknown 3
+
     this->m_Height = (((float)(bytes.at(2))) / 256.0f) + (float)(bytes.at(3));
 
     int16_t cid = ConvertByteArray_ToInt16(bytes, 4);
@@ -43,6 +57,13 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
 
     this->m_TextureId = cid;
     this->m_TextureModification = (bytes.at(10) >> 4);
+
+    mPointOfInterest = ConvertByteArray_ToInt16(bytes, 6);
+
+    //read also unknown data
+    mUnknown1 = ConvertByteArray_ToInt16(bytes, 0);
+    mUnknown2 = ConvertByteArray_ToInt16(bytes, 8);
+    mUnknown3 = bytes.at(11);
 }
 
 MapEntry::~MapEntry() {
@@ -84,8 +105,28 @@ bool MapEntry::WriteChanges() {
     //convert height information to bytes
     ConvertAndWriteFloatToByteArray(this->m_Height, this->m_wBytes, 2);
 
-    ConvertAndWriteInt16ToByteArray(m_TextureId, this->m_wBytes, 4);
+    //is this a column at this location
+    if (this->get_Column() != NULL) {
+        //we have to calculate and store the data in a different way
+        //calculate back the column id
+        uint16_t element = this->get_Column()->get_ID();
+
+        int16_t cid = -element;
+
+        ConvertAndWriteInt16ToByteArray(cid, this->m_wBytes, 4);
+    } else {
+        //no column, just write texture ID
+        ConvertAndWriteInt16ToByteArray(m_TextureId, this->m_wBytes, 4);
+    }
+
     this->m_wBytes.at(10) = (uint8_t)(this->m_TextureModification << 4);
+
+    ConvertAndWriteInt16ToByteArray(mPointOfInterest, this->m_wBytes, 6);
+
+    //write also unknown data
+    ConvertAndWriteInt16ToByteArray(mUnknown1, this->m_wBytes, 0);
+    ConvertAndWriteInt16ToByteArray(mUnknown2, this->m_wBytes, 8);
+    this->m_wBytes.at(11) = (uint8_t)(mUnknown3);
 
     return true;
 }
