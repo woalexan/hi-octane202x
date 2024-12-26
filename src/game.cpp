@@ -545,8 +545,8 @@ bool Game::CreateNewRace(int load_levelnr) {
    //    //std::string player_model("extract/models/skim0-0.obj");
 
     //add computer player 1
-    std::string pl2Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+    //std::string pl2Model("extract/models/bike0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
 
     //add computer player 2
     //std::string pl3Model("extract/models/jugga0-3.obj");

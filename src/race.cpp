@@ -2173,6 +2173,57 @@ void Race::Render() {
               }
         }
 
+        if (DebugShowRegionsAndPointOfInterest) {
+                std::list<MapPointOfInterest>::iterator it;
+
+                for (it = this->mLevelRes->PointsOfInterest.begin(); it != this->mLevelRes->PointsOfInterest.end(); ++it) {
+                    mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
+                                           this->mDrawDebug->pink);
+                }
+
+                IndicateMapRegions();
+        }
+}
+
+void Race::IndicateMapRegions() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+    irr::core::vector3df pos1;
+    irr::core::vector3df pos2;
+    irr::core::vector3df pos3;
+    irr::core::vector3df pos4;
+    irr::core::vector2di cell;
+
+    irr::video::SMaterial *color = this->mDrawDebug->red;
+
+    for (it = this->mLevelRes->mMapRegionVec->begin(); it != this->mLevelRes->mMapRegionVec->end(); ++it) {
+       pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
+       pos1.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmin]->m_Height;
+       pos1.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
+
+       pos2.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
+       pos2.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmax]->m_Height;
+       pos2.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
+
+       pos3.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
+       pos3.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmax]->m_Height;
+       pos3.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
+
+       pos4.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
+       pos4.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmin]->m_Height;
+       pos4.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
+
+       if ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) {
+           color = this->mDrawDebug->blue;
+       } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_SHIELD) {
+           color = this->mDrawDebug->green;
+       } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_AMMO) {
+           color = this->mDrawDebug->orange;
+       } else if ((*it)->regionType == LEVELFILE_REGION_START) {
+           color = this->mDrawDebug->red;
+       }
+
+       mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
+   }
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {

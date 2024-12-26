@@ -164,6 +164,10 @@ void LevelTerrain::CheckPosInsideChargingRegion(int posX, int posY, bool &charge
         if (((*it)->regionType != LEVELFILE_REGION_START) && (*it)->regionType != LEVELFILE_REGION_UNDEFINED) {
            insideRegion = CheckPosInsideRegion(posX, posY, (*it));
 
+           //Sidenote 26.12.2024: There is also a special situation in level 5, where there is a
+           //shield charger and ammo charger at the same location; At this location we will find
+           //overlapping regions for Ammo and shield charger at the same place, which will become
+           //active at the exactly same time, we must not prevent this somehow!
            if (insideRegion) {
                if ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) {
                    chargeFuel = true;
