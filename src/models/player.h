@@ -618,7 +618,6 @@ private:
 
     float updateSlowCnter = 0.0f;
 
-    bool CanIFindTextureIdAroundPlayer(int posX, int posY, int textureId);
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
 
     void CheckForChargingStation();

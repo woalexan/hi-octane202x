@@ -319,6 +319,7 @@ private:
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = true;
     bool DebugShowWallSegments = false;
+    bool DebugShowRegionsAndPointOfInterest = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
@@ -328,6 +329,8 @@ private:
     //void createPlayers(int levelNr);
     void DrawSky();
     void DrawTestShape();
+
+    void IndicateMapRegions();
 
     void draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
          irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,

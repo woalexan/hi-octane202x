@@ -280,6 +280,7 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     mPlayerStats->shieldVal = 100.0;
     mPlayerStats->gasolineVal = 100.0;
     mPlayerStats->ammoVal = 100.0;
+
     mPlayerStats->boosterVal = 0.0;
     mPlayerStats->throttleVal = 0.0f;
 
@@ -3447,41 +3448,6 @@ void Player::SetTarget(Player* newTarget) {
     mLastTargetPlayer = mTargetPlayer;
 }
 
-//Helper function for finding charging stations in a second way
-bool Player::CanIFindTextureIdAroundPlayer(int posX, int posY, int textureId) {
-    //should return true if below or one tile around the player
-    //we find the specified texture Id, false otherwise
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX, posY, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX - 1, posY, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX + 1, posY, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX, posY - 1, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX, posY + 1, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX - 1, posY - 1, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX + 1, posY + 1, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX + 1, posY - 1, textureId))
-        return true;
-
-    if (this->mRace->mLevelTerrain->levelRes->CheckTileForTextureId(posX - 1, posY + 1, textureId))
-        return true;
-
-    //nothing found, return false
-    return false;
-}
-
 void Player::CheckForChargingStation() {
     mCurrChargingFuel = false;
     mCurrChargingAmmo = false;
@@ -3512,6 +3478,13 @@ void Player::CheckForChargingStation() {
     //Therefore I now decided to implement both variants here, and I hope that this will work for every available Hi Octane
     //map out there. What a mess this is.
 
+    //Final note regarding charging stations 26.12.2024: Unfortunetly in level 5 and 6 the two variants written above do not work
+    //for all charging stations in this level. There are really charging areas without an entry in the "region" data table of the
+    //level file, and without the correct texture IDs we expect in the height map of the Terrain map (because there is snow). Therefore
+    //today I implemented yet another variant of charger detection: I search for overhead columns with certain charger station
+    //face symbols. This works now also for the final chargers out there. So to make chargers work everywhere: At the end I implemented 3 different
+    //variants to find them in the existing levels.
+
     bool atCharger = false;
 
     bool cShield;
@@ -3521,11 +3494,6 @@ void Player::CheckForChargingStation() {
     //see if we are currently in an charging area with this player
     this->mRace->mLevelTerrain->CheckPosInsideChargingRegion(current_cell_calc_x, current_cell_calc_y,
                                                              cShield, cFuel, cAmmo);
-
-    //is this a shield recharge, we know via floor tile texture ID, workaround for level 4, 8 ...
-    if (CanIFindTextureIdAroundPlayer(current_cell_calc_x, current_cell_calc_y, 51)) {
-        cShield = true;
-    }
 
     if (cShield) {
        mCurrChargingShield = true;
@@ -3551,11 +3519,6 @@ void Player::CheckForChargingStation() {
         }
     }
 
-    //is this a ammo recharge, we know via floor tile texture ID, workaround for level 4, 8 ...
-    if (CanIFindTextureIdAroundPlayer(current_cell_calc_x, current_cell_calc_y, 47)) {
-        cAmmo = true;
-    }
-
     if (cAmmo) {
        mCurrChargingAmmo = true;
 
@@ -3575,11 +3538,6 @@ void Player::CheckForChargingStation() {
                 }
            }
         }
-    }
-
-    //is this a fuel recharge, we know via floor tile texture ID, workaround for level 4, 8 ...
-    if (CanIFindTextureIdAroundPlayer(current_cell_calc_x, current_cell_calc_y, 43)) {
-        cFuel = true;
     }
 
     if (cFuel) {

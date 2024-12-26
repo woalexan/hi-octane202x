@@ -160,6 +160,22 @@ public:
     //Helper function, Returns true if a certain tile has the specified textureId
     //Returns false otherwise, or if the specified location on the tile map is invalid
     bool CheckTileForTextureId(int posX, int posY, int textureId);
+    bool CanIFindTextureIdAroundCell(int posX, int posY, int textureId);
+
+private:
+    void DetectAdditionalRegionsTextureId();
+    void VerifyRegionFound(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType);
+
+    //Helper function for finding charging stations in a third way (used in level 5 and 6)
+    //returns true if we find the defined texture at least once at this block of any of the faces
+    //if not returns false
+    bool CanIFindDefinedTextureAtBlock(BlockDefinition* blockPntr, int textureIdSymbol);
+
+    //Helper function for finding charging stations in a third way (used in level 5 and 6)
+    bool CanIFindColumnWithDefinedTextureOnItAtLocation(int posX, int posY, int textureIdSymbol);
+    bool CanIFindTextureIdAtColumnsAroundCell(int posX, int posY, int textureId);
+    void VerifyRegionFoundViaColumns(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType);
+    void DetectAdditionalRegionsBasedOnColumns();
 
 protected:
      std::string m_Filename;
