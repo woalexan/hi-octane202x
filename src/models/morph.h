@@ -18,12 +18,15 @@
 #include <irrlicht/irrlicht.h>
 #include "../resources/entityitem.h"
 #include <list>
+#include "../race.h"
 
-class Column;
+class Column; //Forward declaration
+class Race;   //Forward declaration
 
 class Morph {
 public:
-    Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, int height, bool permanent);
+    Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, int height, bool permanent,
+          Race* mParentRace);
     ~Morph();
 
     bool Enabled = true;
@@ -31,7 +34,7 @@ public:
     EntityItem* Source;
     EntityItem* Target;
 
-    bool Permanent = false;
+    bool Permanent;
     bool UVSFromSource = false;
 
     std::vector<Column*> Columns;
@@ -46,11 +49,26 @@ public:
     int Height;
 
     void MorphColumns();
+
+    //if morph is triggered, it will morph
+    //the terrain/columns
+    void Trigger();
+
+    void Update(irr::f32 frameDeltaTime);
+
+    irr::f32 absTimeMorph;
+
+    bool mCurrMorphing = false;
+    bool mMorphDirectionUp = true;
+
+    bool mPermanentOnceFired = false;
    
 private:
     irr::f32 progress = 0.0f;
 
     int myEntityId;
+
+    Race* mRace;
 };
 
 #endif // MORPH_H

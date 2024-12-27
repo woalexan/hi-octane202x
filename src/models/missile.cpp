@@ -223,6 +223,9 @@ void Missile::Update(irr::f32 DeltaTime) {
                 }
             }
 
+            //did we hit a missile trigger entity?
+            CheckForHitOfMissileTrigger(currentLocation);
+
             //create the explosion at the target
             this->mParentLauncher->mParent->mRace->mExplosionLauncher->Trigger(currentLocation);
 
@@ -244,6 +247,42 @@ void Missile::Update(irr::f32 DeltaTime) {
         }
 
         mSceneNodeMissile->setPosition(currentLocation);
+    }
+}
+
+void Missile::CheckForHitOfMissileTrigger(irr::core::vector3df explodedAtLocation) {
+    //which 2D map cell coordinate did the missile hit?
+    irr::core::vector2di cellHit;
+
+    cellHit.X = -(int)explodedAtLocation.X;
+    cellHit.Y = (int)explodedAtLocation.Z;
+
+    //the missile trigger regions defined in the original level map
+    //files are only containing a single cell coordinate, and no
+    //Offset X and Offset Y
+    std::vector<MapTileRegionStruct*>::iterator itRegion;
+
+    //check for each missile trigger region in level
+    for (itRegion = mParentLauncher->mParent->mRace->mTriggerRegionVec.begin(); itRegion != mParentLauncher->mParent->mRace->mTriggerRegionVec.end(); ++itRegion) {
+        //only check for regions which are missile trigger region
+        if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
+            //did the missile explosion hit this area?
+            if (cellHit ==  (*itRegion)->regionCenterTileCoord) {
+                //yes, missile hit
+
+                //is it a one time trigger? if so only trigger if we have not triggered before
+                //or if it is a multiple time trigger just go ahead and trigger event
+                if (((*itRegion)->mOnlyTriggerOnce && (!(*itRegion)->mAlreadyTriggered))
+                        || (!(*itRegion)->mOnlyTriggerOnce)) {
+                           if ((*itRegion)->mOnlyTriggerOnce) {
+                               (*itRegion)->mAlreadyTriggered = true;
+                           }
+
+                        //tell race about it
+                        mParentLauncher->mParent->mRace->PlayerMissileHitMissileTrigger(mParentLauncher->mParent, (*itRegion));
+                }
+            }
+        }
     }
 }
 

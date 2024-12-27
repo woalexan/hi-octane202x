@@ -36,6 +36,8 @@
 #define LEVELFILE_REGION_CHARGER_FUEL 2
 #define LEVELFILE_REGION_CHARGER_AMMO 3
 #define LEVELFILE_REGION_START 4
+#define LEVELFILE_REGION_TRIGGERCRAFT 5
+#define LEVELFILE_REGION_TRIGGERMISSILE 6
 
 using namespace irr::core;
 using namespace std;
@@ -53,6 +55,13 @@ struct MapTileRegionStruct {
     irr::u16 tileYmin;
     irr::u16 tileYmax;
     irr::core::vector2di regionCenterTileCoord;
+
+    //allows to store trigger target group for
+    //craft trigger regions and missile triggers
+    int16_t mTargetGroup = 0;
+
+    bool mOnlyTriggerOnce = false;
+    bool mAlreadyTriggered = false;
 };
 
 struct ColumnsStruct {

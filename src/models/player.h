@@ -272,6 +272,9 @@ public:
     void Right();
     void NoTurningKeyPressed();
 
+    int mCurrPosCellX;
+    int mCurrPosCellY;
+
     std::vector<WayPointLinkInfoStruct*> mPathHistoryVec;
 
     std::vector<WayPointLinkInfoStruct*> mCurrentPathSeg;
@@ -621,6 +624,7 @@ private:
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
 
     void CheckForChargingStation();
+    void CheckForTriggerCraftRegion();
     void CalcPlayerCraftLeaningAngle();
 
     void HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2);
@@ -683,6 +687,16 @@ private:
 
     //definition of dirt texture elements vector
     std::vector<irr::s32> *dirtTexIdsVec;
+
+    //is unequal to NULL if player craft is currently inside
+    //a craft trigger area defined in the level during
+    //the current player update
+    MapTileRegionStruct* mCurrentCraftTriggerRegion = NULL;
+
+    //is unequal to NULL if player craft was inside
+    //a craft trigger area defined in the level during
+    //the last player update
+    MapTileRegionStruct* mLastCraftTriggerRegion = NULL;
 
 public:
     HUD* mHUD = NULL;

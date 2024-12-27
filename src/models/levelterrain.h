@@ -41,6 +41,8 @@ typedef SColor colour_func(f32 x, f32 y, f32 z);
 #define DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES 0.9f;  //steepness threshold to trigger
                                                           //collision with terrain tile map
 
+class Morph; //Forward declaration
+
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
     //later during game (so that we have access to vertice data)
@@ -159,6 +161,7 @@ public:
                            irr::core::vector3df &collResolutionDirVec);
 
     vector3d<irr::f32> computeTileSurfaceNormalFromPositionsBuffer(irr::s32 x, irr::s32 z);
+    bool CheckPosInsideRegion(int posX, int posY, MapTileRegionStruct* regionStructPntr);
 
     //definition of road texture elements
     std::vector<irr::s32> roadTexIdsVec = {31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
@@ -177,7 +180,6 @@ private:
     std::vector<vector2d<irr::f32>> MakeUVs(int textureId, int texMod);
     void createTerrainTextures(char* filePath);
     u32 countNumberFollowingTrianglesWithTextureId(u32 firstTriangleIdx, int textureId);
-    bool CheckPosInsideRegion(int posX, int posY, MapTileRegionStruct* regionStructPntr);
 
     void CreateTerrainMesh();
 

@@ -76,6 +76,7 @@ private:
     void AddNewSmokeSprite(irr::core::vector3df newLocation);
     void RemoveSmokeSprite(MissileSpriteStruct* spriteToRemove);
     bool AreAllSmokeSpritesGone();
+    void CheckForHitOfMissileTrigger(irr::core::vector3df explodedAtLocation);
 
 public:
     Missile(MissileLauncher* mParentLauncher, irr::core::vector3df launchLoc, irr::core::vector3df targetLoc, bool targetLocked, Player* lockedPlayer);

@@ -13,7 +13,7 @@
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
 
-class Collectable  {
+class Collectable {
 public:
     Collectable(EntityItem* entityItem, int number, vector3d<irr::f32> pos,
                 irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver);
@@ -30,7 +30,8 @@ public:
     irr::core::aabbox3df boundingBox;
 
     bool GetIfVisible();
-    void TriggerCollected();
+    void PickedUp();
+    void Trigger();
 
     EntityItem* mEntityItem;
 
@@ -41,7 +42,11 @@ protected:
     std::string m_texfile;
     irr::scene::ISceneManager *m_smgr;
 
-    bool isVisible = true;
+    //default is non visible after
+    //start of game, and before entity group
+    //1 is triggered (group 1 is triggered once
+    //at game start to make initial collectables visible)
+    bool isVisible;
 };
 
 #endif // COLLECTABLE_H

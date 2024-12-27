@@ -70,6 +70,13 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     mPlayerVec.clear();
     mPlayerPhysicObjVec.clear();
     playerRaceFinishedVec.clear();
+    mTriggerRegionVec.clear();
+    mPendingTriggerTargetGroups.clear();
+    mTimerVec.clear();
+
+    //for the start of the race we want to trigger
+    //target group 1 once
+    mPendingTriggerTargetGroups.push_back(1);
 
     //load the correct music file for this level
     char musicFileName[60];
@@ -176,6 +183,8 @@ Race::~Race() {
     CleanUpAllCheckpoints();
     CleanUpSky();
     CleanMiniMap();
+    CleanUpTriggers();
+    CleanUpTimers();
 
     //free lowlevel level data
     delete mLevelBlocks;
@@ -411,6 +420,38 @@ void Race::CleanUpCones() {
     //delete also the vector itself
     delete coneVec;
     coneVec = NULL;
+}
+
+void Race::CleanUpTimers() {
+    std::vector<Timer*>::iterator it;
+    Timer* pntr;
+
+    if (mTimerVec.size() > 0) {
+        for (it = mTimerVec.begin(); it != mTimerVec.end(); ) {
+            pntr = (*it);
+
+            it = mTimerVec.erase(it);
+
+            //delete the timer as well
+            delete pntr;
+        }
+    }
+}
+
+void Race::CleanUpTriggers() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+    MapTileRegionStruct* pntr;
+
+    if (mTriggerRegionVec.size() > 0) {
+        for (it = mTriggerRegionVec.begin(); it != mTriggerRegionVec.end(); ) {
+            pntr = (*it);
+
+            it = mTriggerRegionVec.erase(it);
+
+            //delete the MapTileRegionStruct
+            delete pntr;
+        }
+    }
 }
 
 void Race::StopMusic() {
@@ -1458,7 +1499,7 @@ void Race::SetupTopRaceTrackPointerOrigin() {
 //}
 
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
-    float progressMorph;
+    //float progressMorph;
 
     //if frameDeltaTime is too large we could get
     //weird physics effects, therefore clamp time to max
@@ -1467,7 +1508,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
       frameDeltaTime = 0.01f;
 
     //run morphs
-    if (runMorph)
+   /* if (runMorph)
         {
           absTimeMorph += frameDeltaTime;
           progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
@@ -1482,9 +1523,18 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
           //mark column vertices as dirty
           mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
-        }
+        }*/
+
+    //update level morphs
+    UpdateMorphs(frameDeltaTime);
+
+    //update timer
+    UpdateTimers(frameDeltaTime);
 
     mTimeProfiler->Profile(mTimeProfiler->tIntMorphing);
+
+    //process pending triggers
+    ProcessPendingTriggers();
 
     //update all players
     std::vector<Player*>::iterator itPlayer;
@@ -1580,6 +1630,104 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntWorldAware);
+}
+
+void Race::PlayerEnteredCraftTriggerRegion(Player* whichPlayer, MapTileRegionStruct* whichRegion) {
+    //yes, player is currently inside this region
+    if (DebugShowTriggerEvents) {
+        char triggerMessage[80];
+        char triggerID[10];
+
+        strcpy(triggerMessage, whichPlayer->mPlayerStats->name);
+        strcat(triggerMessage, " TRIGGERED ");
+        sprintf(triggerID, "%d", whichRegion->regionId);
+        strcat(triggerMessage, triggerID);
+
+        whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f);
+    }
+
+    //store trigger in pending trigger list, for processing during
+    //the next advance game routine call
+    this->mPendingTriggerTargetGroups.push_back(whichRegion->mTargetGroup);
+}
+
+void Race::PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion) {
+    if (DebugShowTriggerEvents) {
+       char triggerMessage[80];
+       char triggerID[10];
+
+       strcpy(triggerMessage, whichPlayer->mPlayerStats->name);
+       strcat(triggerMessage, " MISSILE HIT ");
+       sprintf(triggerID, "%d", whichRegion->regionId);
+       strcat(triggerMessage, triggerID);
+
+       whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f);
+    }
+
+    //store trigger in pending trigger list, for processing during
+    //the next advance game routine call
+    this->mPendingTriggerTargetGroups.push_back(whichRegion->mTargetGroup);
+}
+
+void Race::TimedTriggerOccured(Timer* whichTimer) {
+    if (DebugShowTriggerEvents) {
+        char triggerMessage[80];
+        char triggerID[10];
+
+        sprintf(triggerID, "TIMER %d ", whichTimer->mEntityItem->get_ID());
+        strcpy(triggerMessage, triggerID);
+        strcat(triggerMessage, " TRIGGERED ");
+        sprintf(triggerID, "%d", whichTimer->mEntityItem->getTargetGroup());
+        strcat(triggerMessage, triggerID);
+
+        this->mPlayerVec.at(0)->ShowPlayerBigGreenHudText(triggerMessage, 5.0f);
+    }
+
+    //store trigger in pending trigger list, for processing during
+    //the next advance game routine call
+    this->mPendingTriggerTargetGroups.push_back(whichTimer->mEntityItem->getTargetGroup());
+}
+
+void Race::ProcessPendingTriggers() {
+    //any trigger pending?
+    if (this->mPendingTriggerTargetGroups.size() > 0) {
+        std::vector<int16_t>::iterator it;
+        std::vector<Collectable*>::iterator itCollect;
+        std::vector<Timer*>::iterator itTimer;
+        std::list<Morph*>::iterator itMorph;
+
+        for (it = mPendingTriggerTargetGroups.begin(); it != mPendingTriggerTargetGroups.end(); ) {
+            //check all collectables
+            for (itCollect = this->ENTCollectablesVec->begin(); itCollect != this->ENTCollectablesVec->end(); ++itCollect) {
+                if ((*itCollect)->mEntityItem->getGroup() == (*it)) {
+                    //this collectable belongs to the group we need to
+                    //trigger according to the target trigger
+                    (*itCollect)->Trigger();
+                }
+            }
+
+            //check all timers
+            for (itTimer = this->mTimerVec.begin(); itTimer != this->mTimerVec.end(); ++itTimer) {
+                if ((*itTimer)->mEntityItem->getGroup() == (*it)) {
+                    //this timer belongs to the group we need to
+                    //trigger according to the target trigger
+                    (*itTimer)->Trigger();
+                }
+            }
+
+            //check all morphs
+            for (itMorph = this->Morphs.begin(); itMorph != this->Morphs.end(); ++itMorph) {
+                if ((*itMorph)->Source->getGroup() == (*it)) {
+                    //this morph belongs to the group we need to
+                    //trigger according to the target trigger
+                    (*itMorph)->Trigger();
+                }
+            }
+
+          //remove entry, was processed already
+            it = mPendingTriggerTargetGroups.erase(it);
+        }
+    }
 }
 
 void Race::CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<f32> playerBox) {
@@ -2183,6 +2331,10 @@ void Race::Render() {
 
                 IndicateMapRegions();
         }
+
+        if (DebugShowTriggerRegions) {
+            IndicateTriggerRegions();
+        }
 }
 
 void Race::IndicateMapRegions() {
@@ -2220,6 +2372,43 @@ void Race::IndicateMapRegions() {
            color = this->mDrawDebug->orange;
        } else if ((*it)->regionType == LEVELFILE_REGION_START) {
            color = this->mDrawDebug->red;
+       }
+
+       mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
+   }
+}
+
+void Race::IndicateTriggerRegions() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+    irr::core::vector3df pos1;
+    irr::core::vector3df pos2;
+    irr::core::vector3df pos3;
+    irr::core::vector3df pos4;
+    irr::core::vector2di cell;
+
+    irr::video::SMaterial *color = this->mDrawDebug->red;
+
+    for (it = this->mTriggerRegionVec.begin(); it != this->mTriggerRegionVec.end(); ++it) {
+       pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
+       pos1.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmin]->m_Height;
+       pos1.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
+
+       pos2.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
+       pos2.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmax]->m_Height;
+       pos2.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
+
+       pos3.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
+       pos3.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmax]->m_Height;
+       pos3.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
+
+       pos4.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
+       pos4.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmin]->m_Height;
+       pos4.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
+
+       if ((*it)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
+           color = this->mDrawDebug->cyan;
+       } else if ((*it)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
+           color = this->mDrawDebug->orange;
        }
 
        mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
@@ -3013,7 +3202,7 @@ void Race::CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f3
                 //yes, player collected the collectible
 
                 //tell Collectible that is was collected
-                (*it)->TriggerCollected();
+                (*it)->PickedUp();
 
                 //tell player what he collected to alter
                 //his stats
@@ -3043,6 +3232,22 @@ void Race::createLevelEntities() {
     //create all level entities
     for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
         createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, this->mDriver);
+    }
+}
+
+void Race::UpdateMorphs(irr::f32 frameDeltaTime) {
+    std::list<Morph*>::iterator itMorph;
+
+    for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+        (*itMorph)->Update(frameDeltaTime);
+    }
+}
+
+void Race::UpdateTimers(irr::f32 frameDeltaTime) {
+    std::vector<Timer*>::iterator itTimer;
+
+    for (itTimer = mTimerVec.begin(); itTimer != mTimerVec.end(); ++itTimer) {
+        (*itTimer)->Update(frameDeltaTime);
     }
 }
 
@@ -3102,6 +3307,97 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
 
     //we also keep a list of all waypoint pointers
     ENTWaypoints_List->push_back(entity);
+}
+
+void Race::AddTimer(EntityItem *entity) {
+    Timer* newTimer = new Timer(entity, this);
+
+    this->mTimerVec.push_back(newTimer);
+}
+
+void Race::AddTrigger(EntityItem *entity) {
+    /*w = entity.OffsetX + 1f;
+    h = entity.OffsetY + 1f;
+    box = new Box(0, 0, 0, w, 2, h, new Vector4(0.9f, 0.3f, 0.6f, 0.5f));
+    box.Position = entity.Pos + Vector3.UnitY * 0.01f;
+    Entities.AddNode(box);*/
+
+    irr::u8 regionType;
+
+    MapTileRegionStruct *newTriggerRegion = new MapTileRegionStruct();
+
+    int offsetXCells = (int)(entity->getOffsetX() / DEF_SEGMENTSIZE);
+    int offsetYCells = (int)(entity->getOffsetY() / DEF_SEGMENTSIZE);
+
+    irr::core::vector2di tileMin;
+
+    tileMin.X = entity->getCell().X;
+    tileMin.Y = entity->getCell().Y;
+
+    irr::core::vector2di tileMax = tileMin;
+
+    if (entity->getEntityType() == Entity::EntityType::TriggerCraft) {
+        regionType = LEVELFILE_REGION_TRIGGERCRAFT;
+
+        //craft trigger can trigger so often as it wants to
+        newTriggerRegion->mOnlyTriggerOnce = false;
+        newTriggerRegion->mAlreadyTriggered = false;
+
+        tileMax.X += offsetXCells;
+        tileMax.Y += offsetYCells;
+    }
+
+    if (entity->getEntityType() == Entity::EntityType::TriggerRocket) {
+        regionType = LEVELFILE_REGION_TRIGGERMISSILE;
+
+        //let rocket trigger only trigger once
+        //trigger more often does not really make sense
+        newTriggerRegion->mOnlyTriggerOnce = true;
+        newTriggerRegion->mAlreadyTriggered = false;
+
+        //in the existing maps it seems default a missile trigger region
+        //always has offsetX and offsetY set to 0; this means the trigger is only
+        //in a single cell; This is very hard to hit
+        //therefore in this case I decided to change offsetX and offsetY to a higher
+        //value here
+        if ((offsetXCells == 0) || (offsetYCells == 0)) {
+            tileMin.X -= 1;
+            tileMin.Y -= 1;
+            tileMax.X += 1;
+            tileMax.Y += 1;
+        } else {
+            tileMax.X += offsetXCells;
+            tileMax.Y += offsetYCells;
+        }
+    }
+
+    //make sure we only have valid cell numbers in the allowed range
+    this->mLevelTerrain->ForceTileGridCoordRange(tileMin);
+    this->mLevelTerrain->ForceTileGridCoordRange(tileMax);
+
+    newTriggerRegion->regionId = mTriggerRegionVec.size();
+    newTriggerRegion->regionType = regionType;
+    newTriggerRegion->tileXmin = tileMin.X;
+    newTriggerRegion->tileYmin = tileMin.Y;
+    newTriggerRegion->tileXmax = tileMax.X;
+    newTriggerRegion->tileYmax = tileMax.Y;
+
+    irr::u16 midCoordX;
+    irr::u16 midCoordY;
+
+    //calculate region middle cell
+    midCoordX = ((tileMax.X - tileMin.X) / 2) + tileMin.X;
+    midCoordY = ((tileMax.Y - tileMin.Y) / 2) + tileMin.Y;
+
+    newTriggerRegion->regionCenterTileCoord.set(midCoordX, midCoordY);
+
+    //finally also store trigger target group inside this struct
+    //so that we have this information by the hand all the time if we
+    //need it
+    newTriggerRegion->mTargetGroup = entity->getTargetGroup();
+
+    //add the new region to the region vector
+    this->mTriggerRegionVec.push_back(newTriggerRegion);
 }
 
 void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver) {
@@ -3168,20 +3464,19 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
            break;
         }
 
-          /*  case EntityType::TriggerCraft:
-            case entity.EntityType::TriggerRocket:
-                w = entity.OffsetX + 1f;
-                h = entity.OffsetY + 1f;
-                box = new Box(0, 0, 0, w, 2, h, new Vector4(0.9f, 0.3f, 0.6f, 0.5f));
-                box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-                Entities.AddNode(box);
-                break;
-            case EntityType::TriggerTimed:
-                Billboard timer = new Billboard("images/stopwatch.png", 0.4f, 0.4f);
-                timer.Position = entity.Center;
-                Entities.AddNode(timer);
-                break;*/
+       case Entity::EntityType::TriggerCraft:
+       case Entity::EntityType::TriggerRocket: {
+            AddTrigger(p_entity);
+            break;
+       }
 
+       case Entity::EntityType::TriggerTimed: {
+                //Billboard timer = new Billboard("images/stopwatch.png", 0.4f, 0.4f);
+                //timer.Position = entity.Center;
+                //Entities.AddNode(timer);
+                AddTimer(p_entity);
+                break;
+       }
 
             case Entity::EntityType::MorphOnce:
             case Entity::EntityType::MorphPermanent: {
@@ -3250,8 +3545,9 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
                     }
 
                     // create and collect morph instances
-                    Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h, entity.getEntityType() ==
-                                             Entity::EntityType::MorphPermanent);
+                    Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h,
+                                             entity.getEntityType() == Entity::EntityType::MorphPermanent,
+                                             this);
                     std::vector<Column*>::iterator colIt;
 
                     for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
@@ -3261,8 +3557,9 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
                     Morphs.push_back(morph);
 
                     // source
-                    morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h, entity.getEntityType() ==
-                                      Entity::EntityType::MorphPermanent);
+                    morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h,
+                                      entity.getEntityType() == Entity::EntityType::MorphPermanent,
+                                      this);
                     for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
                         morph->Columns.push_back(*colIt);
                     }

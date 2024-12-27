@@ -155,6 +155,8 @@ add_executable(hi-octane202x
     src/models/player.cpp
     src/models/recovery.h
     src/models/recovery.cpp
+    src/models/timer.h
+    src/models/timer.cpp
 
     src/utils/crc32.h
     src/utils/crc32.cpp

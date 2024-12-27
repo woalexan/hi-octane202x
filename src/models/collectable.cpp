@@ -24,7 +24,12 @@ Collectable::Collectable(EntityItem* entityItem,
     //Position in the level file could be the bottom location at the surface
     //therefore we need to add the height of the billboard to the Y coordinate
     Position = pos;
-    Position.Y += (h * 0.5f);
+    //Position.Y += (h * 0.5f);
+
+    //Note 27.12.2024: put a little bit higher,
+    //so that it can be collected much more reliable
+    //with bounding box
+    Position.Y += (h * 0.75f);
 
     this->m_Size.set(w, h, irr::f32(0.01f));
 
@@ -41,7 +46,7 @@ Collectable::Collectable(EntityItem* entityItem,
     texturesize = collectable_tex->getSize();
 
     this->billSceneNode = this->m_smgr->addBillboardSceneNode();
-    this->billSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
+    this->billSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR);
     this->billSceneNode->setMaterialTexture(0, collectable_tex);
     this->billSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, true);
     this->billSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
@@ -52,6 +57,15 @@ Collectable::Collectable(EntityItem* entityItem,
     //get bounding box for this collectible
     this->billSceneNode->updateAbsolutePosition();
     this->boundingBox = this->billSceneNode->getTransformedBoundingBox();
+
+    //default is non visible after
+    //start of game, and before entity group
+    //1 is triggered (group 1 is triggered once
+    //at game start to make initial collectables visible)
+    this->isVisible = false;
+
+    //I am not active (visible), hide my sceneNode
+    this->billSceneNode->setVisible(false);
 }
 
 irr::core::vector2df Collectable::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
@@ -75,9 +89,21 @@ bool Collectable::GetIfVisible() {
     return this->isVisible;
 }
 
-void Collectable::TriggerCollected() {
+void Collectable::PickedUp() {
     this->isVisible = false;
 
     //I am not active (visible) anymore, hide my sceneNode
     this->billSceneNode->setVisible(false);
+}
+
+//when a collectable is triggered it
+//becomes visible to the player, and can be
+//picked up
+void Collectable::Trigger() {
+    if (!this->isVisible) {
+        this->isVisible = true;
+
+        //unhide sceneNode
+        this->billSceneNode->setVisible(true);
+    }
 }
