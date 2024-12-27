@@ -33,6 +33,7 @@
 #include "utils/path.h"
 #include "game.h"
 #include "models/explauncher.h"
+#include "models/timer.h"
 
 using namespace std;
 
@@ -82,6 +83,8 @@ struct CheckPointInfoStruct; //Forward declaration
 class Game; //Forward declaration
 struct WayPointLinkInfoStruct; //Forward declaration
 class ExplosionLauncher;  //Forward declaration
+class Morph;   //Forward declaration
+class Timer;   //Forward declaration
 
 class Race {
 public:
@@ -211,6 +214,13 @@ public:
     //vector of players in this race
     std::vector<Player*> mPlayerVec;
 
+    //vector of craft/missile trigger regions
+    std::vector<MapTileRegionStruct*> mTriggerRegionVec;
+
+    void PlayerEnteredCraftTriggerRegion(Player* whichPlayer, MapTileRegionStruct* whichRegion);
+    void PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion);
+    void TimedTriggerOccured(Timer* whichTimer);
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -315,11 +325,13 @@ private:
     bool playerCamera = true;
 
     //variables to switch different debugging functions on and off
-    bool DebugShowWaypoints = true;
+    bool DebugShowWaypoints = false;
     bool DebugShowWallCollisionMesh = false;
-    bool DebugShowCheckpoints = true;
+    bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;
     bool DebugShowRegionsAndPointOfInterest = false;
+    bool DebugShowTriggerRegions = false;
+    bool DebugShowTriggerEvents = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
@@ -397,7 +409,23 @@ private:
 
     std::vector<irr::video::SColor*> mMiniMapMarkerColors;
 
+    void IndicateTriggerRegions();
+
+    void AddTrigger(EntityItem *entity);
+
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
+    void UpdateMorphs(irr::f32 frameDeltaTime);
+    void UpdateTimers(irr::f32 frameDeltaTime);
+
+    std::vector<Timer*> mTimerVec;
+    void AddTimer(EntityItem *entity);
+
+    //holds currently pending trigger target group events (when some
+    //entity reports that something should be triggered it
+    //is stored in this list), until the next Race update is done
+    std::vector<int16_t> mPendingTriggerTargetGroups;
+
+    void ProcessPendingTriggers();
 
     //Audio related stuff
     void DeliverMusicFileName(unsigned int levelNr, char *musicFileName);
@@ -414,6 +442,8 @@ private:
     void CleanUpMorphs();
     void CleanUpSky();
     void CleanMiniMap();
+    void CleanUpTriggers();
+    void CleanUpTimers();
 };
 
 #endif // RACE_H

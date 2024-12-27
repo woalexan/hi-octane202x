@@ -32,7 +32,43 @@ void Morph::MorphColumns() {
     }
 }
 
-Morph::Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, int height, bool permanent) {
+void Morph::Trigger() {
+   if (Permanent && mPermanentOnceFired)
+       return;
+
+   mCurrMorphing = true;
+
+   if (Permanent && !mPermanentOnceFired) {
+       mPermanentOnceFired = true;
+   }
+}
+
+void Morph::Update(irr::f32 frameDeltaTime) {
+    if (!mCurrMorphing)
+        return;
+
+    absTimeMorph += frameDeltaTime;
+    setProgress((float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph))));
+
+    this->mRace->mLevelTerrain->ApplyMorph((*this));
+    MorphColumns();
+
+    //mark column vertices as dirty
+    this->mRace->mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+
+    if (mMorphDirectionUp && (progress >= 0.99999f)) {
+        mCurrMorphing = false;
+        mMorphDirectionUp = false;
+    }
+
+    if (!mMorphDirectionUp && (progress <= 0.0001f)) {
+        mCurrMorphing = false;
+        mMorphDirectionUp = true;
+    }
+}
+
+Morph::Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, int height,
+             bool permanent, Race* mParentRace) {
     Source = source;
     Target = target;
     Width = width;
@@ -40,6 +76,8 @@ Morph::Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, 
     LastProgress = 0.0f;
     Permanent = permanent;
     myEntityId = myEntityID;
+    mRace = mParentRace;
+    absTimeMorph = 0.0f;
 }
 
 Morph::~Morph() {

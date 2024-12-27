@@ -27,12 +27,13 @@ using namespace gui;
 #define LEVELBLOCKS_VIEW_DEFAULT 1
 #define LEVELBLOCKS_VIEW_DEBUGNORMALS 2
 
+class LevelTerrain; //Forward declaration
+class Column;       //Forward declaration
+
 struct ColumnsByPositionStruct {
       int pos;
       Column *pColumn;
 };
-
-class LevelTerrain;
 
 class LevelBlocks {
 public:

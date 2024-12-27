@@ -3005,6 +3005,11 @@ void Player::Update(irr::f32 frameDeltaTime) {
     craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
     craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
 
+    //recalculate current 2D cell coordinates
+    //where the player is currently located
+    mCurrPosCellX = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
+    mCurrPosCellY = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
+
     //update cameraSensor to detect steepness over a wider distance
     //in front of the player craft in an attempt to prevent camera clipping
     //when moving fast over steep hills
@@ -3308,6 +3313,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     mMissileLauncher->Update(frameDeltaTime);
 
+    //check if player entered a craft trigger region
+    CheckForTriggerCraftRegion();
+
     //*****************************************************
     //* Hovercraft height control force calculation End   *
     //*****************************************************
@@ -3448,20 +3456,45 @@ void Player::SetTarget(Player* newTarget) {
     mLastTargetPlayer = mTargetPlayer;
 }
 
+void Player::CheckForTriggerCraftRegion() {
+    //remember last trigger region before next update
+    mLastCraftTriggerRegion = mCurrentCraftTriggerRegion;
+
+    std::vector<MapTileRegionStruct*>::iterator itRegion;
+
+    mCurrentCraftTriggerRegion = NULL;
+
+    //check for each trigger region in level
+    for (itRegion = this->mRace->mTriggerRegionVec.begin(); itRegion != this->mRace->mTriggerRegionVec.end(); ++itRegion) {
+        //only check for regions which are a playercraft trigger region
+        if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
+            //is the player inside this area?
+            if (this->mRace->mLevelTerrain->CheckPosInsideRegion(mCurrPosCellX,
+                    mCurrPosCellY, (*itRegion))) {
+
+                //assume craft can only be in one region at a certain time
+                //craft trigger regions should not overlap!
+                mCurrentCraftTriggerRegion = (*itRegion);
+                break;
+            }
+        }
+    }
+
+    //did we enter a new trigger region?
+    //if so we need to trigger the trigger event and tell the race
+    //about it
+    if (mCurrentCraftTriggerRegion != NULL) {
+        if (mCurrentCraftTriggerRegion != mLastCraftTriggerRegion) {
+            //yes, we hit a new trigger region
+            mRace->PlayerEnteredCraftTriggerRegion(this, mCurrentCraftTriggerRegion);
+        }
+    }
+}
+
 void Player::CheckForChargingStation() {
     mCurrChargingFuel = false;
     mCurrChargingAmmo = false;
     mCurrChargingShield = false;
-
-    //get information about current tile below player craft
-
-    //calculate current cell below player
-    int current_cell_calc_x, current_cell_calc_y;
-
-    current_cell_calc_y = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
-    current_cell_calc_x = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
-
-    //MapEntry* tilePntr = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
     //Note 18.08.2024: Today I finally figured out how the game knows where the charging regions are
     //Texture solution of ground tiles only worked for some charging locations, but there are levels where
@@ -3492,7 +3525,7 @@ void Player::CheckForChargingStation() {
     bool cAmmo;
 
     //see if we are currently in an charging area with this player
-    this->mRace->mLevelTerrain->CheckPosInsideChargingRegion(current_cell_calc_x, current_cell_calc_y,
+    this->mRace->mLevelTerrain->CheckPosInsideChargingRegion(mCurrPosCellX, mCurrPosCellY,
                                                              cShield, cFuel, cAmmo);
 
     if (cShield) {
@@ -3689,13 +3722,7 @@ void Player::AddTextureID(irr::s32 newTexId) {
 //checks if current player should emit dust clouds below the craft
 //this is the case if the player is above a "dusty" tile next to the race track
 void Player::CheckDustCloudEmitter() {
-    //calculate current cell below player
-    int current_cell_calc_x, current_cell_calc_y;
-
-    current_cell_calc_y = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
-    current_cell_calc_x = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
-
-    MapEntry* tilePntr = this->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
+    MapEntry* tilePntr = this->mRace->mLevelTerrain->GetMapEntry(mCurrPosCellX, mCurrPosCellY);
     irr::s32 texId = tilePntr->m_TextureId;
 
     mEmitDustCloud = false;
