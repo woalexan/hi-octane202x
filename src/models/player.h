@@ -27,6 +27,7 @@
 #include "levelterrain.h"
 #include "../utils/path.h"
 #include "../utils/bezier.h"
+#include "../draw/hud.h"
 
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
@@ -35,11 +36,13 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 7.0f; //8.0f
-const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 12.0f; //8.0f
+const irr::f32 CP_PLAYER_SLOW_SPEED = 5.0f;
 
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
+
+const irr::f32 CRAFT_JUMPDETECTION_THRES = 0.2f;
 
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
@@ -214,6 +217,7 @@ class MachineGun; //Forward declaration
 class MissileLauncher; //Forward declaration
 class PhysicsObject; //Forward declaration
 class Recovery; //Forward declaration
+struct HudDisplayPart; //Forward declaration
 
 class Player {
 public:
@@ -587,6 +591,20 @@ public:
     irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
     irr::core::vector2df GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord);
 
+    //vector with this players HUD broken glas
+    //positions must be stored within the player, as each
+    //player has a different state of the glass
+    std::vector<HudDisplayPart*>* brokenGlasVec;
+
+    //true if player craft is currently jumping
+    bool mCurrJumping = false;
+
+    bool firstHeightControlLoop = true;
+
+    //needed for player jump detection
+    //logic
+    irr::f32 lastHeightFront;
+    irr::f32 lastHeightBack;
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
@@ -697,6 +715,10 @@ private:
     //a craft trigger area defined in the level during
     //the last player update
     MapTileRegionStruct* mLastCraftTriggerRegion = NULL;
+
+    void AddGlasBreak();
+    void RepairGlasBreaks();
+    void CleanUpBrokenGlas();
 
 public:
     HUD* mHUD = NULL;

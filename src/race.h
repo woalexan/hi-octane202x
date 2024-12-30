@@ -34,6 +34,7 @@
 #include "game.h"
 #include "models/explauncher.h"
 #include "models/timer.h"
+#include "models/expentity.h"
 
 using namespace std;
 
@@ -85,6 +86,7 @@ struct WayPointLinkInfoStruct; //Forward declaration
 class ExplosionLauncher;  //Forward declaration
 class Morph;   //Forward declaration
 class Timer;   //Forward declaration
+class ExplosionEntity; //Forward declaration
 
 class Race {
 public:
@@ -177,6 +179,10 @@ public:
 
     //my explosion launcher
     ExplosionLauncher* mExplosionLauncher;
+
+    //vector of all available explosions in
+    //this map
+    std::vector<ExplosionEntity*> mExplosionEntityVec;
 
     HUD *Hud1Player;
 
@@ -356,6 +362,8 @@ private:
     void AddCheckPoint(EntityItem entity);
     void CheckPointPostProcessing();
 
+    void AddExplosionEntity(EntityItem *entity);
+
     void AddWayPoint(EntityItem *entity, EntityItem *next);
 
     std::list<EntityItem*> *ENTWallsegments_List;
@@ -444,6 +452,7 @@ private:
     void CleanMiniMap();
     void CleanUpTriggers();
     void CleanUpTimers();
+    void CleanUpExplosionEntities();
 };
 
 #endif // RACE_H

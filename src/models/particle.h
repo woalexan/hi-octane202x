@@ -79,7 +79,7 @@ public:
 
 class SteamFountain {
 public:
-    SteamFountain(irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
+    SteamFountain(EntityItem* entityItem, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
                   irr::u32 nrMaxParticles);
 
     ~SteamFountain();
@@ -87,10 +87,16 @@ public:
     void TriggerUpdate(irr::f32 frameDeltaTime);
     void Activate();
 
+    //if triggered the steam Fountain is
+    //enabled
+    void Trigger();
+
+    EntityItem* mEntityItem;
+
 private:
     irr::core::vector3d<irr::f32> mPosition;
     bool mVisible;
-    bool mActivated;
+    bool mActivated = false;
 
     irr::video::ITexture* mSteamTex;
     irr::core::dimension2d<irr::u32> mSteamTexSize;

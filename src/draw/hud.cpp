@@ -402,7 +402,7 @@ void HUD::InitStartSignal() {
 }
 
 void HUD::InitBrokenGlas() {
-    //initialize start signal
+    //initialize texture for broken glass
     myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
@@ -1693,10 +1693,10 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
                 return;
 
         //any broken glas?
-        if (this->brokenGlasVec->size() > 0) {
+        if (this->monitorWhichPlayer->brokenGlasVec->size() > 0) {
             std::vector<HudDisplayPart*>::iterator itGlasBreak;
 
-            for (itGlasBreak = this->brokenGlasVec->begin(); itGlasBreak != this->brokenGlasVec->end(); ++itGlasBreak) {
+            for (itGlasBreak = this->monitorWhichPlayer->brokenGlasVec->begin(); itGlasBreak != this->monitorWhichPlayer->brokenGlasVec->end(); ++itGlasBreak) {
                 myDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
                       irr::core::rect<irr::s32>(0,0, (*itGlasBreak)->sizeTex.Width, (*itGlasBreak)->sizeTex.Height), 0,
                       irr::video::SColor(255,255,255,255), true);
@@ -2824,71 +2824,6 @@ HUD::HUD(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver,  dimensi
     //create vector for all the banner text messages we receive
     bannerMessageVec = new std::vector<BannerTextMessageStruct*>();
     bannerMessageVec->clear();
-
-    //create vector to store all the current broken Hud glas locations
-    brokenGlasVec = new std::vector<HudDisplayPart*>();
-    brokenGlasVec->clear();
-}
-
-//adds a single random location glas break
-void HUD::AddGlasBreak() {
-    irr::s32 rNum = rand();
-    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * this->screenResolution.Width;
-
-    rNum = rand();
-    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * this->screenResolution.Height;
-
-    HudDisplayPart* newGlasBreak = new HudDisplayPart();
-    newGlasBreak->texture = brokenGlas->texture;
-    newGlasBreak->altTexture = brokenGlas->altTexture;
-    newGlasBreak->sizeTex = brokenGlas->sizeTex;
-
-    newGlasBreak->drawScrPosition.set(rWidthFloat, rHeightFloat);
-
-    this->brokenGlasVec->push_back(newGlasBreak);
-}
-
-//repairs all current glas breaks
-void HUD::RepairGlasBreaks() {
-
-    if (this->brokenGlasVec->size() > 0) {
-        std::vector<HudDisplayPart*>::iterator it;
-        HudDisplayPart* pntr;
-
-        for (it = brokenGlasVec->begin(); it != brokenGlasVec->end();) {
-            pntr = (*it);
-
-            it = brokenGlasVec->erase(it);
-
-            delete pntr;
-        }
-    }
-}
-
-//deletes all broken glas stuff from heap
-void HUD::CleanUpBrokenGlas() {
-    std::vector<HudDisplayPart*>::iterator it;
-    HudDisplayPart* pntr;
-
-    if (this->brokenGlasVec->size() > 0) {
-        for (it = brokenGlasVec->begin(); it != brokenGlasVec->end();) {
-            pntr = (*it);
-
-            it = brokenGlasVec->erase(it);
-
-            if (pntr->texture != NULL) {
-                //remove underlying texture
-                this->myDriver->removeTexture(pntr->texture);
-            }
-
-            if (pntr->altTexture != NULL) {
-                //remove underlying texture
-                this->myDriver->removeTexture(pntr->altTexture);
-            }
-
-            delete pntr;
-        }
-    }
 }
 
 void HUD::CleanUpHudDisplayPartVector(std::vector<HudDisplayPart*> &pntrVector) {
@@ -2968,9 +2903,6 @@ HUD::~HUD() {
 
     CleanUpHudDisplayPartVector(*startSignal);
     startSignal = NULL;
-
-    CleanUpBrokenGlas();
-    delete this->brokenGlasVec;
 
     if (brokenGlas->texture != NULL) {
         //remove underlying texture

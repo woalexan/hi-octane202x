@@ -31,12 +31,12 @@
 #define DEF_HUD_STARTSIGNAL_YELLOW_LIT 2
 #define DEF_HUD_STARTSIGNAL_GREEN_LIT 3
 
-typedef struct {
+struct HudDisplayPart{
      irr::core::vector2d<irr::s32> drawScrPosition;
      irr::video::ITexture* texture;
      irr::video::ITexture* altTexture;
      irr::core::dimension2d<irr::s32> sizeTex;
-} HudDisplayPart;
+};
 
 class Player; //Forward declaration
 
@@ -171,16 +171,6 @@ private:
     //advances towards the final state
     irr::u8 mStartSignalState;
 
-    //************************************
-    //* Broken glas resource             *
-    //************************************
-
-    HudDisplayPart* brokenGlas;
-
-    std::vector<HudDisplayPart*>* brokenGlasVec;
-
-    void CleanUpBrokenGlas();
-
     void DrawHUD1PlayerRace(irr::f32 deltaTime);
     void DrawHUD1PlayerStartSignal(irr::f32 deltaTime);
 
@@ -204,10 +194,13 @@ public:
 
     void ShowGreenBigText(char* text, irr::f32 showDurationSec);
 
-    void AddGlasBreak();
-    void RepairGlasBreaks();
-
     void SetHUDState(irr::u8 newHUDState);
+
+    //************************************
+    //* Broken glas resource             *
+    //************************************
+
+    HudDisplayPart* brokenGlas;
 };
 
 #endif // HUD_H
