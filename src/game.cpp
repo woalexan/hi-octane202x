@@ -415,6 +415,18 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                       this->mCurrentRace->player2->mCpCurrPathOffset
                     );*/
 
+   /* if (this->mCurrentRace->mPlayerVec.at(0)->mCurrJumping) {
+        swprintf(text2, 390, L"Jumping %lf %lf\n %lf %lf\n", this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
+                 this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
+                 this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
+                 this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
+    } else {
+       swprintf(text2, 390, L"%lf %lf\n %lf %lf\n" ,this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
+                this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
+                this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
+                this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
+    }*/
+
     swprintf(text2, 390, L"");
 
     dbgTimeProfiler->setText(text);
@@ -545,8 +557,8 @@ bool Game::CreateNewRace(int load_levelnr) {
    //    //std::string player_model("extract/models/skim0-0.obj");
 
     //add computer player 1
-    //std::string pl2Model("extract/models/bike0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+    std::string pl2Model("extract/models/bike0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
 
     //add computer player 2
     //std::string pl3Model("extract/models/jugga0-3.obj");

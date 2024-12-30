@@ -141,13 +141,14 @@ bool SteamParticle::Update(irr::f32 frameDeltaTime) {
 SteamParticle::~SteamParticle() {
 }
 
-SteamFountain::SteamFountain(irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
+SteamFountain::SteamFountain(EntityItem* entityItem, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
                              irr::u32 nrMaxParticles) {
     mSmgr = smgr;
     mDriver = driver;
 
     mPosition = location;
     mNrMaxParticles = nrMaxParticles;
+    mEntityItem = entityItem;
 
     //load the cloud sprite from the game
     std::string spriteTexFile("extract/sprites/tmaps0017.png");
@@ -193,6 +194,12 @@ void SteamFountain::Activate() {
 
     mActivated = true;
     absTimeSinceLastUpdate = 0.0f;
+}
+
+void SteamFountain::Trigger() {
+    if (!mActivated) {
+        Activate();
+    }
 }
 
 void SteamFountain::TriggerUpdate(irr::f32 frameDeltaTime) {

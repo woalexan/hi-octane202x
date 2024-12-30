@@ -27,7 +27,7 @@ void Player::DamageGlas() {
     //with 10% probability damage glas of player HUD
     if (rFloat < 0.1f) {
        if (mHUD != NULL) {
-        this->mHUD->AddGlasBreak();
+        AddGlasBreak();
        }
     }
 }
@@ -185,6 +185,9 @@ Player::~Player() {
     delete this->cameraSensor5;
     delete this->cameraSensor6;
     delete this->cameraSensor7;
+
+    CleanUpBrokenGlas();
+    delete this->brokenGlasVec;
 }
 
 void Player::SetNewState(irr::u32 newPlayerState) {
@@ -346,6 +349,10 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
 
     //create my missile launcher
     mMissileLauncher = new MissileLauncher(this, mRace->mSmgr, mRace->mDriver);
+
+    //create vector to store all the current broken Hud glas locations
+    brokenGlasVec = new std::vector<HudDisplayPart*>();
+    brokenGlasVec->clear();
 }
 
 void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
@@ -1644,7 +1651,7 @@ void Player::ExecuteHeightMapCollisionDetection() {
      HeightMapCollision(*mHMapCollPntData.backRight45deg);
 
      //store heightmap collision detection debugging results for frame
-     StoreHeightMapCollisionDbgRecordingDataForFrame();
+     //StoreHeightMapCollisionDbgRecordingDataForFrame();
 }
 
 //in the original game the ship seems to collide with the
@@ -2697,6 +2704,10 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
         CpCheckCurrentPathForObstacles();
     }
 
+    /*if ((this->PlayerSeenList.size() > 0) && (mTargetPlayer != NULL)) {
+        this->mMGun->Trigger();
+    }*/
+
     return;
 }
 
@@ -3347,13 +3358,75 @@ void Player::PlayerCraftHeightControl() {
     //* Hovercraft height control force calculation Start *  solution 1: with the 4 local points left, right, front and back of craft
     //*****************************************************
 
+    //remember last distance in front of craft towards race track
+    //needed for jump detection
+    lastHeightFront = currHeightFront;
+    lastHeightBack = currHeightBack;
+
     //establish height information of race track below player craft
     GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
+
+    //internal variable firstHeightControlLoop is used to prevent a
+    //first unwanted JUMP detection when the first loop of PlayerCraftHeightControl is
+    //executed at the start of the race (due to uninitialized variables)
+    if (!firstHeightControlLoop) {
+        //is craft currently jumping?
+        if (!mCurrJumping) {
+            //are we suddently start a jump?
+            //we should be able to detect this when the front distance between craft
+            //and race track below goes suddently much longer, but the distance from the craft
+            //back to the racetrack is still similar then before
+            if (currHeightFront < (lastHeightFront - CRAFT_JUMPDETECTION_THRES)) {
+                if (currHeightBack > (lastHeightBack - CRAFT_JUMPDETECTION_THRES)) {
+                    this->mCurrJumping = true;
+                 /*   if (mHUD !=NULL) {
+                        this->mHUD->ShowGreenBigText("JUMP", 4.0f);
+                    }*/
+                }
+            }
+        } else {
+            //craft currently jumping
+            //is the jump over again?
+            //the jump is over when distance at craft front and
+            //back towards the race track is similar enough again
+            irr::f32 heightFrontJump = (WorldCoordCraftFrontPnt.Y - (currHeightFront + HOVER_HEIGHT));
+
+            if (heightFrontJump < HOVER_HEIGHT) {
+                this->mCurrJumping = false;
+/*
+                if (mHUD !=NULL) {
+                    this->mHUD->ShowGreenBigText("JUMP END", 4.0f);
+                }*/
+            }
+        }
+
+        if (mCurrJumping) {
+            //slowly move craft downwards while jumping, instead of the normal
+            //craft height control below, while we jump we are disconnected from the
+            //race track surface
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin - irr::core::vector3df(0.0f, 50.0f, 0.0f), PHYSIC_APPLYFORCE_REAL,
+                                            PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
+            //when we jump exit, no more height control necessary
+            return;
+        }
+    } else {
+        //internal variables to prevent first unwanted
+        //jump after start of race
+        firstHeightControlLoop = false;
+    }
 
     /*DbgCurrRaceTrackHeightFront = currHeightFront;
     DbgCurrRaceTrackHeightBack = currHeightBack;
     DbgCurrRaceTrackHeightLeft = currHeightLeft;
     DbgCurrRaceTrackHeightRight = currHeightRight;*/
+
+    /*****************************************
+     * Starting from here we control craft   *
+     * height for normal flight (no jump)    *
+     * Craft corners are controlled based    *
+     * on racetrack height below             *
+     * *************************************** */
 
     irr::f32 heightErrorFront = (WorldCoordCraftFrontPnt.Y - (currHeightFront + HOVER_HEIGHT));
     irr::f32 heightErrorBack = (WorldCoordCraftBackPnt.Y - (currHeightBack + HOVER_HEIGHT));
@@ -3538,7 +3611,7 @@ void Player::CheckForChargingStation() {
             this->mPlayerStats->shieldVal++;
 
             if (mHUD != NULL) {
-                this->mHUD->RepairGlasBreaks();
+                RepairGlasBreaks();
 
                 if (mPlayerStats->shieldVal >= mPlayerStats->shieldMax) {
                     mPlayerStats->shieldVal = mPlayerStats->shieldMax;
@@ -4053,7 +4126,75 @@ void Player::FinishedLap() {
         mRace->PlayerHasFinishedLastLapOfRace(this);
     }
 
+    //do we need to show HUD Message for "final lap"
+    if (mPlayerStats->currLapNumber == mPlayerStats->raceNumberLaps) {
+        if (mHUD != NULL) {
+            mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f);
+        }
+    }
+
     //reset current lap time
     mPlayerStats->currLapTimeExact = 0.0;
     mPlayerStats->currLapTimeMultiple100mSec = 0;
+}
+
+//adds a single random location glas break
+void Player::AddGlasBreak() {
+    irr::s32 rNum = rand();
+    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * this->mRace->mGame->mGameScreenRes.Width;
+
+    rNum = rand();
+    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * this->mRace->mGame->mGameScreenRes.Height;
+
+    HudDisplayPart* newGlasBreak = new HudDisplayPart();
+    newGlasBreak->texture = this->mHUD->brokenGlas->texture;
+    newGlasBreak->altTexture = this->mHUD->brokenGlas->altTexture;
+    newGlasBreak->sizeTex = this->mHUD->brokenGlas->sizeTex;
+
+    newGlasBreak->drawScrPosition.set(rWidthFloat, rHeightFloat);
+
+    this->brokenGlasVec->push_back(newGlasBreak);
+}
+
+//repairs all current glas breaks
+void Player::RepairGlasBreaks() {
+
+    if (this->brokenGlasVec->size() > 0) {
+        std::vector<HudDisplayPart*>::iterator it;
+        HudDisplayPart* pntr;
+
+        for (it = brokenGlasVec->begin(); it != brokenGlasVec->end();) {
+            pntr = (*it);
+
+            it = brokenGlasVec->erase(it);
+
+            delete pntr;
+        }
+    }
+}
+
+//deletes all broken glas stuff from heap
+void Player::CleanUpBrokenGlas() {
+    std::vector<HudDisplayPart*>::iterator it;
+    HudDisplayPart* pntr;
+
+    if (this->brokenGlasVec->size() > 0) {
+        for (it = brokenGlasVec->begin(); it != brokenGlasVec->end();) {
+            pntr = (*it);
+
+            it = brokenGlasVec->erase(it);
+
+            if (pntr->texture != NULL) {
+                //remove underlying texture
+                this->mRace->mDriver->removeTexture(pntr->texture);
+            }
+
+            if (pntr->altTexture != NULL) {
+                //remove underlying texture
+                this->mRace->mDriver->removeTexture(pntr->altTexture);
+            }
+
+            delete pntr;
+        }
+    }
 }

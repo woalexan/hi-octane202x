@@ -73,6 +73,7 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     mTriggerRegionVec.clear();
     mPendingTriggerTargetGroups.clear();
     mTimerVec.clear();
+    mExplosionEntityVec.clear();
 
     //for the start of the race we want to trigger
     //target group 1 once
@@ -185,6 +186,7 @@ Race::~Race() {
     CleanMiniMap();
     CleanUpTriggers();
     CleanUpTimers();
+    CleanUpExplosionEntities();
 
     //free lowlevel level data
     delete mLevelBlocks;
@@ -433,6 +435,22 @@ void Race::CleanUpTimers() {
             it = mTimerVec.erase(it);
 
             //delete the timer as well
+            delete pntr;
+        }
+    }
+}
+
+void Race::CleanUpExplosionEntities() {
+    std::vector<ExplosionEntity*>::iterator it;
+    ExplosionEntity* pntr;
+
+    if (mExplosionEntityVec.size() > 0) {
+        for (it = mExplosionEntityVec.begin(); it != mExplosionEntityVec.end(); ) {
+            pntr = (*it);
+
+            it = mExplosionEntityVec.erase(it);
+
+            //delete the explosion entity as well
             delete pntr;
         }
     }
@@ -1695,6 +1713,8 @@ void Race::ProcessPendingTriggers() {
         std::vector<Collectable*>::iterator itCollect;
         std::vector<Timer*>::iterator itTimer;
         std::list<Morph*>::iterator itMorph;
+        std::vector<SteamFountain*>::iterator itSteam;
+        std::vector<ExplosionEntity*>::iterator itExplosion;
 
         for (it = mPendingTriggerTargetGroups.begin(); it != mPendingTriggerTargetGroups.end(); ) {
             //check all collectables
@@ -1721,6 +1741,24 @@ void Race::ProcessPendingTriggers() {
                     //this morph belongs to the group we need to
                     //trigger according to the target trigger
                     (*itMorph)->Trigger();
+                }
+            }
+
+            //check all SteamFountains
+            for (itSteam = this->steamFountainVec->begin(); itSteam != this->steamFountainVec->end(); ++itSteam) {
+                if ((*itSteam)->mEntityItem->getGroup() == (*it)) {
+                    //this SteamFountain belongs to the group we need to
+                    //trigger according to the target trigger
+                    (*itSteam)->Trigger();
+                }
+            }
+
+            //check all explosion entities
+            for (itExplosion = this->mExplosionEntityVec.begin(); itExplosion != this->mExplosionEntityVec.end(); ++itExplosion) {
+                if ((*itExplosion)->mEntityItem->getGroup() == (*it)) {
+                    //this explosion entity belongs to the group we need to
+                    //trigger according to the target trigger
+                    (*itExplosion)->Trigger();
                 }
             }
 
@@ -3315,6 +3353,12 @@ void Race::AddTimer(EntityItem *entity) {
     this->mTimerVec.push_back(newTimer);
 }
 
+void Race::AddExplosionEntity(EntityItem *entity) {
+    ExplosionEntity* newExplosion = new ExplosionEntity(entity, this);
+
+    this->mExplosionEntityVec.push_back(newExplosion);
+}
+
 void Race::AddTrigger(EntityItem *entity) {
     /*w = entity.OffsetX + 1f;
     h = entity.OffsetY + 1f;
@@ -3597,14 +3641,18 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
             AddCheckPoint(entity);
             break;
         }
-/*
-        case EntityType::Explosion:
-            BillboardAnimation explosion = new BillboardAnimation("images/tmaps/explosion.png", 1f, 1f, 88, 74, 10);
 
-            explosion.Position = entity.Center;
-            Entities.AddNode(explosion);
-            break;
-*/
+        case Entity::EntityType::Explosion: {
+               /* BillboardAnimation explosion = new BillboardAnimation("images/tmaps/explosion.png", 1f, 1f, 88, 74, 10);
+
+                explosion.Position = entity.Center;
+                Entities.AddNode(explosion);
+                break;
+                */
+                AddExplosionEntity(p_entity);
+                break;
+            }
+
         case Entity::EntityType::ExtraFuel:
             {
                     collectable = new Collectable(p_entity, 29, entity.getCenter(), this->mSmgr, driver);
@@ -3702,8 +3750,14 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
         case Entity::EntityType::SteamStrong: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
                //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 12);
-               SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 48);
-               sf->Activate();
+               SteamFountain *sf = new SteamFountain(p_entity, this->mSmgr, driver, newlocation , 48);
+
+               //only for first testing
+               //sf->Activate();
+
+               //it seems when SteamFountains are created the are not
+               //active yet in the game, the are normally triggered to be
+               //active by a craft trigger or similar
 
                //add new steam fontain to my list of fontains
                steamFountainVec->push_back(sf);
@@ -3713,8 +3767,14 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
         case Entity::EntityType::SteamLight: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
                //SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 7);
-               SteamFountain *sf = new SteamFountain(this->mSmgr, driver, newlocation , 24);
-               sf->Activate();
+               SteamFountain *sf = new SteamFountain(p_entity, this->mSmgr, driver, newlocation , 24);
+
+               //only for first testing
+               //sf->Activate();
+
+               //it seems when SteamFountains are created the are not
+               //active yet in the game, the are normally triggered to be
+               //active by a craft trigger or similar
 
                //add new steam fontain to my list of fontains
                steamFountainVec->push_back(sf);
