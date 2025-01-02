@@ -129,8 +129,16 @@ irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState 
     }
 
    // if (pObj->currForceVectorWorldCoord.size() > 0) {
-        //damping to prevent to crazy phyciscs
-        sumTorqueVec -= state.angularVelocity * 50.1f; //* 0.1f;
+        //damping to prevent to crazy physiscs
+
+
+       //the next line was sumTorqueVec -= state.angularVelocity * 50.1f;
+        //for the human controller I liked most
+       //sumTorqueVec -= state.angularVelocity * 800.0f; //2000.0f
+
+        //some value that allows to slow down rotational movement
+        //to prevent crazy physics
+        sumTorqueVec -= state.angularVelocity * pObj->mRotationalFrictionVal;
 
    // }
 
@@ -600,45 +608,53 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
 
              if (!DidObjCollideWithObjLastIteration((*it), (*it2))) {
 
-                      AddObjToObjCollisionPair((*it), (*it2));
+                      bool somethingNan = false;
+                      somethingNan |= std::isnan(collNormal.X);
+                      somethingNan |= std::isnan(collNormal.Y);
+                      somethingNan |= std::isnan(collNormal.Z);
+                      somethingNan |= std::isnan(collDepth);
 
-                      irr::f32 elasticity = 0.1f;
+                      if (!somethingNan) {
+                              AddObjToObjCollisionPair((*it), (*it2));
 
-                      irr::f32 Ua = (*it)->physicState.velocity.dotProduct(collNormal);
-                      irr::f32 Ub = -(*it2)->physicState.velocity.dotProduct(collNormal);
+                              irr::f32 elasticity = 0.1f;
 
-                      irr::f32 Jn = ((*it)->physicState.mass*(*it2)->physicState.mass)/((*it)->physicState.mass+(*it2)->physicState.mass);
-                      Jn = Jn * (1+elasticity)*(Ub-Ua);
+                              irr::f32 Ua = (*it)->physicState.velocity.dotProduct(collNormal);
+                              irr::f32 Ub = -(*it2)->physicState.velocity.dotProduct(collNormal);
 
-                      irr::f32 velChange1 = Jn / ((*it)->physicState.mass);
-                      irr::f32 velChange2 = -Jn / ((*it2)->physicState.mass);
+                              irr::f32 Jn = ((*it)->physicState.mass*(*it2)->physicState.mass)/((*it)->physicState.mass+(*it2)->physicState.mass);
+                              Jn = Jn * (1+elasticity)*(Ub-Ua);
 
-                      irr::f32 force1 = (velChange1 * (*it)->physicState.mass) / deltaTime;
-                      irr::f32 force2 = (velChange2 * (*it2)->physicState.mass) / deltaTime;
+                              irr::f32 velChange1 = Jn / ((*it)->physicState.mass);
+                              irr::f32 velChange2 = -Jn / ((*it2)->physicState.mass);
 
-                      //better limit forces, because otherwise horrible
-                      //things may happen with the world
-                      if (fabs(force1) > 500.0f) {
-                          force1 = sgn(force1) * 500.0f;
+                              irr::f32 force1 = (velChange1 * (*it)->physicState.mass) / deltaTime;
+                              irr::f32 force2 = (velChange2 * (*it2)->physicState.mass) / deltaTime;
+
+                              //better limit forces, because otherwise horrible
+                              //things may happen with the world
+                              if (fabs(force1) > 500.0f) {
+                                  force1 = sgn(force1) * 500.0f;
+                              }
+
+                              if (fabs(force2) > 500.0f) {
+                                  force2 = sgn(force2) * 500.0f;
+                              }
+
+                              (*it)->AddFriction(100.0f);
+                              (*it2)->AddFriction(100.0f);
+
+                            (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
+                                                    PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
+                              (*it2)->AddWorldCoordForce((*it2)->physicState.position, collNormal * force2, PHYSIC_APPLYFORCE_ONLYTRANS,
+                                                        PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+
+
+                              (*it)->CollidedOtherObjectLastTime = true;
+                              (*it2)->CollidedOtherObjectLastTime = true;
                       }
-
-                      if (fabs(force2) > 500.0f) {
-                          force2 = sgn(force2) * 500.0f;
-                      }
-
-                      (*it)->AddFriction(100.0f);
-                      (*it2)->AddFriction(100.0f);
-
-                    (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
-                                            PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
-
-                      (*it2)->AddWorldCoordForce((*it2)->physicState.position, collNormal * force2, PHYSIC_APPLYFORCE_ONLYTRANS,
-                                                PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
-
-
-                      (*it)->CollidedOtherObjectLastTime = true;
-                      (*it2)->CollidedOtherObjectLastTime = true;
-              }
+             }
 
             //TODO: calculate new velocities
             //see this page: https://www.euclideanspace.com/physics/dynamics/collision/index.htm
@@ -1030,6 +1046,7 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
     //advance physics time
     while ( physicsAccumulator >= dt ) {
+
              //process all existing physic objects in the world one after each other
              for (it = this->PhysicObjectVec.begin(); it != this->PhysicObjectVec.end(); ++it) {
 
@@ -1040,7 +1057,10 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
                     //execute collision detection and resolution
                     //between physics objects themselves (via bounding boxes)
-                    HandleObjToObjCollision(frameDeltaTime);
+
+                    //TODO 30.12.2024: Temporarily deactivated, because if computer player
+                    //instabiliy due to object to object collision detection
+                    //HandleObjToObjCollision(frameDeltaTime);
 
                     //for all computer players in this race we need to call the
                     //CPForceController which has the job to control the crafts movement

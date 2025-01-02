@@ -9,9 +9,10 @@
 
 #include "cone.h"
 
-Cone::Cone(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) {
+Cone::Cone(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) {
     ready = false;
     mSmgr = smgr;
+    mRace = race;
 
     Position.X = x;
     Position.Y = y;
@@ -22,7 +23,7 @@ Cone::Cone(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) 
 
     cone_node->setPosition(Position);
     cone_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
-    cone_node->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+    cone_node->setMaterialFlag(irr::video::EMF_LIGHTING, mRace->mGame->enableLightning);
 }
 
 Cone::~Cone() {

@@ -9,9 +9,10 @@
 
 #include "recovery.h"
 
-Recovery::Recovery(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) {
+Recovery::Recovery(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) {
     ready = false;
     mSmgr = smgr;
+    mRace = race;
 
     mCurrentState = STATE_RECOVERY_IDLE;
 
@@ -27,7 +28,12 @@ Recovery::Recovery(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager
 
     Recovery_node->setPosition(mPosition);
     Recovery_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
-    Recovery_node->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+    Recovery_node->setMaterialFlag(irr::video::EMF_LIGHTING, mRace->mGame->enableLightning);
+
+    if (this->mRace->mGame->enableShadows) {
+        // add shadow
+        NodeShadow = Recovery_node->addShadowVolumeSceneNode();
+    }
 
     //setup the local coordinate of my claw
     //is the coordinate where I will attach to the

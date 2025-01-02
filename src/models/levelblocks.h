@@ -37,7 +37,8 @@ struct ColumnsByPositionStruct {
 
 class LevelBlocks {
 public:
-    LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource);
+    LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
+                bool enableLightning);
     ~LevelBlocks();
 
     //MapEntry* GetMapEntry(int x, int y);
@@ -61,8 +62,8 @@ public:
     //collision detection between craft and this blocks
     SMesh *blockMeshWithoutCollision;
 
-    ISceneNode *BlockCollisionSceneNode;
-    ISceneNode *BlockWithoutCollisionSceneNode;
+    IMeshSceneNode *BlockCollisionSceneNode;
+    IMeshSceneNode *BlockWithoutCollisionSceneNode;
 
     std::vector<ColumnsByPositionStruct> ColumnsByPosition;
 
@@ -87,6 +88,8 @@ private:
     irr::u32 numIndices;
     irr::u32 numUVs;
     irr::u32 numNormals;
+
+    bool mEnableLightning;
 
 //protected:
 public:

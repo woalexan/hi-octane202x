@@ -251,6 +251,10 @@ void Player::FreedFromRecoveryVehicleAgain() {
    if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_GRABEDBYRECOVERYVEHICLE) {
        mGrabedByThisRecoveryVehicle = NULL;
        SetNewState(STATE_PLAYER_RACING);
+
+       if (!mHumanPlayer) {
+           computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+       }
    }
 }
 
@@ -270,7 +274,8 @@ void Player::AdvanceDbgColor() {
     }
 }
 
-Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
+Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+               irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
                bool humanPlayer) {
 
     mPlayerStats = new PLAYERSTATS();
@@ -329,11 +334,12 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
         Player_node->setDebugDataVisible(EDS_OFF);
 
         Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
-        Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+        Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
 
-        // add shadow
-        //Player_node->addShadowVolumeSceneNode();
-        //smgr->setShadowColor(video::SColor(150,0,0,0));
+        if (this->mRace->mGame->enableShadows) {
+            // add shadow
+            PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();
+        }
     }
 
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
@@ -932,11 +938,6 @@ void Player::Backward() {
 }
 
 void Player::CPBackward() {
-    //if player can not move right now simply
-    //exit
-    if (!this->mPlayerStats->mPlayerCanMove)
-        return;
-
     if (!DEF_PLAYERCANGOBACKWARDS) {
         //we can not go backwards in Hioctane
         //we can only add friction to brake
@@ -945,6 +946,11 @@ void Player::CPBackward() {
         if (mPlayerStats->throttleVal > 0)
             mPlayerStats->throttleVal--;
     } else {
+        //if player can not move right now simply
+        //exit
+        if (!this->mPlayerStats->mPlayerCanMove)
+            return;
+
             //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
             this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
@@ -1002,11 +1008,17 @@ void Player::NoTurningKeyPressed() {
 }
 
 void Player::CPForceController() {
-
     mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
     mLastAngleError = mAngleError;
 
     mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
+
+    //fuel empty?
+    if (this->mPlayerStats->gasolineVal <= 0.0f) {
+        this->mPlayerStats->gasolineVal = 0.0f;
+        computerPlayerTargetSpeed = 0.0f;
+        SetNewState(STATE_PLAYER_EMPTYFUEL);
+    }
 
     if (computerPlayerTargetSpeed > computerPlayerCurrentSpeed) {
         computerPlayerCurrentSpeed += mCpCurrentAccelDeaccelRate;
@@ -1023,6 +1035,9 @@ void Player::CPForceController() {
         //go slower
        this->CPBackward();
     }
+
+    if (!this->mPlayerStats->mPlayerCanMove)
+        return;
 
     if (this->cPCurrentFollowSeg != NULL) {
         //we need to project current computer player craft
@@ -1064,7 +1079,7 @@ void Player::CPForceController() {
             mAngleError = -mAngleError;
         }
 
-        irr::f32 currAngleVelocityCraft =  (mCurrentCraftOrientationAngle - mLastCurrentCraftOrientationAngle);
+        //irr::f32 currAngleVelocityCraft =  (mCurrentCraftOrientationAngle - mLastCurrentCraftOrientationAngle);
 
         irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
 
@@ -1072,15 +1087,23 @@ void Player::CPForceController() {
         /*  Control Craft absolute angle start */
         /***************************************/
 
-        irr::f32 corrForceOrientationAngle = 0.5f;
+        //best values before 30.12.2024
+        /*irr::f32 corrForceOrientationAngle = 0.5f;
         irr::f32 corrDampingOrientationAngle = 2000.0f;
 
-        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;
+        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;*/
+
+        irr::f32 corrForceOrientationAngle = 200.0f;
+        irr::f32 corrDampingOrientationAngle = 20.0f;
+
+        irr::f32 currAngleVelocityCraft = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).X * corrDampingOrientationAngle;
+
+        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft;
 
         //we need to limit max force, if force is too high just
         //set it zero, so that not bad physical things will happen!
-        if (fabs(corrForceAngle) > 20.0f) {
-            corrForceAngle = sgn(corrForceAngle) * 20.0f;
+        if (fabs(corrForceAngle) > 40.0f) {
+            corrForceAngle = sgn(corrForceAngle) * 40.0f;
         }
 
         this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
@@ -1090,6 +1113,7 @@ void Player::CPForceController() {
         /*  Control Craft distance to current waypoint link */
         /****************************************************/
 
+        //best values until 30.12.2024
         irr::f32 corrForceDist = 0.5f;
         irr::f32 corrDampingDist = 2000.0f;
 
@@ -1097,6 +1121,7 @@ void Player::CPForceController() {
 
          dbgDistError = distError;
 
+         //best line until 30.12.2024
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
         if (corrForceDistance > 20.0f) {
@@ -1164,7 +1189,7 @@ void Player::CpCheckCurrentPathForObstacles() {
                 //we have to react, and find another path
                 //without any obstacle
                 updatePath = true;
-
+                updatePathCnter++;
             }
         }
 
@@ -2418,27 +2443,29 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                 }
                 if (playerISee.size() > 0) {
 
-                if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, playerISee)) {
-                        freeWayFound = true;
-                } else {
-                    //no free way found
-                    if (goleft) {
-                        currOffset -= 0.75f;
-                        if (currOffset < (nextLink->minOffsetShift + 1.0f)) {
-                            leftFailed = true;
-                            goleft = false;
-                        }
+                        if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, playerISee)) {
+                                freeWayFound = true;
+                        } else {
+                                //no free way found
+                                updatePathCnter++;
 
-                    } else {
-                        //go right
-                        currOffset += 0.75f;
+                                if (goleft) {
+                                    currOffset -= 0.75f;
+                                    if (currOffset < (nextLink->minOffsetShift + 1.0f)) {
+                                        leftFailed = true;
+                                        goleft = false;
+                                    }
 
-                        if (currOffset > (nextLink->maxOffsetShift - 1.0f)) {
-                            rightFailed = true;
-                            goleft = true;
+                                } else {
+                                    //go right
+                                    currOffset += 0.75f;
+
+                                    if (currOffset > (nextLink->maxOffsetShift - 1.0f)) {
+                                        rightFailed = true;
+                                        goleft = true;
+                                    }
+                                }
                         }
-                    }
-                }
             } else freeWayFound = true;
 
 
@@ -2704,9 +2731,7 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
         CpCheckCurrentPathForObstacles();
     }
 
-    /*if ((this->PlayerSeenList.size() > 0) && (mTargetPlayer != NULL)) {
-        this->mMGun->Trigger();
-    }*/
+    CpPlayerHandleAttack();
 
     return;
 }
@@ -3277,23 +3302,26 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     CalcPlayerCraftLeaningAngle();
 
-    /* calculate player abs angle average list for sky rendering */
-    if (playerAbsAngleSkytListElementNr > 20) {
-        this->playerAbsAngleSkyList.pop_front();
-        playerAbsAngleSkytListElementNr--;
+    if (!isnan(currPlayerCraftLeaningAngleDeg)) {
+
+            /* calculate player abs angle average list for sky rendering */
+            if (playerAbsAngleSkytListElementNr > 20) {
+                this->playerAbsAngleSkyList.pop_front();
+                playerAbsAngleSkytListElementNr--;
+            }
+
+            this->playerAbsAngleSkyList.push_back(this->currPlayerCraftLeaningAngleDeg);
+            playerAbsAngleSkytListElementNr++;
+
+            irr::f32 avgSkyVal = 0.0f;
+
+            for (itList = this->playerAbsAngleSkyList.begin(); itList != this->playerAbsAngleSkyList.end(); ++itList) {
+                avgSkyVal += (*itList);
+            }
+
+            avgSkyVal = (avgSkyVal / (irr::f32)(playerAbsAngleSkytListElementNr));
+            absSkyAngleValue = avgSkyVal;
     }
-
-    this->playerAbsAngleSkyList.push_back(this->currPlayerCraftLeaningAngleDeg);
-    playerAbsAngleSkytListElementNr++;
-
-    irr::f32 avgSkyVal = 0.0f;
-
-    for (itList = this->playerAbsAngleSkyList.begin(); itList != this->playerAbsAngleSkyList.end(); ++itList) {
-        avgSkyVal += (*itList);
-    }
-
-    avgSkyVal = (avgSkyVal / (irr::f32)(playerAbsAngleSkytListElementNr));
-    absSkyAngleValue = avgSkyVal;
 
     /* calculate player abs angle average list for sky rendering end */
 
@@ -4198,3 +4226,35 @@ void Player::CleanUpBrokenGlas() {
         }
     }
 }
+
+void Player::CpPlayerHandleAttack() {
+    return;
+
+    //if I do not see any other player, simply return
+    if (this->PlayerSeenList.size() < 1)
+        return;
+
+    //if we have no target player, just return
+    if (mTargetPlayer == NULL)
+        return;
+
+    //if we have a (red) perfect lock on another player, and enough ammo
+    //fire missile
+    if (this->mPlayerStats->ammoVal > 0.0f) {
+        if (this->mTargetMissleLock) {
+            this->mMissileLauncher->Trigger();
+
+            //fire one missile is enough
+            //just exit
+            return;
+        }
+    }
+
+    //machine gun currently cool enough
+    //if so, do we have a target right now?
+    if (!this->mMGun->CoolDownNeeded()) {
+            //yes, fire
+            this->mMGun->Trigger();
+        }
+}
+

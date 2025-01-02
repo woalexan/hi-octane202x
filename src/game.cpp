@@ -21,7 +21,9 @@ bool Game::InitIrrlicht() {
     mGameScreenRes.set(640,480);
     //mGameScreenRes.set(1280,960);
 
-    device = createDevice(video::EDT_OPENGL, mGameScreenRes, 16, false, false, false, receiver);
+    //we need to enable stencil buffers, otherwise volumentric shadows
+    //will not work
+    device = createDevice(video::EDT_OPENGL, mGameScreenRes, 16, fullscreen, enableShadows, false, receiver);
 
     if (device == 0) {
           cout << "Failed Irrlicht device creation!" << endl;
@@ -139,10 +141,23 @@ bool Game::InitGame() {
     /*dbgText2 = guienv->addStaticText(L"",
            rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
 
-    smgr->addLightSceneNode(0, vector3df(0, 100, 0),
+    if (enableLightning) {
+        smgr->addLightSceneNode(0, vector3df(0, 100, 100),
             video::SColorf(1.0f, 1.0f, 1.0f), 1000.0f, -1);
+    }
 
-    smgr->setAmbientLight(video::SColorf(255.0,255.0,255.0));
+    //set a minimum amount of light everywhere, to not have black areas
+    //in the level
+    if (enableLightning) {
+       smgr->setAmbientLight(video::SColorf(0.4f, 0.4f, 0.4f));
+    } else {
+        //set max brightness everywhere
+        smgr->setAmbientLight(video::SColorf(1.0f, 1.0f, 1.0f));
+    }
+
+    if (enableShadows) {
+       smgr->setShadowColor(video::SColor(150,0,0,0));
+    }
 
     return true;
 }
@@ -427,7 +442,14 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                 this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
     }*/
 
-    swprintf(text2, 390, L"");
+   /* swprintf(text2, 390, L"%d\n %d\n %d\n %d\n %d\n %d\n %d\n",
+             this->mCurrentRace->mPlayerVec.at(1)->updatePathCnter,
+             this->mCurrentRace->mPlayerVec.at(2)->updatePathCnter,
+             this->mCurrentRace->mPlayerVec.at(3)->updatePathCnter,
+             this->mCurrentRace->mPlayerVec.at(4)->updatePathCnter,
+             this->mCurrentRace->mPlayerVec.at(5)->updatePathCnter,
+             this->mCurrentRace->mPlayerVec.at(6)->updatePathCnter,
+              this->mCurrentRace->mPlayerVec.at(7)->updatePathCnter);*/
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);
@@ -557,8 +579,8 @@ bool Game::CreateNewRace(int load_levelnr) {
    //    //std::string player_model("extract/models/skim0-0.obj");
 
     //add computer player 1
-    std::string pl2Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+    //std::string pl2Model("extract/models/bike0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
 
     //add computer player 2
     //std::string pl3Model("extract/models/jugga0-3.obj");
@@ -574,15 +596,15 @@ bool Game::CreateNewRace(int load_levelnr) {
 
     //add computer player 5
     //std::string pl6Model("extract/models/marsh0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
+   // mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
 
     //add computer player 6
     //std::string pl7Model("extract/models/jet0-0.obj");
     //mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
 
     //add computer player 7
-    //std::string pl8Model("extract/models/tank0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+   // std::string pl8Model("extract/models/tank0-0.obj");
+   // mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
 
     mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
     mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));

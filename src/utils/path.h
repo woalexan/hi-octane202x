@@ -92,6 +92,7 @@ class Race;       //Forward declaration
 class DrawDebug;  //Forward declaration
 class Player;     //Forward declaration
 class EntityItem; //Forward declaration
+class Collectable; //Forward declaration
 
 class Path {
 public:
@@ -128,7 +129,8 @@ public:
 
     //returns all waypoint links of a defined input path that come closer to a defined player than a distance of distanceLowLimit
     std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> WhereDoesPathComeCloseToPlayer
-        (std::vector<WayPointLinkInfoStruct*> path, irr::f32 distanceLowLimit, Player* checkForWhichPlayer);
+        (std::vector<WayPointLinkInfoStruct*> path, irr::f32 distanceLowLimit, Player* checkForWhichPlayer,
+         std::vector<irr::f32> &whichDistanceVec);
 
     bool ProjectPositionAtWayPointLink(irr::core::vector3df position, WayPointLinkInfoStruct* link,
                                                             irr::core::vector3df &projPosition);

@@ -36,8 +36,8 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 12.0f; //8.0f
-const irr::f32 CP_PLAYER_SLOW_SPEED = 5.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 10.0f; //8.0f
+const irr::f32 CP_PLAYER_SLOW_SPEED = 7.0f;
 
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
 const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
@@ -80,6 +80,7 @@ const irr::f32 CRAFT_JUMPDETECTION_THRES = 0.2f;
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 struct RayHitInfoStruct; //Forward declaration
+class Collectable; //Forward declaration
 
 typedef struct {
     uint8_t cmdType;
@@ -443,9 +444,14 @@ public:
 
     irr::scene::IMeshSceneNode* Player_node;
 
+    //player craft shadow SceneNode
+    irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow;
+
     PLAYERSTATS *mPlayerStats;
 
     irr::f32 terrainTiltCraftLeftRightDeg;
+
+    irr::u32 updatePathCnter = 0;
 
     //next checkpoints value we need to reach for
     //correct race progress
@@ -606,6 +612,8 @@ public:
     irr::f32 lastHeightFront;
     irr::f32 lastHeightBack;
 
+     irr::u8 playerAbsAngleSkytListElementNr = 0;
+
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
 
@@ -623,6 +631,7 @@ private:
     bool DoIWantToChargeAmmo();
 
     void CpPlayerCollectableSelectionLogic();
+    void CpPlayerHandleAttack();
 
     void SetNewState(irr::u32 newPlayerState);
     irr::u32 GetCurrentState();
@@ -657,7 +666,7 @@ private:
     irr::u8 playerCamHeightListElementNr = 0;
 
     std::list<irr::f32> playerAbsAngleSkyList;
-    irr::u8 playerAbsAngleSkytListElementNr = 0;
+
 
     //variables to remember if during the last
     //gameloop this player did any charging

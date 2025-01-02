@@ -186,10 +186,11 @@ void LevelTerrain::CheckPosInsideChargingRegion(int posX, int posY, bool &charge
 }
 
 LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
-                           TextureLoader* textureSource, Race* mRaceParent) {
+                           TextureLoader* textureSource, Race* mRaceParent, bool enableLightning) {
    this->m_driver = driver;
    this->m_smgr = mySmgr;
    this->mRace = mRaceParent;
+   mEnableLightning = enableLightning;
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -244,7 +245,7 @@ LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager
 
        //we need to rotate the terrain Mesh, otherwise it is upside down
        TerrainSceneNode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
-       TerrainSceneNode->setMaterialFlag(EMF_LIGHTING, true);
+       TerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
 
        TerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
    }
@@ -492,11 +493,10 @@ void LevelTerrain::CreateTerrainMesh() {
 
       //set texture/material for each SMeshBuffer
       newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[idx]);
-      newBuf->getMaterial().Lighting = false;
+      newBuf->getMaterial().Lighting = mEnableLightning;
       newBuf->getMaterial().Wireframe = false;
       //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
       newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-
       meshBuffers.push_back(newBuf);
     }
 

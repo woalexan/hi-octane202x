@@ -25,7 +25,7 @@ class Player; //Forward declaration
 
 class Recovery {
 public:
-    Recovery(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr);
+    Recovery(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr);
     ~Recovery();
 
     bool ready;
@@ -60,7 +60,12 @@ private:
     irr::scene::IAnimatedMesh*  RecoveryMesh;
     irr::scene::IMeshSceneNode* Recovery_node;
 
+    //recovery vehicle shadow SceneNode
+    irr::scene::IShadowVolumeSceneNode* NodeShadow;
+
     irr::scene::ISceneManager* mSmgr;
+
+    Race* mRace;
 };
 
 #endif // RECOVERY_H
