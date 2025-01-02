@@ -48,10 +48,12 @@ LevelBlocks::~LevelBlocks() {
 }
 
 LevelBlocks::LevelBlocks(LevelTerrain* myTerrain,
-                         LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver, TextureLoader* textureSource) {
+                         LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver, TextureLoader* textureSource,
+                         bool enableLightning) {
    this->m_driver = driver;
    MyTerrain = myTerrain;
    MySmgr = mySmgr;
+   mEnableLightning = enableLightning;
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -89,14 +91,14 @@ LevelBlocks::LevelBlocks(LevelTerrain* myTerrain,
    BlockCollisionSceneNode = MySmgr->addMeshSceneNode(blockMeshForCollision, 0, IDFlag_IsPickable);
    BlockWithoutCollisionSceneNode = MySmgr->addMeshSceneNode(blockMeshWithoutCollision, 0, ID_IsNotPickable);
 
-   BlockCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, true);
+   BlockCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
    BlockCollisionSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
    BlockCollisionSceneNode->setMaterialFlag(EMF_FRONT_FACE_CULLING, true);
 
    //Uncomment next line to only see wireframe of the Buildings
    BlockCollisionSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
 
-   BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, true);
+   BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_FRONT_FACE_CULLING, true);
 
@@ -217,7 +219,7 @@ SMesh* LevelBlocks::getBlocksMesh(int collisionSelector) {
 
             //set texture/material for each SMeshBuffer
             newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[idx]);
-            newBuf->getMaterial().Lighting = false;
+            newBuf->getMaterial().Lighting = mEnableLightning;
             newBuf->getMaterial().Wireframe = false;
             newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
 

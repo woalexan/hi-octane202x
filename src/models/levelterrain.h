@@ -116,7 +116,7 @@ class Race; //Forward declaration
 class LevelTerrain {
 public:
     LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
-                 Race* mRaceParent);
+                 Race* mRaceParent, bool enableLightning);
     ~LevelTerrain();
 
     void ResetTerrainTileData();
@@ -189,6 +189,8 @@ private:
 
     TextureLoader* mTexSource;
     //std::string m_texfile;
+
+    bool mEnableLightning;
 
     /*void AddDirtySMeshBuffer(irr::scene::SMeshBuffer *newDirtyBuffer,
                                            std::vector<irr::scene::SMeshBuffer*> &currDirtyList);*/

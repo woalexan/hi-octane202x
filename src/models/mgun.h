@@ -42,6 +42,8 @@ public:
     void Trigger();
     void Update(irr::f32 DeltaTime);
 
+    bool CoolDownNeeded();
+
 private:
     Player* mParent;
     irr::scene::ISceneManager *mSmgr;
@@ -66,6 +68,8 @@ private:
 
     irr::f32 timeAccu = 0.0f;
     irr::f32 coolOffTime = 0.0f;
+
+    bool CpPlayerCurrentlyCoolDownNeeded = false;
 };
 
 #endif // MGUN_H

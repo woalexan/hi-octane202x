@@ -242,8 +242,13 @@ std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::FindClosestWayPo
 
 //returns all waypoint links of a defined input path that come closer to a defined player than a distance of distanceLowLimit
 std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::WhereDoesPathComeCloseToPlayer(std::vector<WayPointLinkInfoStruct*> path,
-                                                                                         irr::f32 distanceLowLimit, Player* checkForWhichPlayer) {
+                                                                                         irr::f32 distanceLowLimit, Player* checkForWhichPlayer,
+                                                                                        std::vector<irr::f32> &whichDistanceVec) {
     std::vector<WayPointLinkInfoStruct*>::iterator it;
+    std::vector<irr::f32> inWhichDistanceVec;
+    inWhichDistanceVec.clear();
+
+    irr::f32 currDistance = 0.0f;
 
     std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
     result.clear();
@@ -258,10 +263,16 @@ std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::Whe
 
             if (distance < distanceLowLimit) {
                 result.push_back(std::make_pair((*it), projPos));
+
+                //add additional distance from A to projPos
+                inWhichDistanceVec.push_back(currDistance + (projPos - (*it)->pLineStruct->A).getLength());
             }
         }
+
+        currDistance += (*it)->length3D;
     }
 
+    whichDistanceVec = inWhichDistanceVec;
     return result;
 }
 
@@ -270,12 +281,23 @@ bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStru
 
    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
    std::vector<Player*>::iterator itPlayer;
+   std::vector<irr::f32> inWhichDistanceVec;
 
    for (itPlayer = checkCollisionForWhichPlayers.begin(); itPlayer != checkCollisionForWhichPlayers.end(); ++itPlayer) {
 
-       result = WhereDoesPathComeCloseToPlayer(path, 1.0f, (*itPlayer));
+       result = WhereDoesPathComeCloseToPlayer(path, 1.0f, (*itPlayer), inWhichDistanceVec);
 
-         if (result.size() > 0) {
+       bool playerClose = false;
+
+       std::vector<irr::f32>::iterator it;
+
+       for (it = inWhichDistanceVec.begin(); it != inWhichDistanceVec.end(); ++it) {
+           if ((*it) < 2.0f) {
+               playerClose = true;
+           }
+       }
+
+         if ((result.size() > 0) && playerClose) {
              //other player comes close to our path
              //return true
              return true;

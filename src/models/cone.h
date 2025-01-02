@@ -11,10 +11,13 @@
 #define CONE_H
 
 #include <irrlicht/irrlicht.h>
+#include "../race.h"
+
+class Race; //Forward declaration
 
 class Cone {
 public:
-    Cone(irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr);
+    Cone(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr);
     ~Cone();
 
     bool ready;
@@ -26,6 +29,8 @@ private:
     irr::scene::IMeshSceneNode* cone_node;
 
     irr::scene::ISceneManager* mSmgr;
+
+    Race *mRace;
 };
 
 #endif // CONE_H

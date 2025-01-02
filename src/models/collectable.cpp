@@ -9,11 +9,14 @@
 
 #include "collectable.h"
 
-Collectable::Collectable(EntityItem* entityItem,
+Collectable::Collectable(Race* race, EntityItem* entityItem,
                          int number, vector3d<irr::f32> pos, irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver* driver) {
     this->m_driver = driver;
     this->m_smgr = mSmgr;
     this->mEntityItem = entityItem;
+    mRace = race;
+
+    mEnableLightning = mRace->mGame->enableLightning;
 
     //preset values, also used in
     //HiOctaneTools
@@ -48,7 +51,10 @@ Collectable::Collectable(EntityItem* entityItem,
     this->billSceneNode = this->m_smgr->addBillboardSceneNode();
     this->billSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR);
     this->billSceneNode->setMaterialTexture(0, collectable_tex);
-    this->billSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, true);
+
+    //Important: let collectables (Billboards) unaffected by lightning,
+    //otherwise there are sometimes not good to see for the player
+    this->billSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
     this->billSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
     this->billSceneNode->setPosition(Position);

@@ -86,6 +86,11 @@ MachineGunBulletImpactStruct* MachineGun::GetCurrentlyAvailableImpactStruct() {
  }
 }
 
+//HelperFunction for computer player control
+bool MachineGun::CoolDownNeeded() {
+   return CpPlayerCurrentlyCoolDownNeeded;
+}
+
 void MachineGun::Trigger() {
     //if player can not shoot right now simply exit
     if (!this->mParent->mPlayerStats->mPlayerCanShoot)
@@ -101,12 +106,15 @@ void MachineGun::Trigger() {
 
     if ((freeStruct != NULL) && (coolOffTime < 0.1f)) {
 
+        CpPlayerCurrentlyCoolDownNeeded = false;
+
      this->mParent->mPlayerStats->mgHeatVal += 2.5f;
 
      if (this->mParent->mPlayerStats->mgHeatVal >
              (0.6 * this->mParent->mPlayerStats->mgHeatMax)) {
              //gun gets hot
              coolOffTime = 0.2f + this->mParent->mPlayerStats->mgHeatVal * 0.10f;
+             CpPlayerCurrentlyCoolDownNeeded = true;
     } else coolOffTime = 0.2f;
 
      irr::core::vector3df shotTargetLoc;

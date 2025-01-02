@@ -687,9 +687,19 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
         if (humanPlayer) {
             newPlayerPhysicsObj->physicState.SetMass(3.0f);
             newPlayerPhysicsObj->physicState.SetInertia(30.0f);
+
+            //best value for human player to have best
+            //player craft handling
+            newPlayerPhysicsObj->mRotationalFrictionVal = 50.1f;
         } else {
+           //best values until 30.12.2024
            newPlayerPhysicsObj->physicState.SetMass(5.0f);
            newPlayerPhysicsObj->physicState.SetInertia(60.0f);
+
+           //this value is necessary for computer controlled craft,
+           //to stabilizie it against unwanted sideway movements and
+           //"oscillations"
+           newPlayerPhysicsObj->mRotationalFrictionVal = 2000.0f;
         }
 
         newPlayerPhysicsObj->physicState.position = Startpos;
@@ -1828,11 +1838,11 @@ void Race::HandleBasicInput() {
     //a breakpoint via a keyboard press
     DebugHitBreakpoint = false;
 
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9)) {
       this->mGame->StopTime();
     }
 
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7)) {
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8)) {
         this->mGame->StartTime();
     }
 
@@ -1860,9 +1870,41 @@ void Race::HandleBasicInput() {
         }
     }
 
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
     {
-         this->mGame->AdvanceFrame(10);
+        if (mPlayerVec.size() > 3) {
+            this->currPlayerFollow = mPlayerVec.at(3);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(3));
+        }
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_5))
+    {
+        if (mPlayerVec.size() > 4) {
+            this->currPlayerFollow = mPlayerVec.at(4);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(4));
+        }
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6))
+    {
+        if (mPlayerVec.size() > 5) {
+            this->currPlayerFollow = mPlayerVec.at(5);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(5));
+        }
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7))
+    {
+        if (mPlayerVec.size() > 6) {
+            this->currPlayerFollow = mPlayerVec.at(6);
+            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(6));
+        }
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_0))
+    {
+         this->mGame->AdvanceFrame(5);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
@@ -2805,7 +2847,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /* Prepare level terrain                                   */
    /***********************************************************/
    this->mLevelTerrain = new LevelTerrain(terrainname, this->mLevelRes, this->mSmgr, this->mDriver, mTexLoader,
-                                          this);
+                                          this, this->mGame->enableLightning);
 
    if (this->mLevelTerrain->Terrain_ready == false) {
        //something went wrong with the terrain loading, exit application
@@ -2825,7 +2867,8 @@ bool Race::LoadLevel(int loadLevelNr) {
   /***********************************************************/
   //this routine also generates the column/block collision information inside that
   //we need for collision detection later
-  this->mLevelBlocks = new LevelBlocks(this->mLevelTerrain, this->mLevelRes, this->mSmgr, this->mDriver, mTexLoader);
+  this->mLevelBlocks = new LevelBlocks(this->mLevelTerrain, this->mLevelRes, this->mSmgr, this->mDriver, mTexLoader,
+                                       this->mGame->enableLightning);
 
   //create all level entities
   //this are not only items to pickup by the player
@@ -3619,7 +3662,7 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
     }
 
         case Entity::EntityType::RecoveryTruck: {
-            Recovery *recov1 = new Recovery(entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, this->mSmgr);
+            Recovery *recov1 = new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, this->mSmgr);
 
             //remember all recovery vehicles in a vector for later use
             this->recoveryVec->push_back(recov1);
@@ -3629,7 +3672,7 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
 
         case Entity::EntityType::Cone: {
             irr::core::vector3df center = entity.getCenter();
-            Cone *cone = new Cone(center.X, center.Y + 0.104f, center.Z, this->mSmgr);
+            Cone *cone = new Cone(this, center.X, center.Y + 0.104f, center.Z, this->mSmgr);
 
             //remember all cones in a vector for later use
             this->coneVec->push_back(cone);
@@ -3655,77 +3698,77 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
 
         case Entity::EntityType::ExtraFuel:
             {
-                    collectable = new Collectable(p_entity, 29, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 29, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
 
         case Entity::EntityType::FuelFull:
             {
-                    collectable = new Collectable(p_entity, 30, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 30, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::DoubleFuel:
             {
-                    collectable = new Collectable(p_entity, 31, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 31, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
 
         case Entity::EntityType::ExtraAmmo:
             {
-                    collectable = new Collectable(p_entity, 32, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 32, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::AmmoFull:
             {
-                    collectable = new Collectable(p_entity, 33, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 33, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::DoubleAmmo:
             {
-                    collectable = new Collectable(p_entity, 34, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 34, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
 
         case Entity::EntityType::ExtraShield:
             {
-                    collectable = new Collectable(p_entity, 35, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 35, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::ShieldFull:
             {
-                    collectable = new Collectable(p_entity, 36, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 36, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::DoubleShield:
             {
-                    collectable = new Collectable(p_entity, 37, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 37, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
 
         case Entity::EntityType::BoosterUpgrade:
             {
-                    collectable = new Collectable(p_entity, 40, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 40, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::MissileUpgrade:
             {
-                    collectable = new Collectable(p_entity, 39, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 39, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }
         case Entity::EntityType::MinigunUpgrade:
             {
-                    collectable = new Collectable(p_entity, 38, entity.getCenter(), this->mSmgr, driver);
+                    collectable = new Collectable(this, p_entity, 38, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
             }

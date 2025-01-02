@@ -224,6 +224,8 @@ public:
     irr::f32 currAirFrictionCoeff = 0.0f;
     irr::f32 currFrictionSum = 0.0f;
 
+    irr::f32 mRotationalFrictionVal = 50.1f;
+
     void SetAirFriction(irr::f32 newAirFrictionValue);
     void AddFriction(irr::f32 addFrictionValue);
 

@@ -87,6 +87,7 @@ class ExplosionLauncher;  //Forward declaration
 class Morph;   //Forward declaration
 class Timer;   //Forward declaration
 class ExplosionEntity; //Forward declaration
+class Cone; //Forward declaration
 
 class Race {
 public:

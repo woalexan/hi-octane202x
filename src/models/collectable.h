@@ -12,10 +12,13 @@
 
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
+#include "../race.h"
+
+class Race; //Forward declaration
 
 class Collectable {
 public:
-    Collectable(EntityItem* entityItem, int number, vector3d<irr::f32> pos,
+    Collectable(Race* race, EntityItem* entityItem, int number, vector3d<irr::f32> pos,
                 irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver);
     ~Collectable();
 
@@ -36,6 +39,11 @@ public:
     EntityItem* mEntityItem;
 
     irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
+
+private:
+    Race* mRace;
+
+    bool mEnableLightning;
 
 protected:
     irr::video::IVideoDriver* m_driver;
