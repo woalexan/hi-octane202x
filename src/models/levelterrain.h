@@ -100,6 +100,10 @@ struct TerrainTileData {
     //remember final result of optimization process
     bool m_draw_in_mesh = true; //default is to draw the title/cell
 
+    //Dynamic mesh means this tile is
+    //part of a morph, and is updated during the game
+    bool dynamicMesh = false;
+
     //we need to keep pointer to my meshbuffer,
     //to be able to set it dirty if we have changed a vertices dynamically
     std::vector<irr::scene::SMeshBuffer*> myMeshBuffers;
@@ -119,14 +123,24 @@ public:
                  Race* mRaceParent, bool enableLightning);
     ~LevelTerrain();
 
+    void FinishTerrainInitialization();
+
     void ResetTerrainTileData();
 
     void ApplyMorph(Morph morph);
     vector3d<irr::f32> Size;
     bool Terrain_ready;
     TerrainTileData pTerrainTiles[LEVELFILE_WIDTH][LEVELFILE_HEIGHT];
-    ISceneNode * TerrainSceneNode;
-    SMesh *myTerrainMesh;
+
+    //static terrain mesh and SceneNode that is not affected
+    //by any defined level morphs
+    ISceneNode *StaticTerrainSceneNode;
+    SMesh *myStaticTerrainMesh;
+
+    //dynamic terrain mesh and SceneNode that is affected
+    //by level morphs
+    ISceneNode *DynamicTerrainSceneNode;
+    SMesh *myDynamicTerrainMesh;
 
     LevelFile* levelRes;
 
@@ -192,14 +206,19 @@ private:
 
     bool mEnableLightning;
 
+    char mName[50];
+
     /*void AddDirtySMeshBuffer(irr::scene::SMeshBuffer *newDirtyBuffer,
                                            std::vector<irr::scene::SMeshBuffer*> &currDirtyList);*/
 
     void RecalculateNormals(MapEntry *entry);
     irr::f32 GetAveragedTileHeight(int x, int z);
 
-    std::vector<int> indicesVboData;
-    std::vector<int> textureIdData;
+    std::vector<int> indicesVboDataStatic;
+    std::vector<int> textureIdDataStatic;
+
+    std::vector<int> indicesVboDataDynamic;
+    std::vector<int> textureIdDataDynamic;
 
     irr::u32 numVertices;
     irr::u32 numIndices;

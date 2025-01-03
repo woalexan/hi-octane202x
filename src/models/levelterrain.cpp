@@ -185,12 +185,71 @@ void LevelTerrain::CheckPosInsideChargingRegion(int posX, int posY, bool &charge
     }
 }
 
+//The second part of the terrain initialization can only be done
+//after the map entities are loaded in another part of the code
+//Because we need to know where the morph areas are, to be able to put
+//dynamic parts of the terrain mesh into their own Meshbuffers and SceneNodes
+//for performance improvement reasons
+void LevelTerrain::FinishTerrainInitialization() {
+    //optimize terrain
+    findTerrainOptimization();
+
+    if (setupGeometry()) {
+         std::cout << "HiOctane Terrain '" << mName << "' loaded: " <<
+                    numVertices << " vertices, " <<
+                    numNormals << " normals, " <<
+                    numUVs << " UVs, " <<
+                    mTexSource->NumLevelTextures << " textures, " <<
+                    numIndices << " indices" << endl << std::flush;
+
+          if (numVertices > 80000) {
+                 std::cout << "More than 80000 vertices for Level Mesh! Drawing whole level not possible anymore. Need to exit application!" << endl << std::flush;
+                 Terrain_ready = false;
+          }
+
+         std::cout << "HiOctane Terrain '" << mName << "' loaded ok"  << endl << std::flush;
+
+    } else {
+        std::cout << "failed setting up game model '" << mName << "'" << endl << std::flush;
+        Terrain_ready = false;
+    }
+
+    if (Terrain_ready) {
+        /***********************************************************/
+        /* Create Terrain Mesh                                     */
+        /***********************************************************/
+
+        //Create Mesh for Terrain
+        CreateTerrainMesh();
+
+        //create Static SceneNode for Terrain
+        StaticTerrainSceneNode = this->m_smgr->addMeshSceneNode(myStaticTerrainMesh, 0, IDFlag_IsPickable);
+
+        //we need to rotate the terrain Mesh, otherwise it is upside down
+        StaticTerrainSceneNode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
+        StaticTerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
+
+        StaticTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
+
+        //create dynamic SceneNode for Terrain
+        DynamicTerrainSceneNode = this->m_smgr->addMeshSceneNode(myDynamicTerrainMesh, 0, IDFlag_IsPickable);
+
+        //we need to rotate the terrain Mesh, otherwise it is upside down
+        DynamicTerrainSceneNode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
+        DynamicTerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
+
+        DynamicTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
+    }
+}
+
 LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
                            TextureLoader* textureSource, Race* mRaceParent, bool enableLightning) {
    this->m_driver = driver;
    this->m_smgr = mySmgr;
    this->mRace = mRaceParent;
    mEnableLightning = enableLightning;
+
+   strcpy(mName, name);
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -208,60 +267,31 @@ LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager
 
    //reset my internal map!
    ResetTerrainTileData();
-
-   //optimize terrain
-   findTerrainOptimization();
-
-   if (setupGeometry()) {
-        std::cout << "HiOctane Terrain '" << name << "' loaded: " <<
-                   numVertices << " vertices, " <<
-                   numNormals << " normals, " <<
-                   numUVs << " UVs, " <<
-                   mTexSource->NumLevelTextures << " textures, " <<
-                   numIndices << " indices" << endl << std::flush;
-
-         if (numVertices > 80000) {
-                std::cout << "More than 80000 vertices for Level Mesh! Drawing whole level not possible anymore. Need to exit application!" << endl << std::flush;
-                Terrain_ready = false;
-         }
-
-        std::cout << "HiOctane Terrain '" << name << "' loaded ok"  << endl << std::flush;
-
-   } else {
-       std::cout << "failed setting up game model '" << name << "'" << endl << std::flush;
-       Terrain_ready = false;
-   }
-
-   if (Terrain_ready) {
-       /***********************************************************/
-       /* Create Terrain Mesh                                     */
-       /***********************************************************/
-
-       //Create Mesh for Terrain
-       CreateTerrainMesh();
-
-       //create SceneNode for Terrain
-       TerrainSceneNode = this->m_smgr->addMeshSceneNode(myTerrainMesh, 0, IDFlag_IsPickable);
-
-       //we need to rotate the terrain Mesh, otherwise it is upside down
-       TerrainSceneNode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
-       TerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
-
-       TerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
-   }
 }
 
 LevelTerrain::~LevelTerrain() {
-  //remove my SceneNode
-  if (TerrainSceneNode != NULL) {
-    TerrainSceneNode->remove();
-    TerrainSceneNode = NULL;
+  //remove my static SceneNode
+  if (StaticTerrainSceneNode != NULL) {
+    StaticTerrainSceneNode->remove();
+    StaticTerrainSceneNode = NULL;
   }
 
-  //free terrain mesh TerrainMesh
-  if (myTerrainMesh != NULL) {
-    this->m_smgr->getMeshCache()->removeMesh(myTerrainMesh);
-    myTerrainMesh = NULL;
+  //remove my dynamic SceneNode
+  if (DynamicTerrainSceneNode != NULL) {
+    DynamicTerrainSceneNode->remove();
+    DynamicTerrainSceneNode = NULL;
+  }
+
+  //free static terrain mesh TerrainMesh
+  if (myStaticTerrainMesh != NULL) {
+    this->m_smgr->getMeshCache()->removeMesh(myStaticTerrainMesh);
+    myStaticTerrainMesh = NULL;
+  }
+
+  //free dynamic terrain mesh TerrainMesh
+  if (myDynamicTerrainMesh != NULL) {
+    this->m_smgr->getMeshCache()->removeMesh(myDynamicTerrainMesh);
+    myDynamicTerrainMesh = NULL;
   }
 
   int levelWidth = this->levelRes->Width();
@@ -341,15 +371,23 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
     irr::u32 endH = 0;
     bool allPixelsZero;
     bool raceTrackStarted = false;
+    bool dynamicTerrainCell;
 
     //find area with race track for height dimension
+    //Important note: Do not include terrain tiles which are used for
+    //morphing (dynamic terrain), because this areas are often outside of
+    //the race track (hidden from player). If we include them, then the minimap position
+    //will be off as the race track is assumed to be much bigger then it actually is
     for (irr::u32 idxH = 0; idxH < height; idxH++) {
 
         allPixelsZero = true;
          for (irr::u32 idxW = 0; idxW < width; idxW++) {
               texID = this->GetMapEntry(idxW, idxH)->m_TextureId;
+              dynamicTerrainCell = this->pTerrainTiles[idxW][idxH].dynamicMesh;
 
-              if (texID != 0) {
+              //exclude dynamic terrain tiles (morphing)!
+              //see comment above!
+              if ((texID != 0) && !dynamicTerrainCell) {
                   allPixelsZero = false;
                   break;
               }
@@ -376,8 +414,11 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
         allPixelsZero = true;
          for (irr::u32 idxH = 0; idxH < height; idxH++) {
               texID = this->GetMapEntry(idxW, idxH)->m_TextureId;
+              dynamicTerrainCell = this->pTerrainTiles[idxW][idxH].dynamicMesh;
 
-              if (texID != 0) {
+             //exclude dynamic terrain tiles (morphing)!
+             //see comment above!
+            if ((texID != 0) && !dynamicTerrainCell) {
                   allPixelsZero = false;
                   break;
               }
@@ -412,6 +453,7 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
     for (irr::u32 posx = startW; posx < endW; posx++) {
         for (irr::u32 posy = startH; posy < endH; posy++) {
             texID = this->GetMapEntry(posx, posy)->m_TextureId;
+
             cPixelCol = transparent;
 
             switch (texID) {
@@ -462,32 +504,56 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
 }
 
 void LevelTerrain::CreateTerrainMesh() {
-    //create Mesh for the Terrain
+    //create Mesh for the static Terrain
 
     //first make a mesh to hold the overall level terrain data
-    myTerrainMesh = new SMesh;
-    myTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+    myStaticTerrainMesh = new SMesh;
+    myStaticTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+
+    //mesh for dynamic terrain
+    myDynamicTerrainMesh = new SMesh;
+    myDynamicTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
 
     std::vector<int>::iterator it;
-    it = this->indicesVboData.begin();
+    it = this->indicesVboDataStatic.begin();
 
     std::vector<int>::iterator it5;
-    it5 = this->textureIdData.begin();
+    it5 = this->textureIdDataStatic.begin();
 
     //for each type of material (texture) we need to create a own MeshBuffer, as a MeshBuffer can have only triangles with the
     //same material
+    //Note 02.01.2025: I had performance issues during morphs, because I believe the problem
+    //is that all static parts of the terrain that do not change, and the dynamic smaller portions of the
+    //level are all in the same mesh and SceneNodes; When now the dynamic smaller part is changed during an active
+    //morph a lot of data transfers and recalculations have to be done unnecessary; To improve performance I thought it might
+    //be a good idea to create own Meshbuffers for static terrain and dynamic terrain data, and also independent SceneNodes
+    //Therefor below I not only create a Meshbuffer for each available TextureID for each material, but also additional I create
+    //again the same amount of meshbuffers for the dynamic parts of the terrain
     std::vector<SMeshBuffer*> meshBuffers;
 
-    u64 triangles_remaining = this->indicesVboData.size()/3;
+    u64 triangles_remaining = this->indicesVboDataStatic.size()/3;
     u64 triangles_done = 0;
 
     //set iterator5 back to beginning of data
-    it5 = this->textureIdData.begin();
+    it5 = this->textureIdDataStatic.begin();
 
     SMeshBuffer *newBuf;
 
     //create a new SMeshBuffer for each material/texture type
+    //first for the static parts of the terrain
+    for (int idx = 0; idx < this->mTexSource->NumLevelTextures; idx++) {
+      newBuf = new SMeshBuffer();
 
+      //set texture/material for each SMeshBuffer
+      newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[idx]);
+      newBuf->getMaterial().Lighting = mEnableLightning;
+      newBuf->getMaterial().Wireframe = false;
+      //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
+      newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+      meshBuffers.push_back(newBuf);
+    }
+
+    //seconds for the dynamic parts of the terrain
     for (int idx = 0; idx < this->mTexSource->NumLevelTextures; idx++) {
       newBuf = new SMeshBuffer();
 
@@ -501,10 +567,13 @@ void LevelTerrain::CreateTerrainMesh() {
     }
 
     //now we just need to sort the triangles into the different MeshBuffers according to their
-    //textureId
+    //textureId and dependent on if the are static or dynamic
     u32 nr;
 
-    triangles_remaining = this->indicesVboData.size()/3;
+    /*****************************************
+     * Static terrain                        *
+     * ***************************************/
+    triangles_remaining = this->indicesVboDataStatic.size()/3;
     triangles_done = 0;
 
     video::SColor cubeColour2(255,255,255,255);
@@ -512,8 +581,8 @@ void LevelTerrain::CreateTerrainMesh() {
     u16 debug2;
     int usedMaterial = 0;
 
-    it = this->indicesVboData.begin();
-    it5 = this->textureIdData.begin();
+    it = this->indicesVboDataStatic.begin();
+    it5 = this->textureIdDataStatic.begin();
 
     while (triangles_remaining > 0 ) {
         usedMaterial = (*it5);
@@ -534,19 +603,50 @@ void LevelTerrain::CreateTerrainMesh() {
         triangles_done++;
     }
 
+    /*****************************************
+     * Dynamic terrain                       *
+     * ***************************************/
+    triangles_remaining = this->indicesVboDataDynamic.size()/3;
+    triangles_done = 0;
+
+    usedMaterial = 0;
+
+    it = this->indicesVboDataDynamic.begin();
+    it5 = this->textureIdDataDynamic.begin();
+
+    while (triangles_remaining > 0 ) {
+        usedMaterial = (*it5);
+
+        //for each triangle add 3 indices
+        for (nr = 0; nr < 3; nr++) {
+            //add index
+            debug2 = ((u16)(*it));
+
+            meshBuffers[usedMaterial + this->mTexSource->NumLevelTextures]->Indices.push_back(debug2);
+
+            it++;
+        }
+
+        it5++;
+
+        triangles_remaining--;
+        triangles_done++;
+    }
+
      int x, z;
 
      int Width = levelRes->Width();
      int Height = levelRes->Height();
      MapEntry *a;
 
+     int nrTex = this->mTexSource->NumLevelTextures;
+
     //brute force variant: Add all available vertices to all SMBuffers
     //to make it work; better would be to only add vertices to SMBuffers
     //which are actually needed there; maybe improve later
-    for (int idx2 = 0; idx2 < this->mTexSource->NumLevelTextures; idx2++) {
+    for (int idx2 = 0; idx2 < nrTex; idx2++) {
         //only process SMbuffer which actually has something inside it
         if ((meshBuffers[idx2]->getIndexCount() > 0)) {
-
             for (z = 0; z < Height; z++) {
               for (x = 0; x < Width; x++) {
                   a = GetMapEntry(x, z);
@@ -554,22 +654,25 @@ void LevelTerrain::CreateTerrainMesh() {
                   //only add vertices if terrain tile is drawn and was not optimized out
                   //we also need to store the meshBuffer and vertex index for later morphing of Terrain
                   if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
+                          //this tile is static and belongs into the static mesh buffer
+                          if (this->pTerrainTiles[x][z].dynamicMesh == false) {
 
-                      this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBuffers[idx2]->getVertexCount());
-                      meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
+                              this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBuffers[idx2]->getVertexCount());
+                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
 
-                      this->pTerrainTiles[x][z].myMeshBufVertexId2.push_back(meshBuffers[idx2]->getVertexCount());
-                      meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert2);
+                              this->pTerrainTiles[x][z].myMeshBufVertexId2.push_back(meshBuffers[idx2]->getVertexCount());
+                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert2);
 
-                      this->pTerrainTiles[x][z].myMeshBufVertexId3.push_back(meshBuffers[idx2]->getVertexCount());
-                      meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert3);
+                              this->pTerrainTiles[x][z].myMeshBufVertexId3.push_back(meshBuffers[idx2]->getVertexCount());
+                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert3);
 
-                      this->pTerrainTiles[x][z].myMeshBufVertexId4.push_back(meshBuffers[idx2]->getVertexCount());
-                      meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert4);
+                              this->pTerrainTiles[x][z].myMeshBufVertexId4.push_back(meshBuffers[idx2]->getVertexCount());
+                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert4);
 
-                      //keep pointer to my MeshBuffer
-                      //we need this for morphing of Terrain!
-                      this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBuffers[idx2]);
+                              //keep pointer to my MeshBuffer
+                              //we need this for morphing of Terrain!
+                              this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBuffers[idx2]);
+                         }
                   }
               }
             }
@@ -577,10 +680,56 @@ void LevelTerrain::CreateTerrainMesh() {
         meshBuffers[idx2]->BoundingBox.reset(0,0,0);
         meshBuffers[idx2]->recalculateBoundingBox();
 
-        //add SMeshbuffer to overall terrain mesh
-        myTerrainMesh->addMeshBuffer(meshBuffers[idx2]);
+        //meshBuffers[idx2+nrTex]->BoundingBox.reset(0,0,0);
+        //meshBuffers[idx2+nrTex]->recalculateBoundingBox();
 
-        myTerrainMesh->recalculateBoundingBox();
+        //add SMeshbuffer to overall terrain mesh
+        myStaticTerrainMesh->addMeshBuffer(meshBuffers[idx2]);
+        //myDynamicTerrainMesh->addMeshBuffer(meshBuffers[idx2+nrTex]);
+
+        myStaticTerrainMesh->recalculateBoundingBox();
+        //myDynamicTerrainMesh->recalculateBoundingBox();
+      }
+
+        //only process SMbuffer which actually has something inside it
+        if ((meshBuffers[idx2 + nrTex]->getIndexCount() > 0)) {
+            for (z = 0; z < Height; z++) {
+              for (x = 0; x < Width; x++) {
+                  a = GetMapEntry(x, z);
+
+                  //only add vertices if terrain tile is drawn and was not optimized out
+                  //we also need to store the meshBuffer and vertex index for later morphing of Terrain
+                  if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
+                          //this tile is dynamic and belongs into the dynamic mesh buffer
+                          if (this->pTerrainTiles[x][z].dynamicMesh == true) {
+
+                              this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
+                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
+
+                              this->pTerrainTiles[x][z].myMeshBufVertexId2.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
+                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert2);
+
+                              this->pTerrainTiles[x][z].myMeshBufVertexId3.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
+                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert3);
+
+                              this->pTerrainTiles[x][z].myMeshBufVertexId4.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
+                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert4);
+
+                              //keep pointer to my MeshBuffer
+                              //we need this for morphing of Terrain!
+                              this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBuffers[idx2+nrTex]);
+                         }
+                  }
+              }
+            }
+
+        meshBuffers[idx2+nrTex]->BoundingBox.reset(0,0,0);
+        meshBuffers[idx2+nrTex]->recalculateBoundingBox();
+
+        //add SMeshbuffer to overall terrain mesh
+        myDynamicTerrainMesh->addMeshBuffer(meshBuffers[idx2+nrTex]);
+
+        myDynamicTerrainMesh->recalculateBoundingBox();
       }
 
       //clean up SMeshbuffer, we do not need it anymore
@@ -590,8 +739,11 @@ void LevelTerrain::CreateTerrainMesh() {
     }
 
     //mark Terrain mesh as dirty, so that it is transfered again to graphics card
-    myTerrainMesh->setDirty();
-    myTerrainMesh->recalculateBoundingBox();
+    myStaticTerrainMesh->setDirty();
+    myStaticTerrainMesh->recalculateBoundingBox();
+
+    myDynamicTerrainMesh->setDirty();
+    myDynamicTerrainMesh->recalculateBoundingBox();
 }
 
 std::vector<vector2d<irr::f32>> LevelTerrain::ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod) {
@@ -1339,7 +1491,8 @@ void LevelTerrain::findTerrainOptimization() {
 }
 
 bool LevelTerrain::setupGeometry() {
-    int x, z, i = 0;
+    int x, z, iStatic = 0;
+    int iDynamic = 0;
 
     // generate vertices
     //std::vector<vector3d<irr::f32>> vertices;
@@ -1352,7 +1505,8 @@ bool LevelTerrain::setupGeometry() {
     numNormals = 0;
 
     float max = 0.0f;
-    std::vector<int> indices;
+    std::vector<int> indicesStatic;
+    std::vector<int> indicesDynamic;
 
     int Width = levelRes->Width();
     int Height = levelRes->Height();
@@ -1466,37 +1620,67 @@ bool LevelTerrain::setupGeometry() {
 
             //only create mesh for cell if it was not optimized away (non used parts of the level map)
             if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
-                 numUVs += 4;
-                 numVertices += 4;
+                if (this->pTerrainTiles[x][z].dynamicMesh == false) {
+                    //this is static terrain (no morphing)
+                     numUVs += 4;
+                     numVertices += 4;
 
-                 //store the texture ID information for the 2 tris
-                 textureIdData.push_back(a->m_TextureId);
-                 textureIdData.push_back(a->m_TextureId);
+                     //store the texture ID information for the 2 tris
+                     textureIdDataStatic.push_back(a->m_TextureId);
+                     textureIdDataStatic.push_back(a->m_TextureId);
 
-                 numNormals += 4;
+                     numNormals += 4;
 
-                 // add indices for the 2 tris
-                 indices.push_back(i);
-                 indices.push_back(i + 1);
-                 indices.push_back(i + 3);
+                     // add indices for the 2 tris
+                     indicesStatic.push_back(iStatic);
+                     indicesStatic.push_back(iStatic + 1);
+                     indicesStatic.push_back(iStatic + 3);
 
-                 indices.push_back(i + 1);
-                 indices.push_back(i + 2);
-                 indices.push_back(i + 3);
+                     indicesStatic.push_back(iStatic + 1);
+                     indicesStatic.push_back(iStatic + 2);
+                     indicesStatic.push_back(iStatic + 3);
 
-                 i += 4;
+                     iStatic += 4;
 
-                 numIndices += 6;
+                     numIndices += 6;
 
-                 // determine max height
-                 max = std::max(max, a->m_Height);
+                     // determine max height
+                     max = std::max(max, a->m_Height);
+                } else {
+                    //this is dynamic terrain (affected by morphing)
+                     numUVs += 4;
+                     numVertices += 4;
+
+                     //store the texture ID information for the 2 tris
+                     textureIdDataDynamic.push_back(a->m_TextureId);
+                     textureIdDataDynamic.push_back(a->m_TextureId);
+
+                     numNormals += 4;
+
+                     // add indices for the 2 tris
+                     indicesDynamic.push_back(iDynamic);
+                     indicesDynamic.push_back(iDynamic + 1);
+                     indicesDynamic.push_back(iDynamic + 3);
+
+                     indicesDynamic.push_back(iDynamic + 1);
+                     indicesDynamic.push_back(iDynamic + 2);
+                     indicesDynamic.push_back(iDynamic + 3);
+
+                     iDynamic += 4;
+
+                     numIndices += 6;
+
+                     // determine max height
+                     max = std::max(max, a->m_Height);
+                }
           }
        }
      }
 
    // positionVboData = vertices;
    // normalVboData = normals;
-    indicesVboData = indices;
+    indicesVboDataStatic = indicesStatic;
+    indicesVboDataDynamic = indicesDynamic;
    // uvVboData = uvs;
 
     Size.X = levelRes->Width() * segmentSize;
@@ -1766,7 +1950,7 @@ void LevelTerrain::ApplyMorph(Morph morph)
           }
 
           if (dirtyPos) {
-                myTerrainMesh->setDirty(EBT_VERTEX);
+                myDynamicTerrainMesh->setDirty(EBT_VERTEX);
           }
 }
 
@@ -1815,22 +1999,26 @@ void LevelTerrain::SwitchViewMode() {
     switch (myCurrentViewMode) {
         case LEVELTERRAIN_VIEW_WIREFRAME: {
             //change to default mode
-            TerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+            StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+            DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
             myCurrentViewMode = LEVELTERRAIN_VIEW_DEFAULT;
             break;
         }
 
     case LEVELTERRAIN_VIEW_DEFAULT: {
         //change to full debug mode (adding also Terrain vertices normals debug view)
-        TerrainSceneNode->setDebugDataVisible(EDS_FULL);
+        StaticTerrainSceneNode->setDebugDataVisible(EDS_FULL);
+        DynamicTerrainSceneNode->setDebugDataVisible(EDS_FULL);
         myCurrentViewMode = LEVELTERRAIN_VIEW_DEBUGNORMALS;
         break;
     }
 
     case LEVELTERRAIN_VIEW_DEBUGNORMALS: {
         //change to wireframe mode
-        TerrainSceneNode->setDebugDataVisible(EDS_OFF);
-        TerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
+        StaticTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+        StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
+        DynamicTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+        DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
         myCurrentViewMode = LEVELTERRAIN_VIEW_WIREFRAME;
         break;
     }
