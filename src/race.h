@@ -228,6 +228,11 @@ public:
     void PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion);
     void TimedTriggerOccured(Timer* whichTimer);
 
+    //irr::core::vector3df dbgMiniMapPnt1;
+    //irr::core::vector3df dbgMiniMapPnt2;
+    //irr::core::vector3df dbgMiniMapPnt3;
+    //irr::core::vector3df dbgMiniMapPnt4;
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -339,6 +344,7 @@ private:
     bool DebugShowRegionsAndPointOfInterest = false;
     bool DebugShowTriggerRegions = false;
     bool DebugShowTriggerEvents = false;
+    bool AllowStartMorphsPerKey = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
@@ -389,7 +395,8 @@ private:
     irr::scene::ITriangleSelector* triangleSelectorColumnswoCollision = NULL;
 
     //necessary triangle selector for raycasting onto terrain
-    irr::scene::ITriangleSelector* triangleSelectorTerrain = NULL;
+    irr::scene::ITriangleSelector* triangleSelectorStaticTerrain = NULL;
+    irr::scene::ITriangleSelector* triangleSelectorDynamicTerrain = NULL;
 
     void createCheckpointMeshData(CheckPointInfoStruct &newStruct);
     std::vector<CheckPointInfoStruct*> *checkPointVec;
