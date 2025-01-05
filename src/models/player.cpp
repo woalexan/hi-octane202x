@@ -1193,15 +1193,43 @@ void Player::CPForceController() {
         irr::f32 corrForceOrientationAngle = 500.0f;
         irr::f32 corrDampingOrientationAngle = 50.0f;
 
-        irr::f32 currAngleVelocityCraft = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).X * corrDampingOrientationAngle;
+        irr::f32 angleVelocityCraftX = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).X * corrDampingOrientationAngle;
 
-        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft;
+        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - angleVelocityCraftX;
 
         //we need to limit max force, if force is too high just
         //set it zero, so that not bad physical things will happen!
         if (fabs(corrForceAngle) > 500.0f) {
             corrForceAngle = sgn(corrForceAngle) * 500.0f;
         }
+
+        //depending on the angle error also dynamically set physics model angular damping
+        //I saw no other solution, because if I statically set the angular damping in the physics
+        //model so low, that I can also get through tight turns then the models start to "oscillate"
+        //And if I increase the angular damping to a high static value the player models are more
+        //stable, but I can not make a tight turn. By adjusting the angular damping of the computer
+        //players physics model depending on the actual angle error I can achieve both goals at
+        //the same time
+        irr::f32 absAngleError = fabs(mAngleError);
+
+        //below a preset minimum absolute angle error I apply constant max angular damping factor
+        //between a min and max angle error I interpolate the damping between max and min value (linear interpolation)
+        //above a preset maximum absolute angle error I keep applying the defined minimum anglular damping in the physics model
+        if (absAngleError < CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN) {
+            this->phobj->mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX;
+        } else if (absAngleError > CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX) {
+            this->phobj->mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMIN;
+        } else {
+            //interpolate between max and min value depending on the angle error
+            mDbgRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX -
+                    ((CP_PLAYER_ANGULAR_DAMPINGMAX - CP_PLAYER_ANGULAR_DAMPINGMIN) / (CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX - CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN)) * absAngleError;
+
+             this->phobj->mRotationalFrictionVal = mDbgRotationalFrictionVal;
+        }
+
+         mDbgForceAngle = corrForceAngle;
+         mDbgAngleVelocityCraftZ = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Z;
+         mDbgAngleVelocityCraftX = angleVelocityCraftX;
 
         this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
                                              PHYSIC_APPLYFORCE_ONLYROT);
@@ -1226,6 +1254,8 @@ void Player::CPForceController() {
         } else if (corrForceDistance < -100.0f) {
             corrForceDistance = -100.0f;
         }
+
+        mDbgFoceDistance = corrForceDistance;
 
         this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
                                             PHYSIC_APPLYFORCE_ONLYTRANS);
@@ -1281,7 +1311,7 @@ void Player::CpCheckCurrentPathForObstacles() {
         }
         if (playerISee.size() > 0) {
             if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(
-                        this->mCurrentPathSeg, playerISee)) {
+                        this->mCurrentPathSeg, playerISee, dbgPlayerInMyWay)) {
             } else {
                 //we have to react, and find another path
                 //without any obstacle
@@ -2549,7 +2579,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                 }
                 if (playerISee.size() > 0) {
 
-                        if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, playerISee)) {
+                        if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, playerISee, dbgPlayerInMyWay)) {
                                 freeWayFound = true;
                         } else {
                                 //no free way found
@@ -2577,6 +2607,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
 
             if ((leftFailed && rightFailed) || (iterationCnt >= (maxIterations - 1))) {
                 currOffset = 0.0f;
+                this->mRace->mGame->StopTime();
             }
     }
 
@@ -4244,6 +4275,14 @@ irr::f32 Player::GetHoverHeight() {
     irr::f32 height = HOVER_HEIGHT;
 
     return (height);
+}
+
+void Player::DebugSelectionBox(bool boundingBoxVisible) {
+    if (boundingBoxVisible) {
+        this->Player_node->setDebugDataVisible(E_DEBUG_SCENE_TYPE::EDS_BBOX);
+    } else {
+        this->Player_node->setDebugDataVisible(E_DEBUG_SCENE_TYPE::EDS_OFF);
+    }
 }
 
 void Player::FinishedLap() {

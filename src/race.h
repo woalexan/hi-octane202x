@@ -243,6 +243,9 @@ public:
     //races can for sure finish
     bool CpEnableStuckDetection = false;
 
+    //function for debugging
+    void DebugSelectPlayer(int whichPlayerNr);
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -469,6 +472,8 @@ private:
     void DeliverMusicFileName(unsigned int levelNr, char *musicFileName);
     void StopMusic();
     void StopAllSounds();
+
+    void DebugShowAllObstaclePlayers();
 
     //cleanup-stuff
     void CleanUpAllCheckpoints();

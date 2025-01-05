@@ -448,17 +448,16 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                 this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
                 this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
     }*/
+ /*
+   swprintf(text2, 390, L"AngleErr: %lf\nAngleForce: %lf\n AngleVeloc.X: %lf\n AngularFrict: %lf\n DistErr: %lfd\nDistForce: %lf\n",
+             this->mCurrentRace->currPlayerFollow->mAngleError,
+              this->mCurrentRace->currPlayerFollow->mDbgForceAngle,
+            this->mCurrentRace->currPlayerFollow->mDbgAngleVelocityCraftX,
+               this->mCurrentRace->currPlayerFollow->mDbgRotationalFrictionVal,
+             this->mCurrentRace->currPlayerFollow->dbgDistError,
+             this->mCurrentRace->currPlayerFollow->dbgForceDistance);*/
 
-   /*swprintf(text2, 390, L"%lf\n %lfd\n %lf\n %lf\n %lf\n %lf\n %lf\n",
-             this->mCurrentRace->mPlayerVec.at(1)->dbgStuckDet,
-             this->mCurrentRace->mPlayerVec.at(2)->dbgStuckDet,
-             this->mCurrentRace->mPlayerVec.at(3)->dbgStuckDet,
-             this->mCurrentRace->mPlayerVec.at(4)->dbgStuckDet,
-             this->mCurrentRace->mPlayerVec.at(5)->dbgStuckDet,
-             this->mCurrentRace->mPlayerVec.at(6)->dbgStuckDet,
-              this->mCurrentRace->mPlayerVec.at(7)->dbgStuckDet);*/
-
-    // swprintf(text2, 390, L"");
+    swprintf(text2, 390, L"");
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);
