@@ -718,7 +718,10 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
            //this value is necessary for computer controlled craft,
            //to stabilizie it against unwanted sideway movements and
            //"oscillations"
-           newPlayerPhysicsObj->mRotationalFrictionVal = 100.1f;
+           //but because this will is too much to control the craft during
+           //steep turns, we will dynamically set it depending on the angle error
+           //in turns in the player class code
+           newPlayerPhysicsObj->mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX;
         }
 
         newPlayerPhysicsObj->physicState.position = Startpos;
@@ -1866,6 +1869,8 @@ void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
     std::vector<Player*>::iterator itPlayer;
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        (*itPlayer)->dbgPlayerInMyWay.clear();
+
         if (!(*itPlayer)->mHumanPlayer) {
            (*itPlayer)->RunComputerPlayerLogic(frameDeltaTime);
         }
@@ -1878,73 +1883,62 @@ void Race::HandleBasicInput() {
     //a breakpoint via a keyboard press
     DebugHitBreakpoint = false;
 
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9)) {
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F2)) {
       this->mGame->StopTime();
     }
 
-    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8)) {
+    if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F1)) {
         this->mGame->StartTime();
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F3))
+    {
+         this->mGame->AdvanceFrame(5);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
     {
-        if (mPlayerVec.size() > 0) {
-            this->currPlayerFollow = mPlayerVec.at(0);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(0));
-        }
+       DebugSelectPlayer(0);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
     {
-        if (mPlayerVec.size() > 1) {
-            this->currPlayerFollow = mPlayerVec.at(1);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(1));
-        }
+       DebugSelectPlayer(1);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
-        if (mPlayerVec.size() > 2) {
-            this->currPlayerFollow = mPlayerVec.at(2);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(2));
-        }
+        DebugSelectPlayer(2);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
     {
-        if (mPlayerVec.size() > 3) {
-            this->currPlayerFollow = mPlayerVec.at(3);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(3));
-        }
+       DebugSelectPlayer(3);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_5))
     {
-        if (mPlayerVec.size() > 4) {
-            this->currPlayerFollow = mPlayerVec.at(4);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(4));
-        }
+       DebugSelectPlayer(4);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6))
     {
-        if (mPlayerVec.size() > 5) {
-            this->currPlayerFollow = mPlayerVec.at(5);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(5));
-        }
+       DebugSelectPlayer(5);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7))
     {
-        if (mPlayerVec.size() > 6) {
-            this->currPlayerFollow = mPlayerVec.at(6);
-            Hud1Player->SetMonitorWhichPlayer(mPlayerVec.at(6));
-        }
+       DebugSelectPlayer(6);
     }
 
-    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_0))
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
     {
-         this->mGame->AdvanceFrame(5);
+       DebugSelectPlayer(7);
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9))
+    {
+       DebugSelectPlayer(8);
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
@@ -2484,10 +2478,35 @@ void Race::Render() {
             }
         }
 
+        DebugShowAllObstaclePlayers();
 
         if (DebugShowTriggerRegions) {
             IndicateTriggerRegions();
         }
+}
+
+void Race::DebugShowAllObstaclePlayers() {
+    std::vector<Player*>::iterator itPlayer;
+    std::vector<Player*>::iterator itPlayerObstacle;
+
+    for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
+        for (itPlayerObstacle = (*itPlayer)->dbgPlayerInMyWay.begin(); itPlayerObstacle != (*itPlayer)->dbgPlayerInMyWay.end(); ++itPlayerObstacle) {
+            mDrawDebug->Draw3DLine(((*itPlayer)->phobj->physicState.position), (*itPlayerObstacle)->phobj->physicState.position, mDrawDebug->orange);
+        }
+    }
+}
+
+//function for debugging
+void Race::DebugSelectPlayer(int whichPlayerNr) {
+    if (whichPlayerNr < this->mPlayerVec.size()) {
+       if (currPlayerFollow != NULL) {
+            currPlayerFollow->DebugSelectionBox(false);
+       }
+
+       currPlayerFollow = this->mPlayerVec.at(whichPlayerNr);
+       Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);
+       currPlayerFollow->DebugSelectionBox(true);
+    }
 }
 
 void Race::IndicateMapRegions() {

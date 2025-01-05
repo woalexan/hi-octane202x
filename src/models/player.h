@@ -36,8 +36,8 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 11.0f; //8.0f
-const irr::f32 CP_PLAYER_SLOW_SPEED = 6.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 11.0f;
+const irr::f32 CP_PLAYER_SLOW_SPEED = 7.0f;
 
 const irr::f32 CP_PLAYER_DEACCEL_RATE_DEFAULT = 0.1f;
 const irr::f32 CP_PLAYER_ACCEL_RATE_DEFAULT = 0.07f;
@@ -49,6 +49,11 @@ const irr::f32 CP_PLAYER_STUCKDETECTION_THRESHOLD_SEC = 3.0f;
 const irr::f32 CP_PLAYER_STUCKDETECTION_PERIOD_SEC = 0.5f;
 
 const irr::f32 CRAFT_JUMPDETECTION_THRES = 0.2f;
+
+const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMAX = 2000.0f;
+const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMIN = 50.0f;
+const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN = 5.0f;
+const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX = 35.0f;
 
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
@@ -635,6 +640,15 @@ public:
     bool mRecoveryVehicleCalled = false;
 
     irr::f32 dbgStuckDet = 0.0f;
+
+    void DebugSelectionBox(bool boundingBoxVisible);
+    std::vector<Player*> dbgPlayerInMyWay;
+
+    irr::f32 mDbgForceAngle;
+    irr::f32 mDbgFoceDistance;
+    irr::f32 mDbgAngleVelocityCraftX;
+    irr::f32 mDbgAngleVelocityCraftZ;
+    irr::f32 mDbgRotationalFrictionVal;
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;

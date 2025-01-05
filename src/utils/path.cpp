@@ -278,15 +278,20 @@ std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::Whe
 }
 
 bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStruct*> path,
-                                  std::vector<Player*> checkCollisionForWhichPlayers) {
+                                  std::vector<Player*> checkCollisionForWhichPlayers,
+                                                std::vector<Player*> &playersInWay) {
+
+    return false;
 
    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
    std::vector<Player*>::iterator itPlayer;
    std::vector<irr::f32> inWhichDistanceVec;
+   std::vector<Player*>::iterator it2;
+   bool playerFound = false;
 
    for (itPlayer = checkCollisionForWhichPlayers.begin(); itPlayer != checkCollisionForWhichPlayers.end(); ++itPlayer) {
 
-       result = WhereDoesPathComeCloseToPlayer(path, 1.0f, (*itPlayer), inWhichDistanceVec);
+       result = WhereDoesPathComeCloseToPlayer(path, 2.0f, (*itPlayer), inWhichDistanceVec);
 
        bool playerClose = false;
 
@@ -301,9 +306,23 @@ bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStru
          if ((result.size() > 0) && playerClose) {
              //other player comes close to our path
              //return true
-             return true;
+             //is this player already in our list, if so do not add it again
+             //if not add it
+             for (it2 = playersInWay.begin(); it2 != playersInWay.end(); ++it2) {
+                if ((*it2) == (*itPlayer)) {
+                    playerFound = true;
+                    break;
+                }
+             }
+
+             if (!playerFound) {
+                playersInWay.push_back((*itPlayer));
+             }
          }
    }
+
+   if (playersInWay.size() > 0)
+       return true;
 
    //no collision problem, return false
    return false;

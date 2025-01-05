@@ -1042,7 +1042,6 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
     physicsAccumulator += frameDeltaTime;
 
     irr::core::vector3df rot2;
-    std::vector<Player*>::iterator itPlayer;
 
     //advance physics time
     while ( physicsAccumulator >= dt ) {
@@ -1057,10 +1056,7 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
                     //execute collision detection and resolution
                     //between physics objects themselves (via bounding boxes)
-
-                    //TODO 30.12.2024: Temporarily deactivated, because if computer player
-                    //instabiliy due to object to object collision detection
-                    //HandleObjToObjCollision(frameDeltaTime);
+                    HandleObjToObjCollision(frameDeltaTime);
 
                     //Wolf Alexander 24.10.2024: For the heightmap collision to work we
                     //need to immediately update the sceneNodes here inside the loop

@@ -136,7 +136,8 @@ public:
                                                             irr::core::vector3df &projPosition);
 
     bool DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStruct*> path,
-                                      std::vector<Player*> checkCollisionForWhichPlayers);
+                                      std::vector<Player*> checkCollisionForWhichPlayers,
+                                          std::vector<Player*> &playersInWay);
 
     //returns false if sani check of bezier input points is "crazy", means one of the points is "behind"
     //the player
