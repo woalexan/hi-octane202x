@@ -295,7 +295,7 @@ private:
     std::vector<PhysicsObject*> PhysicObjectVec;
 
     double t = 0.0;   //absolute time for physics calculations
-    double dt = 0.001; // first stepsize I had, worked good for physics but not for collision at higher speeds  0.01; //stepsize for physics calculations
+    double dt = 0.001;  //0.001 // first stepsize I had, worked good for physics but not for collision at higher speeds  0.01; //stepsize for physics calculations
     double physicsAccumulator = 0.0;
 
     void integrate( PhysicsObject* pObj, ObjPhysicsState & state, double t, float dt );

@@ -31,6 +31,7 @@
 #define SFILE_GAME_MGUN_LONGSHOT (char*)"extract/sound/sound4-MINIGUN.WAV"
 #define SFILE_GAME_MISSILE_SHOT (char*)"extract/sound/sound2-MISSILE.WAV"
 #define SFILE_GAME_EXPLODE (char*)"extract/sound/sound2-EXPLODE.WAV"
+#define SFILE_GAME_FINALLAP (char*)"extract/sound/sound2-STUNT720.WAV"
 
 //the sound0 files seem to be the audio files for the intro
 #define SFILE_INTRO_FIRE (char*)"extract/sound/sound0-FIRE.WAV"
@@ -65,6 +66,7 @@
 #define SRES_GAME_MGUN_LONGSHOT 19
 #define SRES_GAME_MISSILE_SHOT 20
 #define SRES_GAME_EXPLODE 21
+#define SRES_GAME_FINALLAP 22
 
 #define SRES_INTRO_FIRE 50
 #define SRES_INTRO_EXPLODE 51

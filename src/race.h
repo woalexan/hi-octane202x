@@ -35,6 +35,7 @@
 #include "models/explauncher.h"
 #include "models/timer.h"
 #include "models/expentity.h"
+#include "models/camera.h"
 
 using namespace std;
 
@@ -88,12 +89,13 @@ class Morph;   //Forward declaration
 class Timer;   //Forward declaration
 class ExplosionEntity; //Forward declaration
 class Cone; //Forward declaration
+class Camera; //Forward declaration
 
 class Race {
 public:
     Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
          GameText* gameText, Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-         dimension2d<u32> gameScreenRes, int loadLevelNr, bool useAutoGenMiniMapParam = false);
+         dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool useAutoGenMiniMapParam = false);
 
     ~Race();
 
@@ -232,6 +234,14 @@ public:
     //irr::core::vector3df dbgMiniMapPnt2;
     //irr::core::vector3df dbgMiniMapPnt3;
     //irr::core::vector3df dbgMiniMapPnt4;
+
+    //If true enables computer player stuck detection
+    //turn off for testing computer player movement
+    //performance and stabilitiy testing to keep computer
+    //players stuck; Set true for final release to handle
+    //random cases where computer players really get stuck, so that
+    //races can for sure finish
+    bool CpEnableStuckDetection = false;
 
 private:
     int levelNr;
@@ -432,6 +442,7 @@ private:
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
     void UpdateMorphs(irr::f32 frameDeltaTime);
     void UpdateTimers(irr::f32 frameDeltaTime);
+    void UpdateCameras();
 
     std::vector<Timer*> mTimerVec;
     void AddTimer(EntityItem *entity);
@@ -440,6 +451,17 @@ private:
     //entity reports that something should be triggered it
     //is stored in this list), until the next Race update is done
     std::vector<int16_t> mPendingTriggerTargetGroups;
+
+    //vector of predefined camera locations for demo mode
+    //positions are stored inside the level files
+    std::vector<Camera*> mCameraVec;
+
+    //in demo mode the following bool
+    //is true, in normal game mode the bool
+    //is false
+    bool mDemoMode;
+
+    void AddCamera(EntityItem* entity);
 
     void ProcessPendingTriggers();
 
@@ -461,6 +483,7 @@ private:
     void CleanUpTriggers();
     void CleanUpTimers();
     void CleanUpExplosionEntities();
+    void CleanUpCameras();
 };
 
 #endif // RACE_H

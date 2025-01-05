@@ -159,6 +159,8 @@ add_executable(hi-octane202x
     src/models/timer.cpp
     src/models/expentity.h
     src/models/expentity.cpp
+    src/models/camera.h
+    src/models/camera.cpp
 
     src/utils/crc32.h
     src/utils/crc32.cpp

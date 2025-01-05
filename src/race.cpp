@@ -20,7 +20,7 @@
 
 Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver, GameText* gameText,
            Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-           dimension2d<u32> gameScreenRes, int loadLevelNr, bool useAutoGenMiniMapParam) {
+           dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool useAutoGenMiniMapParam) {
     this->mDriver = driver;
     this->mSmgr = smgr;
     this->mDevice = device;
@@ -30,6 +30,8 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     this->mMusicPlayer = gameMusicPlayerParam;
     this->mSoundEngine = soundEngine;
     this->mTimeProfiler = timeProfiler;
+    this->mDemoMode = demoMode;
+
     levelNr = loadLevelNr;
     ready = false;
     useAutoGenMinimap = useAutoGenMiniMapParam;
@@ -186,6 +188,7 @@ Race::~Race() {
     CleanMiniMap();
     CleanUpTriggers();
     CleanUpTimers();
+    CleanUpCameras();
     CleanUpExplosionEntities();
 
     //free lowlevel level data
@@ -435,6 +438,22 @@ void Race::CleanUpTimers() {
             it = mTimerVec.erase(it);
 
             //delete the timer as well
+            delete pntr;
+        }
+    }
+}
+
+void Race::CleanUpCameras() {
+    std::vector<Camera*>::iterator it;
+    Camera* pntr;
+
+    if (mCameraVec.size() > 0) {
+        for (it = mCameraVec.begin(); it != mCameraVec.end(); ) {
+            pntr = (*it);
+
+            it = mCameraVec.erase(it);
+
+            //delete the camera as well
             delete pntr;
         }
     }
@@ -694,12 +713,12 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
         } else {
            //best values until 30.12.2024
            newPlayerPhysicsObj->physicState.SetMass(5.0f);
-           newPlayerPhysicsObj->physicState.SetInertia(60.0f);
+           newPlayerPhysicsObj->physicState.SetInertia(30.0f);
 
            //this value is necessary for computer controlled craft,
            //to stabilizie it against unwanted sideway movements and
            //"oscillations"
-           newPlayerPhysicsObj->mRotationalFrictionVal = 2000.0f;
+           newPlayerPhysicsObj->mRotationalFrictionVal = 100.1f;
         }
 
         newPlayerPhysicsObj->physicState.position = Startpos;
@@ -1577,6 +1596,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update timer
     UpdateTimers(frameDeltaTime);
 
+    //update cameras
+    UpdateCameras();
+
     mTimeProfiler->Profile(mTimeProfiler->tIntMorphing);
 
     //process pending triggers
@@ -2370,6 +2392,7 @@ void Race::Render() {
       mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
                                    this->mDrawDebug->green);*/
 
+      /*
       if (currPlayerFollow != NULL) {
 
             if (currPlayerFollow->mPathHistoryVec.size() > 0) {
@@ -2381,9 +2404,23 @@ void Race::Render() {
 
              //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
           }
+      }*/
+
+      if (currPlayerFollow != NULL) {
+
+            if (currPlayerFollow->mCurrentPathSeg.size() > 0) {
+              std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+             for (itPathEl = currPlayerFollow->mCurrentPathSeg.begin(); itPathEl != currPlayerFollow->mCurrentPathSeg.end(); ++itPathEl) {
+                   mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+              }
+
+             //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
+          }
       }
 
-        if (currPlayerFollow != NULL) {
+
+      /*if (currPlayerFollow != NULL) {
 
               if (this->currPlayerFollow->mCpAvailWayPointLinks.size() > 0) {
                   std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
@@ -2392,7 +2429,7 @@ void Race::Render() {
                        mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->red);
                   }
               }
-        }
+        }*/
 
     /*  if (this->player2->mCpCollectablesSeenByPlayer.size() > 0) {
           std::vector<Collectable*>::iterator itColl;
@@ -2436,6 +2473,16 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt2, this->mDrawDebug->cyan);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
+
+        if (currPlayerFollow != NULL) {
+            if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
+                mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
+                                       mDrawDebug->cyan);
+
+                mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->B,
+                                       mDrawDebug->red);
+            }
+        }
 
 
         if (DebugShowTriggerRegions) {
@@ -3369,6 +3416,26 @@ void Race::UpdateTimers(irr::f32 frameDeltaTime) {
     }
 }
 
+void Race::UpdateCameras() {
+    std::vector<Camera*>::iterator itCamera;
+    irr::scene::ICameraSceneNode* availCam = NULL;
+
+    for (itCamera = mCameraVec.begin(); itCamera != mCameraVec.end(); ++itCamera) {
+        (*itCamera)->Update();
+
+        if ((*itCamera)->mCanSeePlayer) {
+            availCam = (*itCamera)->mCamSceneNode;
+            break;
+        }
+    }
+
+    if (availCam == NULL) {
+        this->mSmgr->setActiveCamera(mCamera);
+    } else {
+        this->mSmgr->setActiveCamera(availCam);
+    }
+}
+
 void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
     //irr::f32 boxSize = 0.04f;
 
@@ -3431,6 +3498,15 @@ void Race::AddTimer(EntityItem *entity) {
     Timer* newTimer = new Timer(entity, this);
 
     this->mTimerVec.push_back(newTimer);
+}
+
+void Race::AddCamera(EntityItem *entity) {
+    Camera* newCamera = new Camera(this, entity, mSmgr);
+
+    //only set cameras to active in demo mode
+    newCamera->SetActive(mDemoMode);
+
+    this->mCameraVec.push_back(newCamera);
 }
 
 void Race::AddExplosionEntity(EntityItem *entity) {
@@ -3773,6 +3849,11 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
 
         case Entity::EntityType::Checkpoint:     {
             AddCheckPoint(entity);
+            break;
+        }
+
+        case Entity::EntityType::Camera: {
+            AddCamera(p_entity);
             break;
         }
 

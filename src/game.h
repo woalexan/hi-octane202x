@@ -23,6 +23,7 @@
 #define DEF_GAMESTATE_GAMETITLE 2
 #define DEF_GAMESTATE_MENUE 3
 #define DEF_GAMESTATE_RACE 4
+#define DEF_GAMESTATE_DEMORACE 5
 
 using namespace std;
 
@@ -100,6 +101,8 @@ private:
     bool mTimeStopped = false;
 
     bool CreateNewRace(int load_levelnr);
+    bool RunDemoMode(int load_levelnr);
+
     void CleanUpRace();
 
     bool mAdvanceFrameMode = false;

@@ -1062,16 +1062,6 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
                     //instabiliy due to object to object collision detection
                     //HandleObjToObjCollision(frameDeltaTime);
 
-                    //for all computer players in this race we need to call the
-                    //CPForceController which has the job to control the crafts movement
-                    //so that the computer is following the currenty definded target path
-
-                    for (itPlayer = this->mParentRace->mPlayerVec.begin(); itPlayer != this->mParentRace->mPlayerVec.end(); ++itPlayer) {
-                      if (!(*itPlayer)->mHumanPlayer) {
-                            (*itPlayer)->CPForceController();
-                      }
-                    }
-
                     //Wolf Alexander 24.10.2024: For the heightmap collision to work we
                     //need to immediately update the sceneNodes here inside the loop
                     //which is kind of dirty, but regarding the CPU load I did not

@@ -36,7 +36,7 @@ namespace Entity {
               MorphSource1, MorphSource2, MorphOnce, MorphPermanent,
               TriggerCraft, TriggerTimed, TriggerRocket,
               DamageCraft,
-              Explosion, ExplosionParticles
+              Explosion, ExplosionParticles, Camera
         };
 }
 

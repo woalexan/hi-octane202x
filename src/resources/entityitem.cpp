@@ -249,6 +249,7 @@ Entity::EntityType EntityItem::identify() {
     if (mRawType == 2 && mRawSubType == 16) return(Entity::EntityType::MorphOnce);
     if (mRawType == 2 && mRawSubType == 23) return(Entity::EntityType::MorphPermanent);
 
+    if (mRawType == 3 && mRawSubType == 3) return(Entity::EntityType::Camera);
     if (mRawType == 3 && mRawSubType == 6) return(Entity::EntityType::Cone);
 
     if (mRawType == 5 && mRawSubType == 0) return(Entity::EntityType::UnknownShieldItem);
@@ -328,6 +329,10 @@ void EntityItem::revIdentify(Entity::EntityType newEntityType, int8_t &newType, 
 
        case Entity::EntityType::MorphPermanent: {
                newType = 2; newSubType = 23; break;
+           }
+
+       case Entity::EntityType::Camera: {
+               newType = 3; newSubType = 3; break;
            }
 
        case Entity::EntityType::Cone: {

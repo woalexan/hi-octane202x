@@ -167,7 +167,7 @@ bool Game::InitGame() {
 void Game::DebugGame() {
     mDebugGame = true;
 
-    int debugLevelNr = 1;
+    int debugLevelNr = 2;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -175,6 +175,13 @@ void Game::DebugGame() {
 
          GameLoop();
     }
+
+    //we want to start a demo
+  /*  if (this->RunDemoMode(debugLevelNr)) {
+         mGameState = DEF_GAMESTATE_DEMORACE;
+
+         GameLoop();
+    }*/
 }
 
 void Game::RunGame() {
@@ -442,14 +449,16 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                 this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
     }*/
 
-   /* swprintf(text2, 390, L"%d\n %d\n %d\n %d\n %d\n %d\n %d\n",
-             this->mCurrentRace->mPlayerVec.at(1)->updatePathCnter,
-             this->mCurrentRace->mPlayerVec.at(2)->updatePathCnter,
-             this->mCurrentRace->mPlayerVec.at(3)->updatePathCnter,
-             this->mCurrentRace->mPlayerVec.at(4)->updatePathCnter,
-             this->mCurrentRace->mPlayerVec.at(5)->updatePathCnter,
-             this->mCurrentRace->mPlayerVec.at(6)->updatePathCnter,
-              this->mCurrentRace->mPlayerVec.at(7)->updatePathCnter);*/
+   /*swprintf(text2, 390, L"%lf\n %lfd\n %lf\n %lf\n %lf\n %lf\n %lf\n",
+             this->mCurrentRace->mPlayerVec.at(1)->dbgStuckDet,
+             this->mCurrentRace->mPlayerVec.at(2)->dbgStuckDet,
+             this->mCurrentRace->mPlayerVec.at(3)->dbgStuckDet,
+             this->mCurrentRace->mPlayerVec.at(4)->dbgStuckDet,
+             this->mCurrentRace->mPlayerVec.at(5)->dbgStuckDet,
+             this->mCurrentRace->mPlayerVec.at(6)->dbgStuckDet,
+              this->mCurrentRace->mPlayerVec.at(7)->dbgStuckDet);*/
+
+    // swprintf(text2, 390, L"");
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);
@@ -518,6 +527,7 @@ void Game::GameLoop() {
                 break;
             }
 
+            case DEF_GAMESTATE_DEMORACE:
             case DEF_GAMESTATE_RACE: {
                 GameLoopRace(frameDeltaTime);
                 break;
@@ -579,16 +589,70 @@ bool Game::CreateNewRace(int load_levelnr) {
    //    //std::string player_model("extract/models/skim0-0.obj");
 
     //add computer player 1
-    //std::string pl2Model("extract/models/bike0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+    std::string pl2Model("extract/models/bike0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
 
     //add computer player 2
-    //std::string pl3Model("extract/models/jugga0-3.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
+    std::string pl3Model("extract/models/jugga0-3.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
 
     //add computer player 3
-    //std::string pl4Model("extract/models/skim0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
+    std::string pl4Model("extract/models/skim0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
+
+    //add computer player 4
+    std::string pl5Model("extract/models/bike0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
+
+    //add computer player 5
+    std::string pl6Model("extract/models/marsh0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
+
+    //add computer player 6
+    std::string pl7Model("extract/models/jet0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
+
+    //add computer player 7
+    std::string pl8Model("extract/models/tank0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+
+    mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
+    mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
+
+    //StopTime();
+
+    if (!mCurrentRace->ready) {
+        //there was a problem with Race initialization
+        cout << "Race creation failed!" << endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool Game::RunDemoMode(int load_levelnr) {
+    if (mCurrentRace != NULL)
+        return false;
+
+    gameSoundEngine->StartEngineSound();
+
+    //create a new Race in Demo Mode
+    mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
+                           mTimeProfiler, this->mGameScreenRes, load_levelnr, true, false);
+
+    mCurrentRace->Init();
+
+    //add computer player 1
+    std::string pl2Model("extract/models/bike0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+
+    //add computer player 2
+    std::string pl3Model("extract/models/jugga0-3.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
+
+    //add computer player 3
+    std::string pl4Model("extract/models/skim0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
 
     //add computer player 4
     //std::string pl5Model("extract/models/bike0-0.obj");
@@ -613,7 +677,7 @@ bool Game::CreateNewRace(int load_levelnr) {
 
     if (!mCurrentRace->ready) {
         //there was a problem with Race initialization
-        cout << "Race creation failed!" << endl;
+        cout << "Demo creation failed!" << endl;
         return false;
     }
 
