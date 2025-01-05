@@ -192,7 +192,8 @@ void Path::AddWayPointLinkResultToVector(std::vector<std::pair <WayPointLinkInfo
    wayPointLinkList.push_back( std::make_pair(newWayPointLink, newProjectedPlayerPosition));
 }
 
-std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::PlayerDeriveClosestWaypointLink(std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>>
+std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::PlayerDeriveClosestWaypointLink(
+        std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>>
 
                                                                                                 inputWayPointLinkVector) {
 

@@ -233,6 +233,8 @@ void SoundEngine::LoadSoundResources() {
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
 
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
+
     //load all the intro sounds as well
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
@@ -345,6 +347,8 @@ SoundEngine::~SoundEngine() {
 
     DeleteSoundResource(SRES_GAME_MISSILE_SHOT);
     DeleteSoundResource(SRES_GAME_EXPLODE);
+
+    DeleteSoundResource(SRES_GAME_FINALLAP);
 
     //remove all the intro sounds as well
     DeleteSoundResource(SRES_INTRO_FIRE);

@@ -36,11 +36,17 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 10.0f; //8.0f
-const irr::f32 CP_PLAYER_SLOW_SPEED = 7.0f;
+const irr::f32 CP_PLAYER_FAST_SPEED = 11.0f; //8.0f
+const irr::f32 CP_PLAYER_SLOW_SPEED = 6.0f;
 
-const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT = 0.002f;
-const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 0.02f;
+const irr::f32 CP_PLAYER_DEACCEL_RATE_DEFAULT = 0.1f;
+const irr::f32 CP_PLAYER_ACCEL_RATE_DEFAULT = 0.07f;
+const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 2.0f;
+
+//computer player stuck detection logic values
+const irr::f32 CP_PLAYER_STUCKDETECTION_MINDISTANCE_LIMIT = 2.0f;
+const irr::f32 CP_PLAYER_STUCKDETECTION_THRESHOLD_SEC = 3.0f;
+const irr::f32 CP_PLAYER_STUCKDETECTION_PERIOD_SEC = 0.5f;
 
 const irr::f32 CRAFT_JUMPDETECTION_THRES = 0.2f;
 
@@ -438,7 +444,8 @@ public:
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;
     irr::f32 mCurrentCraftDistWaypointLinkTarget = 0.0f;
 
-    irr::f32 mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+    irr::f32 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
+    irr::f32 mCpCurrentAccelRate = CP_PLAYER_ACCEL_RATE_DEFAULT;
 
     PhysicsObject* phobj;
 
@@ -612,7 +619,22 @@ public:
     irr::f32 lastHeightFront;
     irr::f32 lastHeightBack;
 
-     irr::u8 playerAbsAngleSkytListElementNr = 0;
+    irr::u8 playerAbsAngleSkytListElementNr = 0;
+
+    //computer player stuck detection logic
+    //just a workaround to save computer players
+    //that can not move anymore, for whatever reason
+    irr::core::vector3df mCpPlayerLastPosition;
+    irr::f32 mCpPlayerTimeNotMovedSeconds;
+    bool mCpPlayerCurrentlyStuck = false;
+
+    irr::f32 mExecuteCpStuckDetectionTimeCounter = 0.0f;
+
+    void CpStuckDetection(irr::f32 deltaTime);
+
+    bool mRecoveryVehicleCalled = false;
+
+    irr::f32 dbgStuckDet = 0.0f;
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
@@ -728,6 +750,8 @@ private:
     void AddGlasBreak();
     void RepairGlasBreaks();
     void CleanUpBrokenGlas();
+
+    void WorkaroundResetCurrentPath();
 
 public:
     HUD* mHUD = NULL;

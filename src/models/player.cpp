@@ -247,13 +247,41 @@ void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
    mGrabedByThisRecoveryVehicle = whichRecoveryVehicle;
 }
 
+//after a computer player is freed from the recovery vehicle, our under
+//some error cases where we could lose our current path progress we need
+//to try to restart with a new clean path/path status, this is done by this routine
+void Player::WorkaroundResetCurrentPath() {
+    //which waypoint link is the closest one to us right now?
+   std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> closeWaypointLinks =
+           this->mRace->mPath->PlayerFindCloseWaypointLinks(this);
+
+   std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> closestLink =
+           this->mRace->mPath->PlayerDeriveClosestWaypointLink(closeWaypointLinks);
+
+   if (closestLink.first == NULL) {
+       //workaround, just do nothing! TODO: Maybe improve later
+   } else {
+       //setup new path for the race
+       AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, closestLink.first);
+   }
+
+  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+}
+
 void Player::FreedFromRecoveryVehicleAgain() {
    if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_GRABEDBYRECOVERYVEHICLE) {
        mGrabedByThisRecoveryVehicle = NULL;
+
        SetNewState(STATE_PLAYER_RACING);
 
+       mRecoveryVehicleCalled = false;
+       mCpPlayerCurrentlyStuck = false;
+
+       //additional logic for computer player
        if (!mHumanPlayer) {
-           computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+         //renew the current path for computer
+         //player
+         WorkaroundResetCurrentPath();
        }
    }
 }
@@ -941,7 +969,7 @@ void Player::CPBackward() {
     if (!DEF_PLAYERCANGOBACKWARDS) {
         //we can not go backwards in Hioctane
         //we can only add friction to brake
-        this->phobj->AddFriction(10.0f);
+        this->phobj->AddFriction(1000.0f);
 
         if (mPlayerStats->throttleVal > 0)
             mPlayerStats->throttleVal--;
@@ -1007,6 +1035,75 @@ void Player::NoTurningKeyPressed() {
     currentSideForce = 0.0f;
 }
 
+void Player::CpStuckDetection(irr::f32 deltaTime) {
+    //for a human player simply return
+    if (mHumanPlayer)
+        return;
+
+    //we can not execute stuck detection every frame, as the computer
+    //player does not move a meaningful way distance in one frame
+    //we want to check for a longer period of time
+    mExecuteCpStuckDetectionTimeCounter += deltaTime;
+
+    if (mExecuteCpStuckDetectionTimeCounter > CP_PLAYER_STUCKDETECTION_PERIOD_SEC) {
+           irr::f32 addTime = mExecuteCpStuckDetectionTimeCounter;
+           mExecuteCpStuckDetectionTimeCounter = 0.0f;
+
+            //if computer player is charging currently at a station
+            //somewhere its position is also not changing, we do not want to
+            //detect this as stuck
+            if ((this->mCurrChargingFuel) || (this->mCurrChargingAmmo) || (this->mCurrChargingShield)) {
+                mCpPlayerTimeNotMovedSeconds = 0.0f;
+                mCpPlayerLastPosition = this->phobj->physicState.position;
+                return;
+            }
+
+            //if computer player has finished race already also
+            //it is not stuck, or if its fuel is empty
+            //to refuel fuel there is another logic in place, we do not
+            //want to interrupt here
+            //in both cases the player is not allowed to move
+            if (!this->mPlayerStats->mPlayerCanMove){
+               mCpPlayerTimeNotMovedSeconds = 0.0f;
+               mCpPlayerLastPosition = this->phobj->physicState.position;
+               return;
+           }
+
+            //if we have already called a recovery vehicle also leave
+            if (mRecoveryVehicleCalled || mCpPlayerCurrentlyStuck) {
+                mCpPlayerTimeNotMovedSeconds = 0.0f;
+                mCpPlayerLastPosition = this->phobj->physicState.position;
+                return;
+           }
+
+            //next line only for debugging
+            //dbgStuckDet = (this->phobj->physicState.position - mCpPlayerLastPosition).getLengthSQ();
+
+            //check if we have not moved since last frame
+            if ((this->phobj->physicState.position - mCpPlayerLastPosition).getLengthSQ() < CP_PLAYER_STUCKDETECTION_MINDISTANCE_LIMIT) {
+                this->mCpPlayerTimeNotMovedSeconds += addTime;
+
+                //stuck for a long enough time?
+                if (this->mCpPlayerTimeNotMovedSeconds > CP_PLAYER_STUCKDETECTION_THRESHOLD_SEC) {
+                    //we seem to be stuck
+                    //for a workaround call the Recovery vehicle to
+                    //put us back properly at the next waypoint link at the track
+                    this->mRace->CallRecoveryVehicleForHelp(this);
+                    mRecoveryVehicleCalled = true;
+                    mCpPlayerCurrentlyStuck = true;
+
+                    mCpPlayerTimeNotMovedSeconds = 0.0f;
+                }
+            } else {
+                //we have move enough, reset time counter again
+                this->mCpPlayerTimeNotMovedSeconds = 0.0f;
+            }
+
+               dbgStuckDet = this->mCpPlayerTimeNotMovedSeconds;
+             mCpPlayerLastPosition = this->phobj->physicState.position;
+    }
+}
+
 void Player::CPForceController() {
     mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
     mLastAngleError = mAngleError;
@@ -1021,9 +1118,9 @@ void Player::CPForceController() {
     }
 
     if (computerPlayerTargetSpeed > computerPlayerCurrentSpeed) {
-        computerPlayerCurrentSpeed += mCpCurrentAccelDeaccelRate;
+        computerPlayerCurrentSpeed += mCpCurrentAccelRate;
     } else if (computerPlayerCurrentSpeed > computerPlayerTargetSpeed) {
-        computerPlayerCurrentSpeed -= mCpCurrentAccelDeaccelRate;
+        computerPlayerCurrentSpeed -= mCpCurrentDeaccelRate;
     }
 
     //control computer player speed
@@ -1093,8 +1190,8 @@ void Player::CPForceController() {
 
         irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - currAngleVelocityCraft * corrDampingOrientationAngle;*/
 
-        irr::f32 corrForceOrientationAngle = 200.0f;
-        irr::f32 corrDampingOrientationAngle = 20.0f;
+        irr::f32 corrForceOrientationAngle = 500.0f;
+        irr::f32 corrDampingOrientationAngle = 50.0f;
 
         irr::f32 currAngleVelocityCraft = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).X * corrDampingOrientationAngle;
 
@@ -1102,8 +1199,8 @@ void Player::CPForceController() {
 
         //we need to limit max force, if force is too high just
         //set it zero, so that not bad physical things will happen!
-        if (fabs(corrForceAngle) > 40.0f) {
-            corrForceAngle = sgn(corrForceAngle) * 40.0f;
+        if (fabs(corrForceAngle) > 500.0f) {
+            corrForceAngle = sgn(corrForceAngle) * 500.0f;
         }
 
         this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
@@ -1114,7 +1211,7 @@ void Player::CPForceController() {
         /****************************************************/
 
         //best values until 30.12.2024
-        irr::f32 corrForceDist = 0.5f;
+        irr::f32 corrForceDist = 100.0f;
         irr::f32 corrDampingDist = 2000.0f;
 
         irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
@@ -1124,10 +1221,10 @@ void Player::CPForceController() {
          //best line until 30.12.2024
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
-        if (corrForceDistance > 20.0f) {
-            corrForceDistance = 20.0f;
-        } else if (corrForceDistance < -20.0f) {
-            corrForceDistance = -20.0f;
+        if (corrForceDistance > 100.0f) {
+            corrForceDistance = 100.0f;
+        } else if (corrForceDistance < -100.0f) {
+            corrForceDistance = -100.0f;
         }
 
         this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
@@ -1287,19 +1384,18 @@ void Player::ProjectPlayerAtCurrentSegments() {
             //the end of the current waypoint link and the start
             //of the next one)
             if (distance < 10.0f) {
-
-            if (firstElement) {
-                minDistance = distance;
-                closestLink = (*WayPointLink_iterator);
-                projPlayerPositionFollowSeg = projPlayerPosition;
-                firstElement = false;
-            } else {
-                if (distance < minDistance) {
+                if (firstElement) {
                     minDistance = distance;
                     closestLink = (*WayPointLink_iterator);
                     projPlayerPositionFollowSeg = projPlayerPosition;
-                 }
-              }
+                    firstElement = false;
+                } else {
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestLink = (*WayPointLink_iterator);
+                        projPlayerPositionFollowSeg = projPlayerPosition;
+                     }
+                  }
           }
         }
     }
@@ -1324,18 +1420,28 @@ void Player::ProjectPlayerAtCurrentSegments() {
    //at which number of segment are we currently?
    mCurrentPathSegCurrSegmentNr = 0;
 
+   bool foundCurrentProgress = false;
+
    for(WayPointLink_iterator = mCurrentPathSeg.begin(); WayPointLink_iterator != mCurrentPathSeg.end(); ++WayPointLink_iterator) {
        if ((*WayPointLink_iterator) == cPCurrentFollowSeg) {
+           foundCurrentProgress = true;
            break;
        }
 
        mCurrentPathSegCurrSegmentNr++;
    }
 
-   //have we reached the end of the following path we follow?
-   //if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
-   if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments - 2)) {
-      ReachedEndCurrentFollowingSegments();
+   //in some cases we could loose our way through the current
+   //segment path
+   if (!foundCurrentProgress) {
+       //to fix this situation, completely renew the current overall path
+       WorkaroundResetCurrentPath();
+   } else {
+           //have we reached the end of the following path we follow?
+           //if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
+           if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments - 2)) {
+              ReachedEndCurrentFollowingSegments();
+           }
    }
 }
 
@@ -1419,7 +1525,7 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
             //now much quicker, so that if we reach the charging area
             //finally we stop fast enough and do not overshoot the
             //charging area itself
-            mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
+            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
             return (linkForShield);
         }
     }
@@ -1439,7 +1545,7 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
             //now much quicker, so that if we reach the charging area
             //finally we stop fast enough and do not overshoot the
             //charging area itself
-            mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
+            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
             return (linkForFuel);
         }
     }
@@ -1459,7 +1565,7 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
             //now much quicker, so that if we reach the charging area
             //finally we stop fast enough and do not overshoot the
             //charging area itself
-            mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
+            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
             return (linkForAmmo);
         }
     }
@@ -2163,7 +2269,7 @@ void Player::CpPlayerCollectableSelectionLogic() {
                 this->CurrentCommandFinished();
             }
 
-            //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, mCpFollowThisWayPointLink);
+            AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, mCpFollowThisWayPointLink);
         }
 
         //continue to pickup current targeted collectable item
@@ -2720,6 +2826,16 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
 
     }
 
+    //If true enables computer player stuck detection
+    //turn off for testing computer player movement
+    //performance and stabilitiy testing to keep computer
+    //players stuck; Set true for final release to handle
+    //random cases where computer players really get stuck, so that
+    //races can for sure finish
+    if (this->mRace->CpEnableStuckDetection) {
+        CpStuckDetection(deltaTime);
+    }
+
     CpPlayerCollectableSelectionLogic();
 
     //check for obstacles only every 300 ms
@@ -2731,7 +2847,12 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
         CpCheckCurrentPathForObstacles();
     }
 
-    CpPlayerHandleAttack();
+    //CpPlayerHandleAttack();
+
+    //for all computer players in this race we need to call the
+    //CPForceController which has the job to control the crafts movement
+    //so that the computer is following the currenty definded target path
+    CPForceController();
 
     return;
 }
@@ -2743,9 +2864,13 @@ void Player::CpHandleCharging() {
           if (mCurrChargingAmmo) {
               if (this->mPlayerStats->ammoVal >= (0.95 * this->mPlayerStats->ammoMax)) {
                   //charging finished
-                  mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+                  mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
                   CurrentCommandFinished();
 
+                  //continue our journey
+                  //WorkaroundResetCurrentPath();
+
+                  //old lines before WorkaroundResetCurrentPath
                   AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
                   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
               } else {
@@ -2762,9 +2887,13 @@ void Player::CpHandleCharging() {
          if (mCurrChargingShield) {
              if (this->mPlayerStats->shieldVal >= (0.95 * this->mPlayerStats->shieldMax)) {
                  //charging finished
-                 mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
                  CurrentCommandFinished();
 
+                 //continue our journey
+                 //WorkaroundResetCurrentPath();
+
+                 //old lines before WorkaroundResetCurrentPath
                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
                  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
              } else {
@@ -2781,10 +2910,14 @@ void Player::CpHandleCharging() {
          if (mCurrChargingFuel) {
              if (this->mPlayerStats->gasolineVal >= (0.95 * this->mPlayerStats->gasolineMax)) {
                  //charging finished
-                 mCpCurrentAccelDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_DEFAULT;
+                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
 
                  CurrentCommandFinished();
 
+                 //continue our journey
+                 //WorkaroundResetCurrentPath();
+
+                 //old lines before WorkaroundResetCurrentPath
                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
                  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
              } else {
@@ -3250,6 +3383,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
                     //call a recovery vehicle to help us out
                     this->mRace->CallRecoveryVehicleForHelp(this);
+                    mRecoveryVehicleCalled = true;
                 }
             }
         } else if (mPlayerStats->gasolineVal < (mPlayerStats->gasolineMax * 0.25f)) {
@@ -3529,6 +3663,7 @@ bool Player::Damage(irr::f32 damage) {
             //player state
             SetNewState(STATE_PLAYER_BROKEN);
             this->mRace->CallRecoveryVehicleForHelp(this);
+            mRecoveryVehicleCalled = true;
 
             return true;
        }
@@ -4159,6 +4294,9 @@ void Player::FinishedLap() {
         if (mHUD != NULL) {
             mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f);
         }
+
+        //play the yee-haw sound
+        mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
     }
 
     //reset current lap time
@@ -4228,8 +4366,6 @@ void Player::CleanUpBrokenGlas() {
 }
 
 void Player::CpPlayerHandleAttack() {
-    return;
-
     //if I do not see any other player, simply return
     if (this->PlayerSeenList.size() < 1)
         return;
