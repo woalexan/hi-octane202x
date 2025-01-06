@@ -51,14 +51,20 @@ bool Path::SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::
    irr::core::vector2df dirCntrlPnt = (cntrlPnt - startPnt).normalize();
    irr::core::vector2df dirEndPnt = (endPnt - startPnt).normalize();
 
-   if (dirCntrlPnt.dotProduct(dirEndPnt) < 0.0f)
+   irr::f32 result = dirCntrlPnt.dotProduct(dirEndPnt);
+
+   if (result < 0.0f)
        return false;
+
+   result = dirCntrlPnt.dotProduct(raceDirection);
 
    //both direction vectors must be in "race Direction" and not opposite
-   if (dirCntrlPnt.dotProduct(raceDirection) < 0.0f)
+   if (result < 0.0f)
        return false;
 
-   if (dirEndPnt.dotProduct(raceDirection) < 0.0f)
+   result = dirEndPnt.dotProduct(raceDirection);
+
+   if (result < 0.0f)
        return false;
 
    //all ok
