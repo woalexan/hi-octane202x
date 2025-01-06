@@ -340,15 +340,15 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
     if (!this->mTimeStopped) {
+        //advance race time, execute physics, move players...
+        mCurrentRace->AdvanceTime(frameDeltaTime);
+    }
+
+    if (!this->mTimeStopped) {
         mCurrentRace->HandleComputerPlayers(frameDeltaTime);
     }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
-
-    if (!this->mTimeStopped) {
-        //advance race time, execute physics, move players...
-        mCurrentRace->AdvanceTime(frameDeltaTime);
-    }
 
     wchar_t* text = new wchar_t[200];
     wchar_t* text2 = new wchar_t[400];
@@ -448,16 +448,16 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                 this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
                 this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
     }*/
- /*
+
    swprintf(text2, 390, L"AngleErr: %lf\nAngleForce: %lf\n AngleVeloc.X: %lf\n AngularFrict: %lf\n DistErr: %lfd\nDistForce: %lf\n",
              this->mCurrentRace->currPlayerFollow->mAngleError,
               this->mCurrentRace->currPlayerFollow->mDbgForceAngle,
             this->mCurrentRace->currPlayerFollow->mDbgAngleVelocityCraftX,
                this->mCurrentRace->currPlayerFollow->mDbgRotationalFrictionVal,
              this->mCurrentRace->currPlayerFollow->dbgDistError,
-             this->mCurrentRace->currPlayerFollow->dbgForceDistance);*/
+             this->mCurrentRace->currPlayerFollow->mDbgFoceDistance);
 
-    swprintf(text2, 390, L"");
+   // swprintf(text2, 390, L"");
 
     dbgTimeProfiler->setText(text);
     dbgText->setText(text2);

@@ -650,6 +650,12 @@ public:
     irr::f32 mDbgAngleVelocityCraftZ;
     irr::f32 mDbgRotationalFrictionVal;
 
+    irr::f32 mTargetSpeedAdjust = 0.0f;
+
+    void TestCpForceControlLogicWithHumanPlayer();
+
+
+
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
 

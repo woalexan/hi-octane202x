@@ -1104,6 +1104,55 @@ void Player::CpStuckDetection(irr::f32 deltaTime) {
     }
 }
 
+void Player::TestCpForceControlLogicWithHumanPlayer() {
+    if (!mHumanPlayer)
+        return;
+
+    if (this->currClosestWayPointLink.first != NULL) {
+
+        irr::core::vector3df dirVecToLink = (this->currClosestWayPointLink.second - this->phobj->physicState.position);
+        dirVecToLink.Y = 0.0f;
+
+        irr::core::vector3df currDirVecCraftSide = craftSidewaysToRightVec;
+        irr::core::vector3df currDirVecLink = dirVecToLink;
+        currDirVecLink.normalize();
+
+        currDirVecCraftSide.Y = 0.0f;
+        currDirVecCraftSide.normalize();
+
+        irr::f32 dotProd = currDirVecCraftSide.dotProduct(currDirVecLink);
+
+        //define distance to current waypoint in a way, that if craft is left
+        //of current waypoint link the distance is negative, and if the craft is right
+        //of the current waypoint link the distance is positive
+        if (dotProd < 0.0f) {
+            mCurrentCraftDistToWaypointLink = dirVecToLink.getLength();
+        } else {
+            mCurrentCraftDistToWaypointLink = -dirVecToLink.getLength();
+        }
+
+        mCurrentCraftOrientationAngle =
+                this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
+
+         irr::f32 angleDotProduct = this->currClosestWayPointLink.first->LinkDirectionVec.dotProduct(craftForwardDirVec);
+
+        irr::f32 angleRad = acosf(angleDotProduct);
+        mAngleError = (angleRad / irr::core::PI) * 180.0f;
+
+        if (craftSidewaysToRightVec.dotProduct(this->currClosestWayPointLink.first->LinkDirectionVec) > 0.0f) {
+            mAngleError = -mAngleError;
+        }
+
+        //irr::f32 currAngleVelocityCraft =  (mCurrentCraftOrientationAngle - mLastCurrentCraftOrientationAngle);
+
+        irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
+
+        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
+
+         dbgDistError = distError;
+    }
+}
+
 void Player::CPForceController() {
     mLastCurrentCraftOrientationAngle = mCurrentCraftOrientationAngle;
     mLastAngleError = mAngleError;
@@ -1117,10 +1166,28 @@ void Player::CPForceController() {
         SetNewState(STATE_PLAYER_EMPTYFUEL);
     }
 
-    if (computerPlayerTargetSpeed > computerPlayerCurrentSpeed) {
+    if ((computerPlayerTargetSpeed + mTargetSpeedAdjust) > computerPlayerCurrentSpeed) {
         computerPlayerCurrentSpeed += mCpCurrentAccelRate;
-    } else if (computerPlayerCurrentSpeed > computerPlayerTargetSpeed) {
+    } else if (computerPlayerCurrentSpeed > (computerPlayerTargetSpeed - mTargetSpeedAdjust)) {
         computerPlayerCurrentSpeed -= mCpCurrentDeaccelRate;
+    }
+
+    //is there a craft very close in front of us, then go slower
+    if (this->mCraftDistanceAvailFront < 5.0f) {
+        mTargetSpeedAdjust -= 0.2f;
+
+        if (mTargetSpeedAdjust < 0.0f) {
+            mTargetSpeedAdjust = 0.0f;
+        }
+    } else {
+        if (mTargetSpeedAdjust < 0.0f) {
+            mTargetSpeedAdjust += 0.2f;
+
+            if (mTargetSpeedAdjust > 0.0f)
+            {
+                mTargetSpeedAdjust = 0.0f;
+            }
+        }
     }
 
     //control computer player speed
@@ -2470,7 +2537,16 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                                          bool updatePathReachedEndWayPointLink) {
 
     bool freeWayFound = false;
-    irr::f32 currOffset = startOffsetWay;
+    //irr::f32 currOffset = startOffsetWay;
+    irr::f32 currOffset = 0.0f;
+
+   /* if (this->currClosestWayPointLink.first != NULL) {
+        if (nextLink == this->currClosestWayPointLink.first) {
+            if (nextLink->pntrPathNextLink != NULL) {
+                nextLink = nextLink->pntrPathNextLink;
+            }
+        }
+    }*/
 
     std::vector<WayPointLinkInfoStruct*> newPoints;
     newPoints.clear();
@@ -2549,18 +2625,69 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
             //calculate midpoint for next link, is the bezier curve 1 end point
             irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
 
-            if (!this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierCntrlPnt1, bezierPnt2, raceDirection)) {
-                //sometimes the player has already moved passed the start point of the next waypoint link
-                //in this case the curve will go backwards, which could cause weird problems
-                //in this case rearrange curve so that backwards movement is prevented
-                newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierCntrlPnt1, bezierPnt2, bezierPnt1,
-                                                                                0.1f, currDbgColor);
-                //this->mRace->mGame->StopTime();
-            } else {
-                    //bezier curve point order makes "sense"
-                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
-                                                                            0.1f, currDbgColor);
+            if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierCntrlPnt1, bezierPnt2, raceDirection)) {
+                 newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
+                                                                                 0.1f, currDbgColor);
+             } else {
+                //default does not work, could be that next link is the link at which we are currently located
+                //try different order
+                if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierPnt2, link1End, raceDirection)) {
+                    //other order works
+                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, link1End, bezierPnt2,
+                                                                                    0.1f, currDbgColor);
+
+                    debugPathPnt2 = debugPathPnt3;
+                    debugPathPnt3 = link1End3D;
+                } else {
+                    //also does not work
+                    //try different order
+                    //here we need the midpoint of the next waypoint link in front of us
+                    if (nextLink->pntrPathNextLink != NULL) {
+                            WayPointLinkInfoStruct* pntrLinkAfterwards = nextLink->pntrPathNextLink;
+                            irr::core::vector3df linkAfterwardsStart3D;
+                            irr::core::vector2df bezierPntNextLinkStart =
+                                    pntrLinkAfterwards->pStartEntity->GetMyBezierCurvePlaningCoord(linkAfterwardsStart3D);
+                            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(bezierPntNextLinkStart, linkAfterwardsStart3D, pntrLinkAfterwards, currOffset);
+
+                            debugPathPnt2 = linkAfterwardsStart3D;
+
+                            irr::core::vector3df linkAfterwardsEnd3D;
+
+                            //end point for link afterwards is needed to calculate midpoint
+                            irr::core::vector2df bezierPntNextLinkEnd = pntrLinkAfterwards->pEndEntity->GetMyBezierCurvePlaningCoord(linkAfterwardsEnd3D);
+                            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(bezierPntNextLinkEnd, linkAfterwardsEnd3D, pntrLinkAfterwards, currOffset);
+
+                            //calculate midpoint for link afterwards, is the bezier curve 1 end point
+                            irr::core::vector2df curveEndPoint =
+                                    this->GetBezierCurvePlaningCoordMidPoint(linkAfterwardsStart3D, linkAfterwardsEnd3D, debugPathPnt3);
+
+                            if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierPntNextLinkStart, curveEndPoint, raceDirection)) {
+                                //other order works
+                                newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, curveEndPoint, bezierPntNextLinkStart,
+                                                                                                0.1f, currDbgColor);
+                               // this->mRace->mGame->StopTime();
+                            } else {
+                                //also this does not work
+                                //just give up
+                            }
+                    }
+                }
             }
+
+            /*else {
+                 //does also not work
+
+                if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierCntrlPnt1,bezierPnt1, bezierPnt2, raceDirection)) {
+                    //yes, works
+                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierCntrlPnt1, bezierPnt2, bezierPnt1,
+                                                                                    0.1f, currDbgColor);
+                } else {
+                    //also this solution is not ok, try another one
+                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierCntrlPnt1, bezierPnt2, bezierPnt1,
+                                                                                    0.1f, currDbgColor);
+                  }
+                //this->mRace->mGame->StopTime();
+            } */
 
             //now check if the new "way" is free from other players
 
@@ -2606,19 +2733,38 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
 
 
             if ((leftFailed && rightFailed) || (iterationCnt >= (maxIterations - 1))) {
-                currOffset = 0.0f;
-                this->mRace->mGame->StopTime();
+               // currOffset = 0.0f;
+               // this->mRace->mGame->StopTime();
             }
     }
 
     std::vector<WayPointLinkInfoStruct*>::iterator it;
 
     mCurrentPathSeg.clear();
+    irr::f32 angleDotProduct;
+    irr::f32 angle;
+    irr::f32 angleRad;
 
     //add new waypoints to the existing ones
     for (it = newPoints.begin(); it != newPoints.end(); ++it) {
-        mCurrentPathSeg.push_back(*it);
-        mPathHistoryVec.push_back(*it);
+        //final additional check:
+        //sort all segments out that are looking in the opposite direction
+        //as the player craft is currently oriented
+        //to make sure we do not reverse direction accidently suddently
+        angleDotProduct = (*it)->LinkDirectionVec.dotProduct(craftForwardDirVec);
+
+        angleRad = acosf(angleDotProduct);
+        angle = (angleRad / irr::core::PI) * 180.0f;
+
+       if (craftSidewaysToRightVec.dotProduct((*it)->LinkDirectionVec) > 0.0f) {
+           angle = -angle;
+       }
+
+        //if not in opposite direction add new segment path
+        if (fabs(angle) < 90.0f) {
+            mCurrentPathSeg.push_back(*it);
+            mPathHistoryVec.push_back(*it);
+        }
     }
 
     //update current player offset path value
@@ -2898,9 +3044,6 @@ void Player::CpHandleCharging() {
                   mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
                   CurrentCommandFinished();
 
-                  //continue our journey
-                  //WorkaroundResetCurrentPath();
-
                   //old lines before WorkaroundResetCurrentPath
                   AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
                   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
@@ -2920,9 +3063,6 @@ void Player::CpHandleCharging() {
                  //charging finished
                  mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
                  CurrentCommandFinished();
-
-                 //continue our journey
-                 //WorkaroundResetCurrentPath();
 
                  //old lines before WorkaroundResetCurrentPath
                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
@@ -2945,8 +3085,7 @@ void Player::CpHandleCharging() {
 
                  CurrentCommandFinished();
 
-                 //continue our journey
-                 //WorkaroundResetCurrentPath();
+               //  this->mRace->mGame->StopTime();
 
                  //old lines before WorkaroundResetCurrentPath
                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
@@ -3464,6 +3603,8 @@ void Player::Update(irr::f32 frameDeltaTime) {
      if (mPlayerStats->ammoVal > (mPlayerStats->ammoMax * 0.25f)) {
           mLowAmmoWarningAlreadyShown = false;
      }
+
+    //TestCpForceControlLogicWithHumanPlayer();
 
     CalcPlayerCraftLeaningAngle();
 
@@ -4330,12 +4471,16 @@ void Player::FinishedLap() {
 
     //do we need to show HUD Message for "final lap"
     if (mPlayerStats->currLapNumber == mPlayerStats->raceNumberLaps) {
-        if (mHUD != NULL) {
-            mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f);
-        }
+        if (this->mRace->currPlayerFollow != NULL) {
+            if (this->mRace->currPlayerFollow == this) {
+                if (mHUD != NULL) {
+                    mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f);
+                }
 
-        //play the yee-haw sound
-        mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                //play the yee-haw sound
+                mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+            }
+        }
     }
 
     //reset current lap time
