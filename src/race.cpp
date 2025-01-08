@@ -2277,7 +2277,7 @@ void Race::Render() {
 
           //also draw min/max offset shift limit lines for graphical representation of possible computer player
           //movement area
-       /*   mDrawDebug->Draw3DLine(
+          mDrawDebug->Draw3DLine(
                       (*WayPointLink_iterator)->pLineStruct->A + (*WayPointLink_iterator)->offsetDirVec *
                       (*WayPointLink_iterator)->minOffsetShift,
                       (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
@@ -2289,7 +2289,7 @@ void Race::Render() {
                       (*WayPointLink_iterator)->maxOffsetShift,
                       (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
                       (*WayPointLink_iterator)->maxOffsetShift,
-                      this->mDrawDebug->red);*/
+                      this->mDrawDebug->red);
 
         /*  if ((*WayPointLink_iterator)->pLineStruct->debugLine != NULL) {
             mDriver->setMaterial(*mDrawDebug->brown);
@@ -2400,7 +2400,7 @@ void Race::Render() {
           }
       }*/
 
-      if (currPlayerFollow != NULL) {
+     /* if (currPlayerFollow != NULL) {
 
             if (currPlayerFollow->mCurrentPathSeg.size() > 0) {
               std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
@@ -2411,7 +2411,7 @@ void Race::Render() {
 
              //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
           }
-      }
+      }*/
 
 
       /*if (currPlayerFollow != NULL) {
@@ -2436,7 +2436,7 @@ void Race::Render() {
           }
       }*/
 
-        if (currPlayerFollow != NULL) {
+       /* if (currPlayerFollow != NULL) {
 
               if (currPlayerFollow->mCpTargetCollectableToPickUp != NULL) {
                    irr::core::vector3df fixedPos = currPlayerFollow->mCpTargetCollectableToPickUp->Position;
@@ -2450,7 +2450,7 @@ void Race::Render() {
                                          currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->B,
                                          this->mDrawDebug->cyan);
               }
-        }
+        }*/
 
         if (DebugShowRegionsAndPointOfInterest) {
                 std::list<MapPointOfInterest>::iterator it;
@@ -2468,7 +2468,7 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
-        if (currPlayerFollow != NULL) {
+    /*    if (currPlayerFollow != NULL) {
             if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
                                        mDrawDebug->cyan);
@@ -2476,9 +2476,9 @@ void Race::Render() {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->B,
                                        mDrawDebug->red);
             }
-        }
+        }*/
 
-        DebugShowAllObstaclePlayers();
+        //DebugShowAllObstaclePlayers();
 
         if (DebugShowTriggerRegions) {
             IndicateTriggerRegions();

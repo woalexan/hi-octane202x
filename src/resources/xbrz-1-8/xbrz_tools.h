@@ -20,7 +20,8 @@
 #include <cassert>
 #include <algorithm>
 #include <type_traits>
-
+#include <cstdint>
+#include <vector>
 
 namespace xbrz
 {

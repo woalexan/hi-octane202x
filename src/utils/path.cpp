@@ -287,8 +287,6 @@ bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStru
                                   std::vector<Player*> checkCollisionForWhichPlayers,
                                                 std::vector<Player*> &playersInWay) {
 
-    return false;
-
    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
    std::vector<Player*>::iterator itPlayer;
    std::vector<irr::f32> inWhichDistanceVec;

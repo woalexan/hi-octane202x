@@ -1210,6 +1210,11 @@ void Player::CPForceController() {
         //variable for the further calculation steps below
         ProjectPlayerAtCurrentSegments();
 
+        //sometimes we loose our way inside ProjectPlayerAtCurrentSegments,
+        //if so just exit, next time we should have a new way again
+        if (this->cPCurrentFollowSeg == NULL)
+            return;
+
         irr::core::vector3df dirVecToLink = (this->projPlayerPositionFollowSeg - this->phobj->physicState.position);
         dirVecToLink.Y = 0.0f;
 
@@ -1514,6 +1519,11 @@ void Player::ProjectPlayerAtCurrentSegments() {
 
    cPCurrentFollowSeg = closestLink;
 
+   if (cPCurrentFollowSeg == NULL) {
+         WorkaroundResetCurrentPath();
+         return;
+   }
+
    //at which number of segment are we currently?
    mCurrentPathSegCurrSegmentNr = 0;
 
@@ -1533,6 +1543,7 @@ void Player::ProjectPlayerAtCurrentSegments() {
    if (!foundCurrentProgress) {
        //to fix this situation, completely renew the current overall path
        WorkaroundResetCurrentPath();
+       return;
    } else {
            //have we reached the end of the following path we follow?
            //if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
@@ -2537,8 +2548,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                                          bool updatePathReachedEndWayPointLink) {
 
     bool freeWayFound = false;
-    //irr::f32 currOffset = startOffsetWay;
-    irr::f32 currOffset = 0.0f;
+    irr::f32 currOffset = startOffsetWay;
 
    /* if (this->currClosestWayPointLink.first != NULL) {
         if (nextLink == this->currClosestWayPointLink.first) {
@@ -2563,14 +2573,26 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
         freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShift;
         freeSpaceRightOfPath = nextLink->maxOffsetShift - currOffset;
 
+        //limit amount of space available, so that we do not completely
+        //change the path if there is a wide open area in front of us
+        if (freeSpaceRightOfPath > 10.0f)
+            freeSpaceRightOfPath = 10.0f;
+
+        if (freeSpaceLeftOfPath > 10.0f)
+            freeSpaceLeftOfPath = 10.0f;
+
         //do we need to change offset, because in front of us there is not enough
         //space available?
-        if (freeSpaceLeftOfPath < 1.0f) {
-            currOffset = nextLink->minOffsetShift * 0.35f;
+        //if (freeSpaceLeftOfPath < 1.0f) {
+        if (freeSpaceLeftOfPath < 2.0f) {
+            //currOffset = nextLink->minOffsetShift * 0.35f;
+            currOffset = currOffset + 0.35f * freeSpaceRightOfPath;
         }
 
-        if (freeSpaceRightOfPath < 1.0f) {
-            currOffset = nextLink->maxOffsetShift * 0.35f;
+        //if (freeSpaceRightOfPath < 1.0f) {
+        if (freeSpaceRightOfPath < 2.0f) {
+            //currOffset = nextLink->maxOffsetShift * 0.35f;
+             currOffset = currOffset - 0.35f * freeSpaceLeftOfPath;
         }
     }
 
@@ -2673,21 +2695,6 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
                     }
                 }
             }
-
-            /*else {
-                 //does also not work
-
-                if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierCntrlPnt1,bezierPnt1, bezierPnt2, raceDirection)) {
-                    //yes, works
-                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierCntrlPnt1, bezierPnt2, bezierPnt1,
-                                                                                    0.1f, currDbgColor);
-                } else {
-                    //also this solution is not ok, try another one
-                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierCntrlPnt1, bezierPnt2, bezierPnt1,
-                                                                                    0.1f, currDbgColor);
-                  }
-                //this->mRace->mGame->StopTime();
-            } */
 
             //now check if the new "way" is free from other players
 

@@ -85,6 +85,7 @@
 #include "../models/player.h"
 #include "stdlib.h"
 #include "../models/column.h"
+#include "irrlicht/irrMath.h"
 
 #define RAY_HIT_NOTHING 0
 #define RAY_HIT_TERRAIN 1
@@ -176,6 +177,10 @@ private:
 
     void CreateStaticWorldMap();
     void UpdateDynamicWorldMap(Player* whichPlayer);
+
+    //returns true if a track end was identified
+    bool FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> cells,
+                                  irr::core::vector3df rayStartPoint3D, irr::f32 &distanceToEnd);
     
 public:
     WorldAwareness(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, Race* race);

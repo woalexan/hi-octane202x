@@ -111,9 +111,10 @@ private:
 public:
     dimension2d<u32> mGameScreenRes;
 
-    bool enableLightning = false;
-    bool enableShadows = false;
+    bool enableLightning = true;
+    bool enableShadows = true;
     bool fullscreen = false;
+    bool DebugShowVariableBoxes = false;
 
     //Returns true for success, false for error occured
     bool InitGame();
