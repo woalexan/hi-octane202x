@@ -14,6 +14,7 @@
 #include <vector>
 #include "SFML/System.hpp"
 #include <algorithm>
+#include <cstdint>
 #include "wchar.h"
 
 #define TPROFILER_AVGNRSAMPLES 10

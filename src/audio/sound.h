@@ -12,6 +12,7 @@
 
 #include "SFML/Audio.hpp"
 #include "../definitions.h"
+#include <cstdint>
 
 //File name definition
 #define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"
