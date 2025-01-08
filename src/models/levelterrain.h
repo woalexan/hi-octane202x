@@ -184,6 +184,8 @@ public:
                                            141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
                                            96, 4};
 
+    bool IsRoadTexture(irr::s32 texture);
+
 private:
     bool setupGeometry();
     void findTerrainOptimization();

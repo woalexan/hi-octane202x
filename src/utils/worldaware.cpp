@@ -78,6 +78,37 @@
 
 #include "worldaware.h"
 
+//returns true if a track end was identified
+bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> cells,
+                                              irr::core::vector3df rayStartPoint3D, irr::f32 &distanceToEnd) {
+
+    irr::s16 nrCells;
+    bool isRoadTexture;
+    MapEntry* mapEntry;
+    irr::core::vector3df endRoadTextureID3DPos;
+
+    nrCells = cells.size();
+
+    for (irr::s16 cellIdx = 0; cellIdx < nrCells; cellIdx++) {
+        mapEntry = this->mRace->mLevelTerrain->GetMapEntry(cells.at(cellIdx).X, cells.at(cellIdx).Y);
+        isRoadTexture = this->mRace->mLevelTerrain->IsRoadTexture(mapEntry->m_TextureId);
+
+        if (!isRoadTexture) {
+            endRoadTextureID3DPos.X = -cells.at(cellIdx).X * DEF_SEGMENTSIZE;
+            endRoadTextureID3DPos.Y = rayStartPoint3D.Y; //just take Y the same as of starting point, so that
+                                                         //Y coordinate does not affect the calculated length
+            endRoadTextureID3DPos.Z = cells.at(cellIdx).Y * DEF_SEGMENTSIZE;
+
+            distanceToEnd = (endRoadTextureID3DPos - rayStartPoint3D).getLength();
+
+            break;
+        }
+    }
+
+    //no road end found
+    return false;
+}
+
 void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
     if (mRace->wayPointLinkVec ->size() <= 0)
         return;
@@ -90,8 +121,8 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
     //so dynamic map is empty and does not interfere when casting the ray
     std::fill(mDynamicWorldMap->begin(), mDynamicWorldMap->end(), 0);
 
-    irr::f32 distStartEntity = 0.0f;
-    irr::f32 distEndEntity = 0.0f;
+    irr::f32 distStartEntity = FLT_MAX;
+    irr::f32 distEndEntity = FLT_MAX;
     RayHitInfoStruct rayInfo;
     irr::core::vector3df coord3D;
     std::vector<irr::core::vector2di> cells;
@@ -99,30 +130,53 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
     irr::f32 testOffset;
     irr::f32 resolution = 0.2f;
 
+    irr::f32 distStartEntityTextureId = FLT_MAX;
+    irr::f32 distEndEntityTextureId = FLT_MAX;
+
     //process one waypoint link after each other
     for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
         //use world aware to shoot one 2D ray from start entity towards right side
-        //to see how far we can go
+        //to see how far we can go until we hit a terrain/block obstacle
         coord3D = (*it)->pLineStruct->A;
 
+        cells.clear();
         rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, (*it)->offsetDirVec, 1000.0f, cells);
         if (rayInfo.HitType == RAY_HIT_TERRAIN) {
             distStartEntity = rayInfo.HitDistance;
         }
 
+        //at some map locations from the original game (for example level 3, shortly after the race finish line on the right side) there
+        //are the wallsegments missing towards the lower areas). This means at this location we need another solution again to be able
+        //to properly detect the road there, and the area where we can move freely as a computer player
+        //As a solution I decided to use the CastRayDDA visited cells from the last function call, revisit all of this cells, and check when we
+        //leave the valid textureID range of "roads" in the game
+        //This should help for this locations
+        FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
+
         //do the same from the end entity
         coord3D = (*it)->pLineStruct->B;
 
+        cells.clear();
         rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, (*it)->offsetDirVec, 1000.0f, cells);
         if (rayInfo.HitType == RAY_HIT_TERRAIN) {
             distEndEntity = rayInfo.HitDistance;
         }
 
-        //which is the minimum of the two results?
+        FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
+
+        //which is the minimum of the results?
         minVal = distStartEntity;
 
         if (distEndEntity < minVal) {
             minVal = distEndEntity;
+        }
+
+        if (distStartEntityTextureId < minVal) {
+            minVal = distStartEntityTextureId;
+        }
+
+        if (distEndEntityTextureId < minVal) {
+            minVal = distEndEntityTextureId;
         }
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
@@ -173,24 +227,38 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
 
         coord3D = (*it)->pLineStruct->A;
 
+        cells.clear();
         rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, -(*it)->offsetDirVec, 1000.0f, cells);
         if (rayInfo.HitType == RAY_HIT_TERRAIN) {
             distStartEntity = rayInfo.HitDistance;
         }
 
+        FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
+
         //do the same from the end entity
         coord3D = (*it)->pLineStruct->B;
 
+        cells.clear();
         rayInfo = this->CastRayDDA(*dynamicWorld, coord3D, -(*it)->offsetDirVec, 1000.0f, cells);
         if (rayInfo.HitType == RAY_HIT_TERRAIN) {
             distEndEntity = rayInfo.HitDistance;
         }
 
-        //which is the minimum of the two results?
+        FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
+
+        //which is the minimum of the results?
         minVal = distStartEntity;
 
         if (distEndEntity < minVal) {
             minVal = distEndEntity;
+        }
+
+        if (distStartEntityTextureId < minVal) {
+            minVal = distStartEntityTextureId;
+        }
+
+        if (distEndEntityTextureId < minVal) {
+            minVal = distEndEntityTextureId;
         }
 
         //now check if there is any obstacle from the side pointing towards the waypoint link

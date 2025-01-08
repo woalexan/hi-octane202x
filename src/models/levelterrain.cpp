@@ -343,6 +343,19 @@ LevelTerrain::~LevelTerrain() {
     }
 }
 
+//Returns true if input texture is a roadtexture
+//according to a predefined list
+bool LevelTerrain::IsRoadTexture(irr::s32 texture) {
+    for (std::vector<irr::s32>::iterator itTex = roadTexIdsVec.begin(); itTex != roadTexIdsVec.end(); ++itTex) {
+        if ((*itTex) == texture) {
+            //texture found, exit
+            return true;
+        }
+    }
+
+    return false;
+}
+
 irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP) {
     //iterate through all level tiles
     irr::u32 width = this->get_width();
@@ -482,14 +495,7 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
                         break;
              }
 
-            isRoadTex = false;
-
-            for (std::vector<irr::s32>::iterator itTex = roadTexIdsVec.begin(); itTex != roadTexIdsVec.end(); ++itTex) {
-                if ((*itTex) == texID) {
-                    isRoadTex = true;
-                    break;
-                }
-            }
+            isRoadTex = IsRoadTexture(texID);
 
             //any road texture?
             if (isRoadTex) {

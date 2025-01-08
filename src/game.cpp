@@ -131,15 +131,17 @@ bool Game::InitGame() {
         return false;
     }
 
-    //only for debugging
-    dbgTimeProfiler = guienv->addStaticText(L"Location",
-           rect<s32>(100,150,300,200), false, true, NULL, -1, true);
+    if (DebugShowVariableBoxes) {
+            //only for debugging
+            dbgTimeProfiler = guienv->addStaticText(L"Location",
+                   rect<s32>(100,150,300,200), false, true, NULL, -1, true);
 
-    dbgText = guienv->addStaticText(L"",
-           rect<s32>(100,250,300,350), false, true, NULL, -1, true);
+            dbgText = guienv->addStaticText(L"",
+                   rect<s32>(100,250,300,350), false, true, NULL, -1, true);
 
-    /*dbgText2 = guienv->addStaticText(L"",
-           rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
+            /*dbgText2 = guienv->addStaticText(L"",
+                   rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
+    }
 
     if (enableLightning) {
         smgr->addLightSceneNode(0, vector3df(0, 100, 100),
@@ -167,7 +169,7 @@ bool Game::InitGame() {
 void Game::DebugGame() {
     mDebugGame = true;
 
-    int debugLevelNr = 2;
+    int debugLevelNr = 1;
 
     //player wants to start the race
     if (this->CreateNewRace(debugLevelNr)) {
@@ -340,130 +342,134 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
     if (!this->mTimeStopped) {
-        //advance race time, execute physics, move players...
-        mCurrentRace->AdvanceTime(frameDeltaTime);
-    }
-
-    if (!this->mTimeStopped) {
         mCurrentRace->HandleComputerPlayers(frameDeltaTime);
     }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
 
-    wchar_t* text = new wchar_t[200];
-    wchar_t* text2 = new wchar_t[400];
+    if (!this->mTimeStopped) {
+        //advance race time, execute physics, move players...
+        mCurrentRace->AdvanceTime(frameDeltaTime);
+    }
 
-    mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
+    if (DebugShowVariableBoxes) {
 
-    //mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
+        wchar_t* text = new wchar_t[200];
+        wchar_t* text2 = new wchar_t[400];
 
-/*    irr::f32 deltah1 = mCurrentRace->player->cameraSensor->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah2 = mCurrentRace->player->cameraSensor2->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah3 = mCurrentRace->player->cameraSensor3->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah4 = mCurrentRace->player->cameraSensor4->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah5 = mCurrentRace->player->cameraSensor5->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah6 = mCurrentRace->player->cameraSensor6->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah7 = mCurrentRace->player->cameraSensor7->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+        mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
-    irr::f32 maxh = fmax(deltah1, deltah2);
-    maxh = fmax(maxh, deltah3);
-    maxh = fmax(maxh, deltah4);
-    maxh = fmax(maxh, deltah5);
-    maxh = fmax(maxh, deltah6);
-    maxh = fmax(maxh, deltah7);
+       //mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
 
+        /*    irr::f32 deltah1 = mCurrentRace->player->cameraSensor->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+            irr::f32 deltah2 = mCurrentRace->player->cameraSensor2->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+            irr::f32 deltah3 = mCurrentRace->player->cameraSensor3->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+            irr::f32 deltah4 = mCurrentRace->player->cameraSensor4->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+            irr::f32 deltah5 = mCurrentRace->player->cameraSensor5->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+            irr::f32 deltah6 = mCurrentRace->player->cameraSensor6->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
+            irr::f32 deltah7 = mCurrentRace->player->cameraSensor7->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
 
-    irr::f32 maxStep = fmax(mCurrentRace->player->cameraSensor->stepness, mCurrentRace->player->cameraSensor2->stepness);
-    maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor3->stepness);
-    maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor4->stepness);
-    maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor5->stepness);
-
-    swprintf(text2, 390, L"%lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n",
-                 deltah1,
-                 deltah2,
-                 deltah3,
-                 deltah4,
-                 deltah5,
-             deltah6,
-             deltah7,
-             maxh);*/
-
-   /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
-                mCurrentRace->player->dbgCameraVal,
-              mCurrentRace->player->dbgCameraTargetVal,
-                 mCurrentRace->player->dbgCameraAvgVAl,
-                 mCurrentRace->player->dbgNewCameraVal,
-                 mCurrentRace->player->dbgMaxh,
-                 mCurrentRace->player->dbgMinCeilingFound);*/
-
-    //irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
-
-      /*swprintf(text2, 390, L"currDist = %lf\nTargetDist = %lf\ncurrAngle = %lf\ncurrTargetAngle = %lf\ntargetOffsetAngle = %lf\n",
-                     this->mCurrentRace->player2->mCurrentCraftDistToWaypointLink,
-                     this->mCurrentRace->player2->mCurrentCraftDistWaypointLinkTarget,
-                     this->mCurrentRace->player2->mCurrentCraftOrientationAngle,
-                     this->mCurrentRace->player2->mCurrentWaypointLinkAngle,
-                     this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
+            irr::f32 maxh = fmax(deltah1, deltah2);
+            maxh = fmax(maxh, deltah3);
+            maxh = fmax(maxh, deltah4);
+            maxh = fmax(maxh, deltah5);
+            maxh = fmax(maxh, deltah6);
+            maxh = fmax(maxh, deltah7);
 
 
-    /*swprintf(text2, 390, L"nCurrSeg = %d\nSegments = %d\n",
-                   this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                   this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
+            irr::f32 maxStep = fmax(mCurrentRace->player->cameraSensor->stepness, mCurrentRace->player->cameraSensor2->stepness);
+            maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor3->stepness);
+            maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor4->stepness);
+            maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor5->stepness);
 
-   /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
-                   this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
-                   this->mCurrentRace->player2->mDbgCpAvailWayPointLinksNr,
-                 this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                  this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
+            swprintf(text2, 390, L"%lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n",
+                         deltah1,
+                         deltah2,
+                         deltah3,
+                         deltah4,
+                         deltah5,
+                     deltah6,
+                     deltah7,
+                     maxh);*/
 
-    /*swprintf(text2, 390, L"nCollectable = %d\n",
-                   this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());*/
+           /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
+                        mCurrentRace->player->dbgCameraVal,
+                      mCurrentRace->player->dbgCameraTargetVal,
+                         mCurrentRace->player->dbgCameraAvgVAl,
+                         mCurrentRace->player->dbgNewCameraVal,
+                         mCurrentRace->player->dbgMaxh,
+                         mCurrentRace->player->dbgMinCeilingFound);*/
+
+            //irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
+
+              /*swprintf(text2, 390, L"currDist = %lf\nTargetDist = %lf\ncurrAngle = %lf\ncurrTargetAngle = %lf\ntargetOffsetAngle = %lf\n",
+                             this->mCurrentRace->player2->mCurrentCraftDistToWaypointLink,
+                             this->mCurrentRace->player2->mCurrentCraftDistWaypointLinkTarget,
+                             this->mCurrentRace->player2->mCurrentCraftOrientationAngle,
+                             this->mCurrentRace->player2->mCurrentWaypointLinkAngle,
+                             this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
 
 
-   /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
-                   this->mCurrentRace->player2->mAngleError,
-                   this->mCurrentRace->player2->dbgDistError);*/
+            /*swprintf(text2, 390, L"nCurrSeg = %d\nSegments = %d\n",
+                           this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
+                           this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
 
-    /*swprintf(text2, 390, L"x = %lf\n y = %lf\n z = %lf\n",
-                      this->mCurrentRace->player->phobj->physicState.position.X,
-                    this->mCurrentRace->player->phobj->physicState.position.Y,
-                  this->mCurrentRace->player->phobj->physicState.position.Z);*/
+           /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
+                           this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
+                           this->mCurrentRace->player2->mDbgCpAvailWayPointLinksNr,
+                         this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
+                          this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
 
-   /* swprintf(text2, 390, L"front = %lf\n left = %lf\n right = %lf\n back = %lf\n currOffset = %lf\n",
-                      this->mCurrentRace->player2->mCraftDistanceAvailFront,
-                      this->mCurrentRace->player2->mCraftDistanceAvailLeft,
-                      this->mCurrentRace->player2->mCraftDistanceAvailRight,
-                      this->mCurrentRace->player2->mCraftDistanceAvailBack,
-                      this->mCurrentRace->player2->mCpCurrPathOffset
-                    );*/
+            /*swprintf(text2, 390, L"nCollectable = %d\n",
+                           this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());*/
 
-   /* if (this->mCurrentRace->mPlayerVec.at(0)->mCurrJumping) {
-        swprintf(text2, 390, L"Jumping %lf %lf\n %lf %lf\n", this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
-                 this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
-                 this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
-                 this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
-    } else {
-       swprintf(text2, 390, L"%lf %lf\n %lf %lf\n" ,this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
-                this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
-                this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
-                this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
-    }*/
 
-   swprintf(text2, 390, L"AngleErr: %lf\nAngleForce: %lf\n AngleVeloc.X: %lf\n AngularFrict: %lf\n DistErr: %lfd\nDistForce: %lf\n",
-             this->mCurrentRace->currPlayerFollow->mAngleError,
-              this->mCurrentRace->currPlayerFollow->mDbgForceAngle,
-            this->mCurrentRace->currPlayerFollow->mDbgAngleVelocityCraftX,
-               this->mCurrentRace->currPlayerFollow->mDbgRotationalFrictionVal,
-             this->mCurrentRace->currPlayerFollow->dbgDistError,
-             this->mCurrentRace->currPlayerFollow->mDbgFoceDistance);
+           /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
+                           this->mCurrentRace->player2->mAngleError,
+                           this->mCurrentRace->player2->dbgDistError);*/
 
-   // swprintf(text2, 390, L"");
+            /*swprintf(text2, 390, L"x = %lf\n y = %lf\n z = %lf\n",
+                              this->mCurrentRace->player->phobj->physicState.position.X,
+                            this->mCurrentRace->player->phobj->physicState.position.Y,
+                          this->mCurrentRace->player->phobj->physicState.position.Z);*/
 
-    dbgTimeProfiler->setText(text);
-    dbgText->setText(text2);
+           /* swprintf(text2, 390, L"front = %lf\n left = %lf\n right = %lf\n back = %lf\n currOffset = %lf\n",
+                              this->mCurrentRace->player2->mCraftDistanceAvailFront,
+                              this->mCurrentRace->player2->mCraftDistanceAvailLeft,
+                              this->mCurrentRace->player2->mCraftDistanceAvailRight,
+                              this->mCurrentRace->player2->mCraftDistanceAvailBack,
+                              this->mCurrentRace->player2->mCpCurrPathOffset
+                            );*/
 
-    delete[] text;
-    delete[] text2;
+           /* if (this->mCurrentRace->mPlayerVec.at(0)->mCurrJumping) {
+                swprintf(text2, 390, L"Jumping %lf %lf\n %lf %lf\n", this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
+                         this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
+                         this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
+                         this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
+            } else {
+               swprintf(text2, 390, L"%lf %lf\n %lf %lf\n" ,this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
+                        this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
+                        this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
+                        this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
+            }*/
+
+          /* swprintf(text2, 390, L"%lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n",
+                     this->mCurrentRace->mPlayerVec.at(1)->mCpCurrPathOffset,
+                      this->mCurrentRace->mPlayerVec.at(2)->mCpCurrPathOffset,
+                     this->mCurrentRace->mPlayerVec.at(3)->mCpCurrPathOffset,
+                     this->mCurrentRace->mPlayerVec.at(4)->mCpCurrPathOffset,
+                    this->mCurrentRace->mPlayerVec.at(5)->mCpCurrPathOffset,
+                      this->mCurrentRace->mPlayerVec.at(6)->mCpCurrPathOffset,
+                       this->mCurrentRace->mPlayerVec.at(7)->mCpCurrPathOffset);*/
+
+            swprintf(text2, 390, L"");
+
+            dbgTimeProfiler->setText(text);
+            dbgText->setText(text2);
+
+            delete[] text;
+            delete[] text2;
+    }
 
     driver->beginScene(true,true,
      video::SColor(255,100,101,140));
