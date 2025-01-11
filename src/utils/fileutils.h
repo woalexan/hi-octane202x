@@ -19,19 +19,18 @@
 //-1 if item can not be accessed (unexpected error)
 //0 if item is not a directory
 //1 if item is a directory
-int IsDirectoryPresent(char* dirPath);
+int IsDirectoryPresent(const char* dirPath);
 
-//Returns 0 if directory was created succesfully
-//returns 1 if directory was not created due to problem
-int CreateDirectory(char *dirPath);
+// throws an error message if the directory was not created
+void CreateDirectory(const char *dirPath);
 
 //-1 if item can not be accessed, means file does not exit
 //1 if file exists
 //0 specified element is not a file, but something else
-int FileExists(char *fname);
+int FileExists(const char *fname);
 
 int copy_file (char *iname, char *oname);
 
-bool PrepareSubDir(char* dirName);
+void PrepareSubDir(const char* dirName);
 
 #endif // FILEUTILS_H

@@ -68,7 +68,10 @@ bool MyMusicStream::VerifyInstrumentFile() {
 
         //first make sure "extract" folder does exist
         //if not create it
-        if (!PrepareSubDir((char*)"extract")) {
+        try {
+            PrepareSubDir("extract");
+        }
+        catch (const std::string &e) {
             //problem creating sub dir
             std::cout << "Music: Problem creating missing Subdir for WOPL instrument file" << std::endl;
             return false;

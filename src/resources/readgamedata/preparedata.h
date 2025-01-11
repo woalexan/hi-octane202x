@@ -64,7 +64,7 @@ private:
     //contains the ingame palette information
     unsigned char *palette;
 
-    bool ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
+    void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
 
     bool ExtractLevels();
 

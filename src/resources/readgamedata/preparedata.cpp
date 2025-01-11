@@ -28,7 +28,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
     strcpy(&palfile[0], "originalgame/data/palet0-0.dat");
 
     //read ingame palette
-    PreparationOk = PreparationOk && ReadPaletteFile(&palfile[0], palette);
+    ReadPaletteFile(&palfile[0], palette);
 
     //only add next line temporarily to extract level textures for level 7 up to 9
     //from HiOctaneTools project
@@ -36,113 +36,73 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
     //check if extraction directory is already present
     //if not create this directory
-    if (IsDirectoryPresent((char *)("extract")) == -1) {
+    if (IsDirectoryPresent("extract") == -1) {
         //directory is not there
-        if (CreateDirectory((char *)("extract")) == 1) {
-            //there was a problem, directory was not created!
-            PreparationOk = false;
-        } else {
+        CreateDirectory("extract");
+        {
             //directory was created ok
             //now we need to extract all files
 
             //extract SVGA game logo data if not all exported files present
             logging::Info("Extracting game logos...");
-            if (!PrepareSubDir((char *)("extract/images"))) {
-                 PreparationOk = false;
-            } else {
-                //export all game images
-                 PreparationOk = PreparationOk && ExtractGameLogoSVGA();
-                 PreparationOk = PreparationOk && ExtractIntroductoryScreen();
-                 PreparationOk = PreparationOk && ExtractLoadingScreenSVGA();
-                 PreparationOk = PreparationOk && ExtractSelectionScreenSVGA();
-            }
+            PrepareSubDir("extract/images");
+            //export all game images
+            PreparationOk = PreparationOk && ExtractGameLogoSVGA();
+            PreparationOk = PreparationOk && ExtractIntroductoryScreen();
+            PreparationOk = PreparationOk && ExtractLoadingScreenSVGA();
+            PreparationOk = PreparationOk && ExtractSelectionScreenSVGA();
 
             //extract SVGA game logo data if not all exported files present
             logging::Info("Extracting game fonts...");
-            if (!PrepareSubDir((char *)("extract/fonts"))) {
-                 PreparationOk = false;
-            } else {
-                if (!PrepareSubDir((char *)("extract/fonts/thinwhite"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractThinWhiteFontSVGA();
-                }
+            PrepareSubDir("extract/fonts");
 
-                if (!PrepareSubDir((char *)("extract/fonts/smallsvga"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractSmallFontSVGA();
+            PrepareSubDir("extract/fonts/thinwhite");
+            PreparationOk = PreparationOk && ExtractThinWhiteFontSVGA();
 
-                     if (!PrepareSubDir((char *)("extract/fonts/smallsvgagreenish"))) {
-                          PreparationOk = false;
-                     } else {
-                         if (PreparationOk) {
-                            //create greenish font for unselected items in menue (but based for smaller text size)
-                            PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/smallsvga/osfnt0-1-",
-                                         (char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
-                         }
-                     }
-                }
+            PrepareSubDir("extract/fonts/smallsvga");
+            PreparationOk = PreparationOk && ExtractSmallFontSVGA();
 
-                if (!PrepareSubDir((char *)("extract/fonts/large"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractLargeFontSVGA();
-
-                     if (!PrepareSubDir((char *)("extract/fonts/largegreenish"))) {
-                          PreparationOk = false;
-                     } else {
-                         if (PreparationOk) {
-                            //create greenish font for unselected items in menue
-                            //based on white SVGA font already extracted for game banner text font
-                            PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/large/olfnt0-1-",
-                                         (char*)"extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
-                         }
-                     }
-                }
-
-                if (!PrepareSubDir((char *)("extract/fonts/largegreen"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractLargeGreenFontSVGA();
-                }
+            PrepareSubDir("extract/fonts/smallsvgagreenish");
+            if (PreparationOk) {
+                //create greenish font for unselected items in menue (but based for smaller text size)
+                PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/smallsvga/osfnt0-1-",
+                             (char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
             }
+
+            PrepareSubDir("extract/fonts/large");
+            PreparationOk = PreparationOk && ExtractLargeFontSVGA();
+
+            PrepareSubDir("extract/fonts/largegreenish");
+            if (PreparationOk) {
+                //create greenish font for unselected items in menue
+                //based on white SVGA font already extracted for game banner text font
+                PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/large/olfnt0-1-",
+                             (char*)"extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
+            }
+
+            PrepareSubDir("extract/fonts/largegreen");
+            PreparationOk = PreparationOk && ExtractLargeGreenFontSVGA();
 
             logging::Info("Extracting 1 player HUD...");
-            if (!PrepareSubDir((char *)("extract/hud1player"))) {
-                 PreparationOk = false;
-            } else {
-                  PreparationOk = PreparationOk && ExtractHUD1PlayerSVGA();
-            }
+            PrepareSubDir("extract/hud1player");
+            PreparationOk = PreparationOk && ExtractHUD1PlayerSVGA();
 
             logging::Info("Extracting 2 player HUD...");
-            if (!PrepareSubDir((char *)("extract/hud2player"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractHUD2PlayersSVGA();
-            }
+            PrepareSubDir("extract/hud2player");
+            PreparationOk = PreparationOk && ExtractHUD2PlayersSVGA();
 
             logging::Info("Extracting sky...");
-            if (!PrepareSubDir((char *)("extract/sky"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractSky();
-            }
+            PrepareSubDir("extract/sky");
+            PreparationOk = PreparationOk && ExtractSky();
 
             logging::Info("Extracting sprites...");
-            if (!PrepareSubDir((char *)("extract/sprites"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractTmaps();
-            }
+            PrepareSubDir("extract/sprites");
+            PreparationOk = PreparationOk && ExtractTmaps();
 
             logging::Info("Extracting minimaps...");
-            if (!PrepareSubDir((char *)("extract/minimaps"))) {
-                 PreparationOk = false;
-            } else {
-                PreparationOk = PreparationOk && ExtractMiniMapsSVGA();
-                PreparationOk = PreparationOk && StitchMiniMaps();
-            }
+            PrepareSubDir("extract/minimaps");
+            PreparationOk = PreparationOk && ExtractMiniMapsSVGA();
+            PreparationOk = PreparationOk && StitchMiniMaps();
 
             logging::Info("Extracting terrain textures...");
             //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
@@ -152,52 +112,34 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             PreparationOk = PreparationOk && ExtractLevels();
 
             logging::Info("Extracting sounds...");
-            if (!PrepareSubDir((char *)("extract/sound"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractSounds();
-            }
+            PrepareSubDir("extract/sound");
+            PreparationOk = PreparationOk && ExtractSounds();
 
             logging::Info("Extracting music...");
-            if (!PrepareSubDir((char *)("extract/music"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractMusic();
-            }
+            PrepareSubDir("extract/music");
+            PreparationOk = PreparationOk && ExtractMusic();
 
             logging::Info("Extracting editor...");
-            if (!PrepareSubDir((char *)("extract/editor"))) {
-                 PreparationOk = false;
-            } else {
-                PreparationOk = PreparationOk && ExtractEditorItemsLarge();
-                PreparationOk = PreparationOk && ExtractEditorItemsSmall();
-                PreparationOk = PreparationOk && ExtractEditorCursors();
-            }
+            PrepareSubDir("extract/editor");
+            PreparationOk = PreparationOk && ExtractEditorItemsLarge();
+            PreparationOk = PreparationOk && ExtractEditorItemsSmall();
+            PreparationOk = PreparationOk && ExtractEditorCursors();
 
             logging::Info("Extracting puzzle...");
-            if (!PrepareSubDir((char *)("extract/puzzle"))) {
-                 PreparationOk = false;
-            } else {
-                PreparationOk = PreparationOk && ExtractCheatPuzzle();
-            }
+            PrepareSubDir("extract/puzzle");
+            PreparationOk = PreparationOk && ExtractCheatPuzzle();
 
             logging::Info("Extracting models...");
-            if (!PrepareSubDir((char *)("extract/models"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractModelTextures();
+            PrepareSubDir("extract/models");
+             PreparationOk = PreparationOk && ExtractModelTextures();
 
-                 if (PreparationOk) {
-                     PreparationOk = PreparationOk && Extra3DModels();
-                 }
-            }
+             if (PreparationOk) {
+                 PreparationOk = PreparationOk && Extra3DModels();
+             }
 
             logging::Info("Extracting intro...");
-            if (!PrepareSubDir((char *)("extract/intro"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && PrepareIntro();
-            }
+            PrepareSubDir("extract/intro");
+            PreparationOk = PreparationOk && PrepareIntro();
 
             //install other available assets user has copied
             //into folder userData from another source
@@ -507,8 +449,7 @@ bool PrepareData::Extra3DModels() {
 //returns true in case of success, returns false in case of unexpected error
 bool PrepareData::ExtractLevels() {
 
- if (!PrepareSubDir((char*)("extract/level0-1")))
-     return false;
+ PrepareSubDir("extract/level0-1");
 
  //unpack data file
  char packfile[35];
@@ -523,8 +464,7 @@ bool PrepareData::ExtractLevels() {
      return false;
  }
 
- if (!PrepareSubDir((char*)("extract/level0-2")))
-     return false;
+ PrepareSubDir("extract/level0-2");
 
  strcpy(packfile, "originalgame/maps/level0-2.dat");
  strcpy(unpackfile, "extract/level0-2/level0-2-unpacked.dat");
@@ -536,8 +476,7 @@ bool PrepareData::ExtractLevels() {
      return false;
  }
 
- if (!PrepareSubDir((char*)("extract/level0-3")))
-     return false;
+ PrepareSubDir("extract/level0-3");
 
  strcpy(packfile, "originalgame/maps/level0-3.dat");
  strcpy(unpackfile, "extract/level0-3/level0-3-unpacked.dat");
@@ -549,8 +488,7 @@ bool PrepareData::ExtractLevels() {
      return false;
  }
 
- if (!PrepareSubDir((char*)("extract/level0-4")))
-     return false;
+ PrepareSubDir("extract/level0-4");
 
  strcpy(packfile, "originalgame/maps/level0-4.dat");
  strcpy(unpackfile, "extract/level0-4/level0-4-unpacked.dat");
@@ -562,8 +500,7 @@ bool PrepareData::ExtractLevels() {
      return false;
  }
 
- if (!PrepareSubDir((char*)("extract/level0-5")))
-     return false;
+ PrepareSubDir("extract/level0-5");
 
  strcpy(packfile, "originalgame/maps/level0-5.dat");
  strcpy(unpackfile, "extract/level0-5/level0-5-unpacked.dat");
@@ -575,8 +512,7 @@ bool PrepareData::ExtractLevels() {
      return false;
  }
 
- if (!PrepareSubDir((char*)("extract/level0-6")))
-     return false;
+ PrepareSubDir("extract/level0-6");
 
  strcpy(packfile, "originalgame/maps/level0-6.dat");
  strcpy(unpackfile, "extract/level0-6/level0-6-unpacked.dat");
@@ -1685,8 +1621,7 @@ bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char*
     //divided by width equals the overall number of titles in the image
     int numberTiles = (origDimension.Height / origDimension.Width);
 
-    if (!PrepareSubDir(exportDir))
-        return false;
+    PrepareSubDir(exportDir);
 
     //directory was created ok
     //now we need to extract all files
@@ -1772,10 +1707,7 @@ bool PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
     int numberTiles = (origDimension.Height / tilePixelSize) * (origDimension.Width / tilePixelSize);
 
     //create the target directory
-    if (CreateDirectory(exportDir) == 1) {
-        //there was a problem, directory was not created!
-        return false;
-    }
+    CreateDirectory(exportDir);
 
     //directory was created ok
     //now we need to extract all files
@@ -2359,24 +2291,27 @@ bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, ir
     return true;
 }
 
-bool PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
+void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
     int retcode=read_palette_rgb(paletteDataOut,palFile,(unsigned int)(256));
 
-    if (retcode!=0)
-      switch (retcode)
-      {
-      case 1:
-         printf("\nError - Cannot open PAL file: %s\n",palFile);
-         return false;
-      case 2:
-         printf("\nError - Cannot read %d colors from PAL file: %s\n",256,palFile);
-         return false;
-      default:
-         printf("\nError - Loading palette file %s returned fail code %d\n",palFile,retcode);
-         return false;
-      }
+    std::string msg = std::string();
+    switch (retcode) {
+        case 0:
+            return;
+        case 1:
+            msg += "Cannot open PAL file: ";
+            msg += palFile;
+            throw msg;
+        case 2:
+            msg += "Cannot read 256 colors from PAL file: ";
+            msg += palFile;
+            throw msg;
+        default:
+            msg += "Unknown error reading PAL file: ";
+            msg += palFile;
+            throw msg;
+    }
 
-    return true;
 }
 
 bool PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
