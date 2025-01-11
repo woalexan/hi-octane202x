@@ -176,6 +176,7 @@ add_executable(hi-octane202x
     src/utils/bezier.cpp
     src/utils/path.h
     src/utils/path.cpp
+    src/utils/logging.h
 
     src/utils/boundingbox/coord_frame.h
     src/utils/boundingbox/basis.h

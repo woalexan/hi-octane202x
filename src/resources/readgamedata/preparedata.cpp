@@ -11,6 +11,8 @@
 //
 
 #include "preparedata.h"
+
+#include "../../utils/logging.h"
 #include "../intro/flifix.h"
 
 PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
@@ -44,6 +46,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             //now we need to extract all files
 
             //extract SVGA game logo data if not all exported files present
+            logging::Info("Extracting game logos...");
             if (!PrepareSubDir((char *)("extract/images"))) {
                  PreparationOk = false;
             } else {
@@ -55,6 +58,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             }
 
             //extract SVGA game logo data if not all exported files present
+            logging::Info("Extracting game fonts...");
             if (!PrepareSubDir((char *)("extract/fonts"))) {
                  PreparationOk = false;
             } else {
@@ -104,30 +108,35 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
                 }
             }
 
+            logging::Info("Extracting 1 player HUD...");
             if (!PrepareSubDir((char *)("extract/hud1player"))) {
                  PreparationOk = false;
             } else {
                   PreparationOk = PreparationOk && ExtractHUD1PlayerSVGA();
             }
 
+            logging::Info("Extracting 2 player HUD...");
             if (!PrepareSubDir((char *)("extract/hud2player"))) {
                  PreparationOk = false;
             } else {
                  PreparationOk = PreparationOk && ExtractHUD2PlayersSVGA();
             }
 
+            logging::Info("Extracting sky...");
             if (!PrepareSubDir((char *)("extract/sky"))) {
                  PreparationOk = false;
             } else {
                  PreparationOk = PreparationOk && ExtractSky();
             }
 
+            logging::Info("Extracting sprites...");
             if (!PrepareSubDir((char *)("extract/sprites"))) {
                  PreparationOk = false;
             } else {
                  PreparationOk = PreparationOk && ExtractTmaps();
             }
 
+            logging::Info("Extracting minimaps...");
             if (!PrepareSubDir((char *)("extract/minimaps"))) {
                  PreparationOk = false;
             } else {
@@ -135,23 +144,28 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
                 PreparationOk = PreparationOk && StitchMiniMaps();
             }
 
+            logging::Info("Extracting terrain textures...");
             //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
             PreparationOk = PreparationOk && ExtractTerrainTextures();
 
+            logging::Info("Extracting levels...");
             PreparationOk = PreparationOk && ExtractLevels();
 
+            logging::Info("Extracting sounds...");
             if (!PrepareSubDir((char *)("extract/sound"))) {
                  PreparationOk = false;
             } else {
                  PreparationOk = PreparationOk && ExtractSounds();
             }
 
+            logging::Info("Extracting music...");
             if (!PrepareSubDir((char *)("extract/music"))) {
                  PreparationOk = false;
             } else {
                  PreparationOk = PreparationOk && ExtractMusic();
             }
 
+            logging::Info("Extracting editor...");
             if (!PrepareSubDir((char *)("extract/editor"))) {
                  PreparationOk = false;
             } else {
@@ -160,12 +174,14 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
                 PreparationOk = PreparationOk && ExtractEditorCursors();
             }
 
+            logging::Info("Extracting puzzle...");
             if (!PrepareSubDir((char *)("extract/puzzle"))) {
                  PreparationOk = false;
             } else {
                 PreparationOk = PreparationOk && ExtractCheatPuzzle();
             }
 
+            logging::Info("Extracting models...");
             if (!PrepareSubDir((char *)("extract/models"))) {
                  PreparationOk = false;
             } else {
@@ -176,6 +192,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
                  }
             }
 
+            logging::Info("Extracting intro...");
             if (!PrepareSubDir((char *)("extract/intro"))) {
                  PreparationOk = false;
             } else {
@@ -184,6 +201,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             //install other available assets user has copied
             //into folder userData from another source
+            logging::Info("Extracting other stuff...");
             AddOtherLevelsHiOctaneTools();
         }
     }
