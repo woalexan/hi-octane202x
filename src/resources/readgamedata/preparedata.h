@@ -66,7 +66,7 @@ private:
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
 
-    bool ExtractLevels();
+    void ExtractLevels();
 
     //Tabfile information for model texture atlas file
     //this information is needed to be able to export
@@ -82,8 +82,8 @@ private:
     bool CheckForGameLogoSVGAFiles();
 
     //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
-    //returns true in case of success, returns false in case of unexpected error
-    bool ExtractGameLogoSVGA();
+    //raises an error message in case of unexpected error
+    void ExtractGameLogoSVGA();
 
     //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
     //returns true in case of success, returns false in case of unexpected error

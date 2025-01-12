@@ -15,6 +15,11 @@
 #include "../../utils/logging.h"
 #include "../intro/flifix.h"
 
+
+void UnpackDataFile(const char* packfile, const char* unpackfile);
+void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
+
+
 PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
     myDevice = device;
     myDriver = driver;
@@ -47,7 +52,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             logging::Info("Extracting game logos...");
             PrepareSubDir("extract/images");
             //export all game images
-            PreparationOk = PreparationOk && ExtractGameLogoSVGA();
+            ExtractGameLogoSVGA();
             PreparationOk = PreparationOk && ExtractIntroductoryScreen();
             PreparationOk = PreparationOk && ExtractLoadingScreenSVGA();
             PreparationOk = PreparationOk && ExtractSelectionScreenSVGA();
@@ -109,7 +114,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             PreparationOk = PreparationOk && ExtractTerrainTextures();
 
             logging::Info("Extracting levels...");
-            PreparationOk = PreparationOk && ExtractLevels();
+            ExtractLevels();
 
             logging::Info("Extracting sounds...");
             PrepareSubDir("extract/sound");
@@ -444,128 +449,42 @@ bool PrepareData::Extra3DModels() {
 }
 
 
-
 //extracts the level map files
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLevels() {
+void PrepareData::ExtractLevels() {
+    PrepareSubDir("extract/level0-1");
+    UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
 
- PrepareSubDir("extract/level0-1");
+    PrepareSubDir("extract/level0-2");
+    UnpackDataFile("originalgame/maps/level0-2.dat", "extract/level0-2/level0-2-unpacked.dat");
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- strcpy(packfile, "originalgame/maps/level0-1.dat");
- strcpy(unpackfile, "extract/level0-1/level0-1-unpacked.dat");
+    PrepareSubDir("extract/level0-3");
+    UnpackDataFile("originalgame/maps/level0-3.dat", "extract/level0-3/level0-3-unpacked.dat");
 
- //RNC unpack level file
- int unpack_res = main_unpack(packfile, unpackfile);
+    PrepareSubDir("extract/level0-4");
+    UnpackDataFile("originalgame/maps/level0-4.dat", "extract/level0-4/level0-4-unpacked.dat");
 
- if (unpack_res != 0) {
-     return false;
- }
+    PrepareSubDir("extract/level0-5");
+    UnpackDataFile("originalgame/maps/level0-5.dat", "extract/level0-5/level0-5-unpacked.dat");
 
- PrepareSubDir("extract/level0-2");
-
- strcpy(packfile, "originalgame/maps/level0-2.dat");
- strcpy(unpackfile, "extract/level0-2/level0-2-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- PrepareSubDir("extract/level0-3");
-
- strcpy(packfile, "originalgame/maps/level0-3.dat");
- strcpy(unpackfile, "extract/level0-3/level0-3-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- PrepareSubDir("extract/level0-4");
-
- strcpy(packfile, "originalgame/maps/level0-4.dat");
- strcpy(unpackfile, "extract/level0-4/level0-4-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- PrepareSubDir("extract/level0-5");
-
- strcpy(packfile, "originalgame/maps/level0-5.dat");
- strcpy(unpackfile, "extract/level0-5/level0-5-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- PrepareSubDir("extract/level0-6");
-
- strcpy(packfile, "originalgame/maps/level0-6.dat");
- strcpy(unpackfile, "extract/level0-6/level0-6-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- return true;
+    PrepareSubDir("extract/level0-6");
+    UnpackDataFile("originalgame/maps/level0-6.dat", "extract/level0-6/level0-6-unpacked.dat");
 }
 
 //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractGameLogoSVGA() {
- //read game logo in SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\logo0-1.dat
- //data\logo0-1.tab
- //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
+void PrepareData::ExtractGameLogoSVGA() {
+    //read game logo in SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\logo0-1.dat
+    //data\logo0-1.tab
+    //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/logo0-1.dat");
- strcpy(tabfile, "originalgame/data/logo0-1.tab");
- strcpy(unpackfile, "extract/images/logo0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/logo0-1.dat", "extract/images/logo0-1-unpacked.dat");
 
- //RNC unpack logo
- int unpack_res = main_unpack(packfile, unpackfile);
+    ExtractImagesfromDataFile("extract/images/logo0-1-unpacked.dat", "originalgame/data/logo0-1.tab", palette, "extract/images/logo0-1-");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/images/logo0-1-unpacked.dat");
- strcpy(outputDir, "extract/images/logo0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfileDat);
-
- return true;
+    remove("extract/images/logo0-1-unpacked.dat");
 }
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
@@ -3578,4 +3497,41 @@ bool PrepareData::PrepareIntro() {
      }
 
     return true;
+}
+
+
+// wrap main_unpack to take const char* arguments and throw an exception on error
+void UnpackDataFile(const char* packfile, const char* unpackfile) {
+    logging::Detail(std::string("unpacking ") + packfile);
+
+    // we need to temporarily copy the strings because main_unpack takes char* arguments.
+    char* _packfile = strdup(packfile);
+    char* _unpackfile = strdup(unpackfile);
+
+    int unpack_res = main_unpack(_packfile, _unpackfile);
+
+    free(_packfile);
+    free(_unpackfile);
+
+    if (unpack_res != 0) {
+        throw std::string("Error unpacking file: ") + packfile;
+    }
+}
+
+// wrap ExtractImages to take const char* arguments and throw an exception on error
+void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir) {
+    // we need to temporarily copy the strings because ExtractImages takes char* arguments.
+    char* _datfname = strdup(datfname);
+    char* _tabfname = strdup(tabfname);
+    char* _outputDir = strdup(outputDir);
+
+    int extract_res = ExtractImages(_datfname, _tabfname, palette, _outputDir);
+
+    free(_datfname);
+    free(_tabfname);
+    free(_outputDir);
+
+    if (extract_res != 0) {
+        throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
+    }
 }
