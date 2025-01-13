@@ -54,8 +54,8 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             //export all game images
             ExtractGameLogoSVGA();
             PreparationOk = PreparationOk && ExtractIntroductoryScreen();
-            PreparationOk = PreparationOk && ExtractLoadingScreenSVGA();
-            PreparationOk = PreparationOk && ExtractSelectionScreenSVGA();
+            ExtractLoadingScreenSVGA();
+            ExtractSelectionScreenSVGA();
 
             //extract SVGA game logo data if not all exported files present
             logging::Info("Extracting game fonts...");
@@ -65,7 +65,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             PreparationOk = PreparationOk && ExtractThinWhiteFontSVGA();
 
             PrepareSubDir("extract/fonts/smallsvga");
-            PreparationOk = PreparationOk && ExtractSmallFontSVGA();
+            ExtractSmallFontSVGA();
 
             PrepareSubDir("extract/fonts/smallsvgagreenish");
             if (PreparationOk) {
@@ -75,7 +75,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             }
 
             PrepareSubDir("extract/fonts/large");
-            PreparationOk = PreparationOk && ExtractLargeFontSVGA();
+            ExtractLargeFontSVGA();
 
             PrepareSubDir("extract/fonts/largegreenish");
             if (PreparationOk) {
@@ -98,7 +98,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting sky...");
             PrepareSubDir("extract/sky");
-            PreparationOk = PreparationOk && ExtractSky();
+            ExtractSkies();
 
             logging::Info("Extracting sprites...");
             PrepareSubDir("extract/sprites");
@@ -450,7 +450,7 @@ bool PrepareData::Extra3DModels() {
 
 
 //extracts the level map files
-//returns true in case of success, returns false in case of unexpected error
+//raises an error message in case of unexpected error
 void PrepareData::ExtractLevels() {
     PrepareSubDir("extract/level0-1");
     UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
@@ -472,7 +472,7 @@ void PrepareData::ExtractLevels() {
 }
 
 //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
-//returns true in case of success, returns false in case of unexpected error
+//raises an error message in case of unexpected error
 void PrepareData::ExtractGameLogoSVGA() {
     //read game logo in SVGA
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
@@ -482,7 +482,11 @@ void PrepareData::ExtractGameLogoSVGA() {
 
     UnpackDataFile("originalgame/data/logo0-1.dat", "extract/images/logo0-1-unpacked.dat");
 
-    ExtractImagesfromDataFile("extract/images/logo0-1-unpacked.dat", "originalgame/data/logo0-1.tab", palette, "extract/images/logo0-1-");
+    ExtractImagesfromDataFile(
+        "extract/images/logo0-1-unpacked.dat",
+        "originalgame/data/logo0-1.tab",
+        palette,
+        "extract/images/logo0-1-");
 
     remove("extract/images/logo0-1-unpacked.dat");
 }
@@ -912,88 +916,42 @@ bool PrepareData::ExtractCheatPuzzle() {
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLargeFontSVGA() {
- //read Large Fonts SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\olfnt0-1.dat
- //data\olfnt0-1.tab
- //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
+void PrepareData::ExtractLargeFontSVGA() {
+    //read Large Fonts SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\olfnt0-1.dat
+    //data\olfnt0-1.tab
+    //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/olfnt0-1.dat");
- strcpy(tabfile, "originalgame/data/olfnt0-1.tab");
- strcpy(unpackfile, "extract/fonts/large/olfnt0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/olfnt0-1.dat", "extract/fonts/large/olfnt0-1-unpacked.dat");
 
- //RNC unpack Large Font file
- int unpack_res = main_unpack(&packfile[0], &unpackfile[0]);
+    ExtractImagesfromDataFile(
+        "extract/fonts/large/olfnt0-1-unpacked.dat",
+        "originalgame/data/olfnt0-1.tab",
+        palette,
+        "extract/fonts/large/olfnt0-1-");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char palFile[35];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/fonts/large/olfnt0-1-unpacked.dat");
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/fonts/large/olfnt0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfile);
-
- return true;
+    remove("extract/fonts/large/olfnt0-1-unpacked.dat");
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractSmallFontSVGA() {
- //read Small Fonts SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\osfnt0-1.dat
- //data\osfnt0-1.tab
- //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
+void PrepareData::ExtractSmallFontSVGA() {
+    //read Small Fonts SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\osfnt0-1.dat
+    //data\osfnt0-1.tab
+    //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/osfnt0-1.dat");
- strcpy(tabfile, "originalgame/data/osfnt0-1.tab");
- strcpy(unpackfile, "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/osfnt0-1.dat", "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
 
- //RNC unpack small Font file
- int unpack_res = main_unpack(&packfile[0], &unpackfile[0]);
+    ExtractImagesfromDataFile(
+        "extract/fonts/smallsvga/osfnt0-1-unpacked.dat",
+        "originalgame/data/osfnt0-1.tab",
+        palette,
+        "extract/fonts/smallsvga/osfnt0-1-");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char palFile[35];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/fonts/smallsvga/osfnt0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfile);
-
- return true;
+    remove("extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -1194,42 +1152,24 @@ bool PrepareData::CheckForScreenSVGA() {
 
 //extracts the SVGA Loading Screen (is shown while game loads) in data\onet0-1.dat and data\onet0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLoadingScreenSVGA() {
- //read SVGA Loading Screen
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\onet0-1.dat
- //data\onet0-1.tab
- //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
+void PrepareData::ExtractLoadingScreenSVGA() {
+    //read SVGA Loading Screen
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\onet0-1.dat
+    //data\onet0-1.tab
+    //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/onet0-1.dat");
- strcpy(tabfile, "originalgame/data/onet0-1.tab");
- strcpy(unpackfile, "extract/images/onet0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/onet0-1.dat", "extract/images/onet0-1-unpacked.dat");
 
- //RNC unpack Loading Screen
- int unpack_res = main_unpack(packfile, unpackfile);
+    //now create final png picture out of raw video data
+    //we also have to take game palette into account
 
- if (unpack_res != 0) {
-     return false;
- }
+    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
+    //ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 2);
 
- //now create final png picture out of raw video data
- //we also have to take game palette into account
+    ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 1);
 
- char outputFile[50];
- strcpy(outputFile, "extract/images/onet0-1.png");
-
- //upscale image by a factor of 2.0, we then have an image of 1280 x 960
- //ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 2.0);
-
- ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 1.0);
-
- remove(unpackfile);
-
- return true;
+    remove("extract/images/onet0-1-unpacked.dat");
 }
 
 //return true if selection screen (main menue background) is present
@@ -1246,230 +1186,57 @@ bool PrepareData::CheckForSelectionScreenSVGA() {
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractSelectionScreenSVGA() {
- //read SVGA Selection Screen
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\oscr0-1.dat
- //data\oscr0-1.tab
- //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
+void PrepareData::ExtractSelectionScreenSVGA() {
+    //read SVGA Selection Screen
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\oscr0-1.dat
+    //data\oscr0-1.tab
+    //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/oscr0-1.dat");
- strcpy(tabfile, "originalgame/data/oscr0-1.tab");
- strcpy(unpackfile, "extract/images/oscr0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1-unpacked.dat");
 
- //RNC unpack Selection Screen
- int unpack_res = main_unpack(packfile, unpackfile);
+    //now create final png picture out of raw video data
+    //we also have to take game palette into account
 
- if (unpack_res != 0) {
-     return false;
- }
+    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
+    //ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 2);
 
- //now create final png picture out of raw video data
- //we also have to take game palette into account
- char palFile[45];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
+    ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 1);
 
- char outputFile[50];
- strcpy(outputFile, "extract/images/oscr0-1.png");
-
- //upscale image by a factor of 2.0, we then have an image of 1280 x 960
- //ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 2.0);
-
- ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 1.0);
-
- remove(unpackfile);
-
- return true;
+    remove("extract/images/oscr0-1-unpacked.dat");
 }
 
 //extracts the Sky images (in format 256x256) in data\sky0-*.dat and data\sky0-*.tab
 //* is from 0 up to 5
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractSky() {
- //read all race track sky images
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
+void PrepareData::ExtractSkies() {
+    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
+        ExtractSky(skyNr);
+    }
+}
 
- //unpack data file number 0
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/sky0-0.dat");
- strcpy(tabfile, "originalgame/data/sky0-0.tab");
- strcpy(unpackfile, "extract/sky/sky0-0-unpacked.dat");
+void PrepareData::ExtractSky(char skyNr) {
+    //read all race track sky images
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
 
- //RNC unpack Selection Screen
- int unpack_res = main_unpack(packfile, unpackfile);
+    std::string packFile = std::string("originalgame/data/sky0-") + skyNr + ".dat";
+    std::string unpackFile = std::string("extract/sky/sky0-") + skyNr + "-unpacked.dat";
+    std::string outputFile = std::string("extract/sky/sky0-") + skyNr + ".png";
+    std::string modifiedFile = std::string("extract/sky/modsky0-") + skyNr + ".png";
 
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 1
- strcpy(packfile, "originalgame/data/sky0-1.dat");
- strcpy(tabfile, "originalgame/data/sky0-1.tab");
- strcpy(unpackfile, "extract/sky/sky0-1-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 2
- strcpy(packfile, "originalgame/data/sky0-2.dat");
- strcpy(tabfile, "originalgame/data/sky0-2.tab");
- strcpy(unpackfile, "extract/sky/sky0-2-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 3
- strcpy(packfile, "originalgame/data/sky0-3.dat");
- strcpy(tabfile, "originalgame/data/sky0-3.tab");
- strcpy(unpackfile, "extract/sky/sky0-3-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 4
- strcpy(packfile, "originalgame/data/sky0-4.dat");
- strcpy(tabfile, "originalgame/data/sky0-4.tab");
- strcpy(unpackfile, "extract/sky/sky0-4-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 5
- strcpy(packfile, "originalgame/data/sky0-5.dat");
- strcpy(tabfile, "originalgame/data/sky0-5.tab");
- strcpy(unpackfile, "extract/sky/sky0-5-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //now create final png picture out of raw video data
- //we also have to take game palette into account
-
- char outputFile[50];
- strcpy(unpackfile, "extract/sky/sky0-0-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-0.png");
-
- //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- char modfile[50];
- strcpy(unpackfile, "extract/sky/sky0-0.png");
- strcpy(modfile, "extract/sky/modsky0-0.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-1-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-1.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(&unpackfile[0], palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-1.png");
- strcpy(modfile, "extract/sky/modsky0-1.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-2-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-2.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-2.png");
- strcpy(modfile, "extract/sky/modsky0-2.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-3-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-3.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-3.png");
- strcpy(modfile, "extract/sky/modsky0-3.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-4-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-4.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-4.png");
- strcpy(modfile, "extract/sky/modsky0-4.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-5-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-5.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-5.png");
- strcpy(modfile, "extract/sky/modsky0-5.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- return true;
+    //unpack data file number 5
+    UnpackDataFile(packFile.c_str(), unpackFile.c_str());
+    //upscale image by a factor of 2.0, we then have an image of 512 x 512
+    ConvertRawImageData(unpackFile.c_str(), palette, 256, 256, outputFile.c_str(), 2);
+    remove(unpackFile.c_str());
+    //create new modified sky image for easier usage
+    ModifySkyImage(outputFile.c_str(), modifiedFile.c_str());
 }
 
 //This helper function modifies the original sky image so that we can use it easier
 //in this project. The result is stored in another new image file
-bool PrepareData::ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName) {
+void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* outputModifiedSkyFileName) {
     //first open original sky image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(origSkyFileName);
 
@@ -1517,8 +1284,6 @@ bool PrepareData::ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyF
 
     //close the original picture file
     file->drop();
-
-    return true;
 }
 
 //the original Terrain texture Atlas stored within the game has all tiles
@@ -2012,63 +1777,58 @@ bool PrepareData::AddOtherLevelsHiOctaneTools() {
      return true;
 }
 
-bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
-                                      char* outputFilename, int scaleFactor, bool flipY) {
-    FILE* iFile;
-
-    iFile = fopen(rawDataFilename, "rb");
+void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
+                                      irr::u32 sizex, irr::u32 sizey,
+                                      const char* outputFilename, int scaleFactor, bool flipY) {
+    FILE* iFile = fopen(rawDataFilename, "rb");
+    if (iFile == NULL) {
+        throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
+    }
     fseek(iFile, 0L, SEEK_END);
     size_t size = ftell(iFile);
     fseek(iFile, 0L, SEEK_SET);
 
     if (size != (sizex*sizey)) {
         fclose(iFile);
-        printf("\nError - Raw picture filesize does not fit with expectation! %s\n", rawDataFilename);
-        return false;
+        throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
     }
 
     size_t counter = 0;
 
     char* ByteArray;
     ByteArray = new char[size];
-    if (iFile != NULL)
-    {
-        do {
-            ByteArray[counter] = fgetc(iFile);
-            counter++;
-        } while (counter < size);
-        fclose(iFile);
-    } else {
-        delete[] ByteArray;
-        return false;
-    }
+    do {
+        ByteArray[counter] = fgetc(iFile);
+        counter++;
+    } while (counter < size);
+    fclose(iFile);
 
     //create arrays for color information
-     unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
-     unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
-     unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
 
-     double arrIntR;
-     double arrIntG;
-     double arrIntB;
-     unsigned char color;
+    double arrIntR;
+    double arrIntG;
+    double arrIntB;
+    unsigned char color;
 
-     //use palette to derive RGB information for all pixels
-     //loaded palette has 6 bits per color
-     for (counter = 0; counter < size; counter++) {
-         color = ByteArray[counter];
-         arrIntR = palette[color * 3    ];
-         arrIntG = palette[color * 3 + 1 ];
-         arrIntB = palette[color * 3 + 2 ];
+    //use palette to derive RGB information for all pixels
+    //loaded palette has 6 bits per color
+    for (counter = 0; counter < size; counter++) {
+        color = ByteArray[counter];
+        arrIntR = palette[color * 3    ];
+        arrIntG = palette[color * 3 + 1 ];
+        arrIntB = palette[color * 3 + 2 ];
 
-         arrIntR = (arrIntR * 255.0) / 63.0;
-         arrIntG = (arrIntG * 255.0) / 63.0;
-         arrIntB = (arrIntB * 255.0) / 63.0;
+        arrIntR = (arrIntR * 255.0) / 63.0;
+        arrIntG = (arrIntG * 255.0) / 63.0;
+        arrIntB = (arrIntB * 255.0) / 63.0;
 
-         arrR[counter] = (unsigned char)arrIntR;
-         arrG[counter] = (unsigned char)arrIntG;
-         arrB[counter] = (unsigned char)arrIntB;
-     }
+        arrR[counter] = (unsigned char)arrIntR;
+        arrG[counter] = (unsigned char)arrIntG;
+        arrB[counter] = (unsigned char)arrIntB;
+    }
 
      //create an empty image
      irr::video::IImage* img =
@@ -2088,10 +1848,10 @@ bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *pale
          }
      }
 
-      irr::video::IImage* imgUp;
+    irr::video::IImage* imgUp;
 
-     //should the picture be upscaled?
-     if (scaleFactor != 1.0) {
+    //should the picture be upscaled?
+    if (scaleFactor != 1.0) {
         //create an empty image with upscaled dimension
         imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
@@ -2104,29 +1864,27 @@ bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *pale
         //release the pointers, we do not need them anymore
         img->unlock();
         imgUp->unlock();
-     }
+    }
 
-     //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+    //create new file for writting
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
 
-     //write image to file
-     if (scaleFactor == 1.0) {
+    //write image to file
+    if (scaleFactor == 1) {
         //write original image data
         myDriver->writeImageToFile(img, outputPic);
-     } else {
-         //write upscaled image data
+    } else {
+        //write upscaled image data
         myDriver->writeImageToFile(imgUp, outputPic);
-     }
+    }
 
-     //close output file
-     outputPic->drop();
+    //close output file
+    outputPic->drop();
 
     delete[] ByteArray;
     free(arrR);
     free(arrG);
     free(arrB);
-
-    return true;
 }
 
 bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,

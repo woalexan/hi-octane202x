@@ -87,7 +87,7 @@ private:
 
     //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractLargeFontSVGA();
+    void ExtractLargeFontSVGA();
 
     //return true if all expected files are present
     //return false if at least one file is missing
@@ -95,7 +95,7 @@ private:
 
     //extracts the SVGA Loading Screen in data\onet0-1.dat and data\onet0-1.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractLoadingScreenSVGA();
+    void ExtractLoadingScreenSVGA();
 
     //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -111,15 +111,17 @@ private:
 
     //extracts the SVGA Selection Screen in data\oscr0-1.dat and data\oscr0-1.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractSelectionScreenSVGA();
+    void ExtractSelectionScreenSVGA();
 
-    //return true if all expected sky image files are present
-    //return false if at least one file is missing
-    bool ExtractSky();
+    // Extract all sky images. Throws an error message in case of errors
+    void ExtractSkies();
+
+    // Extract a single sky image. Throws an error message in case of errors
+    void ExtractSky(char skyNr);
 
     //This helper function modifies the original sky image so that we can use it easier
     //in this project. The result is stored in another new image file
-    bool ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName);
+    void ModifySkyImage(const char *origSkyFileName, const char* outputModifiedSkyFileName);
 
     //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -172,7 +174,7 @@ private:
     //returns true in case of success, returns false in case of unexpected error
     bool ExtractModelTextures();
 
-    bool ExtractSmallFontSVGA();
+    void ExtractSmallFontSVGA();
 
     bool ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
     bool DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
@@ -189,8 +191,8 @@ private:
     bool ReadSoundFileEntries(char* filename, std::vector<SOUNDFILEENTRY> *entries);
 
     //writes raw video data into picture file, using specified palette file
-    bool ConvertRawImageData(char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
-                                          char* outputFilename, int scaleFactor = 1.0, bool flipY = false);
+    void ConvertRawImageData(const char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
+                             const char* outputFilename, int scaleFactor = 1.0, bool flipY = false);
 
     bool ExtractTmaps();
 
