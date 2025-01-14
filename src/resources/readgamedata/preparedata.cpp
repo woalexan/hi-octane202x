@@ -2673,6 +2673,10 @@ void PrepareData::ExtractMusic() {
     unsigned long seekPos;
 
     fread(&seekPos, sizeof(seekPos), 1, iFile);
+    if (seekPos > size) {
+        fclose(iFile);
+        throw std::string("Error - Invalid seek position in music file (hint: little/big endian mistake?)");
+    }
     fseek(iFile, seekPos, SEEK_SET);
 
     short int readVal;
