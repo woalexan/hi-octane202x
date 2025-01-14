@@ -166,7 +166,7 @@ private:
 
     //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractCheatPuzzle();
+    void ExtractCheatPuzzle();
 
     //extracts the introductory screen (in format 320x200) in data\title.dat and data\title.tab
     //* is from 0 up to 5
@@ -205,9 +205,9 @@ private:
     bool ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
                                           char* outputFilename, int scaleFactor, bool flipY);
 
-    bool ExtractMusic();
+    void ExtractMusic();
 
-    bool ExtractMusicFiles(char* outputNameStr, FILE *iFile,
+    void ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
            MUSICTABLEENTRY* VecMusicTableEntries,
            std::vector<SOUNDFILEENTRY> VecTuneInformation);
 

@@ -122,7 +122,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting music...");
             PrepareSubDir("extract/music");
-            PreparationOk = PreparationOk && ExtractMusic();
+            ExtractMusic();
 
             logging::Info("Extracting editor...");
             PrepareSubDir("extract/editor");
@@ -132,7 +132,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting puzzle...");
             PrepareSubDir("extract/puzzle");
-            PreparationOk = PreparationOk && ExtractCheatPuzzle();
+            ExtractCheatPuzzle();
 
             logging::Info("Extracting models...");
             PrepareSubDir("extract/models");
@@ -870,31 +870,17 @@ bool PrepareData::ExtractLargeGreenFontSVGA() {
 
 //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractCheatPuzzle() {
- //read Cheat puzzle
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\puzzle.dat
- //data\puzzle.tab
- //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
+void PrepareData::ExtractCheatPuzzle() {
+    //read Cheat puzzle
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\puzzle.dat
+    //data\puzzle.tab
+    //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
 
- //unpack data file
- char unpackfile[50];
+    //is not RNC compressed, we can skip this step
 
- //is not RNC compressed, we can skip this step
-
- //now create final png picture out of raw video data
- //we also have to take game palette into account
- char palFile[35];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
-
- char outputFile[50];
- strcpy(unpackfile, "originalgame/data/puzzle.dat");
- strcpy(outputFile, "extract/puzzle/puzzle.png");
-
- //scale puzzle by factor 4
- ConvertRawImageData(unpackfile, palette, 112, 96, outputFile, 4.0);
-
- return true;
+    //scale puzzle by factor 4
+    ConvertRawImageData("originalgame/data/puzzle.dat", palette, 112, 96, "extract/puzzle/puzzle.png", 4);
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
@@ -2720,7 +2706,7 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
    return true;
 }
 
-bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
+void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
                                     MUSICTABLEENTRY *VecMusicTableEntries,
                                     std::vector<SOUNDFILEENTRY> VecTuneInformation)
 {
@@ -2738,7 +2724,7 @@ bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
 
          oFile = fopen(finalpath, "wb");
          if (oFile == NULL) {
-             return false;
+             throw std::string("Error - Cannot open file for writting: ") + finalpath;
          }
 
          //go to start of song file data
@@ -2750,8 +2736,7 @@ bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
          unsigned char *buffer = static_cast<unsigned char*>(malloc(dataCnt));
 
          if (buffer == NULL) {
-             printf(" Error - cannot allocate %lu bytes of memory.\n",(unsigned long)(dataCnt));
-             return false;
+             throw std::string("Error - cannot allocate ") + std::to_string(dataCnt) + " bytes of memory.";
          }
 
          //copy data
@@ -2763,13 +2748,11 @@ bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
 
          free(buffer);
      }
-
-     return true;
 }
 
 //Extract music files
 //Returns true when successful, False otherwise
-bool PrepareData::ExtractMusic() {
+void PrepareData::ExtractMusic() {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT
 
@@ -2808,7 +2791,7 @@ bool PrepareData::ExtractMusic() {
     } while (readVal == 0x01);
 
     if (N == 0)
-        return false;
+        throw std::string("Error - No music data found");
 
     //go back to file position before last read
     fseek(iFile, lastSeekPos, SEEK_SET);
@@ -2856,14 +2839,11 @@ bool PrepareData::ExtractMusic() {
         }
 
         //extract all available tune files
-        if (!ExtractMusicFiles(outputNameStr, iFile, &(*it), VecTuneInformation))
-            return false;
+        ExtractMusicFiles(outputNameStr, iFile, &(*it), VecTuneInformation);
 
         //clear list again to make room for next file round
         VecTuneInformation.clear();
      }
-
-    return true;
 }
 
 //The following routine uses the flifix source code,

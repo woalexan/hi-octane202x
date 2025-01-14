@@ -84,9 +84,15 @@ bool Game::InitGameAssets() {
     /***********************************************************/
     /* Extract game assets                                     */
     /***********************************************************/
-    prepareData = new PrepareData(device, driver);
-    if (!prepareData->PreparationOk) {
-        cout << "Game assets preparation operation failed!" << endl;
+    try {
+        prepareData = new PrepareData(device, driver);
+        if (!prepareData->PreparationOk) {
+            cout << "Game assets preparation operation failed!" << endl;
+            return false;
+        }
+    }
+    catch (const std::string &msg) {
+        cout << "Game assets preparation operation failed!\n" << msg << endl;
         return false;
     }
 
