@@ -53,7 +53,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             PrepareSubDir("extract/images");
             //export all game images
             ExtractGameLogoSVGA();
-            PreparationOk = PreparationOk && ExtractIntroductoryScreen();
+            ExtractIntroductoryScreen();
             ExtractLoadingScreenSVGA();
             ExtractSelectionScreenSVGA();
 
@@ -62,7 +62,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             PrepareSubDir("extract/fonts");
 
             PrepareSubDir("extract/fonts/thinwhite");
-            PreparationOk = PreparationOk && ExtractThinWhiteFontSVGA();
+            ExtractThinWhiteFontSVGA();
 
             PrepareSubDir("extract/fonts/smallsvga");
             ExtractSmallFontSVGA();
@@ -126,9 +126,9 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting editor...");
             PrepareSubDir("extract/editor");
-            PreparationOk = PreparationOk && ExtractEditorItemsLarge();
-            PreparationOk = PreparationOk && ExtractEditorItemsSmall();
-            PreparationOk = PreparationOk && ExtractEditorCursors();
+            ExtractEditorItemsLarge();
+            ExtractEditorItemsSmall();
+            ExtractEditorCursors();
 
             logging::Info("Extracting puzzle...");
             PrepareSubDir("extract/puzzle");
@@ -2197,205 +2197,80 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
 //extracts the introductory screen (in format 320x200) in data\title.dat and data\title.tab
 //* is from 0 up to 5
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractIntroductoryScreen() {
- //read introductory screen
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
+void PrepareData::ExtractIntroductoryScreen() {
+    //read introductory screen
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
 
- //unpack data file number 0
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/title.dat");
- strcpy(tabfile, "originalgame/data/title.tab");
- strcpy(unpackfile, "extract/images/title-unpacked.dat");
+    UnpackDataFile("originalgame/data/title.dat", "extract/images/title-unpacked.dat");
 
- //RNC unpack file
- int unpack_res = main_unpack(packfile, unpackfile);
+    //upscale original image data by a factor 4, we get an image with 1280 x 800
+    //ConvertRawImageData(&unpackfile[0], palette, 320, 200, &outputFile[0], 4);
 
- if (unpack_res != 0) {
-     return false;
- }
+    //upscale original image data by a factor 2, we get an image with 640 x 480
+    ConvertRawImageData("extract/images/title-unpacked.dat", palette, 320, 200, "extract/images/title.png", 2);
 
-  char outputFile[50];
-  strcpy(outputFile, "extract/images/title.png");
-
-  //upscale original image data by a factor 4, we get an image with 1280 x 800
-  //ConvertRawImageData(&unpackfile[0], palette, 320, 200, &outputFile[0], 4.0);
-
-  //upscale original image data by a factor 2, we get an image with 640 x 480
-  ConvertRawImageData(unpackfile, palette, 320, 200, outputFile, 2.0);
-
- //remove unnecessary files
- remove(unpackfile);
-
- return true;
+    //remove unnecessary files
+    remove("extract/images/title-unpacked.dat");
 }
 
 
 //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractThinWhiteFontSVGA() {
- //read thin white font SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\hfont0-0.dat
- //data\hfont0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
+void PrepareData::ExtractThinWhiteFontSVGA() {
+    //read thin white font SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\hfont0-0.dat
+    //data\hfont0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/hfont0-0.dat");
- strcpy(tabfile, "originalgame/data/hfont0-0.tab");
- strcpy(unpackfile, "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
-
- //RNC unpack thin white font
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[60];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
- strcpy(outputDir, "extract/fonts/thinwhite/hfont0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- //remove unnecessary files
- remove(unpackfileDat);
-
- return true;
+    UnpackDataFile("originalgame/data/hfont0-0.dat", "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
+    //extract images to BMP from DAT/TAB file
+    ExtractImagesfromDataFile("extract/fonts/thinwhite/hfont0-0-unpacked.dat", "originalgame/data/hfont0-0.tab", palette, "extract/fonts/thinwhite/hfont0-0-");
+    //remove unnecessary files
+    remove("extract/fonts/thinwhite/hfont0-0-unpacked.dat");
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractEditorCursors() {
- //read Editor cursors
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\point0-0.dat
- //data\point0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Editor cursors
+void PrepareData::ExtractEditorCursors() {
+    //read Editor cursors
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\point0-0.dat
+    //data\point0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Editor cursors
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/point0-0.dat");
- strcpy(tabfile, "originalgame/data/point0-0.tab");
- strcpy(unpackfile, "extract/editor/point0-0-unpacked.dat");
-
- //RNC unpack editor cursors
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[60];
- char outputDir[60];
- strcpy(unpackfileDat, "extract/editor/point0-0-unpacked.dat");
- strcpy(outputDir, "extract/editor/point0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfileDat);
-
- return true;
+    UnpackDataFile("originalgame/data/point0-0.dat", "extract/editor/point0-0-unpacked.dat");
+    ExtractImagesfromDataFile("extract/editor/point0-0-unpacked.dat", "originalgame/data/point0-0.tab", palette, "extract/editor/point0-0-");
+    remove("extract/editor/point0-0-unpacked.dat");
 }
 
 //extracts the Editor items large in data\hspr0-0.dat and data\hspr0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractEditorItemsLarge() {
- //read Editor items large
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\hspr0-0.dat
- //data\hspr0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
+void PrepareData::ExtractEditorItemsLarge() {
+    //read Editor items large
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\hspr0-0.dat
+    //data\hspr0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/hspr0-0.dat");
- strcpy(tabfile, "originalgame/data/hspr0-0.tab");
- strcpy(unpackfile, "extract/editor/hspr0-0-unpacked.dat");
-
- //RNC unpack editor items large data
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/editor/hspr0-0-unpacked.dat");
- strcpy(outputDir, "extract/editor/hspr0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfileDat);
-
- return true;
+    UnpackDataFile("originalgame/data/hspr0-0.dat", "extract/editor/hspr0-0-unpacked.dat");
+    ExtractImagesfromDataFile("extract/editor/hspr0-0-unpacked.dat", "originalgame/data/hspr0-0.tab", palette, "extract/editor/hspr0-0-");
+    remove("extract/editor/hspr0-0-unpacked.dat");
 }
 
 //extracts the Editor items small in data\mspr0-0.dat and data\mspr0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractEditorItemsSmall() {
- //read Editor items small
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\mspr0-0.dat
- //data\mspr0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
+void PrepareData::ExtractEditorItemsSmall() {
+    //read Editor items small
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\mspr0-0.dat
+    //data\mspr0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/mspr0-0.dat");
- strcpy(tabfile, "originalgame/data/mspr0-0.tab");
- strcpy(unpackfile, "extract/editor/mspr0-0-unpacked.dat");
-
- //RNC unpack editor items small data
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/editor/mspr0-0-unpacked.dat");
- strcpy(outputDir, "extract/editor/mspr0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfile);
-
- return true;
+    UnpackDataFile("originalgame/data/mspr0-0.dat", "extract/editor/mspr0-0-unpacked.dat");
+    ExtractImagesfromDataFile("extract/editor/mspr0-0-unpacked.dat", "originalgame/data/mspr0-0.tab", palette, "extract/editor/mspr0-0-");
+    remove("extract/editor/mspr0-0-unpacked.dat");
 }
 
 //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
@@ -2557,12 +2432,7 @@ bool PrepareData::ExtractTmaps() {
        strcat(finalpath, fname);
        strcat(finalpathUnpacked, fname);
 
-       //RNC unpack data
-       int unpack_res = main_unpack(finalpath, finalpathUnpacked);
-
-       if (unpack_res != 0) {
-           return false;
-       }
+       UnpackDataFile(finalpath, finalpathUnpacked);
    }
 
    //export raw video data to png pictures
@@ -2686,12 +2556,7 @@ bool PrepareData::ExtractSounds() {
        strcat(finalpath, fname);
        strcat(finalpathUnpacked, fname);
 
-       //RNC unpack data
-       int unpack_res = main_unpack(finalpath, finalpathUnpacked);
-
-       if (unpack_res != 0) {
-           return false;
-       }
+       UnpackDataFile(finalpath, finalpathUnpacked);
    }
 
    //****************************

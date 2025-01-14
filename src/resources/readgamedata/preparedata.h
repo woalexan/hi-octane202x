@@ -146,15 +146,15 @@ private:
 
     //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractThinWhiteFontSVGA();
+    void ExtractThinWhiteFontSVGA();
 
     //extracts the Editor items large in data\hspr0-0.dat and data\hspr0-0.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractEditorItemsLarge();
+    void ExtractEditorItemsLarge();
 
     //extracts the Editor items small in data\mspr0-0.dat and data\mspr0-0.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractEditorItemsSmall();
+    void ExtractEditorItemsSmall();
 
     //extracts the SVGA Large Green font in data\pfont0-1.dat and data\pfont0-1.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -162,7 +162,7 @@ private:
 
     //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractEditorCursors();
+    void ExtractEditorCursors();
 
     //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -170,8 +170,8 @@ private:
 
     //extracts the introductory screen (in format 320x200) in data\title.dat and data\title.tab
     //* is from 0 up to 5
-    //returns true in case of success, returns false in case of unexpected error
-    bool ExtractIntroductoryScreen();
+    //throw error message in case of unexpected error
+    void ExtractIntroductoryScreen();
 
     //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
     //returns true in case of success, returns false in case of unexpected error
