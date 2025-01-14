@@ -133,13 +133,16 @@ private:
 
     //void ReorganizeTerrainAtlas(char* targetFile, char* outputFileName);
 
-    //Returns true in case of success, returns false in case of unexpected problem
-    bool ExportTerrainTextures(char* targetFile, char* exportDir, char* outputFileName);
+    //throws an error message in case of unexpected problem
+    void ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName);
 
     //extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
     //* is from 0 up to 5
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractTerrainTextures();
+    void ExtractTerrainTextures();
+
+    // extract the Terrain Texture (Texture Atlas) for one level
+    void ExtractTerrainTexture(char levelNr);
 
     //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab
     //returns true in case of success, returns false in case of unexpected error

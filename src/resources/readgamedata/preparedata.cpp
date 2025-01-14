@@ -111,7 +111,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting terrain textures...");
             //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
-            PreparationOk = PreparationOk && ExtractTerrainTextures();
+            ExtractTerrainTextures();
 
             logging::Info("Extracting levels...");
             ExtractLevels();
@@ -1292,7 +1292,7 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 //Therefore we need to read all tiles and export them to singulated picture files, which we can later
 //use to load the textures
 //Returns true in case of success, returns false in case of unexpected problem
-bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char* outputFileName) {
+void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
 
@@ -1366,8 +1366,6 @@ bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char*
 
     //close the original picture file
     file->drop();
-
-    return true;
 }
 
 //the Terrain texture Atlas from https://github.com/movAX13h/HiOctaneTools
@@ -1551,176 +1549,41 @@ void PrepareData::ReorganizeTerrainAtlas(char* targetFile, char* outputFileName)
 //extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
 //* is from 0 up to 5
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractTerrainTextures() {
- //read all race track Terrain textures
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
+void PrepareData::ExtractTerrainTextures() {
+    //read all race track Terrain textures
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
 
- //unpack data file number 0
- char packfile[35];
- char unpackfile[100];
- char tabfile[35];
- char outputDirName[20];
- strcpy(packfile, "originalgame/data/textu0-0.dat");
- strcpy(tabfile, "originalgame/data/textu0-0.tab");
- strcpy(unpackfile, "extract/textu0-0-unpacked.dat");
+    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
+        ExtractTerrainTexture(levelNr);
+    }
+}
 
- //RNC unpack file
- int unpack_res = main_unpack(packfile, unpackfile);
+void PrepareData::ExtractTerrainTexture(char levelNr) {
+    //read race track Terrain texture
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
 
- if (unpack_res != 0) {
-     return false;
- }
+    char texNr = levelNr - 1;  // looks like levels start with 1 but texture atlases start with 0
 
- //unpack data file number 1
- strcpy(packfile, "originalgame/data/textu0-1.dat");
- strcpy(tabfile, "originalgame/data/textu0-1.tab");
- strcpy(unpackfile, "extract/textu0-1-unpacked.dat");
+    std::string orig_data_dir = "originalgame/data/";
+    std::string extract_dir = "extract/";
 
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
+    std::string packfile = orig_data_dir + "textu0-" + texNr + ".dat";
+    std::string unpackfile = extract_dir + "textu0-" + texNr + "-unpacked.dat";
+    std::string outputFile = extract_dir + "textu0-" + texNr + "-orig.png";
+    std::string levelDir = extract_dir + "level0-" + levelNr + '/';
 
- if (unpack_res != 0) {
-     return false;
- }
+    UnpackDataFile(packfile.c_str(), unpackfile.c_str());
 
- //unpack data file number 2
- strcpy(packfile, "originalgame/data/textu0-2.dat");
- strcpy(tabfile, "originalgame/data/textu0-2.tab");
- strcpy(unpackfile, "extract/textu0-2-unpacked.dat");
+    ConvertRawImageData(unpackfile.c_str(), palette, 64, 16384, outputFile.c_str());
 
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
+    //reorganize Terrain Atlas format to be Square
+    //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
+    ExportTerrainTextures(outputFile.c_str(), levelDir.c_str(), "tex");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 3
- strcpy(packfile, "originalgame/data/textu0-3.dat");
- strcpy(tabfile, "originalgame/data/textu0-3.tab");
- strcpy(unpackfile, "extract/textu0-3-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 4
- strcpy(packfile, "originalgame/data/textu0-4.dat");
- strcpy(tabfile, "originalgame/data/textu0-4.tab");
- strcpy(unpackfile, "extract/textu0-4-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 5
- strcpy(packfile, "originalgame/data/textu0-5.dat");
- strcpy(tabfile, "originalgame/data/textu0-5.tab");
- strcpy(unpackfile, "extract/textu0-5-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //now create final png picture out of raw video data
- //we also have to take game palette into account
- char outputFile[50];
- char finalFile[50];
- strcpy(unpackfile, "extract/textu0-0-unpacked.dat");
- strcpy(outputFile, "extract/textu0-0-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-1");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-1-unpacked.dat");
- strcpy(outputFile, "extract/textu0-1-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-2");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-2-unpacked.dat");
- strcpy(outputFile, "extract/textu0-2-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-3");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-3-unpacked.dat");
- strcpy(outputFile, "extract/textu0-3-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-4");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-4-unpacked.dat");
- strcpy(outputFile, "extract/textu0-4-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-5");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-5-unpacked.dat");
- strcpy(outputFile, "extract/textu0-5-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-6");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- return true;
+    remove(unpackfile.c_str());
+    remove(outputFile.c_str());
 }
 
 bool PrepareData::AddOtherLevelsHiOctaneTools() {
