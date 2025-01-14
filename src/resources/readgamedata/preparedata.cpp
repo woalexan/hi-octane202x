@@ -136,15 +136,12 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting models...");
             PrepareSubDir("extract/models");
-             PreparationOk = PreparationOk && ExtractModelTextures();
-
-             if (PreparationOk) {
-                 PreparationOk = PreparationOk && Extra3DModels();
-             }
+            ExtractModelTextures();
+            Extra3DModels();
 
             logging::Info("Extracting intro...");
             PrepareSubDir("extract/intro");
-            PreparationOk = PreparationOk && PrepareIntro();
+            PrepareIntro();
 
             //install other available assets user has copied
             //into folder userData from another source
@@ -179,26 +176,26 @@ bool PrepareData::CheckForGameLogoSVGAFiles() {
     return allFiles;
 }
 
-bool PrepareData::Extract3DModel(char* srcFilename, char* destFilename, char* objName) {
+void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
+    logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
 
     ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, this->modelTexAtlasSize.Width,
                        this->modelTexAtlasSize.Height);
 
     if (!newConversion->LoadObjectDatFile(srcFilename)) {
         delete newConversion;
-        return false;
+        throw "Error loading object file: " + std::string(srcFilename);
     }
 
     if (!newConversion->WriteToObjFile(destFilename, objName)) {
         delete  newConversion;
-        return false;
+        throw "Error writing object file: " + std::string(destFilename);
     }
 
     delete newConversion;
-    return true;
 }
 
-bool PrepareData::Extra3DModels() {
+void PrepareData::Extra3DModels() {
     char file[65];
     char file2[50];
     char helper[10];
@@ -221,8 +218,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -241,8 +237,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -261,8 +256,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -281,8 +275,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -301,8 +294,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -321,8 +313,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -341,8 +332,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -361,8 +351,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -381,8 +370,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -401,8 +389,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -421,8 +408,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -441,11 +427,8 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
-
-    return true;
 }
 
 
@@ -1373,7 +1356,7 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
 //therefore to be able to use the levels 7 up to 9 data from their project
 //we have to reorganize the atlas again (split it in single picture files)
 //Returns true in case of success, returns false in case of unexpected problem
-bool PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
+void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
 
@@ -1459,8 +1442,6 @@ bool PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
 
     //close the original picture file
     file->drop();
-
-    return true;
 }
 
 /*
@@ -1586,7 +1567,7 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
     remove(outputFile.c_str());
 }
 
-bool PrepareData::AddOtherLevelsHiOctaneTools() {
+void PrepareData::AddOtherLevelsHiOctaneTools() {
      char outputDirName[50];
      char outputFile[50];
      char finalFile[50];
@@ -1636,8 +1617,6 @@ bool PrepareData::AddOtherLevelsHiOctaneTools() {
          strcpy(outputFile, "extract/level0-9/level0-9-unpacked.dat");
          copy_file(levelFile, outputFile);
      }
-
-     return true;
 }
 
 void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
@@ -2275,69 +2254,64 @@ void PrepareData::ExtractEditorItemsSmall() {
 
 //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractModelTextures() {
- //read Ingame textures atlas tex0-0
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\tex0-0.dat
- //data\tex0-0.tab
- //Is a Raw image file RNC-compressed = No 	In game textures 256x768
+void PrepareData::ExtractModelTextures() {
+    //read Ingame textures atlas tex0-0
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\tex0-0.dat
+    //data\tex0-0.tab
+    //Is a Raw image file RNC-compressed = No 	In game textures 256x768
 
- //this is the defined size of the
- //texture Atlas in the Game
- modelTexAtlasSize.Width = 256;
- modelTexAtlasSize.Height = 768;
+    //this is the defined size of the
+    //texture Atlas in the Game
+    modelTexAtlasSize.Width = 256;
+    modelTexAtlasSize.Height = 768;
 
- char packfile[65];
- char tabfile[65];
- char outputfile[50];
- strcpy(packfile, "originalgame/objects/data/tex0-0.dat");
- strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
- strcpy(outputfile, "extract/models/tex0-0.png");
+    char packfile[65];
+    char tabfile[65];
+    char outputfile[50];
+    strcpy(packfile, "originalgame/objects/data/tex0-0.dat");
+    strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
+    strcpy(outputfile, "extract/models/tex0-0.png");
 
- ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
+    ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
                      outputfile, 1.0, false);
 
- /********************************************
-  * We also need the TAB file to know where  *
-  * the pictures are located inside this     *
-  * texture Atlas                            *
-  ********************************************/
+    /********************************************
+    * We also need the TAB file to know where  *
+    * the pictures are located inside this     *
+    * texture Atlas                            *
+    ********************************************/
 
- this->modelsTabFileInfo = new TABFILE();
+    this->modelsTabFileInfo = new TABFILE();
 
- //Very important: Do not remove the last boolean false parameter; For the
- //3D Model texture Atlas we HAVE to read the first TAB file entry as well,
- //because otherwise we are missing the first texture Atlas picture, and the
- //3D model texture mapping goes wrong
- int retcode=read_tabfile_data(this->modelsTabFileInfo, tabfile, false);
- if (retcode!=0)
-   switch (retcode)
-     {
-       case 1:
-          printf("\nError - Cannot open TAB file: %s\n", tabfile);
-          return false;
-       default:
-          printf("\nError - Loading TAB file %s returned fail code %d\n",tabfile,retcode);
-          return false;
-     }
+    //Very important: Do not remove the last boolean false parameter; For the
+    //3D Model texture Atlas we HAVE to read the first TAB file entry as well,
+    //because otherwise we are missing the first texture Atlas picture, and the
+    //3D model texture mapping goes wrong
+    int retcode=read_tabfile_data(this->modelsTabFileInfo, tabfile, false);
+    if (retcode!=0)
+    switch (retcode) {
+        case 1:
+            throw std::string("Cannot open TAB file: ") + tabfile;
+        default:
+            throw std::string("Error - Loading TAB file ") + tabfile + " returned fail code " + std::to_string(retcode);
+    }
 
- /*char exportDir[50];
- char exportFileName[25];
- strcpy(exportDir, "extract/models/");
- strcpy(exportFileName, "dbgtex-");
+    /*char exportDir[50];
+    char exportFileName[25];
+    strcpy(exportDir, "extract/models/");
+    strcpy(exportFileName, "dbgtex-");
 
- //the next debugging command allows to write a CSV file
- //which contains the listing of all contained pictures described
- //in the TAB file. For each picture the offset, width and height is
- //shown
- DebugWriteTabFileContentsCsvTable(tabfile, this->modelsTabFileInfo);
+    //the next debugging command allows to write a CSV file
+    //which contains the listing of all contained pictures described
+    //in the TAB file. For each picture the offset, width and height is
+    //shown
+    DebugWriteTabFileContentsCsvTable(tabfile, this->modelsTabFileInfo);
 
- //the next line allows to seperate the original texture Atlas
- //into seperate PNG images on the harddisc. This could be interesting
- //for debugging purposes.
- DebugSplitModelTextureAtlasAndWriteSingulatedPictures(outputfile, exportDir, exportFileName, this->modelsTabFileInfo);*/
-
- return true;
+    //the next line allows to seperate the original texture Atlas
+    //into seperate PNG images on the harddisc. This could be interesting
+    //for debugging purposes.
+    DebugSplitModelTextureAtlasAndWriteSingulatedPictures(outputfile, exportDir, exportFileName, this->modelsTabFileInfo);*/
 }
 
 //extracts the Tmaps data in data\tmaps.dat and data\tmaps.tab
@@ -2896,7 +2870,7 @@ bool PrepareData::ExtractMusic() {
 //repairs the original games intro.dat file, and then
 //extracts the intro in single frames that we can then
 //load and play using Irrlicht
-bool PrepareData::PrepareIntro() {
+void PrepareData::PrepareIntro() {
     //Variables initiation
     FILE *animFile;
     FILE *destFile;
@@ -2922,12 +2896,12 @@ bool PrepareData::PrepareIntro() {
     //Opening the files
     animFile = openSourceFLIFile(srcFName);
     if (animFile == NULL)
-        return false;
+        throw std::string("Error opening file: ") + srcFName;
 
     destFile = openDestinationFLIFile(destFName);
     if (destFile == NULL) {
         fclose(animFile);
-        return false;
+        throw std::string("Error opening file: ") + destFName;
     }
 
     //File analyst
@@ -2945,7 +2919,7 @@ bool PrepareData::PrepareIntro() {
     flic::Decoder decoder(&file);
     flic::Header header;
     if (!decoder.readHeader(header)) {
-       return false;
+       throw std::string("Error reading FLI header in file ") + outputNameStr;
     }
 
      std::vector<uint8_t> buffer(header.width * header.height);
@@ -2958,8 +2932,7 @@ bool PrepareData::PrepareIntro() {
 
      for (long i = 0; i < header.frames; ++i) {
        if (!decoder.readFrame(frame)) {
-         //return 3;
-         return false;
+         throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
        } else {
            //process the current decoded frame data in buffer
            char* frameData = new char[buffer.size()];
@@ -2973,16 +2946,12 @@ bool PrepareData::PrepareIntro() {
            //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
            if (!ConvertIntroFrame(frameData, frame.colormap, header.width, header.height, outFrameFileName, 2.0, false)) {
                delete [] frameData;
-
-               //there was an error
-               return false;
+               throw std::string("Error converting frame ") + std::to_string(i) + " in file " + outputNameStr;
            }
 
            delete[] frameData;
        }
      }
-
-    return true;
 }
 
 

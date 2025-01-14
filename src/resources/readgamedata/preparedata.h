@@ -74,8 +74,8 @@ private:
     TABFILE *modelsTabFileInfo = NULL;
     irr::core::dimension2d<irr::f32> modelTexAtlasSize;
 
-    bool Extract3DModel(char* srcFilename, char* destFilename, char* objName);
-    bool Extra3DModels();
+    void Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName);
+    void Extra3DModels();
 
     //return true if all expected files are present
     //return false if at least one file is missing
@@ -175,7 +175,7 @@ private:
 
     //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractModelTextures();
+    void ExtractModelTextures();
 
     void ExtractSmallFontSVGA();
 
@@ -201,7 +201,7 @@ private:
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
 
-    bool PrepareIntro();
+    void PrepareIntro();
     bool ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
                                           char* outputFilename, int scaleFactor, bool flipY);
 
@@ -220,8 +220,8 @@ private:
     //splits additional level textures for levels 7 up to 9
     //Important note: This data is not extracted from the original
     //game files, as I do not have this data
-    bool AddOtherLevelsHiOctaneTools();
-    bool SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName);
+    void AddOtherLevelsHiOctaneTools();
+    void SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName);
 };
 
 #endif // PREPAREDATA_H
