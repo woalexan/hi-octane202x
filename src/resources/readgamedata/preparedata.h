@@ -55,8 +55,6 @@ public:
     PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver);
     ~PrepareData();
 
-    bool PreparationOk;
-
 private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
@@ -99,11 +97,11 @@ private:
 
     //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractHUD1PlayerSVGA();
+    void ExtractHUD1PlayerSVGA();
 
     //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractHUD2PlayersSVGA();
+    void ExtractHUD2PlayersSVGA();
 
     //return true if selection screen (main menue background) is present
     //return false if at least one file is missing
@@ -125,11 +123,11 @@ private:
 
     //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractMiniMapsSVGA();
+    void ExtractMiniMapsSVGA();
 
     //helper function to stich the original games minimap
     //parts together
-    bool StitchMiniMaps();
+    void StitchMiniMaps();
 
     //void ReorganizeTerrainAtlas(char* targetFile, char* outputFileName);
 
@@ -158,7 +156,7 @@ private:
 
     //extracts the SVGA Large Green font in data\pfont0-1.dat and data\pfont0-1.tab
     //returns true in case of success, returns false in case of unexpected error
-    bool ExtractLargeGreenFontSVGA();
+    void ExtractLargeGreenFontSVGA();
 
     //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -184,20 +182,20 @@ private:
             char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf);
 
     //extracts sound files from sound.data
-    bool ExtractSounds();
+    void ExtractSounds();
 
     //further split sound files
-    bool SplitSoundFile(char* filename, char *ofilename, std::vector<SOUNDFILEENTRY> *entries);
+    void SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries);
 
     //Reads file format with sound file information, Returns all available SOUNDFILEENTRIES in entries
     //Returns true when successful, False otherwise
-    bool ReadSoundFileEntries(char* filename, std::vector<SOUNDFILEENTRY> *entries);
+    void ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries);
 
     //writes raw video data into picture file, using specified palette file
     void ConvertRawImageData(const char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
                              const char* outputFilename, int scaleFactor = 1.0, bool flipY = false);
 
-    bool ExtractTmaps();
+    void ExtractTmaps();
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
 
@@ -214,7 +212,7 @@ private:
     bool ReplacePixelColor(irr::video::IImage* image, irr::video::SColor originalColor, irr::video::SColor newColor);
     bool DetectFontCharacterColor(irr::video::IImage* image, irr::video::SColor* detectedColor);
 
-    bool CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, char* destFntFileName,
+    void CreateFontForUnselectedItemsInMenue(const char* sourceFntFileName, const char* destFntFileName,
               irr::u32 fileNameNumOffset, irr::u32 numberCharacters);
 
     //splits additional level textures for levels 7 up to 9

@@ -24,8 +24,6 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
     myDevice = device;
     myDriver = driver;
 
-    PreparationOk = true;
-
     //create memory for ingame palette
     palette=static_cast<unsigned char*>(malloc(768));
 
@@ -68,33 +66,29 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
             ExtractSmallFontSVGA();
 
             PrepareSubDir("extract/fonts/smallsvgagreenish");
-            if (PreparationOk) {
-                //create greenish font for unselected items in menue (but based for smaller text size)
-                PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/smallsvga/osfnt0-1-",
-                             (char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
-            }
+            //create greenish font for unselected items in menue (but based for smaller text size)
+            CreateFontForUnselectedItemsInMenue("extract/fonts/smallsvga/osfnt0-1-",
+                         "extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
 
             PrepareSubDir("extract/fonts/large");
             ExtractLargeFontSVGA();
 
             PrepareSubDir("extract/fonts/largegreenish");
-            if (PreparationOk) {
-                //create greenish font for unselected items in menue
-                //based on white SVGA font already extracted for game banner text font
-                PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/large/olfnt0-1-",
-                             (char*)"extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
-            }
+            //create greenish font for unselected items in menue
+            //based on white SVGA font already extracted for game banner text font
+            CreateFontForUnselectedItemsInMenue("extract/fonts/large/olfnt0-1-",
+                         "extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
 
             PrepareSubDir("extract/fonts/largegreen");
-            PreparationOk = PreparationOk && ExtractLargeGreenFontSVGA();
+            ExtractLargeGreenFontSVGA();
 
             logging::Info("Extracting 1 player HUD...");
             PrepareSubDir("extract/hud1player");
-            PreparationOk = PreparationOk && ExtractHUD1PlayerSVGA();
+            ExtractHUD1PlayerSVGA();
 
             logging::Info("Extracting 2 player HUD...");
             PrepareSubDir("extract/hud2player");
-            PreparationOk = PreparationOk && ExtractHUD2PlayersSVGA();
+            ExtractHUD2PlayersSVGA();
 
             logging::Info("Extracting sky...");
             PrepareSubDir("extract/sky");
@@ -102,12 +96,12 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting sprites...");
             PrepareSubDir("extract/sprites");
-            PreparationOk = PreparationOk && ExtractTmaps();
+            ExtractTmaps();
 
             logging::Info("Extracting minimaps...");
             PrepareSubDir("extract/minimaps");
-            PreparationOk = PreparationOk && ExtractMiniMapsSVGA();
-            PreparationOk = PreparationOk && StitchMiniMaps();
+            ExtractMiniMapsSVGA();
+            StitchMiniMaps();
 
             logging::Info("Extracting terrain textures...");
             //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
@@ -118,7 +112,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
             logging::Info("Extracting sounds...");
             PrepareSubDir("extract/sound");
-            PreparationOk = PreparationOk && ExtractSounds();
+            ExtractSounds();
 
             logging::Info("Extracting music...");
             PrepareSubDir("extract/music");
@@ -476,67 +470,27 @@ void PrepareData::ExtractGameLogoSVGA() {
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractHUD1PlayerSVGA() {
- //read HUD SVGA for 1 player
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\panel0-1.dat
- //data\panel0-1.tab
- //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
+void PrepareData::ExtractHUD1PlayerSVGA() {
+    //read HUD SVGA for 1 player
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\panel0-1.dat
+    //data\panel0-1.tab
+    //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/panel0-1.dat");
- strcpy(tabfile, "originalgame/data/panel0-1.tab");
-
- //is not RNC compressed, we can skip this step
-
- char palFile[35];
- char outputDir[50];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/hud1player/panel0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/panel0-1.dat", "originalgame/data/panel0-1.tab", palette, "extract/hud1player/panel0-1-");
 }
 
 //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractMiniMapsSVGA() {
- //data\track0-1.dat
- //data\track0-1.tab
- //Unknown format 	RNC-compressed = No 	MiniMaps
+void PrepareData::ExtractMiniMapsSVGA() {
+    //data\track0-1.dat
+    //data\track0-1.tab
+    //Unknown format 	RNC-compressed = No 	MiniMaps
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/track0-1.dat");
- strcpy(tabfile, "originalgame/data/track0-1.tab");
-
- //is not RNC compressed, we can skip this step
-
- char palFile[35];
- char outputDir[50];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/minimaps/track0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/track0-1.dat", "originalgame/data/track0-1.tab", palette, "extract/minimaps/track0-1-");
 }
 
-bool PrepareData::StitchMiniMaps() {
+void PrepareData::StitchMiniMaps() {
     /********************************************
      *  Map for level 1                         *
      * ******************************************/
@@ -802,70 +756,30 @@ bool PrepareData::StitchMiniMaps() {
 
     //is alreay finished in file track0-1-0010.bmp
     //no need for stitching
-
-    return true;
 }
 
 //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractHUD2PlayersSVGA() {
- //read HUD SVGA for 2 players
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\panel0-0.dat
- //data\panel0-0.tab
- //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
+void PrepareData::ExtractHUD2PlayersSVGA() {
+    //read HUD SVGA for 2 players
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\panel0-0.dat
+    //data\panel0-0.tab
+    //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/panel0-0.dat");
- strcpy(tabfile, "originalgame/data/panel0-0.tab");
-
- //is not RNC compressed, we can skip this step
-
- char palFile[35];
- char outputDir[50];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/hud2player/panel0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/panel0-0.dat", "originalgame/data/panel0-0.tab", palette, "extract/hud2player/panel0-0-");
 }
 
 //extracts the SVGA Large Green font in data\pfont0-1.dat and data\pfont0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLargeGreenFontSVGA() {
- //read Large Green Font SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\pfont0-1.dat
- //data\pfont0-1.tab
- //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
+void PrepareData::ExtractLargeGreenFontSVGA() {
+    //read Large Green Font SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\pfont0-1.dat
+    //data\pfont0-1.tab
+    //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/pfont0-1.dat");
- strcpy(tabfile, "originalgame/data/pfont0-1.tab");
-
- //is not RNC compressed, we can skip this step
-
- char outputDir[50];
- strcpy(outputDir, "extract/fonts/largegreen/pfont0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/pfont0-1.dat", "originalgame/data/pfont0-1.tab", palette, "extract/fonts/largegreen/pfont0-1-");
 }
 
 //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
@@ -1035,7 +949,7 @@ bool PrepareData::DetectFontCharacterColor(irr::video::IImage* image, irr::video
 //this function takes an already existing font extracted before
 //into single image files, duplicates this files, and changes the text character color
 //for this new created image files
-bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, char* destFntFileName,
+void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileName, const char* destFntFileName,
           irr::u32 fileNameNumOffset, irr::u32 numberCharacters) {
 
     char finalpathSrc[70];
@@ -1060,9 +974,8 @@ bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, c
 
         irr::core::dimension2d<irr::u32> srcDim(srcImg->getDimension().Width, srcImg->getDimension().Height);
 
-        //problem opening the source image?
         if (srcImg == NULL)
-            return false;
+            throw std::string("Error opening source image file: ") + finalpathSrc;
 
         //copy source image into new destination image
         irr::video::IImage* destImg =
@@ -1085,13 +998,11 @@ bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, c
 
         //detect font color inside source image
         if (!this->DetectFontCharacterColor(destImg, &detColor)) {
-            //unexpected error, just return
-            return false;
+            throw std::string("Error detecting font color in image file: ") + finalpathSrc;
         }
 
         if (!this->ReplacePixelColor(destImg, detColor, newColor)) {
-            //unexpected error, just return
-            return false;
+            throw std::string("Error replacing pixel color in image file: ") + finalpathSrc;
         }
 
         //now we have the font character with new color in image variable
@@ -1103,8 +1014,6 @@ bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, c
         outputPic->drop();
         destImg->drop();
     }
-
-    return true;
 }
 
 //return true if all expected files are present
@@ -2302,7 +2211,7 @@ void PrepareData::ExtractModelTextures() {
 
 //extracts the Tmaps data in data\tmaps.dat and data\tmaps.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractTmaps() {
+void PrepareData::ExtractTmaps() {
     //read Tmaps data (contains collectible items, powerups...)
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //data\tmaps.dat
@@ -2329,18 +2238,17 @@ bool PrepareData::ExtractTmaps() {
 
    char* ByteArray;
    ByteArray = new char[size];
-   if (iFile != NULL)
+   if (iFile == NULL)
    {
-       do {
-           ByteArray[counter] = fgetc(iFile);
-           counter++;
-       } while (counter < size);
-       fclose(iFile);
-   } else {
-       return false;
+       throw std::string("Cannot open Tmaps file: ") + ArchiveName;
    }
+    do {
+        ByteArray[counter] = fgetc(iFile);
+        counter++;
+    } while (counter < size);
+    fclose(iFile);
 
-   //now seperate data into different new created file
+    //now seperate data into different new created file
    counter = 0;
    unsigned long ofilenr = 0;
 
@@ -2365,7 +2273,7 @@ bool PrepareData::ExtractTmaps() {
            oFile = fopen(finalpath, "wb");
            if (oFile == NULL) {
               delete[] ByteArray;
-              return false;
+              throw std::string("Cannot open file for writing: ") + finalpath;
            }
      }
       if (oFile != NULL) {
@@ -2428,12 +2336,10 @@ bool PrepareData::ExtractTmaps() {
         remove(finalpathUnpacked);
         remove(finalpath);
     }
-
-   return true;
 }
 
 //extracts sound files from sound.data
-bool PrepareData::ExtractSounds() {
+void PrepareData::ExtractSounds() {
    char ArchiveName[55];
    strcpy(ArchiveName, "originalgame/sound/sound.dat");
 
@@ -2454,16 +2360,16 @@ bool PrepareData::ExtractSounds() {
 
    char* ByteArray;
    ByteArray = new char[size];
-   if (iFile != NULL)
+   if (iFile == NULL)
    {
-       do {
-           ByteArray[counter] = fgetc(iFile);
-           counter++;
-       } while (counter < size);
-       fclose(iFile);
-   } else {
-       return false;
+       throw std::string("Cannot open sound file: ") + ArchiveName;
    }
+   do {
+       ByteArray[counter] = fgetc(iFile);
+       counter++;
+   } while (counter < size);
+   fclose(iFile);
+
 
    //now seperate data into different new created file
    counter = 0;
@@ -2490,7 +2396,7 @@ bool PrepareData::ExtractSounds() {
            oFile = fopen(finalpath, "wb");
            if (oFile == NULL) {
               delete[] ByteArray;
-              return false;
+              throw std::string("Cannot open file for writing: ") + finalpath;
            }
      }
 
@@ -2593,13 +2499,11 @@ bool PrepareData::ExtractSounds() {
         remove(finalpath);
         remove(finalpathUnpacked);
     }
-
-   return true;
 }
 
 //Reads file format with sound file information, Returns all available SOUNDFILEENTRIES in entries
 //Returns true when successful, False otherwise
-bool PrepareData::ReadSoundFileEntries(char* filename, std::vector<SOUNDFILEENTRY> *entries) {
+void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries) {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT, structure seems to also apply to sound files
 
@@ -2616,26 +2520,23 @@ bool PrepareData::ReadSoundFileEntries(char* filename, std::vector<SOUNDFILEENTR
 
     SOUNDFILEENTRY *newItem;
 
-    if (iFile != NULL)
+    if (iFile == NULL)
     {
-        do {
-           newItem = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
-           fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
-           entries->push_back(*newItem);
-           free(newItem);
-           EntryNumber++;
-        } while (EntryNumber < itemnr);
-        fclose(iFile);
-    } else {
         entries = NULL;
-        return false;
+        throw std::string("Error - Cannot open file for reading: ") + filename;
     }
-
-    return true;
+    do {
+        newItem = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
+        fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
+        entries->push_back(*newItem);
+        free(newItem);
+        EntryNumber++;
+    } while (EntryNumber < itemnr);
+    fclose(iFile);
 }
 
 //further split sound files
-bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SOUNDFILEENTRY> *entries) {
+void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries) {
    //after ExtractSounds routine executed we get files which contain multiple WAV files
    //glued together, we need to split them further
 
@@ -2652,16 +2553,15 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
 
    char* ByteArray;
    ByteArray = new char[size];
-   if (iFile != NULL)
+   if (iFile == NULL)
    {
-       do {
-           ByteArray[counter] = fgetc(iFile);
-           counter++;
-       } while (counter < size);
-       fclose(iFile);
-   } else {
-       return false;
+       throw std::string("Error - Cannot open file for reading: ") + filename;
    }
+   do {
+       ByteArray[counter] = fgetc(iFile);
+       counter++;
+   } while (counter < size);
+   fclose(iFile);
 
    //now seperate data into different new created file
    counter = 0;
@@ -2687,7 +2587,7 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
                 oFile = fopen(finalpath, "wb");
                 if (oFile == NULL) {
                     delete[] ByteArray;
-                    return false;
+                    throw std::string("Error - Cannot open file for writting: ") + finalpath;
                 }
 
                 lastpos = (*it).offsetTune + (*it).tuneLenBytes;
@@ -2702,8 +2602,6 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
     }
 
    delete[] ByteArray;
-
-   return true;
 }
 
 void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
