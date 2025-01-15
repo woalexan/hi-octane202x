@@ -64,7 +64,20 @@ private:
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
 
+    void ExtractGameScreens();
+    void ExtractFonts();
+    void ExtractHuds();
+    void ExtractSkies();
+    void ExtractSprites();
+    void ExtractMiniMaps();
+    void ExtractTerrainTextures();
     void ExtractLevels();
+    void ExtractEditor();
+    void ExtractCheatPuzzle();
+    void ExtractModels();
+    void ExtractIntro();
+    void ExtractAudio();
+    void ExtractUserdata();
 
     //Tabfile information for model texture atlas file
     //this information is needed to be able to export
@@ -111,9 +124,6 @@ private:
     //returns true in case of success, returns false in case of unexpected error
     void ExtractSelectionScreenSVGA();
 
-    // Extract all sky images. Throws an error message in case of errors
-    void ExtractSkies();
-
     // Extract a single sky image. Throws an error message in case of errors
     void ExtractSky(char skyNr);
 
@@ -133,11 +143,6 @@ private:
 
     //throws an error message in case of unexpected problem
     void ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName);
-
-    //extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
-    //* is from 0 up to 5
-    //returns true in case of success, returns false in case of unexpected error
-    void ExtractTerrainTextures();
 
     // extract the Terrain Texture (Texture Atlas) for one level
     void ExtractTerrainTexture(char levelNr);
@@ -161,10 +166,6 @@ private:
     //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
     //returns true in case of success, returns false in case of unexpected error
     void ExtractEditorCursors();
-
-    //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
-    //returns true in case of success, returns false in case of unexpected error
-    void ExtractCheatPuzzle();
 
     //extracts the introductory screen (in format 320x200) in data\title.dat and data\title.tab
     //* is from 0 up to 5

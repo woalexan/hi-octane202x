@@ -39,114 +39,184 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
     //check if extraction directory is already present
     //if not create this directory
-    if (IsDirectoryPresent("extract") == -1) {
-        //directory is not there
-        CreateDirectory("extract");
-        {
-            //directory was created ok
-            //now we need to extract all files
-
-            //extract SVGA game logo data if not all exported files present
-            logging::Info("Extracting game logos...");
-            PrepareSubDir("extract/images");
-            //export all game images
-            ExtractGameLogoSVGA();
-            ExtractIntroductoryScreen();
-            ExtractLoadingScreenSVGA();
-            ExtractSelectionScreenSVGA();
-
-            //extract SVGA game logo data if not all exported files present
-            logging::Info("Extracting game fonts...");
-            PrepareSubDir("extract/fonts");
-
-            PrepareSubDir("extract/fonts/thinwhite");
-            ExtractThinWhiteFontSVGA();
-
-            PrepareSubDir("extract/fonts/smallsvga");
-            ExtractSmallFontSVGA();
-
-            PrepareSubDir("extract/fonts/smallsvgagreenish");
-            //create greenish font for unselected items in menue (but based for smaller text size)
-            CreateFontForUnselectedItemsInMenue("extract/fonts/smallsvga/osfnt0-1-",
-                         "extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
-
-            PrepareSubDir("extract/fonts/large");
-            ExtractLargeFontSVGA();
-
-            PrepareSubDir("extract/fonts/largegreenish");
-            //create greenish font for unselected items in menue
-            //based on white SVGA font already extracted for game banner text font
-            CreateFontForUnselectedItemsInMenue("extract/fonts/large/olfnt0-1-",
-                         "extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
-
-            PrepareSubDir("extract/fonts/largegreen");
-            ExtractLargeGreenFontSVGA();
-
-            logging::Info("Extracting 1 player HUD...");
-            PrepareSubDir("extract/hud1player");
-            ExtractHUD1PlayerSVGA();
-
-            logging::Info("Extracting 2 player HUD...");
-            PrepareSubDir("extract/hud2player");
-            ExtractHUD2PlayersSVGA();
-
-            logging::Info("Extracting sky...");
-            PrepareSubDir("extract/sky");
-            ExtractSkies();
-
-            logging::Info("Extracting sprites...");
-            PrepareSubDir("extract/sprites");
-            ExtractTmaps();
-
-            logging::Info("Extracting minimaps...");
-            PrepareSubDir("extract/minimaps");
-            ExtractMiniMapsSVGA();
-            StitchMiniMaps();
-
-            logging::Info("Extracting terrain textures...");
-            //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
-            ExtractTerrainTextures();
-
-            logging::Info("Extracting levels...");
-            ExtractLevels();
-
-            logging::Info("Extracting sounds...");
-            PrepareSubDir("extract/sound");
-            ExtractSounds();
-
-            logging::Info("Extracting music...");
-            PrepareSubDir("extract/music");
-            ExtractMusic();
-
-            logging::Info("Extracting editor...");
-            PrepareSubDir("extract/editor");
-            ExtractEditorItemsLarge();
-            ExtractEditorItemsSmall();
-            ExtractEditorCursors();
-
-            logging::Info("Extracting puzzle...");
-            PrepareSubDir("extract/puzzle");
-            ExtractCheatPuzzle();
-
-            logging::Info("Extracting models...");
-            PrepareSubDir("extract/models");
-            ExtractModelTextures();
-            Extra3DModels();
-
-            logging::Info("Extracting intro...");
-            PrepareSubDir("extract/intro");
-            PrepareIntro();
-
-            //install other available assets user has copied
-            //into folder userData from another source
-            logging::Info("Extracting other stuff...");
-            AddOtherLevelsHiOctaneTools();
-        }
+    if (IsDirectoryPresent("extract") == 1) {
+        return;
     }
+    CreateDirectory("extract");
+
+    ExtractGameScreens();
+    ExtractFonts();
+    ExtractHuds();
+    ExtractSkies();
+    ExtractSprites();
+    ExtractMiniMaps();
+    ExtractTerrainTextures();
+    ExtractLevels();
+    ExtractEditor();
+    ExtractCheatPuzzle();
+    ExtractModels();
+    ExtractIntro();
+    ExtractAudio();
+    ExtractUserdata();
 }
 
 PrepareData::~PrepareData() {
     free(palette);
+}
+
+void PrepareData::ExtractGameScreens() {
+    logging::Info("Extracting game logos...");
+    PrepareSubDir("extract/images");
+
+    ExtractGameLogoSVGA();
+    ExtractIntroductoryScreen();
+    ExtractLoadingScreenSVGA();
+    ExtractSelectionScreenSVGA();
+}
+
+void PrepareData::ExtractFonts() {
+    //extract SVGA game logo data if not all exported files present
+    logging::Info("Extracting game fonts...");
+    PrepareSubDir("extract/fonts");
+
+    PrepareSubDir("extract/fonts/thinwhite");
+    ExtractThinWhiteFontSVGA();
+
+    PrepareSubDir("extract/fonts/smallsvga");
+    ExtractSmallFontSVGA();
+
+    PrepareSubDir("extract/fonts/smallsvgagreenish");
+    //create greenish font for unselected items in menue (but based for smaller text size)
+    CreateFontForUnselectedItemsInMenue("extract/fonts/smallsvga/osfnt0-1-",
+                                        "extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
+
+    PrepareSubDir("extract/fonts/large");
+    ExtractLargeFontSVGA();
+
+    PrepareSubDir("extract/fonts/largegreenish");
+    //create greenish font for unselected items in menue
+    //based on white SVGA font already extracted for game banner text font
+    CreateFontForUnselectedItemsInMenue("extract/fonts/large/olfnt0-1-",
+                                        "extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
+
+    PrepareSubDir("extract/fonts/largegreen");
+    ExtractLargeGreenFontSVGA();
+}
+
+void PrepareData::ExtractHuds() {
+    logging::Info("Extracting 1 player HUD...");
+    PrepareSubDir("extract/hud1player");
+    ExtractHUD1PlayerSVGA();
+
+    logging::Info("Extracting 2 player HUD...");
+    PrepareSubDir("extract/hud2player");
+    ExtractHUD2PlayersSVGA();
+}
+
+void PrepareData::ExtractSkies() {
+    logging::Info("Extracting sky...");
+    PrepareSubDir("extract/sky");
+
+    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
+        ExtractSky(skyNr);
+    }
+}
+
+void PrepareData::ExtractSprites() {
+    logging::Info("Extracting sprites...");
+    PrepareSubDir("extract/sprites");
+    ExtractTmaps();
+}
+
+void PrepareData::ExtractMiniMaps() {
+    logging::Info("Extracting minimaps...");
+    PrepareSubDir("extract/minimaps");
+    ExtractMiniMapsSVGA();
+    StitchMiniMaps();
+}
+
+void PrepareData::ExtractTerrainTextures() {
+    logging::Info("Extracting terrain textures...");
+
+    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
+        ExtractTerrainTexture(levelNr);
+    }
+}
+
+void PrepareData::ExtractLevels() {
+    logging::Info("Extracting levels...");
+
+    PrepareSubDir("extract/level0-1");
+    UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
+
+    PrepareSubDir("extract/level0-2");
+    UnpackDataFile("originalgame/maps/level0-2.dat", "extract/level0-2/level0-2-unpacked.dat");
+
+    PrepareSubDir("extract/level0-3");
+    UnpackDataFile("originalgame/maps/level0-3.dat", "extract/level0-3/level0-3-unpacked.dat");
+
+    PrepareSubDir("extract/level0-4");
+    UnpackDataFile("originalgame/maps/level0-4.dat", "extract/level0-4/level0-4-unpacked.dat");
+
+    PrepareSubDir("extract/level0-5");
+    UnpackDataFile("originalgame/maps/level0-5.dat", "extract/level0-5/level0-5-unpacked.dat");
+
+    PrepareSubDir("extract/level0-6");
+    UnpackDataFile("originalgame/maps/level0-6.dat", "extract/level0-6/level0-6-unpacked.dat");
+}
+
+void PrepareData::ExtractEditor() {
+    logging::Info("Extracting editor...");
+    PrepareSubDir("extract/editor");
+    ExtractEditorItemsLarge();
+    ExtractEditorItemsSmall();
+    ExtractEditorCursors();
+}
+
+void PrepareData::ExtractCheatPuzzle() {
+    logging::Info("Extracting puzzle...");
+    PrepareSubDir("extract/puzzle");
+
+    //read Cheat puzzle
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\puzzle.dat
+    //data\puzzle.tab
+    //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
+
+    //is not RNC compressed, we can skip this step
+
+    //scale puzzle by factor 4
+    ConvertRawImageData("originalgame/data/puzzle.dat", palette, 112, 96, "extract/puzzle/puzzle.png", 4);
+}
+
+void PrepareData::ExtractModels() {
+    logging::Info("Extracting models...");
+    PrepareSubDir("extract/models");
+    ExtractModelTextures();
+    Extra3DModels();
+}
+
+void PrepareData::ExtractIntro() {
+    logging::Info("Extracting intro...");
+    PrepareSubDir("extract/intro");
+    PrepareIntro();
+}
+
+void PrepareData::ExtractAudio() {
+    logging::Info("Extracting sounds...");
+    PrepareSubDir("extract/sound");
+    ExtractSounds();
+
+    logging::Info("Extracting music...");
+    PrepareSubDir("extract/music");
+    ExtractMusic();
+}
+
+void PrepareData::ExtractUserdata() {
+    //install other available assets user has copied
+    //into folder userData from another source
+    logging::Info("Extracting other stuff...");
+    AddOtherLevelsHiOctaneTools();
 }
 
 //return true if all expected files are present
@@ -423,29 +493,6 @@ void PrepareData::Extra3DModels() {
 
         Extract3DModel(file, file2, objname);
     }
-}
-
-
-//extracts the level map files
-//raises an error message in case of unexpected error
-void PrepareData::ExtractLevels() {
-    PrepareSubDir("extract/level0-1");
-    UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
-
-    PrepareSubDir("extract/level0-2");
-    UnpackDataFile("originalgame/maps/level0-2.dat", "extract/level0-2/level0-2-unpacked.dat");
-
-    PrepareSubDir("extract/level0-3");
-    UnpackDataFile("originalgame/maps/level0-3.dat", "extract/level0-3/level0-3-unpacked.dat");
-
-    PrepareSubDir("extract/level0-4");
-    UnpackDataFile("originalgame/maps/level0-4.dat", "extract/level0-4/level0-4-unpacked.dat");
-
-    PrepareSubDir("extract/level0-5");
-    UnpackDataFile("originalgame/maps/level0-5.dat", "extract/level0-5/level0-5-unpacked.dat");
-
-    PrepareSubDir("extract/level0-6");
-    UnpackDataFile("originalgame/maps/level0-6.dat", "extract/level0-6/level0-6-unpacked.dat");
 }
 
 //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
@@ -782,21 +829,6 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
     ExtractImagesfromDataFile("originalgame/data/pfont0-1.dat", "originalgame/data/pfont0-1.tab", palette, "extract/fonts/largegreen/pfont0-1-");
 }
 
-//extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
-//returns true in case of success, returns false in case of unexpected error
-void PrepareData::ExtractCheatPuzzle() {
-    //read Cheat puzzle
-    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
-    //data\puzzle.dat
-    //data\puzzle.tab
-    //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
-
-    //is not RNC compressed, we can skip this step
-
-    //scale puzzle by factor 4
-    ConvertRawImageData("originalgame/data/puzzle.dat", palette, 112, 96, "extract/puzzle/puzzle.png", 4);
-}
-
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
 //returns true in case of success, returns false in case of unexpected error
 void PrepareData::ExtractLargeFontSVGA() {
@@ -1084,15 +1116,6 @@ void PrepareData::ExtractSelectionScreenSVGA() {
     remove("extract/images/oscr0-1-unpacked.dat");
 }
 
-//extracts the Sky images (in format 256x256) in data\sky0-*.dat and data\sky0-*.tab
-//* is from 0 up to 5
-//returns true in case of success, returns false in case of unexpected error
-void PrepareData::ExtractSkies() {
-    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
-        ExtractSky(skyNr);
-    }
-}
-
 void PrepareData::ExtractSky(char skyNr) {
     //read all race track sky images
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
@@ -1182,11 +1205,6 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
     //calculate overall number of tiles; Width of picture is tile size; Heigth of picture
     //divided by width equals the overall number of titles in the image
     int numberTiles = (origDimension.Height / origDimension.Width);
-
-    PrepareSubDir(exportDir);
-
-    //directory was created ok
-    //now we need to extract all files
 
     char finalpath[50];
     char fname[20];
@@ -1422,20 +1440,8 @@ void PrepareData::ReorganizeTerrainAtlas(char* targetFile, char* outputFileName)
 }
 */
 
-//extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
-//* is from 0 up to 5
-//returns true in case of success, returns false in case of unexpected error
-void PrepareData::ExtractTerrainTextures() {
-    //read all race track Terrain textures
-    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
-    //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
-
-    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
-        ExtractTerrainTexture(levelNr);
-    }
-}
-
 void PrepareData::ExtractTerrainTexture(char levelNr) {
+    //todo: Scale Tiles by factor of 2.0
     //read race track Terrain texture
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
@@ -1449,6 +1455,7 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
     std::string unpackfile = extract_dir + "textu0-" + texNr + "-unpacked.dat";
     std::string outputFile = extract_dir + "textu0-" + texNr + "-orig.png";
     std::string levelDir = extract_dir + "level0-" + levelNr + '/';
+    PrepareSubDir(levelDir.c_str());
 
     UnpackDataFile(packfile.c_str(), unpackfile.c_str());
 
@@ -2338,7 +2345,6 @@ void PrepareData::ExtractTmaps() {
     }
 }
 
-//extracts sound files from sound.data
 void PrepareData::ExtractSounds() {
    char ArchiveName[55];
    strcpy(ArchiveName, "originalgame/sound/sound.dat");
