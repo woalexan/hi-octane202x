@@ -87,8 +87,10 @@ void PrepareData::ExtractFonts() {
 
     PrepareSubDir("extract/fonts/smallsvgagreenish");
     //create greenish font for unselected items in menue (but based for smaller text size)
-    CreateFontForUnselectedItemsInMenue("extract/fonts/smallsvga/osfnt0-1-",
-                                        "extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
+    CreateFontForUnselectedItemsInMenue(
+        "extract/fonts/smallsvga/osfnt0-1-",
+        "extract/fonts/smallsvgagreenish/green-osfnt0-1-",
+        0, 241);
 
     PrepareSubDir("extract/fonts/large");
     ExtractLargeFontSVGA();
@@ -96,8 +98,10 @@ void PrepareData::ExtractFonts() {
     PrepareSubDir("extract/fonts/largegreenish");
     //create greenish font for unselected items in menue
     //based on white SVGA font already extracted for game banner text font
-    CreateFontForUnselectedItemsInMenue("extract/fonts/large/olfnt0-1-",
-                                        "extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
+    CreateFontForUnselectedItemsInMenue(
+        "extract/fonts/large/olfnt0-1-",
+        "extract/fonts/largegreenish/green-olfnt0-1-",
+        0, 241);
 
     PrepareSubDir("extract/fonts/largegreen");
     ExtractLargeGreenFontSVGA();
@@ -503,16 +507,7 @@ void PrepareData::ExtractGameLogoSVGA() {
     //data\logo0-1.dat
     //data\logo0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
-
-    UnpackDataFile("originalgame/data/logo0-1.dat", "extract/images/logo0-1-unpacked.dat");
-
-    ExtractImagesfromDataFile(
-        "extract/images/logo0-1-unpacked.dat",
-        "originalgame/data/logo0-1.tab",
-        palette,
-        "extract/images/logo0-1-");
-
-    remove("extract/images/logo0-1-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/logo0-1", "extract/images/logo0-1-");
 }
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
@@ -523,7 +518,6 @@ void PrepareData::ExtractHUD1PlayerSVGA() {
     //data\panel0-1.dat
     //data\panel0-1.tab
     //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
-
     ExtractImagesfromDataFile("originalgame/data/panel0-1.dat", "originalgame/data/panel0-1.tab", palette, "extract/hud1player/panel0-1-");
 }
 
@@ -533,7 +527,6 @@ void PrepareData::ExtractMiniMapsSVGA() {
     //data\track0-1.dat
     //data\track0-1.tab
     //Unknown format 	RNC-compressed = No 	MiniMaps
-
     ExtractImagesfromDataFile("originalgame/data/track0-1.dat", "originalgame/data/track0-1.tab", palette, "extract/minimaps/track0-1-");
 }
 
@@ -813,7 +806,6 @@ void PrepareData::ExtractHUD2PlayersSVGA() {
     //data\panel0-0.dat
     //data\panel0-0.tab
     //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
-
     ExtractImagesfromDataFile("originalgame/data/panel0-0.dat", "originalgame/data/panel0-0.tab", palette, "extract/hud2player/panel0-0-");
 }
 
@@ -825,7 +817,6 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
     //data\pfont0-1.dat
     //data\pfont0-1.tab
     //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
-
     ExtractImagesfromDataFile("originalgame/data/pfont0-1.dat", "originalgame/data/pfont0-1.tab", palette, "extract/fonts/largegreen/pfont0-1-");
 }
 
@@ -837,16 +828,7 @@ void PrepareData::ExtractLargeFontSVGA() {
     //data\olfnt0-1.dat
     //data\olfnt0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
-
-    UnpackDataFile("originalgame/data/olfnt0-1.dat", "extract/fonts/large/olfnt0-1-unpacked.dat");
-
-    ExtractImagesfromDataFile(
-        "extract/fonts/large/olfnt0-1-unpacked.dat",
-        "originalgame/data/olfnt0-1.tab",
-        palette,
-        "extract/fonts/large/olfnt0-1-");
-
-    remove("extract/fonts/large/olfnt0-1-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/olfnt0-1", "extract/fonts/large/olfnt0-1-");
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -857,16 +839,7 @@ void PrepareData::ExtractSmallFontSVGA() {
     //data\osfnt0-1.dat
     //data\osfnt0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
-
-    UnpackDataFile("originalgame/data/osfnt0-1.dat", "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
-
-    ExtractImagesfromDataFile(
-        "extract/fonts/smallsvga/osfnt0-1-unpacked.dat",
-        "originalgame/data/osfnt0-1.tab",
-        palette,
-        "extract/fonts/smallsvga/osfnt0-1-");
-
-    remove("extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/osfnt0-1", "extract/fonts/smallsvga/osfnt0-1-");
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -1068,18 +1041,7 @@ void PrepareData::ExtractLoadingScreenSVGA() {
     //data\onet0-1.dat
     //data\onet0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
-
-    UnpackDataFile("originalgame/data/onet0-1.dat", "extract/images/onet0-1-unpacked.dat");
-
-    //now create final png picture out of raw video data
-    //we also have to take game palette into account
-
-    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
-    //ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 2);
-
-    ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 1);
-
-    remove("extract/images/onet0-1-unpacked.dat");
+    ConvertCompressedImageData("originalgame/data/onet0-1.dat", "extract/images/onet0-1.png", 640, 480, 1);
 }
 
 //return true if selection screen (main menue background) is present
@@ -1102,18 +1064,7 @@ void PrepareData::ExtractSelectionScreenSVGA() {
     //data\oscr0-1.dat
     //data\oscr0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
-
-    UnpackDataFile("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1-unpacked.dat");
-
-    //now create final png picture out of raw video data
-    //we also have to take game palette into account
-
-    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
-    //ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 2);
-
-    ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 1);
-
-    remove("extract/images/oscr0-1-unpacked.dat");
+    ConvertCompressedImageData("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1.png", 640, 480, 1);
 }
 
 void PrepareData::ExtractSky(char skyNr) {
@@ -1122,15 +1073,10 @@ void PrepareData::ExtractSky(char skyNr) {
     //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
 
     std::string packFile = std::string("originalgame/data/sky0-") + skyNr + ".dat";
-    std::string unpackFile = std::string("extract/sky/sky0-") + skyNr + "-unpacked.dat";
     std::string outputFile = std::string("extract/sky/sky0-") + skyNr + ".png";
     std::string modifiedFile = std::string("extract/sky/modsky0-") + skyNr + ".png";
 
-    //unpack data file number 5
-    UnpackDataFile(packFile.c_str(), unpackFile.c_str());
-    //upscale image by a factor of 2.0, we then have an image of 512 x 512
-    ConvertRawImageData(unpackFile.c_str(), palette, 256, 256, outputFile.c_str(), 2);
-    remove(unpackFile.c_str());
+    ConvertCompressedImageData(packFile.c_str(), outputFile.c_str(), 256, 256, 2);
     //create new modified sky image for easier usage
     ModifySkyImage(outputFile.c_str(), modifiedFile.c_str());
 }
@@ -1452,20 +1398,14 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
     std::string extract_dir = "extract/";
 
     std::string packfile = orig_data_dir + "textu0-" + texNr + ".dat";
-    std::string unpackfile = extract_dir + "textu0-" + texNr + "-unpacked.dat";
     std::string outputFile = extract_dir + "textu0-" + texNr + "-orig.png";
     std::string levelDir = extract_dir + "level0-" + levelNr + '/';
     PrepareSubDir(levelDir.c_str());
 
-    UnpackDataFile(packfile.c_str(), unpackfile.c_str());
-
-    ConvertRawImageData(unpackfile.c_str(), palette, 64, 16384, outputFile.c_str());
-
+    ConvertCompressedImageData(packfile.c_str(), outputFile.c_str(), 64, 16384);
     //reorganize Terrain Atlas format to be Square
     //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
     ExportTerrainTextures(outputFile.c_str(), levelDir.c_str(), "tex");
-
-    remove(unpackfile.c_str());
     remove(outputFile.c_str());
 }
 
@@ -2082,17 +2022,7 @@ void PrepareData::ExtractIntroductoryScreen() {
     //read introductory screen
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
-
-    UnpackDataFile("originalgame/data/title.dat", "extract/images/title-unpacked.dat");
-
-    //upscale original image data by a factor 4, we get an image with 1280 x 800
-    //ConvertRawImageData(&unpackfile[0], palette, 320, 200, &outputFile[0], 4);
-
-    //upscale original image data by a factor 2, we get an image with 640 x 480
-    ConvertRawImageData("extract/images/title-unpacked.dat", palette, 320, 200, "extract/images/title.png", 2);
-
-    //remove unnecessary files
-    remove("extract/images/title-unpacked.dat");
+    ConvertCompressedImageData("originalgame/data/title.dat", "extract/images/title.png", 320, 200, 2);
 }
 
 
@@ -2104,12 +2034,7 @@ void PrepareData::ExtractThinWhiteFontSVGA() {
     //data\hfont0-0.dat
     //data\hfont0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
-
-    UnpackDataFile("originalgame/data/hfont0-0.dat", "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
-    //extract images to BMP from DAT/TAB file
-    ExtractImagesfromDataFile("extract/fonts/thinwhite/hfont0-0-unpacked.dat", "originalgame/data/hfont0-0.tab", palette, "extract/fonts/thinwhite/hfont0-0-");
-    //remove unnecessary files
-    remove("extract/fonts/thinwhite/hfont0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/hfont0-0", "extract/fonts/thinwhite/hfont0-0-");
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
@@ -2120,10 +2045,7 @@ void PrepareData::ExtractEditorCursors() {
     //data\point0-0.dat
     //data\point0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor cursors
-
-    UnpackDataFile("originalgame/data/point0-0.dat", "extract/editor/point0-0-unpacked.dat");
-    ExtractImagesfromDataFile("extract/editor/point0-0-unpacked.dat", "originalgame/data/point0-0.tab", palette, "extract/editor/point0-0-");
-    remove("extract/editor/point0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/point0-0", "extract/editor/point0-0-");
 }
 
 //extracts the Editor items large in data\hspr0-0.dat and data\hspr0-0.tab
@@ -2134,10 +2056,7 @@ void PrepareData::ExtractEditorItemsLarge() {
     //data\hspr0-0.dat
     //data\hspr0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
-
-    UnpackDataFile("originalgame/data/hspr0-0.dat", "extract/editor/hspr0-0-unpacked.dat");
-    ExtractImagesfromDataFile("extract/editor/hspr0-0-unpacked.dat", "originalgame/data/hspr0-0.tab", palette, "extract/editor/hspr0-0-");
-    remove("extract/editor/hspr0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/hspr0-0", "extract/editor/hspr0-0-");
 }
 
 //extracts the Editor items small in data\mspr0-0.dat and data\mspr0-0.tab
@@ -2148,10 +2067,7 @@ void PrepareData::ExtractEditorItemsSmall() {
     //data\mspr0-0.dat
     //data\mspr0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
-
-    UnpackDataFile("originalgame/data/mspr0-0.dat", "extract/editor/mspr0-0-unpacked.dat");
-    ExtractImagesfromDataFile("extract/editor/mspr0-0-unpacked.dat", "originalgame/data/mspr0-0.tab", palette, "extract/editor/mspr0-0-");
-    remove("extract/editor/mspr0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/mspr0-0", "extract/editor/mspr0-0-");
 }
 
 //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
@@ -2846,23 +2762,28 @@ void PrepareData::PrepareIntro() {
      }
 }
 
+void PrepareData::ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
+    UnpackDataFile(packfile, "extract/tmp-unpacked.dat");
 
-// wrap main_unpack to take const char* arguments and throw an exception on error
-void UnpackDataFile(const char* packfile, const char* unpackfile) {
-    logging::Detail(std::string("unpacking ") + packfile);
+    // upscale original image data if necessary
+    ConvertRawImageData("extract/tmp-unpacked.dat", palette, sizex, sizey, outfile, scaleFactor);
 
-    // we need to temporarily copy the strings because main_unpack takes char* arguments.
-    char* _packfile = strdup(packfile);
-    char* _unpackfile = strdup(unpackfile);
+    remove("extract/tmp-unpacked.dat");
+}
 
-    int unpack_res = main_unpack(_packfile, _unpackfile);
+void PrepareData::ExtractCompressedImagesFromDataFile(const char* basename, const char* outdir) {
+    std::string packfile = std::string(basename) + ".dat";
+    std::string tabfile = std::string(basename) + ".tab";
 
-    free(_packfile);
-    free(_unpackfile);
+    UnpackDataFile(packfile.c_str(), "extract/tmp-unpacked.dat");
 
-    if (unpack_res != 0) {
-        throw std::string("Error unpacking file: ") + packfile;
-    }
+    ExtractImagesfromDataFile(
+        "extract/tmp-unpacked.dat",
+        tabfile.c_str(),
+        palette,
+        outdir);
+
+    remove("extract/tmp-unpacked.dat");
 }
 
 // wrap ExtractImages to take const char* arguments and throw an exception on error
@@ -2880,5 +2801,24 @@ void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsig
 
     if (extract_res != 0) {
         throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
+    }
+}
+
+
+// wrap main_unpack to take const char* arguments and throw an exception on error
+void UnpackDataFile(const char* packfile, const char* unpackfile) {
+    logging::Detail(std::string("unpacking ") + packfile);
+
+    // we need to temporarily copy the strings because main_unpack takes char* arguments.
+    char* _packfile = strdup(packfile);
+    char* _unpackfile = strdup(unpackfile);
+
+    int unpack_res = main_unpack(_packfile, _unpackfile);
+
+    free(_packfile);
+    free(_unpackfile);
+
+    if (unpack_res != 0) {
+        throw std::string("Error unpacking file: ") + packfile;
     }
 }

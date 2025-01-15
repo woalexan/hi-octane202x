@@ -192,9 +192,12 @@ private:
     //Returns true when successful, False otherwise
     void ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries);
 
+    void ExtractCompressedImagesFromDataFile(const char* basename, const char* outdir);
+    void ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor=1);
+
     //writes raw video data into picture file, using specified palette file
     void ConvertRawImageData(const char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
-                             const char* outputFilename, int scaleFactor = 1.0, bool flipY = false);
+                             const char* outputFilename, int scaleFactor = 1, bool flipY = false);
 
     void ExtractTmaps();
 
