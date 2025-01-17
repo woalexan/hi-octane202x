@@ -2670,16 +2670,14 @@ void PrepareData::ExtractMusic() {
     //this position
     fseek(iFile, size - 4, SEEK_SET);
 
-    unsigned long seekPos;
+    // unsigned long is larger than the 4 bytes read. initializing it to 0 avoids
+    // the upper bytes containing garbage.
+    unsigned long seekPos = 0;
 
-    fread(&seekPos, sizeof(seekPos), 1, iFile);
-    if (seekPos > size) {
-        fclose(iFile);
-        throw std::string("Error - Invalid seek position in music file (hint: little/big endian mistake?)");
-    }
+    fread(&seekPos, 4, 1, iFile);
     fseek(iFile, seekPos, SEEK_SET);
 
-    short int readVal;
+    short int readVal = 0;
     unsigned int N = 0;
     size_t lastSeekPos;
 
@@ -2687,7 +2685,7 @@ void PrepareData::ExtractMusic() {
     //lets call the amount of repetitions N
     do {
         lastSeekPos = ftell(iFile);
-        fread(&readVal, sizeof(readVal), 1, iFile);
+        fread(&readVal, 2, 1, iFile);
         if (readVal == 0x01)
             N++;
     } while (readVal == 0x01);
@@ -2699,6 +2697,9 @@ void PrepareData::ExtractMusic() {
     fseek(iFile, lastSeekPos, SEEK_SET);
 
     std::vector<MUSICTABLEENTRY> VecMusicTableEntries;
+
+    // Integer sizes are not well defined, so better check them
+    static_assert(sizeof(MUSICTABLEENTRY) == 16);
 
     MUSICTABLEENTRY *newTableEntry;
 
@@ -2716,6 +2717,9 @@ void PrepareData::ExtractMusic() {
     std::vector<MUSICTABLEENTRY>::iterator it;
 
     std::vector<SOUNDFILEENTRY> VecTuneInformation;
+
+    // Integer sizes are not well defined, so better check them
+    static_assert(sizeof(SOUNDFILEENTRY) == 32);
 
     SOUNDFILEENTRY *newTuneInformation;
     unsigned long targetLenTuneSum;
