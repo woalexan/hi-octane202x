@@ -9,6 +9,8 @@
 
 #include "fileutils.h"
 
+#include <stdexcept>
+
 int copy_file (char *iname, char *oname)
 {
     char *sysbuf;
@@ -31,7 +33,7 @@ int copy_file (char *iname, char *oname)
 //-1 if item can not be accessed (unexpected error)
 //0 if item is not a directory
 //1 if item is a directory
-int IsDirectoryPresent(char* dirPath) {
+int IsDirectoryPresent(const char* dirPath) {
     struct stat info;
 
     if( stat( dirPath, &info ) != 0 )
@@ -45,7 +47,7 @@ int IsDirectoryPresent(char* dirPath) {
 //-1 if item can not be accessed, means file does not exit
 //1 if file exists
 //0 specified element is not a file, but something else
-int FileExists(char *fname)
+int FileExists(const char *fname)
 {
     struct stat info;
 
@@ -59,31 +61,20 @@ int FileExists(char *fname)
 
 //Returns 0 if directory was created succesfully
 //returns 1 if directory was not created due to problem
-int CreateDirectory(char *dirPath) {
-    int check;
-
-    check = mkdir(dirPath, 0777);
+void CreateDirectory(const char *dirPath) {
+    int check = mkdir(dirPath, 0777);
 
     // check if directory is created or not
-    if (!check)
-           return (0); //directory was created
-       else {
-          return (1); //directory was not created (error?)
+    if (check != 0) {
+        throw "Error creating directory: " + std::string(dirPath);
     }
 }
 
-bool PrepareSubDir(char* dirName) {
+void PrepareSubDir(const char* dirName) {
     //check if specified directory is already present
     //if not create this directory
     if (IsDirectoryPresent(dirName) == -1) {
         //directory is not there
-        if (CreateDirectory(dirName) == 1) {
-            //there was a problem, directory was not created!
-            return false;
-        }
+        CreateDirectory(dirName);
     }
-
-    //directory is there, or
-    //was created succesfull
-    return true;
 }

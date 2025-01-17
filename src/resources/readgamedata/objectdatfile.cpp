@@ -160,8 +160,8 @@ void ObjectDatFile::DebugWriteTriangleCsvFile(char* debugOutPutFileName, int tri
     fprintf(debugTriangleOutputFile, "%d;%d;%lu;%u;%u\n", triangleNr, texID, texItem->offset, texItem->width, texItem->height);
 }
 
-bool ObjectDatFile::LoadObjectDatFile(char* filename)
-  {
+bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
+
     if (!ConversionSuccesful) {
         printf("\nError - ObjectDatFile: BitConverterToInt16 failed unit test on this computer!\n");
         return false;
@@ -577,7 +577,7 @@ bool ObjectDatFile::CreateMtlFile(char* outFilename) {
     return true;
 }
 
-bool ObjectDatFile::WriteToObjFile(char* filename, char* objectname) {
+bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname) {
     if (!ConversionSuccesful) {
         printf("\nError - ObjectDatFile: BitConverterToInt16 failed unit test on this computer!\n");
         return false;
@@ -606,10 +606,12 @@ bool ObjectDatFile::WriteToObjFile(char* filename, char* objectname) {
     } else {
         //remove everything after last dot including the dot
         //just do this by writing NULL char to dot position
-        filename[dotPos] = 0;
+        char filename_base[128];
+        strcpy(filename_base, filename);
+        filename_base[dotPos] = 0;
 
-        strcpy(objFilename, filename);
-        strcpy(mtlFilename, filename);
+        strcpy(objFilename, filename_base);
+        strcpy(mtlFilename, filename_base);
 
         strcat(mtlFilename, ".mtl");
         strcat(objFilename, ".obj");
