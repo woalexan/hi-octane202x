@@ -758,12 +758,10 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
                    irr::core::vector3df startWayPoint = foundLinks.at(0)->pStartEntity->getCenter();
 
                    irr::core::vector3df deltaVec = Startpos - startWayPoint;
-                   deltaVec.Y = 0.0f;
-                   deltaVec.Z = 0.0f;
+                   //deltaVec.Y = 0.0f;
+                   //deltaVec.Z = 0.0f;
 
-                   irr::f32 setOffset = deltaVec.getLength();
-
-                   newPlayer->mCpCurrPathOffset = setOffset;
+                   newPlayer->mCpCurrPathOffset = -deltaVec.X;
                }
             }
     }
@@ -804,6 +802,7 @@ void Race::UpdatePlayerRacePositionRanking() {
 
    currLapNr = (it2)->first;
    playerPntr = (it2)->second;
+   int nextCheckPointValueHelper;
 
    for (it2 = vecLapsFinished.rbegin(); it2 != vecLapsFinished.rend(); ++it2) {
 
@@ -812,14 +811,49 @@ void Race::UpdatePlayerRacePositionRanking() {
        //is the next player in the same current lap number?
        if ((*it2).first == currLapNr) {
           //yes, add it to the next sorting list for next expected check point
-          vecNextCheckPointExpected.push_back( make_pair(playerPntr->nextCheckPointValue, playerPntr));
+          //18.01.2025: we need to keep something in mind to not get wrong results:
+          //nextCheckPointValue inside player rolls over at the end of the lap in front of the
+          //finish line back to 0, and start counting upwards again; That means during the race (after finish
+          //line was first passed by the player, the value 0 for nextCheckPointValue means actually more progress
+          //for the player then the highest possible check point value for this race track. If the player has passed
+          //the finish line already or not, is stored in player variable lastCrossedCheckPointValue
+          nextCheckPointValueHelper = playerPntr->nextCheckPointValue;
+
+          //is the next expected checkpoint 0?
+          if (nextCheckPointValueHelper == 0) {
+              //has the player already at least one time crossed the finish line?
+              if (playerPntr->lastCrossedCheckPointValue != 0) {
+                  //yes, player crossed finish line at least once
+                  //this means a next checkpoint value of 0 means actually more race progress then
+                  //all higher numbers, fix nextCheckPointValue for the race progress sorting but just setting
+                  //the number of next expected checkpoint higher
+                  nextCheckPointValueHelper = this->checkPointVec->size();
+              }
+          }
+
+          vecNextCheckPointExpected.push_back( make_pair(nextCheckPointValueHelper, playerPntr));
        } else {
            //the next player has not so much laps done yet
            //go to the next sorting stage
             UpdatePlayerRacePositionRankingHelper2(vecNextCheckPointExpected);
 
             vecNextCheckPointExpected.clear();
-            vecNextCheckPointExpected.push_back( make_pair(playerPntr->nextCheckPointValue, playerPntr));
+
+            nextCheckPointValueHelper = playerPntr->nextCheckPointValue;
+
+            //is the next expected checkpoint 0?
+            if (nextCheckPointValueHelper == 0) {
+                //has the player already at least one time crossed the finish line?
+                if (playerPntr->lastCrossedCheckPointValue != 0) {
+                    //yes, player crossed finish line at least once
+                    //this means a next checkpoint value of 0 means actually more race progress then
+                    //all higher numbers, fix nextCheckPointValue for the race progress sorting but just setting
+                    //the number of next expected checkpoint higher
+                    nextCheckPointValueHelper = this->checkPointVec->size();
+                }
+            }
+
+            vecNextCheckPointExpected.push_back( make_pair(nextCheckPointValueHelper, playerPntr));
        }
 
        currLapNr = (it2)->first;
@@ -841,10 +875,23 @@ void Race::UpdatePlayerRacePositionRanking() {
    }
 }
 
+void Race::DebugResetColorAllWayPointLinksToWhite() {
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    for (it = this->wayPointLinkVec->begin(); it != this->wayPointLinkVec->end(); ++it) {
+        (*it)->pLineStruct->color = mDrawDebug->white;
+    }
+}
+
 void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
     irr::f32 sumDistance = 0.0f;
     WayPointLinkInfoStruct* currLink;
     irr::f32 len;
+    irr::f32 partLen;
+    CheckPointInfoStruct* pntrChkPoint;
+
+    //only for debugging!
+    //DebugResetColorAllWayPointLinksToWhite();
 
     //start at current waypoint link closest to current player
     //then follow this link forward until we hit the next checkpoint
@@ -861,12 +908,38 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
 
         //first part of the distance is the part from player position
         //on current waypoint link to end of this waypoint link
-        sumDistance += (currLink->length3D - len);
+        partLen = currLink->length3D - len;
 
-        //now follow the waypoint links forward until we hit the next checkpoint
-        while (currLink->pntrCheckPoint == NULL) {  //follow one link after another until we hit the next checkpoint
-            currLink = currLink->pntrPathNextLink;
+        if (partLen < 0.0f)
+            partLen = 0.0f;
 
+        sumDistance += partLen;
+
+        //already a checkpoint at the end of this waypoint link which we are currently
+        //in, and we are distance wise before the expected waypoint?
+        //if we are progress wise already after the checkpoint location, continue search for next
+        //checkpoint
+        if ((currLink->pntrCheckPoint != NULL) && (len < currLink->distanceStartLinkToCheckpoint)) {
+            //yes, exit here
+            whichPlayer->remainingDistanceToNextCheckPoint = sumDistance;
+
+            return;
+        }
+
+        //sometimes the checkpoint is placed in the level maps exactly at a waypoint, so at the end I get
+        //two waypoint links one after another with a pointer to the same checkpoint; This would through the distance
+        //calculation of. To fix this issue we need to continue following waypoint links until we first find a "gap" of
+        //waypoint links without any checkpoint there. Only after the we can be sure that we found the next (different)
+        //waypoint
+
+        pntrChkPoint = currLink->pntrCheckPoint;
+        bool cont = true;
+
+        //we need to look at the next following waypoint link
+        currLink = currLink->pntrPathNextLink;
+
+        //now follow the waypoint l whichPlayer->mLeave = 1;inks forward until we hit the next (but different) checkpoint
+        while (cont) {  //follow one link after another until we hit the next checkpoint
             if (currLink != NULL) {
                 if (currLink->pntrCheckPoint == NULL) {
                     //The next line is for debugging
@@ -875,14 +948,21 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
                     //for this links add up the whole length
                     sumDistance += currLink->length3D;
                 } else {
-                    //there is a checkpoint within this waypoint link
+                    //there is a (different then the last) checkpoint within this waypoint link
                     //for this one add only the distance from the start point until the checkpoint location
                     sumDistance += currLink->distanceStartLinkToCheckpoint;
+                    pntrChkPoint = currLink->pntrCheckPoint;
+
                     //currLink->pLineStruct->color = mDrawDebug->red;
-                    break;
+                    cont = false;
                 }
+            } else {
+                cont = false;
             }
+
+               currLink = currLink->pntrPathNextLink;
         }
+
         //set currently remaining distance from player location to next checkpoint
         //into the player object
         whichPlayer->remainingDistanceToNextCheckPoint = sumDistance;
@@ -1470,8 +1550,13 @@ void Race::Init() {
         //HUD should show main player stats
         //Wolf 22.12.2024: commented out, since add player we have no player object
         //here anymore
-        // Hud1Player->SetMonitorWhichPlayer(player);
-        Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
+        if (mDemoMode) {
+            //in demo mode we do not want to draw a HUD
+            Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
+        } else {
+            //in normal race mode we draw the HUD
+            Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
+        }
 
         //give physics the triangle selectors for overall collision detection
         this->mPhysics->AddCollisionMesh(triangleSelectorWallCollision);
@@ -1666,8 +1751,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
      for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
         (*itPlayer)->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks((*itPlayer));
-        (*itPlayer)->currClosestWayPointLink = mPath->PlayerDeriveClosestWaypointLink((*itPlayer)->currCloseWayPointLinks);
-        (*itPlayer)->SetCurrClosestWayPointLink((*itPlayer)->currClosestWayPointLink);
+        (*itPlayer)->SetCurrClosestWayPointLink(mPath->PlayerDeriveClosestWaypointLink((*itPlayer)->currCloseWayPointLinks));
      }
 
      for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
@@ -1893,7 +1977,16 @@ void Race::HandleBasicInput() {
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F3))
     {
-         this->mGame->AdvanceFrame(5);
+         this->mGame->AdvanceFrame(1);
+    }
+
+    if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
+    {
+         if (this->mGame->mLogger->IsWindowHidden()) {
+             mGame->mLogger->ShowWindow();
+         } else {
+             mGame->mLogger->HideWindow();
+         }
     }
 
     if(this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
@@ -2199,6 +2292,10 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
 
 void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
 
+    //in Demo mode we do not want to draw a minimap
+    if (mDemoMode)
+        return;
+
     mDriver->draw2DImage(baseMiniMap, miniMapDrawLocation,
              miniMapImageUsedArea, 0,
              irr::video::SColor(255,255,255,255), true);
@@ -2248,6 +2345,39 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
     }
 }
 
+void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
+    std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
+
+    //draw all connections between map waypoints for debugging purposes;
+    for(WayPointLink_iterator = wayPointLinkVec->begin(); WayPointLink_iterator != wayPointLinkVec->end(); ++WayPointLink_iterator) {
+        //draw lines a little bit raised from Terrain, so that the are better visible
+        irr::core::vector3df incY(0.0f, 0.15f, 0.0f);
+
+        mDrawDebug->Draw3DLine(
+                    (*WayPointLink_iterator)->pLineStruct->A + incY,
+                    (*WayPointLink_iterator)->pLineStruct->B + incY,
+                    (*WayPointLink_iterator)->pLineStruct->color);
+
+        if (drawFreeMovementSpace) {
+            //also draw min/max offset shift limit lines for graphical representation of possible computer player
+            //movement area
+            mDrawDebug->Draw3DLine(
+                        (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
+                        (*WayPointLink_iterator)->minOffsetShiftStart,
+                        (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
+                        (*WayPointLink_iterator)->minOffsetShiftEnd,
+                        this->mDrawDebug->blue);
+
+            mDrawDebug->Draw3DLine(
+                        (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
+                        (*WayPointLink_iterator)->maxOffsetShiftStart,
+                        (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
+                        (*WayPointLink_iterator)->maxOffsetShiftEnd,
+                        this->mDrawDebug->red);
+        }
+    }
+}
+
 void Race::Render() {
     //we need to draw sky image first, the remaining scene will be drawn on top of it
     DrawSky();
@@ -2265,38 +2395,20 @@ void Race::Render() {
     std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
 
     if (DebugShowWaypoints) {
-      //draw all connections between map waypoints for debugging purposes;
-      //mDriver->setMaterial(*mDrawDebug->white);
-      for(WayPointLink_iterator = wayPointLinkVec->begin(); WayPointLink_iterator != wayPointLinkVec->end(); ++WayPointLink_iterator) {
-          mDriver->setMaterial(*(*WayPointLink_iterator)->pLineStruct->color);
-          /*
-          if ((*WayPointLink_iterator)->pntrCheckPoint != NULL) {
-                mDriver->setMaterial(*mDrawDebug->red);
-          } else mDriver->setMaterial(*mDrawDebug->blue);*/
-          mDriver->draw3DLine((*WayPointLink_iterator)->pLineStruct->A, (*WayPointLink_iterator)->pLineStruct->B);
-
-          //also draw min/max offset shift limit lines for graphical representation of possible computer player
-          //movement area
-          mDrawDebug->Draw3DLine(
-                      (*WayPointLink_iterator)->pLineStruct->A + (*WayPointLink_iterator)->offsetDirVec *
-                      (*WayPointLink_iterator)->minOffsetShift,
-                      (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
-                      (*WayPointLink_iterator)->minOffsetShift,
-                      this->mDrawDebug->blue);
-
-          mDrawDebug->Draw3DLine(
-                      (*WayPointLink_iterator)->pLineStruct->A + (*WayPointLink_iterator)->offsetDirVec *
-                      (*WayPointLink_iterator)->maxOffsetShift,
-                      (*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->offsetDirVec *
-                      (*WayPointLink_iterator)->maxOffsetShift,
-                      this->mDrawDebug->red);
-
-        /*  if ((*WayPointLink_iterator)->pLineStruct->debugLine != NULL) {
-            mDriver->setMaterial(*mDrawDebug->brown);
-             mDriver->draw3DLine((*WayPointLink_iterator)->pLineStruct->debugLine->start, (*WayPointLink_iterator)->pLineStruct->debugLine->end);
-          }*/
-      }
+        DebugDrawWayPointLinks(DebugShowFreeMovementSpace);
      }
+
+   /* if ((currPlayerFollow != NULL) && (currPlayerFollow->currClosestWayPointLink.first != NULL)) {
+        mDrawDebug->Draw3DLine(
+                    currPlayerFollow->currClosestWayPointLink.second, currPlayerFollow->currClosestWayPointLink.second
+                    + currPlayerFollow->currClosestWayPointLink.first->offsetDirVec * currPlayerFollow->mCpFollowedWayPointLinkCurrentSpaceRightSide,
+                    this->mDrawDebug->pink);
+
+        mDrawDebug->Draw3DLine(
+                    currPlayerFollow->currClosestWayPointLink.second,  currPlayerFollow->currClosestWayPointLink.second
+                    + currPlayerFollow->currClosestWayPointLink.first->offsetDirVec * currPlayerFollow->mCpFollowedWayPointLinkCurrentSpaceLeftSide,
+                    this->mDrawDebug->brown);
+    }*/
 
     std::vector<LineStruct*>::iterator Linedraw_iterator2;
 
@@ -2406,7 +2518,7 @@ void Race::Render() {
               std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
              for (itPathEl = currPlayerFollow->mCurrentPathSeg.begin(); itPathEl != currPlayerFollow->mCurrentPathSeg.end(); ++itPathEl) {
-                   mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+                   mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, mDrawDebug->blue); //(*itPathEl)->pLineStruct->color);
               }
 
              //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
@@ -2468,15 +2580,43 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
-    /*    if (currPlayerFollow != NULL) {
-            if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
+        if (currPlayerFollow != NULL) {
+            /*if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
                                        mDrawDebug->cyan);
 
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->B,
                                        mDrawDebug->red);
-            }
-        }*/
+
+                mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.second,
+                                       mDrawDebug->blue);
+
+                if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
+                    irr::core::vector3df incY2(0.0f, 0.15f, 0.0f);
+
+                    mDrawDebug->Draw3DLine(
+                                currPlayerFollow->cPCurrentFollowSeg->pLineStruct->A + incY2,
+                                currPlayerFollow->cPCurrentFollowSeg->pLineStruct->B + incY2,
+                                this->mDrawDebug->orange);
+                }
+            }*/
+
+            /*if (currPlayerFollow->mFailedLinks.size() > 0) {
+                std::vector<WayPointLinkInfoStruct*>::iterator it3;
+
+                for (it3 = currPlayerFollow->mFailedLinks.begin(); it3 != currPlayerFollow->mFailedLinks.end(); ++it3) {
+                    mDrawDebug->Draw3DLine((*it3)->pLineStruct->A, (*it3)->pLineStruct->B,
+                                           mDrawDebug->orange);
+                }
+            }*/
+
+
+           /* if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
+                mDrawDebug->Draw3DLine(currPlayerFollow->cPCurrentFollowSeg->pLineStruct->A, currPlayerFollow->cPCurrentFollowSeg->pLineStruct->B,
+                                       mDrawDebug->orange);
+            }*/
+
+        }
 
         //DebugShowAllObstaclePlayers();
 
@@ -3154,6 +3294,12 @@ void Race::CleanUpWayPointLinks(std::vector<WayPointLinkInfoStruct*> &vec) {
 
            //delete the LineStruct
            delete pntr->pLineStruct;
+
+           //delete name inside LineExtStruct
+           delete[] pntr->pLineStructExtended->name;
+
+           //delete the LineExtStruct
+           delete pntr->pLineStructExtended;
         }
     }
 
@@ -3229,6 +3375,10 @@ void Race::CheckPointPostProcessing() {
         irr::core::aabbox3d bbox = (*it)->SceneNode->getTransformedBoundingBox();
 
         fndLink = NULL;
+        irr::core::line3df linepiece;
+        irr::core::vector3df vecPiece;
+        int pieceFound;
+
         //iterate through all available waypoint lines
         for (it2 = this->wayPointLinkVec->begin(); it2 != this->wayPointLinkVec->end(); ++it2) {
             //we should find a waypoint link line that intersects with our checkpoint Mesh
@@ -3241,12 +3391,34 @@ void Race::CheckPointPostProcessing() {
                 //remember checkpoint in current line as well
                 (*it2)->pntrCheckPoint = (*it);
 
-                //precalculate and store distance waypointLink Start
+                //figure out and store distance waypointLink Start
                 //point to point where line crosses the checkpoint
-                //do a very rough calculation and simply assume that the line crosses
-                //the checkpoint in the middle
-                (*it2)->distanceStartLinkToCheckpoint =
-                        (((*it)->pLineStruct->A + (*it)->pLineStruct->B) * irr::core::vector3df(0.5f, 0.5f, 0.5f) - (*it2)->pLineStruct->A).getLength();
+                //to do this just iterate over much shorter line pieces, and
+                //see where the shorter pieces hit the checkpoint bounding box
+
+                vecPiece = (line3D.end - line3D.start) / 10.0f;
+
+                pieceFound = -1;
+
+                for (int piece = 0; piece < 10; piece++) {
+                    linepiece.start = line3D.start + vecPiece * piece;
+                    linepiece.end = line3D.start + vecPiece * (piece + 1);
+
+                    if (bbox.intersectsWithLine(linepiece)) {
+                        pieceFound = piece;
+                        break;
+                    }
+                }
+
+                if (pieceFound == -1) {
+                    //did not find correct location, place into middle as a workaround!
+                    (*it2)->distanceStartLinkToCheckpoint =
+                            (((*it)->pLineStruct->A + (*it)->pLineStruct->B) * irr::core::vector3df(0.5f, 0.5f, 0.5f) - (*it2)->pLineStruct->A).getLength();
+                } else {
+                    //we found the location, set exact location of checkpoint
+                    (*it2)->distanceStartLinkToCheckpoint =
+                            ((linepiece.start + linepiece.end) * irr::core::vector3df(0.5f, 0.5f, 0.5f) - (*it2)->pLineStruct->A).getLength();
+                }
 
                 //just set fndLink first time
                // if (fndLink == NULL) {
@@ -3259,6 +3431,25 @@ void Race::CheckPointPostProcessing() {
         if (fndLink != NULL) {
               //calculate and set direction vector for checkpoint
               (*it)->RaceDirectionVec = (fndLink->pLineStruct->B - fndLink->pLineStruct->A).normalize();
+        }
+    }
+
+    //now run a third step, where we look at situations where a two waypoint links after one another
+    //are both assigned the same checkpoint, we do not want to have this situation, because this leads to jumpd
+    //when we calculate the remaining distance to the next checkpoint for each player; we need this calculation for
+    //race position determination later
+    //if we have the same checkpoint assigned to two links in sequence, then remove the second occurence again
+    //important note: it must be possible to link a checkpoint to two or more waypoint links (an example is the ammo charger
+    //area in level 1 where this occurs) which are not one after another, but as in this case parallel independent
+    //ways/paths for the player
+    for (it1 = this->wayPointLinkVec->begin(); it1 != this->wayPointLinkVec->end(); ++it1) {
+           if (((*it1)->pntrCheckPoint != NULL) && ((*it1)->pntrPathNextLink != NULL)) {
+              if ((*it1)->pntrCheckPoint == (*it1)->pntrPathNextLink->pntrCheckPoint) {
+                  //we have found this situation
+                  //prefer to delete link to checkpoint in the waypoint link that follows after the checkpoint
+                  (*it1)->pntrPathNextLink->pntrCheckPoint = NULL;
+                  (*it1)->pntrPathNextLink->distanceStartLinkToCheckpoint = 0.0f;
+              }
         }
     }
 }
@@ -3503,6 +3694,23 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
         //this direction vector is later used during the game to offset the player
         //path sideways
         newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*yAxisDirVector).normalize();
+
+        //Idea: extend the lines a little bit further outwards at
+        //both ends, so that when we project the players position on
+        //the different segments later we always find a valid segment
+        LineStruct *lineExt = new LineStruct;
+
+        lineExt->A = line->A - newStruct->LinkDirectionVec * 0.5f;
+        lineExt->B = line->B + newStruct->LinkDirectionVec * 0.5f;
+
+        lineExt->name = new char[100];
+        sprintf(&lineExt->name[0], "Ext Waypoint line %d to %d",
+                entity->get_ID(), next->get_ID());
+
+        //set white as default color
+        lineExt->color = mDrawDebug->white;
+
+        newStruct->pLineStructExtended = lineExt;
 
         //add new waypoint link info struct to vector of all
         //waypoint links

@@ -50,10 +50,12 @@ const irr::f32 CP_PLAYER_STUCKDETECTION_PERIOD_SEC = 0.5f;
 
 const irr::f32 CRAFT_JUMPDETECTION_THRES = 0.2f;
 
-const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMAX = 2000.0f;
+const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMAX = 1500.0f;  //2000.0f
 const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMIN = 50.0f;
-const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN = 5.0f;
+const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN = 2.0f;  //5.0f
 const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX = 35.0f;
+
+const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
@@ -292,13 +294,17 @@ public:
     int mCurrPosCellY;
 
     std::vector<WayPointLinkInfoStruct*> mPathHistoryVec;
-
     std::vector<WayPointLinkInfoStruct*> mCurrentPathSeg;
+    std::vector<WayPointLinkInfoStruct*> mCurrentPathSegSortedOutReverse;
+
     irr::u32 mCurrentPathSegNrSegments;
     irr::u32 mCurrentPathSegCurrSegmentNr;
 
     WayPointLinkInfoStruct* mCpFollowThisWayPointLink;
     WayPointLinkInfoStruct* mCpLastFollowThisWayPointLink;
+
+    irr::f32 mCpFollowedWayPointLinkCurrentSpaceRightSide;
+    irr::f32 mCpFollowedWayPointLinkCurrentSpaceLeftSide;
 
     int randRangeInt(int min, int max);
 
@@ -306,12 +312,17 @@ public:
     irr::core::vector3df debugPathPnt2;
     irr::core::vector3df debugPathPnt3;
 
+      int mLeave = 0;
+
     irr::f32 dbgAngleError;
     irr::f32 dbgDistError;
 
     void CPForward();
     void CPBackward();
-    void ProjectPlayerAtCurrentSegments();
+    void CPTrackMovement();
+
+    irr::u32 mCPTrackMovementNoClearClosestLinkCnter = 0;
+    irr::u32 mCPTrackMovementLostProgressCnter = 0;
 
     void CollectedCollectable(Collectable* whichCollectable);
 
@@ -440,9 +451,7 @@ public:
     irr::core::vector3df craftSidewaysToRightVec;
 
     irr::f32 mCurrentCraftOrientationAngle;
-    irr::f32 mLastCurrentCraftOrientationAngle;
 
-    irr::f32 mLastAngleError;
     irr::f32 mAngleError;
 
     irr::f32 mCurrentCraftDistToWaypointLink = 0.0f;
@@ -478,6 +487,8 @@ public:
 
     Race *mRace;
 
+    std::vector<WayPointLinkInfoStruct*> mFailedLinks;
+
     //debug height calculation variables
     LineStruct debug;
     std::list<LineStruct*> debug_player_heightcalc_lines;
@@ -493,6 +504,9 @@ public:
                            irr::core::vector3d<irr::f32>* distanceVec, irr::f32 *remainingDistanceToTravel);
 
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> currClosestWayPointLink;
+    std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> lastClosestWayPointLink;
+
+
     std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> > currCloseWayPointLinks;
 
     WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
@@ -667,6 +681,8 @@ private:
 
     //from which recovery vehicle are we currently grabbed?
     Recovery* mGrabedByThisRecoveryVehicle = NULL;
+
+    void LogMessage(char *msgTxt);
 
     bool DoIWantToChargeShield();
     bool DoIWantToChargeFuel();

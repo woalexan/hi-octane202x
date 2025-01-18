@@ -91,7 +91,9 @@ bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> 
 
     for (irr::s16 cellIdx = 0; cellIdx < nrCells; cellIdx++) {
         mapEntry = this->mRace->mLevelTerrain->GetMapEntry(cells.at(cellIdx).X, cells.at(cellIdx).Y);
-        isRoadTexture = this->mRace->mLevelTerrain->IsRoadTexture(mapEntry->m_TextureId);
+
+        //you must enable extended texture IDs here, to make it work correctly
+        isRoadTexture = this->mRace->mLevelTerrain->IsRoadTexture(mapEntry->m_TextureId, true);
 
         if (!isRoadTexture) {
             endRoadTextureID3DPos.X = -cells.at(cellIdx).X * DEF_SEGMENTSIZE;
@@ -166,18 +168,34 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
 
         //which is the minimum of the results?
         minVal = distStartEntity;
-
-        if (distEndEntity < minVal) {
-            minVal = distEndEntity;
-        }
+        //minVal = FLT_MAX;
 
         if (distStartEntityTextureId < minVal) {
             minVal = distStartEntityTextureId;
         }
 
+        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
+        if (minVal < 0.0f)
+            minVal = 0.0f;
+
+        (*it)->maxOffsetShiftStart = minVal;
+
+        minVal = distEndEntity;
+        //minVal = FLT_MAX;
+
+        /*if (distEndEntity < minVal) {
+            minVal = distEndEntity;
+        }*/
+
         if (distEndEntityTextureId < minVal) {
             minVal = distEndEntityTextureId;
         }
+
+        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
+        if (minVal < 0.0f)
+            minVal = 0.0f;
+
+        (*it)->maxOffsetShiftEnd = minVal;
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
         //we can find out by shooting rays in parallel to the original waypoint link, but with
@@ -185,7 +203,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //for each iteration we determine after which distance we hit something
         //if we hit something in a distance less then the original length of the waypoint link, then
         //hit hit an obstacle on the way
-        testOffset = resolution;
+      /*  testOffset = resolution;
 
         coord3D = (*it)->pLineStruct->A;
         bool hitEnd = false;
@@ -217,7 +235,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         }
 
         //minVal has now the minimum we found inside
-        (*it)->maxOffsetShift = minVal;
+        (*it)->maxOffsetShift = minVal;*/
 
         //*************************************************************/
         /* repeat everything, but this time for direction to the left */
@@ -248,18 +266,35 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
 
         //which is the minimum of the results?
         minVal = distStartEntity;
-
-        if (distEndEntity < minVal) {
-            minVal = distEndEntity;
-        }
+        //  minVal = FLT_MAX;
 
         if (distStartEntityTextureId < minVal) {
             minVal = distStartEntityTextureId;
         }
 
+        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
+        if (minVal < 0.0f)
+            minVal = 0.0f;
+
+        (*it)->minOffsetShiftStart = -minVal;
+
+        minVal = distEndEntity;
+        //  minVal = FLT_MAX;
+
+
+        /*if (distEndEntity < minVal) {
+            minVal = distEndEntity;
+        }*/
+
         if (distEndEntityTextureId < minVal) {
             minVal = distEndEntityTextureId;
         }
+
+        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
+        if (minVal < 0.0f)
+            minVal = 0.0f;
+
+        (*it)->minOffsetShiftEnd = -minVal;
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
         //we can find out by shooting rays in parallel to the original waypoint link, but with
@@ -267,7 +302,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //for each iteration we determine after which distance we hit something
         //if we hit something in a distance less then the original length of the waypoint link, then
         //hit hit an obstacle on the way
-        testOffset = resolution;
+       /* testOffset = resolution;
 
         coord3D = (*it)->pLineStruct->A;
         hitEnd = false;
@@ -289,7 +324,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             if (!hitEnd) {
                 testOffset += resolution;
             }
-        }
+
 
         //if we found an additional obstacle from the side
         //and its making the available space smaller, then
@@ -302,6 +337,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //a movement towards the left is negative for us later
         //for reverse the sign
         (*it)->minOffsetShift = -minVal;
+        */
     }
 }
 

@@ -178,13 +178,21 @@ public:
     bool CheckPosInsideRegion(int posX, int posY, MapTileRegionStruct* regionStructPntr);
 
     //definition of road texture elements
+    //most important textures for auto generation of
+    //minimap
     std::vector<irr::s32> roadTexIdsVec = {31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
-                                            77, 78, 79, 82, 86, 116, 117, 118, 119,
-                                           122, 124, 125, 126, 128, 130, 137, 138, 139, 140,
+                                            77, 78, 79, 81, 82, 86, 116, 117, 118, 119,
+                                           122, 124, 125, 126, 127, 128, 129, 130, 131, 132, 136, 137, 138, 139, 140,
                                            141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
                                            96, 4};
 
-    bool IsRoadTexture(irr::s32 texture);
+    //some more additional texture IDs for roads which would disturb
+    //the minimap creation if we would add them to roadTexIdsVec directly
+    //but we need them in worldaware to properly detect the local width of the race track
+    std::vector<irr::s32> roadTexIdsVecExtendedForWorldAware = {
+        43, 47, 51, 120, 121,             123, 134, 135, 146, 147, 153 };
+
+    bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
 
 private:
     bool setupGeometry();

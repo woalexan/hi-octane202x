@@ -209,6 +209,10 @@ void MachineGun::Update(irr::f32 DeltaTime) {
 
         if (coolOffTime < 0.0f)
             coolOffTime = 0.0f;
+
+        if (coolOffTime < 0.1f) {
+            CpPlayerCurrentlyCoolDownNeeded = false;
+        }
     }
 
     if (timeAccu > 0.1) {

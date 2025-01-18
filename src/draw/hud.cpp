@@ -2493,7 +2493,6 @@ void HUD::RenderPlayerLapTimes() {
 //if showDurationSec is negative a permanent banner text message is created instead of the
 //default time limited one
 void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSoundActive) {
-
     //create new banner text message struct for the new message
     BannerTextMessageStruct* newMsg = new BannerTextMessageStruct();
 
@@ -2539,7 +2538,6 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
 }
 
 void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec) {
-
     //we need to allocate or own array of char and copy the data there for us later.
     //because we can not rely on a pntr to an array we got via
     //parameter; The array that we point to could disappear afterwards

@@ -98,9 +98,38 @@ std::vector<irr::core::vector3df> LevelTerrain::GetPlayerRaceTrackStartLocations
           }
       }
 
-      //TODO 18.08.2024: There is a map with only 4 starting textureIds, if we need 8 players we will crash
+      //TODO 18.08.2024: There is a map (it is original map number 6) with only 4 starting textureIds, if we need 8 players we will crash
       //implement another workaround here to calculate more starting locations based on the first found ones
       //(for example simply place the other crafts with a certain distance behind the first ones like the game seems to do)
+      if (fndStartLocations.size() < 8) {
+          irr::u8 missingPlaceNr = 8 - fndStartLocations.size();
+
+          //just allow to add one additional starting places behind the ones
+          //in the map
+          if (missingPlaceNr > fndStartLocations.size()) {
+              missingPlaceNr = fndStartLocations.size();
+          }
+
+          irr::f32 segSize = DEF_SEGMENTSIZE;
+
+          for (irr::u8 cnt = 0; cnt < missingPlaceNr; cnt++) {
+              irr::core::vector3df newLocation = fndStartLocations.at(cnt);
+
+              //place the new starting position 1 segment behind
+              newLocation.Z += segSize;
+
+              //make sure Y is also correct, in case terrain is different there
+              irr::core::vector2di outCell;
+
+              GetCurrentTerrainHeightForWorldCoordinate(newLocation.X, newLocation.Z, outCell);
+              newLocation.Y = this->levelRes->pMap[outCell.X][outCell.Y]->m_Height + HOVER_HEIGHT;
+
+              //add additional starting location to result vector
+              fndStartLocations.push_back(newLocation);
+          }
+      }
+
+
       return fndStartLocations;
   }
 
@@ -345,11 +374,20 @@ LevelTerrain::~LevelTerrain() {
 
 //Returns true if input texture is a roadtexture
 //according to a predefined list
-bool LevelTerrain::IsRoadTexture(irr::s32 texture) {
+bool LevelTerrain::IsRoadTexture(irr::s32 texture, bool addExtendedTextures) {
     for (std::vector<irr::s32>::iterator itTex = roadTexIdsVec.begin(); itTex != roadTexIdsVec.end(); ++itTex) {
         if ((*itTex) == texture) {
             //texture found, exit
             return true;
+        }
+    }
+
+    if (addExtendedTextures) {
+        for (std::vector<irr::s32>::iterator itTex = roadTexIdsVecExtendedForWorldAware.begin(); itTex != roadTexIdsVecExtendedForWorldAware.end(); ++itTex) {
+            if ((*itTex) == texture) {
+                //texture found, exit
+                return true;
+            }
         }
     }
 
@@ -495,7 +533,9 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
                         break;
              }
 
-            isRoadTex = IsRoadTexture(texID);
+            //do not add extended road textures here!
+            //this would break the minimap creation
+            isRoadTex = IsRoadTexture(texID, false);
 
             //any road texture?
             if (isRoadTex) {

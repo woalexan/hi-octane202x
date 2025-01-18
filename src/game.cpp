@@ -112,14 +112,26 @@ bool Game::InitGame() {
     if (!InitIrrlicht())
         return false;
 
+    //log window left upper corner 100, 380
+    //log window right lower corner 540, 460
+    irr::core::rect logWindowPos(100, 380, 540, 460);
+
+    //create my logger class
+    mLogger = new Logger(guienv, logWindowPos);
+    mLogger->HideWindow();
+
     if (!InitGameAssets())
         return false;
+
+    mLogger->AddLogMessage((char*)"Game Assets initialized");
 
     //InitSFMLAudio needs to be called after
     //InitGameAssets, because it needs the
     //assets already unpacked to load sounds etc..
     if (!InitSFMLAudio())
         return false;
+
+    mLogger->AddLogMessage((char*)"Audio init ok");
 
     mTimeProfiler = new TimeProfiler();
 
@@ -171,19 +183,21 @@ void Game::DebugGame() {
 
     int debugLevelNr = 1;
 
-    //player wants to start the race
-    if (this->CreateNewRace(debugLevelNr)) {
-         mGameState = DEF_GAMESTATE_RACE;
+    if (!runDemoMode) {
+        //player wants to start the race
+        if (this->CreateNewRace(debugLevelNr)) {
+             mGameState = DEF_GAMESTATE_RACE;
 
-         GameLoop();
+             GameLoop();
+        }
+    } else {
+        //we want to start a demo
+        if (this->RunDemoMode(debugLevelNr)) {
+             mGameState = DEF_GAMESTATE_DEMORACE;
+
+             GameLoop();
+        }
     }
-
-    //we want to start a demo
-  /*  if (this->RunDemoMode(debugLevelNr)) {
-         mGameState = DEF_GAMESTATE_DEMORACE;
-
-         GameLoop();
-    }*/
 }
 
 void Game::RunGame() {
@@ -323,15 +337,19 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mCurrentRace->HandleBasicInput();
 
-    if (mAdvanceFrameMode) {
-        mAdvanceFrameCnt--;
-
+    if (mAdvanceFrameMode) {   
         if (mAdvanceFrameCnt > 0) {
             mTimeStopped = false;
+            mAdvanceFrameCnt--;
         } else {
             mTimeStopped = true;
             mAdvanceFrameMode = false;
         }
+    }
+
+    if (!this->mTimeStopped) {
+        //advance race time, execute physics, move players...
+        mCurrentRace->AdvanceTime(frameDeltaTime);
     }
 
     if (!this->mTimeStopped) {
@@ -346,11 +364,6 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
-
-    if (!this->mTimeStopped) {
-        //advance race time, execute physics, move players...
-        mCurrentRace->AdvanceTime(frameDeltaTime);
-    }
 
     if (DebugShowVariableBoxes) {
 
@@ -452,17 +465,33 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                         this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
                         this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
             }*/
-
-          /* swprintf(text2, 390, L"%lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n",
+/*
+           swprintf(text2, 390, L"Curr Offset: %lf\n Left Avail: %lf\n Right Avail: %lf\n WALeftAvail: %lf\n WARightAvai: %lf\n NoClearLink: %d\n LostProgress: %d\n %d / %d Reverse: %d",
                      this->mCurrentRace->mPlayerVec.at(1)->mCpCurrPathOffset,
-                      this->mCurrentRace->mPlayerVec.at(2)->mCpCurrPathOffset,
-                     this->mCurrentRace->mPlayerVec.at(3)->mCpCurrPathOffset,
-                     this->mCurrentRace->mPlayerVec.at(4)->mCpCurrPathOffset,
-                    this->mCurrentRace->mPlayerVec.at(5)->mCpCurrPathOffset,
-                      this->mCurrentRace->mPlayerVec.at(6)->mCpCurrPathOffset,
-                       this->mCurrentRace->mPlayerVec.at(7)->mCpCurrPathOffset);*/
+                      this->mCurrentRace->mPlayerVec.at(1)->mCpFollowedWayPointLinkCurrentSpaceLeftSide,
+                     this->mCurrentRace->mPlayerVec.at(1)->mCpFollowedWayPointLinkCurrentSpaceRightSide,
+                     this->mCurrentRace->mPlayerVec.at(1)->mCraftDistanceAvailLeft,
+                     this->mCurrentRace->mPlayerVec.at(1)->mCraftDistanceAvailRight,
+                      this->mCurrentRace->mPlayerVec.at(1)->mCPTrackMovementNoClearClosestLinkCnter,
+                    this->mCurrentRace->mPlayerVec.at(1)->mCPTrackMovementLostProgressCnter,
+                    this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegCurrSegmentNr,
+                    this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegNrSegments,
+                    this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
+                    );*/
 
-            swprintf(text2, 390, L"");
+           swprintf(text2, 390, L"");
+
+           /*
+          swprintf(text2, 390, L"Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n", //Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n",
+                        this->mCurrentRace->mPlayerVec.at(0)->mPlayerStats->currLapNumber,
+                        this->mCurrentRace->mPlayerVec.at(0)->nextCheckPointValue,
+                        this->mCurrentRace->mPlayerVec.at(0)->remainingDistanceToNextCheckPoint
+
+                 /*  this->mCurrentRace->mPlayerVec.at(1)->mPlayerStats->currLapNumber,
+                   this->mCurrentRace->mPlayerVec.at(1)->nextCheckPointValue,
+                   this->mCurrentRace->mPlayerVec.at(1)->remainingDistanceToNextCheckPoint*/
+                 //  );   */
+
 
             dbgTimeProfiler->setText(text);
             dbgText->setText(text2);
@@ -484,6 +513,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     //2nd draw HUD over the scene, needs to be done at the end
     mCurrentRace->DrawHUD(frameDeltaTime);
     mCurrentRace->DrawMiniMap(frameDeltaTime);
+
+    //render log window
+    mLogger->Render();
 
     //last draw text debug output from Irrlicht
     guienv->drawAll();
@@ -624,13 +656,13 @@ bool Game::CreateNewRace(int load_levelnr) {
     mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
     mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
 
-    //StopTime();
-
     if (!mCurrentRace->ready) {
         //there was a problem with Race initialization
         cout << "Race creation failed!" << endl;
         return false;
     }
+
+    //StopTime();
 
     return true;
 }
@@ -660,20 +692,20 @@ bool Game::RunDemoMode(int load_levelnr) {
     mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
 
     //add computer player 4
-    //std::string pl5Model("extract/models/bike0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
+    std::string pl5Model("extract/models/bike0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
 
     //add computer player 5
-    //std::string pl6Model("extract/models/marsh0-0.obj");
-   // mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
+    std::string pl6Model("extract/models/marsh0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
 
     //add computer player 6
-    //std::string pl7Model("extract/models/jet0-0.obj");
-    //mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
+    std::string pl7Model("extract/models/jet0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
 
     //add computer player 7
-   // std::string pl8Model("extract/models/tank0-0.obj");
-   // mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+    std::string pl8Model("extract/models/tank0-0.obj");
+    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
 
     mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
     mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
