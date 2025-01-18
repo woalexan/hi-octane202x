@@ -287,6 +287,12 @@ bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStru
                                   std::vector<Player*> checkCollisionForWhichPlayers,
                                                 std::vector<Player*> &playersInWay) {
 
+    //Note 18.01.2025: This function causes me more problems right now as it solves
+    //I am not sure if I will use it at the end. I will leave the computer players like the
+    //are right now, because I am already working on this stuff for at least several months
+    //I am getting really bored now by it
+    return false;
+
    std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> result;
    std::vector<Player*>::iterator itPlayer;
    std::vector<irr::f32> inWhichDistanceVec;
@@ -336,26 +342,26 @@ bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStru
 std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::PlayerFindCloseWaypointLinks(Player* whichPlayer) {
 
     irr::core::vector3df projPlayerPositionFront;
-    WayPointLinkInfoStruct* frontLink = PlayerFindClosestWaypointLinkHelper(whichPlayer->WorldCoordCraftFrontPnt, projPlayerPositionFront);
+   // WayPointLinkInfoStruct* frontLink = PlayerFindClosestWaypointLinkHelper(whichPlayer->WorldCoordCraftFrontPnt, projPlayerPositionFront);
 
     irr::core::vector3df projPlayerPositionMid;
     WayPointLinkInfoStruct* midLink = PlayerFindClosestWaypointLinkHelper(whichPlayer->phobj->physicState.position, projPlayerPositionMid);
 
     irr::core::vector3df projPlayerPositionBack;
-    WayPointLinkInfoStruct* backLink = PlayerFindClosestWaypointLinkHelper(whichPlayer->WorldCoordCraftBackPnt, projPlayerPositionBack);
+   // WayPointLinkInfoStruct* backLink = PlayerFindClosestWaypointLinkHelper(whichPlayer->WorldCoordCraftBackPnt, projPlayerPositionBack);
 
     std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> > vecWayPointLinkResult;
     vecWayPointLinkResult.clear();
 
-    if (frontLink != NULL) {
+    /*if (frontLink != NULL) {
         AddWayPointLinkResultToVector(vecWayPointLinkResult, frontLink, projPlayerPositionFront);
-    }
+    }*/
     if (midLink != NULL) {
         AddWayPointLinkResultToVector(vecWayPointLinkResult, midLink, projPlayerPositionMid);
     }
-    if (backLink != NULL) {
+   /* if (backLink != NULL) {
         AddWayPointLinkResultToVector(vecWayPointLinkResult, backLink, projPlayerPositionBack);
-    }
+    }*/
 
     return vecWayPointLinkResult;
 }
@@ -427,20 +433,28 @@ WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vec
     irr::f32 startPointDistHlper;
     irr::f32 endPointDistHlper;
     irr::core::vector3d<irr::f32> posH;
-
+    irr::core::vector3df distVec;
+    irr::core::vector3df linkVec;
 
     //iterate through all waypoint links
     for(WayPointLink_iterator = mRace->wayPointLinkVec->begin(); WayPointLink_iterator != mRace->wayPointLinkVec->end(); ++WayPointLink_iterator) {
 
         //for the workaround later (in case first waypoint link search does not work) also find in parallel the waypoint link that
         //has a start or end-point closest to the current player location
-        posH = (*WayPointLink_iterator)->pStartEntity->getCenter();
+        //posH = (*WayPointLink_iterator)->pStartEntity->getCenter();
+        posH = (*WayPointLink_iterator)->pLineStruct->A;
 
-        startPointDistHlper = ((inputPosition - posH)).getLengthSQ();
+        distVec = inputPosition - posH;
+        distVec.Y = 0.0f;
 
-        posH = (*WayPointLink_iterator)->pEndEntity->getCenter();
+        startPointDistHlper = distVec.getLengthSQ();
+        //posH = (*WayPointLink_iterator)->pEndEntity->getCenter();
+        posH = (*WayPointLink_iterator)->pLineStruct->B;
 
-        endPointDistHlper = ((inputPosition - posH)).getLengthSQ();
+        distVec = inputPosition - posH;
+        distVec.Y = 0.0f;
+
+        endPointDistHlper = distVec.getLengthSQ();
 
          if (endPointDistHlper < startPointDistHlper) {
              startPointDistHlper = endPointDistHlper;
@@ -464,34 +478,44 @@ WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vec
 
         //important! add a little bit of length at the start and end of the waypoint link element,
         //too make sure the transitions between the waypoint links goes smooth
-        dASegmentLonger = inputPosition - ((*WayPointLink_iterator)->pLineStruct->A - (*WayPointLink_iterator)->LinkDirectionVec) * 1.0f;
-        dBSegmentLonger = inputPosition - ((*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->LinkDirectionVec) * 1.0f;
+        //dASegmentLonger = inputPosition - ((*WayPointLink_iterator)->pLineStruct->A - (*WayPointLink_iterator)->LinkDirectionVec) * 1.0f;
+        //dBSegmentLonger = inputPosition - ((*WayPointLink_iterator)->pLineStruct->B + (*WayPointLink_iterator)->LinkDirectionVec) * 1.0f;
+
+        dASegmentLonger = inputPosition - (*WayPointLink_iterator)->pLineStructExtended->A;
+        dBSegmentLonger = inputPosition - (*WayPointLink_iterator)->pLineStructExtended->B;
+
+        dASegmentLonger.Y = 0.0f;
+        dBSegmentLonger.Y = 0.0f;
 
         //projecteddA = dA.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
         //projecteddB = dB.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
 
-        projecteddASegmentLonger = dASegmentLonger.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
-        projecteddBSegmentLonger = dBSegmentLonger.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
+        linkVec = (*WayPointLink_iterator)->LinkDirectionVec;
+        linkVec.Y = 0.0f;
+
+        projecteddASegmentLonger = dASegmentLonger.dotProduct(linkVec);
+        projecteddBSegmentLonger = dBSegmentLonger.dotProduct(linkVec);
 
         //if craft position is parallel (sideways) to current waypoint link the two projection
         //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
         //this path segment
         if (sgn(projecteddASegmentLonger) != sgn(projecteddBSegmentLonger)) {
-            dA = inputPosition - (*WayPointLink_iterator)->pLineStruct->A;
+            dA = inputPosition - (*WayPointLink_iterator)->pLineStructExtended->A;
             //dB = whichPlayer->phobj->physicState.position - (*WayPointLink_iterator)->pLineStruct->B;
+            dA.Y = 0.0f;
 
             //this waypoint is interesting for further analysis
             //calculate distance from player position to this line, where connecting line meets path segment
             //in a 90° angle
-            projectedPl =  dA.dotProduct((*WayPointLink_iterator)->LinkDirectionVec);
+            projectedPl =  dA.dotProduct(linkVec);
 
             /*
             (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
                                                                                       projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
                                                                                       player->phobj->physicState.position);*/
 
-            projPlayerPosition = (*WayPointLink_iterator)->pLineStruct->A +
-                    irr::core::vector3df(projectedPl, projectedPl, projectedPl) * ((*WayPointLink_iterator)->LinkDirectionVec);
+            projPlayerPosition = (*WayPointLink_iterator)->pLineStructExtended->A +
+                    irr::core::vector3df(projectedPl, projectedPl, projectedPl) * (linkVec);
 
             distance = (projPlayerPosition - inputPosition).getLength();
 
@@ -501,20 +525,23 @@ WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vec
             //accidently (this happens especially when we are between
             //the end of the current waypoint link and the start
             //of the next one)
-            if (distance < 10.0f) {
 
-            if (firstElement) {
-                minDistance = distance;
-                closestLink = (*WayPointLink_iterator);
-                projectedPlayerPosition = projPlayerPosition;
-                firstElement = false;
-            } else {
-                if (distance < minDistance) {
+            //Note 12.01.2025: It seems original 10.0f distance could be not
+            //enough, increased it experiment wise to 100.0f limit
+            //if (distance < 10.0f) {
+            if (distance < 50.0f) {
+                if (firstElement) {
                     minDistance = distance;
                     closestLink = (*WayPointLink_iterator);
                     projectedPlayerPosition = projPlayerPosition;
-                 }
-              }
+                    firstElement = false;
+                } else {
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestLink = (*WayPointLink_iterator);
+                        projectedPlayerPosition = projPlayerPosition;
+                     }
+                  }
           }
         }
     }
@@ -669,8 +696,7 @@ std::vector<WayPointLinkInfoStruct*> Path::FindPathToNextCheckPoint(Player *whic
 
     //WayPointLinkInfoStruct* linkNearPlayer = this->PlayerFindClosestWaypointLink(whichPlayer);
     whichPlayer->currCloseWayPointLinks = mRace->mPath->PlayerFindCloseWaypointLinks(whichPlayer);
-    whichPlayer->currClosestWayPointLink = mRace->mPath->PlayerDeriveClosestWaypointLink(whichPlayer->currCloseWayPointLinks);
-    whichPlayer->SetCurrClosestWayPointLink(whichPlayer->currClosestWayPointLink);
+    whichPlayer->SetCurrClosestWayPointLink(mRace->mPath->PlayerDeriveClosestWaypointLink(whichPlayer->currCloseWayPointLinks));
 
     WayPointLinkInfoStruct* linkNearPlayer = whichPlayer->currClosestWayPointLink.first;
 

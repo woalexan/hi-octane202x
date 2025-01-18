@@ -95,6 +95,8 @@
 //(means a debugging picture is created in the background)
 #define WA_ALLOW_DEBUGGING false
 
+const irr::f32 WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE = 0.0f;
+
 class Race; //Forward declaration
 class Player; //Forward declaration
 

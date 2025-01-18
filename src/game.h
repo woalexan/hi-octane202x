@@ -17,6 +17,7 @@
 #include "draw/menue.h"
 #include "race.h"
 #include "draw/hud.h"
+#include "utils/logger.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_INTRO 1
@@ -36,6 +37,7 @@ using namespace irr::gui;
 class Menue; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
 struct MenueAction; //Forward declaration
+class Logger; //Forward declaration
 
 class Game {
 private:
@@ -110,11 +112,15 @@ private:
 
 public:
     dimension2d<u32> mGameScreenRes;
+    Logger* mLogger;
 
-    bool enableLightning = true;
-    bool enableShadows = true;
+    bool enableLightning = false;
+    bool enableShadows = false;
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
+
+    bool computerPlayersAttack = true;
+    bool runDemoMode = false;
 
     //Returns true for success, false for error occured
     bool InitGame();

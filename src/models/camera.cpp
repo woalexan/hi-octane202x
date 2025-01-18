@@ -16,7 +16,8 @@ Camera::Camera(Race* race, EntityItem *entityItem, irr::scene::ISceneManager* sm
     mEntityItem = entityItem;
 
     //get and store the position the camera is located at
-    mPosition = mEntityItem->getCenter();
+    //set a slightly higher position
+    mPosition = mEntityItem->getCenter() + irr::core::vector3df(0.0f, 1.0f, 0.0f);
 
     //store my value
     //I do not know what it means right now

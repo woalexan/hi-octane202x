@@ -112,6 +112,23 @@ std::vector<WayPointLinkInfoStruct*> Bezier::QuadBezierCurveGetSegments(irr::cor
     newStruct->LinkDirectionVec = vec3D;
     newStruct->LinkDirectionVec.normalize();
 
+    //Idea: extend the lines a little bit further outwards at
+    //both ends, so that when we project the players position on
+    //the different segments later we always find a valid segment
+    LineStruct* newLineExtStr = new LineStruct();
+    newLineExtStr->A = drawPnt1;
+    newLineExtStr->B = drawPnt2;
+
+    //set white as default color
+    newLineExtStr->color = color;
+    newLineExtStr->name = new char[10];
+    strcpy(newLineExtStr->name, "");
+
+    newLineExtStr->A -= newStruct->LinkDirectionVec * 0.5f;
+    newLineExtStr->B += newStruct->LinkDirectionVec * 0.5f;
+
+    newStruct->pLineStructExtended = newLineExtStr;
+
     //add new segement to the vector of segments
     finalVec.push_back(newStruct);
 

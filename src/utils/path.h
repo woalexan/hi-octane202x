@@ -41,8 +41,14 @@ struct WayPointLinkInfoStruct {
     EntityItem* pStartEntity;
     EntityItem* pEndEntity;
 
-    //3D line that links two waypoints together
+    //3D line that links two waypoints together (as defined in the map file
+    //via waypoint entities)
     LineStruct* pLineStruct;
+
+    //Idea: extend the lines a little bit further outwards at
+    //both ends, so that when we project the players position on
+    //the different segments later we always find a valid segment
+    LineStruct* pLineStructExtended;
 
     //normalized link direction vector
     irr::core::vector3df LinkDirectionVec;
@@ -80,12 +86,23 @@ struct WayPointLinkInfoStruct {
 
     //maximum possible offset waypoint link path shift
     //in positive direction (towards right side if looking in race
-    //direction)
-    irr::f32 maxOffsetShift;
+    //direction) at start entity
+    irr::f32 maxOffsetShiftStart;
 
     //minimum possible offset waypoint link path shift (negative)
     //tells us who far we can offset to the left of waypoint link
-    irr::f32 minOffsetShift;
+    //at start entity
+    irr::f32 minOffsetShiftStart;
+
+    //maximum possible offset waypoint link path shift
+    //in positive direction (towards right side if looking in race
+    //direction) at end entity
+    irr::f32 maxOffsetShiftEnd;
+
+    //minimum possible offset waypoint link path shift (negative)
+    //tells us who far we can offset to the left of waypoint link
+    //at end entity
+    irr::f32 minOffsetShiftEnd;
 };
 
 class Race;       //Forward declaration

@@ -241,7 +241,7 @@ public:
     //players stuck; Set true for final release to handle
     //random cases where computer players really get stuck, so that
     //races can for sure finish
-    bool CpEnableStuckDetection = false;
+    bool CpEnableStuckDetection = true;
 
     //function for debugging
     void DebugSelectPlayer(int whichPlayerNr);
@@ -328,12 +328,6 @@ private:
     //vector for player physic objects
     std::vector<PhysicsObject*> mPlayerPhysicObjVec;
 
-    //Player 2 physics object
-    PhysicsObject* player2PhysicsObj;
-
-    //Player 3 physics object
-    PhysicsObject* player3PhysicsObj;
-
     std::vector<Player*> playerRanking;
 
     //my camera
@@ -351,6 +345,8 @@ private:
 
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = false;
+    bool DebugShowFreeMovementSpace = false;
+
     bool DebugShowWallCollisionMesh = false;
     bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;
@@ -394,6 +390,8 @@ private:
 
     void createWallCollisionData();
     void createFinalCollisionData();
+
+    void DebugResetColorAllWayPointLinksToWhite();
 
     //holds a generated Mesh for wall collision detection
     irr::scene::SMesh* wallCollisionMesh;
@@ -489,6 +487,8 @@ private:
     void CleanUpTimers();
     void CleanUpExplosionEntities();
     void CleanUpCameras();
+
+    void DebugDrawWayPointLinks(bool drawFreeMovementSpace = false);
 };
 
 #endif // RACE_H
