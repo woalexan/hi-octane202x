@@ -11,13 +11,18 @@
 //
 
 #include "preparedata.h"
+
+#include "../../utils/logging.h"
 #include "../intro/flifix.h"
+
+
+void UnpackDataFile(const char* packfile, const char* unpackfile);
+void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
+
 
 PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
     myDevice = device;
     myDriver = driver;
-
-    PreparationOk = true;
 
     //create memory for ingame palette
     palette=static_cast<unsigned char*>(malloc(768));
@@ -26,7 +31,7 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
     strcpy(&palfile[0], "originalgame/data/palet0-0.dat");
 
     //read ingame palette
-    PreparationOk = PreparationOk && ReadPaletteFile(&palfile[0], palette);
+    ReadPaletteFile(&palfile[0], palette);
 
     //only add next line temporarily to extract level textures for level 7 up to 9
     //from HiOctaneTools project
@@ -34,156 +39,107 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
     //check if extraction directory is already present
     //if not create this directory
-    if (IsDirectoryPresent((char *)("extract")) == -1) {
+    if (IsDirectoryPresent("extract") == -1) {
         //directory is not there
-        if (CreateDirectory((char *)("extract")) == 1) {
-            //there was a problem, directory was not created!
-            PreparationOk = false;
-        } else {
+        CreateDirectory("extract");
+        {
             //directory was created ok
             //now we need to extract all files
 
             //extract SVGA game logo data if not all exported files present
-            if (!PrepareSubDir((char *)("extract/images"))) {
-                 PreparationOk = false;
-            } else {
-                //export all game images
-                 PreparationOk = PreparationOk && ExtractGameLogoSVGA();
-                 PreparationOk = PreparationOk && ExtractIntroductoryScreen();
-                 PreparationOk = PreparationOk && ExtractLoadingScreenSVGA();
-                 PreparationOk = PreparationOk && ExtractSelectionScreenSVGA();
-            }
+            logging::Info("Extracting game logos...");
+            PrepareSubDir("extract/images");
+            //export all game images
+            ExtractGameLogoSVGA();
+            ExtractIntroductoryScreen();
+            ExtractLoadingScreenSVGA();
+            ExtractSelectionScreenSVGA();
 
             //extract SVGA game logo data if not all exported files present
-            if (!PrepareSubDir((char *)("extract/fonts"))) {
-                 PreparationOk = false;
-            } else {
-                if (!PrepareSubDir((char *)("extract/fonts/thinwhite"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractThinWhiteFontSVGA();
-                }
+            logging::Info("Extracting game fonts...");
+            PrepareSubDir("extract/fonts");
 
-                if (!PrepareSubDir((char *)("extract/fonts/smallsvga"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractSmallFontSVGA();
+            PrepareSubDir("extract/fonts/thinwhite");
+            ExtractThinWhiteFontSVGA();
 
-                     if (!PrepareSubDir((char *)("extract/fonts/smallsvgagreenish"))) {
-                          PreparationOk = false;
-                     } else {
-                         if (PreparationOk) {
-                            //create greenish font for unselected items in menue (but based for smaller text size)
-                            PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/smallsvga/osfnt0-1-",
-                                         (char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
-                         }
-                     }
-                }
+            PrepareSubDir("extract/fonts/smallsvga");
+            ExtractSmallFontSVGA();
 
-                if (!PrepareSubDir((char *)("extract/fonts/large"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractLargeFontSVGA();
+            PrepareSubDir("extract/fonts/smallsvgagreenish");
+            //create greenish font for unselected items in menue (but based for smaller text size)
+            CreateFontForUnselectedItemsInMenue("extract/fonts/smallsvga/osfnt0-1-",
+                         "extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
 
-                     if (!PrepareSubDir((char *)("extract/fonts/largegreenish"))) {
-                          PreparationOk = false;
-                     } else {
-                         if (PreparationOk) {
-                            //create greenish font for unselected items in menue
-                            //based on white SVGA font already extracted for game banner text font
-                            PreparationOk = PreparationOk && CreateFontForUnselectedItemsInMenue((char*)"extract/fonts/large/olfnt0-1-",
-                                         (char*)"extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
-                         }
-                     }
-                }
+            PrepareSubDir("extract/fonts/large");
+            ExtractLargeFontSVGA();
 
-                if (!PrepareSubDir((char *)("extract/fonts/largegreen"))) {
-                     PreparationOk = false;
-                } else {
-                     PreparationOk = PreparationOk && ExtractLargeGreenFontSVGA();
-                }
-            }
+            PrepareSubDir("extract/fonts/largegreenish");
+            //create greenish font for unselected items in menue
+            //based on white SVGA font already extracted for game banner text font
+            CreateFontForUnselectedItemsInMenue("extract/fonts/large/olfnt0-1-",
+                         "extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
 
-            if (!PrepareSubDir((char *)("extract/hud1player"))) {
-                 PreparationOk = false;
-            } else {
-                  PreparationOk = PreparationOk && ExtractHUD1PlayerSVGA();
-            }
+            PrepareSubDir("extract/fonts/largegreen");
+            ExtractLargeGreenFontSVGA();
 
-            if (!PrepareSubDir((char *)("extract/hud2player"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractHUD2PlayersSVGA();
-            }
+            logging::Info("Extracting 1 player HUD...");
+            PrepareSubDir("extract/hud1player");
+            ExtractHUD1PlayerSVGA();
 
-            if (!PrepareSubDir((char *)("extract/sky"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractSky();
-            }
+            logging::Info("Extracting 2 player HUD...");
+            PrepareSubDir("extract/hud2player");
+            ExtractHUD2PlayersSVGA();
 
-            if (!PrepareSubDir((char *)("extract/sprites"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractTmaps();
-            }
+            logging::Info("Extracting sky...");
+            PrepareSubDir("extract/sky");
+            ExtractSkies();
 
-            if (!PrepareSubDir((char *)("extract/minimaps"))) {
-                 PreparationOk = false;
-            } else {
-                PreparationOk = PreparationOk && ExtractMiniMapsSVGA();
-                PreparationOk = PreparationOk && StitchMiniMaps();
-            }
+            logging::Info("Extracting sprites...");
+            PrepareSubDir("extract/sprites");
+            ExtractTmaps();
 
+            logging::Info("Extracting minimaps...");
+            PrepareSubDir("extract/minimaps");
+            ExtractMiniMapsSVGA();
+            StitchMiniMaps();
+
+            logging::Info("Extracting terrain textures...");
             //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
-            PreparationOk = PreparationOk && ExtractTerrainTextures();
+            ExtractTerrainTextures();
 
-            PreparationOk = PreparationOk && ExtractLevels();
+            logging::Info("Extracting levels...");
+            ExtractLevels();
 
-            if (!PrepareSubDir((char *)("extract/sound"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractSounds();
-            }
+            logging::Info("Extracting sounds...");
+            PrepareSubDir("extract/sound");
+            ExtractSounds();
 
-            if (!PrepareSubDir((char *)("extract/music"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractMusic();
-            }
+            logging::Info("Extracting music...");
+            PrepareSubDir("extract/music");
+            ExtractMusic();
 
-            if (!PrepareSubDir((char *)("extract/editor"))) {
-                 PreparationOk = false;
-            } else {
-                PreparationOk = PreparationOk && ExtractEditorItemsLarge();
-                PreparationOk = PreparationOk && ExtractEditorItemsSmall();
-                PreparationOk = PreparationOk && ExtractEditorCursors();
-            }
+            logging::Info("Extracting editor...");
+            PrepareSubDir("extract/editor");
+            ExtractEditorItemsLarge();
+            ExtractEditorItemsSmall();
+            ExtractEditorCursors();
 
-            if (!PrepareSubDir((char *)("extract/puzzle"))) {
-                 PreparationOk = false;
-            } else {
-                PreparationOk = PreparationOk && ExtractCheatPuzzle();
-            }
+            logging::Info("Extracting puzzle...");
+            PrepareSubDir("extract/puzzle");
+            ExtractCheatPuzzle();
 
-            if (!PrepareSubDir((char *)("extract/models"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && ExtractModelTextures();
+            logging::Info("Extracting models...");
+            PrepareSubDir("extract/models");
+            ExtractModelTextures();
+            Extra3DModels();
 
-                 if (PreparationOk) {
-                     PreparationOk = PreparationOk && Extra3DModels();
-                 }
-            }
-
-            if (!PrepareSubDir((char *)("extract/intro"))) {
-                 PreparationOk = false;
-            } else {
-                 PreparationOk = PreparationOk && PrepareIntro();
-            }
+            logging::Info("Extracting intro...");
+            PrepareSubDir("extract/intro");
+            PrepareIntro();
 
             //install other available assets user has copied
             //into folder userData from another source
+            logging::Info("Extracting other stuff...");
             AddOtherLevelsHiOctaneTools();
         }
     }
@@ -214,26 +170,26 @@ bool PrepareData::CheckForGameLogoSVGAFiles() {
     return allFiles;
 }
 
-bool PrepareData::Extract3DModel(char* srcFilename, char* destFilename, char* objName) {
+void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
+    logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
 
     ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, this->modelTexAtlasSize.Width,
                        this->modelTexAtlasSize.Height);
 
     if (!newConversion->LoadObjectDatFile(srcFilename)) {
         delete newConversion;
-        return false;
+        throw "Error loading object file: " + std::string(srcFilename);
     }
 
     if (!newConversion->WriteToObjFile(destFilename, objName)) {
         delete  newConversion;
-        return false;
+        throw "Error writing object file: " + std::string(destFilename);
     }
 
     delete newConversion;
-    return true;
 }
 
-bool PrepareData::Extra3DModels() {
+void PrepareData::Extra3DModels() {
     char file[65];
     char file2[50];
     char helper[10];
@@ -256,8 +212,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -276,8 +231,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -296,8 +250,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -316,8 +269,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -336,8 +288,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -356,8 +307,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -376,8 +326,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -396,8 +345,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -416,8 +364,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -436,8 +383,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -456,8 +402,7 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
 
     /******************************************
@@ -476,207 +421,76 @@ bool PrepareData::Extra3DModels() {
         strcat(file2, ".obj");
         strcat(objname, helper);
 
-        if (!Extract3DModel(file, file2, objname))
-            return false;
+        Extract3DModel(file, file2, objname);
     }
-
-    return true;
 }
-
 
 
 //extracts the level map files
-//returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLevels() {
+//raises an error message in case of unexpected error
+void PrepareData::ExtractLevels() {
+    PrepareSubDir("extract/level0-1");
+    UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
 
- if (!PrepareSubDir((char*)("extract/level0-1")))
-     return false;
+    PrepareSubDir("extract/level0-2");
+    UnpackDataFile("originalgame/maps/level0-2.dat", "extract/level0-2/level0-2-unpacked.dat");
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- strcpy(packfile, "originalgame/maps/level0-1.dat");
- strcpy(unpackfile, "extract/level0-1/level0-1-unpacked.dat");
+    PrepareSubDir("extract/level0-3");
+    UnpackDataFile("originalgame/maps/level0-3.dat", "extract/level0-3/level0-3-unpacked.dat");
 
- //RNC unpack level file
- int unpack_res = main_unpack(packfile, unpackfile);
+    PrepareSubDir("extract/level0-4");
+    UnpackDataFile("originalgame/maps/level0-4.dat", "extract/level0-4/level0-4-unpacked.dat");
 
- if (unpack_res != 0) {
-     return false;
- }
+    PrepareSubDir("extract/level0-5");
+    UnpackDataFile("originalgame/maps/level0-5.dat", "extract/level0-5/level0-5-unpacked.dat");
 
- if (!PrepareSubDir((char*)("extract/level0-2")))
-     return false;
-
- strcpy(packfile, "originalgame/maps/level0-2.dat");
- strcpy(unpackfile, "extract/level0-2/level0-2-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- if (!PrepareSubDir((char*)("extract/level0-3")))
-     return false;
-
- strcpy(packfile, "originalgame/maps/level0-3.dat");
- strcpy(unpackfile, "extract/level0-3/level0-3-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- if (!PrepareSubDir((char*)("extract/level0-4")))
-     return false;
-
- strcpy(packfile, "originalgame/maps/level0-4.dat");
- strcpy(unpackfile, "extract/level0-4/level0-4-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- if (!PrepareSubDir((char*)("extract/level0-5")))
-     return false;
-
- strcpy(packfile, "originalgame/maps/level0-5.dat");
- strcpy(unpackfile, "extract/level0-5/level0-5-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- if (!PrepareSubDir((char*)("extract/level0-6")))
-     return false;
-
- strcpy(packfile, "originalgame/maps/level0-6.dat");
- strcpy(unpackfile, "extract/level0-6/level0-6-unpacked.dat");
-
- //RNC unpack level file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- return true;
+    PrepareSubDir("extract/level0-6");
+    UnpackDataFile("originalgame/maps/level0-6.dat", "extract/level0-6/level0-6-unpacked.dat");
 }
 
 //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
-//returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractGameLogoSVGA() {
- //read game logo in SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\logo0-1.dat
- //data\logo0-1.tab
- //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
+//raises an error message in case of unexpected error
+void PrepareData::ExtractGameLogoSVGA() {
+    //read game logo in SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\logo0-1.dat
+    //data\logo0-1.tab
+    //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/logo0-1.dat");
- strcpy(tabfile, "originalgame/data/logo0-1.tab");
- strcpy(unpackfile, "extract/images/logo0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/logo0-1.dat", "extract/images/logo0-1-unpacked.dat");
 
- //RNC unpack logo
- int unpack_res = main_unpack(packfile, unpackfile);
+    ExtractImagesfromDataFile(
+        "extract/images/logo0-1-unpacked.dat",
+        "originalgame/data/logo0-1.tab",
+        palette,
+        "extract/images/logo0-1-");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/images/logo0-1-unpacked.dat");
- strcpy(outputDir, "extract/images/logo0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfileDat);
-
- return true;
+    remove("extract/images/logo0-1-unpacked.dat");
 }
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractHUD1PlayerSVGA() {
- //read HUD SVGA for 1 player
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\panel0-1.dat
- //data\panel0-1.tab
- //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
+void PrepareData::ExtractHUD1PlayerSVGA() {
+    //read HUD SVGA for 1 player
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\panel0-1.dat
+    //data\panel0-1.tab
+    //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/panel0-1.dat");
- strcpy(tabfile, "originalgame/data/panel0-1.tab");
-
- //is not RNC compressed, we can skip this step
-
- char palFile[35];
- char outputDir[50];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/hud1player/panel0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/panel0-1.dat", "originalgame/data/panel0-1.tab", palette, "extract/hud1player/panel0-1-");
 }
 
 //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractMiniMapsSVGA() {
- //data\track0-1.dat
- //data\track0-1.tab
- //Unknown format 	RNC-compressed = No 	MiniMaps
+void PrepareData::ExtractMiniMapsSVGA() {
+    //data\track0-1.dat
+    //data\track0-1.tab
+    //Unknown format 	RNC-compressed = No 	MiniMaps
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/track0-1.dat");
- strcpy(tabfile, "originalgame/data/track0-1.tab");
-
- //is not RNC compressed, we can skip this step
-
- char palFile[35];
- char outputDir[50];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/minimaps/track0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/track0-1.dat", "originalgame/data/track0-1.tab", palette, "extract/minimaps/track0-1-");
 }
 
-bool PrepareData::StitchMiniMaps() {
+void PrepareData::StitchMiniMaps() {
     /********************************************
      *  Map for level 1                         *
      * ******************************************/
@@ -942,185 +756,85 @@ bool PrepareData::StitchMiniMaps() {
 
     //is alreay finished in file track0-1-0010.bmp
     //no need for stitching
-
-    return true;
 }
 
 //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractHUD2PlayersSVGA() {
- //read HUD SVGA for 2 players
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\panel0-0.dat
- //data\panel0-0.tab
- //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
+void PrepareData::ExtractHUD2PlayersSVGA() {
+    //read HUD SVGA for 2 players
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\panel0-0.dat
+    //data\panel0-0.tab
+    //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/panel0-0.dat");
- strcpy(tabfile, "originalgame/data/panel0-0.tab");
-
- //is not RNC compressed, we can skip this step
-
- char palFile[35];
- char outputDir[50];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/hud2player/panel0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/panel0-0.dat", "originalgame/data/panel0-0.tab", palette, "extract/hud2player/panel0-0-");
 }
 
 //extracts the SVGA Large Green font in data\pfont0-1.dat and data\pfont0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLargeGreenFontSVGA() {
- //read Large Green Font SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\pfont0-1.dat
- //data\pfont0-1.tab
- //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
+void PrepareData::ExtractLargeGreenFontSVGA() {
+    //read Large Green Font SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\pfont0-1.dat
+    //data\pfont0-1.tab
+    //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
 
- //unpack data file
- char unpackfile[35];
- char tabfile[35];
- strcpy(unpackfile, "originalgame/data/pfont0-1.dat");
- strcpy(tabfile, "originalgame/data/pfont0-1.tab");
-
- //is not RNC compressed, we can skip this step
-
- char outputDir[50];
- strcpy(outputDir, "extract/fonts/largegreen/pfont0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfile, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- return true;
+    ExtractImagesfromDataFile("originalgame/data/pfont0-1.dat", "originalgame/data/pfont0-1.tab", palette, "extract/fonts/largegreen/pfont0-1-");
 }
 
 //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractCheatPuzzle() {
- //read Cheat puzzle
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\puzzle.dat
- //data\puzzle.tab
- //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
+void PrepareData::ExtractCheatPuzzle() {
+    //read Cheat puzzle
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\puzzle.dat
+    //data\puzzle.tab
+    //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
 
- //unpack data file
- char unpackfile[50];
+    //is not RNC compressed, we can skip this step
 
- //is not RNC compressed, we can skip this step
-
- //now create final png picture out of raw video data
- //we also have to take game palette into account
- char palFile[35];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
-
- char outputFile[50];
- strcpy(unpackfile, "originalgame/data/puzzle.dat");
- strcpy(outputFile, "extract/puzzle/puzzle.png");
-
- //scale puzzle by factor 4
- ConvertRawImageData(unpackfile, palette, 112, 96, outputFile, 4.0);
-
- return true;
+    //scale puzzle by factor 4
+    ConvertRawImageData("originalgame/data/puzzle.dat", palette, 112, 96, "extract/puzzle/puzzle.png", 4);
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLargeFontSVGA() {
- //read Large Fonts SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\olfnt0-1.dat
- //data\olfnt0-1.tab
- //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
+void PrepareData::ExtractLargeFontSVGA() {
+    //read Large Fonts SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\olfnt0-1.dat
+    //data\olfnt0-1.tab
+    //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/olfnt0-1.dat");
- strcpy(tabfile, "originalgame/data/olfnt0-1.tab");
- strcpy(unpackfile, "extract/fonts/large/olfnt0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/olfnt0-1.dat", "extract/fonts/large/olfnt0-1-unpacked.dat");
 
- //RNC unpack Large Font file
- int unpack_res = main_unpack(&packfile[0], &unpackfile[0]);
+    ExtractImagesfromDataFile(
+        "extract/fonts/large/olfnt0-1-unpacked.dat",
+        "originalgame/data/olfnt0-1.tab",
+        palette,
+        "extract/fonts/large/olfnt0-1-");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char palFile[35];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/fonts/large/olfnt0-1-unpacked.dat");
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/fonts/large/olfnt0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfile);
-
- return true;
+    remove("extract/fonts/large/olfnt0-1-unpacked.dat");
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractSmallFontSVGA() {
- //read Small Fonts SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\osfnt0-1.dat
- //data\osfnt0-1.tab
- //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
+void PrepareData::ExtractSmallFontSVGA() {
+    //read Small Fonts SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\osfnt0-1.dat
+    //data\osfnt0-1.tab
+    //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/osfnt0-1.dat");
- strcpy(tabfile, "originalgame/data/osfnt0-1.tab");
- strcpy(unpackfile, "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/osfnt0-1.dat", "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
 
- //RNC unpack small Font file
- int unpack_res = main_unpack(&packfile[0], &unpackfile[0]);
+    ExtractImagesfromDataFile(
+        "extract/fonts/smallsvga/osfnt0-1-unpacked.dat",
+        "originalgame/data/osfnt0-1.tab",
+        palette,
+        "extract/fonts/smallsvga/osfnt0-1-");
 
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char palFile[35];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
- strcpy(palFile, "originalgame/data/palet0-0.dat");
- strcpy(outputDir, "extract/fonts/smallsvga/osfnt0-1-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfile);
-
- return true;
+    remove("extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -1235,7 +949,7 @@ bool PrepareData::DetectFontCharacterColor(irr::video::IImage* image, irr::video
 //this function takes an already existing font extracted before
 //into single image files, duplicates this files, and changes the text character color
 //for this new created image files
-bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, char* destFntFileName,
+void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileName, const char* destFntFileName,
           irr::u32 fileNameNumOffset, irr::u32 numberCharacters) {
 
     char finalpathSrc[70];
@@ -1260,9 +974,8 @@ bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, c
 
         irr::core::dimension2d<irr::u32> srcDim(srcImg->getDimension().Width, srcImg->getDimension().Height);
 
-        //problem opening the source image?
         if (srcImg == NULL)
-            return false;
+            throw std::string("Error opening source image file: ") + finalpathSrc;
 
         //copy source image into new destination image
         irr::video::IImage* destImg =
@@ -1285,13 +998,11 @@ bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, c
 
         //detect font color inside source image
         if (!this->DetectFontCharacterColor(destImg, &detColor)) {
-            //unexpected error, just return
-            return false;
+            throw std::string("Error detecting font color in image file: ") + finalpathSrc;
         }
 
         if (!this->ReplacePixelColor(destImg, detColor, newColor)) {
-            //unexpected error, just return
-            return false;
+            throw std::string("Error replacing pixel color in image file: ") + finalpathSrc;
         }
 
         //now we have the font character with new color in image variable
@@ -1303,8 +1014,6 @@ bool PrepareData::CreateFontForUnselectedItemsInMenue(char* sourceFntFileName, c
         outputPic->drop();
         destImg->drop();
     }
-
-    return true;
 }
 
 //return true if all expected files are present
@@ -1321,42 +1030,24 @@ bool PrepareData::CheckForScreenSVGA() {
 
 //extracts the SVGA Loading Screen (is shown while game loads) in data\onet0-1.dat and data\onet0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractLoadingScreenSVGA() {
- //read SVGA Loading Screen
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\onet0-1.dat
- //data\onet0-1.tab
- //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
+void PrepareData::ExtractLoadingScreenSVGA() {
+    //read SVGA Loading Screen
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\onet0-1.dat
+    //data\onet0-1.tab
+    //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/onet0-1.dat");
- strcpy(tabfile, "originalgame/data/onet0-1.tab");
- strcpy(unpackfile, "extract/images/onet0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/onet0-1.dat", "extract/images/onet0-1-unpacked.dat");
 
- //RNC unpack Loading Screen
- int unpack_res = main_unpack(packfile, unpackfile);
+    //now create final png picture out of raw video data
+    //we also have to take game palette into account
 
- if (unpack_res != 0) {
-     return false;
- }
+    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
+    //ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 2);
 
- //now create final png picture out of raw video data
- //we also have to take game palette into account
+    ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 1);
 
- char outputFile[50];
- strcpy(outputFile, "extract/images/onet0-1.png");
-
- //upscale image by a factor of 2.0, we then have an image of 1280 x 960
- //ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 2.0);
-
- ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 1.0);
-
- remove(unpackfile);
-
- return true;
+    remove("extract/images/onet0-1-unpacked.dat");
 }
 
 //return true if selection screen (main menue background) is present
@@ -1373,230 +1064,57 @@ bool PrepareData::CheckForSelectionScreenSVGA() {
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractSelectionScreenSVGA() {
- //read SVGA Selection Screen
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\oscr0-1.dat
- //data\oscr0-1.tab
- //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
+void PrepareData::ExtractSelectionScreenSVGA() {
+    //read SVGA Selection Screen
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\oscr0-1.dat
+    //data\oscr0-1.tab
+    //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/oscr0-1.dat");
- strcpy(tabfile, "originalgame/data/oscr0-1.tab");
- strcpy(unpackfile, "extract/images/oscr0-1-unpacked.dat");
+    UnpackDataFile("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1-unpacked.dat");
 
- //RNC unpack Selection Screen
- int unpack_res = main_unpack(packfile, unpackfile);
+    //now create final png picture out of raw video data
+    //we also have to take game palette into account
 
- if (unpack_res != 0) {
-     return false;
- }
+    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
+    //ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 2);
 
- //now create final png picture out of raw video data
- //we also have to take game palette into account
- char palFile[45];
- strcpy(palFile, "originalgame/data/palet0-0.dat");
+    ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 1);
 
- char outputFile[50];
- strcpy(outputFile, "extract/images/oscr0-1.png");
-
- //upscale image by a factor of 2.0, we then have an image of 1280 x 960
- //ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 2.0);
-
- ConvertRawImageData(unpackfile, palette, 640, 480, outputFile, 1.0);
-
- remove(unpackfile);
-
- return true;
+    remove("extract/images/oscr0-1-unpacked.dat");
 }
 
 //extracts the Sky images (in format 256x256) in data\sky0-*.dat and data\sky0-*.tab
 //* is from 0 up to 5
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractSky() {
- //read all race track sky images
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
+void PrepareData::ExtractSkies() {
+    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
+        ExtractSky(skyNr);
+    }
+}
 
- //unpack data file number 0
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/sky0-0.dat");
- strcpy(tabfile, "originalgame/data/sky0-0.tab");
- strcpy(unpackfile, "extract/sky/sky0-0-unpacked.dat");
+void PrepareData::ExtractSky(char skyNr) {
+    //read all race track sky images
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
 
- //RNC unpack Selection Screen
- int unpack_res = main_unpack(packfile, unpackfile);
+    std::string packFile = std::string("originalgame/data/sky0-") + skyNr + ".dat";
+    std::string unpackFile = std::string("extract/sky/sky0-") + skyNr + "-unpacked.dat";
+    std::string outputFile = std::string("extract/sky/sky0-") + skyNr + ".png";
+    std::string modifiedFile = std::string("extract/sky/modsky0-") + skyNr + ".png";
 
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 1
- strcpy(packfile, "originalgame/data/sky0-1.dat");
- strcpy(tabfile, "originalgame/data/sky0-1.tab");
- strcpy(unpackfile, "extract/sky/sky0-1-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 2
- strcpy(packfile, "originalgame/data/sky0-2.dat");
- strcpy(tabfile, "originalgame/data/sky0-2.tab");
- strcpy(unpackfile, "extract/sky/sky0-2-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 3
- strcpy(packfile, "originalgame/data/sky0-3.dat");
- strcpy(tabfile, "originalgame/data/sky0-3.tab");
- strcpy(unpackfile, "extract/sky/sky0-3-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 4
- strcpy(packfile, "originalgame/data/sky0-4.dat");
- strcpy(tabfile, "originalgame/data/sky0-4.tab");
- strcpy(unpackfile, "extract/sky/sky0-4-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 5
- strcpy(packfile, "originalgame/data/sky0-5.dat");
- strcpy(tabfile, "originalgame/data/sky0-5.tab");
- strcpy(unpackfile, "extract/sky/sky0-5-unpacked.dat");
-
- //RNC unpack Selection Screen
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //now create final png picture out of raw video data
- //we also have to take game palette into account
-
- char outputFile[50];
- strcpy(unpackfile, "extract/sky/sky0-0-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-0.png");
-
- //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- char modfile[50];
- strcpy(unpackfile, "extract/sky/sky0-0.png");
- strcpy(modfile, "extract/sky/modsky0-0.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-1-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-1.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(&unpackfile[0], palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-1.png");
- strcpy(modfile, "extract/sky/modsky0-1.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-2-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-2.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-2.png");
- strcpy(modfile, "extract/sky/modsky0-2.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-3-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-3.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-3.png");
- strcpy(modfile, "extract/sky/modsky0-3.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-4-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-4.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-4.png");
- strcpy(modfile, "extract/sky/modsky0-4.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- strcpy(unpackfile, "extract/sky/sky0-5-unpacked.dat");
- strcpy(outputFile, "extract/sky/sky0-5.png");
-
-  //upscale image by a factor of 2.0, we then have an image of 512 x 512
- ConvertRawImageData(unpackfile, palette, 256, 256, outputFile, 2.0);
-
- remove(unpackfile);
-
- strcpy(unpackfile, "extract/sky/sky0-5.png");
- strcpy(modfile, "extract/sky/modsky0-5.png");
-
- //create new modified sky image for us
- //for easier usage
- ModifySkyImage(unpackfile, modfile);
-
- return true;
+    //unpack data file number 5
+    UnpackDataFile(packFile.c_str(), unpackFile.c_str());
+    //upscale image by a factor of 2.0, we then have an image of 512 x 512
+    ConvertRawImageData(unpackFile.c_str(), palette, 256, 256, outputFile.c_str(), 2);
+    remove(unpackFile.c_str());
+    //create new modified sky image for easier usage
+    ModifySkyImage(outputFile.c_str(), modifiedFile.c_str());
 }
 
 //This helper function modifies the original sky image so that we can use it easier
 //in this project. The result is stored in another new image file
-bool PrepareData::ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyFileName) {
+void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* outputModifiedSkyFileName) {
     //first open original sky image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(origSkyFileName);
 
@@ -1644,8 +1162,6 @@ bool PrepareData::ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyF
 
     //close the original picture file
     file->drop();
-
-    return true;
 }
 
 //the original Terrain texture Atlas stored within the game has all tiles
@@ -1654,7 +1170,7 @@ bool PrepareData::ModifySkyImage(char *origSkyFileName, char* outputModifiedSkyF
 //Therefore we need to read all tiles and export them to singulated picture files, which we can later
 //use to load the textures
 //Returns true in case of success, returns false in case of unexpected problem
-bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char* outputFileName) {
+void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
 
@@ -1667,8 +1183,7 @@ bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char*
     //divided by width equals the overall number of titles in the image
     int numberTiles = (origDimension.Height / origDimension.Width);
 
-    if (!PrepareSubDir(exportDir))
-        return false;
+    PrepareSubDir(exportDir);
 
     //directory was created ok
     //now we need to extract all files
@@ -1729,8 +1244,6 @@ bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char*
 
     //close the original picture file
     file->drop();
-
-    return true;
 }
 
 //the Terrain texture Atlas from https://github.com/movAX13h/HiOctaneTools
@@ -1738,7 +1251,7 @@ bool PrepareData::ExportTerrainTextures(char* targetFile, char* exportDir, char*
 //therefore to be able to use the levels 7 up to 9 data from their project
 //we have to reorganize the atlas again (split it in single picture files)
 //Returns true in case of success, returns false in case of unexpected problem
-bool PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
+void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
 
@@ -1754,10 +1267,7 @@ bool PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
     int numberTiles = (origDimension.Height / tilePixelSize) * (origDimension.Width / tilePixelSize);
 
     //create the target directory
-    if (CreateDirectory(exportDir) == 1) {
-        //there was a problem, directory was not created!
-        return false;
-    }
+    CreateDirectory(exportDir);
 
     //directory was created ok
     //now we need to extract all files
@@ -1827,8 +1337,6 @@ bool PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
 
     //close the original picture file
     file->drop();
-
-    return true;
 }
 
 /*
@@ -1917,179 +1425,44 @@ void PrepareData::ReorganizeTerrainAtlas(char* targetFile, char* outputFileName)
 //extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
 //* is from 0 up to 5
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractTerrainTextures() {
- //read all race track Terrain textures
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
+void PrepareData::ExtractTerrainTextures() {
+    //read all race track Terrain textures
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
 
- //unpack data file number 0
- char packfile[35];
- char unpackfile[100];
- char tabfile[35];
- char outputDirName[20];
- strcpy(packfile, "originalgame/data/textu0-0.dat");
- strcpy(tabfile, "originalgame/data/textu0-0.tab");
- strcpy(unpackfile, "extract/textu0-0-unpacked.dat");
-
- //RNC unpack file
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 1
- strcpy(packfile, "originalgame/data/textu0-1.dat");
- strcpy(tabfile, "originalgame/data/textu0-1.tab");
- strcpy(unpackfile, "extract/textu0-1-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 2
- strcpy(packfile, "originalgame/data/textu0-2.dat");
- strcpy(tabfile, "originalgame/data/textu0-2.tab");
- strcpy(unpackfile, "extract/textu0-2-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 3
- strcpy(packfile, "originalgame/data/textu0-3.dat");
- strcpy(tabfile, "originalgame/data/textu0-3.tab");
- strcpy(unpackfile, "extract/textu0-3-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 4
- strcpy(packfile, "originalgame/data/textu0-4.dat");
- strcpy(tabfile, "originalgame/data/textu0-4.tab");
- strcpy(unpackfile, "extract/textu0-4-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //unpack data file number 5
- strcpy(packfile, "originalgame/data/textu0-5.dat");
- strcpy(tabfile, "originalgame/data/textu0-5.tab");
- strcpy(unpackfile, "extract/textu0-5-unpacked.dat");
-
- //RNC unpack file
- unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- //now create final png picture out of raw video data
- //we also have to take game palette into account
- char outputFile[50];
- char finalFile[50];
- strcpy(unpackfile, "extract/textu0-0-unpacked.dat");
- strcpy(outputFile, "extract/textu0-0-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-1");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-1-unpacked.dat");
- strcpy(outputFile, "extract/textu0-1-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-2");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-2-unpacked.dat");
- strcpy(outputFile, "extract/textu0-2-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-3");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-3-unpacked.dat");
- strcpy(outputFile, "extract/textu0-3-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-4");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-4-unpacked.dat");
- strcpy(outputFile, "extract/textu0-4-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-5");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- strcpy(unpackfile, "extract/textu0-5-unpacked.dat");
- strcpy(outputFile, "extract/textu0-5-orig.png");
- strcpy(finalFile, "/tex");
-
- ConvertRawImageData(unpackfile, palette, 64, 16384, outputFile);
-
- //reorganize Terrain Atlas format to be Square
- //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
- strcpy(outputDirName, "extract/level0-6");
- ExportTerrainTextures(outputFile, outputDirName, finalFile);
-
- remove(unpackfile);
- remove(outputFile);
-
- return true;
+    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
+        ExtractTerrainTexture(levelNr);
+    }
 }
 
-bool PrepareData::AddOtherLevelsHiOctaneTools() {
+void PrepareData::ExtractTerrainTexture(char levelNr) {
+    //read race track Terrain texture
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
+
+    char texNr = levelNr - 1;  // looks like levels start with 1 but texture atlases start with 0
+
+    std::string orig_data_dir = "originalgame/data/";
+    std::string extract_dir = "extract/";
+
+    std::string packfile = orig_data_dir + "textu0-" + texNr + ".dat";
+    std::string unpackfile = extract_dir + "textu0-" + texNr + "-unpacked.dat";
+    std::string outputFile = extract_dir + "textu0-" + texNr + "-orig.png";
+    std::string levelDir = extract_dir + "level0-" + levelNr + '/';
+
+    UnpackDataFile(packfile.c_str(), unpackfile.c_str());
+
+    ConvertRawImageData(unpackfile.c_str(), palette, 64, 16384, outputFile.c_str());
+
+    //reorganize Terrain Atlas format to be Square
+    //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
+    ExportTerrainTextures(outputFile.c_str(), levelDir.c_str(), "tex");
+
+    remove(unpackfile.c_str());
+    remove(outputFile.c_str());
+}
+
+void PrepareData::AddOtherLevelsHiOctaneTools() {
      char outputDirName[50];
      char outputFile[50];
      char finalFile[50];
@@ -2139,67 +1512,60 @@ bool PrepareData::AddOtherLevelsHiOctaneTools() {
          strcpy(outputFile, "extract/level0-9/level0-9-unpacked.dat");
          copy_file(levelFile, outputFile);
      }
-
-     return true;
 }
 
-bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
-                                      char* outputFilename, int scaleFactor, bool flipY) {
-    FILE* iFile;
-
-    iFile = fopen(rawDataFilename, "rb");
+void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
+                                      irr::u32 sizex, irr::u32 sizey,
+                                      const char* outputFilename, int scaleFactor, bool flipY) {
+    FILE* iFile = fopen(rawDataFilename, "rb");
+    if (iFile == NULL) {
+        throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
+    }
     fseek(iFile, 0L, SEEK_END);
     size_t size = ftell(iFile);
     fseek(iFile, 0L, SEEK_SET);
 
     if (size != (sizex*sizey)) {
         fclose(iFile);
-        printf("\nError - Raw picture filesize does not fit with expectation! %s\n", rawDataFilename);
-        return false;
+        throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
     }
 
     size_t counter = 0;
 
     char* ByteArray;
     ByteArray = new char[size];
-    if (iFile != NULL)
-    {
-        do {
-            ByteArray[counter] = fgetc(iFile);
-            counter++;
-        } while (counter < size);
-        fclose(iFile);
-    } else {
-        delete[] ByteArray;
-        return false;
-    }
+    do {
+        ByteArray[counter] = fgetc(iFile);
+        counter++;
+    } while (counter < size);
+    fclose(iFile);
 
     //create arrays for color information
-     unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
-     unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
-     unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
+    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
 
-     double arrIntR;
-     double arrIntG;
-     double arrIntB;
-     unsigned char color;
+    double arrIntR;
+    double arrIntG;
+    double arrIntB;
+    unsigned char color;
 
-     //use palette to derive RGB information for all pixels
-     //loaded palette has 6 bits per color
-     for (counter = 0; counter < size; counter++) {
-         color = ByteArray[counter];
-         arrIntR = palette[color * 3    ];
-         arrIntG = palette[color * 3 + 1 ];
-         arrIntB = palette[color * 3 + 2 ];
+    //use palette to derive RGB information for all pixels
+    //loaded palette has 6 bits per color
+    for (counter = 0; counter < size; counter++) {
+        color = ByteArray[counter];
+        arrIntR = palette[color * 3    ];
+        arrIntG = palette[color * 3 + 1 ];
+        arrIntB = palette[color * 3 + 2 ];
 
-         arrIntR = (arrIntR * 255.0) / 63.0;
-         arrIntG = (arrIntG * 255.0) / 63.0;
-         arrIntB = (arrIntB * 255.0) / 63.0;
+        arrIntR = (arrIntR * 255.0) / 63.0;
+        arrIntG = (arrIntG * 255.0) / 63.0;
+        arrIntB = (arrIntB * 255.0) / 63.0;
 
-         arrR[counter] = (unsigned char)arrIntR;
-         arrG[counter] = (unsigned char)arrIntG;
-         arrB[counter] = (unsigned char)arrIntB;
-     }
+        arrR[counter] = (unsigned char)arrIntR;
+        arrG[counter] = (unsigned char)arrIntG;
+        arrB[counter] = (unsigned char)arrIntB;
+    }
 
      //create an empty image
      irr::video::IImage* img =
@@ -2219,10 +1585,10 @@ bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *pale
          }
      }
 
-      irr::video::IImage* imgUp;
+    irr::video::IImage* imgUp;
 
-     //should the picture be upscaled?
-     if (scaleFactor != 1.0) {
+    //should the picture be upscaled?
+    if (scaleFactor != 1.0) {
         //create an empty image with upscaled dimension
         imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
@@ -2235,29 +1601,27 @@ bool PrepareData::ConvertRawImageData(char* rawDataFilename, unsigned char *pale
         //release the pointers, we do not need them anymore
         img->unlock();
         imgUp->unlock();
-     }
+    }
 
-     //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+    //create new file for writting
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
 
-     //write image to file
-     if (scaleFactor == 1.0) {
+    //write image to file
+    if (scaleFactor == 1) {
         //write original image data
         myDriver->writeImageToFile(img, outputPic);
-     } else {
-         //write upscaled image data
+    } else {
+        //write upscaled image data
         myDriver->writeImageToFile(imgUp, outputPic);
-     }
+    }
 
-     //close output file
-     outputPic->drop();
+    //close output file
+    outputPic->drop();
 
     delete[] ByteArray;
     free(arrR);
     free(arrG);
     free(arrB);
-
-    return true;
 }
 
 bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
@@ -2341,24 +1705,27 @@ bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, ir
     return true;
 }
 
-bool PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
+void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
     int retcode=read_palette_rgb(paletteDataOut,palFile,(unsigned int)(256));
 
-    if (retcode!=0)
-      switch (retcode)
-      {
-      case 1:
-         printf("\nError - Cannot open PAL file: %s\n",palFile);
-         return false;
-      case 2:
-         printf("\nError - Cannot read %d colors from PAL file: %s\n",256,palFile);
-         return false;
-      default:
-         printf("\nError - Loading palette file %s returned fail code %d\n",palFile,retcode);
-         return false;
-      }
+    std::string msg = std::string();
+    switch (retcode) {
+        case 0:
+            return;
+        case 1:
+            msg += "Cannot open PAL file: ";
+            msg += palFile;
+            throw msg;
+        case 2:
+            msg += "Cannot read 256 colors from PAL file: ";
+            msg += palFile;
+            throw msg;
+        default:
+            msg += "Unknown error reading PAL file: ";
+            msg += palFile;
+            throw msg;
+    }
 
-    return true;
 }
 
 bool PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
@@ -2704,277 +2071,147 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
 //extracts the introductory screen (in format 320x200) in data\title.dat and data\title.tab
 //* is from 0 up to 5
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractIntroductoryScreen() {
- //read introductory screen
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
+void PrepareData::ExtractIntroductoryScreen() {
+    //read introductory screen
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
 
- //unpack data file number 0
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/title.dat");
- strcpy(tabfile, "originalgame/data/title.tab");
- strcpy(unpackfile, "extract/images/title-unpacked.dat");
+    UnpackDataFile("originalgame/data/title.dat", "extract/images/title-unpacked.dat");
 
- //RNC unpack file
- int unpack_res = main_unpack(packfile, unpackfile);
+    //upscale original image data by a factor 4, we get an image with 1280 x 800
+    //ConvertRawImageData(&unpackfile[0], palette, 320, 200, &outputFile[0], 4);
 
- if (unpack_res != 0) {
-     return false;
- }
+    //upscale original image data by a factor 2, we get an image with 640 x 480
+    ConvertRawImageData("extract/images/title-unpacked.dat", palette, 320, 200, "extract/images/title.png", 2);
 
-  char outputFile[50];
-  strcpy(outputFile, "extract/images/title.png");
-
-  //upscale original image data by a factor 4, we get an image with 1280 x 800
-  //ConvertRawImageData(&unpackfile[0], palette, 320, 200, &outputFile[0], 4.0);
-
-  //upscale original image data by a factor 2, we get an image with 640 x 480
-  ConvertRawImageData(unpackfile, palette, 320, 200, outputFile, 2.0);
-
- //remove unnecessary files
- remove(unpackfile);
-
- return true;
+    //remove unnecessary files
+    remove("extract/images/title-unpacked.dat");
 }
 
 
 //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractThinWhiteFontSVGA() {
- //read thin white font SVGA
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\hfont0-0.dat
- //data\hfont0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
+void PrepareData::ExtractThinWhiteFontSVGA() {
+    //read thin white font SVGA
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\hfont0-0.dat
+    //data\hfont0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/hfont0-0.dat");
- strcpy(tabfile, "originalgame/data/hfont0-0.tab");
- strcpy(unpackfile, "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
-
- //RNC unpack thin white font
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[60];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
- strcpy(outputDir, "extract/fonts/thinwhite/hfont0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- //remove unnecessary files
- remove(unpackfileDat);
-
- return true;
+    UnpackDataFile("originalgame/data/hfont0-0.dat", "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
+    //extract images to BMP from DAT/TAB file
+    ExtractImagesfromDataFile("extract/fonts/thinwhite/hfont0-0-unpacked.dat", "originalgame/data/hfont0-0.tab", palette, "extract/fonts/thinwhite/hfont0-0-");
+    //remove unnecessary files
+    remove("extract/fonts/thinwhite/hfont0-0-unpacked.dat");
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractEditorCursors() {
- //read Editor cursors
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\point0-0.dat
- //data\point0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Editor cursors
+void PrepareData::ExtractEditorCursors() {
+    //read Editor cursors
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\point0-0.dat
+    //data\point0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Editor cursors
 
- //unpack data file
- char packfile[35];
- char unpackfile[60];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/point0-0.dat");
- strcpy(tabfile, "originalgame/data/point0-0.tab");
- strcpy(unpackfile, "extract/editor/point0-0-unpacked.dat");
-
- //RNC unpack editor cursors
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[60];
- char outputDir[60];
- strcpy(unpackfileDat, "extract/editor/point0-0-unpacked.dat");
- strcpy(outputDir, "extract/editor/point0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfileDat);
-
- return true;
+    UnpackDataFile("originalgame/data/point0-0.dat", "extract/editor/point0-0-unpacked.dat");
+    ExtractImagesfromDataFile("extract/editor/point0-0-unpacked.dat", "originalgame/data/point0-0.tab", palette, "extract/editor/point0-0-");
+    remove("extract/editor/point0-0-unpacked.dat");
 }
 
 //extracts the Editor items large in data\hspr0-0.dat and data\hspr0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractEditorItemsLarge() {
- //read Editor items large
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\hspr0-0.dat
- //data\hspr0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
+void PrepareData::ExtractEditorItemsLarge() {
+    //read Editor items large
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\hspr0-0.dat
+    //data\hspr0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/hspr0-0.dat");
- strcpy(tabfile, "originalgame/data/hspr0-0.tab");
- strcpy(unpackfile, "extract/editor/hspr0-0-unpacked.dat");
-
- //RNC unpack editor items large data
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/editor/hspr0-0-unpacked.dat");
- strcpy(outputDir, "extract/editor/hspr0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfileDat);
-
- return true;
+    UnpackDataFile("originalgame/data/hspr0-0.dat", "extract/editor/hspr0-0-unpacked.dat");
+    ExtractImagesfromDataFile("extract/editor/hspr0-0-unpacked.dat", "originalgame/data/hspr0-0.tab", palette, "extract/editor/hspr0-0-");
+    remove("extract/editor/hspr0-0-unpacked.dat");
 }
 
 //extracts the Editor items small in data\mspr0-0.dat and data\mspr0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractEditorItemsSmall() {
- //read Editor items small
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\mspr0-0.dat
- //data\mspr0-0.tab
- //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
+void PrepareData::ExtractEditorItemsSmall() {
+    //read Editor items small
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\mspr0-0.dat
+    //data\mspr0-0.tab
+    //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
 
- //unpack data file
- char packfile[35];
- char unpackfile[50];
- char tabfile[35];
- strcpy(packfile, "originalgame/data/mspr0-0.dat");
- strcpy(tabfile, "originalgame/data/mspr0-0.tab");
- strcpy(unpackfile, "extract/editor/mspr0-0-unpacked.dat");
-
- //RNC unpack editor items small data
- int unpack_res = main_unpack(packfile, unpackfile);
-
- if (unpack_res != 0) {
-     return false;
- }
-
- char unpackfileDat[50];
- char outputDir[50];
- strcpy(unpackfileDat, "extract/editor/mspr0-0-unpacked.dat");
- strcpy(outputDir, "extract/editor/mspr0-0-");
-
- //extract images to BMP from DAT/TAB file
- int extract_res = ExtractImages (unpackfileDat, tabfile, palette, outputDir);
-
- if (extract_res != 0) {
-     return false;
- }
-
- remove(unpackfile);
-
- return true;
+    UnpackDataFile("originalgame/data/mspr0-0.dat", "extract/editor/mspr0-0-unpacked.dat");
+    ExtractImagesfromDataFile("extract/editor/mspr0-0-unpacked.dat", "originalgame/data/mspr0-0.tab", palette, "extract/editor/mspr0-0-");
+    remove("extract/editor/mspr0-0-unpacked.dat");
 }
 
 //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractModelTextures() {
- //read Ingame textures atlas tex0-0
- //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
- //data\tex0-0.dat
- //data\tex0-0.tab
- //Is a Raw image file RNC-compressed = No 	In game textures 256x768
+void PrepareData::ExtractModelTextures() {
+    //read Ingame textures atlas tex0-0
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\tex0-0.dat
+    //data\tex0-0.tab
+    //Is a Raw image file RNC-compressed = No 	In game textures 256x768
 
- //this is the defined size of the
- //texture Atlas in the Game
- modelTexAtlasSize.Width = 256;
- modelTexAtlasSize.Height = 768;
+    //this is the defined size of the
+    //texture Atlas in the Game
+    modelTexAtlasSize.Width = 256;
+    modelTexAtlasSize.Height = 768;
 
- char packfile[65];
- char tabfile[65];
- char outputfile[50];
- strcpy(packfile, "originalgame/objects/data/tex0-0.dat");
- strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
- strcpy(outputfile, "extract/models/tex0-0.png");
+    char packfile[65];
+    char tabfile[65];
+    char outputfile[50];
+    strcpy(packfile, "originalgame/objects/data/tex0-0.dat");
+    strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
+    strcpy(outputfile, "extract/models/tex0-0.png");
 
- ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
+    ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
                      outputfile, 1.0, false);
 
- /********************************************
-  * We also need the TAB file to know where  *
-  * the pictures are located inside this     *
-  * texture Atlas                            *
-  ********************************************/
+    /********************************************
+    * We also need the TAB file to know where  *
+    * the pictures are located inside this     *
+    * texture Atlas                            *
+    ********************************************/
 
- this->modelsTabFileInfo = new TABFILE();
+    this->modelsTabFileInfo = new TABFILE();
 
- //Very important: Do not remove the last boolean false parameter; For the
- //3D Model texture Atlas we HAVE to read the first TAB file entry as well,
- //because otherwise we are missing the first texture Atlas picture, and the
- //3D model texture mapping goes wrong
- int retcode=read_tabfile_data(this->modelsTabFileInfo, tabfile, false);
- if (retcode!=0)
-   switch (retcode)
-     {
-       case 1:
-          printf("\nError - Cannot open TAB file: %s\n", tabfile);
-          return false;
-       default:
-          printf("\nError - Loading TAB file %s returned fail code %d\n",tabfile,retcode);
-          return false;
-     }
+    //Very important: Do not remove the last boolean false parameter; For the
+    //3D Model texture Atlas we HAVE to read the first TAB file entry as well,
+    //because otherwise we are missing the first texture Atlas picture, and the
+    //3D model texture mapping goes wrong
+    int retcode=read_tabfile_data(this->modelsTabFileInfo, tabfile, false);
+    if (retcode!=0)
+    switch (retcode) {
+        case 1:
+            throw std::string("Cannot open TAB file: ") + tabfile;
+        default:
+            throw std::string("Error - Loading TAB file ") + tabfile + " returned fail code " + std::to_string(retcode);
+    }
 
- /*char exportDir[50];
- char exportFileName[25];
- strcpy(exportDir, "extract/models/");
- strcpy(exportFileName, "dbgtex-");
+    /*char exportDir[50];
+    char exportFileName[25];
+    strcpy(exportDir, "extract/models/");
+    strcpy(exportFileName, "dbgtex-");
 
- //the next debugging command allows to write a CSV file
- //which contains the listing of all contained pictures described
- //in the TAB file. For each picture the offset, width and height is
- //shown
- DebugWriteTabFileContentsCsvTable(tabfile, this->modelsTabFileInfo);
+    //the next debugging command allows to write a CSV file
+    //which contains the listing of all contained pictures described
+    //in the TAB file. For each picture the offset, width and height is
+    //shown
+    DebugWriteTabFileContentsCsvTable(tabfile, this->modelsTabFileInfo);
 
- //the next line allows to seperate the original texture Atlas
- //into seperate PNG images on the harddisc. This could be interesting
- //for debugging purposes.
- DebugSplitModelTextureAtlasAndWriteSingulatedPictures(outputfile, exportDir, exportFileName, this->modelsTabFileInfo);*/
-
- return true;
+    //the next line allows to seperate the original texture Atlas
+    //into seperate PNG images on the harddisc. This could be interesting
+    //for debugging purposes.
+    DebugSplitModelTextureAtlasAndWriteSingulatedPictures(outputfile, exportDir, exportFileName, this->modelsTabFileInfo);*/
 }
 
 //extracts the Tmaps data in data\tmaps.dat and data\tmaps.tab
 //returns true in case of success, returns false in case of unexpected error
-bool PrepareData::ExtractTmaps() {
+void PrepareData::ExtractTmaps() {
     //read Tmaps data (contains collectible items, powerups...)
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //data\tmaps.dat
@@ -3001,18 +2238,17 @@ bool PrepareData::ExtractTmaps() {
 
    char* ByteArray;
    ByteArray = new char[size];
-   if (iFile != NULL)
+   if (iFile == NULL)
    {
-       do {
-           ByteArray[counter] = fgetc(iFile);
-           counter++;
-       } while (counter < size);
-       fclose(iFile);
-   } else {
-       return false;
+       throw std::string("Cannot open Tmaps file: ") + ArchiveName;
    }
+    do {
+        ByteArray[counter] = fgetc(iFile);
+        counter++;
+    } while (counter < size);
+    fclose(iFile);
 
-   //now seperate data into different new created file
+    //now seperate data into different new created file
    counter = 0;
    unsigned long ofilenr = 0;
 
@@ -3037,7 +2273,7 @@ bool PrepareData::ExtractTmaps() {
            oFile = fopen(finalpath, "wb");
            if (oFile == NULL) {
               delete[] ByteArray;
-              return false;
+              throw std::string("Cannot open file for writing: ") + finalpath;
            }
      }
       if (oFile != NULL) {
@@ -3064,12 +2300,7 @@ bool PrepareData::ExtractTmaps() {
        strcat(finalpath, fname);
        strcat(finalpathUnpacked, fname);
 
-       //RNC unpack data
-       int unpack_res = main_unpack(finalpath, finalpathUnpacked);
-
-       if (unpack_res != 0) {
-           return false;
-       }
+       UnpackDataFile(finalpath, finalpathUnpacked);
    }
 
    //export raw video data to png pictures
@@ -3105,12 +2336,10 @@ bool PrepareData::ExtractTmaps() {
         remove(finalpathUnpacked);
         remove(finalpath);
     }
-
-   return true;
 }
 
 //extracts sound files from sound.data
-bool PrepareData::ExtractSounds() {
+void PrepareData::ExtractSounds() {
    char ArchiveName[55];
    strcpy(ArchiveName, "originalgame/sound/sound.dat");
 
@@ -3131,16 +2360,16 @@ bool PrepareData::ExtractSounds() {
 
    char* ByteArray;
    ByteArray = new char[size];
-   if (iFile != NULL)
+   if (iFile == NULL)
    {
-       do {
-           ByteArray[counter] = fgetc(iFile);
-           counter++;
-       } while (counter < size);
-       fclose(iFile);
-   } else {
-       return false;
+       throw std::string("Cannot open sound file: ") + ArchiveName;
    }
+   do {
+       ByteArray[counter] = fgetc(iFile);
+       counter++;
+   } while (counter < size);
+   fclose(iFile);
+
 
    //now seperate data into different new created file
    counter = 0;
@@ -3167,7 +2396,7 @@ bool PrepareData::ExtractSounds() {
            oFile = fopen(finalpath, "wb");
            if (oFile == NULL) {
               delete[] ByteArray;
-              return false;
+              throw std::string("Cannot open file for writing: ") + finalpath;
            }
      }
 
@@ -3193,12 +2422,7 @@ bool PrepareData::ExtractSounds() {
        strcat(finalpath, fname);
        strcat(finalpathUnpacked, fname);
 
-       //RNC unpack data
-       int unpack_res = main_unpack(finalpath, finalpathUnpacked);
-
-       if (unpack_res != 0) {
-           return false;
-       }
+       UnpackDataFile(finalpath, finalpathUnpacked);
    }
 
    //****************************
@@ -3275,13 +2499,11 @@ bool PrepareData::ExtractSounds() {
         remove(finalpath);
         remove(finalpathUnpacked);
     }
-
-   return true;
 }
 
 //Reads file format with sound file information, Returns all available SOUNDFILEENTRIES in entries
 //Returns true when successful, False otherwise
-bool PrepareData::ReadSoundFileEntries(char* filename, std::vector<SOUNDFILEENTRY> *entries) {
+void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries) {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT, structure seems to also apply to sound files
 
@@ -3298,26 +2520,23 @@ bool PrepareData::ReadSoundFileEntries(char* filename, std::vector<SOUNDFILEENTR
 
     SOUNDFILEENTRY *newItem;
 
-    if (iFile != NULL)
+    if (iFile == NULL)
     {
-        do {
-           newItem = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
-           fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
-           entries->push_back(*newItem);
-           free(newItem);
-           EntryNumber++;
-        } while (EntryNumber < itemnr);
-        fclose(iFile);
-    } else {
         entries = NULL;
-        return false;
+        throw std::string("Error - Cannot open file for reading: ") + filename;
     }
-
-    return true;
+    do {
+        newItem = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
+        fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
+        entries->push_back(*newItem);
+        free(newItem);
+        EntryNumber++;
+    } while (EntryNumber < itemnr);
+    fclose(iFile);
 }
 
 //further split sound files
-bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SOUNDFILEENTRY> *entries) {
+void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries) {
    //after ExtractSounds routine executed we get files which contain multiple WAV files
    //glued together, we need to split them further
 
@@ -3334,16 +2553,15 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
 
    char* ByteArray;
    ByteArray = new char[size];
-   if (iFile != NULL)
+   if (iFile == NULL)
    {
-       do {
-           ByteArray[counter] = fgetc(iFile);
-           counter++;
-       } while (counter < size);
-       fclose(iFile);
-   } else {
-       return false;
+       throw std::string("Error - Cannot open file for reading: ") + filename;
    }
+   do {
+       ByteArray[counter] = fgetc(iFile);
+       counter++;
+   } while (counter < size);
+   fclose(iFile);
 
    //now seperate data into different new created file
    counter = 0;
@@ -3369,7 +2587,7 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
                 oFile = fopen(finalpath, "wb");
                 if (oFile == NULL) {
                     delete[] ByteArray;
-                    return false;
+                    throw std::string("Error - Cannot open file for writting: ") + finalpath;
                 }
 
                 lastpos = (*it).offsetTune + (*it).tuneLenBytes;
@@ -3384,11 +2602,9 @@ bool PrepareData::SplitSoundFile(char* filename, char *ofilename, std::vector<SO
     }
 
    delete[] ByteArray;
-
-   return true;
 }
 
-bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
+void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
                                     MUSICTABLEENTRY *VecMusicTableEntries,
                                     std::vector<SOUNDFILEENTRY> VecTuneInformation)
 {
@@ -3406,7 +2622,7 @@ bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
 
          oFile = fopen(finalpath, "wb");
          if (oFile == NULL) {
-             return false;
+             throw std::string("Error - Cannot open file for writting: ") + finalpath;
          }
 
          //go to start of song file data
@@ -3418,8 +2634,7 @@ bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
          unsigned char *buffer = static_cast<unsigned char*>(malloc(dataCnt));
 
          if (buffer == NULL) {
-             printf(" Error - cannot allocate %lu bytes of memory.\n",(unsigned long)(dataCnt));
-             return false;
+             throw std::string("Error - cannot allocate ") + std::to_string(dataCnt) + " bytes of memory.";
          }
 
          //copy data
@@ -3431,13 +2646,11 @@ bool PrepareData::ExtractMusicFiles(char* outputNameStr, FILE *iFile,
 
          free(buffer);
      }
-
-     return true;
 }
 
 //Extract music files
 //Returns true when successful, False otherwise
-bool PrepareData::ExtractMusic() {
+void PrepareData::ExtractMusic() {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT
 
@@ -3457,12 +2670,14 @@ bool PrepareData::ExtractMusic() {
     //this position
     fseek(iFile, size - 4, SEEK_SET);
 
-    unsigned long seekPos;
+    // unsigned long is larger than the 4 bytes read. initializing it to 0 avoids
+    // the upper bytes containing garbage.
+    unsigned long seekPos = 0;
 
-    fread(&seekPos, sizeof(seekPos), 1, iFile);
+    fread(&seekPos, 4, 1, iFile);
     fseek(iFile, seekPos, SEEK_SET);
 
-    short int readVal;
+    short int readVal = 0;
     unsigned int N = 0;
     size_t lastSeekPos;
 
@@ -3470,18 +2685,21 @@ bool PrepareData::ExtractMusic() {
     //lets call the amount of repetitions N
     do {
         lastSeekPos = ftell(iFile);
-        fread(&readVal, sizeof(readVal), 1, iFile);
+        fread(&readVal, 2, 1, iFile);
         if (readVal == 0x01)
             N++;
     } while (readVal == 0x01);
 
     if (N == 0)
-        return false;
+        throw std::string("Error - No music data found");
 
     //go back to file position before last read
     fseek(iFile, lastSeekPos, SEEK_SET);
 
     std::vector<MUSICTABLEENTRY> VecMusicTableEntries;
+
+    // Integer sizes are not well defined, so better check them
+    static_assert(sizeof(MUSICTABLEENTRY) == 16);
 
     MUSICTABLEENTRY *newTableEntry;
 
@@ -3499,6 +2717,9 @@ bool PrepareData::ExtractMusic() {
     std::vector<MUSICTABLEENTRY>::iterator it;
 
     std::vector<SOUNDFILEENTRY> VecTuneInformation;
+
+    // Integer sizes are not well defined, so better check them
+    static_assert(sizeof(SOUNDFILEENTRY) == 32);
 
     SOUNDFILEENTRY *newTuneInformation;
     unsigned long targetLenTuneSum;
@@ -3524,21 +2745,18 @@ bool PrepareData::ExtractMusic() {
         }
 
         //extract all available tune files
-        if (!ExtractMusicFiles(outputNameStr, iFile, &(*it), VecTuneInformation))
-            return false;
+        ExtractMusicFiles(outputNameStr, iFile, &(*it), VecTuneInformation);
 
         //clear list again to make room for next file round
         VecTuneInformation.clear();
      }
-
-    return true;
 }
 
 //The following routine uses the flifix source code,
 //repairs the original games intro.dat file, and then
 //extracts the intro in single frames that we can then
 //load and play using Irrlicht
-bool PrepareData::PrepareIntro() {
+void PrepareData::PrepareIntro() {
     //Variables initiation
     FILE *animFile;
     FILE *destFile;
@@ -3564,12 +2782,12 @@ bool PrepareData::PrepareIntro() {
     //Opening the files
     animFile = openSourceFLIFile(srcFName);
     if (animFile == NULL)
-        return false;
+        throw std::string("Error opening file: ") + srcFName;
 
     destFile = openDestinationFLIFile(destFName);
     if (destFile == NULL) {
         fclose(animFile);
-        return false;
+        throw std::string("Error opening file: ") + destFName;
     }
 
     //File analyst
@@ -3587,7 +2805,7 @@ bool PrepareData::PrepareIntro() {
     flic::Decoder decoder(&file);
     flic::Header header;
     if (!decoder.readHeader(header)) {
-       return false;
+       throw std::string("Error reading FLI header in file ") + outputNameStr;
     }
 
      std::vector<uint8_t> buffer(header.width * header.height);
@@ -3600,8 +2818,7 @@ bool PrepareData::PrepareIntro() {
 
      for (long i = 0; i < header.frames; ++i) {
        if (!decoder.readFrame(frame)) {
-         //return 3;
-         return false;
+         throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
        } else {
            //process the current decoded frame data in buffer
            char* frameData = new char[buffer.size()];
@@ -3615,14 +2832,47 @@ bool PrepareData::PrepareIntro() {
            //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
            if (!ConvertIntroFrame(frameData, frame.colormap, header.width, header.height, outFrameFileName, 2.0, false)) {
                delete [] frameData;
-
-               //there was an error
-               return false;
+               throw std::string("Error converting frame ") + std::to_string(i) + " in file " + outputNameStr;
            }
 
            delete[] frameData;
        }
      }
+}
 
-    return true;
+
+// wrap main_unpack to take const char* arguments and throw an exception on error
+void UnpackDataFile(const char* packfile, const char* unpackfile) {
+    logging::Detail(std::string("unpacking ") + packfile);
+
+    // we need to temporarily copy the strings because main_unpack takes char* arguments.
+    char* _packfile = strdup(packfile);
+    char* _unpackfile = strdup(unpackfile);
+
+    int unpack_res = main_unpack(_packfile, _unpackfile);
+
+    free(_packfile);
+    free(_unpackfile);
+
+    if (unpack_res != 0) {
+        throw std::string("Error unpacking file: ") + packfile;
+    }
+}
+
+// wrap ExtractImages to take const char* arguments and throw an exception on error
+void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir) {
+    // we need to temporarily copy the strings because ExtractImages takes char* arguments.
+    char* _datfname = strdup(datfname);
+    char* _tabfname = strdup(tabfname);
+    char* _outputDir = strdup(outputDir);
+
+    int extract_res = ExtractImages(_datfname, _tabfname, palette, _outputDir);
+
+    free(_datfname);
+    free(_tabfname);
+    free(_outputDir);
+
+    if (extract_res != 0) {
+        throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
+    }
 }

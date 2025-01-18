@@ -67,8 +67,8 @@ public:
     ~ObjectDatFile();
 
     //Routines
-    bool LoadObjectDatFile(char* filename);
-    bool WriteToObjFile(char* filename, char* objectname);
+    bool LoadObjectDatFile(const char* filename);
+    bool WriteToObjFile(const char* filename, const char* objectname);
     bool TestBitConverterToInt16();
 
     bool ConversionSuccesful;

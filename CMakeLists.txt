@@ -178,6 +178,7 @@ add_executable(hi-octane202x
     src/utils/path.cpp
     src/utils/logger.h
     src/utils/logger.cpp
+    src/utils/logging.h
 
     src/utils/boundingbox/coord_frame.h
     src/utils/boundingbox/basis.h
