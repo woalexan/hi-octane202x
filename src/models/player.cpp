@@ -56,14 +56,6 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
 
         //remember value of last crossed way point
         lastCrossedCheckPointValue = valueCrossedCheckPoint;
-
-        //if this is a computer player setup the path to the next
-        //correct checkpoint
-        /*if (!this->mHumanPlayer) {
-            mRace->testPathResult = mRace->mPath->FindPathToNextCheckPoint(this);
-
-            this->CpPlayerFollowPath(mRace->testPathResult);
-        }*/
     }
 }
 
@@ -218,8 +210,11 @@ void Player::SetNewState(irr::u32 newPlayerState) {
             break;
         }
 
+        //in the finished state the player should be able to
+        //move, but not shoot; the human player craft is taken
+        //over in this state by the computer player control
         case STATE_PLAYER_FINISHED: {
-            this->mPlayerStats->mPlayerCanMove = false;
+            this->mPlayerStats->mPlayerCanMove = true;
             this->mPlayerStats->mPlayerCanShoot = false;
             break;
         }
@@ -230,6 +225,54 @@ void Player::SetNewState(irr::u32 newPlayerState) {
            break;
         }
    }
+
+    //Update a connected HUD as well
+    UpdateHUDState();
+}
+
+void Player::FinishedRace() {
+    /* after the player is finished with the race
+     * the game uses the external view, while a
+     * computer player takes over controlling this craft */
+    this->mCurrentViewMode = CAMERA_EXTERNALVIEW;
+
+    SetNewState(STATE_PLAYER_FINISHED);
+
+    LogMessage((char*)"I have finished the race");
+
+    //also tell the race that I am finished
+    mRace->PlayerHasFinishedLastLapOfRace(this);
+
+    //if this is a human player we need to reconfigure it
+    //as a computer player, so that the computer player
+    //can continue moving it over the race track
+    if (mHumanPlayer) {
+        CpTakeOverHuman();
+    }
+}
+
+void Player::CpTakeOverHuman() {
+    //reconfigure physics model, so that computer player is able
+    //to drive the craft
+    this->mRace->SetupPhysicsObjectParameters(*this->phobj, false);
+    this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+
+    //stop being a human player
+    mHumanPlayer = false;
+
+    mCpCurrPathOffset = 0.0f;
+
+    //"jump start" computer player speed, so that craft does not immediately
+    //stop when computer player takes over
+    computerPlayerCurrentSpeed = this->phobj->physicState.speed;
+
+    if (computerPlayerCurrentSpeed < CP_PLAYER_SLOW_SPEED) {
+        computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+    }
+
+    LogMessage((char*)"Control handed over to computer");
+
+    WorkaroundResetCurrentPath();
 }
 
 void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
@@ -240,6 +283,11 @@ void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
     } else if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_BROKEN) {
         //we are broken down, fix the shield
         this->mPlayerStats->shieldVal = this->mPlayerStats->shieldMax;
+        //also fix broken glass
+        RepairGlasBreaks();
+
+        //remove killed by HUD message
+        RemovePlayerPermanentGreenBigText();
     }
 
    LogMessage((char*)"The recovery vehicle grabed me");
@@ -265,6 +313,7 @@ void Player::WorkaroundResetCurrentPath() {
 
    if (closestLink.first == NULL) {
        //workaround, just do nothing! TODO: Maybe improve later
+       LogMessage((char*)"WorkaroundResetCurrentPath: no closest link found");
    } else {
        //setup new path for the race
        AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, closestLink.first);
@@ -279,6 +328,13 @@ void Player::FreedFromRecoveryVehicleAgain() {
 
        LogMessage((char*)"I was dropped of by recovery vehicle again");
 
+       //restore the correct viewmode again before craft
+       //was destroyed
+       mCurrentViewMode = mLastViewModeBeforeBrokenCraft;
+
+       //this not only sets the player state to racing again
+       //which means the player is allowed to move
+       //but also enables drawing of HUD again
        SetNewState(STATE_PLAYER_RACING);
 
        mRecoveryVehicleCalled = false;
@@ -351,31 +407,33 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     //Position = NewPosition;
     //FrontDir = (NewFrontAt-Position).normalize(); //calculate direction vector
 
-    if (DEF_INSPECT_LEVEL == true) {
+    PlayerMesh = smgr->getMesh(model.c_str());
+    Player_node = smgr->addMeshSceneNode(PlayerMesh);
 
-        PlayerMesh = smgr->getMesh(model.c_str());
-        Player_node = smgr->addMeshSceneNode(PlayerMesh);
+    //set player model initial orientation and position, later player craft is only moved by physics engine
+    //also current change in Rotation of player craft model compared with this initial orientation is controlled by a
+    //quaterion inside the physics engine object for this player craft as well
+    Player_node->setRotation(((NewFrontAt-NewPosition).normalize()).getHorizontalAngle()+ irr::core::vector3df(0.0f, 180.0f, 0.0f));
+    Player_node->setPosition(NewPosition);
 
-        //set player model initial orientation and position, later player craft is only moved by physics engine
-        //also current change in Rotation of player craft model compared with this initial orientation is controlled by a
-        //quaterion inside the physics engine object for this player craft as well
-        Player_node->setRotation(((NewFrontAt-NewPosition).normalize()).getHorizontalAngle()+ irr::core::vector3df(0.0f, 180.0f, 0.0f));
-        Player_node->setPosition(NewPosition);
+    //Player_node->setDebugDataVisible(EDS_BBOX);
+    Player_node->setDebugDataVisible(EDS_OFF);
 
-       // targetSteerDir = (NewFrontAt-NewPosition).normalize();
-       // targetSteerAngle = 0;
+    Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
+    Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
 
-        //Player_node->setDebugDataVisible(EDS_BBOX);
-        Player_node->setDebugDataVisible(EDS_OFF);
-
-        Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
-        Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
-
-        if (this->mRace->mGame->enableShadows) {
-            // add shadow
-            PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();
-        }
+    if (this->mRace->mGame->enableShadows) {
+       // add shadow
+       PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();
     }
+
+    mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
+
+    //create my internal camera SceneNode for 1st person
+    mIntCamera = this->mRace->mSmgr->addCameraSceneNode(NULL, NewPosition);
+
+    //create my internal camera SceneNode for 3rd person
+    mThirdPersonCamera = this->mRace->mSmgr->addCameraSceneNode(NULL, NewPosition);
 
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
 
@@ -2945,9 +3003,19 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
         return currentWayPointLine->LinkDirectionVec;
 }*/
 
-void Player::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec) {
+//if showDurationSec is negative, the text will be shown until it is deleted
+//with a call to function RemovePlayerPermanentGreenBigText
+//if blinking is true text will blink (for example used for final lap text), If false
+//text does not blink (as used when player died and waits for repair craft)
+void Player::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking) {
     if (mHUD != NULL) {
-        this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec);
+        this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec, blinking);
+    }
+}
+
+void Player::RemovePlayerPermanentGreenBigText() {
+    if (mHUD != NULL) {
+        this->mHUD->RemovePermanentGreenBigText();
     }
 }
 
@@ -3192,6 +3260,42 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
     return;
 }
 
+irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
+    //are we on external view, and we have an external camera available?
+    if (mCurrentViewMode == CAMERA_EXTERNALVIEW) {
+        if (externalCamera != NULL) {
+            //return my external camera
+            //lets update this external camera, so that it
+            //does focus at us
+            externalCamera->Update();
+
+            return externalCamera->mCamSceneNode;
+        } else {
+            //as a fallback return my cockpit view
+            return mIntCamera;
+        }
+    }
+
+    if (mCurrentViewMode == CAMERA_PLAYER_COCKPIT) {
+          return mIntCamera;
+    }
+
+    if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+         return mThirdPersonCamera;
+    }
+
+    //no valid view option, return NULL
+    return NULL;
+}
+
+void Player::ChangeViewMode() {
+    if (mCurrentViewMode == CAMERA_PLAYER_COCKPIT) {
+          mCurrentViewMode = CAMERA_PLAYER_BEHINDCRAFT;
+    } else if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+        mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
+    }
+}
+
 void Player::CpHandleCharging() {
    //what charging do we need to do?
    switch(currCommand->cmdType) {
@@ -3376,16 +3480,6 @@ void Player::CpDefineNextAction() {
     }
 }
 
-void Player::GetPlayerCameraDataFirstPerson(irr::core::vector3df &world1stPersonCamPosPnt, irr::core::vector3df &world1stPersonCamTargetPnt) {
-    world1stPersonCamPosPnt = this->World1stPersonCamPosPnt;
-    world1stPersonCamTargetPnt = this->World1stPersonCamTargetPnt;
-}
-
-void Player::GetPlayerCameraDataThirdPerson(irr::core::vector3df &worldTopLookingCamPosPnt, irr::core::vector3df &worldTopLookingCamTargetPnt) {
-    worldTopLookingCamPosPnt = this->WorldTopLookingCamPosPnt;
-    worldTopLookingCamTargetPnt = this->WorldTopLookingCamTargetPnt;
-}
-
 //returns true if the return parameter was modified, that means if a new minimum was
 //found and set
 bool Player::GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
@@ -3455,64 +3549,7 @@ bool Player::GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos) 
     return minValSet;
 }
 
-void Player::Update(irr::f32 frameDeltaTime) {
-    if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
-        && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)) {
-            //advance current lap lap time, frameDeltaTime is in seconds
-            mPlayerStats->currLapTimeExact += frameDeltaTime;
-       }
-
-    updateSlowCnter += frameDeltaTime;
-
-    this->mPlayerStats->speed = this->phobj->physicState.speed;
-
-    if (updateSlowCnter >= 0.1) {
-        updateSlowCnter = 0.0f;
-
-        if (mHumanPlayer) {
-            this->mRace->mSoundEngine->SetPlayerSpeed(this->mPlayerStats->speed, this->mPlayerStats->speedMax);
-        }
-
-        if (mMaxTurboActive) {
-
-        }
-
-        //handle missle lock timing logic
-        if (this->mTargetMissleLockProgr > 0) {
-            mTargetMissleLockProgr--;
-
-            if (mTargetMissleLockProgr == 0) {
-                //we have achieved missle lock
-                this->mTargetMissleLock = true;
-            }
-        }
-    }
-
-    //calculate lap time for Hud display
-    mPlayerStats->currLapTimeMultiple100mSec = (mPlayerStats->currLapTimeExact * 10);
-
-    //calculate player craft world coordinates
-    WorldCoordCraftFrontPnt = this->phobj->ConvertToWorldCoord(LocalCraftFrontPnt);
-    WorldCoordCraftBackPnt = this->phobj->ConvertToWorldCoord(LocalCraftBackPnt);
-    WorldCoordCraftLeftPnt = this->phobj->ConvertToWorldCoord(LocalCraftLeftPnt);
-    WorldCoordCraftRightPnt = this->phobj->ConvertToWorldCoord(LocalCraftRightPnt);
-
-    WorldCoordCraftSmokePnt = this->phobj->ConvertToWorldCoord(LocalCraftSmokePnt);
-    WorldCraftDustPnt = this->phobj->ConvertToWorldCoord(LocalCraftDustPnt);
-
-    WorldCoordCraftAboveCOGStabilizationPoint = this->phobj->ConvertToWorldCoord(LocalCraftAboveCOGStabilizationPoint);
-
-    craftUpwardsVec = (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
-
-    //calculate craft forward direction vector
-    craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
-    craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
-
-    //recalculate current 2D cell coordinates
-    //where the player is currently located
-    mCurrPosCellX = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
-    mCurrPosCellY = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
-
+void Player::UpdateCameras() {
     //update cameraSensor to detect steepness over a wider distance
     //in front of the player craft in an attempt to prevent camera clipping
     //when moving fast over steep hills
@@ -3644,13 +3681,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     maxh = fmax(maxh, deltah6);
     maxh = fmax(maxh, deltah7);
 
-    /*  if (maxh > 0.0f) {
-          adjusth = maxh * 0.5f;
-      } else adjusth = 0.0f;*/
-
-    PlayerCraftHeightControl();
-
-    /************ Update player camera stuff ***************/
     //update 3rd person camera coordinates
     WorldTopLookingCamPosPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamPosPnt);
     WorldTopLookingCamTargetPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamTargetPnt);
@@ -3694,6 +3724,90 @@ void Player::Update(irr::f32 frameDeltaTime) {
     dbgCameraAvgVAl = avgVal;
     dbgMinCeilingFound = dbgCurrCeilingMinPos.Y;
 
+    /*********************************************
+     * Update my two internal cameras            *
+     *********************************************/
+
+    //3rd person camera
+    mThirdPersonCamera->setPosition(this->WorldTopLookingCamPosPnt);
+    mThirdPersonCamera->setTarget(this->WorldTopLookingCamTargetPnt);
+
+    //1st person camera in cockpit
+    mIntCamera->setPosition(this->World1stPersonCamPosPnt);
+    mIntCamera->setTarget(this->World1stPersonCamTargetPnt);
+}
+
+void Player::Update(irr::f32 frameDeltaTime) {
+    if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
+        && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)) {
+            //advance current lap lap time, frameDeltaTime is in seconds
+            mPlayerStats->currLapTimeExact += frameDeltaTime;
+       }
+
+    updateSlowCnter += frameDeltaTime;
+
+    this->mPlayerStats->speed = this->phobj->physicState.speed;
+
+    //very special case: if the human player craft broke down (player died) we want
+    //to stop the vehicle actively by adding friction
+    if ((mHumanPlayer) && ((mPlayerStats->mPlayerCurrentState == STATE_PLAYER_BROKEN) ||
+                           (mPlayerStats->mPlayerCurrentState == STATE_PLAYER_EMPTYFUEL))
+            && (this->phobj->physicState.speed > 0.0f)) {
+          //add friction to stop the craft
+          this->phobj->AddFriction(10.0f);
+    }
+
+    if (updateSlowCnter >= 0.1) {
+        updateSlowCnter = 0.0f;
+
+        if (mHumanPlayer) {
+            this->mRace->mSoundEngine->SetPlayerSpeed(this->mPlayerStats->speed, this->mPlayerStats->speedMax);
+        }
+
+        if (mMaxTurboActive) {
+
+        }
+
+        //handle missle lock timing logic
+        if (this->mTargetMissleLockProgr > 0) {
+            mTargetMissleLockProgr--;
+
+            if (mTargetMissleLockProgr == 0) {
+                //we have achieved missle lock
+                this->mTargetMissleLock = true;
+            }
+        }
+    }
+
+    //calculate lap time for Hud display
+    mPlayerStats->currLapTimeMultiple100mSec = (mPlayerStats->currLapTimeExact * 10);
+
+    //calculate player craft world coordinates
+    WorldCoordCraftFrontPnt = this->phobj->ConvertToWorldCoord(LocalCraftFrontPnt);
+    WorldCoordCraftBackPnt = this->phobj->ConvertToWorldCoord(LocalCraftBackPnt);
+    WorldCoordCraftLeftPnt = this->phobj->ConvertToWorldCoord(LocalCraftLeftPnt);
+    WorldCoordCraftRightPnt = this->phobj->ConvertToWorldCoord(LocalCraftRightPnt);
+
+    WorldCoordCraftSmokePnt = this->phobj->ConvertToWorldCoord(LocalCraftSmokePnt);
+    WorldCraftDustPnt = this->phobj->ConvertToWorldCoord(LocalCraftDustPnt);
+
+    WorldCoordCraftAboveCOGStabilizationPoint = this->phobj->ConvertToWorldCoord(LocalCraftAboveCOGStabilizationPoint);
+
+    craftUpwardsVec = (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
+
+    //calculate craft forward direction vector
+    craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
+    craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
+
+    //recalculate current 2D cell coordinates
+    //where the player is currently located
+    mCurrPosCellX = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
+    mCurrPosCellY = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
+
+    PlayerCraftHeightControl();
+
+    /************ Update player camera stuff ***************/
+    UpdateCameras();
     /************ Update player camera stuff end ************/
 
     //check if this player is located at a charging station (gasoline, ammo or shield)
@@ -3786,6 +3900,8 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
             irr::f32 avgSkyVal = 0.0f;
 
+            std::list<irr::f32>::iterator itList;
+
             for (itList = this->playerAbsAngleSkyList.begin(); itList != this->playerAbsAngleSkyList.end(); ++itList) {
                 avgSkyVal += (*itList);
             }
@@ -3825,31 +3941,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //check if player entered a craft trigger region
     CheckForTriggerCraftRegion();
-
-    //*****************************************************
-    //* Hovercraft height control force calculation End   *
-    //*****************************************************
-
-    //calculate local Wheel steering angle, starting point is orientation of ship
-    //WheelSteerDir = this->phobj->physicState.orientation;
-
-    //rotate WheelSteerDir further defined by current steering angle
-    //irr::core::quaternion rotateFurther;
-    //rotateFurther.fromAngleAxis((targetSteerAngle / 180.0f) * irr::core::PI, irr::core::vector3df(0.0f, 1.0f, 0.0f));
-
-    //WheelSteerDir *= rotateFurther;
-
-    //WorldCoordWheelDir = (WorldCoordCraftFrontPnt - WorldCoordCraftBackPnt).normalize();
-    //WorldCoordCraftTravelDir = WorldCoordWheelDir;
-    //LocalCoordWheelDir = (LocalCraftFrontPnt - LocalCraftBackPnt).normalize();
-
-    //irr::core::matrix4 matrx;
-    //rotateFurther.getMatrix_transposed(matrx);
-    //matrx.rotateVect(WorldCoordWheelDir);
-    //matrx.rotateVect(LocalCoordWheelDir);
-    //WorldCoordWheelDir.normalize();
-    //LocalCoordWheelDir.normalize();
-
 }
 
 void Player::PlayerCraftHeightControl() {
@@ -3993,16 +4084,8 @@ bool Player::Damage(irr::f32 damage) {
         this->mPlayerStats->shieldVal -= damage;
         if (this->mPlayerStats->shieldVal <= 0.0f) {
             this->mPlayerStats->shieldVal = 0.0f;
-            playerCurrentlyDeath = true;
 
-            //Player has now zero shield and is broken
-            //Call recovery vehicle for help and set new
-            //player state
-            SetNewState(STATE_PLAYER_BROKEN);
-
-            LogMessage((char*)"I have broken down (died), I call recovery vehicle for help");
-            this->mRace->CallRecoveryVehicleForHelp(this);
-            mRecoveryVehicleCalled = true;
+            this->WasDestroyed();
 
             return true;
        }
@@ -4011,8 +4094,70 @@ bool Player::Damage(irr::f32 damage) {
     return false;
 }
 
+void Player::WasDestroyed() {
+    //remember current viewmode so that we can restore
+    //the correct one afterwards again after craft
+    //repair
+    mLastViewModeBeforeBrokenCraft = mCurrentViewMode;
+
+    //when player craft is broken (player was killed)
+    //the game uses an outside view
+    this->mCurrentViewMode = CAMERA_EXTERNALVIEW;
+
+    if (!mHumanPlayer) {
+        computerPlayerCurrentSpeed = 0.0f;
+        computerPlayerTargetSpeed = 0.0f;
+    }
+
+    //Player has now zero shield and is broken
+    //Call recovery vehicle for help and set new
+    //player state
+    //This also updates the HUD and current
+    //viewmode to be external view
+    SetNewState(STATE_PLAYER_BROKEN);
+
+    LogMessage((char*)"I have broken down (died), I call recovery vehicle for help");
+    this->mRace->CallRecoveryVehicleForHelp(this);
+    mRecoveryVehicleCalled = true;
+}
+
+void Player::UpdateHUDState() {
+    if (mHUD == NULL)
+        return;
+
+    //make sure the HUD state if correct for us
+    switch (this->GetCurrentState()) {
+        case STATE_PLAYER_BEFORESTART: {
+            mHUD->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+            break;
+        }
+    case STATE_PLAYER_EMPTYFUEL:
+    case STATE_PLAYER_RACING: {
+            mHUD->SetHUDState(DEF_HUD_STATE_RACE);
+            break;
+        }
+
+    case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE:
+    case STATE_PLAYER_FINISHED:
+    case STATE_PLAYER_BROKEN:  {
+        //if there is a connected HUD we need to disable
+        //its drawing, because if the player is destroyed there
+        //is an outside view at the craft, and for an outside view
+        //there is no HUD visible
+        mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
+        break;
+    }
+  }
+}
+
 void Player::SetMyHUD(HUD* pntrHUD) {
     mHUD = pntrHUD;
+
+    //I got a new HUD connected
+    //we need to tell the HUD the correct
+    //HUD state we want for the current player
+    //state we have
+    UpdateHUDState();
 }
 
 HUD* Player::GetMyHUD() {
@@ -4112,9 +4257,9 @@ void Player::CheckForChargingStation() {
 
             this->mPlayerStats->shieldVal++;
 
-            if (mHUD != NULL) {
-                RepairGlasBreaks();
+            RepairGlasBreaks();
 
+            if (mHUD != NULL) {
                 if (mPlayerStats->shieldVal >= mPlayerStats->shieldMax) {
                     mPlayerStats->shieldVal = mPlayerStats->shieldMax;
                     if (!this->mBlockAdditionalShieldFullMsg) {
@@ -4632,12 +4777,7 @@ void Player::FinishedLap() {
 
     //has this player finished the last lap of this race?
     if (mPlayerStats->currLapNumber > mPlayerStats->raceNumberLaps) {
-        SetNewState(STATE_PLAYER_FINISHED);
-
-        LogMessage((char*)"I have finished the race");
-
-        //also tell the race that I am finished
-        mRace->PlayerHasFinishedLastLapOfRace(this);
+        FinishedRace();
     }
 
     //do we need to show HUD Message for "final lap"
@@ -4645,7 +4785,7 @@ void Player::FinishedLap() {
         if (this->mRace->currPlayerFollow != NULL) {
             if (this->mRace->currPlayerFollow == this) {
                 if (mHUD != NULL) {
-                    mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f);
+                    mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f, true);
                 }
 
                 //play the yee-haw sound
@@ -4727,6 +4867,11 @@ void Player::CpPlayerHandleAttack() {
 
     //if we have no target player, just return
     if (mTargetPlayer == NULL)
+        return;
+
+    //if the target player has already finished the race also
+    //do not shot at him
+    if (mTargetPlayer->GetCurrentState() == STATE_PLAYER_FINISHED)
         return;
 
     //if we have a (red) perfect lock on another player, we have enough ammo

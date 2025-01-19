@@ -25,6 +25,7 @@
 #define DEF_HUD_STATE_NOTDRAWN 0
 #define DEF_HUD_STATE_STARTSIGNAL 1
 #define DEF_HUD_STATE_RACE 2
+#define DEF_HUD_STATE_BROKENPLAYER 3
 
 #define DEF_HUD_STARTSIGNAL_NOTHING_LIT 0
 #define DEF_HUD_STARTSIGNAL_RED_LIT 1
@@ -135,6 +136,8 @@ private:
     char* currentBigGreenText = NULL;
 
     irr::f32 currentBigGreenTextStillShownSec;
+    bool blinkBigGreenText;
+    bool permanentBigGreenText;
     irr::core::vector2di currentBigGreenTextDrawPosition;
     irr::u8 currentBigGreenTextState = 0;
     irr::f32 currentBigGreenTextBlinkPeriod;
@@ -173,12 +176,15 @@ private:
 
     void DrawHUD1PlayerRace(irr::f32 deltaTime);
     void DrawHUD1PlayerStartSignal(irr::f32 deltaTime);
+    void DrawHUD1PlayerBrokenPlayer(irr::f32 deltaTime);
 
     //************************************
     //* Render list of finished players  *
     //************************************
 
     void DrawFinishedPlayerList();
+
+    void RenderBigGreenText(irr::f32 deltaTime);
 
 public:
     HUD(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* TextRenderer);
@@ -192,7 +198,18 @@ public:
     void ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSoundActive = false);
     void CancelAllPermanentBannerTextMsg();
 
-    void ShowGreenBigText(char* text, irr::f32 showDurationSec);
+    //if showDurationSec is negative, the text will be shown until it is deleted
+    //with a call to function RemoveGreenBigText
+    //if blinking is true text will blink (for example used for final lap text), If false
+    //text does not blink (as used when player died and waits for repair craft)
+    void ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking);
+
+    //RemovePermanentGreenBigText does only remove a permanent green text,
+    //not one with a specified duration
+    void RemovePermanentGreenBigText();
+
+    //returns true if HUD currently shows a permanent big green text
+    bool DoesHudShowPermanentGreenBigText();
 
     void SetHUDState(irr::u8 newHUDState);
 

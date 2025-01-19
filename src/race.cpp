@@ -544,8 +544,8 @@ void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, Player* attacke
                 strcat(killMessage, attacker->mPlayerStats->name);
 
                 //show player that died a message in HUD, which other
-                //player was the attacker
-                targetToHit->ShowPlayerBigGreenHudText(killMessage, 5.0f);
+                //player was the attacker, is a permanent message, and not blinking
+                targetToHit->ShowPlayerBigGreenHudText(killMessage, -1.0f, false);
             }
 
             //trigger explosion at location of killed player
@@ -703,26 +703,7 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     //give the computer player slightly different values
     //for optimization
     if (newPlayerPhysicsObj != NULL) {
-        if (humanPlayer) {
-            newPlayerPhysicsObj->physicState.SetMass(3.0f);
-            newPlayerPhysicsObj->physicState.SetInertia(30.0f);
-
-            //best value for human player to have best
-            //player craft handling
-            newPlayerPhysicsObj->mRotationalFrictionVal = 50.1f;
-        } else {
-           //best values until 30.12.2024
-           newPlayerPhysicsObj->physicState.SetMass(5.0f);
-           newPlayerPhysicsObj->physicState.SetInertia(30.0f);
-
-           //this value is necessary for computer controlled craft,
-           //to stabilizie it against unwanted sideway movements and
-           //"oscillations"
-           //but because this will is too much to control the craft during
-           //steep turns, we will dynamically set it depending on the angle error
-           //in turns in the player class code
-           newPlayerPhysicsObj->mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX;
-        }
+        SetupPhysicsObjectParameters(*newPlayerPhysicsObj, humanPlayer);
 
         newPlayerPhysicsObj->physicState.position = Startpos;
         newPlayerPhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
@@ -764,6 +745,29 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
                    newPlayer->mCpCurrPathOffset = -deltaVec.X;
                }
             }
+    }
+}
+
+void Race::SetupPhysicsObjectParameters(PhysicsObject &phyObj, bool humanPlayer) {
+    if (humanPlayer) {
+        phyObj.physicState.SetMass(3.0f);
+        phyObj.physicState.SetInertia(30.0f);
+
+        //best value for human player to have best
+        //player craft handling
+        phyObj.mRotationalFrictionVal = 50.1f;
+    } else {
+       //best values until 30.12.2024
+       phyObj.physicState.SetMass(5.0f);
+       phyObj.physicState.SetInertia(30.0f);
+
+       //this value is necessary for computer controlled craft,
+       //to stabilizie it against unwanted sideway movements and
+       //"oscillations"
+       //but because this will is too much to control the craft during
+       //steep turns, we will dynamically set it depending on the angle error
+       //in turns in the player class code
+       phyObj.mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX;
     }
 }
 
@@ -1485,9 +1489,18 @@ void Race::HandleCraftHeightMapCollisions() {
 }
 
 void Race::Init() {
-    //create my main camera
-    mCamera = mSmgr->addCameraSceneNodeFPS(0,100.0f,0.05f,-1,
-                                                       0,0,false,0.0f);
+    //we want to adjust the keymap for the free movable camera
+    SKeyMap keyMap[4];
+
+    keyMap[0].Action=EKA_MOVE_FORWARD;   keyMap[0].KeyCode=KEY_KEY_W;
+    keyMap[1].Action=EKA_MOVE_BACKWARD;  keyMap[1].KeyCode=KEY_KEY_S;
+    keyMap[2].Action=EKA_STRAFE_LEFT;    keyMap[2].KeyCode=KEY_KEY_A;
+    keyMap[3].Action=EKA_STRAFE_RIGHT;   keyMap[3].KeyCode=KEY_KEY_D;
+
+    //create a free moving camera that the user can use to
+    //investigate the level/map, not used in actual game
+    mCamera = mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
+                                            keyMap, 4, false, 0.0f);
 
     //mCamera->setFOV(PI / 2.5);
 
@@ -1684,8 +1697,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update timer
     UpdateTimers(frameDeltaTime);
 
-    //update cameras
-    UpdateCameras();
+    //update external race track cameras
+    UpdateExternalCameras();
 
     mTimeProfiler->Profile(mTimeProfiler->tIntMorphing);
 
@@ -1706,33 +1719,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->Profile(mTimeProfiler->tIntAdvancePhysics);
 
-    irr::core::vector3df worldCoordPlayerCam;
-    irr::core::vector3df worldCoordPlayerCamTarget;
-
-    //move camera
-    if (this->currPlayerFollow != NULL) {
-        if (!this->currPlayerFollow->mFirstPlayerCam) {
-            //outside 3rd person camera selected
-            //worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamPosPnt);
-            //worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->LocalTopLookingCamTargetPnt);
-            currPlayerFollow->GetPlayerCameraDataThirdPerson(worldCoordPlayerCam, worldCoordPlayerCamTarget);
-        } else {
-           /* irr::f32 maxStep = fmax(player->cameraSensor->stepness, player->cameraSensor2->stepness);
-            maxStep = fmax(maxStep, player->cameraSensor3->stepness);
-            maxStep = fmax(maxStep, player->cameraSensor4->stepness);
-            maxStep = fmax(maxStep, player->cameraSensor5->stepness);*/
-
-            //1st person camera selected
-            //worldCoordPlayerCam = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamPosPnt);
-            //worldCoordPlayerCamTarget = currPlayerFollow->phobj->ConvertToWorldCoord(currPlayerFollow->Local1stPersonCamTargetPnt);
-            currPlayerFollow->GetPlayerCameraDataFirstPerson(worldCoordPlayerCam, worldCoordPlayerCamTarget);
-        }
-    }
-
-    if (playerCamera) {
-       mCamera->setPosition(worldCoordPlayerCam);
-       mCamera->setTarget(worldCoordPlayerCamTarget);
-     }
+    ManagePlayerCamera();
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
           (*itPlayer)->AfterPhysicsUpdate();
@@ -1770,6 +1757,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update recovery vehicle logic
     UpdateRecoveryVehicles(frameDeltaTime);
 
+    CheckRaceFinished(frameDeltaTime);
+
     mTimeProfiler->Profile(mTimeProfiler->tIntPlayerMonitoring);
 
     //update all particle systems
@@ -1798,7 +1787,7 @@ void Race::PlayerEnteredCraftTriggerRegion(Player* whichPlayer, MapTileRegionStr
         sprintf(triggerID, "%d", whichRegion->regionId);
         strcat(triggerMessage, triggerID);
 
-        whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f);
+        whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f, false);
     }
 
     //store trigger in pending trigger list, for processing during
@@ -1816,7 +1805,7 @@ void Race::PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStru
        sprintf(triggerID, "%d", whichRegion->regionId);
        strcat(triggerMessage, triggerID);
 
-       whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f);
+       whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f, false);
     }
 
     //store trigger in pending trigger list, for processing during
@@ -1835,7 +1824,7 @@ void Race::TimedTriggerOccured(Timer* whichTimer) {
         sprintf(triggerID, "%d", whichTimer->mEntityItem->getTargetGroup());
         strcat(triggerMessage, triggerID);
 
-        this->mPlayerVec.at(0)->ShowPlayerBigGreenHudText(triggerMessage, 5.0f);
+        this->mPlayerVec.at(0)->ShowPlayerBigGreenHudText(triggerMessage, 5.0f, false);
     }
 
     //store trigger in pending trigger list, for processing during
@@ -2058,21 +2047,20 @@ void Race::HandleBasicInput() {
     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
         if (this->currPlayerFollow != NULL)
         {
-            this->currPlayerFollow->mFirstPlayerCam = !this->currPlayerFollow->mFirstPlayerCam;
+            this->currPlayerFollow->ChangeViewMode();
         }
     }
 }
 
 void Race::HandleInput() {
-
      if (mPlayerVec.at(0)->mHumanPlayer) {
             bool playerNoTurningKeyPressed = true;
 
-             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_W)) {
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
                 mPlayerVec.at(0)->Forward();
              }
 
-             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_S))
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_DOWN))
              {
                 mPlayerVec.at(0)->Backward();
              }
@@ -2084,12 +2072,12 @@ void Race::HandleInput() {
                 mPlayerVec.at(0)->IsSpaceDown(false);
              }
 
-             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_A)) {
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_LEFT)) {
                   mPlayerVec.at(0)->Left();
                   mPlayerVec.at(0)->firstNoKeyPressed = true;
                   playerNoTurningKeyPressed = false;
              }
-             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_D)) {
+             if(this->mEventReceiver->IsKeyDown(irr::KEY_RIGHT)) {
                   mPlayerVec.at(0)->Right();
                   mPlayerVec.at(0)->firstNoKeyPressed = true;
                   playerNoTurningKeyPressed = false;
@@ -2846,193 +2834,26 @@ void Race::CleanMiniMap() {
     }
 }
 
-//void Race::createPlayers(int levelNr) {
+//function is called periodically to check if
+//the race is already finished, and handles
+//everything afterwards
+void Race::CheckRaceFinished(irr::f32 deltaTime) {
+    //all players finished?
+    if (mRaceWasFinished) {
+        mRaceFinishedWaitTimeCnter += deltaTime;
 
-//    //***************************************************
-//    // Player 1 (main human player)                     *
-//    //***************************************************
-
-//    //std::string player_model("/TANK0-0.obj");
-//    std::string player_model("extract/models/car0-0.obj");
-
-//    //for the start just get hardcoded starting positions for the player
-//    irr::core::vector3d<irr::f32> Startpos;
-//    irr::core::vector3d<irr::f32> Startdirection;
-
-//    //get player start locations from the level file
-//    std::vector<irr::core::vector3df> playerStartLocations =
-//            this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
-
-//    Startpos = playerStartLocations.at(4);
-//    Startdirection.X = Startpos.X;
-//    Startdirection.Y = Startpos.Y;
-//  //Startdirection.Z = Startpos.Z - 2.0f;  original line 04.09.2024, worked best until now
-
-//    Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
-
-//    //create the main player (controlled by human)
-//    player = new Player(this, player_model, Startpos, Startdirection, this->mSmgr, true);
-
-//    //Setup physics for player1, we handover pointer to Irrlicht
-//    //player node, as the node (3D model) is now fully controlled
-//    //by physics
-//    this->mPhysics->AddObject(player->Player_node);
-
-//    //retrieve a pointer to the player physics object that the physics code has
-//    //created for me, we need this pointer to get access to get player info/control cameras, etc...
-//    playerPhysicsObj = mPhysics->GetObjectPntr(player->Player_node);
-
-//    //setup player physic properties
-//    if (playerPhysicsObj != NULL) {
-//        playerPhysicsObj->physicState.SetMass(3.0f);   //3.0f
-//        playerPhysicsObj->physicState.SetInertia(30.0f);  //30.0f
-//        playerPhysicsObj->physicState.position = Startpos;
-//        playerPhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
-
-//        playerPhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
-
-//        playerPhysicsObj->physicState.recalculate();
-
-//        playerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
-
-//        //playerPhysicsObj->AddWorldCoordForce(obj->physicState.position + irr::core::vector3df(1.0f, 00.0f, 0.0f), obj->physicState.position + irr::core::vector3df(1.0f, 2.0f, 0.0f));
-//        //playerPhysicsObj->AddLocalCoordForce(irr::core::vector3df(2.0f, 00.0f, 0.0f), irr::core::vector3df(1.0f, 2.0f, 0.0f));
-//    }
-
-//    //give the player a pointer to its physics object
-//    player->SetPlayerObject(playerPhysicsObj);
-//    player->SetName((char*)"PLAYER");
-
-//    mPlayerVec.push_back(player);
-
-//    //***************************************************
-//    // Player 2 (for debugging right now)               *
-//    //***************************************************
-
-//    //create a second player as well
-//    //std::string player_model("extract/models/jet0-0.obj");
-//    std::string player_model2("extract/models/bike0-0.obj");
-//    //std::string player_model("extract/models/car0-0.obj");
-//    //std::string player_model("extract/models/jugga0-0.obj");
-//    //std::string player_model("extract/models/marsh0-0.obj");
-//    //std::string player_model("extract/models/skim0-0.obj");
-
-//    irr::core::vector3d<irr::f32> Startpos2;
-//    irr::core::vector3d<irr::f32> Startdirection2;
-
-//    Startpos2 = playerStartLocations.at(1);
-//    Startdirection2.X = Startpos2.X;
-//    Startdirection2.Y = Startpos2.Y;
-//    Startdirection2.Z = Startpos2.Z - 2.0f;
-
-//    //Startpos2.Z -= 10.0f;
-
-//    player2 = new Player(this, player_model2, Startpos2, Startdirection2, this->mSmgr, false);
-
-//    this->mPhysics->AddObject(player2->Player_node);
-//    player2->mCpCurrPathOffset = -1.0f;
-
-//    //setup player 2 physics properties
-//    player2PhysicsObj = this->mPhysics->GetObjectPntr(player2->Player_node);
-//    if (player2PhysicsObj != NULL) {
-//        player2PhysicsObj->physicState.SetMass(5.0f);   //3.0f
-//        player2PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
-//        player2PhysicsObj->physicState.position = Startpos2;
-//        player2PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
-
-//        player2PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
-//        player2PhysicsObj->physicState.recalculate();
-
-//       playerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
-//    }
-
-//    //inform player control object about its physics object pointer
-//    player2->SetPlayerObject(player2PhysicsObj);
-//    player2->SetName((char*)"KI");
-
-//    mPlayerVec.push_back(player2);
-
-//    //***************************************************
-//    // Player 3 (for debugging right now)               *
-//    //***************************************************
-
-//    //create a thrid player as well
-//    //std::string player_model("extract/models/jet0-0.obj");
-//    std::string player_model3("extract/models/jugga0-3.obj");
-//    //std::string player_model("extract/models/car0-0.obj");
-//    //std::string player_model("extract/models/jugga0-0.obj");
-//    //std::string player_model("extract/models/marsh0-0.obj");
-//    //std::string player_model("extract/models/skim0-0.obj");
-
-//    irr::core::vector3d<irr::f32> Startpos3;
-//    irr::core::vector3d<irr::f32> Startdirection3;
-
-//    Startpos3 = playerStartLocations.at(5);
-//    Startdirection3.X = Startpos3.X;
-//    Startdirection3.Y = Startpos3.Y;
-//    Startdirection3.Z = Startpos3.Z - 2.0f;
-
-//    /*Startpos3 = irr::core::vector3df(-11.9429f, 7.7560f, 47.4937f);
-//    Startdirection3.X = Startpos3.X;
-//    Startdirection3.Y = Startpos3.Y;
-//    Startdirection3.Z = Startpos3.Z - 2.0f;*/
-
-//    //Startpos2.Z -= 10.0f;
-
-//    player3 = new Player(this, player_model3, Startpos3, Startdirection3, this->mSmgr, false);
-
-//    this->mPhysics->AddObject(player3->Player_node);
-//    player3->mCpCurrPathOffset = 3.0f;
-
-//    //setup player 3 physics properties
-//    player3PhysicsObj = this->mPhysics->GetObjectPntr(player3->Player_node);
-//    if (player3PhysicsObj != NULL) {
-//        player3PhysicsObj->physicState.SetMass(5.0f);   //3.0f
-//        player3PhysicsObj->physicState.SetInertia(60.0f);  //30.0f
-//        player3PhysicsObj->physicState.position = Startpos3;
-//        player3PhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
-
-//        player3PhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
-//        player3PhysicsObj->physicState.recalculate();
-
-//       player3PhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
-//    }
-
-//    //inform player control object about its physics object pointer
-//    player3->SetPlayerObject(player3PhysicsObj);
-//    player3->SetName((char*)"KI2");
-//    player3->mCpCurrPathOffset = 1.0f;
-
-//    mPlayerVec.push_back(player3);
-
-//    currPlayerFollow = player;
-
-//    //add first command for computer player player2
-//    EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
-//    if (entItem != NULL) {
-//       //get waypoint link for this waypoint
-//        std::vector<WayPointLinkInfoStruct*> foundLinks;
-
-//       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
-
-//       if (foundLinks.size() > 0) {
-//           player2->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
-//       }
-//    }
-
-//    //add first command for computer player player3
-//    entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
-//    if (entItem != NULL) {
-//       //get waypoint link for this waypoint
-//        std::vector<WayPointLinkInfoStruct*> foundLinks;
-
-//       foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
-
-//       if (foundLinks.size() > 0) {
-//           player3->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
-//       }
-//    }
-//}
+        if (mRaceFinishedWaitTimeCnter > DEF_RACE_FINISHED_WAITTIME_SEC) {
+            //wait time counter finished, exit race
+            this->exitRace = true;
+        }
+    } else {
+        //race is not finished yet
+        if (this->playerRaceFinishedVec.size() >= this->mPlayerVec.size()) {
+              //all players went through the finish line
+              mRaceWasFinished = true;
+        }
+    }
+}
 
 bool Race::LoadLevel(int loadLevelNr) {
     if ((loadLevelNr < 1) || (loadLevelNr > 9)) {
@@ -3626,23 +3447,57 @@ void Race::UpdateTimers(irr::f32 frameDeltaTime) {
     }
 }
 
-void Race::UpdateCameras() {
+void Race::UpdateExternalCameras() {
     std::vector<Camera*>::iterator itCamera;
-    irr::scene::ICameraSceneNode* availCam = NULL;
+    std::vector<Player*>::iterator itPlayer;
 
-    for (itCamera = mCameraVec.begin(); itCamera != mCameraVec.end(); ++itCamera) {
-        (*itCamera)->Update();
+    //first iterate through all players, and try to assign an
+    //external camera for each player
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+         (*itPlayer)->externalCamera = NULL;
 
-        if ((*itCamera)->mCanSeePlayer) {
-            availCam = (*itCamera)->mCamSceneNode;
-            break;
+         for (itCamera = mCameraVec.begin(); itCamera != mCameraVec.end(); ++itCamera) {
+             if ((*itCamera)->CanIObserveLocation((*itPlayer)->phobj->physicState.position)) {
+                     //yes, this external camera can see this player
+                     (*itPlayer)->externalCamera = (*itCamera);
+
+                     //also command this external camera to focus on this specific
+                     //player
+                     (*itCamera)->SetTargetPlayer(*itPlayer);
+                     break;
+              } else {
+                 //if we are not able to observe this player, but this player is our focus right
+                 //now, remove our focus as well
+                 if ((*itCamera)->mFocusAtPlayer == (*itPlayer)) {
+                     (*itCamera)->SetTargetPlayer(NULL);
+                 }
+             }
+         }
+    }
+}
+
+void Race::ManagePlayerCamera() {
+    irr::scene::ICameraSceneNode* activeCam = NULL;
+
+    if (playerCamera) {
+        //get active camera of currently selected
+        //player, and check if it has changed
+        if (this->currPlayerFollow != NULL) {
+            activeCam = this->currPlayerFollow->DeliverActiveCamera();
         }
+    } else {
+        //free moving camera to inspect the level/map
+        activeCam = mCamera;
     }
 
-    if (availCam == NULL) {
-        this->mSmgr->setActiveCamera(mCamera);
-    } else {
-        this->mSmgr->setActiveCamera(availCam);
+    if (activeCam == NULL)
+        return;
+
+    //has the active camera changed?
+    //if so change it for rendering
+    if (activeCam != currActiveCamera) {
+        this->mSmgr->setActiveCamera(activeCam);
+        currActiveCamera = activeCam;
     }
 }
 
@@ -3731,7 +3586,7 @@ void Race::AddCamera(EntityItem *entity) {
     Camera* newCamera = new Camera(this, entity, mSmgr);
 
     //only set cameras to active in demo mode
-    newCamera->SetActive(mDemoMode);
+    newCamera->SetActive(true);
 
     this->mCameraVec.push_back(newCamera);
 }

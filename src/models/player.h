@@ -28,6 +28,7 @@
 #include "../utils/path.h"
 #include "../utils/bezier.h"
 #include "../draw/hud.h"
+#include "../models/camera.h"
 
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
@@ -90,10 +91,15 @@ const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 #define CP_MISSION_WAITFORRACESTART 0
 #define CP_MISSION_FINISHLAPS 1
 
+#define CAMERA_PLAYER_COCKPIT 0
+#define CAMERA_PLAYER_BEHINDCRAFT 1
+#define CAMERA_EXTERNALVIEW 2
+
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 struct RayHitInfoStruct; //Forward declaration
 class Collectable; //Forward declaration
+class Camera; //Forward declaration
 
 typedef struct {
     uint8_t cmdType;
@@ -290,6 +296,8 @@ public:
     void Right();
     void NoTurningKeyPressed();
 
+    void ChangeViewMode();
+
     int mCurrPosCellX;
     int mCurrPosCellY;
 
@@ -311,8 +319,6 @@ public:
     irr::core::vector3df debugPathPnt1;
     irr::core::vector3df debugPathPnt2;
     irr::core::vector3df debugPathPnt3;
-
-      int mLeave = 0;
 
     irr::f32 dbgAngleError;
     irr::f32 dbgDistError;
@@ -359,7 +365,12 @@ public:
     //player died); otherwise false is returned
     bool Damage(irr::f32 damage);
 
-    void ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec);
+    //if showDurationSec is negative, the text will be shown until it is deleted
+    //with a call to function RemovePlayerPermanentGreenBigText
+    //if blinking is true text will blink (for example used for final lap text), If false
+    //text does not blink (as used when player died and waits for repair craft)
+    void ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking);
+    void RemovePlayerPermanentGreenBigText();
 
     irr::f32 currentSideForce = 0.0f;
 
@@ -374,11 +385,6 @@ public:
 
     irr::core::vector3df World1stPersonCamPosPnt;
     irr::core::vector3df World1stPersonCamTargetPnt;
-
-    void GetPlayerCameraDataFirstPerson(irr::core::vector3df &world1stPersonCamPosPnt, irr::core::vector3df &world1stPersonCamTargetPnt);
-    void GetPlayerCameraDataThirdPerson(irr::core::vector3df &worldTopLookingCamPosPnt, irr::core::vector3df &worldTopLookingCamTargetPnt);
-
-    bool mFirstPlayerCam = true;
 
     //a local coordinate system point defined on the players craft, for height control
     irr::core::vector3d<irr::f32> LocalCraftFrontPnt;
@@ -465,6 +471,13 @@ public:
 
     irr::scene::IMeshSceneNode* Player_node;
 
+    //my player internal camera for cockpit
+    irr::scene::ICameraSceneNode* mIntCamera;
+    //my 3rd person camera from behind the craft
+    irr::scene::ICameraSceneNode* mThirdPersonCamera;
+
+    void UpdateCameras();
+
     //player craft shadow SceneNode
     irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow;
 
@@ -496,8 +509,6 @@ public:
     irr::f32 TargetHeight;
 
     irr::f32 testAngle;
-
-    bool playerCurrentlyDeath = false;
 
     bool ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::core::vector3df craftCoord,
                            irr::core::vector3df *projPlayerPosition,
@@ -668,7 +679,13 @@ public:
 
     void TestCpForceControlLogicWithHumanPlayer();
 
+    //current best camera for this players external view
+    Camera* externalCamera = NULL;
 
+    irr::u8 mCurrentViewMode;
+    irr::u8 mLastViewModeBeforeBrokenCraft;
+
+    irr::scene::ICameraSceneNode* DeliverActiveCamera();
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
@@ -724,7 +741,6 @@ private:
     irr::u8 playerCamHeightListElementNr = 0;
 
     std::list<irr::f32> playerAbsAngleSkyList;
-
 
     //variables to remember if during the last
     //gameloop this player did any charging
@@ -788,6 +804,12 @@ private:
     void CleanUpBrokenGlas();
 
     void WorkaroundResetCurrentPath();
+
+    void WasDestroyed();
+
+    void UpdateHUDState();
+    void FinishedRace();
+    void CpTakeOverHuman();
 
 public:
     HUD* mHUD = NULL;

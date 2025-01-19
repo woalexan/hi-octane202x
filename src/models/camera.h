@@ -24,12 +24,17 @@ public:
 
     void Update();
 
-    bool mCanSeePlayer = false;
-
     //our Camera SceneNode from Irrlicht
     irr::scene::ICameraSceneNode* mCamSceneNode;
 
     void SetActive(bool newState);
+
+    bool CanIObserveLocation(irr::core::vector3df location);
+    void SetTargetPlayer(Player* newCameraTargetPlayer);
+
+    //target player at which we currently focus at
+    //NULL means we have no focus target right now
+    Player* mFocusAtPlayer = NULL;
 
 private:
     //my camera position according to the
@@ -55,10 +60,6 @@ private:
 
     //if true camera is active, and looking for players
     bool mActive = false;
-
-    //target player at which we currently focus at
-    //NULL means we have no focus target right now
-    Player* mFocusAtPlayer = NULL;
 };
 
 #endif // CAMERA_H

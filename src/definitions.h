@@ -12,8 +12,6 @@
 
 //User setup start
 
-//Top level setup
-#define DEF_INSPECT_LEVEL true
 #define DEF_DBG_WALLCOLLISIONS false
 #define DEF_PLAYERCANGOBACKWARDS false
 
