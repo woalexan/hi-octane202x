@@ -31,20 +31,25 @@ void Camera::SetActive(bool newState) {
     mActive = newState;
 }
 
+bool Camera::CanIObserveLocation(irr::core::vector3df location) {
+    //I am close enough to this location?
+    irr::f32 distanceSQ = (location - mPosition).getLengthSQ();
+
+    //TODO: Also check if we have line of sight, for example cast a ray etc...
+
+    if (distanceSQ < 80.0f)
+        return true;
+
+    return false;
+}
+
+void Camera::SetTargetPlayer(Player* newCameraTargetPlayer) {
+   mFocusAtPlayer = newCameraTargetPlayer;
+}
+
 void Camera::Update() {
     if (!mActive)
         return;
-
-    //is a player close to me?
-    irr::f32 distanceSQ = (this->mRace->mPlayerVec.at(0)->phobj->physicState.position - mPosition).getLengthSQ();
-
-    if (distanceSQ < 50.0f) {
-        mFocusAtPlayer = this->mRace->mPlayerVec.at(0);
-        mCanSeePlayer = true;
-    } else {
-        mFocusAtPlayer = NULL;
-        mCanSeePlayer = false;
-    }
 
     if (mFocusAtPlayer != NULL) {
         mLookAt = mFocusAtPlayer->phobj->physicState.position;

@@ -1688,10 +1688,6 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         DrawFinishedPlayerList();
 
-        if ((this->monitorWhichPlayer->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_FINISHED) ||
-            (this->monitorWhichPlayer->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_BEFORESTART))
-                return;
-
         //any broken glas?
         if (this->monitorWhichPlayer->brokenGlasVec->size() > 0) {
             std::vector<HudDisplayPart*>::iterator itGlasBreak;
@@ -1916,31 +1912,22 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         RenderTargetSymbol(deltaTime);
 
         //Render big green text if currently one is shown
-        if (this->currentBigGreenTextState > 0) {
-            //Draw the text
-            //we use HudBigGreenText
-            if (this->currentBigGreenTextState == 2) {
-                myTextRenderer->DrawGameText(currentBigGreenText, myTextRenderer->HudBigGreenText, currentBigGreenTextDrawPosition);
-            }
+        RenderBigGreenText(deltaTime);
+    }
+}
 
-            //check how long we still need to show this text
+void HUD::RenderBigGreenText(irr::f32 deltaTime) {
+    //Render big green text if currently one is shown
+    if (this->currentBigGreenTextState > 0) {
+        //Draw the text
+        //we use HudBigGreenText
+        if ((this->currentBigGreenTextState == 2) || (!blinkBigGreenText)) {
+            myTextRenderer->DrawGameText(currentBigGreenText, myTextRenderer->HudBigGreenText, currentBigGreenTextDrawPosition);
+        }
+
+        //check how long we still need to show this text
+        if (!permanentBigGreenText) {
             currentBigGreenTextStillShownSec -= deltaTime;
-            currentBigGreenTextBlinkPeriod -= deltaTime;
-
-            if ((currentBigGreenTextBlinkPeriod < 0.0f) && (currentBigGreenTextState != 0)) {
-                irr::f32 blinkPeriod = DEF_HUD_BIGGREENTEXT_BLINKPERIODTIME;
-                currentBigGreenTextBlinkPeriod = blinkPeriod;
-
-                //toggle between state 1 and 2
-                //state 0 = no big green text is shown currently
-                //state 1 = big green text is still shown, but text render disabled right now because of blinking
-                //state 2 = big green text is currently shown an rendered
-                if (currentBigGreenTextState == 1) {
-                    currentBigGreenTextState = 2;
-                } else if (currentBigGreenTextState == 2) {
-                    currentBigGreenTextState = 1;
-                }
-            }
 
             if (currentBigGreenTextStillShownSec < 0.0f) {
                 //stop showing the text again
@@ -1951,22 +1938,84 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
                 //get rid of it, because otherwise we have a memory leak :(
                 delete[] currentBigGreenText;
                 currentBigGreenText = NULL;
+
+                return;
+            }
+        }
+
+        if (!blinkBigGreenText)
+            return;
+
+        currentBigGreenTextBlinkPeriod -= deltaTime;
+
+        if ((currentBigGreenTextBlinkPeriod < 0.0f) && (currentBigGreenTextState != 0)) {
+            irr::f32 blinkPeriod = DEF_HUD_BIGGREENTEXT_BLINKPERIODTIME;
+            currentBigGreenTextBlinkPeriod = blinkPeriod;
+
+            //toggle between state 1 and 2
+            //state 0 = no big green text is shown currently
+            //state 1 = big green text is still shown, but text render disabled right now because of blinking
+            //state 2 = big green text is currently shown an rendered
+            if (currentBigGreenTextState == 1) {
+                currentBigGreenTextState = 2;
+            } else if (currentBigGreenTextState == 2) {
+                currentBigGreenTextState = 1;
             }
         }
     }
 }
 
+//RemovePermanentGreenBigText does only remove a permanent green text,
+//not one with a specified duration
+void HUD::RemovePermanentGreenBigText() {
+    //only act if there is a permanent big green text shown
+    //right now
+    if (DoesHudShowPermanentGreenBigText()) {
+        //stop showing the text again
+        currentBigGreenTextState = 0;
+        currentBigGreenTextStillShownSec = 0.0f;
+
+        //we don't need our allocated text array anymore
+        //get rid of it, because otherwise we have a memory leak :(
+        delete[] currentBigGreenText;
+        currentBigGreenText = NULL;
+    }
+}
+
+bool HUD::DoesHudShowPermanentGreenBigText() {
+   if ((currentBigGreenTextState > 0) && (permanentBigGreenText))
+       return true;
+
+   return false;
+}
+
 void HUD::DrawHUD1(irr::f32 deltaTime) {
     switch (this->mHudState) {
-    case DEF_HUD_STATE_STARTSIGNAL: {
-        DrawHUD1PlayerStartSignal(deltaTime);
-        break;
-    }
+        case DEF_HUD_STATE_STARTSIGNAL: {
+            DrawHUD1PlayerStartSignal(deltaTime);
+            break;
+        }
 
-    case DEF_HUD_STATE_RACE: {
-        DrawHUD1PlayerRace(deltaTime);
-        break;
+        case DEF_HUD_STATE_RACE: {
+            DrawHUD1PlayerRace(deltaTime);
+            break;
+        }
+
+        case DEF_HUD_STATE_BROKENPLAYER: {
+            DrawHUD1PlayerBrokenPlayer(deltaTime);
+            break;
+        }
+
+        default: {
+            break;
+        }
     }
+}
+
+void HUD::DrawHUD1PlayerBrokenPlayer(irr::f32 deltaTime) {
+    if (monitorWhichPlayer != NULL) {
+        DrawFinishedPlayerList();
+        RenderBigGreenText(deltaTime);
     }
 }
 
@@ -1977,6 +2026,14 @@ void HUD::SetMonitorWhichPlayer(Player* newPlayer) {
         monitorWhichPlayer->StopPlayingWarningSound();
         monitorWhichPlayer->SetMyHUD(NULL);
     }
+
+    //also make sure that any visible permanent
+    //big green text is removed first
+    if (DoesHudShowPermanentGreenBigText()) {
+        RemovePermanentGreenBigText();
+    }
+
+    CleanUpAllBannerMessages();
 
     monitorWhichPlayer = newPlayer;
     newPlayer->SetMyHUD(this);
@@ -2537,7 +2594,11 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
     }
 }
 
-void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec) {
+//if showDurationSec is negative, the text will be shown until it is deleted
+//with a call to function RemoveGreenBigText
+//if blinking is true text will blink (for example used for final lap text), If false
+//text does not blink (as used when player died and waits for repair craft)
+void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking) {
     //we need to allocate or own array of char and copy the data there for us later.
     //because we can not rely on a pntr to an array we got via
     //parameter; The array that we point to could disappear afterwards
@@ -2546,6 +2607,13 @@ void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec) {
     int textLen = strlen(text);
     currentBigGreenText = new char[textLen + 1];
     strcpy(currentBigGreenText, text);
+
+    blinkBigGreenText = blinking;
+    if (showDurationSec < 0.0f) {
+        permanentBigGreenText = true;
+    } else {
+        permanentBigGreenText = false;
+    }
 
     currentBigGreenTextStillShownSec = showDurationSec;
 

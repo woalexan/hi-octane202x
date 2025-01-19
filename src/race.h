@@ -39,6 +39,10 @@
 
 using namespace std;
 
+//after race is finished (all players finished last lap)
+//the exit of race is delayed by this amount of time in seconds
+const irr::f32 DEF_RACE_FINISHED_WAITTIME_SEC = 7.0f;
+
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
     //to 8 characters, plus 1 termination char + 1 extra
@@ -122,14 +126,6 @@ public:
     void CallRecoveryVehicleForHelp(Player* whichPlayer);
 
     bool exitRace = false;
-
-    //Player *player;
-
-    //a second player for debugging purposes
-    //Player *player2;
-
-    //a third player for debugging purposes
-    //Player *player3;
 
     //handles the height map terrain
     //of the level
@@ -246,6 +242,8 @@ public:
     //function for debugging
     void DebugSelectPlayer(int whichPlayerNr);
 
+    void SetupPhysicsObjectParameters(PhysicsObject &phyObj, bool humanPlayer);
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -333,6 +331,9 @@ private:
     //my camera
     scene::ICameraSceneNode* mCamera;
 
+    //stores the currently active camera
+    scene::ICameraSceneNode* currActiveCamera = NULL;
+
     //if all morphs should be executed
     //set to true
     bool runMorph = false;
@@ -360,7 +361,7 @@ private:
     bool LoadLevel(int loadLevelNr);
     void createLevelEntities();
     void getPlayerStartPosition(int levelNr, irr::core::vector3d<irr::f32> &startPos, irr::core::vector3d<irr::f32> &startDirection);
-    //void createPlayers(int levelNr);
+
     void DrawSky();
     void DrawTestShape();
 
@@ -371,7 +372,6 @@ private:
          irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color);
 
     void removePlayerTest();
-    bool player2Removed = false;
 
     void IrrlichtStats(char* text);
 
@@ -443,7 +443,7 @@ private:
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
     void UpdateMorphs(irr::f32 frameDeltaTime);
     void UpdateTimers(irr::f32 frameDeltaTime);
-    void UpdateCameras();
+    void UpdateExternalCameras();
 
     std::vector<Timer*> mTimerVec;
     void AddTimer(EntityItem *entity);
@@ -463,8 +463,12 @@ private:
     bool mDemoMode;
 
     void AddCamera(EntityItem* entity);
+    void SetExternalViewAtPlayer();
+    void ManagePlayerCamera();
 
     void ProcessPendingTriggers();
+
+    void CheckRaceFinished(irr::f32 deltaTime);
 
     //Audio related stuff
     void DeliverMusicFileName(unsigned int levelNr, char *musicFileName);
@@ -489,6 +493,9 @@ private:
     void CleanUpCameras();
 
     void DebugDrawWayPointLinks(bool drawFreeMovementSpace = false);
+
+    irr::f32 mRaceFinishedWaitTimeCnter = 0.0f;
+    bool mRaceWasFinished = false;
 };
 
 #endif // RACE_H

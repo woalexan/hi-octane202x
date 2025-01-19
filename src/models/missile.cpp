@@ -246,7 +246,9 @@ void Missile::Update(irr::f32 DeltaTime) {
             currentLocation.Y = mParentLauncher->mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight + 0.3f;
         }
 
-        mSceneNodeMissile->setPosition(currentLocation);
+        if (mSceneNodeMissile != NULL) {
+            mSceneNodeMissile->setPosition(currentLocation);
+        }
     }
 }
 

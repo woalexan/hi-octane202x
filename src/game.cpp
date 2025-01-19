@@ -632,28 +632,28 @@ bool Game::CreateNewRace(int load_levelnr) {
     mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
 
     //add computer player 2
-    std::string pl3Model("extract/models/jugga0-3.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
+    //std::string pl3Model("extract/models/jugga0-3.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
 
     //add computer player 3
-    std::string pl4Model("extract/models/skim0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
+    //std::string pl4Model("extract/models/skim0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
 
     //add computer player 4
-    std::string pl5Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
+    //std::string pl5Model("extract/models/bike0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
 
     //add computer player 5
-    std::string pl6Model("extract/models/marsh0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
+    //std::string pl6Model("extract/models/marsh0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
 
     //add computer player 6
-    std::string pl7Model("extract/models/jet0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
+    //std::string pl7Model("extract/models/jet0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
 
     //add computer player 7
-    std::string pl8Model("extract/models/tank0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+    //std::string pl8Model("extract/models/tank0-0.obj");
+    //mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
 
     mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
     mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
