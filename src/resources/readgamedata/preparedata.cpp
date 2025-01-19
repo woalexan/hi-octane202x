@@ -223,27 +223,6 @@ void PrepareData::ExtractUserdata() {
     AddOtherLevelsHiOctaneTools();
 }
 
-//return true if all expected files are present
-//return false if at least one file is missing
-bool PrepareData::CheckForGameLogoSVGAFiles() {
-    bool allFiles = true;
-
-    char* file1 = strdup("extract/logo0-1-0000.bmp");
-    char* file2 = strdup("extract/logo0-1-0001.bmp");
-    char* file3 = strdup("extract/logo0-1-0002.bmp");
-    char* file4 = strdup("extract/logo0-1-0003.bmp");
-    char* file5 = strdup("extract/logo0-1-0004.bmp");
-    char* file6 = strdup("extract/logo0-1-0005.bmp");
-    allFiles = allFiles && (FileExists(&file1[0]) == 1);
-    allFiles = allFiles && (FileExists(&file2[0]) == 1);
-    allFiles = allFiles && (FileExists(&file3[0]) == 1);
-    allFiles = allFiles && (FileExists(&file4[0]) == 1);
-    allFiles = allFiles && (FileExists(&file5[0]) == 1);
-    allFiles = allFiles && (FileExists(&file6[0]) == 1);
-
-    return allFiles;
-}
-
 void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
     logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
 
@@ -1021,18 +1000,6 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
     }
 }
 
-//return true if all expected files are present
-//return false if at least one file is missing
-bool PrepareData::CheckForScreenSVGA() {
-    bool allFiles = true;
-
-    char* file1 = strdup("extract/onet0-1-unpacked.dat");
-
-    allFiles = allFiles && (FileExists(&file1[0]) == 1);
-
-    return allFiles;
-}
-
 //extracts the SVGA Loading Screen (is shown while game loads) in data\onet0-1.dat and data\onet0-1.tab
 //returns true in case of success, returns false in case of unexpected error
 void PrepareData::ExtractLoadingScreenSVGA() {
@@ -1042,18 +1009,6 @@ void PrepareData::ExtractLoadingScreenSVGA() {
     //data\onet0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
     ConvertCompressedImageData("originalgame/data/onet0-1.dat", "extract/images/onet0-1.png", 640, 480, 1);
-}
-
-//return true if selection screen (main menue background) is present
-//return false if at least one file is missing
-bool PrepareData::CheckForSelectionScreenSVGA() {
-    bool allFiles = true;
-
-    char* file1 = strdup("extract/oscr0-1-unpacked.dat");
-
-    allFiles = allFiles && (FileExists(&file1[0]) == 1);
-
-    return allFiles;
 }
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab

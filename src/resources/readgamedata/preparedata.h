@@ -88,10 +88,6 @@ private:
     void Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName);
     void Extra3DModels();
 
-    //return true if all expected files are present
-    //return false if at least one file is missing
-    bool CheckForGameLogoSVGAFiles();
-
     //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
     //raises an error message in case of unexpected error
     void ExtractGameLogoSVGA();
@@ -99,10 +95,6 @@ private:
     //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
     //returns true in case of success, returns false in case of unexpected error
     void ExtractLargeFontSVGA();
-
-    //return true if all expected files are present
-    //return false if at least one file is missing
-    bool CheckForScreenSVGA();
 
     //extracts the SVGA Loading Screen in data\onet0-1.dat and data\onet0-1.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -115,10 +107,6 @@ private:
     //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab
     //returns true in case of success, returns false in case of unexpected error
     void ExtractHUD2PlayersSVGA();
-
-    //return true if selection screen (main menue background) is present
-    //return false if at least one file is missing
-    bool CheckForSelectionScreenSVGA();
 
     //extracts the SVGA Selection Screen in data\oscr0-1.dat and data\oscr0-1.tab
     //returns true in case of success, returns false in case of unexpected error
