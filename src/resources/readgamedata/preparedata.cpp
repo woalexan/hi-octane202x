@@ -223,6 +223,34 @@ void PrepareData::ExtractUserdata() {
     AddOtherLevelsHiOctaneTools();
 }
 
+void PrepareData::Extra3DModels() {
+    ExtractNamed3DModel("barel0-", 3);
+    ExtractNamed3DModel("bike0-", 8);
+    ExtractNamed3DModel("car0-", 8);
+    ExtractNamed3DModel("cone0-", 2);
+    ExtractNamed3DModel("jet0-", 8);
+    ExtractNamed3DModel("jugga0-", 8);
+    ExtractNamed3DModel("marsh0-", 1);
+    ExtractNamed3DModel("recov0-", 1);
+    ExtractNamed3DModel("sign0-", 1);
+    ExtractNamed3DModel("skim0-", 8);
+    ExtractNamed3DModel("tank0-", 8);
+    ExtractNamed3DModel("track0-", 6);
+}
+
+void PrepareData::ExtractNamed3DModel(const char* name, int n_models) {
+    std::string dat_path = "originalgame/objects/data/";
+    std::string obj_path = "extract/models/";
+
+    for (int idx = 0; idx < n_models; idx++) {
+        std::string objname = std::string(name) + std::to_string(idx);
+        std::string datfile = dat_path + objname + ".dat";
+        std::string objfile = obj_path + objname + ".obj";
+
+        Extract3DModel(datfile.c_str(), objfile.c_str(), objname.c_str());
+    }
+}
+
 void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
     logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
 
@@ -240,242 +268,6 @@ void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilena
     }
 
     delete newConversion;
-}
-
-void PrepareData::Extra3DModels() {
-    char file[65];
-    char file2[50];
-    char helper[10];
-    char objname[20];
-    int idx;
-
-    /******************************************
-     *    Barel                               *
-     ******************************************/
-
-    for (idx = 0; idx < 3; idx++) {
-        strcpy(file, "originalgame/objects/data/barel0-");
-        strcpy(file2, "extract/models/barel0-");
-        strcpy(objname, "barel0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Bikes                               *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/bike0-");
-        strcpy(file2, "extract/models/bike0-");
-        strcpy(objname, "bike0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Car                                 *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/car0-");
-        strcpy(file2, "extract/models/car0-");
-        strcpy(objname, "car0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Cone                                *
-     ******************************************/
-
-    for (idx = 0; idx < 2; idx++) {
-        strcpy(file, "originalgame/objects/data/cone0-");
-        strcpy(file2, "extract/models/cone0-");
-        strcpy(objname, "cone0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Jet                                 *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/jet0-");
-        strcpy(file2, "extract/models/jet0-");
-        strcpy(objname, "jet0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Jugga                               *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/jugga0-");
-        strcpy(file2, "extract/models/jugga0-");
-        strcpy(objname, "jugga0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Marsh                               *
-     ******************************************/
-
-    for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "originalgame/objects/data/marsh0-");
-        strcpy(file2, "extract/models/marsh0-");
-        strcpy(objname, "marsh0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Recovery vehicle                    *
-     ******************************************/
-
-    for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "originalgame/objects/data/recov0-");
-        strcpy(file2, "extract/models/recov0-");
-        strcpy(objname, "recov0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Sign                                *
-     ******************************************/
-
-    for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "originalgame/objects/data/sign0-");
-        strcpy(file2, "extract/models/sign0-");
-        strcpy(objname, "sign0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Skim                                *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/skim0-");
-        strcpy(file2, "extract/models/skim0-");
-        strcpy(objname, "skim0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Tank                                *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/tank0-");
-        strcpy(file2, "extract/models/tank0-");
-        strcpy(objname, "tank0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Track                               *
-     ******************************************/
-
-    for (idx = 0; idx < 6; idx++) {
-        strcpy(file, "originalgame/objects/data/track0-");
-        strcpy(file2, "extract/models/track0-");
-        strcpy(objname, "track0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
 }
 
 //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab

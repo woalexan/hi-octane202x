@@ -86,6 +86,7 @@ private:
     irr::core::dimension2d<irr::f32> modelTexAtlasSize;
 
     void Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName);
+    void ExtractNamed3DModel(const char* name, int n_models);
     void Extra3DModels();
 
     //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
