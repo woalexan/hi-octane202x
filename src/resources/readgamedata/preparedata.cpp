@@ -762,26 +762,20 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
 void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-
     irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
 
     //get HiOctaneTools atlas image dimension
     irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
 
     //each tile is 64x64 pixels
-    irr::f32 tilePixelSize = 64;
+    int tileSize = 64;
 
     //calculate overall number of tiles; each tile is tilePixelSize x tilePixelSize
-    int numberTiles = (origDimension.Height / tilePixelSize) * (origDimension.Width / tilePixelSize);
+    int numberTiles = (origDimension.Height / tileSize) * (origDimension.Width / tileSize);
 
     //create the target directory
     CreateDirectory(exportDir);
 
-    //directory was created ok
-    //now we need to extract all files
-
-    char finalpath[50];
-    char fname[20];
     int tileposx = 0;
     int tileposy = 0;
 
@@ -789,146 +783,34 @@ void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
 
         //create the new empty image for the next single tile
-         irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(tilePixelSize, tilePixelSize));
+        irr::video::IImage* imgNew = myDriver->createImage(
+            irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+            irr::core::dimension2d<irr::u32>(tileSize, tileSize));
 
-            //process all the tiles by copying them to the new image at
-            //the new position
-            origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                          irr::core::rect<irr::s32>(tileposx * tilePixelSize, tileposy * tilePixelSize, (tileposx + 1) * tilePixelSize, (tileposy +1) * tilePixelSize));
+        //process all the tiles by copying them from their position in the atlas
+        origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                      irr::core::rect<irr::s32>(tileposx, tileposy, tileposx + tileSize, tileposy + tileSize));
 
-            tileposx++;
+        tileposx += tileSize;
 
-            if (tileposx > (origDimension.Width / tilePixelSize) - 1) {
-                tileposx = 0;
-                tileposy++;
-            }
-
-            /*
-                 irr::video::IImage* imgUp;
-
-                //should the picture be upscaled?
-                if (scaleFactor != 1.0) {
-                   //create an empty image with upscaled dimension
-                   imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-                   //get the pointers to the raw image data
-                   uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-                   uint32_t *imageData = (uint32_t*)img->lock();
-
-                   xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-                   //release the pointers, we do not need them anymore
-                   img->unlock();
-                   imgUp->unlock();
-                }*/
-
-            strcpy(finalpath, exportDir);
-            strcat(finalpath, outputFileName);
-            sprintf (fname, "%0*d.png", 4, tileIdx);
-            strcat(finalpath, fname);
-
-            //create new file for writting
-            irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath, false);
-
-            //if (scaleFactor == 1.0) {
-                   //write original image data
-                  myDriver->writeImageToFile(imgNew, outputPic);
-           // } else {
-                    //write upscaled image data
-                //   myDriver->writeImageToFile(imgUp, outputPic);
-              //  }
-
-            //close output file
-            outputPic->drop();
-    }
-
-    //close the original picture file
-    file->drop();
-}
-
-/*
-//the original Terrain texture Atlas stored within the game has all tiles
-//in one column in y-direction; Therefore the Atlas picture is not square at all;
-//This is not good for rendering nowadays as textures should be square;
-//Therefore lets rearrange tiles in original Atals, and save a new picture
-//with 16 tiles in a row
-void PrepareData::ReorganizeTerrainAtlas(char* targetFile, char* outputFileName) {
-    int tilesInRow = 16;  //put 16 tiles in a row
-
-    //first open target image again
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-
-    irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
-
-    //get original atlas image dimension
-    irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
-
-    //calculate overall number of tiles; Width of picture is tile size; Heigth of picture
-    //divided by width equals the overall number of titles in the image
-    int numberTiles = (origDimension.Height / origDimension.Width);
-
-    //how many rows do we need to hold all tiles?
-    int numberRows = (numberTiles / tilesInRow);
-
-    //create the new empty image for the reorganized Atals
-    irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(origDimension.Width * tilesInRow, numberRows * origDimension.Width));
-
-    //process all the tiles by copying them to the new image at
-    //the new position
-    int currRowNr = 0;
-    int currColumnNr = 0;
-    for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
-        origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(currColumnNr * origDimension.Width, currRowNr * origDimension.Width),
-                          irr::core::rect<irr::s32>(0, tileIdx * origDimension.Width, origDimension.Width, (tileIdx + 1) * origDimension.Width));
-
-        currColumnNr++;
-
-        //enough tiles in the current row?
-        if (currColumnNr >= tilesInRow) {
-            currColumnNr = 0;
-            currRowNr++;
+        if (tileposx >= origDimension.Width) {
+            tileposx = 0;
+            tileposy += tileSize;
         }
+
+        std::stringstream fp;
+        fp << exportDir << outputFileName << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        std::string finalpath = fp.str();
+
+        //create new file for writting
+        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
+        myDriver->writeImageToFile(imgNew, outputPic);
+        outputPic->drop();
     }
-/*
-     irr::video::IImage* imgUp;
-
-    //should the picture be upscaled?
-    if (scaleFactor != 1.0) {
-       //create an empty image with upscaled dimension
-       imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-       //get the pointers to the raw image data
-       uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-       uint32_t *imageData = (uint32_t*)img->lock();
-
-       xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-       //release the pointers, we do not need them anymore
-       img->unlock();
-       imgUp->unlock();
-    }*/
-
-    //create new file for writting
-/*    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFileName, false);
-
-    //write image to file
-   // if (scaleFactor == 1.0) {
-       //write original image data
-       myDriver->writeImageToFile(imgNew, outputPic);
-   // } else {
-        //write upscaled image data
-    //   myDriver->writeImageToFile(imgUp, outputPic);
-   // }
-
-    //close output file
-    outputPic->drop();
 
     //close the original picture file
     file->drop();
 }
-*/
 
 void PrepareData::ExtractTerrainTexture(char levelNr) {
     //todo: Scale Tiles by factor of 2.0
