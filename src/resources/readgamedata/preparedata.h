@@ -63,7 +63,6 @@ private:
     unsigned char *palette;
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
-
     std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
 
     void ExtractGameScreens();
@@ -195,8 +194,8 @@ private:
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
 
     void PrepareIntro();
-    bool ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                                          char* outputFilename, int scaleFactor, bool flipY);
+    void ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
+                           char* outputFilename, int scaleFactor, bool flipY);
 
     void ExtractMusic();
 

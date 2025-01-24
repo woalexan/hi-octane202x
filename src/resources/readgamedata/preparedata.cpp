@@ -887,18 +887,6 @@ void PrepareData::AddOtherLevelsHiOctaneTools() {
      }
 }
 
-std::tuple<unsigned char, unsigned char, unsigned char> PrepareData::GetPaletteColor(unsigned char colorIndex) {
-    int r = palette[colorIndex * 3];
-    int g = palette[colorIndex * 3 + 1];
-    int b = palette[colorIndex * 3 + 2];
-
-    r = (r * 255) / 63;
-    g = (g * 255) / 63;
-    b = (b * 255) / 63;
-
-    return {r, g, b};
-}
-
 void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
                                       irr::u32 sizex, irr::u32 sizey,
                                       const char* outputFilename, int scaleFactor, bool flipY) {
@@ -972,28 +960,9 @@ void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char
     outputPic->drop();
 }
 
-bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                                      char* outputFilename, int scaleFactor, bool flipY) {
+void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
+                                    char* outputFilename, int scaleFactor, bool flipY) {
     size_t size = sizex * sizey;
-
-   //create arrays for color information
-    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
-
-    unsigned char color;
-
-    size_t counter;
-
-    //use palette to derive RGB information for all pixels
-    //loaded palette has 6 bits per color
-    for (counter = 0; counter < size; counter++) {
-         color = ByteArray[counter];
-
-         arrR[counter] = (unsigned char)colorMap[color].r;
-         arrG[counter] = (unsigned char)colorMap[color].g;
-         arrB[counter] = (unsigned char)colorMap[color].b;
-     }
 
      //create an empty image
      irr::video::IImage* img =
@@ -1002,23 +971,30 @@ bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, ir
      //draw the image
      for (irr::u32 posx = 0; posx < sizex; posx++) {
          for (irr::u32 posy = 0; posy < sizey; posy++) {
+             unsigned char colorIdx;
              if (!flipY) {
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
-                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
+                 colorIdx = ByteArray[posy * sizex + posx];
              } else {
                  //flip image vertically
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[(sizey - posy) * sizex + posx],
-                           arrG[(sizey - posy) * sizex + posx], arrB[(sizey - posy) * sizex + posx]));
+                 colorIdx = ByteArray[(sizey - posy) * sizex + posx];
              }
+             flic::Color color = colorMap[colorIdx];
+             img->setPixel(posx, posy,  irr::video::SColor(255, color.r, color.g, color.b));
          }
      }
 
-      irr::video::IImage* imgUp;
+    //create new file for writting
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
 
      //should the picture be upscaled?
-     if (scaleFactor != 1.0) {
+    if (scaleFactor == 1) {
+        //write original image data
+        myDriver->writeImageToFile(img, outputPic);
+     } else {
         //create an empty image with upscaled dimension
-        imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
+        irr::video::IImage *imgUp = myDriver->createImage(
+        irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+        irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
         //get the pointers to the raw image data
         uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
@@ -1029,28 +1005,13 @@ bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, ir
         //release the pointers, we do not need them anymore
         img->unlock();
         imgUp->unlock();
-     }
 
-     //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-     //write image to file
-     if (scaleFactor == 1.0) {
-        //write original image data
-        myDriver->writeImageToFile(img, outputPic);
-     } else {
-         //write upscaled image data
+        //write upscaled image data
         myDriver->writeImageToFile(imgUp, outputPic);
      }
 
     //close output file
     outputPic->drop();
-
-    free(arrR);
-    free(arrG);
-    free(arrB);
-
-    return true;
 }
 
 void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
@@ -1074,6 +1035,18 @@ void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) 
             throw msg;
     }
 
+}
+
+std::tuple<unsigned char, unsigned char, unsigned char> PrepareData::GetPaletteColor(unsigned char colorIndex) {
+    int r = palette[colorIndex * 3];
+    int g = palette[colorIndex * 3 + 1];
+    int b = palette[colorIndex * 3 + 2];
+
+    r = (r * 255) / 63;
+    g = (g * 255) / 63;
+    b = (b * 255) / 63;
+
+    return {r, g, b};
 }
 
 bool PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
@@ -2115,9 +2088,9 @@ void PrepareData::PrepareIntro() {
 
     //File analyst
     if (globOptions & poSimpleFix)
-      processFLISimple(animFile,destFile,startFrame,endFrame, & globOptions);
-     else
-      processFLIFile(animFile,destFile,startFrame,endFrame, globOptions);
+        processFLISimple(animFile,destFile,startFrame,endFrame, & globOptions);
+    else
+        processFLIFile(animFile,destFile,startFrame,endFrame, globOptions);
 
     //Closing files
     closeFLIFiles(animFile,destFile,globOptions);
@@ -2128,39 +2101,31 @@ void PrepareData::PrepareIntro() {
     flic::Decoder decoder(&file);
     flic::Header header;
     if (!decoder.readHeader(header)) {
-       throw std::string("Error reading FLI header in file ") + outputNameStr;
+        throw std::string("Error reading FLI header in file ") + outputNameStr;
     }
 
-     std::vector<uint8_t> buffer(header.width * header.height);
-     flic::Frame frame;
-     frame.pixels = &buffer[0];
-     frame.rowstride = header.width;
+    std::vector<uint8_t> buffer(header.width * header.height);
+    flic::Frame frame;
+    frame.pixels = &buffer[0];
+    frame.rowstride = header.width;
 
-     char outFrameFileName[50];
-     char fname[20];
+    char outFrameFileName[50];
+    char fname[20];
 
-     for (long i = 0; i < header.frames; ++i) {
-       if (!decoder.readFrame(frame)) {
-         throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
-       } else {
-           //process the current decoded frame data in buffer
-           char* frameData = new char[buffer.size()];
-           std::copy(buffer.begin(),buffer.end(), frameData);
+    for (long i = 0; i < header.frames; ++i) {
+    if (!decoder.readFrame(frame)) {
+        throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
+    }
+       //process the current decoded frame data in buffer
 
-           //create the filename for the picture output file
-           strcpy(outFrameFileName, "extract/intro/frame");
-           sprintf (fname, "%0*lu.png", 4, i);
-           strcat(outFrameFileName, fname);
+       //create the filename for the picture output file
+       strcpy(outFrameFileName, "extract/intro/frame");
+       sprintf (fname, "%0*lu.png", 4, i);
+       strcat(outFrameFileName, fname);
 
-           //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
-           if (!ConvertIntroFrame(frameData, frame.colormap, header.width, header.height, outFrameFileName, 2.0, false)) {
-               delete [] frameData;
-               throw std::string("Error converting frame ") + std::to_string(i) + " in file " + outputNameStr;
-           }
-
-           delete[] frameData;
-       }
-     }
+       //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
+       ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2, false);
+    }
 }
 
 void PrepareData::ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
