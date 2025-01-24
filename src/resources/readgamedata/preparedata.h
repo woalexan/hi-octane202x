@@ -64,6 +64,8 @@ private:
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
 
+    std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
+
     void ExtractGameScreens();
     void ExtractFonts();
     void ExtractHuds();

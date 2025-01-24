@@ -887,6 +887,18 @@ void PrepareData::AddOtherLevelsHiOctaneTools() {
      }
 }
 
+std::tuple<unsigned char, unsigned char, unsigned char> PrepareData::GetPaletteColor(unsigned char colorIndex) {
+    int r = palette[colorIndex * 3];
+    int g = palette[colorIndex * 3 + 1];
+    int b = palette[colorIndex * 3 + 2];
+
+    r = (r * 255) / 63;
+    g = (g * 255) / 63;
+    b = (b * 255) / 63;
+
+    return {r, g, b};
+}
+
 void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
                                       irr::u32 sizex, irr::u32 sizey,
                                       const char* outputFilename, int scaleFactor, bool flipY) {
@@ -903,42 +915,9 @@ void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char
         throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
     }
 
-    size_t counter = 0;
-
-    char* ByteArray;
-    ByteArray = new char[size];
-    do {
-        ByteArray[counter] = fgetc(iFile);
-        counter++;
-    } while (counter < size);
+    std::vector<char> ByteArray(size);
+    fread(ByteArray.data(), 1, size, iFile);
     fclose(iFile);
-
-    //create arrays for color information
-    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
-
-    double arrIntR;
-    double arrIntG;
-    double arrIntB;
-    unsigned char color;
-
-    //use palette to derive RGB information for all pixels
-    //loaded palette has 6 bits per color
-    for (counter = 0; counter < size; counter++) {
-        color = ByteArray[counter];
-        arrIntR = palette[color * 3    ];
-        arrIntG = palette[color * 3 + 1 ];
-        arrIntB = palette[color * 3 + 2 ];
-
-        arrIntR = (arrIntR * 255.0) / 63.0;
-        arrIntG = (arrIntG * 255.0) / 63.0;
-        arrIntB = (arrIntB * 255.0) / 63.0;
-
-        arrR[counter] = (unsigned char)arrIntR;
-        arrG[counter] = (unsigned char)arrIntG;
-        arrB[counter] = (unsigned char)arrIntB;
-    }
 
      //create an empty image
      irr::video::IImage* img =
@@ -947,54 +926,50 @@ void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char
      //draw the image
      for (irr::u32 posx = 0; posx < sizex; posx++) {
          for (irr::u32 posy = 0; posy < sizey; posy++) {
+             unsigned char color;
              if (!flipY) {
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
-                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
+                 color = ByteArray[posy * sizex + posx];
              } else {
                  //flip image vertically
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[(sizey - posy) * sizex + posx],
-                           arrG[(sizey - posy) * sizex + posx], arrB[(sizey - posy) * sizex + posx]));
+                 color = ByteArray[(sizey - posy) * sizex + posx];
              }
+
+             unsigned char r, g, b;
+             std::tie(r, g, b) = GetPaletteColor(color);
+             img->setPixel(posx, posy,  irr::video::SColor(255, r, g, b));
          }
      }
 
-    irr::video::IImage* imgUp;
+    //create new file for writting
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+
 
     //should the picture be upscaled?
-    if (scaleFactor != 1.0) {
+    if (scaleFactor == 1) {
+        //write original image data
+        myDriver->writeImageToFile(img, outputPic);
+    } else  {
         //create an empty image with upscaled dimension
-        imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
+        irr::video::IImage *imgUp = myDriver->createImage(
+            irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+            irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
         //get the pointers to the raw image data
         uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
         uint32_t *imageData = (uint32_t*)img->lock();
 
-        xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
+        xbrz::scale(scaleFactor, imageData, imageDataUp, sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
 
         //release the pointers, we do not need them anymore
         img->unlock();
         imgUp->unlock();
-    }
 
-    //create new file for writting
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-    //write image to file
-    if (scaleFactor == 1) {
-        //write original image data
-        myDriver->writeImageToFile(img, outputPic);
-    } else {
         //write upscaled image data
         myDriver->writeImageToFile(imgUp, outputPic);
     }
 
     //close output file
     outputPic->drop();
-
-    delete[] ByteArray;
-    free(arrR);
-    free(arrG);
-    free(arrB);
 }
 
 bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
