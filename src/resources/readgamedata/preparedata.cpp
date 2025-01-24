@@ -14,6 +14,7 @@
 
 #include "../../utils/logging.h"
 #include "../intro/flifix.h"
+#include <iomanip>
 
 
 void UnpackDataFile(const char* packfile, const char* unpackfile);
@@ -714,11 +715,9 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 //this would lead to awful flickering lines on the border between different terrain tiles
 //Therefore we need to read all tiles and export them to singulated picture files, which we can later
 //use to load the textures
-//Returns true in case of success, returns false in case of unexpected problem
 void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-
     irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
 
     //get original atlas image dimension
@@ -728,58 +727,27 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
     //divided by width equals the overall number of titles in the image
     int numberTiles = (origDimension.Height / origDimension.Width);
 
-    char finalpath[50];
-    char fname[20];
+    int tileSize = origDimension.Width;
 
     //now export one tile after each other
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
-
         //create the new empty image for the next single tile
-         irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(origDimension.Width, origDimension.Width));
+        irr::video::IImage* imgNew = myDriver->createImage(
+            irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+            irr::core::dimension2d<irr::u32>(origDimension.Width, origDimension.Width));
 
-            //process all the tiles by copying them to the new image at
-            //the new position
-            origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                          irr::core::rect<irr::s32>(0, tileIdx * origDimension.Width, origDimension.Width, (tileIdx + 1) * origDimension.Width));
+        //process all the tiles by copying them from their position in the atlas
+        origAtlas->copyTo(imgNew, {0, 0},
+            irr::core::rect<irr::s32>(0, tileIdx * tileSize, tileSize, (tileIdx + 1) * tileSize));
 
-            /*
-                 irr::video::IImage* imgUp;
+        std::stringstream fp;
+        fp << exportDir << outputFileName << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        std::string finalpath = fp.str();
 
-                //should the picture be upscaled?
-                if (scaleFactor != 1.0) {
-                   //create an empty image with upscaled dimension
-                   imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-                   //get the pointers to the raw image data
-                   uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-                   uint32_t *imageData = (uint32_t*)img->lock();
-
-                   xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-                   //release the pointers, we do not need them anymore
-                   img->unlock();
-                   imgUp->unlock();
-                }*/
-
-            strcpy(&finalpath[0], &exportDir[0]);
-            strcat(&finalpath[0], &outputFileName[0]);
-            sprintf (fname, "%0*d.png", 4, tileIdx);
-            strcat(finalpath, fname);
-
-            //create new file for writting
-            irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath, false);
-
-            //if (scaleFactor == 1.0) {
-                   //write original image data
-                  myDriver->writeImageToFile(imgNew, outputPic);
-           // } else {
-                    //write upscaled image data
-                //   myDriver->writeImageToFile(imgUp, outputPic);
-              //  }
-
-            //close output file
-            outputPic->drop();
+        // write image to file
+        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
+        myDriver->writeImageToFile(imgNew, outputPic);
+        outputPic->drop();
     }
 
     //close the original picture file
