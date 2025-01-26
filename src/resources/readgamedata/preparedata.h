@@ -168,7 +168,7 @@ private:
 
     void ExtractSmallFontSVGA();
 
-    bool ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
+    void ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
     bool DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
             char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf);
 

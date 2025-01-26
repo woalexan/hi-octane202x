@@ -969,123 +969,13 @@ std::tuple<unsigned char, unsigned char, unsigned char> PrepareData::GetPaletteC
     return {r, g, b};
 }
 
-bool PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
-    FILE* iFile;
-
-    iFile = fopen(rawDataFilename, "rb");
-    fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
-    fseek(iFile, 0L, SEEK_SET);
-
+void PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
     irr::u16 sizex = 256;
     irr::u16 sizey = 768;
 
-    //6 bytes of the file is needed for picture information above
-/*    if ((size - 6) != (sizex*sizey)) {
-        fclose(iFile);
-        printf("\nError - Raw picture filesize does not fit with expectation! %s\n", rawDataFilename);
-        return false;
-    }*/
-
-    fseek(iFile, 0L, SEEK_SET);
-
-    size_t counter = 0;
-
-    char* ByteArray;
-    ByteArray = new char[size];
-    if (iFile != NULL)
-    {
-        do {
-            ByteArray[counter] = fgetc(iFile);
-            counter++;
-        } while (counter < size);
-        fclose(iFile);
-    } else {
-        delete[] ByteArray;
-        return false;
-    }
-
-    //create arrays for color information
-     unsigned char *arrR=static_cast<unsigned char*>(malloc(size - 6));
-     unsigned char *arrG=static_cast<unsigned char*>(malloc(size - 6));
-     unsigned char *arrB=static_cast<unsigned char*>(malloc(size - 6));
-
-     double arrIntR;
-     double arrIntG;
-     double arrIntB;
-     unsigned char color;
-
-     unsigned int amountPixel = sizex*sizey;
-
-     //use palette to derive RGB information for all pixels
-     //loaded palette has 6 bits per color
-     //raw pictue data starts at byte #7
-     for (counter = 0; counter < amountPixel; counter++) {
-         color = ByteArray[counter];
-         arrIntR = palette[color * 3    ];
-         arrIntG = palette[color * 3 + 1 ];
-         arrIntB = palette[color * 3 + 2 ];
-
-         arrIntR = (arrIntR * 255.0) / 63.0;
-         arrIntG = (arrIntG * 255.0) / 63.0;
-         arrIntB = (arrIntB * 255.0) / 63.0;
-
-         arrR[counter] = (unsigned char)arrIntR;
-         arrG[counter] = (unsigned char)arrIntG;
-         arrB[counter] = (unsigned char)arrIntB;
-     }
-
-     //create an empty image
-     irr::video::IImage* img =
-             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
-
-     //draw the image
-     for (irr::u32 posx = 0; posx < sizex; posx++) {
-         for (irr::u32 posy = 0; posy < sizey; posy++) {
-             img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
-                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
-         }
-     }
-
-     irr::video::IImage* imgUp;
-
-     //should the picture be upscaled?
-     if (scaleFactor != 1.0) {
-          //create an empty image with upscaled dimension
-         imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-         //get the pointers to the raw image data
-         uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-         uint32_t *imageData = (uint32_t*)img->lock();
-
-         xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-         //release the pointers, we do not need them anymore
-         img->unlock();
-         imgUp->unlock();
-       }
-
-     //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-     //write image to file
-     if (scaleFactor == 1.0) {
-           //write original image data
-           myDriver->writeImageToFile(img, outputPic);
-        } else {
-            //write upscaled image data
-           myDriver->writeImageToFile(imgUp, outputPic);
-     }
-
-     //close output file
-     outputPic->drop();
-
-    delete[] ByteArray;
-    free(arrR);
-    free(arrG);
-    free(arrB);
-
-    return true;
+    irr::video::IImage* img = loadRawImage(rawDataFilename, sizex, sizey);
+    img = UpscaleImage(img, sizex, sizey, scaleFactor);
+    saveIrrImage(outputFilename, img);
 }
 
 //the Terrain texture Atlas from https://github.com/movAX13h/HiOctaneTools
