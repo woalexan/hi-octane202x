@@ -889,57 +889,53 @@ void PrepareData::AddOtherLevelsHiOctaneTools() {
 
 void PrepareData::ConvertRawImageData(const char* rawDataFilename,
                                       irr::u32 sizex, irr::u32 sizey,
-                                      const char* outputFilename, int scaleFactor, bool flipY) {
+                                      const char* outputFilename, int scaleFactor) {
     std::vector<unsigned char> ByteArray = loadRawImage(rawDataFilename, sizex * sizey);
-    irr::video::IImage* img = ConvertImageBuffer(outputFilename, ByteArray.data(), sizex, sizey, scaleFactor, flipY);
+    irr::video::IImage* img = ConvertImageBuffer(ByteArray.data(), sizex, sizey, scaleFactor);
     saveIrrImage(outputFilename, img);
 }
 
-irr::video::IImage* PrepareData::ConvertImageBuffer(const char* outputFilename, const unsigned char* ByteArray, irr::u32 sizex, irr::u32 sizey, int scaleFactor, bool flipY)
+irr::video::IImage* PrepareData::ConvertImageBuffer(const unsigned char* ByteArray, irr::u32 sizex, irr::u32 sizey, int scaleFactor)
 {
     //create an empty image
     irr::video::IImage* img =
             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
 
-    //draw the image
-    for (irr::u32 posx = 0; posx < sizex; posx++) {
-        for (irr::u32 posy = 0; posy < sizey; posy++) {
-            unsigned char color;
-            if (!flipY) {
-                color = ByteArray[posy * sizex + posx];
-            } else {
-                //flip image vertically
-                color = ByteArray[(sizey - posy) * sizex + posx];
-            }
-
-            unsigned char r, g, b;
-            std::tie(r, g, b) = GetPaletteColor(color);
-            img->setPixel(posx, posy,  irr::video::SColor(255, r, g, b));
-        }
+    auto raw_buffer = (uint32_t*)img->lock();
+    for (const unsigned char* src=ByteArray; src<ByteArray+sizex*sizey; src++) {
+        unsigned char r, g, b;
+        std::tie(r, g, b) = GetPaletteColor(*src);
+        *raw_buffer++ = 0xFF000000 | (r << 16) | (g << 8) | b;
     }
+    img->unlock();
 
     //should the picture be upscaled?
     if (scaleFactor == 1) {
         return img;
     }
 
+    irr::video::IImage *imgUp = UpscaleImage(img, sizex, sizey, scaleFactor);
+    img->drop();
+    return imgUp;
+}
+
+irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
     //create an empty image with upscaled dimension
-    irr::video::IImage *imgUp = myDriver->createImage(
+    irr::video::IImage *upImg = myDriver->createImage(
         irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
         irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
     //get the pointers to the raw image data
-    uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-    uint32_t *imageData = (uint32_t*)img->lock();
+    uint32_t *imageDataUp = (uint32_t*)upImg->lock();
+    uint32_t *imageData = (uint32_t*)srcImg->lock();
 
     xbrz::scale(scaleFactor, imageData, imageDataUp, sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
 
     //release the pointers, we do not need them anymore
-    img->unlock();
-    imgUp->unlock();
+    srcImg->unlock();
+    upImg->unlock();
 
-    img->drop();
-    return imgUp;
+    return upImg;
 }
 
 void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
@@ -1447,7 +1443,7 @@ void PrepareData::ExtractModelTextures() {
     strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
     strcpy(outputfile, "extract/models/tex0-0.png");
 
-    ConvertRawImageData(packfile, modelTexAtlasSize.Width, modelTexAtlasSize.Height, outputfile, 1.0, false);
+    ConvertRawImageData(packfile, modelTexAtlasSize.Width, modelTexAtlasSize.Height, outputfile, 1.0);
 
     /********************************************
     * We also need the TAB file to know where  *

@@ -187,10 +187,9 @@ private:
 
     //writes raw video data into picture file, using specified palette file
     void ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
-                             const char* outputFilename, int scaleFactor = 1, bool flipY = false);
+                             const char* outputFilename, int scaleFactor = 1);
 
-    irr::video::IImage* ConvertImageBuffer(const char* outputFilename, const unsigned char* ByteArray,
-                                           irr::u32 sizex, irr::u32 sizey, int scaleFactor, bool flipY);
+    irr::video::IImage* ConvertImageBuffer(const unsigned char* ByteArray, irr::u32 sizex, irr::u32 sizey, int scaleFactor);
 
     void ExtractTmaps();
 
@@ -217,6 +216,8 @@ private:
     //game files, as I do not have this data
     void AddOtherLevelsHiOctaneTools();
     void SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName);
+
+    irr::video::IImage* UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor);
 
     std::vector<unsigned char> loadRawImage(const char* rawDataFilename, unsigned int expectedSize);
     void saveIrrImage(const char* outputFilename, irr::video::IImage* img);
