@@ -918,57 +918,20 @@ irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u
 }
 
 void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                                    char* outputFilename, int scaleFactor, bool flipY) {
-    size_t size = sizex * sizey;
-
+                                    char* outputFilename, int scaleFactor) {
      //create an empty image
      irr::video::IImage* img =
              myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
 
-     //draw the image
-     for (irr::u32 posx = 0; posx < sizex; posx++) {
-         for (irr::u32 posy = 0; posy < sizey; posy++) {
-             unsigned char colorIdx;
-             if (!flipY) {
-                 colorIdx = ByteArray[posy * sizex + posx];
-             } else {
-                 //flip image vertically
-                 colorIdx = ByteArray[(sizey - posy) * sizex + posx];
-             }
-             flic::Color color = colorMap[colorIdx];
-             img->setPixel(posx, posy,  irr::video::SColor(255, color.r, color.g, color.b));
-         }
-     }
+    auto raw_buffer = (uint32_t*)img->lock();
+    for (const unsigned char* src=ByteArray; src<ByteArray+sizex*sizey; src++) {
+        flic::Color color = colorMap[*src];
+        *raw_buffer++ = 0xFF000000 | (color.r << 16) | (color.g << 8) | color.b;
+    }
+    img->unlock();
 
-    //create new file for writting
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-     //should the picture be upscaled?
-    if (scaleFactor == 1) {
-        //write original image data
-        myDriver->writeImageToFile(img, outputPic);
-     } else {
-        //create an empty image with upscaled dimension
-        irr::video::IImage *imgUp = myDriver->createImage(
-        irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
-        irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-        //get the pointers to the raw image data
-        uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-        uint32_t *imageData = (uint32_t*)img->lock();
-
-        xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-        //release the pointers, we do not need them anymore
-        img->unlock();
-        imgUp->unlock();
-
-        //write upscaled image data
-        myDriver->writeImageToFile(imgUp, outputPic);
-     }
-
-    //close output file
-    outputPic->drop();
+    img = UpscaleImage(img, sizex, sizey, scaleFactor);
+    saveIrrImage(outputFilename, img);
 }
 
 void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
@@ -2080,7 +2043,7 @@ void PrepareData::PrepareIntro() {
        strcat(outFrameFileName, fname);
 
        //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
-       ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2, false);
+       ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2);
     }
 }
 

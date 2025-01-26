@@ -195,7 +195,7 @@ private:
 
     void PrepareIntro();
     void ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                           char* outputFilename, int scaleFactor, bool flipY);
+                           char* outputFilename, int scaleFactor);
 
     void ExtractMusic();
 
