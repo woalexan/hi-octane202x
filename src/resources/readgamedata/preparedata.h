@@ -186,8 +186,11 @@ private:
     void ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor=1);
 
     //writes raw video data into picture file, using specified palette file
-    void ConvertRawImageData(const char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
+    void ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
                              const char* outputFilename, int scaleFactor = 1, bool flipY = false);
+
+    irr::video::IImage* ConvertImageBuffer(const char* outputFilename, const unsigned char* ByteArray,
+                                           irr::u32 sizex, irr::u32 sizey, int scaleFactor, bool flipY);
 
     void ExtractTmaps();
 
@@ -214,6 +217,9 @@ private:
     //game files, as I do not have this data
     void AddOtherLevelsHiOctaneTools();
     void SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName);
+
+    std::vector<unsigned char> loadRawImage(const char* rawDataFilename, unsigned int expectedSize);
+    void saveIrrImage(const char* outputFilename, irr::video::IImage* img);
 };
 
 #endif // PREPAREDATA_H

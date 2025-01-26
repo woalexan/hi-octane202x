@@ -191,7 +191,7 @@ void PrepareData::ExtractCheatPuzzle() {
     //is not RNC compressed, we can skip this step
 
     //scale puzzle by factor 4
-    ConvertRawImageData("originalgame/data/puzzle.dat", palette, 112, 96, "extract/puzzle/puzzle.png", 4);
+    ConvertRawImageData("originalgame/data/puzzle.dat", 112, 96, "extract/puzzle/puzzle.png", 4);
 }
 
 void PrepareData::ExtractModels() {
@@ -887,77 +887,59 @@ void PrepareData::AddOtherLevelsHiOctaneTools() {
      }
 }
 
-void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
+void PrepareData::ConvertRawImageData(const char* rawDataFilename,
                                       irr::u32 sizex, irr::u32 sizey,
                                       const char* outputFilename, int scaleFactor, bool flipY) {
-    FILE* iFile = fopen(rawDataFilename, "rb");
-    if (iFile == NULL) {
-        throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
+    std::vector<unsigned char> ByteArray = loadRawImage(rawDataFilename, sizex * sizey);
+    irr::video::IImage* img = ConvertImageBuffer(outputFilename, ByteArray.data(), sizex, sizey, scaleFactor, flipY);
+    saveIrrImage(outputFilename, img);
+}
+
+irr::video::IImage* PrepareData::ConvertImageBuffer(const char* outputFilename, const unsigned char* ByteArray, irr::u32 sizex, irr::u32 sizey, int scaleFactor, bool flipY)
+{
+    //create an empty image
+    irr::video::IImage* img =
+            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+
+    //draw the image
+    for (irr::u32 posx = 0; posx < sizex; posx++) {
+        for (irr::u32 posy = 0; posy < sizey; posy++) {
+            unsigned char color;
+            if (!flipY) {
+                color = ByteArray[posy * sizex + posx];
+            } else {
+                //flip image vertically
+                color = ByteArray[(sizey - posy) * sizex + posx];
+            }
+
+            unsigned char r, g, b;
+            std::tie(r, g, b) = GetPaletteColor(color);
+            img->setPixel(posx, posy,  irr::video::SColor(255, r, g, b));
+        }
     }
-    fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
-    fseek(iFile, 0L, SEEK_SET);
-
-    if (size != (sizex*sizey)) {
-        fclose(iFile);
-        throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
-    }
-
-    std::vector<char> ByteArray(size);
-    fread(ByteArray.data(), 1, size, iFile);
-    fclose(iFile);
-
-     //create an empty image
-     irr::video::IImage* img =
-             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
-
-     //draw the image
-     for (irr::u32 posx = 0; posx < sizex; posx++) {
-         for (irr::u32 posy = 0; posy < sizey; posy++) {
-             unsigned char color;
-             if (!flipY) {
-                 color = ByteArray[posy * sizex + posx];
-             } else {
-                 //flip image vertically
-                 color = ByteArray[(sizey - posy) * sizex + posx];
-             }
-
-             unsigned char r, g, b;
-             std::tie(r, g, b) = GetPaletteColor(color);
-             img->setPixel(posx, posy,  irr::video::SColor(255, r, g, b));
-         }
-     }
-
-    //create new file for writting
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
 
     //should the picture be upscaled?
     if (scaleFactor == 1) {
-        //write original image data
-        myDriver->writeImageToFile(img, outputPic);
-    } else  {
-        //create an empty image with upscaled dimension
-        irr::video::IImage *imgUp = myDriver->createImage(
-            irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
-            irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-        //get the pointers to the raw image data
-        uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-        uint32_t *imageData = (uint32_t*)img->lock();
-
-        xbrz::scale(scaleFactor, imageData, imageDataUp, sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-        //release the pointers, we do not need them anymore
-        img->unlock();
-        imgUp->unlock();
-
-        //write upscaled image data
-        myDriver->writeImageToFile(imgUp, outputPic);
+        return img;
     }
 
-    //close output file
-    outputPic->drop();
+    //create an empty image with upscaled dimension
+    irr::video::IImage *imgUp = myDriver->createImage(
+        irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+        irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
+
+    //get the pointers to the raw image data
+    uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
+    uint32_t *imageData = (uint32_t*)img->lock();
+
+    xbrz::scale(scaleFactor, imageData, imageDataUp, sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
+
+    //release the pointers, we do not need them anymore
+    img->unlock();
+    imgUp->unlock();
+
+    img->drop();
+    return imgUp;
 }
 
 void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
@@ -1465,8 +1447,7 @@ void PrepareData::ExtractModelTextures() {
     strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
     strcpy(outputfile, "extract/models/tex0-0.png");
 
-    ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
-                     outputfile, 1.0, false);
+    ConvertRawImageData(packfile, modelTexAtlasSize.Width, modelTexAtlasSize.Height, outputfile, 1.0, false);
 
     /********************************************
     * We also need the TAB file to know where  *
@@ -2132,7 +2113,7 @@ void PrepareData::ConvertCompressedImageData(const char* packfile, const char* o
     UnpackDataFile(packfile, "extract/tmp-unpacked.dat");
 
     // upscale original image data if necessary
-    ConvertRawImageData("extract/tmp-unpacked.dat", palette, sizex, sizey, outfile, scaleFactor);
+    ConvertRawImageData("extract/tmp-unpacked.dat", sizex, sizey, outfile, scaleFactor);
 
     remove("extract/tmp-unpacked.dat");
 }
@@ -2150,6 +2131,33 @@ void PrepareData::ExtractCompressedImagesFromDataFile(const char* basename, cons
         outdir);
 
     remove("extract/tmp-unpacked.dat");
+}
+
+std::vector<unsigned char> PrepareData::loadRawImage(const char* rawDataFilename, unsigned int expectedSize) {
+    FILE* iFile = fopen(rawDataFilename, "rb");
+    if (iFile == NULL) {
+        throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
+    }
+
+    std::vector<unsigned char> ByteArray(expectedSize);
+    fread(ByteArray.data(), 1, expectedSize, iFile);
+
+    fseek(iFile, 0L, SEEK_END);
+    size_t size = ftell(iFile);
+    if (size != expectedSize) {
+        fclose(iFile);
+        throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
+    }
+
+    fclose(iFile);
+    return ByteArray;
+}
+
+void PrepareData::saveIrrImage(const char* outputFilename, irr::video::IImage* img) {
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+    myDriver->writeImageToFile(img, outputPic);
+    outputPic->drop();
+    img->drop();
 }
 
 // wrap ExtractImages to take const char* arguments and throw an exception on error
