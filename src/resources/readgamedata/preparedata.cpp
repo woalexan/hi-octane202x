@@ -19,6 +19,7 @@
 
 void UnpackDataFile(const char* packfile, const char* unpackfile);
 void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
+std::vector<unsigned char> loadRawFile(const char *filename);
 
 
 PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
@@ -254,6 +255,10 @@ void PrepareData::ExtractNamed3DModel(const char* name, int n_models) {
 
 void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
     logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
+
+    if (this->modelsTabFileInfo == NULL) {
+        throw std::string("Error: Model texture atlas not loaded");
+    }
 
     ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, this->modelTexAtlasSize.Width,
                        this->modelTexAtlasSize.Height);
@@ -1324,74 +1329,49 @@ void PrepareData::ExtractTmaps() {
     //data\tmaps.tab
     //RNC-compressed = Yes 	Tmaps data (contains collectible items, powerups...)
 
-   char ArchiveName[55];
-   strcpy(ArchiveName, "originalgame/data/tmaps.dat");
+    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Many of the game's files are compressed using the Rob Northern Compression format;
+    //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
 
-   //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
-   //Many of the game's files are compressed using the Rob Northern Compression format;
-   //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
-
-   //first seperate data in multiple export files, new file always starts with "RNC" magic characters
-   FILE* iFile;
-   FILE* oFile = NULL;
-
-   iFile = fopen(ArchiveName, "rb");
-   fseek(iFile, 0L, SEEK_END);
-   size_t size = ftell(iFile);
-   fseek(iFile, 0L, SEEK_SET);
-
-   size_t counter = 0;
-
-   char* ByteArray;
-   ByteArray = new char[size];
-   if (iFile == NULL)
-   {
-       throw std::string("Cannot open Tmaps file: ") + ArchiveName;
-   }
-    do {
-        ByteArray[counter] = fgetc(iFile);
-        counter++;
-    } while (counter < size);
-    fclose(iFile);
+    //first seperate data in multiple export files, new file always starts with "RNC" magic characters
+    std::vector<unsigned char> ByteArray = loadRawFile("originalgame/data/tmaps.dat");
 
     //now seperate data into different new created file
-   counter = 0;
-   unsigned long ofilenr = 0;
+    size_t counter = 0;
+    unsigned long ofilenr = 0;
+    FILE* oFile = NULL;
 
-   while (counter < size) {
-     if (((size - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
-           && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1)) {
+    while (counter < ByteArray.size()) {
+        if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
+            && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1))
+        {
+            //new file start found
 
-         //new file start found
+            char finalpath[50];
+            char fname[20];
+            strcpy(finalpath, "extract/sprites/tmaps-packed");
+            sprintf (fname, "%0*lu.dat", 4, ofilenr);
+            strcat(finalpath, fname);
+            ofilenr++;
 
-           char finalpath[50];
-           char fname[20];
-           strcpy(finalpath, "extract/sprites/tmaps-packed");
-           sprintf (fname, "%0*lu.dat", 4, ofilenr);
-           strcat(finalpath, fname);
-           ofilenr++;
+            if (oFile != NULL) {
+                //close last file
+                fclose(oFile);
+            }
 
-           if (oFile != NULL) {
-               //close last file
-               fclose(oFile);
-           }
-
-           oFile = fopen(finalpath, "wb");
-           if (oFile == NULL) {
-              delete[] ByteArray;
-              throw std::string("Cannot open file for writing: ") + finalpath;
-           }
-     }
-      if (oFile != NULL) {
-        fwrite(&ByteArray[counter], 1, 1, oFile);
-      }
-      counter++;
+            oFile = fopen(finalpath, "wb");
+            if (oFile == NULL) {
+                throw std::string("Cannot open file for writing: ") + finalpath;
+            }
+        }
+        if (oFile != NULL) {
+            fwrite(&ByteArray[counter], 1, 1, oFile);
+        }
+        counter++;
    }
 
    //close last file
    fclose(oFile);
-
-   delete[] ByteArray;
 
    //RNC unpack all the sound files
    unsigned long filecnt;
@@ -1445,152 +1425,123 @@ void PrepareData::ExtractTmaps() {
 }
 
 void PrepareData::ExtractSounds() {
-   char ArchiveName[55];
-   strcpy(ArchiveName, "originalgame/sound/sound.dat");
+    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Many of the game's files are compressed using the Rob Northern Compression format;
+    //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
+    std::vector<unsigned char> ByteArray = loadRawFile("originalgame/sound/sound.dat");
 
-   //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
-   //Many of the game's files are compressed using the Rob Northern Compression format;
-   //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
+    //first seperate data in multiple export files, new file always starts with "RNC" magic characters
+    size_t counter = 0;
+    unsigned long ofilenr = 0;
+    FILE* oFile = NULL;
 
-   //first seperate data in multiple export files, new file always starts with "RNC" magic characters
-   FILE* iFile;
-   FILE* oFile = NULL;
+    while (counter < ByteArray.size()) {
+        if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
+           && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1))
+        {
+            //new file start found
+            char finalpath[50];
+            char fname[20];
+            strcpy(finalpath, "extract/sound/sound-packed");
+            sprintf (fname, "%0*lu.dat", 4, ofilenr);
+            strcat(finalpath, fname);
+            ofilenr++;
 
-   iFile = fopen(ArchiveName, "rb");
-   fseek(iFile, 0L, SEEK_END);
-   size_t size = ftell(iFile);
-   fseek(iFile, 0L, SEEK_SET);
+            if (oFile != NULL) {
+                //close previous file
+                fclose(oFile);
+            }
 
-   size_t counter = 0;
+            oFile = fopen(finalpath, "wb");
+            if (oFile == NULL) {
+                throw std::string("Cannot open file for writing: ") + finalpath;
+            }
+        }
 
-   char* ByteArray;
-   ByteArray = new char[size];
-   if (iFile == NULL)
-   {
-       throw std::string("Cannot open sound file: ") + ArchiveName;
-   }
-   do {
-       ByteArray[counter] = fgetc(iFile);
-       counter++;
-   } while (counter < size);
-   fclose(iFile);
+        fwrite(&ByteArray[counter], 1, 1, oFile);
+        counter++;
+    }
 
+    //close last file
+    fclose(oFile);
 
-   //now seperate data into different new created file
-   counter = 0;
-   unsigned long ofilenr = 0;
+    //RNC unpack all the sound files
+    unsigned long filecnt;
 
-   while (counter < size) {
-     if (((size - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
-           && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1)) {
+    for (filecnt = 0; filecnt < ofilenr; filecnt++) {
+        char finalpath[50];
+        char finalpathUnpacked[50];
+        char fname[20];
+        strcpy(finalpath, "extract/sound/sound-packed");
+        strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
+        sprintf (fname, "%0*lu.dat", 4, filecnt);
+        strcat(finalpath, fname);
+        strcat(finalpathUnpacked, fname);
 
-         //new file start found
+        UnpackDataFile(finalpath, finalpathUnpacked);
+    }
 
-           char finalpath[50];
-           char fname[20];
-           strcpy(finalpath, "extract/sound/sound-packed");
-           sprintf (fname, "%0*lu.dat", 4, ofilenr);
-           strcat(finalpath, fname);
-           ofilenr++;
+    //****************************
+    // Sound package 1
+    //****************************
 
-           if (oFile != NULL) {
-               //close last file
-               fclose(oFile);
-           }
+    //read file infos for first sound package
+    char infofilename1[50];
+    strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
 
-           oFile = fopen(finalpath, "wb");
-           if (oFile == NULL) {
-              delete[] ByteArray;
-              throw std::string("Cannot open file for writing: ") + finalpath;
-           }
-     }
+    std::vector<SOUNDFILEENTRY> list;
+    ReadSoundFileEntries(infofilename1, &list);
 
-      fwrite(&ByteArray[counter], 1, 1, oFile);
-      counter++;
-   }
+    char splitfilename1[50];
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
+    char ofilename1[50];
+    strcpy(ofilename1, "extract/sound/sound0-");
 
-   //close last file
-   fclose(oFile);
+    SplitSoundFile(splitfilename1, ofilename1, &list);
 
-   delete[] ByteArray;
+    //****************************
+    // Sound package 2
+    //****************************
 
-   //RNC unpack all the sound files
-   unsigned long filecnt;
+    strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
+    list.clear();
 
-   for (filecnt = 0; filecnt < ofilenr; filecnt++) {
-       char finalpath[50];
-       char finalpathUnpacked[50];
-       char fname[20];
-       strcpy(finalpath, "extract/sound/sound-packed");
-       strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
-       sprintf (fname, "%0*lu.dat", 4, filecnt);
-       strcat(finalpath, fname);
-       strcat(finalpathUnpacked, fname);
+    ReadSoundFileEntries(infofilename1, &list);
 
-       UnpackDataFile(finalpath, finalpathUnpacked);
-   }
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
+    strcpy(ofilename1, "extract/sound/sound2-");
 
-   //****************************
-   // Sound package 1
-   //****************************
+    SplitSoundFile(splitfilename1, ofilename1, &list);
 
-   //read file infos for first sound package
-   char infofilename1[50];
-   strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
+    //****************************
+    // Sound package 3
+    //****************************
 
-   std::vector<SOUNDFILEENTRY> list;
-   ReadSoundFileEntries(infofilename1, &list);
+    strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
+    list.clear();
 
-   char splitfilename1[50];
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
-   char ofilename1[50];
-   strcpy(ofilename1, "extract/sound/sound0-");
+    ReadSoundFileEntries(infofilename1, &list);
 
-   SplitSoundFile(splitfilename1, ofilename1, &list);
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
+    strcpy(ofilename1, "extract/sound/sound4-");
 
-   //****************************
-   // Sound package 2
-   //****************************
+    SplitSoundFile(splitfilename1, ofilename1, &list);
 
-   strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
-   list.clear();
+    //****************************
+    // Sound package 4
+    //****************************
+    /*
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
+    strcpy(ofilename1, "extract/sound/sound6-");
 
-   ReadSoundFileEntries(infofilename1, &list);
+    SplitSoundFile(splitfilename1, ofilename1);
 
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
-   strcpy(ofilename1, "extract/sound/sound2-");
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
+    strcpy(ofilename1, "extract/sound/sound7-");
 
-   SplitSoundFile(splitfilename1, ofilename1, &list);
+    SplitSoundFile(splitfilename1, ofilename1);*/
 
-   //****************************
-   // Sound package 3
-   //****************************
-
-   strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
-   list.clear();
-
-   ReadSoundFileEntries(infofilename1, &list);
-
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
-   strcpy(ofilename1, "extract/sound/sound4-");
-
-   SplitSoundFile(splitfilename1, ofilename1, &list);
-
-   //****************************
-   // Sound package 4
-   //****************************
-/*
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
-   strcpy(ofilename1, "extract/sound/sound6-");
-
-   SplitSoundFile(splitfilename1, ofilename1);
-
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
-   strcpy(ofilename1, "extract/sound/sound7-");
-
-   SplitSoundFile(splitfilename1, ofilename1);*/
-
-   //cleanup unnecessary files
+    //cleanup unnecessary files
     for (filecnt = 0; filecnt < ofilenr; filecnt++) {
         char finalpath[50];
         char finalpathUnpacked[50];
@@ -1642,39 +1593,18 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
 
 //further split sound files
 void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries) {
-   //after ExtractSounds routine executed we get files which contain multiple WAV files
-   //glued together, we need to split them further
+    //after ExtractSounds routine executed we get files which contain multiple WAV files
+    //glued together, we need to split them further
+    std::vector<unsigned char> ByteArray = loadRawFile(filename);
 
-   //first seperate data in multiple export files, new file always starts with "RIFF" magic characters
-   FILE* iFile;
-   FILE* oFile = NULL;
+    //first seperate data in multiple export files, new file always starts with "RIFF" magic characters
+    FILE* oFile = NULL;
+    size_t counter = 0;
 
-   iFile = fopen(filename, "rb");
-   fseek(iFile, 0L, SEEK_END);
-   size_t size = ftell(iFile);
-   fseek(iFile, 0L, SEEK_SET);
+    std::vector<SOUNDFILEENTRY>::iterator it;
+    unsigned long lastpos;
 
-   size_t counter = 0;
-
-   char* ByteArray;
-   ByteArray = new char[size];
-   if (iFile == NULL)
-   {
-       throw std::string("Error - Cannot open file for reading: ") + filename;
-   }
-   do {
-       ByteArray[counter] = fgetc(iFile);
-       counter++;
-   } while (counter < size);
-   fclose(iFile);
-
-   //now seperate data into different new created file
-   counter = 0;
-
-  std::vector<SOUNDFILEENTRY>::iterator it;
-  unsigned long lastpos;
-
-  //go through all files
+    //go through all files
    for(it = entries->begin(); it != entries->end(); ++it) {
        //skip the empty files with name "NULL.WAV" and ""
           if ((strcmp((*it).soundFilename, "NULL.WAV") != 0) && (strcmp((*it).soundFilename, "") != 0)) {
@@ -1691,7 +1621,6 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
 
                 oFile = fopen(finalpath, "wb");
                 if (oFile == NULL) {
-                    delete[] ByteArray;
                     throw std::string("Error - Cannot open file for writting: ") + finalpath;
                 }
 
@@ -1705,8 +1634,6 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
                 fclose(oFile);
             }
     }
-
-   delete[] ByteArray;
 }
 
 void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
@@ -1962,24 +1889,10 @@ void PrepareData::ExtractCompressedImagesFromDataFile(const char* basename, cons
 }
 
 irr::video::IImage* PrepareData::loadRawImage(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey) {
-    FILE* iFile = fopen(rawDataFilename, "rb");
-    if (iFile == NULL) {
-        throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
-    }
-
-    irr::u32 expectedSize = sizex * sizey;
-
-    std::vector<unsigned char> ByteArray(expectedSize);
-    fread(ByteArray.data(), 1, expectedSize, iFile);
-
-    fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
-    if (size != expectedSize) {
-        fclose(iFile);
+    std::vector<unsigned char> ByteArray = loadRawFile(rawDataFilename);
+    if (ByteArray.size() != sizex * sizey) {
         throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
     }
-
-    fclose(iFile);
 
     //create an empty image
     irr::video::IImage* img =
@@ -2039,4 +1952,20 @@ void UnpackDataFile(const char* packfile, const char* unpackfile) {
     if (unpack_res != 0) {
         throw std::string("Error unpacking file: ") + packfile;
     }
+}
+
+std::vector<unsigned char> loadRawFile(const char *filename) {
+    FILE* iFile = fopen(filename, "rb");
+    if (iFile == NULL)
+    {
+        throw std::string("Cannot open file: ") + filename;
+    }
+    fseek(iFile, 0L, SEEK_END);
+    size_t size = ftell(iFile);
+    fseek(iFile, 0L, SEEK_SET);
+
+    std::vector<unsigned char> buffer(size);
+    fread(buffer.data(), 1, size, iFile);
+    fclose(iFile);
+    return buffer;
 }
