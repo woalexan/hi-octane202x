@@ -887,39 +887,18 @@ void PrepareData::AddOtherLevelsHiOctaneTools() {
      }
 }
 
-void PrepareData::ConvertRawImageData(const char* rawDataFilename,
-                                      irr::u32 sizex, irr::u32 sizey,
+void PrepareData::ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
                                       const char* outputFilename, int scaleFactor) {
-    std::vector<unsigned char> ByteArray = loadRawImage(rawDataFilename, sizex * sizey);
-    irr::video::IImage* img = ConvertImageBuffer(ByteArray.data(), sizex, sizey, scaleFactor);
+    irr::video::IImage* img = loadRawImage(rawDataFilename, sizex, sizey);
+    img = UpscaleImage(img, sizex, sizey, scaleFactor);
     saveIrrImage(outputFilename, img);
 }
 
-irr::video::IImage* PrepareData::ConvertImageBuffer(const unsigned char* ByteArray, irr::u32 sizex, irr::u32 sizey, int scaleFactor)
-{
-    //create an empty image
-    irr::video::IImage* img =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
-
-    auto raw_buffer = (uint32_t*)img->lock();
-    for (const unsigned char* src=ByteArray; src<ByteArray+sizex*sizey; src++) {
-        unsigned char r, g, b;
-        std::tie(r, g, b) = GetPaletteColor(*src);
-        *raw_buffer++ = 0xFF000000 | (r << 16) | (g << 8) | b;
-    }
-    img->unlock();
-
-    //should the picture be upscaled?
-    if (scaleFactor == 1) {
-        return img;
-    }
-
-    irr::video::IImage *imgUp = UpscaleImage(img, sizex, sizey, scaleFactor);
-    img->drop();
-    return imgUp;
-}
-
 irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
+    if (scaleFactor == 1) {
+        return srcImg;
+    }
+
     //create an empty image with upscaled dimension
     irr::video::IImage *upImg = myDriver->createImage(
         irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
@@ -2129,11 +2108,13 @@ void PrepareData::ExtractCompressedImagesFromDataFile(const char* basename, cons
     remove("extract/tmp-unpacked.dat");
 }
 
-std::vector<unsigned char> PrepareData::loadRawImage(const char* rawDataFilename, unsigned int expectedSize) {
+irr::video::IImage* PrepareData::loadRawImage(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey) {
     FILE* iFile = fopen(rawDataFilename, "rb");
     if (iFile == NULL) {
         throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
     }
+
+    irr::u32 expectedSize = sizex * sizey;
 
     std::vector<unsigned char> ByteArray(expectedSize);
     fread(ByteArray.data(), 1, expectedSize, iFile);
@@ -2146,7 +2127,21 @@ std::vector<unsigned char> PrepareData::loadRawImage(const char* rawDataFilename
     }
 
     fclose(iFile);
-    return ByteArray;
+
+    //create an empty image
+    irr::video::IImage* img =
+            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+
+    auto readbuf = ByteArray.data();
+    auto raw_buffer = (uint32_t*)img->lock();
+    for (const unsigned char* src=readbuf; src<readbuf+sizex*sizey; src++) {
+        unsigned char r, g, b;
+        std::tie(r, g, b) = GetPaletteColor(*src);
+        *raw_buffer++ = 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+    img->unlock();
+
+    return img;
 }
 
 void PrepareData::saveIrrImage(const char* outputFilename, irr::video::IImage* img) {

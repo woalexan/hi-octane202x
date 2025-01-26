@@ -189,8 +189,6 @@ private:
     void ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
                              const char* outputFilename, int scaleFactor = 1);
 
-    irr::video::IImage* ConvertImageBuffer(const unsigned char* ByteArray, irr::u32 sizex, irr::u32 sizey, int scaleFactor);
-
     void ExtractTmaps();
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
@@ -219,7 +217,7 @@ private:
 
     irr::video::IImage* UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor);
 
-    std::vector<unsigned char> loadRawImage(const char* rawDataFilename, unsigned int expectedSize);
+    irr::video::IImage* loadRawImage(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey);
     void saveIrrImage(const char* outputFilename, irr::video::IImage* img);
 };
 
