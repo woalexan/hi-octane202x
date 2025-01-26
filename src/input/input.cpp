@@ -62,4 +62,6 @@ bool MyEventReceiver::IsKeyDownSingleEvent(EKEY_CODE keyCode) {
         KeyIsLockedCurr[keyCode] = true;
         return true;
     }
+
+    return false;
 }
