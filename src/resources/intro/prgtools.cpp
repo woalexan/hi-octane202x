@@ -32,7 +32,7 @@ long filesize(FILE *fp)
     return length;
 }
 
-void showError(int ErrNum,char ErrText[])
+void showError(int ErrNum, const char ErrText[])
 {
   printf("  !!! There was an error during program execution !!!\n");
  if (ErrNum==errImpossible)
@@ -105,7 +105,7 @@ if (ErrNum & errCritical)
   };
 }
 
-void loadPalette(char *pal_file_name,void *palette_buffer,ulong BufSize,int Options)
+void loadPalette(const char *pal_file_name,void *palette_buffer,ulong BufSize,int Options)
 //Reads palette file, allocates buffer and returns it
 {
     FILE *palfp;

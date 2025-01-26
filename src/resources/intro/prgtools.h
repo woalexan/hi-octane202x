@@ -67,8 +67,8 @@ typedef struct
 //No i funkcje
 
 long filesize(FILE *fp);
-void showError(int ErrNum,char ErrText[]);
-void loadPalette(char *FName,void *Buf,ulong BufSize,int Options);
+void showError(int ErrNum, const char ErrText[]);
+void loadPalette(const char *FName,void *Buf,ulong BufSize,int Options);
 void saveBlockToNewFile(const char *FName,void *Buf,ulong BufSize);
 void saveDataToFile(void *BufDest,ulong Size,FILE *DestFile);
 int loadDataFromFile(FILE *File,void *Buf,ulong BytesToRead,int ErrNum,int Options);
