@@ -110,7 +110,7 @@ typedef struct
 #define MaxAnimHeight 768
 
 //Functions
-char *getChunkTypeStr(unsigned int iType);
+const char *getChunkTypeStr(unsigned int iType);
 void displayMainHeaderInfo(FLIMainHeader *animHeader,ulong hStart, ulong fSize);
 void displayAddHeaderInfo(FLIAddHeader *animAddHeader,ulong hEnd);
 void displayFrameInfo(FLIFrameHeader *currFrameHdr,ulong frameNumber,ulong totalFrames,ulong hStart,ulong hEnd);

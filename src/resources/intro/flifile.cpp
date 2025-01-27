@@ -26,7 +26,7 @@ Displaying FLI file information
 ===========================================================
 */
 
-char *getChunkTypeStr(unsigned int iType)
+const char *getChunkTypeStr(unsigned int iType)
 {
   switch (iType)
     {

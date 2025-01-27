@@ -509,7 +509,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
 
         // Select which track can provide the next event.
         {
-            uint32_t NextTimestamp = ~0UL;
+            uint32_t NextTimestamp = ~0;
 
             for (size_t i = 0; i < TrackCount; ++i)
             {
@@ -907,7 +907,7 @@ uint32_t MIDIContainer::GetLoopBeginTimestamp(size_t subSongIndex, bool ms /* = 
     if (Timestamp != ~0UL)
         return TimestampToMS(Timestamp, TrackIndex);
 
-    return ~0UL;
+    return ~0;
 }
 
 uint32_t MIDIContainer::GetLoopEndTimestamp(size_t subSongIndex, bool ms /* = false */) const
@@ -928,7 +928,7 @@ uint32_t MIDIContainer::GetLoopEndTimestamp(size_t subSongIndex, bool ms /* = fa
     if (Timestamp != ~0UL)
         return TimestampToMS(Timestamp, TrackIndex);
 
-    return ~0UL;
+    return ~0;
 }
 
 void MIDIContainer::GetMetaData(size_t subSongIndex, MIDIMetaData & metaData)
@@ -1222,7 +1222,7 @@ void MIDIContainer::TrimStart()
 
 void MIDIContainer::TrimRange(size_t start, size_t end)
 {
-    uint32_t timestamp_first_note = ~0UL;
+    uint32_t timestamp_first_note = ~0;
 
     for (size_t i = start; i <= end; ++i)
     {

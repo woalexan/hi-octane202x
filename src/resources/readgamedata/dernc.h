@@ -25,7 +25,7 @@ anymore   */
 long rnc_ulen (void *packed);
 int main_unpack (char* iname, char* oname);
 long rnc_unpack (unsigned char *packed, unsigned char *unpacked, unsigned int flags, long *leeway);
-char *rnc_error (long errcode);
+const char *rnc_error (long errcode);
 long rnc_crc (void *data, unsigned long len);
 
 /*

@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.5)
 
 project(hi-octane202x LANGUAGES CXX)
 
+if(NOT CMAKE_COMPILE_WARNING_AS_ERROR)
+        set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
+endif()
+
 # Configuration options
 set(SFML_STATIC_LIBRARIES FALSE CACHE BOOL "Use static SFML librares")
 

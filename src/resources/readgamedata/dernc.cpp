@@ -150,8 +150,8 @@ static unsigned long mirror (unsigned long x, int n);
 /*
  * Return an error string corresponding to an error return code.
  */
-char *rnc_error (long errcode) {
-    static char *const errors[] = {
+const char *rnc_error (long errcode) {
+    static const char *const errors[] = {
 	"No error",
 	"File is not RNC-1 format",
 	"Huffman decode error",
@@ -292,8 +292,8 @@ long rnc_unpack (unsigned char *packed, unsigned char *unpacked, unsigned int fl
 	    length += 2;
 	    while (length--)
         {
-            if ((((void *)output-posn)<unpacked)||((output-posn)>outputend)||
-                (((void *)output)<unpacked)||((output)>outputend))
+            if ((output-posn < unpacked)||(output-posn > outputend)||
+                (output < unpacked)||(output > outputend))
             {
                    if (!(flags&RNC_IGNORE_HUF_EXCEEDS_RANGE)) 
                        return RNC_HUF_EXCEEDS_RANGE;
