@@ -14,10 +14,12 @@
 
 #include "../../utils/logging.h"
 #include "../intro/flifix.h"
+#include <iomanip>
 
 
 void UnpackDataFile(const char* packfile, const char* unpackfile);
 void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
+std::vector<unsigned char> loadRawFile(const char *filename);
 
 
 PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
@@ -39,396 +41,117 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
 
     //check if extraction directory is already present
     //if not create this directory
-    if (IsDirectoryPresent("extract") == -1) {
-        //directory is not there
-        CreateDirectory("extract");
-        {
-            //directory was created ok
-            //now we need to extract all files
-
-            //extract SVGA game logo data if not all exported files present
-            logging::Info("Extracting game logos...");
-            PrepareSubDir("extract/images");
-            //export all game images
-            ExtractGameLogoSVGA();
-            ExtractIntroductoryScreen();
-            ExtractLoadingScreenSVGA();
-            ExtractSelectionScreenSVGA();
-
-            //extract SVGA game logo data if not all exported files present
-            logging::Info("Extracting game fonts...");
-            PrepareSubDir("extract/fonts");
-
-            PrepareSubDir("extract/fonts/thinwhite");
-            ExtractThinWhiteFontSVGA();
-
-            PrepareSubDir("extract/fonts/smallsvga");
-            ExtractSmallFontSVGA();
-
-            PrepareSubDir("extract/fonts/smallsvgagreenish");
-            //create greenish font for unselected items in menue (but based for smaller text size)
-            CreateFontForUnselectedItemsInMenue("extract/fonts/smallsvga/osfnt0-1-",
-                         "extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241);
-
-            PrepareSubDir("extract/fonts/large");
-            ExtractLargeFontSVGA();
-
-            PrepareSubDir("extract/fonts/largegreenish");
-            //create greenish font for unselected items in menue
-            //based on white SVGA font already extracted for game banner text font
-            CreateFontForUnselectedItemsInMenue("extract/fonts/large/olfnt0-1-",
-                         "extract/fonts/largegreenish/green-olfnt0-1-", 0, 241);
-
-            PrepareSubDir("extract/fonts/largegreen");
-            ExtractLargeGreenFontSVGA();
-
-            logging::Info("Extracting 1 player HUD...");
-            PrepareSubDir("extract/hud1player");
-            ExtractHUD1PlayerSVGA();
-
-            logging::Info("Extracting 2 player HUD...");
-            PrepareSubDir("extract/hud2player");
-            ExtractHUD2PlayersSVGA();
-
-            logging::Info("Extracting sky...");
-            PrepareSubDir("extract/sky");
-            ExtractSkies();
-
-            logging::Info("Extracting sprites...");
-            PrepareSubDir("extract/sprites");
-            ExtractTmaps();
-
-            logging::Info("Extracting minimaps...");
-            PrepareSubDir("extract/minimaps");
-            ExtractMiniMapsSVGA();
-            StitchMiniMaps();
-
-            logging::Info("Extracting terrain textures...");
-            //for TerrainTextures: Still todo: Scale Tiles by factor of 2.0
-            ExtractTerrainTextures();
-
-            logging::Info("Extracting levels...");
-            ExtractLevels();
-
-            logging::Info("Extracting sounds...");
-            PrepareSubDir("extract/sound");
-            ExtractSounds();
-
-            logging::Info("Extracting music...");
-            PrepareSubDir("extract/music");
-            ExtractMusic();
-
-            logging::Info("Extracting editor...");
-            PrepareSubDir("extract/editor");
-            ExtractEditorItemsLarge();
-            ExtractEditorItemsSmall();
-            ExtractEditorCursors();
-
-            logging::Info("Extracting puzzle...");
-            PrepareSubDir("extract/puzzle");
-            ExtractCheatPuzzle();
-
-            logging::Info("Extracting models...");
-            PrepareSubDir("extract/models");
-            ExtractModelTextures();
-            Extra3DModels();
-
-            logging::Info("Extracting intro...");
-            PrepareSubDir("extract/intro");
-            PrepareIntro();
-
-            //install other available assets user has copied
-            //into folder userData from another source
-            logging::Info("Extracting other stuff...");
-            AddOtherLevelsHiOctaneTools();
-        }
+    if (IsDirectoryPresent("extract") == 1) {
+        return;
     }
+    CreateDirectory("extract");
+
+    ExtractGameScreens();
+    ExtractFonts();
+    ExtractHuds();
+    ExtractSkies();
+    ExtractSprites();
+    ExtractMiniMaps();
+    ExtractTerrainTextures();
+    ExtractLevels();
+    ExtractEditor();
+    ExtractCheatPuzzle();
+    ExtractModels();
+    ExtractIntro();
+    ExtractAudio();
+    ExtractUserdata();
 }
 
 PrepareData::~PrepareData() {
     free(palette);
 }
 
-//return true if all expected files are present
-//return false if at least one file is missing
-bool PrepareData::CheckForGameLogoSVGAFiles() {
-    bool allFiles = true;
+void PrepareData::ExtractGameScreens() {
+    logging::Info("Extracting game logos...");
+    PrepareSubDir("extract/images");
 
-    char* file1 = strdup("extract/logo0-1-0000.bmp");
-    char* file2 = strdup("extract/logo0-1-0001.bmp");
-    char* file3 = strdup("extract/logo0-1-0002.bmp");
-    char* file4 = strdup("extract/logo0-1-0003.bmp");
-    char* file5 = strdup("extract/logo0-1-0004.bmp");
-    char* file6 = strdup("extract/logo0-1-0005.bmp");
-    allFiles = allFiles && (FileExists(&file1[0]) == 1);
-    allFiles = allFiles && (FileExists(&file2[0]) == 1);
-    allFiles = allFiles && (FileExists(&file3[0]) == 1);
-    allFiles = allFiles && (FileExists(&file4[0]) == 1);
-    allFiles = allFiles && (FileExists(&file5[0]) == 1);
-    allFiles = allFiles && (FileExists(&file6[0]) == 1);
-
-    return allFiles;
+    ExtractGameLogoSVGA();
+    ExtractIntroductoryScreen();
+    ExtractLoadingScreenSVGA();
+    ExtractSelectionScreenSVGA();
 }
 
-void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
-    logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
+void PrepareData::ExtractFonts() {
+    //extract SVGA game logo data if not all exported files present
+    logging::Info("Extracting game fonts...");
+    PrepareSubDir("extract/fonts");
 
-    ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, this->modelTexAtlasSize.Width,
-                       this->modelTexAtlasSize.Height);
+    PrepareSubDir("extract/fonts/thinwhite");
+    ExtractThinWhiteFontSVGA();
 
-    if (!newConversion->LoadObjectDatFile(srcFilename)) {
-        delete newConversion;
-        throw "Error loading object file: " + std::string(srcFilename);
-    }
+    PrepareSubDir("extract/fonts/smallsvga");
+    ExtractSmallFontSVGA();
 
-    if (!newConversion->WriteToObjFile(destFilename, objName)) {
-        delete  newConversion;
-        throw "Error writing object file: " + std::string(destFilename);
-    }
+    PrepareSubDir("extract/fonts/smallsvgagreenish");
+    //create greenish font for unselected items in menue (but based for smaller text size)
+    CreateFontForUnselectedItemsInMenue(
+        "extract/fonts/smallsvga/osfnt0-1-",
+        "extract/fonts/smallsvgagreenish/green-osfnt0-1-",
+        0, 241);
 
-    delete newConversion;
+    PrepareSubDir("extract/fonts/large");
+    ExtractLargeFontSVGA();
+
+    PrepareSubDir("extract/fonts/largegreenish");
+    //create greenish font for unselected items in menue
+    //based on white SVGA font already extracted for game banner text font
+    CreateFontForUnselectedItemsInMenue(
+        "extract/fonts/large/olfnt0-1-",
+        "extract/fonts/largegreenish/green-olfnt0-1-",
+        0, 241);
+
+    PrepareSubDir("extract/fonts/largegreen");
+    ExtractLargeGreenFontSVGA();
 }
 
-void PrepareData::Extra3DModels() {
-    char file[65];
-    char file2[50];
-    char helper[10];
-    char objname[20];
-    int idx;
+void PrepareData::ExtractHuds() {
+    logging::Info("Extracting 1 player HUD...");
+    PrepareSubDir("extract/hud1player");
+    ExtractHUD1PlayerSVGA();
 
-    /******************************************
-     *    Barel                               *
-     ******************************************/
+    logging::Info("Extracting 2 player HUD...");
+    PrepareSubDir("extract/hud2player");
+    ExtractHUD2PlayersSVGA();
+}
 
-    for (idx = 0; idx < 3; idx++) {
-        strcpy(file, "originalgame/objects/data/barel0-");
-        strcpy(file2, "extract/models/barel0-");
-        strcpy(objname, "barel0-");
+void PrepareData::ExtractSkies() {
+    logging::Info("Extracting sky...");
+    PrepareSubDir("extract/sky");
 
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Bikes                               *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/bike0-");
-        strcpy(file2, "extract/models/bike0-");
-        strcpy(objname, "bike0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Car                                 *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/car0-");
-        strcpy(file2, "extract/models/car0-");
-        strcpy(objname, "car0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Cone                                *
-     ******************************************/
-
-    for (idx = 0; idx < 2; idx++) {
-        strcpy(file, "originalgame/objects/data/cone0-");
-        strcpy(file2, "extract/models/cone0-");
-        strcpy(objname, "cone0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Jet                                 *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/jet0-");
-        strcpy(file2, "extract/models/jet0-");
-        strcpy(objname, "jet0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Jugga                               *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/jugga0-");
-        strcpy(file2, "extract/models/jugga0-");
-        strcpy(objname, "jugga0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Marsh                               *
-     ******************************************/
-
-    for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "originalgame/objects/data/marsh0-");
-        strcpy(file2, "extract/models/marsh0-");
-        strcpy(objname, "marsh0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Recovery vehicle                    *
-     ******************************************/
-
-    for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "originalgame/objects/data/recov0-");
-        strcpy(file2, "extract/models/recov0-");
-        strcpy(objname, "recov0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Sign                                *
-     ******************************************/
-
-    for (idx = 0; idx < 1; idx++) {
-        strcpy(file, "originalgame/objects/data/sign0-");
-        strcpy(file2, "extract/models/sign0-");
-        strcpy(objname, "sign0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Skim                                *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/skim0-");
-        strcpy(file2, "extract/models/skim0-");
-        strcpy(objname, "skim0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Tank                                *
-     ******************************************/
-
-    for (idx = 0; idx < 8; idx++) {
-        strcpy(file, "originalgame/objects/data/tank0-");
-        strcpy(file2, "extract/models/tank0-");
-        strcpy(objname, "tank0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
-    }
-
-    /******************************************
-     *    Track                               *
-     ******************************************/
-
-    for (idx = 0; idx < 6; idx++) {
-        strcpy(file, "originalgame/objects/data/track0-");
-        strcpy(file2, "extract/models/track0-");
-        strcpy(objname, "track0-");
-
-        sprintf(helper, "%d", idx);
-        strcat(file, helper);
-        strcat(file, ".dat");
-        strcat(file2, helper);
-        strcat(file2, ".obj");
-        strcat(objname, helper);
-
-        Extract3DModel(file, file2, objname);
+    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
+        ExtractSky(skyNr);
     }
 }
 
+void PrepareData::ExtractSprites() {
+    logging::Info("Extracting sprites...");
+    PrepareSubDir("extract/sprites");
+    ExtractTmaps();
+}
 
-//extracts the level map files
-//raises an error message in case of unexpected error
+void PrepareData::ExtractMiniMaps() {
+    logging::Info("Extracting minimaps...");
+    PrepareSubDir("extract/minimaps");
+    ExtractMiniMapsSVGA();
+    StitchMiniMaps();
+}
+
+void PrepareData::ExtractTerrainTextures() {
+    logging::Info("Extracting terrain textures...");
+
+    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
+        ExtractTerrainTexture(levelNr);
+    }
+}
+
 void PrepareData::ExtractLevels() {
+    logging::Info("Extracting levels...");
+
     PrepareSubDir("extract/level0-1");
     UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
 
@@ -448,6 +171,111 @@ void PrepareData::ExtractLevels() {
     UnpackDataFile("originalgame/maps/level0-6.dat", "extract/level0-6/level0-6-unpacked.dat");
 }
 
+void PrepareData::ExtractEditor() {
+    logging::Info("Extracting editor...");
+    PrepareSubDir("extract/editor");
+    ExtractEditorItemsLarge();
+    ExtractEditorItemsSmall();
+    ExtractEditorCursors();
+}
+
+void PrepareData::ExtractCheatPuzzle() {
+    logging::Info("Extracting puzzle...");
+    PrepareSubDir("extract/puzzle");
+
+    //read Cheat puzzle
+    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //data\puzzle.dat
+    //data\puzzle.tab
+    //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
+
+    //is not RNC compressed, we can skip this step
+
+    //scale puzzle by factor 4
+    ConvertRawImageData("originalgame/data/puzzle.dat", 112, 96, "extract/puzzle/puzzle.png", 4);
+}
+
+void PrepareData::ExtractModels() {
+    logging::Info("Extracting models...");
+    PrepareSubDir("extract/models");
+    ExtractModelTextures();
+    Extra3DModels();
+}
+
+void PrepareData::ExtractIntro() {
+    logging::Info("Extracting intro...");
+    PrepareSubDir("extract/intro");
+    PrepareIntro();
+}
+
+void PrepareData::ExtractAudio() {
+    logging::Info("Extracting sounds...");
+    PrepareSubDir("extract/sound");
+    ExtractSounds();
+
+    logging::Info("Extracting music...");
+    PrepareSubDir("extract/music");
+    ExtractMusic();
+}
+
+void PrepareData::ExtractUserdata() {
+    //install other available assets user has copied
+    //into folder userData from another source
+    logging::Info("Extracting other stuff...");
+    AddOtherLevelsHiOctaneTools();
+}
+
+void PrepareData::Extra3DModels() {
+    ExtractNamed3DModel("barel0-", 3);
+    ExtractNamed3DModel("bike0-", 8);
+    ExtractNamed3DModel("car0-", 8);
+    ExtractNamed3DModel("cone0-", 2);
+    ExtractNamed3DModel("jet0-", 8);
+    ExtractNamed3DModel("jugga0-", 8);
+    ExtractNamed3DModel("marsh0-", 1);
+    ExtractNamed3DModel("recov0-", 1);
+    ExtractNamed3DModel("sign0-", 1);
+    ExtractNamed3DModel("skim0-", 8);
+    ExtractNamed3DModel("tank0-", 8);
+    ExtractNamed3DModel("track0-", 6);
+}
+
+void PrepareData::ExtractNamed3DModel(const char* name, int n_models) {
+    std::string dat_path = "originalgame/objects/data/";
+    std::string obj_path = "extract/models/";
+
+    for (int idx = 0; idx < n_models; idx++) {
+        std::string objname = std::string(name) + std::to_string(idx);
+        std::string datfile = dat_path + objname + ".dat";
+        std::string objfile = obj_path + objname + ".obj";
+
+        Extract3DModel(datfile.c_str(), objfile.c_str(), objname.c_str());
+    }
+}
+
+void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
+    logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
+
+    if (this->modelsTabFileInfo == NULL) {
+        throw std::string("Error: Model texture atlas not loaded");
+    }
+
+    ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, this->modelTexAtlasSize.Width,
+                       this->modelTexAtlasSize.Height);
+
+    if (!newConversion->LoadObjectDatFile(srcFilename)) {
+        delete newConversion;
+        throw "Error loading object file: " + std::string(srcFilename);
+    }
+
+    if (!newConversion->WriteToObjFile(destFilename, objName)) {
+        delete  newConversion;
+        throw "Error writing object file: " + std::string(destFilename);
+    }
+
+    delete newConversion;
+}
+
 //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
 //raises an error message in case of unexpected error
 void PrepareData::ExtractGameLogoSVGA() {
@@ -456,16 +284,7 @@ void PrepareData::ExtractGameLogoSVGA() {
     //data\logo0-1.dat
     //data\logo0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
-
-    UnpackDataFile("originalgame/data/logo0-1.dat", "extract/images/logo0-1-unpacked.dat");
-
-    ExtractImagesfromDataFile(
-        "extract/images/logo0-1-unpacked.dat",
-        "originalgame/data/logo0-1.tab",
-        palette,
-        "extract/images/logo0-1-");
-
-    remove("extract/images/logo0-1-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/logo0-1", "extract/images/logo0-1-");
 }
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
@@ -476,7 +295,6 @@ void PrepareData::ExtractHUD1PlayerSVGA() {
     //data\panel0-1.dat
     //data\panel0-1.tab
     //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
-
     ExtractImagesfromDataFile("originalgame/data/panel0-1.dat", "originalgame/data/panel0-1.tab", palette, "extract/hud1player/panel0-1-");
 }
 
@@ -486,276 +304,104 @@ void PrepareData::ExtractMiniMapsSVGA() {
     //data\track0-1.dat
     //data\track0-1.tab
     //Unknown format 	RNC-compressed = No 	MiniMaps
-
     ExtractImagesfromDataFile("originalgame/data/track0-1.dat", "originalgame/data/track0-1.tab", palette, "extract/minimaps/track0-1-");
 }
 
+class MinimapStitcher {
+public:
+    MinimapStitcher(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
+        this->device = device;
+        this->driver = driver;
+        this->images = {};
+    }
+
+    ~MinimapStitcher() {
+        for (auto image : images) {
+            image->drop();
+        }
+    }
+
+    void insert_image(irr::u32 x, irr::u32 y, const char* filename) {
+        irr::io::IReadFile *file = device->getFileSystem()->createAndOpenFile(filename);
+        irr::video::IImage* image = driver->createImageFromFile(file);
+        file->drop();
+        images.push_back(image);
+        x_offsets.push_back(x);
+        y_offsets.push_back(y);
+    }
+
+    void probe_transparent(const int img, int x, int y) {
+        transparent = images[img]->getPixel(x, y);
+    }
+
+    irr::core::dimension2d<irr::u32> compute_resulting_dimension() {
+        irr::u32 xmin = -1;
+        irr::u32 ymin = -1;
+        irr::u32 xmax = 0;
+        irr::u32 ymax = 0;
+        for (int i = 0; i < images.size(); i++) {
+            irr::core::dimension2d<irr::u32> dim = images[i]->getDimension();
+            xmin = std::min(xmin, x_offsets[i]);
+            ymin = std::min(ymin, y_offsets[i]);
+            xmax = std::max(xmax, x_offsets[i] + dim.Width);
+            ymax = std::max(ymax, y_offsets[i] + dim.Height);
+        }
+        return irr::core::dimension2d(xmax - xmin, ymax - ymin);
+    }
+
+    void finalize(const char *filename) {
+        auto size = compute_resulting_dimension();
+        irr::video::IImage* imgNew = driver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, size);
+        imgNew->fill(transparent);
+
+        for (int i = 0; i < images.size(); i++) {
+            images[i]->copyTo(imgNew, irr::core::vector2d<irr::s32>(x_offsets[i], y_offsets[i]));
+        }
+
+        irr::io::IWriteFile* outputPic = device->getFileSystem()->createAndWriteFile(filename, false);
+        driver->writeImageToFile(imgNew, outputPic);
+        outputPic->drop();
+        imgNew->drop();
+    }
+
+private:
+    irr::video::IVideoDriver* driver;
+    irr::IrrlichtDevice* device;
+    std::vector<irr::video::IImage*> images;
+    std::vector<irr::u32> x_offsets;
+    std::vector<irr::u32> y_offsets;
+    irr::video::SColor transparent;
+};
+
 void PrepareData::StitchMiniMaps() {
-    /********************************************
-     *  Map for level 1                         *
-     * ******************************************/
-
-    char filename[50];
-
-    strcpy(filename, "extract/minimaps/track0-1-0000.bmp");
-
-    //open image part1
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    irr::video::IImage* part1 = myDriver->createImageFromFile(file);
-
-    //close the part1 picture file
-    file->drop();
-
-    //get part 1 image dimension
-    irr::core::dimension2d<irr::u32> part1Dimension = part1->getDimension();
-
-    //lock texture for only reading of pixel data
-    //irr::u8* datapntr = (irr::u8*)part1->lock();
-
-    irr::video::SColor texel;
-
-    //get games transparent color at the upper leftmost pixel (0,0)
-    irr::video::SColor texelTrans = part1->getPixel(0,0);
-
-    //unlock image again!
-    //part1->unlock();
-
-    strcpy(filename, "extract/minimaps/track0-1-0001.bmp");
-
-    //open image part2
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    irr::video::IImage* part2 = myDriver->createImageFromFile(file);
-
-    //close the part2 picture file
-    file->drop();
-
-    //get part 2 image dimension
-    irr::core::dimension2d<irr::u32> part2Dimension = part2->getDimension();
-
-    //stitch together
-    //create the new empty image for the modified sky file
-    irr::video::IImage* imgNew =
-        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width, part1Dimension.Height
-                                                                                                        + part2Dimension.Height - 1));
-
-    //first make sure new image is filled completely
-    //with the transparent color of the game
-    imgNew->fill(texelTrans);
-
-    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
-
-    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(6, 120),
-                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
-
-    part1->drop();
-    part2->drop();
-
-    strcpy(filename, "extract/minimaps/track0-1.png");
-
-    //create new file for writting
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
-
-    myDriver->writeImageToFile(imgNew, outputPic);
-
-    //close output file
-    outputPic->drop();
-    imgNew->drop();
-
-    /********************************************
-     *  Map for level 2                         *
-     * ******************************************/
-
-    strcpy(filename, "extract/minimaps/track0-1-0002.bmp");
-
-    //open image part1
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    part1 = myDriver->createImageFromFile(file);
-
-    //close the part1 picture file
-    file->drop();
-
-    //get part 1 image dimension
-    part1Dimension = part1->getDimension();
-
-    strcpy(filename, "extract/minimaps/track0-1-0003.bmp");
-
-    //open image part2
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    part2 = myDriver->createImageFromFile(file);
-
-    //close the part2 picture file
-    file->drop();
-
-    //get part 2 image dimension
-    part2Dimension = part2->getDimension();
-
-    //open image part3
-
-    strcpy(filename, "extract/minimaps/track0-1-0004.bmp");
-
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    irr::video::IImage* part3 = myDriver->createImageFromFile(file);
-
-    //close the part3 picture file
-    file->drop();
-
-    //get part 3 image dimension
-    irr::core::dimension2d<irr::u32> part3Dimension = part3->getDimension();
-
-    //stitch together
-    //create the new empty image for the modified sky file
-    imgNew =
-        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width + part2Dimension.Width, part1Dimension.Height
-                                                                                                        + part3Dimension.Height - 1));
-
-    //first make sure new image is filled completely
-    //with the transparent color of the game
-    imgNew->fill(texelTrans);
-
-    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
-
-    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(120, 5),
-                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
-
-    part3->copyTo(imgNew, irr::core::vector2d<irr::s32>(74, 120),
-                   irr::core::rect<irr::s32>(0, 0, part3Dimension.Width, part3Dimension.Height));
-
-    strcpy(filename, "extract/minimaps/track0-2.png");
-
-    //create new file for writting
-    outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
-
-    myDriver->writeImageToFile(imgNew, outputPic);
-
-    //close output file
-    outputPic->drop();
-    imgNew->drop();
-
-    /********************************************
-     *  Map for level 3                         *
-     * ******************************************/
-
-    //is alreay finished in file track0-1-0005.bmp
-    //no need for stitching
-
-    /********************************************
-     *  Map for level 4                         *
-     * ******************************************/
-
-    strcpy(filename, "extract/minimaps/track0-1-0006.bmp");
-
-    //open image part1
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    part1 = myDriver->createImageFromFile(file);
-
-    //close the part1 picture file
-    file->drop();
-
-    //get part 1 image dimension
-    part1Dimension = part1->getDimension();
-
-    strcpy(filename, "extract/minimaps/track0-1-0007.bmp");
-
-    //open image part2
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    part2 = myDriver->createImageFromFile(file);
-
-    //close the part2 picture file
-    file->drop();
-
-    //get part 2 image dimension
-    part2Dimension = part2->getDimension();
-
-    //stitch together
-    //create the new empty image for the modified sky file
-    imgNew =
-        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width, part1Dimension.Height
-                                                                                                        + part2Dimension.Height - 1));
-
-    //first make sure new image is filled completely
-    //with the transparent color of the game
-    imgNew->fill(texelTrans);
-
-    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
-
-    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(27, 120),
-                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
-
-    strcpy(filename, "extract/minimaps/track0-4.png");
-
-    //create new file for writting
-    outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
-
-    myDriver->writeImageToFile(imgNew, outputPic);
-
-    //close output file
-    outputPic->drop();
-    imgNew->drop();
-
-    /********************************************
-     *  Map for level 5                         *
-     * ******************************************/
-
-    strcpy(filename, "extract/minimaps/track0-1-0008.bmp");
-
-    //open image part1
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    part1 = myDriver->createImageFromFile(file);
-
-    //close the part1 picture file
-    file->drop();
-
-    //get part 1 image dimension
-    part1Dimension = part1->getDimension();
-
-    strcpy(filename, "extract/minimaps/track0-1-0009.bmp");
-
-    //open image part2
-    file = myDevice->getFileSystem()->createAndOpenFile(filename);
-    part2 = myDriver->createImageFromFile(file);
-
-    //close the part2 picture file
-    file->drop();
-
-    //get part 2 image dimension
-    part2Dimension = part2->getDimension();
-
-    //stitch together
-    //create the new empty image for the modified sky file
-    imgNew =
-        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(part1Dimension.Width, part1Dimension.Height
-                                                                                                        + part2Dimension.Height - 1));
-
-    //first make sure new image is filled completely
-    //with the transparent color of the game
-    imgNew->fill(texelTrans);
-
-    part1->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                   irr::core::rect<irr::s32>(0, 0, part1Dimension.Width, part1Dimension.Height));
-
-    part2->copyTo(imgNew, irr::core::vector2d<irr::s32>(18, 120),
-                   irr::core::rect<irr::s32>(0, 0, part2Dimension.Width, part2Dimension.Height));
-
-    strcpy(filename, "extract/minimaps/track0-5.png");
-
-    //create new file for writting
-    outputPic = myDevice->getFileSystem()->createAndWriteFile(filename, false);
-
-    myDriver->writeImageToFile(imgNew, outputPic);
-
-    //close output file
-    outputPic->drop();
-    imgNew->drop();
-
-    /********************************************
-     *  Map for level 6                         *
-     * ******************************************/
-
-    //is alreay finished in file track0-1-0010.bmp
-    //no need for stitching
+    MinimapStitcher track1(myDevice, myDriver);
+    track1.insert_image(0, 0, "extract/minimaps/track0-1-0000.bmp");
+    track1.insert_image(6, 120, "extract/minimaps/track0-1-0001.bmp");
+    track1.probe_transparent(0, 0, 0);
+    track1.finalize("extract/minimaps/track0-1.png");
+
+    MinimapStitcher track2(myDevice, myDriver);
+    track2.insert_image(0, 0, "extract/minimaps/track0-1-0002.bmp");
+    track2.insert_image(120, 5, "extract/minimaps/track0-1-0003.bmp");
+    track2.insert_image(74, 120, "extract/minimaps/track0-1-0004.bmp");
+    track2.probe_transparent(0, 0, 0);
+    track2.finalize("extract/minimaps/track0-2.png");
+
+    // track3 minimap is fully contained in file track0-1-0005.bmp -> no need for stitching
+
+    MinimapStitcher track4(myDevice, myDriver);
+    track4.insert_image(0, 0, "extract/minimaps/track0-1-0006.bmp");
+    track4.insert_image(27, 120, "extract/minimaps/track0-1-0007.bmp");
+    track4.probe_transparent(0, 0, 0);
+    track4.finalize("extract/minimaps/track0-4.png");
+
+    MinimapStitcher track5(myDevice, myDriver);
+    track5.insert_image(0, 0, "extract/minimaps/track0-1-0008.bmp");
+    track5.insert_image(18, 120, "extract/minimaps/track0-1-0009.bmp");
+    track5.probe_transparent(0, 0, 0);
+    track5.finalize("extract/minimaps/track0-5.png");
+
+    // track6 minimap is fully contained in file track0-1-0010.bmp -> no need for stitching
 }
 
 //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab
@@ -766,7 +412,6 @@ void PrepareData::ExtractHUD2PlayersSVGA() {
     //data\panel0-0.dat
     //data\panel0-0.tab
     //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
-
     ExtractImagesfromDataFile("originalgame/data/panel0-0.dat", "originalgame/data/panel0-0.tab", palette, "extract/hud2player/panel0-0-");
 }
 
@@ -778,23 +423,7 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
     //data\pfont0-1.dat
     //data\pfont0-1.tab
     //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
-
     ExtractImagesfromDataFile("originalgame/data/pfont0-1.dat", "originalgame/data/pfont0-1.tab", palette, "extract/fonts/largegreen/pfont0-1-");
-}
-
-//extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
-//returns true in case of success, returns false in case of unexpected error
-void PrepareData::ExtractCheatPuzzle() {
-    //read Cheat puzzle
-    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
-    //data\puzzle.dat
-    //data\puzzle.tab
-    //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
-
-    //is not RNC compressed, we can skip this step
-
-    //scale puzzle by factor 4
-    ConvertRawImageData("originalgame/data/puzzle.dat", palette, 112, 96, "extract/puzzle/puzzle.png", 4);
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
@@ -805,16 +434,7 @@ void PrepareData::ExtractLargeFontSVGA() {
     //data\olfnt0-1.dat
     //data\olfnt0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
-
-    UnpackDataFile("originalgame/data/olfnt0-1.dat", "extract/fonts/large/olfnt0-1-unpacked.dat");
-
-    ExtractImagesfromDataFile(
-        "extract/fonts/large/olfnt0-1-unpacked.dat",
-        "originalgame/data/olfnt0-1.tab",
-        palette,
-        "extract/fonts/large/olfnt0-1-");
-
-    remove("extract/fonts/large/olfnt0-1-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/olfnt0-1", "extract/fonts/large/olfnt0-1-");
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -825,16 +445,7 @@ void PrepareData::ExtractSmallFontSVGA() {
     //data\osfnt0-1.dat
     //data\osfnt0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
-
-    UnpackDataFile("originalgame/data/osfnt0-1.dat", "extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
-
-    ExtractImagesfromDataFile(
-        "extract/fonts/smallsvga/osfnt0-1-unpacked.dat",
-        "originalgame/data/osfnt0-1.tab",
-        palette,
-        "extract/fonts/smallsvga/osfnt0-1-");
-
-    remove("extract/fonts/smallsvga/osfnt0-1-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/osfnt0-1", "extract/fonts/smallsvga/osfnt0-1-");
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -1016,18 +627,6 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
     }
 }
 
-//return true if all expected files are present
-//return false if at least one file is missing
-bool PrepareData::CheckForScreenSVGA() {
-    bool allFiles = true;
-
-    char* file1 = strdup("extract/onet0-1-unpacked.dat");
-
-    allFiles = allFiles && (FileExists(&file1[0]) == 1);
-
-    return allFiles;
-}
-
 //extracts the SVGA Loading Screen (is shown while game loads) in data\onet0-1.dat and data\onet0-1.tab
 //returns true in case of success, returns false in case of unexpected error
 void PrepareData::ExtractLoadingScreenSVGA() {
@@ -1036,30 +635,7 @@ void PrepareData::ExtractLoadingScreenSVGA() {
     //data\onet0-1.dat
     //data\onet0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
-
-    UnpackDataFile("originalgame/data/onet0-1.dat", "extract/images/onet0-1-unpacked.dat");
-
-    //now create final png picture out of raw video data
-    //we also have to take game palette into account
-
-    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
-    //ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 2);
-
-    ConvertRawImageData("extract/images/onet0-1-unpacked.dat", palette, 640, 480, "extract/images/onet0-1.png", 1);
-
-    remove("extract/images/onet0-1-unpacked.dat");
-}
-
-//return true if selection screen (main menue background) is present
-//return false if at least one file is missing
-bool PrepareData::CheckForSelectionScreenSVGA() {
-    bool allFiles = true;
-
-    char* file1 = strdup("extract/oscr0-1-unpacked.dat");
-
-    allFiles = allFiles && (FileExists(&file1[0]) == 1);
-
-    return allFiles;
+    ConvertCompressedImageData("originalgame/data/onet0-1.dat", "extract/images/onet0-1.png", 640, 480, 1);
 }
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab
@@ -1070,27 +646,7 @@ void PrepareData::ExtractSelectionScreenSVGA() {
     //data\oscr0-1.dat
     //data\oscr0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
-
-    UnpackDataFile("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1-unpacked.dat");
-
-    //now create final png picture out of raw video data
-    //we also have to take game palette into account
-
-    //upscale image by a factor of 2.0, we then have an image of 1280 x 960
-    //ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 2);
-
-    ConvertRawImageData("extract/images/oscr0-1-unpacked.dat", palette, 640, 480, "extract/images/oscr0-1.png", 1);
-
-    remove("extract/images/oscr0-1-unpacked.dat");
-}
-
-//extracts the Sky images (in format 256x256) in data\sky0-*.dat and data\sky0-*.tab
-//* is from 0 up to 5
-//returns true in case of success, returns false in case of unexpected error
-void PrepareData::ExtractSkies() {
-    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
-        ExtractSky(skyNr);
-    }
+    ConvertCompressedImageData("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1.png", 640, 480, 1);
 }
 
 void PrepareData::ExtractSky(char skyNr) {
@@ -1099,15 +655,10 @@ void PrepareData::ExtractSky(char skyNr) {
     //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
 
     std::string packFile = std::string("originalgame/data/sky0-") + skyNr + ".dat";
-    std::string unpackFile = std::string("extract/sky/sky0-") + skyNr + "-unpacked.dat";
     std::string outputFile = std::string("extract/sky/sky0-") + skyNr + ".png";
     std::string modifiedFile = std::string("extract/sky/modsky0-") + skyNr + ".png";
 
-    //unpack data file number 5
-    UnpackDataFile(packFile.c_str(), unpackFile.c_str());
-    //upscale image by a factor of 2.0, we then have an image of 512 x 512
-    ConvertRawImageData(unpackFile.c_str(), palette, 256, 256, outputFile.c_str(), 2);
-    remove(unpackFile.c_str());
+    ConvertCompressedImageData(packFile.c_str(), outputFile.c_str(), 256, 256, 2);
     //create new modified sky image for easier usage
     ModifySkyImage(outputFile.c_str(), modifiedFile.c_str());
 }
@@ -1169,11 +720,9 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 //this would lead to awful flickering lines on the border between different terrain tiles
 //Therefore we need to read all tiles and export them to singulated picture files, which we can later
 //use to load the textures
-//Returns true in case of success, returns false in case of unexpected problem
 void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-
     irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
 
     //get original atlas image dimension
@@ -1183,63 +732,27 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
     //divided by width equals the overall number of titles in the image
     int numberTiles = (origDimension.Height / origDimension.Width);
 
-    PrepareSubDir(exportDir);
-
-    //directory was created ok
-    //now we need to extract all files
-
-    char finalpath[50];
-    char fname[20];
+    int tileSize = origDimension.Width;
 
     //now export one tile after each other
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
-
         //create the new empty image for the next single tile
-         irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(origDimension.Width, origDimension.Width));
+        irr::video::IImage* imgNew = myDriver->createImage(
+            irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+            irr::core::dimension2d<irr::u32>(origDimension.Width, origDimension.Width));
 
-            //process all the tiles by copying them to the new image at
-            //the new position
-            origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                          irr::core::rect<irr::s32>(0, tileIdx * origDimension.Width, origDimension.Width, (tileIdx + 1) * origDimension.Width));
+        //process all the tiles by copying them from their position in the atlas
+        origAtlas->copyTo(imgNew, {0, 0},
+            irr::core::rect<irr::s32>(0, tileIdx * tileSize, tileSize, (tileIdx + 1) * tileSize));
 
-            /*
-                 irr::video::IImage* imgUp;
+        std::stringstream fp;
+        fp << exportDir << outputFileName << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        std::string finalpath = fp.str();
 
-                //should the picture be upscaled?
-                if (scaleFactor != 1.0) {
-                   //create an empty image with upscaled dimension
-                   imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-                   //get the pointers to the raw image data
-                   uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-                   uint32_t *imageData = (uint32_t*)img->lock();
-
-                   xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-                   //release the pointers, we do not need them anymore
-                   img->unlock();
-                   imgUp->unlock();
-                }*/
-
-            strcpy(&finalpath[0], &exportDir[0]);
-            strcat(&finalpath[0], &outputFileName[0]);
-            sprintf (fname, "%0*d.png", 4, tileIdx);
-            strcat(finalpath, fname);
-
-            //create new file for writting
-            irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath, false);
-
-            //if (scaleFactor == 1.0) {
-                   //write original image data
-                  myDriver->writeImageToFile(imgNew, outputPic);
-           // } else {
-                    //write upscaled image data
-                //   myDriver->writeImageToFile(imgUp, outputPic);
-              //  }
-
-            //close output file
-            outputPic->drop();
+        // write image to file
+        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
+        myDriver->writeImageToFile(imgNew, outputPic);
+        outputPic->drop();
     }
 
     //close the original picture file
@@ -1254,26 +767,20 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
 void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-
     irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
 
     //get HiOctaneTools atlas image dimension
     irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
 
     //each tile is 64x64 pixels
-    irr::f32 tilePixelSize = 64;
+    int tileSize = 64;
 
     //calculate overall number of tiles; each tile is tilePixelSize x tilePixelSize
-    int numberTiles = (origDimension.Height / tilePixelSize) * (origDimension.Width / tilePixelSize);
+    int numberTiles = (origDimension.Height / tileSize) * (origDimension.Width / tileSize);
 
     //create the target directory
     CreateDirectory(exportDir);
 
-    //directory was created ok
-    //now we need to extract all files
-
-    char finalpath[50];
-    char fname[20];
     int tileposx = 0;
     int tileposy = 0;
 
@@ -1281,161 +788,37 @@ void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
 
         //create the new empty image for the next single tile
-         irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(tilePixelSize, tilePixelSize));
+        irr::video::IImage* imgNew = myDriver->createImage(
+            irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+            irr::core::dimension2d<irr::u32>(tileSize, tileSize));
 
-            //process all the tiles by copying them to the new image at
-            //the new position
-            origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
-                          irr::core::rect<irr::s32>(tileposx * tilePixelSize, tileposy * tilePixelSize, (tileposx + 1) * tilePixelSize, (tileposy +1) * tilePixelSize));
+        //process all the tiles by copying them from their position in the atlas
+        origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
+                      irr::core::rect<irr::s32>(tileposx, tileposy, tileposx + tileSize, tileposy + tileSize));
 
-            tileposx++;
+        tileposx += tileSize;
 
-            if (tileposx > (origDimension.Width / tilePixelSize) - 1) {
-                tileposx = 0;
-                tileposy++;
-            }
-
-            /*
-                 irr::video::IImage* imgUp;
-
-                //should the picture be upscaled?
-                if (scaleFactor != 1.0) {
-                   //create an empty image with upscaled dimension
-                   imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-                   //get the pointers to the raw image data
-                   uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-                   uint32_t *imageData = (uint32_t*)img->lock();
-
-                   xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-                   //release the pointers, we do not need them anymore
-                   img->unlock();
-                   imgUp->unlock();
-                }*/
-
-            strcpy(finalpath, exportDir);
-            strcat(finalpath, outputFileName);
-            sprintf (fname, "%0*d.png", 4, tileIdx);
-            strcat(finalpath, fname);
-
-            //create new file for writting
-            irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath, false);
-
-            //if (scaleFactor == 1.0) {
-                   //write original image data
-                  myDriver->writeImageToFile(imgNew, outputPic);
-           // } else {
-                    //write upscaled image data
-                //   myDriver->writeImageToFile(imgUp, outputPic);
-              //  }
-
-            //close output file
-            outputPic->drop();
-    }
-
-    //close the original picture file
-    file->drop();
-}
-
-/*
-//the original Terrain texture Atlas stored within the game has all tiles
-//in one column in y-direction; Therefore the Atlas picture is not square at all;
-//This is not good for rendering nowadays as textures should be square;
-//Therefore lets rearrange tiles in original Atals, and save a new picture
-//with 16 tiles in a row
-void PrepareData::ReorganizeTerrainAtlas(char* targetFile, char* outputFileName) {
-    int tilesInRow = 16;  //put 16 tiles in a row
-
-    //first open target image again
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-
-    irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
-
-    //get original atlas image dimension
-    irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
-
-    //calculate overall number of tiles; Width of picture is tile size; Heigth of picture
-    //divided by width equals the overall number of titles in the image
-    int numberTiles = (origDimension.Height / origDimension.Width);
-
-    //how many rows do we need to hold all tiles?
-    int numberRows = (numberTiles / tilesInRow);
-
-    //create the new empty image for the reorganized Atals
-    irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(origDimension.Width * tilesInRow, numberRows * origDimension.Width));
-
-    //process all the tiles by copying them to the new image at
-    //the new position
-    int currRowNr = 0;
-    int currColumnNr = 0;
-    for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
-        origAtlas->copyTo(imgNew, irr::core::vector2d<irr::s32>(currColumnNr * origDimension.Width, currRowNr * origDimension.Width),
-                          irr::core::rect<irr::s32>(0, tileIdx * origDimension.Width, origDimension.Width, (tileIdx + 1) * origDimension.Width));
-
-        currColumnNr++;
-
-        //enough tiles in the current row?
-        if (currColumnNr >= tilesInRow) {
-            currColumnNr = 0;
-            currRowNr++;
+        if (tileposx >= origDimension.Width) {
+            tileposx = 0;
+            tileposy += tileSize;
         }
+
+        std::stringstream fp;
+        fp << exportDir << outputFileName << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        std::string finalpath = fp.str();
+
+        //create new file for writting
+        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
+        myDriver->writeImageToFile(imgNew, outputPic);
+        outputPic->drop();
     }
-/*
-     irr::video::IImage* imgUp;
-
-    //should the picture be upscaled?
-    if (scaleFactor != 1.0) {
-       //create an empty image with upscaled dimension
-       imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-       //get the pointers to the raw image data
-       uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-       uint32_t *imageData = (uint32_t*)img->lock();
-
-       xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-       //release the pointers, we do not need them anymore
-       img->unlock();
-       imgUp->unlock();
-    }*/
-
-    //create new file for writting
-/*    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFileName, false);
-
-    //write image to file
-   // if (scaleFactor == 1.0) {
-       //write original image data
-       myDriver->writeImageToFile(imgNew, outputPic);
-   // } else {
-        //write upscaled image data
-    //   myDriver->writeImageToFile(imgUp, outputPic);
-   // }
-
-    //close output file
-    outputPic->drop();
 
     //close the original picture file
     file->drop();
-}
-*/
-
-//extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
-//* is from 0 up to 5
-//returns true in case of success, returns false in case of unexpected error
-void PrepareData::ExtractTerrainTextures() {
-    //read all race track Terrain textures
-    //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
-    //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
-
-    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
-        ExtractTerrainTexture(levelNr);
-    }
 }
 
 void PrepareData::ExtractTerrainTexture(char levelNr) {
+    //todo: Scale Tiles by factor of 2.0
     //read race track Terrain texture
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
@@ -1446,19 +829,14 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
     std::string extract_dir = "extract/";
 
     std::string packfile = orig_data_dir + "textu0-" + texNr + ".dat";
-    std::string unpackfile = extract_dir + "textu0-" + texNr + "-unpacked.dat";
     std::string outputFile = extract_dir + "textu0-" + texNr + "-orig.png";
     std::string levelDir = extract_dir + "level0-" + levelNr + '/';
+    PrepareSubDir(levelDir.c_str());
 
-    UnpackDataFile(packfile.c_str(), unpackfile.c_str());
-
-    ConvertRawImageData(unpackfile.c_str(), palette, 64, 16384, outputFile.c_str());
-
+    ConvertCompressedImageData(packfile.c_str(), outputFile.c_str(), 64, 16384);
     //reorganize Terrain Atlas format to be Square
     //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
     ExportTerrainTextures(outputFile.c_str(), levelDir.c_str(), "tex");
-
-    remove(unpackfile.c_str());
     remove(outputFile.c_str());
 }
 
@@ -1514,195 +892,51 @@ void PrepareData::AddOtherLevelsHiOctaneTools() {
      }
 }
 
-void PrepareData::ConvertRawImageData(const char* rawDataFilename, unsigned char *palette,
-                                      irr::u32 sizex, irr::u32 sizey,
-                                      const char* outputFilename, int scaleFactor, bool flipY) {
-    FILE* iFile = fopen(rawDataFilename, "rb");
-    if (iFile == NULL) {
-        throw std::string("Error - Could not open raw picture file! ") + rawDataFilename;
-    }
-    fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
-    fseek(iFile, 0L, SEEK_SET);
-
-    if (size != (sizex*sizey)) {
-        fclose(iFile);
-        throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
-    }
-
-    size_t counter = 0;
-
-    char* ByteArray;
-    ByteArray = new char[size];
-    do {
-        ByteArray[counter] = fgetc(iFile);
-        counter++;
-    } while (counter < size);
-    fclose(iFile);
-
-    //create arrays for color information
-    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
-
-    double arrIntR;
-    double arrIntG;
-    double arrIntB;
-    unsigned char color;
-
-    //use palette to derive RGB information for all pixels
-    //loaded palette has 6 bits per color
-    for (counter = 0; counter < size; counter++) {
-        color = ByteArray[counter];
-        arrIntR = palette[color * 3    ];
-        arrIntG = palette[color * 3 + 1 ];
-        arrIntB = palette[color * 3 + 2 ];
-
-        arrIntR = (arrIntR * 255.0) / 63.0;
-        arrIntG = (arrIntG * 255.0) / 63.0;
-        arrIntB = (arrIntB * 255.0) / 63.0;
-
-        arrR[counter] = (unsigned char)arrIntR;
-        arrG[counter] = (unsigned char)arrIntG;
-        arrB[counter] = (unsigned char)arrIntB;
-    }
-
-     //create an empty image
-     irr::video::IImage* img =
-             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
-
-     //draw the image
-     for (irr::u32 posx = 0; posx < sizex; posx++) {
-         for (irr::u32 posy = 0; posy < sizey; posy++) {
-             if (!flipY) {
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
-                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
-             } else {
-                 //flip image vertically
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[(sizey - posy) * sizex + posx],
-                           arrG[(sizey - posy) * sizex + posx], arrB[(sizey - posy) * sizex + posx]));
-             }
-         }
-     }
-
-    irr::video::IImage* imgUp;
-
-    //should the picture be upscaled?
-    if (scaleFactor != 1.0) {
-        //create an empty image with upscaled dimension
-        imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-        //get the pointers to the raw image data
-        uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-        uint32_t *imageData = (uint32_t*)img->lock();
-
-        xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-        //release the pointers, we do not need them anymore
-        img->unlock();
-        imgUp->unlock();
-    }
-
-    //create new file for writting
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-    //write image to file
-    if (scaleFactor == 1) {
-        //write original image data
-        myDriver->writeImageToFile(img, outputPic);
-    } else {
-        //write upscaled image data
-        myDriver->writeImageToFile(imgUp, outputPic);
-    }
-
-    //close output file
-    outputPic->drop();
-
-    delete[] ByteArray;
-    free(arrR);
-    free(arrG);
-    free(arrB);
+void PrepareData::ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
+                                      const char* outputFilename, int scaleFactor) {
+    irr::video::IImage* img = loadRawImage(rawDataFilename, sizex, sizey);
+    img = UpscaleImage(img, sizex, sizey, scaleFactor);
+    saveIrrImage(outputFilename, img);
 }
 
-bool PrepareData::ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                                      char* outputFilename, int scaleFactor, bool flipY) {
-    size_t size = sizex * sizey;
+irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
+    if (scaleFactor == 1) {
+        return srcImg;
+    }
 
-   //create arrays for color information
-    unsigned char *arrR=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrG=static_cast<unsigned char*>(malloc(size));
-    unsigned char *arrB=static_cast<unsigned char*>(malloc(size));
+    //create an empty image with upscaled dimension
+    irr::video::IImage *upImg = myDriver->createImage(
+        irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+        irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
-    unsigned char color;
+    //get the pointers to the raw image data
+    uint32_t *imageDataUp = (uint32_t*)upImg->lock();
+    uint32_t *imageData = (uint32_t*)srcImg->lock();
 
-    size_t counter;
+    xbrz::scale(scaleFactor, imageData, imageDataUp, sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
 
-    //use palette to derive RGB information for all pixels
-    //loaded palette has 6 bits per color
-    for (counter = 0; counter < size; counter++) {
-         color = ByteArray[counter];
+    //release the pointers, we do not need them anymore
+    srcImg->unlock();
+    upImg->unlock();
 
-         arrR[counter] = (unsigned char)colorMap[color].r;
-         arrG[counter] = (unsigned char)colorMap[color].g;
-         arrB[counter] = (unsigned char)colorMap[color].b;
-     }
+    return upImg;
+}
 
+void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
+                                    char* outputFilename, int scaleFactor) {
      //create an empty image
      irr::video::IImage* img =
              myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
 
-     //draw the image
-     for (irr::u32 posx = 0; posx < sizex; posx++) {
-         for (irr::u32 posy = 0; posy < sizey; posy++) {
-             if (!flipY) {
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
-                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
-             } else {
-                 //flip image vertically
-                 img->setPixel(posx, posy,  irr::video::SColor(255, arrR[(sizey - posy) * sizex + posx],
-                           arrG[(sizey - posy) * sizex + posx], arrB[(sizey - posy) * sizex + posx]));
-             }
-         }
-     }
+    auto raw_buffer = (uint32_t*)img->lock();
+    for (const unsigned char* src=ByteArray; src<ByteArray+sizex*sizey; src++) {
+        flic::Color color = colorMap[*src];
+        *raw_buffer++ = 0xFF000000 | (color.r << 16) | (color.g << 8) | color.b;
+    }
+    img->unlock();
 
-      irr::video::IImage* imgUp;
-
-     //should the picture be upscaled?
-     if (scaleFactor != 1.0) {
-        //create an empty image with upscaled dimension
-        imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-        //get the pointers to the raw image data
-        uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-        uint32_t *imageData = (uint32_t*)img->lock();
-
-        xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-        //release the pointers, we do not need them anymore
-        img->unlock();
-        imgUp->unlock();
-     }
-
-     //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-     //write image to file
-     if (scaleFactor == 1.0) {
-        //write original image data
-        myDriver->writeImageToFile(img, outputPic);
-     } else {
-         //write upscaled image data
-        myDriver->writeImageToFile(imgUp, outputPic);
-     }
-
-    //close output file
-    outputPic->drop();
-
-    free(arrR);
-    free(arrG);
-    free(arrB);
-
-    return true;
+    img = UpscaleImage(img, sizex, sizey, scaleFactor);
+    saveIrrImage(outputFilename, img);
 }
 
 void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
@@ -1728,123 +962,25 @@ void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) 
 
 }
 
-bool PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
-    FILE* iFile;
+std::tuple<unsigned char, unsigned char, unsigned char> PrepareData::GetPaletteColor(unsigned char colorIndex) {
+    int r = palette[colorIndex * 3];
+    int g = palette[colorIndex * 3 + 1];
+    int b = palette[colorIndex * 3 + 2];
 
-    iFile = fopen(rawDataFilename, "rb");
-    fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
-    fseek(iFile, 0L, SEEK_SET);
+    r = (r * 255) / 63;
+    g = (g * 255) / 63;
+    b = (b * 255) / 63;
 
+    return {r, g, b};
+}
+
+void PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor) {
     irr::u16 sizex = 256;
     irr::u16 sizey = 768;
 
-    //6 bytes of the file is needed for picture information above
-/*    if ((size - 6) != (sizex*sizey)) {
-        fclose(iFile);
-        printf("\nError - Raw picture filesize does not fit with expectation! %s\n", rawDataFilename);
-        return false;
-    }*/
-
-    fseek(iFile, 0L, SEEK_SET);
-
-    size_t counter = 0;
-
-    char* ByteArray;
-    ByteArray = new char[size];
-    if (iFile != NULL)
-    {
-        do {
-            ByteArray[counter] = fgetc(iFile);
-            counter++;
-        } while (counter < size);
-        fclose(iFile);
-    } else {
-        delete[] ByteArray;
-        return false;
-    }
-
-    //create arrays for color information
-     unsigned char *arrR=static_cast<unsigned char*>(malloc(size - 6));
-     unsigned char *arrG=static_cast<unsigned char*>(malloc(size - 6));
-     unsigned char *arrB=static_cast<unsigned char*>(malloc(size - 6));
-
-     double arrIntR;
-     double arrIntG;
-     double arrIntB;
-     unsigned char color;
-
-     unsigned int amountPixel = sizex*sizey;
-
-     //use palette to derive RGB information for all pixels
-     //loaded palette has 6 bits per color
-     //raw pictue data starts at byte #7
-     for (counter = 0; counter < amountPixel; counter++) {
-         color = ByteArray[counter];
-         arrIntR = palette[color * 3    ];
-         arrIntG = palette[color * 3 + 1 ];
-         arrIntB = palette[color * 3 + 2 ];
-
-         arrIntR = (arrIntR * 255.0) / 63.0;
-         arrIntG = (arrIntG * 255.0) / 63.0;
-         arrIntB = (arrIntB * 255.0) / 63.0;
-
-         arrR[counter] = (unsigned char)arrIntR;
-         arrG[counter] = (unsigned char)arrIntG;
-         arrB[counter] = (unsigned char)arrIntB;
-     }
-
-     //create an empty image
-     irr::video::IImage* img =
-             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
-
-     //draw the image
-     for (irr::u32 posx = 0; posx < sizex; posx++) {
-         for (irr::u32 posy = 0; posy < sizey; posy++) {
-             img->setPixel(posx, posy,  irr::video::SColor(255, arrR[posy * sizex + posx],
-                           arrG[posy * sizex + posx], arrB[posy * sizex + posx]));
-         }
-     }
-
-     irr::video::IImage* imgUp;
-
-     //should the picture be upscaled?
-     if (scaleFactor != 1.0) {
-          //create an empty image with upscaled dimension
-         imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
-
-         //get the pointers to the raw image data
-         uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
-         uint32_t *imageData = (uint32_t*)img->lock();
-
-         xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
-
-         //release the pointers, we do not need them anymore
-         img->unlock();
-         imgUp->unlock();
-       }
-
-     //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-
-     //write image to file
-     if (scaleFactor == 1.0) {
-           //write original image data
-           myDriver->writeImageToFile(img, outputPic);
-        } else {
-            //write upscaled image data
-           myDriver->writeImageToFile(imgUp, outputPic);
-     }
-
-     //close output file
-     outputPic->drop();
-
-    delete[] ByteArray;
-    free(arrR);
-    free(arrG);
-    free(arrB);
-
-    return true;
+    irr::video::IImage* img = loadRawImage(rawDataFilename, sizex, sizey);
+    img = UpscaleImage(img, sizex, sizey, scaleFactor);
+    saveIrrImage(outputFilename, img);
 }
 
 //the Terrain texture Atlas from https://github.com/movAX13h/HiOctaneTools
@@ -2075,17 +1211,7 @@ void PrepareData::ExtractIntroductoryScreen() {
     //read introductory screen
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
-
-    UnpackDataFile("originalgame/data/title.dat", "extract/images/title-unpacked.dat");
-
-    //upscale original image data by a factor 4, we get an image with 1280 x 800
-    //ConvertRawImageData(&unpackfile[0], palette, 320, 200, &outputFile[0], 4);
-
-    //upscale original image data by a factor 2, we get an image with 640 x 480
-    ConvertRawImageData("extract/images/title-unpacked.dat", palette, 320, 200, "extract/images/title.png", 2);
-
-    //remove unnecessary files
-    remove("extract/images/title-unpacked.dat");
+    ConvertCompressedImageData("originalgame/data/title.dat", "extract/images/title.png", 320, 200, 2);
 }
 
 
@@ -2097,12 +1223,7 @@ void PrepareData::ExtractThinWhiteFontSVGA() {
     //data\hfont0-0.dat
     //data\hfont0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
-
-    UnpackDataFile("originalgame/data/hfont0-0.dat", "extract/fonts/thinwhite/hfont0-0-unpacked.dat");
-    //extract images to BMP from DAT/TAB file
-    ExtractImagesfromDataFile("extract/fonts/thinwhite/hfont0-0-unpacked.dat", "originalgame/data/hfont0-0.tab", palette, "extract/fonts/thinwhite/hfont0-0-");
-    //remove unnecessary files
-    remove("extract/fonts/thinwhite/hfont0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/hfont0-0", "extract/fonts/thinwhite/hfont0-0-");
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
@@ -2113,10 +1234,7 @@ void PrepareData::ExtractEditorCursors() {
     //data\point0-0.dat
     //data\point0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor cursors
-
-    UnpackDataFile("originalgame/data/point0-0.dat", "extract/editor/point0-0-unpacked.dat");
-    ExtractImagesfromDataFile("extract/editor/point0-0-unpacked.dat", "originalgame/data/point0-0.tab", palette, "extract/editor/point0-0-");
-    remove("extract/editor/point0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/point0-0", "extract/editor/point0-0-");
 }
 
 //extracts the Editor items large in data\hspr0-0.dat and data\hspr0-0.tab
@@ -2127,10 +1245,7 @@ void PrepareData::ExtractEditorItemsLarge() {
     //data\hspr0-0.dat
     //data\hspr0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
-
-    UnpackDataFile("originalgame/data/hspr0-0.dat", "extract/editor/hspr0-0-unpacked.dat");
-    ExtractImagesfromDataFile("extract/editor/hspr0-0-unpacked.dat", "originalgame/data/hspr0-0.tab", palette, "extract/editor/hspr0-0-");
-    remove("extract/editor/hspr0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/hspr0-0", "extract/editor/hspr0-0-");
 }
 
 //extracts the Editor items small in data\mspr0-0.dat and data\mspr0-0.tab
@@ -2141,10 +1256,7 @@ void PrepareData::ExtractEditorItemsSmall() {
     //data\mspr0-0.dat
     //data\mspr0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
-
-    UnpackDataFile("originalgame/data/mspr0-0.dat", "extract/editor/mspr0-0-unpacked.dat");
-    ExtractImagesfromDataFile("extract/editor/mspr0-0-unpacked.dat", "originalgame/data/mspr0-0.tab", palette, "extract/editor/mspr0-0-");
-    remove("extract/editor/mspr0-0-unpacked.dat");
+    ExtractCompressedImagesFromDataFile("originalgame/data/mspr0-0", "extract/editor/mspr0-0-");
 }
 
 //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
@@ -2168,8 +1280,7 @@ void PrepareData::ExtractModelTextures() {
     strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
     strcpy(outputfile, "extract/models/tex0-0.png");
 
-    ConvertRawImageData(packfile, palette, modelTexAtlasSize.Width, modelTexAtlasSize.Height,
-                     outputfile, 1.0, false);
+    ConvertRawImageData(packfile, modelTexAtlasSize.Width, modelTexAtlasSize.Height, outputfile, 1.0);
 
     /********************************************
     * We also need the TAB file to know where  *
@@ -2218,74 +1329,49 @@ void PrepareData::ExtractTmaps() {
     //data\tmaps.tab
     //RNC-compressed = Yes 	Tmaps data (contains collectible items, powerups...)
 
-   char ArchiveName[55];
-   strcpy(ArchiveName, "originalgame/data/tmaps.dat");
+    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Many of the game's files are compressed using the Rob Northern Compression format;
+    //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
 
-   //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
-   //Many of the game's files are compressed using the Rob Northern Compression format;
-   //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
-
-   //first seperate data in multiple export files, new file always starts with "RNC" magic characters
-   FILE* iFile;
-   FILE* oFile = NULL;
-
-   iFile = fopen(ArchiveName, "rb");
-   fseek(iFile, 0L, SEEK_END);
-   size_t size = ftell(iFile);
-   fseek(iFile, 0L, SEEK_SET);
-
-   size_t counter = 0;
-
-   char* ByteArray;
-   ByteArray = new char[size];
-   if (iFile == NULL)
-   {
-       throw std::string("Cannot open Tmaps file: ") + ArchiveName;
-   }
-    do {
-        ByteArray[counter] = fgetc(iFile);
-        counter++;
-    } while (counter < size);
-    fclose(iFile);
+    //first seperate data in multiple export files, new file always starts with "RNC" magic characters
+    std::vector<unsigned char> ByteArray = loadRawFile("originalgame/data/tmaps.dat");
 
     //now seperate data into different new created file
-   counter = 0;
-   unsigned long ofilenr = 0;
+    size_t counter = 0;
+    unsigned long ofilenr = 0;
+    FILE* oFile = NULL;
 
-   while (counter < size) {
-     if (((size - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
-           && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1)) {
+    while (counter < ByteArray.size()) {
+        if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
+            && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1))
+        {
+            //new file start found
 
-         //new file start found
+            char finalpath[50];
+            char fname[20];
+            strcpy(finalpath, "extract/sprites/tmaps-packed");
+            sprintf (fname, "%0*lu.dat", 4, ofilenr);
+            strcat(finalpath, fname);
+            ofilenr++;
 
-           char finalpath[50];
-           char fname[20];
-           strcpy(finalpath, "extract/sprites/tmaps-packed");
-           sprintf (fname, "%0*lu.dat", 4, ofilenr);
-           strcat(finalpath, fname);
-           ofilenr++;
+            if (oFile != NULL) {
+                //close last file
+                fclose(oFile);
+            }
 
-           if (oFile != NULL) {
-               //close last file
-               fclose(oFile);
-           }
-
-           oFile = fopen(finalpath, "wb");
-           if (oFile == NULL) {
-              delete[] ByteArray;
-              throw std::string("Cannot open file for writing: ") + finalpath;
-           }
-     }
-      if (oFile != NULL) {
-        fwrite(&ByteArray[counter], 1, 1, oFile);
-      }
-      counter++;
+            oFile = fopen(finalpath, "wb");
+            if (oFile == NULL) {
+                throw std::string("Cannot open file for writing: ") + finalpath;
+            }
+        }
+        if (oFile != NULL) {
+            fwrite(&ByteArray[counter], 1, 1, oFile);
+        }
+        counter++;
    }
 
    //close last file
    fclose(oFile);
-
-   delete[] ByteArray;
 
    //RNC unpack all the sound files
    unsigned long filecnt;
@@ -2338,154 +1424,124 @@ void PrepareData::ExtractTmaps() {
     }
 }
 
-//extracts sound files from sound.data
 void PrepareData::ExtractSounds() {
-   char ArchiveName[55];
-   strcpy(ArchiveName, "originalgame/sound/sound.dat");
+    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Many of the game's files are compressed using the Rob Northern Compression format;
+    //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
+    std::vector<unsigned char> ByteArray = loadRawFile("originalgame/sound/sound.dat");
 
-   //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
-   //Many of the game's files are compressed using the Rob Northern Compression format;
-   //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
+    //first seperate data in multiple export files, new file always starts with "RNC" magic characters
+    size_t counter = 0;
+    unsigned long ofilenr = 0;
+    FILE* oFile = NULL;
 
-   //first seperate data in multiple export files, new file always starts with "RNC" magic characters
-   FILE* iFile;
-   FILE* oFile = NULL;
+    while (counter < ByteArray.size()) {
+        if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
+           && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1))
+        {
+            //new file start found
+            char finalpath[50];
+            char fname[20];
+            strcpy(finalpath, "extract/sound/sound-packed");
+            sprintf (fname, "%0*lu.dat", 4, ofilenr);
+            strcat(finalpath, fname);
+            ofilenr++;
 
-   iFile = fopen(ArchiveName, "rb");
-   fseek(iFile, 0L, SEEK_END);
-   size_t size = ftell(iFile);
-   fseek(iFile, 0L, SEEK_SET);
+            if (oFile != NULL) {
+                //close previous file
+                fclose(oFile);
+            }
 
-   size_t counter = 0;
+            oFile = fopen(finalpath, "wb");
+            if (oFile == NULL) {
+                throw std::string("Cannot open file for writing: ") + finalpath;
+            }
+        }
 
-   char* ByteArray;
-   ByteArray = new char[size];
-   if (iFile == NULL)
-   {
-       throw std::string("Cannot open sound file: ") + ArchiveName;
-   }
-   do {
-       ByteArray[counter] = fgetc(iFile);
-       counter++;
-   } while (counter < size);
-   fclose(iFile);
+        fwrite(&ByteArray[counter], 1, 1, oFile);
+        counter++;
+    }
 
+    //close last file
+    fclose(oFile);
 
-   //now seperate data into different new created file
-   counter = 0;
-   unsigned long ofilenr = 0;
+    //RNC unpack all the sound files
+    unsigned long filecnt;
 
-   while (counter < size) {
-     if (((size - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
-           && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1)) {
+    for (filecnt = 0; filecnt < ofilenr; filecnt++) {
+        char finalpath[50];
+        char finalpathUnpacked[50];
+        char fname[20];
+        strcpy(finalpath, "extract/sound/sound-packed");
+        strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
+        sprintf (fname, "%0*lu.dat", 4, filecnt);
+        strcat(finalpath, fname);
+        strcat(finalpathUnpacked, fname);
 
-         //new file start found
+        UnpackDataFile(finalpath, finalpathUnpacked);
+    }
 
-           char finalpath[50];
-           char fname[20];
-           strcpy(finalpath, "extract/sound/sound-packed");
-           sprintf (fname, "%0*lu.dat", 4, ofilenr);
-           strcat(finalpath, fname);
-           ofilenr++;
+    //****************************
+    // Sound package 1
+    //****************************
 
-           if (oFile != NULL) {
-               //close last file
-               fclose(oFile);
-           }
+    //read file infos for first sound package
+    char infofilename1[50];
+    strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
 
-           oFile = fopen(finalpath, "wb");
-           if (oFile == NULL) {
-              delete[] ByteArray;
-              throw std::string("Cannot open file for writing: ") + finalpath;
-           }
-     }
+    std::vector<SOUNDFILEENTRY> list;
+    ReadSoundFileEntries(infofilename1, &list);
 
-      fwrite(&ByteArray[counter], 1, 1, oFile);
-      counter++;
-   }
+    char splitfilename1[50];
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
+    char ofilename1[50];
+    strcpy(ofilename1, "extract/sound/sound0-");
 
-   //close last file
-   fclose(oFile);
+    SplitSoundFile(splitfilename1, ofilename1, &list);
 
-   delete[] ByteArray;
+    //****************************
+    // Sound package 2
+    //****************************
 
-   //RNC unpack all the sound files
-   unsigned long filecnt;
+    strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
+    list.clear();
 
-   for (filecnt = 0; filecnt < ofilenr; filecnt++) {
-       char finalpath[50];
-       char finalpathUnpacked[50];
-       char fname[20];
-       strcpy(finalpath, "extract/sound/sound-packed");
-       strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
-       sprintf (fname, "%0*lu.dat", 4, filecnt);
-       strcat(finalpath, fname);
-       strcat(finalpathUnpacked, fname);
+    ReadSoundFileEntries(infofilename1, &list);
 
-       UnpackDataFile(finalpath, finalpathUnpacked);
-   }
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
+    strcpy(ofilename1, "extract/sound/sound2-");
 
-   //****************************
-   // Sound package 1
-   //****************************
+    SplitSoundFile(splitfilename1, ofilename1, &list);
 
-   //read file infos for first sound package
-   char infofilename1[50];
-   strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
+    //****************************
+    // Sound package 3
+    //****************************
 
-   std::vector<SOUNDFILEENTRY> list;
-   ReadSoundFileEntries(infofilename1, &list);
+    strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
+    list.clear();
 
-   char splitfilename1[50];
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
-   char ofilename1[50];
-   strcpy(ofilename1, "extract/sound/sound0-");
+    ReadSoundFileEntries(infofilename1, &list);
 
-   SplitSoundFile(splitfilename1, ofilename1, &list);
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
+    strcpy(ofilename1, "extract/sound/sound4-");
 
-   //****************************
-   // Sound package 2
-   //****************************
+    SplitSoundFile(splitfilename1, ofilename1, &list);
 
-   strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
-   list.clear();
+    //****************************
+    // Sound package 4
+    //****************************
+    /*
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
+    strcpy(ofilename1, "extract/sound/sound6-");
 
-   ReadSoundFileEntries(infofilename1, &list);
+    SplitSoundFile(splitfilename1, ofilename1);
 
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
-   strcpy(ofilename1, "extract/sound/sound2-");
+    strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
+    strcpy(ofilename1, "extract/sound/sound7-");
 
-   SplitSoundFile(splitfilename1, ofilename1, &list);
+    SplitSoundFile(splitfilename1, ofilename1);*/
 
-   //****************************
-   // Sound package 3
-   //****************************
-
-   strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
-   list.clear();
-
-   ReadSoundFileEntries(infofilename1, &list);
-
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
-   strcpy(ofilename1, "extract/sound/sound4-");
-
-   SplitSoundFile(splitfilename1, ofilename1, &list);
-
-   //****************************
-   // Sound package 4
-   //****************************
-/*
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
-   strcpy(ofilename1, "extract/sound/sound6-");
-
-   SplitSoundFile(splitfilename1, ofilename1);
-
-   strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
-   strcpy(ofilename1, "extract/sound/sound7-");
-
-   SplitSoundFile(splitfilename1, ofilename1);*/
-
-   //cleanup unnecessary files
+    //cleanup unnecessary files
     for (filecnt = 0; filecnt < ofilenr; filecnt++) {
         char finalpath[50];
         char finalpathUnpacked[50];
@@ -2537,39 +1593,18 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
 
 //further split sound files
 void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries) {
-   //after ExtractSounds routine executed we get files which contain multiple WAV files
-   //glued together, we need to split them further
+    //after ExtractSounds routine executed we get files which contain multiple WAV files
+    //glued together, we need to split them further
+    std::vector<unsigned char> ByteArray = loadRawFile(filename);
 
-   //first seperate data in multiple export files, new file always starts with "RIFF" magic characters
-   FILE* iFile;
-   FILE* oFile = NULL;
+    //first seperate data in multiple export files, new file always starts with "RIFF" magic characters
+    FILE* oFile = NULL;
+    size_t counter = 0;
 
-   iFile = fopen(filename, "rb");
-   fseek(iFile, 0L, SEEK_END);
-   size_t size = ftell(iFile);
-   fseek(iFile, 0L, SEEK_SET);
+    std::vector<SOUNDFILEENTRY>::iterator it;
+    unsigned long lastpos;
 
-   size_t counter = 0;
-
-   char* ByteArray;
-   ByteArray = new char[size];
-   if (iFile == NULL)
-   {
-       throw std::string("Error - Cannot open file for reading: ") + filename;
-   }
-   do {
-       ByteArray[counter] = fgetc(iFile);
-       counter++;
-   } while (counter < size);
-   fclose(iFile);
-
-   //now seperate data into different new created file
-   counter = 0;
-
-  std::vector<SOUNDFILEENTRY>::iterator it;
-  unsigned long lastpos;
-
-  //go through all files
+    //go through all files
    for(it = entries->begin(); it != entries->end(); ++it) {
        //skip the empty files with name "NULL.WAV" and ""
           if ((strcmp((*it).soundFilename, "NULL.WAV") != 0) && (strcmp((*it).soundFilename, "") != 0)) {
@@ -2586,7 +1621,6 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
 
                 oFile = fopen(finalpath, "wb");
                 if (oFile == NULL) {
-                    delete[] ByteArray;
                     throw std::string("Error - Cannot open file for writting: ") + finalpath;
                 }
 
@@ -2600,8 +1634,6 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
                 fclose(oFile);
             }
     }
-
-   delete[] ByteArray;
 }
 
 void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
@@ -2792,9 +1824,9 @@ void PrepareData::PrepareIntro() {
 
     //File analyst
     if (globOptions & poSimpleFix)
-      processFLISimple(animFile,destFile,startFrame,endFrame, & globOptions);
-     else
-      processFLIFile(animFile,destFile,startFrame,endFrame, globOptions);
+        processFLISimple(animFile,destFile,startFrame,endFrame, & globOptions);
+    else
+        processFLIFile(animFile,destFile,startFrame,endFrame, globOptions);
 
     //Closing files
     closeFLIFiles(animFile,destFile,globOptions);
@@ -2805,39 +1837,102 @@ void PrepareData::PrepareIntro() {
     flic::Decoder decoder(&file);
     flic::Header header;
     if (!decoder.readHeader(header)) {
-       throw std::string("Error reading FLI header in file ") + outputNameStr;
+        throw std::string("Error reading FLI header in file ") + outputNameStr;
     }
 
-     std::vector<uint8_t> buffer(header.width * header.height);
-     flic::Frame frame;
-     frame.pixels = &buffer[0];
-     frame.rowstride = header.width;
+    std::vector<uint8_t> buffer(header.width * header.height);
+    flic::Frame frame;
+    frame.pixels = &buffer[0];
+    frame.rowstride = header.width;
 
-     char outFrameFileName[50];
-     char fname[20];
+    char outFrameFileName[50];
+    char fname[20];
 
-     for (long i = 0; i < header.frames; ++i) {
-       if (!decoder.readFrame(frame)) {
-         throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
-       } else {
-           //process the current decoded frame data in buffer
-           char* frameData = new char[buffer.size()];
-           std::copy(buffer.begin(),buffer.end(), frameData);
+    for (long i = 0; i < header.frames; ++i) {
+    if (!decoder.readFrame(frame)) {
+        throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
+    }
+       //process the current decoded frame data in buffer
 
-           //create the filename for the picture output file
-           strcpy(outFrameFileName, "extract/intro/frame");
-           sprintf (fname, "%0*lu.png", 4, i);
-           strcat(outFrameFileName, fname);
+       //create the filename for the picture output file
+       strcpy(outFrameFileName, "extract/intro/frame");
+       sprintf (fname, "%0*lu.png", 4, i);
+       strcat(outFrameFileName, fname);
 
-           //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
-           if (!ConvertIntroFrame(frameData, frame.colormap, header.width, header.height, outFrameFileName, 2.0, false)) {
-               delete [] frameData;
-               throw std::string("Error converting frame ") + std::to_string(i) + " in file " + outputNameStr;
-           }
+       //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
+       ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2);
+    }
+}
 
-           delete[] frameData;
-       }
-     }
+void PrepareData::ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
+    UnpackDataFile(packfile, "extract/tmp-unpacked.dat");
+
+    // upscale original image data if necessary
+    ConvertRawImageData("extract/tmp-unpacked.dat", sizex, sizey, outfile, scaleFactor);
+
+    remove("extract/tmp-unpacked.dat");
+}
+
+void PrepareData::ExtractCompressedImagesFromDataFile(const char* basename, const char* outdir) {
+    std::string packfile = std::string(basename) + ".dat";
+    std::string tabfile = std::string(basename) + ".tab";
+
+    UnpackDataFile(packfile.c_str(), "extract/tmp-unpacked.dat");
+
+    ExtractImagesfromDataFile(
+        "extract/tmp-unpacked.dat",
+        tabfile.c_str(),
+        palette,
+        outdir);
+
+    remove("extract/tmp-unpacked.dat");
+}
+
+irr::video::IImage* PrepareData::loadRawImage(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey) {
+    std::vector<unsigned char> ByteArray = loadRawFile(rawDataFilename);
+    if (ByteArray.size() != sizex * sizey) {
+        throw std::string("Error - Raw picture filesize does not fit with expectation! ") + rawDataFilename;
+    }
+
+    //create an empty image
+    irr::video::IImage* img =
+            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+
+    auto readbuf = ByteArray.data();
+    auto raw_buffer = (uint32_t*)img->lock();
+    for (const unsigned char* src=readbuf; src<readbuf+sizex*sizey; src++) {
+        unsigned char r, g, b;
+        std::tie(r, g, b) = GetPaletteColor(*src);
+        *raw_buffer++ = 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+    img->unlock();
+
+    return img;
+}
+
+void PrepareData::saveIrrImage(const char* outputFilename, irr::video::IImage* img) {
+    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+    myDriver->writeImageToFile(img, outputPic);
+    outputPic->drop();
+    img->drop();
+}
+
+// wrap ExtractImages to take const char* arguments and throw an exception on error
+void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir) {
+    // we need to temporarily copy the strings because ExtractImages takes char* arguments.
+    char* _datfname = strdup(datfname);
+    char* _tabfname = strdup(tabfname);
+    char* _outputDir = strdup(outputDir);
+
+    int extract_res = ExtractImages(_datfname, _tabfname, palette, _outputDir);
+
+    free(_datfname);
+    free(_tabfname);
+    free(_outputDir);
+
+    if (extract_res != 0) {
+        throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
+    }
 }
 
 
@@ -2859,20 +1954,18 @@ void UnpackDataFile(const char* packfile, const char* unpackfile) {
     }
 }
 
-// wrap ExtractImages to take const char* arguments and throw an exception on error
-void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir) {
-    // we need to temporarily copy the strings because ExtractImages takes char* arguments.
-    char* _datfname = strdup(datfname);
-    char* _tabfname = strdup(tabfname);
-    char* _outputDir = strdup(outputDir);
-
-    int extract_res = ExtractImages(_datfname, _tabfname, palette, _outputDir);
-
-    free(_datfname);
-    free(_tabfname);
-    free(_outputDir);
-
-    if (extract_res != 0) {
-        throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
+std::vector<unsigned char> loadRawFile(const char *filename) {
+    FILE* iFile = fopen(filename, "rb");
+    if (iFile == NULL)
+    {
+        throw std::string("Cannot open file: ") + filename;
     }
+    fseek(iFile, 0L, SEEK_END);
+    size_t size = ftell(iFile);
+    fseek(iFile, 0L, SEEK_SET);
+
+    std::vector<unsigned char> buffer(size);
+    fread(buffer.data(), 1, size, iFile);
+    fclose(iFile);
+    return buffer;
 }

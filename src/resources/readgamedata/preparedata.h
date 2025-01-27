@@ -63,8 +63,22 @@ private:
     unsigned char *palette;
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
+    std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
 
+    void ExtractGameScreens();
+    void ExtractFonts();
+    void ExtractHuds();
+    void ExtractSkies();
+    void ExtractSprites();
+    void ExtractMiniMaps();
+    void ExtractTerrainTextures();
     void ExtractLevels();
+    void ExtractEditor();
+    void ExtractCheatPuzzle();
+    void ExtractModels();
+    void ExtractIntro();
+    void ExtractAudio();
+    void ExtractUserdata();
 
     //Tabfile information for model texture atlas file
     //this information is needed to be able to export
@@ -73,11 +87,8 @@ private:
     irr::core::dimension2d<irr::f32> modelTexAtlasSize;
 
     void Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName);
+    void ExtractNamed3DModel(const char* name, int n_models);
     void Extra3DModels();
-
-    //return true if all expected files are present
-    //return false if at least one file is missing
-    bool CheckForGameLogoSVGAFiles();
 
     //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
     //raises an error message in case of unexpected error
@@ -86,10 +97,6 @@ private:
     //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
     //returns true in case of success, returns false in case of unexpected error
     void ExtractLargeFontSVGA();
-
-    //return true if all expected files are present
-    //return false if at least one file is missing
-    bool CheckForScreenSVGA();
 
     //extracts the SVGA Loading Screen in data\onet0-1.dat and data\onet0-1.tab
     //returns true in case of success, returns false in case of unexpected error
@@ -103,16 +110,9 @@ private:
     //returns true in case of success, returns false in case of unexpected error
     void ExtractHUD2PlayersSVGA();
 
-    //return true if selection screen (main menue background) is present
-    //return false if at least one file is missing
-    bool CheckForSelectionScreenSVGA();
-
     //extracts the SVGA Selection Screen in data\oscr0-1.dat and data\oscr0-1.tab
     //returns true in case of success, returns false in case of unexpected error
     void ExtractSelectionScreenSVGA();
-
-    // Extract all sky images. Throws an error message in case of errors
-    void ExtractSkies();
 
     // Extract a single sky image. Throws an error message in case of errors
     void ExtractSky(char skyNr);
@@ -133,11 +133,6 @@ private:
 
     //throws an error message in case of unexpected problem
     void ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName);
-
-    //extracts the Terrain Textures (Texture Atlas) (in format 64×16384) in data\textu0-*.dat and data\textu0-*.tab
-    //* is from 0 up to 5
-    //returns true in case of success, returns false in case of unexpected error
-    void ExtractTerrainTextures();
 
     // extract the Terrain Texture (Texture Atlas) for one level
     void ExtractTerrainTexture(char levelNr);
@@ -162,10 +157,6 @@ private:
     //returns true in case of success, returns false in case of unexpected error
     void ExtractEditorCursors();
 
-    //extracts the Cheat puzzle in data\puzzle.dat and data\puzzle.tab
-    //returns true in case of success, returns false in case of unexpected error
-    void ExtractCheatPuzzle();
-
     //extracts the introductory screen (in format 320x200) in data\title.dat and data\title.tab
     //* is from 0 up to 5
     //throw error message in case of unexpected error
@@ -177,7 +168,7 @@ private:
 
     void ExtractSmallFontSVGA();
 
-    bool ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
+    void ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
     bool DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
             char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf);
 
@@ -191,17 +182,20 @@ private:
     //Returns true when successful, False otherwise
     void ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries);
 
+    void ExtractCompressedImagesFromDataFile(const char* basename, const char* outdir);
+    void ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor=1);
+
     //writes raw video data into picture file, using specified palette file
-    void ConvertRawImageData(const char* rawDataFilename, unsigned char *palette, irr::u32 sizex, irr::u32 sizey,
-                             const char* outputFilename, int scaleFactor = 1.0, bool flipY = false);
+    void ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
+                             const char* outputFilename, int scaleFactor = 1);
 
     void ExtractTmaps();
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
 
     void PrepareIntro();
-    bool ConvertIntroFrame(char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                                          char* outputFilename, int scaleFactor, bool flipY);
+    void ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
+                           char* outputFilename, int scaleFactor);
 
     void ExtractMusic();
 
@@ -220,6 +214,11 @@ private:
     //game files, as I do not have this data
     void AddOtherLevelsHiOctaneTools();
     void SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName);
+
+    irr::video::IImage* UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor);
+
+    irr::video::IImage* loadRawImage(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey);
+    void saveIrrImage(const char* outputFilename, irr::video::IImage* img);
 };
 
 #endif // PREPAREDATA_H
