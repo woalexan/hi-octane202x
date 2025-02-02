@@ -124,7 +124,7 @@ void MachineGun::Trigger() {
          shotTargetLoc = mParent->mTargetPlayer->phobj->physicState.position;
          irr::f32 damage = DEF_MGUN_DAMAGE;
          //mParent->mTargetPlayer->Damage(damage);
-         mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, mParent);
+         mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, DEF_RACE_DAMAGETYPE_MGUN, mParent);
          mParent->mTargetPlayer->DamageGlas();
      } else {
          //we do not target any player right now

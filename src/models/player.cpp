@@ -39,6 +39,12 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
 
     //crossed checkpoint is the one we need to cross next?
     if (this->nextCheckPointValue == valueCrossedCheckPoint) {
+        //did we cross the finish line the first time after start?
+        //if so we need to advance the race state
+        if ((lastCrossedCheckPointValue == 0) && (valueCrossedCheckPoint == 0)) {
+            this->mRace->PlayerCrossesFinishLineTheFirstTime();
+        }
+
         //did the cross the finish line?
         if ((lastCrossedCheckPointValue !=0) && (valueCrossedCheckPoint == 0)) {
             //we finished a complete lap
@@ -192,6 +198,17 @@ void Player::SetNewState(irr::u32 newPlayerState) {
             break;
         }
 
+        //This is the inbetween state after green light comes on
+        //and the first time a player crosses the finish line
+        //in this state the players move towards the start line, and
+        //computer players do not seem to attack
+        //Also the HUD is not shown yet
+        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE: {
+            this->mPlayerStats->mPlayerCanMove = true;
+            this->mPlayerStats->mPlayerCanShoot = false;
+            break;
+        }
+
         case STATE_PLAYER_RACING: {
             this->mPlayerStats->mPlayerCanMove = true;
             this->mPlayerStats->mPlayerCanShoot = true;
@@ -337,6 +354,23 @@ void Player::FreedFromRecoveryVehicleAgain() {
        //but also enables drawing of HUD again
        SetNewState(STATE_PLAYER_RACING);
 
+       //if we are a computer player, and we got stuck and the stuck
+       //detection save us, make sure that this will not happen anymore, by changing
+       //current path offset
+       if (!mHumanPlayer) {
+           if (mCpPlayerCurrentlyStuck) {
+               if (mCpPlayerStuckAtSide == CP_PLAYER_WAS_STUCKLEFTSIDE) {
+                     //move current path offset a little bit to the right
+                     mCpCurrPathOffset += 0.5f;
+               } else if (mCpPlayerStuckAtSide == CP_PLAYER_WAS_STUCKRIGHTSIDE) {
+                     //move current path offset a little bit to the left
+                     mCpCurrPathOffset -= 0.5f;
+               }
+
+               mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKUNDEFINED;
+           }
+       }
+
        mRecoveryVehicleCalled = false;
        mCpPlayerCurrentlyStuck = false;
 
@@ -453,6 +487,43 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     brokenGlasVec = new std::vector<HudDisplayPart*>();
     brokenGlasVec->clear();
 }
+
+//helper function, I one time thought I would need it especially for Recovery craft, when dropping the
+//player craft after repair, but it turned out I had anothe problem
+//I kept code in case I need something like that one day; But I am not sure if the code below
+//is even working correctly
+/*void Player::AlignPlayerModelToTerrainBelow() {
+    irr::f32 hFront;
+    irr::f32 hBack;
+    irr::f32 hLeft;
+    irr::f32 hRight;
+
+    //the following function does also update player class member variables
+    //terrainTiltCraftLeftRightDeg and terrainTiltCraftFrontBackDeg we need below
+    GetHeightRaceTrackBelowCraft(hFront, hBack, hLeft, hRight);
+
+    irr::core::vector3df currRotation;
+    currRotation = this->Player_node->getRotation();
+
+    this->Player_node->setRotation(irr::core::vector3df(-terrainTiltCraftLeftRightDeg,
+                                                        irr::core::radToDeg(currRotation.Y), -terrainTiltCraftFrontBackDeg));
+
+    irr::core::vector3df pos_in_worldspace_originPos(LocalCraftOrigin);
+    this->Player_node->updateAbsolutePosition();
+    irr::core::matrix4 matr = this->Player_node->getAbsoluteTransformation();
+
+    matr.transformVect(pos_in_worldspace_originPos);
+
+    irr::core::vector2di outCellOrigin;
+    irr::f32 origin = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                pos_in_worldspace_originPos.X,
+                pos_in_worldspace_originPos.Z,
+                outCellOrigin);
+
+    pos_in_worldspace_originPos.Y = origin + HOVER_HEIGHT;
+
+    this->Player_node->setPosition(pos_in_worldspace_originPos);
+}*/
 
 void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     if (cmdType != CMD_FLYTO_TARGETENTITY || targetEntity == NULL)
@@ -988,6 +1059,27 @@ void Player::DebugCraftLocalFeatureCoordinates() {
     matr.transformVect(pos_in_worldspace_rightPos);
 }
 
+/* At one time I thought I need the code below, but later it turned out I had another
+ * problem. Therefore I commented this code out again, in case I would need something like this
+ * one day. But I am also not sure right now if the code below is correct
+irr::core::quaternion Player::GetQuaternionFromPlayerModelRotation() {
+    irr::core::quaternion result;
+
+    Player_node->updateAbsolutePosition();
+    irr::core::matrix4 corrEuler = Player_node->getAbsoluteTransformation();
+
+    irr::core::vector3df inDeg = corrEuler.getRotationDegrees();
+    irr::core::vector3df inRad;
+    inRad.X = irr::core::degToRad(inDeg.X);
+    inRad.Y = irr::core::degToRad(inDeg.Y);
+    inRad.Z = irr::core::degToRad(inDeg.Z);
+
+    result.set(inRad.X, inRad.Y, inRad.Z);
+    result.normalize();
+
+    return result;
+}*/
+
 void Player::Forward() {
     //if player can not move right now simply
     //exit
@@ -1162,6 +1254,30 @@ void Player::CpStuckDetection(irr::f32 deltaTime) {
                     //we seem to be stuck
                     //for a workaround call the Recovery vehicle to
                     //put us back properly at the next waypoint link at the track
+
+                    //for this we want to know at which side we are most likely stuck with
+                    //the terrain
+                    //take the side where we have the least amount of free space to move around
+                    bool spaceTightRightSide = (mCraftDistanceAvailRight < 1.5f);
+                    bool spaceTightLeftSide = (mCraftDistanceAvailLeft < 1.5f);
+
+                    mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKUNDEFINED;
+
+                    if (spaceTightLeftSide && !spaceTightRightSide) {
+                        mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKLEFTSIDE;
+                    }
+
+                    if (!spaceTightLeftSide && spaceTightRightSide) {
+                        mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKRIGHTSIDE;
+                    }
+
+                    if (spaceTightLeftSide && spaceTightRightSide) {
+                        if (mCraftDistanceAvailLeft < mCraftDistanceAvailRight) {
+                            mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKLEFTSIDE;
+                        } else {
+                            mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKRIGHTSIDE;
+                        }
+                    }
 
                     LogMessage((char*)"I am stuck, I call recovery vehicle for help");
                     this->mRace->CallRecoveryVehicleForHelp(this);
@@ -2363,6 +2479,16 @@ void Player::AfterPhysicsUpdate() {
     if (this->phobj->CollidedOtherObjectLastTime) {
         Collided();
     }
+
+    //does another player have currently a missile
+    //lock on us? if so play the warning sound
+    if (this->mRace->currPlayerFollow == this) {
+        if (mOtherPlayerHasMissleLockAtMe) {
+            StartPlayingLockOnSound();
+        } else {
+            StopPlayingLockOnSound();
+        }
+    }
 }
 
 void Player::MaxTurboReached() {
@@ -2455,7 +2581,8 @@ void Player::IsSpaceDown(bool down) {
 //Y-axis
 void Player::CalcPlayerCraftLeaningAngle() {
     this->Player_node->updateAbsolutePosition();
-    irr::core::vector3d<irr::f32> craftUpwardsVec = (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
+    irr::core::vector3d<irr::f32> craftUpwardsVec =
+            (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
 
     irr::core::vector3d<irr::f32> distVec = (craftUpwardsVec - *mRace->yAxisDirVector);
     irr::f32 distVal = distVec.dotProduct(craftSidewaysToRightVec);
@@ -2484,6 +2611,12 @@ void Player::CalcPlayerCraftLeaningAngle() {
     //we need this number for computer player control
     //Important: Here do not correct angle calculation result outside of valid range!
    // mCurrentCraftOrientationAngle = mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec, false);
+
+    distVal = distVec.dotProduct(craftForwardDirVec);
+
+    angleRad = acosf(distVal);
+
+    this->currPlayerCraftForwardLeaningAngleDeg = (angleRad / irr::core::PI) * 180.0f - 90.0f + terrainTiltCraftFrontBackDeg;
 }
 
 //returns false if waypoint we want project player on is not sideways of player
@@ -3737,6 +3870,29 @@ void Player::UpdateCameras() {
     mIntCamera->setTarget(this->World1stPersonCamTargetPnt);
 }
 
+void Player::UpdateInternalCoordVariables() {
+    WorldCoordCraftFrontPnt = this->phobj->ConvertToWorldCoord(LocalCraftFrontPnt);
+    WorldCoordCraftBackPnt = this->phobj->ConvertToWorldCoord(LocalCraftBackPnt);
+    WorldCoordCraftLeftPnt = this->phobj->ConvertToWorldCoord(LocalCraftLeftPnt);
+    WorldCoordCraftRightPnt = this->phobj->ConvertToWorldCoord(LocalCraftRightPnt);
+
+    WorldCoordCraftSmokePnt = this->phobj->ConvertToWorldCoord(LocalCraftSmokePnt);
+    WorldCraftDustPnt = this->phobj->ConvertToWorldCoord(LocalCraftDustPnt);
+
+    WorldCoordCraftAboveCOGStabilizationPoint = this->phobj->ConvertToWorldCoord(LocalCraftAboveCOGStabilizationPoint);
+
+    craftUpwardsVec = (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
+
+    //calculate craft forward direction vector
+    craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
+    craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
+
+    //recalculate current 2D cell coordinates
+    //where the player is currently located
+    mCurrPosCellX = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
+    mCurrPosCellY = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
+}
+
 void Player::Update(irr::f32 frameDeltaTime) {
     if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
         && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)) {
@@ -3768,13 +3924,19 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
         }
 
-        //handle missle lock timing logic
-        if (this->mTargetMissleLockProgr > 0) {
-            mTargetMissleLockProgr--;
+        //only allow advancing missile lock state after race has fully
+        //started, that means the first player has reached the finish line the
+        //first time; we also know this, because here also the player state changed
+        //to racing state
+        if (GetCurrentState() == STATE_PLAYER_RACING) {
+            //handle missle lock timing logic
+            if (this->mTargetMissleLockProgr > 0) {
+                mTargetMissleLockProgr--;
 
-            if (mTargetMissleLockProgr == 0) {
-                //we have achieved missle lock
-                this->mTargetMissleLock = true;
+                if (mTargetMissleLockProgr == 0) {
+                    //we have achieved missile lock
+                    this->mTargetMissleLock = true;
+                }
             }
         }
     }
@@ -3783,28 +3945,15 @@ void Player::Update(irr::f32 frameDeltaTime) {
     mPlayerStats->currLapTimeMultiple100mSec = (mPlayerStats->currLapTimeExact * 10);
 
     //calculate player craft world coordinates
-    WorldCoordCraftFrontPnt = this->phobj->ConvertToWorldCoord(LocalCraftFrontPnt);
-    WorldCoordCraftBackPnt = this->phobj->ConvertToWorldCoord(LocalCraftBackPnt);
-    WorldCoordCraftLeftPnt = this->phobj->ConvertToWorldCoord(LocalCraftLeftPnt);
-    WorldCoordCraftRightPnt = this->phobj->ConvertToWorldCoord(LocalCraftRightPnt);
+    UpdateInternalCoordVariables();
 
-    WorldCoordCraftSmokePnt = this->phobj->ConvertToWorldCoord(LocalCraftSmokePnt);
-    WorldCraftDustPnt = this->phobj->ConvertToWorldCoord(LocalCraftDustPnt);
-
-    WorldCoordCraftAboveCOGStabilizationPoint = this->phobj->ConvertToWorldCoord(LocalCraftAboveCOGStabilizationPoint);
-
-    craftUpwardsVec = (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
-
-    //calculate craft forward direction vector
-    craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
-    craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
-
-    //recalculate current 2D cell coordinates
-    //where the player is currently located
-    mCurrPosCellX = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
-    mCurrPosCellY = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
-
-    PlayerCraftHeightControl();
+    //we must prevent running player height control while
+    //we are attached to recovery vehicle, because here physics
+    //model is not active and otherwise we get weird behavior
+    //when craft is freed again
+    if (this->mGrabedByThisRecoveryVehicle == NULL) {
+        CraftHeightControl();
+    }
 
     /************ Update player camera stuff ***************/
     UpdateCameras();
@@ -3813,75 +3962,13 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //check if this player is located at a charging station (gasoline, ammo or shield)
     CheckForChargingStation();
 
-    //remove some gasoline if we are moving fast enough
-    //TODO: check with actual game how gasoline burning works exactly
-    if (phobj->physicState.speed > 3.0f) {
-        mPlayerStats->gasolineVal -= 0.02f;
+    //execute code for fuel consumption, create low fuel
+    //warnings, and change player state in case fuel is empty
+    HandleFuel();
 
-        if (mPlayerStats->gasolineVal <= 0.0f) {
-            if (!mEmptyFuelWarningAlreadyShown) {
-                if (mHUD != NULL) {
-                    this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
-                }
-                mEmptyFuelWarningAlreadyShown = true;
-
-                if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) {
-                    //change player state to empty fuel state
-                    SetNewState(STATE_PLAYER_EMPTYFUEL);
-
-                    LogMessage((char*)"I have empty fuel, I call recovery vehicle for help");
-                    //call a recovery vehicle to help us out
-                    this->mRace->CallRecoveryVehicleForHelp(this);
-                    mRecoveryVehicleCalled = true;
-                }
-            }
-        } else if (mPlayerStats->gasolineVal < (mPlayerStats->gasolineMax * 0.25f)) {
-            if (!mLowFuelWarningAlreadyShown) {
-                if (mHUD != NULL) {
-                    this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
-                }
-                mLowFuelWarningAlreadyShown = true;
-            }
-        }
-    }
-
-    if (mPlayerStats->gasolineVal > 0.0f) {
-          mEmptyFuelWarningAlreadyShown = false;
-
-          if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_EMPTYFUEL) {
-                //change player state to racing again
-                SetNewState(STATE_PLAYER_RACING);
-          }
-    }
-
-     if (mPlayerStats->gasolineVal > (mPlayerStats->gasolineMax * 0.25f)) {
-          mLowFuelWarningAlreadyShown = false;
-     }
-
-    //TODO: check with actual game how ammo warnings and reduction works exactly
-    if (mPlayerStats->ammoVal <= 0.0f) {
-        if (!mEmptyAmmoWarningAlreadyShown) {
-            if (mHUD != NULL) {
-                this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
-            }
-            mEmptyAmmoWarningAlreadyShown = true;
-        }
-    } else if (mPlayerStats->ammoVal < (mPlayerStats->ammoMax * 0.25f)) {
-        if (!mLowAmmoWarningAlreadyShown) {
-            if (mHUD != NULL) {
-                this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
-            }
-            mLowAmmoWarningAlreadyShown = true;
-        }
-    }
-
-     if (mPlayerStats->ammoVal > 0.0f) {
-         mEmptyAmmoWarningAlreadyShown = false;
-     }
-
-     if (mPlayerStats->ammoVal > (mPlayerStats->ammoMax * 0.25f)) {
-          mLowAmmoWarningAlreadyShown = false;
-     }
+    //execute source code to create low/empty ammo
+    //warnings
+    HandleAmmo();
 
     //TestCpForceControlLogicWithHumanPlayer();
 
@@ -3941,9 +4028,15 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //check if player entered a craft trigger region
     CheckForTriggerCraftRegion();
+
+    //do we have currently a missile lock at another player
+    //if so set flag for warning sound in the other player
+    if ((mTargetPlayer != NULL) && (mTargetMissleLock)) {
+        mTargetPlayer->mOtherPlayerHasMissleLockAtMe = true;
+    }
 }
 
-void Player::PlayerCraftHeightControl() {
+void Player::CraftHeightControl() {
     //*****************************************************
     //* Hovercraft height control force calculation Start *  solution 1: with the 4 local points left, right, front and back of craft
     //*****************************************************
@@ -4050,24 +4143,46 @@ void Player::PlayerCraftHeightControl() {
     irr::f32 corrDampingHeight = 10.0f;
 
     //if craft is at all points higher than racetrack let it go towards racetrack slower (too allow something like a jump)
-    if ((heightErrorFront > 0.0f) && (heightErrorBack > 0.0f) && (heightErrorLeft > 0.0f) && (heightErrorRight > 0.0f)) {
+    /*if ((heightErrorFront > 0.0f) && (heightErrorBack > 0.0f) && (heightErrorLeft > 0.0f) && (heightErrorRight > 0.0f)) {
         corrForceHeight = 40.0f;
-    }
+    }*/
+
+    irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->yAxisDirVector);
 
     //original lines until 21.12.2024
-    irr::f32 corrForceFront = heightErrorFront * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y * corrDampingHeight;
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt - irr::core::vector3df(0.0f, corrForceFront, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+    irr::f32 currVelFront =  this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y;
+    irr::f32 corrForceFront = heightErrorFront * corrForceHeight + currVelFront * corrDampingHeight;
 
-    irr::f32 corrForceBack = heightErrorBack * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftBackPnt).Y * corrDampingHeight;
+    //this line prevents flipping over the player model on the roof
+    corrForceFront = corrForceFront * preventFlip;
+
+    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, LocalCraftFrontPnt - irr::core::vector3df(0.0f, corrForceFront, 0.0f), PHYSIC_APPLYFORCE_REAL,
+                                            PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
+    irr::f32 currVelBack = this->phobj->GetVelocityLocalCoordPoint(LocalCraftBackPnt).Y;
+    irr::f32 corrForceBack = heightErrorBack * corrForceHeight + currVelBack * corrDampingHeight;
+
+    //this line prevents flipping over the player model on the roof
+    corrForceBack = corrForceBack * preventFlip;
+
     this->phobj->AddLocalCoordForce(LocalCraftBackPnt, LocalCraftBackPnt - irr::core::vector3df(0.0f, corrForceBack, 0.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 
-    irr::f32 corrForceLeft = heightErrorLeft * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftLeftPnt).Y * corrDampingHeight;
+    irr::f32 currVelLeft = this->phobj->GetVelocityLocalCoordPoint(LocalCraftLeftPnt).Y;
+    irr::f32 corrForceLeft = heightErrorLeft * corrForceHeight + currVelLeft * corrDampingHeight;
+
+    //this line prevents flipping over the player model on the roof
+    corrForceLeft = corrForceLeft * preventFlip;
+
     this->phobj->AddLocalCoordForce(LocalCraftLeftPnt, LocalCraftLeftPnt - irr::core::vector3df(0.0f, corrForceLeft, 0.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 
-    irr::f32 corrForceRight = heightErrorRight * corrForceHeight + this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y * corrDampingHeight;
+    irr::f32 currVelRight = this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y;
+    irr::f32 corrForceRight = heightErrorRight * corrForceHeight + currVelRight * corrDampingHeight;
+
+    //this line prevents flipping over the player model on the roof
+    corrForceRight = corrForceRight * preventFlip;
+
     this->phobj->AddLocalCoordForce(LocalCraftRightPnt, LocalCraftRightPnt - irr::core::vector3df(0.0f, corrForceRight, 0.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 }
@@ -4076,9 +4191,41 @@ void Player::SetName(char* playerName) {
     strcpy(this->mPlayerStats->name, playerName);
 }
 
+void Player::PlayMGunShootsAtUsSound() {
+    switch (mCurrentRiccosSound) {
+        case 0: {
+             mRace->mSoundEngine->PlaySound(SRES_GAME_RICCO1, false);
+             break;
+        }
+
+        case 1: {
+             mRace->mSoundEngine->PlaySound(SRES_GAME_RICCO2, false);
+             break;
+        }
+
+        case 2: {
+             mRace->mSoundEngine->PlaySound(SRES_GAME_RICCO3, false);
+             break;
+        }
+    }
+
+    mCurrentRiccosSound++;
+
+    if (mCurrentRiccosSound > 2)
+        mCurrentRiccosSound = 0;
+}
+
 //returns TRUE if player reached below/equal 0 health (therefore if
 //player died); otherwise false is returned
-bool Player::Damage(irr::f32 damage) {
+bool Player::Damage(irr::f32 damage, irr::u8 damageType) {
+    //if someone shoots with machine gun at us, and we are selected
+    //as the player to follow play the riccos sound
+    if ((damageType == DEF_RACE_DAMAGETYPE_MGUN) &&
+           (this->mRace->currPlayerFollow == this)) {
+               //Play machine gun shoots at us sounds
+               PlayMGunShootsAtUsSound();
+    }
+
     //only deal positive damage!
     if ((damage > 0.0f) && (this->mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BROKEN)) {
         this->mPlayerStats->shieldVal -= damage;
@@ -4125,9 +4272,22 @@ void Player::UpdateHUDState() {
     if (mHUD == NULL)
         return;
 
+    irr::u32 state = this->GetCurrentState();
+
+    //there is one exception, if we are in demo mode
+    //do not draw the normal HUD, only before start
+    if (this->mRace->mDemoMode) {
+        if ((state != STATE_PLAYER_BEFORESTART) && (state != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
+            mHUD->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
+            return;
+        }
+    }
+
     //make sure the HUD state if correct for us
-    switch (this->GetCurrentState()) {
-        case STATE_PLAYER_BEFORESTART: {
+    switch (state) {
+        case STATE_PLAYER_BEFORESTART:
+        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE:
+        {
             mHUD->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
             break;
         }
@@ -4148,6 +4308,18 @@ void Player::UpdateHUDState() {
         break;
     }
   }
+}
+
+void Player::SetupForStart() {
+    this->SetNewState(STATE_PLAYER_BEFORESTART);
+}
+
+void Player::SetupToSkipStart() {
+    this->SetNewState(STATE_PLAYER_RACING);
+}
+
+void Player::SetupForFirstWayToFinishLine() {
+    this->SetNewState(STATE_PLAYER_ONFIRSTWAYTOFINISHLINE);
 }
 
 void Player::SetMyHUD(HUD* pntrHUD) {
@@ -4404,9 +4576,7 @@ void Player::StartPlayingWarningSound() {
        //no, start playing new warning
        //we need to keep a pntr to the looping sound source to be able to stop it
        //later again!
-       if (mHumanPlayer) {
-        mWarningSoundSource = this->mRace->mSoundEngine->PlaySound(SRES_GAME_WARNING, true);
-       }
+       mWarningSoundSource = this->mRace->mSoundEngine->PlaySound(SRES_GAME_WARNING, true);
    }
 }
 
@@ -4414,12 +4584,28 @@ void Player::StopPlayingWarningSound() {
    //warning really playing?
    if (mWarningSoundSource != NULL) {
        //yes, stop it
-       if (mHumanPlayer) {
-         this->mRace->mSoundEngine->StopLoopingSound(mWarningSoundSource);
-         mWarningSoundSource = NULL;
-       }
+       this->mRace->mSoundEngine->StopLoopingSound(mWarningSoundSource);
+       mWarningSoundSource = NULL;
    }
+}
 
+void Player::StartPlayingLockOnSound() {
+   //already lockon sound playing?
+   if (mLockOnSoundSource == NULL) {
+       //no, start playing new lockon sound
+       //we need to keep a pntr to the looping sound source to be able to stop it
+       //later again!
+        mLockOnSoundSource = this->mRace->mSoundEngine->PlaySound(SRES_GAME_LOCKON, true);
+   }
+}
+
+void Player::StopPlayingLockOnSound() {
+   //lock on sound really playing?
+   if (mLockOnSoundSource != NULL) {
+       //yes, stop it
+         this->mRace->mSoundEngine->StopLoopingSound(mLockOnSoundSource);
+         mLockOnSoundSource = NULL;
+   }
 }
 
 void Player::AddTextureID(irr::s32 newTexId) {
@@ -4543,6 +4729,13 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
 
     irr::f32 terrainTiltCraftLeftRightRad = asinf(hdiff/vdiff) ;
     terrainTiltCraftLeftRightDeg = (terrainTiltCraftLeftRightRad / irr::core::PI) * 180.0f;
+
+    //calculate terrain tilt from craft front to back
+    hdiff = front - back;
+    vdiff = (pos_in_worldspace_frontPos - pos_in_worldspace_backPos).getLength();
+
+    irr::f32 terrainTiltCraftFrontBackRad = asinf(hdiff/vdiff) ;
+    terrainTiltCraftFrontBackDeg = (terrainTiltCraftFrontBackRad / irr::core::PI) * 180.0f;
 }
 
 //is called when the player collected a collectable item of the
@@ -4788,8 +4981,12 @@ void Player::FinishedLap() {
                     mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f, true);
                 }
 
-                //play the yee-haw sound
-                mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                //in demo mode prevent the yee-haw sound
+                //from playing
+                if (!mRace->mDemoMode) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                }
             }
         }
     }
@@ -4897,4 +5094,78 @@ void Player::CpPlayerHandleAttack() {
             //yes, fire
             this->mMGun->Trigger();
     }
+}
+
+void Player::HandleFuel() {
+    //remove some gasoline if we are moving fast enough
+    //TODO: check with actual game how gasoline burning works exactly
+    if (phobj->physicState.speed > 3.0f) {
+        mPlayerStats->gasolineVal -= 0.02f;
+
+        if (mPlayerStats->gasolineVal <= 0.0f) {
+            if (!mEmptyFuelWarningAlreadyShown) {
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
+                }
+                mEmptyFuelWarningAlreadyShown = true;
+
+                if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) {
+                    //change player state to empty fuel state
+                    SetNewState(STATE_PLAYER_EMPTYFUEL);
+
+                    LogMessage((char*)"I have empty fuel, I call recovery vehicle for help");
+                    //call a recovery vehicle to help us out
+                    this->mRace->CallRecoveryVehicleForHelp(this);
+                    mRecoveryVehicleCalled = true;
+                }
+            }
+        } else if (mPlayerStats->gasolineVal < (mPlayerStats->gasolineMax * 0.25f)) {
+            if (!mLowFuelWarningAlreadyShown) {
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
+                }
+                mLowFuelWarningAlreadyShown = true;
+            }
+        }
+    }
+
+    if (mPlayerStats->gasolineVal > 0.0f) {
+          mEmptyFuelWarningAlreadyShown = false;
+
+          if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_EMPTYFUEL) {
+                //change player state to racing again
+                SetNewState(STATE_PLAYER_RACING);
+          }
+    }
+
+     if (mPlayerStats->gasolineVal > (mPlayerStats->gasolineMax * 0.25f)) {
+          mLowFuelWarningAlreadyShown = false;
+     }
+}
+
+void Player::HandleAmmo() {
+    //TODO: check with actual game how ammo warnings and reduction works exactly
+    if (mPlayerStats->ammoVal <= 0.0f) {
+        if (!mEmptyAmmoWarningAlreadyShown) {
+            if (mHUD != NULL) {
+                this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
+            }
+            mEmptyAmmoWarningAlreadyShown = true;
+        }
+    } else if (mPlayerStats->ammoVal < (mPlayerStats->ammoMax * 0.25f)) {
+        if (!mLowAmmoWarningAlreadyShown) {
+            if (mHUD != NULL) {
+                this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
+            }
+            mLowAmmoWarningAlreadyShown = true;
+        }
+    }
+
+     if (mPlayerStats->ammoVal > 0.0f) {
+         mEmptyAmmoWarningAlreadyShown = false;
+     }
+
+     if (mPlayerStats->ammoVal > (mPlayerStats->ammoMax * 0.25f)) {
+          mLowAmmoWarningAlreadyShown = false;
+     }
 }

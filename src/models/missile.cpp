@@ -153,16 +153,16 @@ void Missile::Update(irr::f32 DeltaTime) {
         //if soundEngine is active report missile only as exploded
         //after explision sound was finished playing
         if (mParentLauncher->mParent->mRace->mSoundEngine->GetIsSoundActive()) {
-        if (mExplodeSound != NULL) {
-            if (mExplodeSound->getStatus() == mExplodeSound->Stopped) {
-                mExplodeSound = NULL;
-
-                 if (AreAllSmokeSpritesGone()) {
-                    //mark that object (missile) can be deleted
-                    objToBeDeleted = true;
-                 }
+            if (mExplodeSound != NULL) {
+                if (mExplodeSound->getStatus() == mExplodeSound->Stopped) {
+                    mExplodeSound = NULL;
+                }
+            } else {
+                if (AreAllSmokeSpritesGone()) {
+                   //mark that object (missile) can be deleted
+                   objToBeDeleted = true;
+                }
             }
-        }
         } else {
             //no sound is playing, report missile as exploded immediately
             //mark that object (missile) can be deleted
@@ -219,7 +219,8 @@ void Missile::Update(irr::f32 DeltaTime) {
                     //max shield at the beginning, this is my educated guess
                     irr::f32 oneMissileDamage = this->mLockedPlayer->mPlayerStats->shieldMax * 0.4f;
                     //this->mLockedPlayer->Damage(oneMissileDamage);
-                    mParentLauncher->mParent->mRace->DamagePlayer(this->mLockedPlayer, oneMissileDamage, mParentLauncher->mParent);
+                    mParentLauncher->mParent->mRace->DamagePlayer(this->mLockedPlayer, oneMissileDamage,
+                                                                  DEF_RACE_DAMAGETYPE_MISSILE, mParentLauncher->mParent);
                 }
             }
 
@@ -231,6 +232,12 @@ void Missile::Update(irr::f32 DeltaTime) {
 
             mExplodeSound = mParentLauncher->mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_EXPLODE, false);
             exploded = true;
+
+            //missile exploded, need to exit here
+            //because otherwise we get an issue with the source code
+            //below, when we try to update position of missile that
+            //does not exist anymore
+            return;
         }
 
         //control Y coordinate of missile depending on terrain height
@@ -243,7 +250,8 @@ void Missile::Update(irr::f32 DeltaTime) {
         MapEntry* mEntry = mParentLauncher->mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
         if (mEntry != NULL) {
-            currentLocation.Y = mParentLauncher->mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight + 0.3f;
+            currentLocation.Y =
+                    mParentLauncher->mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight + 0.3f;
         }
 
         if (mSceneNodeMissile != NULL) {

@@ -247,8 +247,6 @@ public:
     irr::core::vector3df ConvertToWorldCoord(irr::core::vector3df pointLocalCoord);
     irr::core::vector3df ConvertToLocalCoord(irr::core::vector3df pointWorldCoord);
 
-    void StopRotation();
-
     inline const PhysicsCollisionArea& GetCollisionArea() const     { return  mCollArea; }
     inline PhysicsCollisionArea& GetCollisionArea()                 { return  mCollArea; }
 

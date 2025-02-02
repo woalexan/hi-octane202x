@@ -213,6 +213,12 @@ public:
 
     void SetHUDState(irr::u8 newHUDState);
 
+    //0.. means no light lit
+    //with increasing value the start signal
+    //advances towards the final state
+    void SetStartSignalState(irr::u8 newSignalState);
+    irr::u8 GetStartSignalState();
+
     //************************************
     //* Broken glas resource             *
     //************************************

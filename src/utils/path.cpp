@@ -116,6 +116,22 @@ std::vector<EntityItem*> Path::FindAllWayPointsInArea(irr::core::vector3df locat
     return result;
 }
 
+std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(
+        WayPointLinkInfoStruct* inputWayPointLink) {
+    std::vector<WayPointLinkInfoStruct*> result;
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
+       if ((*it)->pntrPathNextLink == inputWayPointLink) {
+           result.push_back(*it);
+       }
+    }
+
+    return result;
+}
+
+
 EntityItem* Path::FindNearestWayPointToPlayer(Player* whichPlayer) {
    if (whichPlayer == NULL)
        return NULL;

@@ -20,7 +20,7 @@
 
 Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver, GameText* gameText,
            Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-           dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool useAutoGenMiniMapParam) {
+           dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam) {
     this->mDriver = driver;
     this->mSmgr = smgr;
     this->mDevice = device;
@@ -31,6 +31,12 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     this->mSoundEngine = soundEngine;
     this->mTimeProfiler = timeProfiler;
     this->mDemoMode = demoMode;
+
+    if (skipStart) {
+        this->mCurrentPhase = DEF_RACE_PHASE_RACING;
+    } else {
+        this->mCurrentPhase = DEF_RACE_PHASE_START;
+    }
 
     levelNr = loadLevelNr;
     ready = false;
@@ -346,6 +352,61 @@ void Race::CallRecoveryVehicleForHelp(Player *whichPlayer) {
     this->mPlayerWaitForRecoveryVec->push_back(whichPlayer);
 }
 
+
+//Code below was never used, not sure if it works
+//at one point in time I thought I need it, but later it turned out I do not need it right now
+//void Race::SetPlayerLocationAndAlignToTrackHeight(Player* player, irr::core::vector3df newLocation,
+//                                                  irr::core::vector3df newFrontDirVec) {
+
+//    //move the player to the new location
+//    player->phobj->physicState.position = newLocation + irr::core::vector3df(0.0f, HOVER_HEIGHT, 0.0f);
+//    player->Player_node->setPosition(newLocation + irr::core::vector3df(0.0f, HOVER_HEIGHT, 0.0f));
+
+//    irr::f32 hFront;
+//    irr::f32 hBack;
+//    irr::f32 hLeft;
+//    irr::f32 hRight;
+
+//    //based on this calculate terrain angles at this location
+//    player->GetHeightRaceTrackBelowCraft(hFront, hBack, hLeft, hRight);
+
+//    //using this tilt rotate player model
+//    irr::core::vector3df currRotation;
+//    currRotation = player->Player_node->getRotation();
+
+//    player->Player_node->setRotation(irr::core::vector3df(-player->terrainTiltCraftLeftRightDeg,
+//                                                        irr::core::radToDeg(currRotation.Y), -player->terrainTiltCraftFrontBackDeg));
+
+// /*   irr::core::vector3df pos_in_worldspace_originPos(player->LocalCraftOrigin);
+//    player->Player_node->updateAbsolutePosition();
+//    irr::core::matrix4 matr = player->Player_node->getAbsoluteTransformation();
+
+//    matr.transformVect(pos_in_worldspace_originPos);
+
+//    irr::core::vector2di outCellOrigin;
+//    irr::f32 origin = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+//                pos_in_worldspace_originPos.X,
+//                pos_in_worldspace_originPos.Z,
+//                outCellOrigin);
+
+//    pos_in_worldspace_originPos.Y = origin + HOVER_HEIGHT;
+
+//    player->Player_node->setPosition(pos_in_worldspace_originPos);
+//    player->phobj->physicState.position = pos_in_worldspace_originPos;
+//*/
+//    player->phobj->physicState.orientation =
+//                   player->GetQuaternionFromPlayerModelRotation();
+
+//    //make sure physics model velocities are zeroed out
+//    //because we move player somewhere else, the history does not matter anymore
+//    player->phobj->physicState.momentum = irr::core::vector3df(0.0f, 0.0f, 0.0f);
+//    player->phobj->physicState.angularMomentum = irr::core::vector3df(0.0f, 0.0f, 0.0f);
+
+//    //update all other physic states as well, this will also
+//    //set velocity to zero
+//    player->phobj->physicState.recalculate();
+//}
+
 void Race::UpdateRecoveryVehicles(irr::f32 deltaTime) {
     //does at least one player need help?
     if (mPlayerWaitForRecoveryVec->size() > 0) {
@@ -523,11 +584,11 @@ void Race::End() {
 //attacker is the enemy player that does damage the player targetToHit
 //for damage that an entity does cause (for example steamFountain) attacker is set
 //to NULL
-void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, Player* attacker) {
+void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker) {
     bool targetDied;
 
     if (targetToHit != NULL) {
-        targetDied = targetToHit->Damage(damageVal);
+        targetDied = targetToHit->Damage(damageVal, damageType);
 
         //if the attacked/damaged player died let the player ship explode
         //if there was an attacker increase its kill counter
@@ -658,6 +719,25 @@ void Race::UpdatePlayerRacePositionRankingHelper2(vector< pair <irr::s32, Player
     }
 }
 
+//if the first player crosses the finish line after start
+//the race state changes to final Racing state
+void Race::PlayerCrossesFinishLineTheFirstTime() {
+    //only execute this code if we are still in the pre-racing state
+    //and the start itself was not skipped (for example in game debugging mode)
+    if (mCurrentPhase == DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE) {
+        mCurrentPhase = DEF_RACE_PHASE_RACING;
+
+        //also set the players to this new mode
+        //this internally enables the HUD drawing, and allows computer players to
+        //finally attack
+        std::vector<Player*>::iterator it;
+
+        for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+            (*it)->SetupToSkipStart();
+        }
+    }
+}
+
 void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     Player* newPlayer;
 
@@ -708,6 +788,7 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
         newPlayerPhysicsObj->physicState.position = Startpos;
         newPlayerPhysicsObj->physicState.momentum = {0.0f, 0.0f, 0.0f};
         newPlayerPhysicsObj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+
         newPlayerPhysicsObj->physicState.recalculate();
         newPlayerPhysicsObj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
     }
@@ -745,6 +826,15 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
                    newPlayer->mCpCurrPathOffset = -deltaVec.X;
                }
             }
+    }
+
+    //if we do not skip start set player mode
+    //accordingly; this also sets the Hud view mode
+    //correctly via player state
+    if (this->mCurrentPhase == DEF_RACE_PHASE_START) {
+        newPlayer->SetupForStart();
+    } else if (mCurrentPhase == DEF_RACE_PHASE_RACING) {
+        newPlayer->SetupToSkipStart();
     }
 }
 
@@ -1564,11 +1654,36 @@ void Race::Init() {
         //Wolf 22.12.2024: commented out, since add player we have no player object
         //here anymore
         if (mDemoMode) {
-            //in demo mode we do not want to draw a HUD
-            Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
+                //if we do not skip the race start, switch the Hud
+                //to "start" mode
+                if (mCurrentPhase == DEF_RACE_PHASE_START) {
+                    Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+
+                    //0.. means no light lit
+                    //with increasing value the start signal
+                    //advances towards the final state
+                    Hud1Player->SetStartSignalState(0);
+                } else {
+                    //in demo mode we do not want to draw a HUD
+                    //in case we skip the start
+                    Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
+                }
         } else {
-            //in normal race mode we draw the HUD
-            Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
+                //if we do not skip the race start, switch the Hud
+                //to "start" mode
+                if (mCurrentPhase == DEF_RACE_PHASE_START) {
+                     Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+
+                     //0.. means no light lit
+                     //with increasing value the start signal
+                     //advances towards the final state
+                     Hud1Player->SetStartSignalState(0);
+                } else {
+                     //in normal race mode we draw the HUD
+                     //if we skip the start we can already show the
+                     //race Hud
+                     Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
+               }
         }
 
         //give physics the triangle selectors for overall collision detection
@@ -1662,7 +1777,59 @@ void Race::SetupTopRaceTrackPointerOrigin() {
 //    }
 //}
 
+void Race::ControlStartPhase(irr::f32 frameDeltaTime) {
+    mStartPhaseTimeCounter += frameDeltaTime;
+
+    irr::u8 currentSignalState = Hud1Player->GetStartSignalState();
+
+    //delay initial switch to red light longer then afterwards
+    if (((currentSignalState == 0) && (mStartPhaseTimeCounter >= 3.0f)) ||
+        ((currentSignalState > 0) && (mStartPhaseTimeCounter >= 1.0f))) {
+        mStartPhaseTimeCounter = 0.0f;
+
+        //advance current signal state to next state
+        currentSignalState++;
+
+        //when advancing to red and yellow light play
+        //START1 sound
+        //when advancing to final green light play
+        //START2 sound
+        if ((currentSignalState == 1) || (currentSignalState == 2)) {
+            //we change to red or yellow light
+            this->mSoundEngine->PlaySound(SRES_GAME_START1, false);
+        } else if (currentSignalState == 3) {
+            //we change to green light
+            this->mSoundEngine->PlaySound(SRES_GAME_START2, false);
+        }
+
+        //advance start light to the next phase
+        Hud1Player->SetStartSignalState(currentSignalState);
+
+        //state 3 means green is lit
+        if (currentSignalState == 3) {
+            //start is now over, players are now in next phase where the
+            //are traveling the first time towards the finish line; HUD is still not shown
+            //and as far as I have seen computer players do not attack here yet
+            //as soon as the first player crosses the finish line in this state, we finally
+            //will change to full on race state somewhere else
+            this->mCurrentPhase = DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE;
+
+            //switch all players to first way to finish line mode
+            std::vector<Player*>::iterator it;
+            for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+                ((*it)->SetupForFirstWayToFinishLine());
+            }
+        }
+    }
+}
+
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
+    //are we in Race start phase, if so also call
+    //race start control function
+    if (mCurrentPhase == DEF_RACE_PHASE_START) {
+        ControlStartPhase(frameDeltaTime);
+    }
+
     float progressMorph;
 
     //if frameDeltaTime is too large we could get
@@ -1671,31 +1838,36 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     if (frameDeltaTime > 0.1f)
       frameDeltaTime = 0.01f;
 
-    //run morphs
-    if (AllowStartMorphsPerKey && runMorph)
-        {
-          absTimeMorph += frameDeltaTime;
-          progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
+    //if we are in race phase already handle morphs,
+    //and update timers
 
-          std::list<Morph*>::iterator itMorph;
+    if (mCurrentPhase == DEF_RACE_PHASE_RACING) {
+            //run morphs
+            if (AllowStartMorphsPerKey && runMorph)
+                {
+                  absTimeMorph += frameDeltaTime;
+                  progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
 
-          for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
-              (*itMorph)->setProgress(progressMorph);
-              this->mLevelTerrain->ApplyMorph((**itMorph));
-              (*itMorph)->MorphColumns();
-          }
+                  std::list<Morph*>::iterator itMorph;
 
-          //mark column vertices as dirty
-          mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
-        }
+                  for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+                      (*itMorph)->setProgress(progressMorph);
+                      this->mLevelTerrain->ApplyMorph((**itMorph));
+                      (*itMorph)->MorphColumns();
+                  }
 
-    if (!AllowStartMorphsPerKey) {
-        //update level morphs
-        UpdateMorphs(frameDeltaTime);
+                  //mark column vertices as dirty
+                  mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+                }
+
+            if (!AllowStartMorphsPerKey) {
+                //update level morphs
+                UpdateMorphs(frameDeltaTime);
+            }
+
+            //update timer
+            UpdateTimers(frameDeltaTime);
     }
-
-    //update timer
-    UpdateTimers(frameDeltaTime);
 
     //update external race track cameras
     UpdateExternalCameras();
@@ -1708,6 +1880,18 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update all players
     std::vector<Player*>::iterator itPlayer;
 
+    //reset variable mOtherPlayerHasMissleLockAtMe for all players
+    //we use this variable to find out which player is currently targeted
+    //by a missile lock of another player, we need to know to be able to play
+    //the warning sound
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+          (*itPlayer)->mOtherPlayerHasMissleLockAtMe = false;
+    }
+
+    //in the player Update function the mOtherPlayerHasMissleLockAtMe is set
+    //to true by other players, if the have currently a missile lock at this player
+    //the warning sound is then finally triggered in the AfterPhysicsUpdate routine
+    //call below
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
           (*itPlayer)->Update(frameDeltaTime);
     }
@@ -1719,7 +1903,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->Profile(mTimeProfiler->tIntAdvancePhysics);
 
-    ManagePlayerCamera();
+    if (!mDemoMode) {
+        //camera control normal race
+        ManagePlayerCamera();
+    } else {
+        //camera control for demo mode
+        ManageCameraDemoMode(frameDeltaTime);
+    }
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
           (*itPlayer)->AfterPhysicsUpdate();
@@ -2098,6 +2288,12 @@ void Race::HandleInput() {
              }
      }
 
+     if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
+         if (currPlayerFollow != NULL) {
+            this->CallRecoveryVehicleForHelp(currPlayerFollow);
+         }
+     }
+
      if (AllowStartMorphsPerKey) {
             if(this->mEventReceiver->IsKeyDown(irr::KEY_KEY_M))
             {
@@ -2281,7 +2477,7 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
 void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
 
     //in Demo mode we do not want to draw a minimap
-    if (mDemoMode)
+    if (mDemoMode || (this->mCurrentPhase == DEF_RACE_PHASE_START))
         return;
 
     mDriver->draw2DImage(baseMiniMap, miniMapDrawLocation,
@@ -3484,6 +3680,68 @@ void Race::ManagePlayerCamera() {
         //player, and check if it has changed
         if (this->currPlayerFollow != NULL) {
             activeCam = this->currPlayerFollow->DeliverActiveCamera();
+        }
+    } else {
+        //free moving camera to inspect the level/map
+        activeCam = mCamera;
+    }
+
+    if (activeCam == NULL)
+        return;
+
+    //has the active camera changed?
+    //if so change it for rendering
+    if (activeCam != currActiveCamera) {
+        this->mSmgr->setActiveCamera(activeCam);
+        currActiveCamera = activeCam;
+    }
+}
+
+void Race::FindNextPlayerToFollowInDemoMode() {
+    std::vector<Player*>::iterator it;
+
+    mFollowPlayerDemoMode = NULL;
+
+    for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+        //is there an external camera available for this player currently,
+        //and the player is not stuck (we do not want to highlight the fact
+        //that we have not the best computer player controls and a stuck player :) )
+        if (((*it)->externalCamera != NULL) && (!(*it)->mCpPlayerCurrentlyStuck)) {
+            //ok, lets follow this player now
+            mFollowPlayerDemoMode = (*it);
+            mFollowPlayerDemoModeTimeCounter = 0.0f;
+        }
+    }
+}
+
+void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
+    irr::scene::ICameraSceneNode* activeCam = NULL;
+
+    //do we need to find a new player to follow
+    //with an external camera?
+    if (mFollowPlayerDemoMode == NULL) {
+        FindNextPlayerToFollowInDemoMode();
+    } else {
+        //we currently follow a player
+        //is it time to change again? or did the player we follow loose the external
+        //camera
+        mFollowPlayerDemoModeTimeCounter += deltaTime;
+
+        if ((mFollowPlayerDemoModeTimeCounter > DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER) ||
+            (mFollowPlayerDemoMode->externalCamera == NULL)) {
+              //we need to find the next available player to follow
+              FindNextPlayerToFollowInDemoMode();
+        }
+    }
+
+    if (playerCamera) {
+        //get active camera of player we currently follow
+        //in demo mode
+        if (this->mFollowPlayerDemoMode != NULL) {
+            //update external camera focus
+            this->mFollowPlayerDemoMode->externalCamera->Update();
+
+            activeCam = this->mFollowPlayerDemoMode->externalCamera->mCamSceneNode;
         }
     } else {
         //free moving camera to inspect the level/map

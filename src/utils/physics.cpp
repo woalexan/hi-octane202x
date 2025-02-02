@@ -254,10 +254,6 @@ irr::core::vector3df PhysicsObject::ConvertToWorldCoord(irr::core::vector3df poi
     return pos_in_world;
 }
 
-void PhysicsObject::StopRotation() {
-    this->physicState.angularMomentum.set(0.0f, 0.0f, 0.0f);
-}
-
 irr::core::vector3df PhysicsObject::ConvertToLocalCoord(irr::core::vector3df pointWorldCoord) {
     irr::core::vector3df worldCoord(pointWorldCoord);
     this->sceneNode->updateAbsolutePosition();
