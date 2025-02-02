@@ -43,6 +43,18 @@ using namespace std;
 //the exit of race is delayed by this amount of time in seconds
 const irr::f32 DEF_RACE_FINISHED_WAITTIME_SEC = 7.0f;
 
+//maximum time the external camera is following a specific player
+//in demo mode, until change to the next scene
+const irr::f32 DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER = 7.0f;
+
+#define DEF_RACE_DAMAGETYPE_UNDEF 0
+#define DEF_RACE_DAMAGETYPE_MGUN 1
+#define DEF_RACE_DAMAGETYPE_MISSILE 2
+
+#define DEF_RACE_PHASE_START 0
+#define DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE 1
+#define DEF_RACE_PHASE_RACING 2
+
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
     //to 8 characters, plus 1 termination char + 1 extra
@@ -99,7 +111,7 @@ class Race {
 public:
     Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
          GameText* gameText, Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-         dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool useAutoGenMiniMapParam = false);
+         dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
 
     ~Race();
 
@@ -150,7 +162,7 @@ public:
     //attacker is the enemy player that does damage the player targetToHit
     //for damage that an entity does cause (for example steamFountain) attacker is set
     //to NULL
-    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, Player* attacker = NULL);
+    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = NULL);
 
     Player* currPlayerFollow = NULL;
 
@@ -243,6 +255,16 @@ public:
     void DebugSelectPlayer(int whichPlayerNr);
 
     void SetupPhysicsObjectParameters(PhysicsObject &phyObj, bool humanPlayer);
+
+    //in demo mode the following bool
+    //is true, in normal game mode the bool
+    //is false
+    bool mDemoMode;
+
+    void PlayerCrossesFinishLineTheFirstTime();
+
+    /*void SetPlayerLocationAndAlignToTrackHeight(Player* player, irr::core::vector3df newLocation,
+                                                irr::core::vector3df newFrontDirVec);*/
 
 private:
     int levelNr;
@@ -457,14 +479,15 @@ private:
     //positions are stored inside the level files
     std::vector<Camera*> mCameraVec;
 
-    //in demo mode the following bool
-    //is true, in normal game mode the bool
-    //is false
-    bool mDemoMode;
-
     void AddCamera(EntityItem* entity);
     void SetExternalViewAtPlayer();
     void ManagePlayerCamera();
+
+    Player* mFollowPlayerDemoMode = NULL;
+    irr::f32 mFollowPlayerDemoModeTimeCounter = 0.0f;
+
+    void ManageCameraDemoMode(irr::f32 deltaTime);
+    void FindNextPlayerToFollowInDemoMode();
 
     void ProcessPendingTriggers();
 
@@ -496,6 +519,11 @@ private:
 
     irr::f32 mRaceFinishedWaitTimeCnter = 0.0f;
     bool mRaceWasFinished = false;
+
+    irr::u8 mCurrentPhase;
+
+    void ControlStartPhase(irr::f32 frameDeltaTime);
+    irr::f32 mStartPhaseTimeCounter = 0.0f;
 };
 
 #endif // RACE_H

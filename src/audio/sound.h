@@ -33,6 +33,12 @@
 #define SFILE_GAME_MISSILE_SHOT (char*)"extract/sound/sound2-MISSILE.WAV"
 #define SFILE_GAME_EXPLODE (char*)"extract/sound/sound2-EXPLODE.WAV"
 #define SFILE_GAME_FINALLAP (char*)"extract/sound/sound2-STUNT720.WAV"
+#define SFILE_GAME_RICCO1 (char*)"extract/sound/sound2-RICCO1.WAV"
+#define SFILE_GAME_RICCO2 (char*)"extract/sound/sound2-RICCO2.WAV"
+#define SFILE_GAME_RICCO3 (char*)"extract/sound/sound2-RICCO3.WAV"
+#define SFILE_GAME_LOCKON (char*)"extract/sound/sound2-LOCKON4.WAV"
+#define SFILE_GAME_START1 (char*)"extract/sound/sound2-START1.WAV"
+#define SFILE_GAME_START2 (char*)"extract/sound/sound2-START2.WAV"
 
 //the sound0 files seem to be the audio files for the intro
 #define SFILE_INTRO_FIRE (char*)"extract/sound/sound0-FIRE.WAV"
@@ -68,6 +74,12 @@
 #define SRES_GAME_MISSILE_SHOT 20
 #define SRES_GAME_EXPLODE 21
 #define SRES_GAME_FINALLAP 22
+#define SRES_GAME_RICCO1 23
+#define SRES_GAME_RICCO2 24
+#define SRES_GAME_RICCO3 25
+#define SRES_GAME_LOCKON 26
+#define SRES_GAME_START1 27
+#define SRES_GAME_START2 28
 
 #define SRES_INTRO_FIRE 50
 #define SRES_INTRO_EXPLODE 51

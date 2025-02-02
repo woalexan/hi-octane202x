@@ -235,6 +235,13 @@ void SoundEngine::LoadSoundResources() {
 
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
 
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_RICCO1, SRES_GAME_RICCO1);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_RICCO2, SRES_GAME_RICCO2);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_RICCO3, SRES_GAME_RICCO3);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_LOCKON, SRES_GAME_LOCKON);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_START1, SRES_GAME_START1);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_START2, SRES_GAME_START2);
+
     //load all the intro sounds as well
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
@@ -248,7 +255,7 @@ void SoundEngine::LoadSoundResources() {
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
     mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);
+    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);    
 }
 
 //Loads a single specified sound resource
@@ -349,6 +356,13 @@ SoundEngine::~SoundEngine() {
     DeleteSoundResource(SRES_GAME_EXPLODE);
 
     DeleteSoundResource(SRES_GAME_FINALLAP);
+
+    DeleteSoundResource(SRES_GAME_RICCO1);
+    DeleteSoundResource(SRES_GAME_RICCO2);
+    DeleteSoundResource(SRES_GAME_RICCO3);
+    DeleteSoundResource(SRES_GAME_LOCKON);
+    DeleteSoundResource(SRES_GAME_START1);
+    DeleteSoundResource(SRES_GAME_START2);
 
     //remove all the intro sounds as well
     DeleteSoundResource(SRES_INTRO_FIRE);

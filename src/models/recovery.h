@@ -12,6 +12,7 @@
 
 #include <irrlicht/irrlicht.h>
 #include "player.h"
+#include "../utils/path.h"
 
 #define STATE_RECOVERY_IDLE 0
 #define STATE_RECOVERY_MOVETODUTY 1
@@ -19,7 +20,16 @@
 #define STATE_RECOVERY_PUTPLAYERBACK 3
 #define STATE_RECOVERY_GOBACKTOIDLEPOSITION 4
 
-#define RECOVERY_VEHICLE_SPEED 12.0f
+#define STATE_RECOVERY_MOVE_STATIONARY 0
+#define STATE_RECOVERY_MOVE_MOVING 1
+#define STATE_RECOVERY_MOVE_BRAKING 2
+#define STATE_RECOVERY_MOVE_SLOWHOMINGIN 3
+
+const irr::f32 RECOVERY_VEHICLE_SPEED = 12.0f;
+const irr::f32 RECOVERY_VEHICLE_SPEED_CRAWL = 5.0f;
+
+const irr::f32 RECOVERY_VEHICLE_DROPOFTARGET_FREESPACE_REQ = 1.0f;
+const irr::f32 RECOVERY_VEHICLE_ACCELDEACCELRATE = 0.1f;
 
 class Player; //Forward declaration
 
@@ -39,6 +49,7 @@ public:
 private:
     //my current position I am at
     irr::core::vector3df mPosition;
+    irr::core::quaternion mOrientation;
 
     irr::core::vector3df mPlayerDropOfPosition;
 
@@ -54,8 +65,13 @@ private:
 
     Player *repairTarget;
 
-    //my own current state
+    //my own current state (regarding state of current recovery mission)
     irr::u32 mCurrentState;
+
+    //my own current state regarding my movement
+    irr::u32 mCurrentMovementState;
+
+    irr::f32 mDistanceStartBraking;
 
     irr::scene::IAnimatedMesh*  RecoveryMesh;
     irr::scene::IMeshSceneNode* Recovery_node;
@@ -66,6 +82,21 @@ private:
     irr::scene::ISceneManager* mSmgr;
 
     Race* mRace;
+
+    irr::f32 mCurrentSpeed;
+    irr::f32 mTargetSpeed;
+
+    void UpdateSceneNode();
+    void FindPlayerDropOfPosition();
+    bool WayPointLinkAcceptableForDropOf(WayPointLinkInfoStruct* link);
+
+    void State_MoveToDuty(irr::f32 deltaTime);
+    void State_PlayerGrabbed(irr::f32 deltaTime);
+    void State_GoBackToIdleState(irr::f32 deltaTime);
+
+    //returns true if the recovery vehicle has reached the current movement target
+    //returns false otherwise
+    bool ControlMovement(irr::core::vector3df vecMov, irr::f32 deltaTime);
 };
 
 #endif // RECOVERY_H

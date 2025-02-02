@@ -163,6 +163,9 @@ public:
 
     irr::core::vector2df WayPointLinkGetRaceDirection2D(WayPointLinkInfoStruct* whichWayPointLink);
 
+    std::vector<WayPointLinkInfoStruct*> DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(
+            WayPointLinkInfoStruct* inputWayPointLink);
+
 private:
     Race* mRace;
     DrawDebug* mDrawDebug;

@@ -13,6 +13,7 @@
 #include <irrlicht/irrlicht.h>
 #include "player.h"
 #include "../audio/sound.h"
+#include "../race.h"
 
 #define DEF_MGUN_DAMAGE 1.0f
 

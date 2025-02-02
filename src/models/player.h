@@ -29,7 +29,6 @@
 #include "../utils/bezier.h"
 #include "../draw/hud.h"
 #include "../models/camera.h"
-
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
 
@@ -82,11 +81,12 @@ const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 #define STATE_HMAP_COLL_FAILED 4
 
 #define STATE_PLAYER_BEFORESTART 0
-#define STATE_PLAYER_RACING 1
-#define STATE_PLAYER_EMPTYFUEL 2
-#define STATE_PLAYER_BROKEN 3
-#define STATE_PLAYER_FINISHED 4
-#define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 5
+#define STATE_PLAYER_ONFIRSTWAYTOFINISHLINE 1
+#define STATE_PLAYER_RACING 2
+#define STATE_PLAYER_EMPTYFUEL 3
+#define STATE_PLAYER_BROKEN 4
+#define STATE_PLAYER_FINISHED 5
+#define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 6
 
 #define CP_MISSION_WAITFORRACESTART 0
 #define CP_MISSION_FINISHLAPS 1
@@ -94,6 +94,10 @@ const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 #define CAMERA_PLAYER_COCKPIT 0
 #define CAMERA_PLAYER_BEHINDCRAFT 1
 #define CAMERA_EXTERNALVIEW 2
+
+#define CP_PLAYER_WAS_STUCKUNDEFINED 0
+#define CP_PLAYER_WAS_STUCKLEFTSIDE 1
+#define CP_PLAYER_WAS_STUCKRIGHTSIDE 2
 
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
@@ -363,7 +367,7 @@ public:
 
     //returns TRUE if player reached below/equal 0 health (therefore if
     //player died); otherwise false is returned
-    bool Damage(irr::f32 damage);
+    bool Damage(irr::f32 damage, irr::u8 damageType);
 
     //if showDurationSec is negative, the text will be shown until it is deleted
     //with a call to function RemovePlayerPermanentGreenBigText
@@ -484,6 +488,7 @@ public:
     PLAYERSTATS *mPlayerStats;
 
     irr::f32 terrainTiltCraftLeftRightDeg;
+    irr::f32 terrainTiltCraftFrontBackDeg;
 
     irr::u32 updatePathCnter = 0;
 
@@ -510,6 +515,8 @@ public:
 
     irr::f32 testAngle;
 
+    //irr::core::quaternion GetQuaternionFromPlayerModelRotation();
+
     bool ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::core::vector3df craftCoord,
                            irr::core::vector3df *projPlayerPosition,
                            irr::core::vector3d<irr::f32>* distanceVec, irr::f32 *remainingDistanceToTravel);
@@ -529,6 +536,7 @@ public:
     void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay, bool updatePathReachedEndWayPointLink = false);
 
     irr::f32 GetHoverHeight();
+    //void AlignPlayerModelToTerrainBelow();
 
     //computer player stuff
     irr::f32 computerPlayerTargetSpeed = 0.0f;
@@ -549,7 +557,11 @@ public:
     void CpDefineNextAction();
     void CpAddCommandTowardsNextCheckpoint();
 
-    void PlayerCraftHeightControl();
+    void CraftHeightControl();
+
+    void SetupForStart();
+    void SetupToSkipStart();
+    void SetupForFirstWayToFinishLine();
 
     CPCOMMANDENTRY* currCommand = NULL;
 
@@ -566,6 +578,8 @@ public:
     //and the world Y-axis. Is used to draw the sky background image realistic
     irr::f32 currPlayerCraftLeaningAngleDeg = 0.0f;
     irr::u8 currPlayerCraftLeaningOrientation = CRAFT_NOLEANING;
+
+    irr::f32 currPlayerCraftForwardLeaningAngleDeg = 0.0f;
 
     void CPForceController();
     void ProjectPlayerAtCurrentSegment();
@@ -657,6 +671,7 @@ public:
     irr::core::vector3df mCpPlayerLastPosition;
     irr::f32 mCpPlayerTimeNotMovedSeconds;
     bool mCpPlayerCurrentlyStuck = false;
+    irr::u8 mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKUNDEFINED;
 
     irr::f32 mExecuteCpStuckDetectionTimeCounter = 0.0f;
 
@@ -686,6 +701,8 @@ public:
     irr::u8 mLastViewModeBeforeBrokenCraft;
 
     irr::scene::ICameraSceneNode* DeliverActiveCamera();
+
+    bool mOtherPlayerHasMissleLockAtMe = false;
 
 private:
     irr::scene::IAnimatedMesh*  PlayerMesh;
@@ -769,6 +786,7 @@ private:
     bool mPlayerCurrentlyCharging = false;
     sf::Sound* mChargingSoundSource = NULL;
     sf::Sound* mWarningSoundSource = NULL;
+    sf::Sound* mLockOnSoundSource = NULL;
     
     //each player has a particle system for the
     //case the craft is heavily damager
@@ -803,6 +821,9 @@ private:
     void RepairGlasBreaks();
     void CleanUpBrokenGlas();
 
+    void StartPlayingLockOnSound();
+    void StopPlayingLockOnSound();
+
     void WorkaroundResetCurrentPath();
 
     void WasDestroyed();
@@ -810,6 +831,14 @@ private:
     void UpdateHUDState();
     void FinishedRace();
     void CpTakeOverHuman();
+
+    irr::u8 mCurrentRiccosSound = 0;
+    void PlayMGunShootsAtUsSound();
+
+    void HandleFuel();
+    void HandleAmmo();
+
+    void UpdateInternalCoordVariables();
 
 public:
     HUD* mHUD = NULL;

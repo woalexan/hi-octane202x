@@ -102,7 +102,7 @@ private:
     Race* mCurrentRace = NULL;
     bool mTimeStopped = false;
 
-    bool CreateNewRace(int load_levelnr);
+    bool CreateNewRace(int load_levelnr, bool debugRace);
     bool RunDemoMode(int load_levelnr);
 
     void CleanUpRace();

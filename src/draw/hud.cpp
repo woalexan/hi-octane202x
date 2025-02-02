@@ -1579,7 +1579,9 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
             currShownBannerMsg->textAlreadyShownSec += deltaTime;
 
             if (!mCurrentMessageWarningActive && currShownBannerMsg->isWarning) {
-                 this->monitorWhichPlayer->StartPlayingWarningSound();
+                 if (this->monitorWhichPlayer->mRace->currPlayerFollow == this->monitorWhichPlayer) {
+                    this->monitorWhichPlayer->StartPlayingWarningSound();
+                 }
                  mCurrentMessageWarningActive = true;
              }
 
@@ -1629,6 +1631,17 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
             }
         }
     }
+}
+
+//0.. means no light lit
+//with increasing value the start signal
+//advances towards the final state
+void HUD::SetStartSignalState(irr::u8 newSignalState) {
+    mStartSignalState = newSignalState;
+}
+
+irr::u8 HUD::GetStartSignalState() {
+    return mStartSignalState;
 }
 
 void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
