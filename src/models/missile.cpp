@@ -230,7 +230,7 @@ void Missile::Update(irr::f32 DeltaTime) {
             //create the explosion at the target
             this->mParentLauncher->mParent->mRace->mExplosionLauncher->Trigger(currentLocation);
 
-            mExplodeSound = mParentLauncher->mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_EXPLODE, false);
+            mExplodeSound = mParentLauncher->mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_EXPLODE, currentLocation, false);
             exploded = true;
 
             //missile exploded, need to exit here
@@ -400,8 +400,8 @@ void MissileLauncher::Trigger() {
         shooting = true;
      }
 
-     if (mParent->mHumanPlayer && (mShotSound == NULL)) {
-            mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, false);
+     if (mShotSound == NULL) {
+            mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, launchLoc, false);
      }
 }
 

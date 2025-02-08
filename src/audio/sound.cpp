@@ -26,7 +26,7 @@ void SoundEngine::StopAllSounds() {
         }
     }
 
-    StopEngineSound();
+    StopEngineSoundForAllPlayers();
 }
 
 bool SoundEngine::IsAnySoundPlaying() {
@@ -40,39 +40,122 @@ bool SoundEngine::IsAnySoundPlaying() {
             }
         }
 
-    if (engineSound != NULL) {
-        if (engineSound->getStatus() == (engineSound->Playing))
-            return true;
+    //is any engine sound playing?
+    //which players engine sound needs to be updated?
+    std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
+
+    for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
+        if ((*it).second != NULL) {
+            if ((*it).second->getStatus() == ((*it).second->Playing))
+                return true;
+        }
     }
 
    return false;
 }
 
-void SoundEngine::StartEngineSound() {
+void SoundEngine::RequestEngineSoundForPlayer(Player* player) {
     SoundResEntry* pntr = SearchSndRes(SRES_GAME_LARGECAR);
 
-    engineSound = new sf::Sound();
+    sf::Sound *newEngineSound = new sf::Sound();
 
-    engineSound->setVolume(mSoundVolume);
-    engineSound->setBuffer(*pntr->pntrSoundBuf);
-    engineSound->setLoop(true);
+    newEngineSound->setVolume(mSoundVolume);
+    newEngineSound->setBuffer(*pntr->pntrSoundBuf);
+    newEngineSound->setLoop(true);
 
-    if (mSoundVolume > 1.0f) {
-        engineSound->play();
+    //make sound source location absolute to listener
+    newEngineSound->setRelativeToListener(false);
+
+    this->mEngineSoundVector.push_back(std::make_pair(player, newEngineSound));
+}
+
+void SoundEngine::StartEngineSoundForPlayer(Player* player) {
+    //which players engine sound needs to be updated?
+    std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
+
+    for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
+        if ((*it).first == player) {
+            //correct player found
+
+            if (mSoundVolume > 1.0f) {
+                (*it).second->play();
+            }
+
+            break;
+        }
     }
 }
 
-void SoundEngine::SetPlayerSpeed(float speed, float maxSpeed) {
-    this->playerSpeed = speed;
-    this->playerMaxSpeed = maxSpeed;
+//with directional sound effect, engine sound in this case has also a location
+//used for all the players that are not controlled by the human player
+void SoundEngine::SetPlayerSpeed(Player* player, float speed, float maxSpeed, irr::core::vector3df playerLocation, bool spatialSound) {
+    //which players engine sound needs to be updated?
+    std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
 
-    engineSound->setPitch(float(0.6) + (speed/maxSpeed) * float(0.8));
+    for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
+        if ((*it).first == player) {
+            //correct player found
+            //update values for engine sound
+
+            (*it).second->setPitch(float(0.6) + (speed/maxSpeed) * float(0.8));
+
+            //update sound source position
+            (*it).second->setPosition(playerLocation.X, playerLocation.Y, playerLocation.Z);
+
+            if (!spatialSound) {
+                (*it).second->setAttenuation(0.0f);
+                (*it).second->setRelativeToListener(true);
+            } else {
+                //restore default attenuation setting of 1.0f
+                (*it).second->setAttenuation(1.0f);
+                (*it).second->setRelativeToListener(false);
+            }
+
+            break;
+        }
+    }
 }
 
-void SoundEngine::StopEngineSound() {
-    if (engineSound != NULL) {
-        this->engineSound->stop();
+//without directional sound effect, engine sound in this case has no location
+//is used by the human controller player craft, to not get weird sound effects of human
+//players engine sound (sound modulation vs. rotation of player craft etc...)
+void SoundEngine::SetPlayerSpeed(Player* player, float speed, float maxSpeed) {
+    SetPlayerSpeed(player, speed, maxSpeed, *this->mNonLocalizedSoundPos, false);
+}
+
+void SoundEngine::StopEngineSoundForAllPlayers() {
+    //which players engine sound needs to be updated?
+    std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
+
+    for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
+            if ((*it).second != NULL) {
+                (*it).second->stop();
+            }
     }
+}
+
+void SoundEngine::StopEngineSoundForPlayer(Player* player) {
+    //which players engine sound needs to be updated?
+    std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
+
+    for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
+        if ((*it).first == player) {
+            //correct player found
+
+            if ((*it).second != NULL) {
+                (*it).second->stop();
+            }
+
+            break;
+        }
+    }
+}
+
+void SoundEngine::UpdateListenerLocation(irr::core::vector3df location, irr::core::vector3df frontDirVec) {
+   sf::Listener::setPosition(location.X, location.Y, location.Z);
+
+   frontDirVec.normalize();
+   sf::Listener::setDirection(frontDirVec.X, frontDirVec.Y, -frontDirVec.Z);
 }
 
 SoundEngine::SoundEngine() {
@@ -84,10 +167,10 @@ SoundEngine::SoundEngine() {
 
     mNrSoundSources = 0;
 
-    engineSound = NULL;
-
     //load all sound resource files
     LoadSoundResources();
+
+    mNonLocalizedSoundPos = new irr::core::vector3df(0.0f, 0.0f, 0.0f);
 }
 
 //searches for a sound resource entry with a certain specified sound ID
@@ -150,12 +233,18 @@ void SoundEngine::SetVolume(float soundVolume) {
     if (soundVolume < 1.0f) {
         mSoundVolume = 0.0f;
         mPlaySound = false;
-        StopEngineSound();
+        StopEngineSoundForAllPlayers();
     } else {
         mPlaySound = true;
         mSoundVolume = soundVolume;
-        if (engineSound != NULL) {
-            engineSound->setVolume(soundVolume);
+
+        //which players engine sound needs to be updated?
+        std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
+
+        for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
+            if ((*it).second != NULL) {
+                (*it).second->setVolume(soundVolume);
+            }
         }
 
         //updating volume of existing sound sources
@@ -172,7 +261,17 @@ bool SoundEngine::GetIsSoundActive() {
     return mPlaySound;
 }
 
+//Localized sound source
+sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, irr::core::vector3df sourceLocation, bool looping) {
+    return PlaySound(soundResId, true, sourceLocation, looping);
+}
+
+//non Localized sound source
 sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool looping) {
+    return PlaySound(soundResId, false, *mNonLocalizedSoundPos, looping);
+}
+
+sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, bool looping) {
     //if we should not play sounds exit
     if (!mPlaySound)
         return NULL;
@@ -187,6 +286,17 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool looping) {
                 //we found a free sound source to play buffer
                 sndPntr->setBuffer(*pntr->pntrSoundBuf);
                 sndPntr->setLoop(looping);
+                sndPntr->setPosition(sourceLocation.X, sourceLocation.Y, sourceLocation.Z);
+
+                //if this is a non localized sound source also set sound attenuation
+                //over distance to 0, to make sure sounds are not getting more faint over distance
+                if (!localizedSoundSource) {
+                    sndPntr->setAttenuation(0.0f);
+                } else {
+                    //restore the default attenuation of 1.0f
+                    sndPntr->setAttenuation(1.0f);
+                }
+
                 sndPntr->play();
 
                 //return sound source we have used
@@ -212,54 +322,54 @@ void SoundEngine::LoadSoundResources() {
     mInitOk = true;
 
     //load all the sound resource files we need for this game
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_MENUE_TYPEWRITEREFFECT1, SRES_MENUE_TYPEWRITEREFFECT1);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_MENUE_TYPEWRITEREFFECT2, SRES_MENUE_TYPEWRITEREFFECT2);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_MENUE_SELECTOTHERITEM, SRES_MENUE_SELECTOTHERITEM);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_MENUE_CHANGECHECKBOXVAL, SRES_MENUE_CHANGECHECKBOXVAL);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_MENUE_WINDOWMOVEMENT, SRES_MENUE_WINDOWMOVEMENT);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT1, SRES_MENUE_TYPEWRITEREFFECT1);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT2, SRES_MENUE_TYPEWRITEREFFECT2);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_SELECTOTHERITEM, SRES_MENUE_SELECTOTHERITEM);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_CHANGECHECKBOXVAL, SRES_MENUE_CHANGECHECKBOXVAL);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_WINDOWMOVEMENT, SRES_MENUE_WINDOWMOVEMENT);
 
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_PICKUP, SRES_GAME_PICKUP);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_REFUEL, SRES_GAME_REFUEL);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_LARGECAR, SRES_GAME_LARGECAR);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_WARNING, SRES_GAME_WARNING);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_TURBO, SRES_GAME_TURBO);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_BOOSTER, SRES_GAME_BOOSTER);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_COLLIDED, SRES_GAME_COLLISION);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_PICKUP, SRES_GAME_PICKUP);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_REFUEL, SRES_GAME_REFUEL);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_LARGECAR, SRES_GAME_LARGECAR);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_WARNING, SRES_GAME_WARNING);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_TURBO, SRES_GAME_TURBO);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_BOOSTER, SRES_GAME_BOOSTER);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_COLLIDED, SRES_GAME_COLLISION);
 
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_MGUN_SINGLESHOT, SRES_GAME_MGUN_SINGLESHOT);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_MGUN_SHOTFAILED, SRES_GAME_MGUN_SHOTFAILED);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_MGUN_LONGSHOT, SRES_GAME_MGUN_LONGSHOT);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MGUN_SINGLESHOT, SRES_GAME_MGUN_SINGLESHOT);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MGUN_SHOTFAILED, SRES_GAME_MGUN_SHOTFAILED);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MGUN_LONGSHOT, SRES_GAME_MGUN_LONGSHOT);
 
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
 
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
 
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_RICCO1, SRES_GAME_RICCO1);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_RICCO2, SRES_GAME_RICCO2);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_RICCO3, SRES_GAME_RICCO3);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_LOCKON, SRES_GAME_LOCKON);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_START1, SRES_GAME_START1);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_GAME_START2, SRES_GAME_START2);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_RICCO1, SRES_GAME_RICCO1);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_RICCO2, SRES_GAME_RICCO2);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_RICCO3, SRES_GAME_RICCO3);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_LOCKON, SRES_GAME_LOCKON);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_START1, SRES_GAME_START1);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_START2, SRES_GAME_START2);
 
     //load all the intro sounds as well
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_TURBO, SRES_INTRO_TURBO);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_SMALLCAR, SRES_INTRO_SMALLCAR);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_SCRAPE2, SRES_INTRO_SCRAPE2);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_RICCOS, SRES_INTRO_RICCOS);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_PAST, SRES_INTRO_PAST);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_MISSILE, SRES_INTRO_MISSILE);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_MINIGUN, SRES_INTRO_MINIGUN);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
-    mInitOk &= mInitOk && LoadSoundResouce(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);    
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_TURBO, SRES_INTRO_TURBO);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_SMALLCAR, SRES_INTRO_SMALLCAR);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_SCRAPE2, SRES_INTRO_SCRAPE2);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_RICCOS, SRES_INTRO_RICCOS);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_PAST, SRES_INTRO_PAST);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_MISSILE, SRES_INTRO_MISSILE);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_MINIGUN, SRES_INTRO_MINIGUN);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
+    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);
 }
 
 //Loads a single specified sound resource
-bool SoundEngine::LoadSoundResouce(char *fileName, uint8_t soundResId) {
+bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
     //first make sure the specified new sound resource ID is not
     //existing yet
     if (SearchSndRes(soundResId) != NULL) {
@@ -331,7 +441,7 @@ SoundEngine::~SoundEngine() {
     StopAllSounds();
 
     //stop engine sound as well
-    StopEngineSound();
+    StopEngineSoundForAllPlayers();
 
     //delete all available sound resource
     DeleteSoundResource(SRES_MENUE_TYPEWRITEREFFECT1);
@@ -380,4 +490,6 @@ SoundEngine::~SoundEngine() {
     DeleteSoundResource(SRES_INTRO_BOOSTER);
 
     delete SoundResVec;
+
+    delete mNonLocalizedSoundPos;
 }

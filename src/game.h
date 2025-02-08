@@ -38,6 +38,8 @@ class Menue; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
 struct MenueAction; //Forward declaration
 class Logger; //Forward declaration
+class SoundEngine; //Forward declaration
+class Assets; //Forward declaration
 
 class Game {
 private:
@@ -57,8 +59,8 @@ private:
     MyMusicStream* gameMusicPlayer = NULL;
     SoundEngine* gameSoundEngine = NULL;
 
-    float volumeSound = 60.0f; //60.0f;
-    float volumeMusic = 90.0f; //90.0f;
+    float volumeSound = 80.0f; //60.0f;
+    float volumeMusic = 60.0f; //90.0f;
 
     //own game stuff
     TimeProfiler* mTimeProfiler;

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -9,8 +9,9 @@
 
 #include "collectable.h"
 
+//this constructor is for the first type of entity/collectable (which is created based on a game map file entity item)
 Collectable::Collectable(Race* race, EntityItem* entityItem,
-                         int number, vector3d<irr::f32> pos, irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver* driver) {
+                          vector3d<irr::f32> pos, irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver* driver) {
     this->m_driver = driver;
     this->m_smgr = mSmgr;
     this->mEntityItem = entityItem;
@@ -18,11 +19,51 @@ Collectable::Collectable(Race* race, EntityItem* entityItem,
 
     mEnableLightning = mRace->mGame->enableLightning;
 
-    //preset values, also used in
-    //HiOctaneTools
-    irr::f32 w = 0.45f;
-    irr::f32 h = 0.45f;
+    SetupSceneNode(mEntityItem->getEntityType(), pos);
 
+    //default is non visible after
+    //start of game, and before entity group
+    //1 is triggered (group 1 is triggered once
+    //at game start to make initial collectables visible)
+    this->isVisible = false;
+
+    //I am not active (visible), hide my sceneNode
+    this->billSceneNode->setVisible(false);
+}
+
+//this constructor is for the second type of entity/collectable (which is temporarily spawned when a player craft breaks down)
+Collectable::Collectable(Race* race, Entity::EntityType type, vector3d<irr::f32> pos,
+                         irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver) {
+
+    //for the second type of collectable (spawned temporary collectable)
+    //there is no entity Item object in the background, is always null
+    this->mEntityItem = NULL;
+
+    //the type of collectable is stored for this second type
+    //in a different member variable directly in this object
+    this->mEntityType = type;
+
+    this->m_driver = driver;
+    this->m_smgr = mSmgr;
+    mRace = race;
+
+    mEnableLightning = mRace->mGame->enableLightning;
+
+    SetupSceneNode(type, pos);
+
+    //for the spawned collectables the default
+    //setting is visible immediately
+    this->isVisible = true;
+
+    //I am active (visible), show my sceneNode
+    this->billSceneNode->setVisible(true);
+}
+
+irr::f32 Collectable::GetCollectableCenterHeight() {
+    return (CollectableSize_h * 0.75f);
+}
+
+void Collectable::SetupSceneNode(Entity::EntityType type, irr::core::vector3df pos) {
     //Position is the center of the BillboardSceneNode
     //Position in the level file could be the bottom location at the surface
     //therefore we need to add the height of the billboard to the Y coordinate
@@ -32,20 +73,16 @@ Collectable::Collectable(Race* race, EntityItem* entityItem,
     //Note 27.12.2024: put a little bit higher,
     //so that it can be collected much more reliable
     //with bounding box
-    Position.Y += (h * 0.75f);
+    Position.Y += GetCollectableCenterHeight();
 
-    this->m_Size.set(w, h, irr::f32(0.01f));
+    this->m_Size.set(CollectableSize_w, CollectableSize_h, irr::f32(0.01f));
 
-    char fname[20];
-    sprintf (fname, "%0*d", 4, number);
-
-    m_texfile.clear();
-    m_texfile.append("extract/sprites/tmaps");
-    m_texfile.append(fname);
-    m_texfile.append(".png");
+    //if entity type is invalid for a collectable the function below will fallback
+    //to sprite number 42, which is a sprite I did not know the purpose of
+    std::string spriteFileName = mRace->GetCollectableSpriteFileName(type);
 
     //loading the specified entity (billboard) texture file
-    collectable_tex = driver->getTexture(m_texfile.c_str());
+    collectable_tex = m_driver->getTexture(spriteFileName.c_str());
     texturesize = collectable_tex->getSize();
 
     this->billSceneNode = this->m_smgr->addBillboardSceneNode();
@@ -58,20 +95,11 @@ Collectable::Collectable(Race* race, EntityItem* entityItem,
     this->billSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
     this->billSceneNode->setPosition(Position);
-    this->billSceneNode->setSize(irr::core::dimension2d<irr::f32>(w, h));
+    this->billSceneNode->setSize(irr::core::dimension2d<irr::f32>(CollectableSize_w, CollectableSize_h));
 
     //get bounding box for this collectible
     this->billSceneNode->updateAbsolutePosition();
     this->boundingBox = this->billSceneNode->getTransformedBoundingBox();
-
-    //default is non visible after
-    //start of game, and before entity group
-    //1 is triggered (group 1 is triggered once
-    //at game start to make initial collectables visible)
-    this->isVisible = false;
-
-    //I am not active (visible), hide my sceneNode
-    this->billSceneNode->setVisible(false);
 }
 
 irr::core::vector2df Collectable::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
@@ -79,6 +107,40 @@ irr::core::vector2df Collectable::GetMyBezierCurvePlaningCoord(irr::core::vector
     irr::core::vector2df result(this->Position.X, this->Position.Z);
 
     return result;
+}
+
+//allows to update position if collectable
+//for example used by the collectablespawner
+//Important note: does NOT update the position of an
+//underlying entityItem, only useful for type 2 collectable!
+void Collectable::UpdatePosition(irr::core::vector3df newPostion) {
+    this->Position = newPostion;
+
+    this->billSceneNode->setPosition(this->Position);
+}
+
+void Collectable::SetVisible(bool visible) {
+    this->isVisible = visible;
+
+    this->billSceneNode->setVisible(visible);
+}
+
+//this function must be used to get the type of collectable
+//because this function takes care of the two different types
+//of collectable possible
+Entity::EntityType Collectable::GetCollectableType() {
+    //type 1 collectable (from map file)?
+    if (mEntityItem != NULL) {
+        //type 1, information is stored within a EntityItem object
+        //from the level/map file
+        return (mEntityItem->getEntityType());
+    }
+
+    //is a type 2 collectable (spawned, temporariy)
+    //not stored inside the map file
+    //here type is stored inside a member variable
+    //directly in this object
+    return mEntityType;
 }
 
 Collectable::~Collectable() {

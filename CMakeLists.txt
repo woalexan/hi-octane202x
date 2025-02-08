@@ -165,6 +165,8 @@ add_executable(hi-octane202x
     src/models/expentity.cpp
     src/models/camera.h
     src/models/camera.cpp
+    src/models/collectablespawner.h
+    src/models/collectablespawner.cpp
 
     src/utils/crc32.h
     src/utils/crc32.cpp
@@ -183,6 +185,8 @@ add_executable(hi-octane202x
     src/utils/logger.h
     src/utils/logger.cpp
     src/utils/logging.h
+    src/utils/movingavg.h
+    src/utils/movingavg.cpp
 
     src/utils/boundingbox/coord_frame.h
     src/utils/boundingbox/basis.h

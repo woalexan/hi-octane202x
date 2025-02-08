@@ -65,6 +65,8 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     recoveryVec = new std::vector<Recovery*>;
     recoveryVec->clear();
 
+    mCollectableSpawnerVec.clear();
+
     //my vector of player that need help
     //of a recovery vehicle and are currently waiting
     //for it
@@ -183,6 +185,7 @@ Race::~Race() {
 
     CleanUpMorphs();
     CleanUpSteamFountains();
+    CleanUpCollectableSpawners();
     CleanUpEntities();
 
     CleanUpRecoveryVehicles();
@@ -611,6 +614,9 @@ void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageT
 
             //trigger explosion at location of killed player
             this->mExplosionLauncher->Trigger(targetToHit->phobj->physicState.position);
+
+            //spawn collectibles at location of killed player
+            SpawnCollectiblesForPlayer(targetToHit);
         }
     }
 }
@@ -836,6 +842,12 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     } else if (mCurrentPhase == DEF_RACE_PHASE_RACING) {
         newPlayer->SetupToSkipStart();
     }
+
+    //request new engine sound for new player
+    this->mSoundEngine->RequestEngineSoundForPlayer(newPlayer);
+
+    //start engine sound for new player
+    this->mSoundEngine->StartEngineSoundForPlayer(newPlayer);
 }
 
 void Race::SetupPhysicsObjectParameters(PhysicsObject &phyObj, bool humanPlayer) {
@@ -1954,6 +1966,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update all particle systems
     UpdateParticleSystems(frameDeltaTime);
 
+    //update all collectable spawners
+    UpdateCollectableSpawners(frameDeltaTime);
+
     //update all current explosions
     mExplosionLauncher->Update(frameDeltaTime);
 
@@ -2035,10 +2050,19 @@ void Race::ProcessPendingTriggers() {
         for (it = mPendingTriggerTargetGroups.begin(); it != mPendingTriggerTargetGroups.end(); ) {
             //check all collectables
             for (itCollect = this->ENTCollectablesVec->begin(); itCollect != this->ENTCollectablesVec->end(); ++itCollect) {
-                if ((*itCollect)->mEntityItem->getGroup() == (*it)) {
-                    //this collectable belongs to the group we need to
-                    //trigger according to the target trigger
-                    (*itCollect)->Trigger();
+                //Note 02.02.2025: Today I introduced a second type of collectable object, which is for spawned
+                //temporary collectables (for example spawned by the collectablespawner then a player craft is destroyed)
+                //For this type of collectable there is no entityItem object in the background, as there is no map file entry
+                //behind this collectable; This type of collectable has also no trigger, and therefore we need to skip collectables
+                //here which have an entityItem of NULL!
+                if ((*itCollect)->mEntityItem != NULL) {
+                    //need to check this collectable, is normal (type 1), has an
+                    //EntityItem in the background, and a trigger
+                    if ((*itCollect)->mEntityItem->getGroup() == (*it)) {
+                        //this collectable belongs to the group we need to
+                        //trigger according to the target trigger
+                        (*itCollect)->Trigger();
+                    }
                 }
             }
 
@@ -2397,7 +2421,7 @@ void Race::DrawSky() {
         irr::core::vector2di movingWindowSize(640, 480);
         irr::u32 moveX = 0;
 
-        moveX = (irr::u32)(((currPlayerFollow->absSkyAngleValue - 180.0f) / 180.0f) * 150.0f);
+        moveX = (irr::u32)(((currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue - 180.0f) / 180.0f) * 150.0f);
 
         irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
                                           mSkyImage->getSize().Width / 2 + (1024 / 2) - 75 + moveX , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
@@ -2406,7 +2430,7 @@ void Race::DrawSky() {
 
         draw2DImage(mDriver, mSkyImage ,locMovingWindow,
              irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
-             currPlayerFollow->absSkyAngleValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
+             currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
     }
 }
 
@@ -3583,6 +3607,11 @@ void Race::createFinalCollisionData() {
 }
 
 void Race::CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f32> playerBox) {
+    //ony allow player which is not currently broken down to collect
+    //collectables
+    if (player->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_BROKEN)
+        return;
+
     std::vector<Collectable*>::iterator it;
 
     for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ++it) {
@@ -3672,31 +3701,6 @@ void Race::UpdateExternalCameras() {
     }
 }
 
-void Race::ManagePlayerCamera() {
-    irr::scene::ICameraSceneNode* activeCam = NULL;
-
-    if (playerCamera) {
-        //get active camera of currently selected
-        //player, and check if it has changed
-        if (this->currPlayerFollow != NULL) {
-            activeCam = this->currPlayerFollow->DeliverActiveCamera();
-        }
-    } else {
-        //free moving camera to inspect the level/map
-        activeCam = mCamera;
-    }
-
-    if (activeCam == NULL)
-        return;
-
-    //has the active camera changed?
-    //if so change it for rendering
-    if (activeCam != currActiveCamera) {
-        this->mSmgr->setActiveCamera(activeCam);
-        currActiveCamera = activeCam;
-    }
-}
-
 void Race::FindNextPlayerToFollowInDemoMode() {
     std::vector<Player*>::iterator it;
 
@@ -3756,6 +3760,49 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
     if (activeCam != currActiveCamera) {
         this->mSmgr->setActiveCamera(activeCam);
         currActiveCamera = activeCam;
+    }
+
+    UpdateSoundListener();
+}
+
+void Race::ManagePlayerCamera() {
+    irr::scene::ICameraSceneNode* activeCam = NULL;
+
+    if (playerCamera) {
+        //get active camera of currently selected
+        //player, and check if it has changed
+        if (this->currPlayerFollow != NULL) {
+            activeCam = this->currPlayerFollow->DeliverActiveCamera();
+        }
+    } else {
+        //free moving camera to inspect the level/map
+        activeCam = mCamera;
+    }
+
+    if (activeCam == NULL)
+        return;
+
+    //has the active camera changed?
+    //if so change it for rendering
+    if (activeCam != currActiveCamera) {
+        this->mSmgr->setActiveCamera(activeCam);
+        currActiveCamera = activeCam;
+    }
+
+    UpdateSoundListener();
+}
+
+void Race::UpdateSoundListener() {
+    //tell soundEngine where the current sound listener
+    //is positioned (listener is the location of the
+    //currently selected camera)
+    if (currActiveCamera != NULL) {
+        irr::core::vector3df target = currActiveCamera->getTarget();
+        irr::core::vector3df camPos = currActiveCamera->getAbsolutePosition();
+
+        irr::core::vector3df camDirVec = (target - camPos);
+
+        this->mSoundEngine->UpdateListenerLocation(camPos, camDirVec);
     }
 }
 
@@ -3940,7 +3987,8 @@ void Race::AddTrigger(EntityItem *entity) {
     this->mTriggerRegionVec.push_back(newTriggerRegion);
 }
 
-void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver) {
+void Race::createEntity(EntityItem *p_entity,
+                        LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver) {
     //Line line;
     irr::f32 w, h;
     Collectable* collectable;
@@ -4208,82 +4256,24 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
                 break;
             }
 
+        //this are default collectable items from
+        //the map files
         case Entity::EntityType::ExtraFuel:
-            {
-                    collectable = new Collectable(this, p_entity, 29, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
-
         case Entity::EntityType::FuelFull:
-            {
-                    collectable = new Collectable(this, p_entity, 30, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
         case Entity::EntityType::DoubleFuel:
-            {
-                    collectable = new Collectable(this, p_entity, 31, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
-
         case Entity::EntityType::ExtraAmmo:
-            {
-                    collectable = new Collectable(this, p_entity, 32, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
         case Entity::EntityType::AmmoFull:
-            {
-                    collectable = new Collectable(this, p_entity, 33, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
         case Entity::EntityType::DoubleAmmo:
-            {
-                    collectable = new Collectable(this, p_entity, 34, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
-
         case Entity::EntityType::ExtraShield:
-            {
-                    collectable = new Collectable(this, p_entity, 35, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
         case Entity::EntityType::ShieldFull:
-            {
-                    collectable = new Collectable(this, p_entity, 36, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
         case Entity::EntityType::DoubleShield:
-            {
-                    collectable = new Collectable(this, p_entity, 37, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
-
         case Entity::EntityType::BoosterUpgrade:
-            {
-                    collectable = new Collectable(this, p_entity, 40, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
         case Entity::EntityType::MissileUpgrade:
-            {
-                    collectable = new Collectable(this, p_entity, 39, entity.getCenter(), this->mSmgr, driver);
+        case Entity::EntityType::MinigunUpgrade:  {
+                    collectable = new Collectable(this, p_entity, entity.getCenter(), this->mSmgr, driver);
                     ENTCollectablesVec->push_back(collectable);
                     break;
-            }
-        case Entity::EntityType::MinigunUpgrade:
-            {
-                    collectable = new Collectable(this, p_entity, 38, entity.getCenter(), this->mSmgr, driver);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-            }
+        }
 
         case Entity::EntityType::UnknownShieldItem:
             {
@@ -4342,5 +4332,168 @@ void Race::createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain 
                     break;
             }
     }
+}
 
+//returns filename of sprite file for collectable
+//invalid entity types will revert to sprite number 42
+std::string Race::GetCollectableSpriteFileName(Entity::EntityType mEntityType) {
+    int nrSprite;
+    std::string result;
+
+    result.clear();
+
+    switch (mEntityType) {
+        case Entity::EntityType::ExtraFuel:
+        {
+            nrSprite = 29;
+            break;
+        }
+
+        case Entity::EntityType::FuelFull:
+        {
+            nrSprite = 30;
+            break;
+        }
+        case Entity::EntityType::DoubleFuel:
+        {
+            nrSprite = 31;
+            break;
+        }
+
+        case Entity::EntityType::ExtraAmmo:
+        {
+           nrSprite = 32;
+           break;
+        }
+        case Entity::EntityType::AmmoFull:
+            {
+               nrSprite = 33;
+               break;
+            }
+        case Entity::EntityType::DoubleAmmo:
+            {
+               nrSprite = 34;
+               break;
+            }
+
+        case Entity::EntityType::ExtraShield:
+            {
+               nrSprite = 35;
+               break;
+            }
+        case Entity::EntityType::ShieldFull:
+            {
+               nrSprite = 36;
+               break;
+            }
+        case Entity::EntityType::DoubleShield:
+            {
+               nrSprite = 37;
+               break;
+            }
+
+        case Entity::EntityType::BoosterUpgrade:
+            {
+               nrSprite = 40;
+               break;
+            }
+        case Entity::EntityType::MissileUpgrade:
+            {
+              nrSprite = 39;
+              break;
+            }
+        case Entity::EntityType::MinigunUpgrade:
+            {
+              nrSprite = 38;
+              break;
+            }
+
+        default: {
+            nrSprite = 42;
+            break;
+        }
+    }
+
+    //construct file name
+    char fname[20];
+    sprintf (fname, "%0*d", 4, nrSprite);
+
+    result.append("extract/sprites/tmaps");
+    result.append(fname);
+    result.append(".png");
+
+    return result;
+}
+
+void Race::SpawnCollectiblesForPlayer(Player* player) {
+   if (player == NULL)
+       return;
+
+   //spawn collectibles at the current player location
+   irr::core::vector3df location = player->phobj->physicState.position;
+
+   CollectableSpawner* newSpawner = new CollectableSpawner(
+               this, location, mSmgr, mDriver);
+
+   newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraFuel);
+   newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraShield);
+   newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraAmmo);
+   newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraFuel);
+   newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraShield);
+   newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraAmmo);
+
+   newSpawner->Trigger();
+
+   mCollectableSpawnerVec.push_back(newSpawner);
+}
+
+void Race::UpdateCollectableSpawners(irr::f32 frameDeltaTime) {
+    //are there any collectable spawners right now
+    //to update?
+    if (mCollectableSpawnerVec.size() > 0) {
+        std::vector<CollectableSpawner*>::iterator it;
+        CollectableSpawner* pntr;
+
+        //are there any collectable spawners that have finished
+        //their job completely, and need to be cleaned up?
+        for (it = mCollectableSpawnerVec.begin(); it != mCollectableSpawnerVec.end(); ) {
+            if ((*it)->CanBeCleanedUp()) {
+                //is finished, needs to be cleaned up
+                pntr = (*it);
+
+                it = mCollectableSpawnerVec.erase(it);
+
+                //also delete collectable spawner we do not need
+                //anymore
+                delete pntr;
+            } else {
+                //verify next element
+                it++;
+            }
+        }
+
+        //update all remaining active collectible spawners
+        for (it = mCollectableSpawnerVec.begin(); it != mCollectableSpawnerVec.end(); ++it) {
+            ((*it)->Update(frameDeltaTime));
+        }
+    }
+}
+
+void Race::CleanUpCollectableSpawners() {
+    //makes sure that we also cleanup any collectable spawners
+    //that have not yet finished their job
+    //so that we do not have a memory leak
+    if (mCollectableSpawnerVec.size() > 0) {
+        std::vector<CollectableSpawner*>::iterator it;
+        CollectableSpawner* pntr;
+
+        for (it = mCollectableSpawnerVec.begin(); it != mCollectableSpawnerVec.end(); ) {
+                pntr = (*it);
+
+                it = mCollectableSpawnerVec.erase(it);
+
+                //delete collectable spawner itself
+                delete pntr;
+        }
+    }
 }

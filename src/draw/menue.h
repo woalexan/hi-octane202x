@@ -137,6 +137,7 @@ typedef struct MenueAction {
 
 struct MenuePage; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
+class SoundEngine; //Forward declaration
 
 //this struct holds the information about a single
 //menue entry

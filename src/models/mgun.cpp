@@ -164,15 +164,19 @@ void MachineGun::Trigger() {
         freeStruct->shooting = true;
      }
 
-     if (mParent->mHumanPlayer) {
-            freeStruct->mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT, false);
-     }
+     //if (mParent->mHumanPlayer) {
+            freeStruct->mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT,
+                                                                             mParent->phobj->physicState.position, false);
+     //}
 
     } else if ((freeStruct != NULL) && (coolOffTime > 0.1f)) {
         //shoot attempt that failed, because gun is to warm
+        //only play this sound for a human player, for a computer player
+        //this does not make sense, and only is disturbing
         if (mParent->mHumanPlayer) {
            if (mShotFailSound == NULL) {
-                mShotFailSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED, false);
+                mShotFailSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED,
+                                                                         mParent->phobj->physicState.position, false);
            }
         }
     }
