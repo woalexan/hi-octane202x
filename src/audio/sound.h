@@ -13,6 +13,7 @@
 #include "SFML/Audio.hpp"
 #include "../definitions.h"
 #include <cstdint>
+#include "../models/player.h"
 
 //File name definition
 #define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"
@@ -98,6 +99,8 @@
 //maximum number of allowed sound sources
 #define SOUND_MAXNR 20
 
+class Player; //Forward declaration
+
 struct SoundResEntry {
     sf::SoundBuffer* pntrSoundBuf;
     uint8_t soundResId;
@@ -109,26 +112,47 @@ public:
   ~SoundEngine();
 
   bool getInitOk();
+
+  //play sound with localized sound source
+  sf::Sound* PlaySound(uint8_t soundResId, irr::core::vector3df sourceLocation, bool looping = false);
+  //play sound without localized sound source
   sf::Sound* PlaySound(uint8_t soundResId, bool looping = false);
+
   void StopLoopingSound(sf::Sound *pntrSound);
   bool IsAnySoundPlaying();
   void StopAllSounds();
 
-  void StartEngineSound();
-  void StopEngineSound();
-  void SetPlayerSpeed(float speed, float maxSpeed);
+  void StartEngineSoundForPlayer(Player* player);
+  void RequestEngineSoundForPlayer(Player* player);
+  void StopEngineSoundForPlayer(Player* player);
+  void StopEngineSoundForAllPlayers();
+
+  //with directional sound effect, engine sound in this case has also a location
+  //used for all the players that are not controlled by the human player
+  void SetPlayerSpeed(Player* player, float speed, float maxSpeed, irr::core::vector3df playerLocation, bool spatialSound = true);
+
+  //without directional sound effect, engine sound in this case has no location
+  //is used by the human controller player craft, to not get weird sound effects of human
+  //players engine sound (sound modulation vs. rotation of player craft etc...)
+  void SetPlayerSpeed(Player* player, float speed, float maxSpeed);
+
+
   bool GetIsSoundActive();
 
   //sets a new sound volume for all available sound
   //sources, 0 = sounds off, 100 = max volume
   void SetVolume(float soundVolume);
 
+  void UpdateListenerLocation(irr::core::vector3df location, irr::core::vector3df frontDirVec);
+
 private:
   bool mInitOk = false;
   bool mPlaySound = true;
   void LoadSoundResources();
 
-  bool LoadSoundResouce(char* fileName, uint8_t soundResId);
+  sf::Sound* PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, bool looping = false);
+
+  bool LoadSoundResource(char* fileName, uint8_t soundResId);
   void DeleteSoundResource(uint8_t soundResId);
 
   sf::Sound* GetFreeSoundSource();
@@ -143,9 +167,11 @@ private:
   uint8_t mNrSoundSources = 0;
   float mSoundVolume = 100.0f;
 
+  irr::core::vector3df* mNonLocalizedSoundPos;
+
   sf::Sound* engineSound;
-  float playerSpeed;
-  float playerMaxSpeed;
+
+  std::vector<std::pair<Player*, sf::Sound*>> mEngineSoundVector;
 };
 
 #endif // SOUND_H

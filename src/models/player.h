@@ -29,6 +29,8 @@
 #include "../utils/bezier.h"
 #include "../draw/hud.h"
 #include "../models/camera.h"
+#include "../utils/movingavg.h"
+
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
 
@@ -643,8 +645,6 @@ public:
     irr::core::vector3df dbgCurrCeilingMinPos;
     bool minCeilingFound;
 
-    irr::f32 absSkyAngleValue;
-
     irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
     irr::core::vector2df GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord);
 
@@ -664,6 +664,12 @@ public:
     irr::f32 lastHeightBack;
 
     irr::u8 playerAbsAngleSkytListElementNr = 0;
+
+    MovingAverageCalculator* mMovingAvgPlayerLeaningAngleLeftRightCalc;
+    irr::f32 mCurrentAvgPlayerLeaningAngleLeftRightValue;
+
+    //MovingAverageCalculator* mMovingAvgPlayerPositionCalc;
+    //irr::core::vector3df mCurrentAvgPlayerPosition;
 
     //computer player stuck detection logic
     //just a workaround to save computer players

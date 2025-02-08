@@ -36,6 +36,7 @@
 #include "models/timer.h"
 #include "models/expentity.h"
 #include "models/camera.h"
+#include "models/collectablespawner.h"
 
 using namespace std;
 
@@ -106,6 +107,8 @@ class Timer;   //Forward declaration
 class ExplosionEntity; //Forward declaration
 class Cone; //Forward declaration
 class Camera; //Forward declaration
+class CollectableSpawner; //Forward declaration
+class SoundEngine; //Forward declaration
 
 class Race {
 public:
@@ -265,6 +268,10 @@ public:
 
     /*void SetPlayerLocationAndAlignToTrackHeight(Player* player, irr::core::vector3df newLocation,
                                                 irr::core::vector3df newFrontDirVec);*/
+
+    //returns filename of sprite file for collectable
+    //invalid entity types will revert to sprite number 42
+    std::string GetCollectableSpriteFileName(Entity::EntityType mEntityType);
 
 private:
     int levelNr;
@@ -488,6 +495,7 @@ private:
 
     void ManageCameraDemoMode(irr::f32 deltaTime);
     void FindNextPlayerToFollowInDemoMode();
+    void UpdateSoundListener();
 
     void ProcessPendingTriggers();
 
@@ -514,6 +522,7 @@ private:
     void CleanUpTimers();
     void CleanUpExplosionEntities();
     void CleanUpCameras();
+    void CleanUpCollectableSpawners();
 
     void DebugDrawWayPointLinks(bool drawFreeMovementSpace = false);
 
@@ -524,6 +533,10 @@ private:
 
     void ControlStartPhase(irr::f32 frameDeltaTime);
     irr::f32 mStartPhaseTimeCounter = 0.0f;
+
+    std::vector<CollectableSpawner*> mCollectableSpawnerVec;
+    void UpdateCollectableSpawners(irr::f32 frameDeltaTime);
+    void SpawnCollectiblesForPlayer(Player* player);
 };
 
 #endif // RACE_H

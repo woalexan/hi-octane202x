@@ -483,7 +483,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
           swprintf(text2, 390, L"");
 
-           /*
+                   /*
           swprintf(text2, 390, L"Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n", //Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n",
                         this->mCurrentRace->mPlayerVec.at(0)->mPlayerStats->currLapNumber,
                         this->mCurrentRace->mPlayerVec.at(0)->nextCheckPointValue,
@@ -608,7 +608,7 @@ bool Game::CreateNewRace(int load_levelnr, bool debugRace) {
     if (mCurrentRace != NULL)
         return false;
 
-    gameSoundEngine->StartEngineSound();
+    //gameSoundEngine->StartEngineSound();
 
     //create a new Race
     mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
@@ -673,7 +673,7 @@ bool Game::RunDemoMode(int load_levelnr) {
     if (mCurrentRace != NULL)
         return false;
 
-    gameSoundEngine->StartEngineSound();
+    //gameSoundEngine->StartEngineSound();
 
     //create a new Race in Demo Mode
     mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,

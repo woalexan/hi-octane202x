@@ -186,6 +186,9 @@ Player::~Player() {
 
     CleanUpBrokenGlas();
     delete this->brokenGlasVec;
+
+    delete mMovingAvgPlayerLeaningAngleLeftRightCalc;
+    //delete mMovingAvgPlayerPositionCalc;
 }
 
 void Player::SetNewState(irr::u32 newPlayerState) {
@@ -486,6 +489,13 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     //create vector to store all the current broken Hud glas locations
     brokenGlasVec = new std::vector<HudDisplayPart*>();
     brokenGlasVec->clear();
+
+    //create a moving average calculation helper for craft leaning angle left/right with average over
+    //20 values
+    mMovingAvgPlayerLeaningAngleLeftRightCalc = new MovingAverageCalculator(MVG_AVG_TYPE_IRRFLOAT32, 20);
+
+    //create a moving average calculation helper for craft position over 10 samples
+    //mMovingAvgPlayerPositionCalc = new MovingAverageCalculator(MVG_AVG_TYPE_IRRCOREVECT3DF, 10);
 }
 
 //helper function, I one time thought I would need it especially for Recovery craft, when dropping the
@@ -2464,7 +2474,7 @@ void Player::StopRecordingHeightMapCollisionDbgData(char* outputDbgFileName) {
 void Player::Collided() {
     if (mHumanPlayer) {
            if (CollisionSound == NULL) {
-              CollisionSound = mRace->mSoundEngine->PlaySound(SRES_GAME_COLLISION, false);
+              CollisionSound = mRace->mSoundEngine->PlaySound(SRES_GAME_COLLISION, this->phobj->physicState.position, false);
            }
     }
 }
@@ -2712,7 +2722,7 @@ void Player::CpPlayerCollectableSelectionLogic() {
 
             for (it = this->mCpCollectablesSeenByPlayer.begin(); (it != this->mCpCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
                 if ((*it)->GetIfVisible()) {
-                    switch ((*it)->mEntityItem->getEntityType()) {
+                    switch ((*it)->GetCollectableType()) {
                         case Entity::EntityType::ExtraShield: {
                             break;
                         }
@@ -3916,10 +3926,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     if (updateSlowCnter >= 0.1) {
         updateSlowCnter = 0.0f;
 
-        if (mHumanPlayer) {
-            this->mRace->mSoundEngine->SetPlayerSpeed(this->mPlayerStats->speed, this->mPlayerStats->speedMax);
-        }
-
         if (mMaxTurboActive) {
 
         }
@@ -3975,29 +3981,30 @@ void Player::Update(irr::f32 frameDeltaTime) {
     CalcPlayerCraftLeaningAngle();
 
     if (!isnan(currPlayerCraftLeaningAngleDeg)) {
-
-            /* calculate player abs angle average list for sky rendering */
-            if (playerAbsAngleSkytListElementNr > 20) {
-                this->playerAbsAngleSkyList.pop_front();
-                playerAbsAngleSkytListElementNr--;
-            }
-
-            this->playerAbsAngleSkyList.push_back(this->currPlayerCraftLeaningAngleDeg);
-            playerAbsAngleSkytListElementNr++;
-
-            irr::f32 avgSkyVal = 0.0f;
-
-            std::list<irr::f32>::iterator itList;
-
-            for (itList = this->playerAbsAngleSkyList.begin(); itList != this->playerAbsAngleSkyList.end(); ++itList) {
-                avgSkyVal += (*itList);
-            }
-
-            avgSkyVal = (avgSkyVal / (irr::f32)(playerAbsAngleSkytListElementNr));
-            absSkyAngleValue = avgSkyVal;
+            //update average value for craft leaning angle left/right
+            //is needed to rotate sky image
+            mCurrentAvgPlayerLeaningAngleLeftRightValue = mMovingAvgPlayerLeaningAngleLeftRightCalc->AddNewValue(currPlayerCraftLeaningAngleDeg);
     }
 
-    /* calculate player abs angle average list for sky rendering end */
+    //update moving average of current player position
+    //value is needed to update spatial sound source location for player craft
+    //if we do not use a moving average of the position then the player engine sound
+    //has a weird amplitude modulation effect on it, because of craft position "jitter" from frame to frame
+    //mCurrentAvgPlayerPosition = mMovingAvgPlayerPositionCalc->AddNewValue(this->phobj->physicState.position);
+
+   // mCurrentAvgPlayerPosition = mMovingAvgPlayerPositionCalc->AddNewValue(World1stPersonCamPosPnt);
+
+    //if this players camera is currently selected to be followed
+    //set engine sound to be non spatial, otherwise we get a weird directional
+    //sound effect when the player rotates around his axis
+    if (this->mRace->currPlayerFollow == this) {
+        this->mRace->mSoundEngine->SetPlayerSpeed(this, this->mPlayerStats->speed, this->mPlayerStats->speedMax);
+    } else {
+        //is not the main player (player that we follow right now)
+        //use spatial engine sound
+        this->mRace->mSoundEngine->SetPlayerSpeed(this, this->mPlayerStats->speed, this->mPlayerStats->speedMax,
+                                                         this->phobj->physicState.position);
+    }
 
     mLastBoosterActive = mBoosterActive;
     mLastMaxTurboActive = mMaxTurboActive;
@@ -4746,10 +4753,8 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
         this->mRace->mSoundEngine->PlaySound(SRES_GAME_PICKUP);
     }
 
-    EntityItem entity = *whichCollectable->mEntityItem;
-
   //depending on the type of entity/collectable alter player stats
-    Entity::EntityType type = whichCollectable->mEntityItem->getEntityType();
+    Entity::EntityType type = whichCollectable->GetCollectableType();
 
     //Alex TODO important: figure out what the items do exactly with the player stats and how
     //much the effect is, right now this stuff does not make much sense to me
