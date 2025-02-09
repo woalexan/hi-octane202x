@@ -114,7 +114,7 @@ class Race {
 public:
     Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
          GameText* gameText, Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-         dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
+         dimension2d<u32> gameScreenRes, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
 
     ~Race();
 
@@ -283,6 +283,8 @@ private:
     irr::core::dimension2di miniMapSize;
     irr::core::vector2d<irr::s32> miniMapDrawLocation;
     MyMusicStream* mMusicPlayer;
+
+    irr::u8 mRaceNumberOfLaps;
 
     void SetupTopRaceTrackPointerOrigin();
 
@@ -537,6 +539,10 @@ private:
     std::vector<CollectableSpawner*> mCollectableSpawnerVec;
     void UpdateCollectableSpawners(irr::f32 frameDeltaTime);
     void SpawnCollectiblesForPlayer(Player* player);
+
+    void UpdateType2Collectables(irr::f32 frameDeltaTime);
+    std::vector<Collectable*> mType2CollectableForCleanupLater;
+
 };
 
 #endif // RACE_H

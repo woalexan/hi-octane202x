@@ -188,8 +188,8 @@ void Menue::AcceptedRaceSetup() {
     //show race loading page
     this->currSelMenuePage = raceLoadingMenuePage;
 
-    //set new number of default laps for this race track
-    this->mGameAssets->SetNewRaceTrackDefaultNrLaps(currSelectedRaceTrack + 1, currentSelRaceLapNumberVal);
+    //set main player craft selection in assets class
+    this->mGameAssets->SetNewMainPlayerSelectedCraft(this->currSelectedShip);
 
     //set new default craft color scheme
     this->mGameAssets->SetCurrentCraftColorScheme(this->currSelectedShipColorScheme);
@@ -567,7 +567,11 @@ void Menue::InitMenuePageEntries() {
     ComputerPlayersCheckBox->drawTextScrPosition = irr::core::vector2di(144, 270);
     ComputerPlayersCheckBox->nextMenuePage = NULL;
     //computer players is a checkbox
-    ComputerPlayersCheckBox->currValue = 1; //by default enabled
+    if (this->mGameAssets->GetComputerPlayersEnabled()) {
+        ComputerPlayersCheckBox->currValue = 1;
+    } else {
+        ComputerPlayersCheckBox->currValue = 0;
+    }
     ComputerPlayersCheckBox->maxValue = 1;
     ComputerPlayersCheckBox->checkBoxOutline.UpperLeftCorner.set(505, 271);
     ComputerPlayersCheckBox->checkBoxOutline.LowerRightCorner.set(527, 285);
@@ -582,7 +586,9 @@ void Menue::InitMenuePageEntries() {
     DifficultyLevel->drawTextScrPosition = irr::core::vector2di(152, 292);
     DifficultyLevel->nextMenuePage = NULL;
     //difficultyLevel allows to set 4 different levels
-    DifficultyLevel->currValue = 1; //by default easy
+    //get current difficulty level from assets class
+    DifficultyLevel->currValue = mGameAssets->GetCurrentGameDifficulty();
+
     DifficultyLevel->maxValue = 3;
     DifficultyLevel->checkBoxOutline.UpperLeftCorner.set(487, 293);
     DifficultyLevel->checkBoxOutline.LowerRightCorner.set(517, 306);
@@ -683,7 +689,20 @@ void Menue::InitMenuePageEntries() {
     MusicVolumeSlider->entryNumber = 0;
     MusicVolumeSlider->drawTextScrPosition = irr::core::vector2di(113, 225);
     //music volume is a slider with 16 blocks (17 different possible settings)
-    MusicVolumeSlider->currValue = 12; //by default enabled
+
+    //get current music volume from GameAssets class
+    irr::f32 currMusicVol = this->mGameAssets->GetMusicVolume();
+    currMusicVol = (currMusicVol / 100.0f) * (irr::f32)(16);
+
+    irr::u8 finalVal = (irr::u8)(currMusicVol);
+    //plausi check
+    if (finalVal < 0)
+        finalVal = 0;
+
+    if (finalVal > 16)
+        finalVal = 16;
+
+    MusicVolumeSlider->currValue = finalVal;
     MusicVolumeSlider->maxValue = 16;
     MusicVolumeSlider->checkBoxOutline.UpperLeftCorner.set(395, 226);
     MusicVolumeSlider->checkBoxOutline.LowerRightCorner.set(555, 240);
@@ -697,7 +716,20 @@ void Menue::InitMenuePageEntries() {
     EffectsVolumeSlider->entryNumber = 1;
     EffectsVolumeSlider->drawTextScrPosition = irr::core::vector2di(93, 247);
     //effects volume is a slider with 16 blocks (17 different possible settings)
-    EffectsVolumeSlider->currValue = 12; //by default enabled
+
+    //get current sound volume from GameAssets class
+    irr::f32 currSoundVol = this->mGameAssets->GetSoundVolume();
+    currSoundVol = (currSoundVol / 100.0f) * (irr::f32)(16);
+
+    finalVal = (irr::u8)(currSoundVol);
+    //plausi check
+    if (finalVal < 0)
+        finalVal = 0;
+
+    if (finalVal > 16)
+        finalVal = 16;
+
+    EffectsVolumeSlider->currValue = finalVal;
     EffectsVolumeSlider->maxValue = 16;
     EffectsVolumeSlider->checkBoxOutline.UpperLeftCorner.set(413, 248);
     EffectsVolumeSlider->checkBoxOutline.LowerRightCorner.set(573, 261);
@@ -1437,7 +1469,6 @@ void Menue::RenderRaceSelection() {
             StopMenueSound();
 
             if (currSelMenuePage == ShipSelectionPage) {
-                currSelectedShip= 0;
                 FinalPositionShipSelectionWheelReached(currSelectedShip);
 
                 RecalculateShipStatLabels();
@@ -1445,7 +1476,6 @@ void Menue::RenderRaceSelection() {
             }
 
             if (currSelMenuePage == RaceTrackSelectionPage) {
-                currSelectedRaceTrack = 0;
                 FinalPositionRaceTrackWheelReached(currSelectedRaceTrack);
 
             }
@@ -1546,20 +1576,23 @@ void Menue::ChangeToShipSelection() {
     //player ship selection
     HideRaceTrackModels();
 
+    //restore last selected main player craft from assets class
+    this->currSelectedShip = this->mGameAssets->GetMainPlayerSelectedCraft();
+
+    //restore last selected craft color scheme
     this->currSelectedShipColorScheme = this->mGameAssets->GetCurrentCraftColorScheme();
+
+    //put selection "wheel" to correct position immediately, no animation => parameter 3
+    Set3DModelShipWheelPositionIdx(currSelectedShip, 3);
+
+    //update selected craft color scheme
+    SetShipColorScheme(currSelectedShipColorScheme);
+
+    //This call is also needed afterwards to immediately set new wheel position
+    Update3DModelShipWheelPosition();
 
     //unhide player ship models, we need to see them
     UnhideShipModels();
-
-    //get the currently selected default color scheme from
-    //config.dat
-    SetShipColorScheme(currSelectedShipColorScheme);
-
-    currSelectedShip = 0;
-    FinalPositionShipSelectionWheelReached(currSelectedShip);
-
-    //select Speeder-K1
-    Set3DModelShipWheelPositionIdx(currSelectedShip, 0);
 
     //initially activate menue animation for start of game
     currSelWindowAnimation = windowMenueAnimationBetweenRaceAndShipSelection;
@@ -1575,8 +1608,17 @@ void Menue::ChangeToRaceSelection(MenueSingleEntry* callerItem) {
     //interrupting race track selection prematuraliy
     RaceTrackSelectionCallerMenueEntry = callerItem;
 
+    //which race track was last selected, restore
+    this->currSelectedRaceTrack = this->mGameAssets->GetLastSelectedRaceTrack();
+
     //get current configured number of laps from config.dat
-    this->currentSelRaceLapNumberVal = this->mGameAssets->mRaceTrackVec->at(0)->currSelNrLaps;
+    this->currentSelRaceLapNumberVal =
+            this->mGameAssets->mRaceTrackVec->at(this->currSelectedRaceTrack)->currSelNrLaps;
+
+    //put selection "wheel" to correct position immediately, no animation => parameter 3
+    Set3DModelRaceTrackWheelPositionIdx(currSelectedRaceTrack, 3);
+    //This call is also needed afterwards to immediately set new wheel position
+    Update3DModelRaceTrackWheelPosition();
 
     //unhide Race track models, we need to see them
     UnhideRaceTrackModels();
@@ -1617,7 +1659,8 @@ void Menue::InterruptRaceSelection() {
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
 
-    currSelectedRaceTrack = 0;
+    //restore last selected race track number
+    currSelectedRaceTrack = this->mGameAssets->GetLastSelectedRaceTrack();
 }
 
 void Menue::RenderIntro(irr::f32 frameDeltaTime) {
@@ -2594,6 +2637,12 @@ void Menue::HandleInputRaceSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+            //store last selected race track in assets class
+            this->mGameAssets->SetNewLastSelectedRaceTrack(currSelectedRaceTrack);
+
+            //set new number of default laps for this race track
+            this->mGameAssets->SetNewRaceTrackDefaultNrLaps(currSelectedRaceTrack, currentSelRaceLapNumberVal);
+
             //change to Ship selection page
             //TODO: add animation of window inbetween!
             currSelMenuePage = ShipSelectionPage;
@@ -2858,6 +2907,7 @@ void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
 //0 = wheel not moving
 //1 = wheel moving clock wise
 //2 = wheel moving counter clock wise
+//3 = immediatley update position (no rotation), used for restoring last state
 void Menue::Set3DModelRaceTrackWheelPositionIdx(irr::u8 newPosition, irr::u8 newWheelMoveState) {
     //newPosition = 0 -> selects Track1 to be in the front
     //newPosition = 1 -> selects Track2 to be in the front
@@ -2900,6 +2950,7 @@ void Menue::SetShipColorScheme(irr::u8 newSelectedColorScheme) {
 //0 = wheel not moving
 //1 = wheel moving clock wise
 //2 = wheel moving counter clock wise
+//3 = immediatley update position (no rotation), used for restoring last state
 void Menue::Set3DModelShipWheelPositionIdx(irr::u8 newPosition, irr::u8 newWheelMoveState) {
     //newPosition = 0 -> selects Ship1 to be in the front
     //newPosition = 1 -> selects Ship2 to be in the front
@@ -2928,6 +2979,7 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
     //0 = wheel not moving
     //1 = wheel moving clock wise
     //2 = wheel moving counter clock wise
+    //3 = immediatley update position (no rotation), used for restoring last state
     if (RaceTrackWheelMoving == 1) {
           currRaceTrackWheelAngleDeg += 5.0f;
 
@@ -2962,8 +3014,17 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
             //race track
             FinalPositionRaceTrackWheelReached(currSelectedRaceTrack);
        }
-
       }
+
+    //no animation, immediately set new location
+    if (RaceTrackWheelMoving == 3) {
+        RaceTrackWheelMoving = 0;
+        currRaceTrackWheelAngleDeg = targetRaceTrackWheelAngleDeg;
+
+        //update menue text, we reached the correct selected next
+        //race track
+        FinalPositionRaceTrackWheelReached(currSelectedRaceTrack);
+    }
 
     currAngleDeg = currRaceTrackWheelAngleDeg;
 
@@ -2986,6 +3047,7 @@ void Menue::Update3DModelShipWheelPosition() {
     //0 = wheel not moving
     //1 = wheel moving clock wise
     //2 = wheel moving counter clock wise
+    //3 = immediatley update position (no rotation), used for restoring last state
     if (ShipWheelMoving == 1) {
           currShipWheelAngleDeg += 5.0f;
 
@@ -2994,10 +3056,10 @@ void Menue::Update3DModelShipWheelPosition() {
           }
 
           if ((targetShipWheelAngleDeg - currShipWheelAngleDeg) < 5.0f) {
-          //turning wheel is finished, set final correct value of angle
-          ShipWheelMoving = 0;
-          currShipWheelAngleDeg = targetShipWheelAngleDeg;
-          FinalPositionShipSelectionWheelReached(currSelectedShip);
+              //turning wheel is finished, set final correct value of angle
+              ShipWheelMoving = 0;
+              currShipWheelAngleDeg = targetShipWheelAngleDeg;
+              FinalPositionShipSelectionWheelReached(currSelectedShip);
          }
     }
 
@@ -3009,12 +3071,20 @@ void Menue::Update3DModelShipWheelPosition() {
         }
 
         if ((currShipWheelAngleDeg - targetShipWheelAngleDeg) < 5.0f) {
-        //turning wheel is finished, set final correct value of angle
+            //turning wheel is finished, set final correct value of angle
+            ShipWheelMoving = 0;
+            currShipWheelAngleDeg = targetShipWheelAngleDeg;
+            FinalPositionShipSelectionWheelReached(currSelectedShip);
+       }
+      }
+
+    //Immediately update position, is used to restore last
+    //selected craft
+    if (ShipWheelMoving == 3) {
         ShipWheelMoving = 0;
         currShipWheelAngleDeg = targetShipWheelAngleDeg;
         FinalPositionShipSelectionWheelReached(currSelectedShip);
-       }
-      }
+    }
 
     currAngleDeg = currShipWheelAngleDeg;
 

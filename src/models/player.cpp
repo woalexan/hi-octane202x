@@ -404,7 +404,7 @@ void Player::AdvanceDbgColor() {
 
 Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition,
                irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
-               bool humanPlayer) {
+               irr::u8 nrLaps, bool humanPlayer) {
 
     mPlayerStats = new PLAYERSTATS();
 
@@ -427,6 +427,7 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     mPlayerStats->lastLap.lapTimeMultiple100mSec = 0;
     mPlayerStats->LapBeforeLastLap.lapNr = 0;
     mPlayerStats->LapBeforeLastLap.lapTimeMultiple100mSec = 0;
+    mPlayerStats->raceNumberLaps = nrLaps;
 
     mRace = race;
 
@@ -2163,7 +2164,9 @@ void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::ve
 
         if (resolvCnt == 0) {
             //a collision should occur, play collision sound
-            this->Collided();
+            if (!this->mCurrJumping) {
+                this->Collided();
+            }
         }
 
         //prevent collision detection to modify Y coordinate, this should
@@ -2333,7 +2336,9 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
                 //HeightMapCollisionResolve(cplane, collDataStruct->wCoordFront1, collDataStruct->wCoordFront2);
 
                 //a collision should occur, play collision sound
-                this->Collided();
+                if (!this->mCurrJumping) {
+                    this->Collided();
+                }
 
                 collSensor.currState = STATE_HMAP_COLL_RESOLVE;
 
@@ -2367,7 +2372,9 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
                 collSensor.distance = dist;
 
                 //a collision should occur, play collision sound
-                this->Collided();
+                if (!this->mCurrJumping) {
+                    this->Collided();
+                }
 
                 collSensor.currState = STATE_HMAP_COLL_RESOLVE;
 

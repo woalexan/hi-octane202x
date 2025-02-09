@@ -421,25 +421,10 @@ private:
     //Irrlicht SceneManagers for race track and ship selection page
     irr::scene::ISceneManager* smgrMenue;
 
-    //additional 3D models necessary for race track selection menue
-    //irr::scene::IMeshSceneNode* ModelTrack1;
-    //irr::scene::IMeshSceneNode* ModelTrack2;
-    //irr::scene::IMeshSceneNode* ModelTrack3;
-    //irr::scene::IMeshSceneNode* ModelTrack4;
-    //irr::scene::IMeshSceneNode* ModelTrack5;
-    //irr::scene::IMeshSceneNode* ModelTrack6;
-
     //stores the number of race tracks we have available
     //and we get from assets class for selection
     irr::u8 numRaceTracksAvailable;
     std::vector<irr::scene::IMeshSceneNode*> ModelTrackSceneNodeVec;
-
-    /*irr::scene::IMesh* MeshTrack1;
-    irr::scene::IMesh* MeshTrack2;
-    irr::scene::IMesh* MeshTrack3;
-    irr::scene::IMesh* MeshTrack4;
-    irr::scene::IMesh* MeshTrack5;
-    irr::scene::IMesh* MeshTrack6;*/
 
     //camera used for the race track/ship selection 3D rendering
     scene::ICameraSceneNode* MenueCamera;
@@ -451,25 +436,6 @@ private:
     //we have a vector of sceneNodes, because each ship
     //is available in different color schemes!
     std::vector<std::vector<irr::scene::IMeshSceneNode*>*> ModelCraftsSceneNodeVec;
-
-    //additional 3D models necessary for ship selection menue
-    //we have a vector of sceneNodes, because each ship
-    //is available in different color schemes!
-    //std::vector<irr::scene::IMeshSceneNode*> ModelShip1;
-    //std::vector<irr::scene::IMeshSceneNode*> ModelShip2;
-    //std::vector<irr::scene::IMeshSceneNode*> ModelShip3;
-    //std::vector<irr::scene::IMeshSceneNode*> ModelShip4;
-    //std::vector<irr::scene::IMeshSceneNode*> ModelShip5;
-    //std::vector<irr::scene::IMeshSceneNode*> ModelShip6;
-
-    //we have a vector of meshes, because each ship
-    //is available in different color schemes!
-    //std::vector<irr::scene::IMesh*> MeshShip1;
-    //std::vector<irr::scene::IMesh*> MeshShip2;
-    //std::vector<irr::scene::IMesh*> MeshShip3;
-    //std::vector<irr::scene::IMesh*> MeshShip4;
-    //std::vector<irr::scene::IMesh*> MeshShip5;
-    //std::vector<irr::scene::IMesh*> MeshShip6;
 
     //timing variables for 3D model rendering
     irr::f32 last3DModelUpdateAbsTime;
@@ -494,6 +460,7 @@ private:
     //0 = wheel not moving
     //1 = wheel moving clock wise
     //2 = wheel moving counter clock wise
+    //3 = immediatley update position (no rotation), used for restoring last state
     irr::u8 RaceTrackWheelMoving;
 
     //variable to remembar from which menue item we initially
@@ -508,6 +475,7 @@ private:
     //0 = wheel not moving
     //1 = wheel moving clock wise
     //2 = wheel moving counter clock wise
+    //3 = immediatley update position (no rotation), used for restoring last state
     irr::u8 ShipWheelMoving;
 
     //current selected ship stats

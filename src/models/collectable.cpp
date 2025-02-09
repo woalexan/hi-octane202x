@@ -143,6 +143,29 @@ Entity::EntityType Collectable::GetCollectableType() {
     return mEntityType;
 }
 
+void Collectable::UpdateType2Collectable(irr::f32 deltaTime) {
+    //if this is a type 1 collectable, and this function was
+    //accidently called, just exit
+    if (this->mEntityItem != NULL)
+        return;
+
+    //reduce remaining lifetime with deltaTime
+    this->remainingLifeTime -= deltaTime;
+
+    //time for item to disappear?
+    if (this->remainingLifeTime < 0.0f) {
+        SetVisible(false);
+    }
+}
+
+bool Collectable::GetType2CollectableCleanUpNecessary() {
+    if (this->remainingLifeTime < 0.0f) {
+        return true;
+    }
+
+    return false;
+}
+
 Collectable::~Collectable() {
     //cleanup collectable stuff
 

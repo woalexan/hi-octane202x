@@ -20,7 +20,7 @@
 
 Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver, GameText* gameText,
            Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-           dimension2d<u32> gameScreenRes, int loadLevelNr, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam) {
+           dimension2d<u32> gameScreenRes, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam) {
     this->mDriver = driver;
     this->mSmgr = smgr;
     this->mDevice = device;
@@ -31,6 +31,8 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     this->mSoundEngine = soundEngine;
     this->mTimeProfiler = timeProfiler;
     this->mDemoMode = demoMode;
+
+    mRaceNumberOfLaps = nrLaps;
 
     if (skipStart) {
         this->mCurrentPhase = DEF_RACE_PHASE_RACING;
@@ -84,6 +86,7 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     mPendingTriggerTargetGroups.clear();
     mTimerVec.clear();
     mExplosionEntityVec.clear();
+    mType2CollectableForCleanupLater.clear();
 
     //for the start of the race we want to trigger
     //target group 1 once
@@ -305,6 +308,22 @@ void Race::CleanUpEntities() {
 
    delete ENTCollectablesVec;
    ENTCollectablesVec = NULL;
+
+   //delete remaining type2 collectable items
+   //which were dynamically spawned before
+   if (mType2CollectableForCleanupLater.size() > 0) {
+       std::vector<Collectable*>::iterator it;
+       Collectable* pntr;
+       for (it = mType2CollectableForCleanupLater.begin(); it != mType2CollectableForCleanupLater.end(); ) {
+           pntr = (Collectable*)(*it);
+           it = mType2CollectableForCleanupLater.erase(it);
+
+           //delete Collectable itself
+           //this frees SceneNode and texture inside
+           //collectable implementation
+           delete pntr;
+       }
+   }
 }
 
 void Race::CleanUpSteamFountains() {
@@ -773,8 +792,9 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     //point location
     Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
 
-    //create the new player (controlled by human)
-    newPlayer = new Player(this, player_model, Startpos, Startdirection, this->mSmgr, humanPlayer);
+    //create the new player
+    newPlayer = new Player(this, player_model, Startpos, Startdirection, this->mSmgr,
+                          this->mRaceNumberOfLaps, humanPlayer);
 
     //Setup physics for new player, we handover pointer to Irrlicht
     //player node, as the node (3D model) is now fully controlled
@@ -1969,6 +1989,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update all collectable spawners
     UpdateCollectableSpawners(frameDeltaTime);
 
+    //update all type2 collectables
+    UpdateType2Collectables(frameDeltaTime);
+
     //update all current explosions
     mExplosionLauncher->Update(frameDeltaTime);
 
@@ -2314,7 +2337,7 @@ void Race::HandleInput() {
 
      if (this->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
          if (currPlayerFollow != NULL) {
-            this->CallRecoveryVehicleForHelp(currPlayerFollow);
+            this->SpawnCollectiblesForPlayer(currPlayerFollow);
          }
      }
 
@@ -4475,6 +4498,34 @@ void Race::UpdateCollectableSpawners(irr::f32 frameDeltaTime) {
         //update all remaining active collectible spawners
         for (it = mCollectableSpawnerVec.begin(); it != mCollectableSpawnerVec.end(); ++it) {
             ((*it)->Update(frameDeltaTime));
+        }
+    }
+}
+
+void Race::UpdateType2Collectables(irr::f32 frameDeltaTime) {
+    std::vector<Collectable*>::iterator it;
+    Collectable* pntr;
+
+    for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ) {
+        //is this a type2 collectable
+        if ((*it)->mEntityItem == NULL) {
+            //yes, it is, update it
+            //this make sure that their lifetime is reduces, and after
+            //their lifetime is over, the disappear and are deleted
+            (*it)->UpdateType2Collectable(frameDeltaTime);
+
+            //is the lifetime of the item over?
+            if ((*it)->GetType2CollectableCleanUpNecessary()) {
+                //add item to cleanup list for later
+                mType2CollectableForCleanupLater.push_back(*it);
+
+                //erase collectable from update list
+                it = ENTCollectablesVec->erase(it);
+            } else {
+                it++;
+            }
+        } else {
+            it++;
         }
     }
 }

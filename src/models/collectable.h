@@ -19,6 +19,10 @@
 const irr::f32 CollectableSize_w = 0.45f;
 const irr::f32 CollectableSize_h = 0.45f;
 
+//time in seconds after which a dynamically spawned entity/collectable
+//disappears again, if it was not collected by any player until then
+const irr::f32 DEF_TYPE2_COLLECTABLE_LIFETIME = 30.0f;
+
 class Race; //Forward declaration
 
 //Note 02.02.2025: In this project there are two different types of Collectables
@@ -81,12 +85,26 @@ public:
 
     void SetVisible(bool visible);
 
+    //this function takes care that the dynamically spawned items
+    //are removed again after a certain lifetime (if the were not yet picked
+    //up by any player)
+    void UpdateType2Collectable(irr::f32 deltaTime);
+
+    //only used for type 2 collectable, if this function returns true
+    //this item needs to be cleaned up now
+    bool GetType2CollectableCleanUpNecessary();
+
 private:
     Race* mRace;
 
     bool mEnableLightning;
 
     void SetupSceneNode(Entity::EntityType type, irr::core::vector3df pos);
+
+    //for type2 collectable (dynamically spawned) there seems to be
+    //a lifetime in game after which the item disappears again, if it was
+    //not yet collected; not used for type 1 collectable (contained in level file itself)
+    irr::f32 remainingLifeTime = DEF_TYPE2_COLLECTABLE_LIFETIME;
 
 protected:
     irr::video::IVideoDriver* m_driver;
