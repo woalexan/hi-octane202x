@@ -27,12 +27,32 @@ Assets::Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, ir
         DecodeMainPlayerName();
         DecodeHighScoreTable();
         DecodeCurrentGameLanguage();
+        DecodeLastSelectedRaceTrack();
+        DecodeLastSelectedCraft();
+        DecodeGameDifficultySetting();
         DecodeCurrentCraftColorScheme();
         DecodeCurrentChampionshipName();
+        DecodeAudioVolumes();
     } else {
         //set default player name
         strcpy(currMainPlayerName, "PLAYER");
         strcpy(currChampionshipName, "");
+
+        //set default race track selection
+        currLevelSelected = 0;           //is first level, as in the original game
+        currMainPlayerCraftSelected = 0; //is KD1-SPEEDER, as in the original game
+        currSelectedCraftColorScheme = 0; //is MAD-MEDICINE, the default color scheme
+
+        //if config.dat is missing, game always reverts to most
+        //easy difficulty level
+        currGameDifficultyLevel = 0;
+
+        //available range in config.dat game config file
+        //is from 0 to 200 (max volume)
+        //game sets it slightly below max volume when
+        //config is not available
+        currVolumeMusic = 188;
+        currVolumeSound = 188;
     }
 
     InitDriverAssessementStrings();
@@ -43,11 +63,17 @@ Assets::Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, ir
     mCraftVec = new std::vector<CraftInfoStruct*>();
     mCraftVec->clear();
 
+    mPilotVec = new std::vector<PilotInfoStruct*>();
+    mPilotVec->clear();
+
     //init all race tracks
     InitRaceTracks();
 
     //init all crafts
     InitCrafts();
+
+    //init all computer player pilots
+    InitCpPilots();
 }
 
 Assets::~Assets() {
@@ -68,6 +94,24 @@ Assets::~Assets() {
            delete pntrTrack;
     }
 
+    delete mRaceTrackVec;
+
+    std::vector<PilotInfoStruct*>::iterator itPilot;
+    PilotInfoStruct* pntrPilot;
+
+    //delete all existing pilots
+    itPilot = this->mPilotVec->begin();
+
+    while (itPilot != this->mPilotVec->end()) {
+           pntrPilot = (*itPilot);
+           itPilot = this->mPilotVec->erase(itPilot);
+
+           //delete struct itself
+           delete pntrPilot;
+    }
+
+    delete mPilotVec;
+
     //delete all existing crafts (different color schemes)
     std::vector<CraftInfoStruct*>::iterator itCraft;
     CraftInfoStruct* pntrCraft;
@@ -86,6 +130,8 @@ Assets::~Assets() {
            //delete struct itself
            delete pntrCraft;
     }
+
+    delete mCraftVec;
 
     //delete all colorscheme names for craft
     std::vector<char*>::iterator itNames;
@@ -455,6 +501,112 @@ char* Assets::GetNewMainPlayerName() {
     return this->currMainPlayerName;
 }
 
+std::string Assets::GetCraftModelName(char* craftName, irr::u8 selectedCraftColorScheme) {
+    CraftInfoStruct* craft = NULL;
+    std::vector<CraftInfoStruct*>::iterator itCraft;
+    std::string resultStr("");
+
+    //search the craft with the right name
+    for (itCraft = this->mCraftVec->begin(); itCraft != this->mCraftVec->end(); ++itCraft) {
+        if (strcmp((*itCraft)->name, craftName) == 0) {
+            //we found the right craft
+            craft = (*itCraft);
+            break;
+        }
+    }
+
+    if (craft != NULL) {
+        char* meshFileName = craft->meshFileName;
+
+        for (irr::u16 idx = 0; meshFileName[idx] != 0; idx++) {
+            resultStr.push_back(meshFileName[idx]);
+        }
+
+        //add number for color scheme
+        char number[5];
+        sprintf(number, "%d", GetColorSchemeIndexNumberFromColorScheme(selectedCraftColorScheme));
+
+        resultStr.push_back(number[0]);
+        resultStr.append(".obj");
+    }
+
+   return resultStr;
+}
+
+//rotates through the available color schemes, so
+//that every player has a different color scheme
+irr::u8 Assets::RotateColorScheme(irr::u8 currentColorScheme) {
+    irr::u8 nextColorScheme;
+
+    switch (currentColorScheme) {
+        case GAME_CRAFTCOLSCHEME_MADMEDICINE: {nextColorScheme = GAME_CRAFTCOLSCHEME_ASSASSINS; break;}
+        case GAME_CRAFTCOLSCHEME_ASSASSINS: {nextColorScheme = GAME_CRAFTCOLSCHEME_GOREHOUNDS; break;}
+        case GAME_CRAFTCOLSCHEME_GOREHOUNDS: {nextColorScheme = GAME_CRAFTCOLSCHEME_FOOFIGHTERS; break;}
+        case GAME_CRAFTCOLSCHEME_FOOFIGHTERS: {nextColorScheme = GAME_CRAFTCOLSCHEME_DETHFEST; break;}
+        case GAME_CRAFTCOLSCHEME_DETHFEST: {nextColorScheme = GAME_CRAFTCOLSCHEME_FIREPHREAKS; break;}
+        case GAME_CRAFTCOLSCHEME_FIREPHREAKS: {nextColorScheme = GAME_CRAFTCOLSCHEME_STORMRIDERS; break;}
+        case GAME_CRAFTCOLSCHEME_STORMRIDERS: {nextColorScheme = GAME_CRAFTCOLSCHEME_BULLFROG; break;}
+        case GAME_CRAFTCOLSCHEME_BULLFROG: {nextColorScheme = GAME_CRAFTCOLSCHEME_MADMEDICINE; break;}
+        default: {nextColorScheme = GAME_CRAFTCOLSCHEME_MADMEDICINE; break;} //default is MADMEDICINE
+    }
+
+    return (nextColorScheme);
+}
+
+std::vector<PilotInfoStruct*> Assets::GetPilotInfoNextRace(bool addHumanPlayer, bool addComputerPlayers) {
+    std::vector<PilotInfoStruct*> pilotInfo;
+    irr::u8 currPilotNumber = 1;
+    irr::u8 currentCpPlayerColorScheme;
+
+    if (addHumanPlayer) {
+        //add the human player
+        PilotInfoStruct *newPlayer = new PilotInfoStruct();
+        newPlayer->pilotNr = currPilotNumber;
+        currPilotNumber++;
+
+        strcpy(newPlayer->pilotName, GetNewMainPlayerName());
+
+        newPlayer->humanPlayer = true;
+        strcpy(newPlayer->defaultCraftName, mCraftVec->at(currMainPlayerCraftSelected)->name);
+        newPlayer->currSelectedCraftColorScheme = currSelectedCraftColorScheme;
+
+        currentCpPlayerColorScheme = RotateColorScheme(currSelectedCraftColorScheme);
+
+        pilotInfo.push_back(newPlayer);
+    } else {
+        currentCpPlayerColorScheme = currSelectedCraftColorScheme;
+    }
+
+    if (addComputerPlayers) {
+        std::vector<PilotInfoStruct*>::iterator itPilot;
+
+        for (itPilot = mPilotVec->begin(); itPilot != mPilotVec->end(); ++itPilot) {
+            PilotInfoStruct *newPlayer = new PilotInfoStruct();
+            newPlayer->pilotNr = currPilotNumber;
+            currPilotNumber++;
+
+            strcpy(newPlayer->pilotName, ((*itPilot)->pilotName));
+            newPlayer->humanPlayer = ((*itPilot)->humanPlayer);
+
+            strcpy(newPlayer->defaultCraftName, (*itPilot)->defaultCraftName);
+
+            //computer player craft color schemes seem to rotate through the available
+            //game color schemes, if one restarts a race multiple times the choosen colors are always
+            //the same for the same players, as long as the player selects the same color scheme and
+            //player craft; so there seems to be nothing random about it
+            newPlayer->currSelectedCraftColorScheme = currentCpPlayerColorScheme;
+
+            //rotate to next available color scheme, so that all computer players use a
+            //different craft color
+            currentCpPlayerColorScheme = RotateColorScheme(currentCpPlayerColorScheme);
+
+            pilotInfo.push_back(newPlayer);
+        }
+    }
+
+    return pilotInfo;
+}
+
 void Assets::SetCurrentChampionshipName(char* newName) {
     if (strcmp(newName, this->currChampionshipName) != 0) {
         strcpy(this->currChampionshipName, newName);
@@ -601,6 +753,27 @@ irr::u8 Assets::GetCurrentGameLanguage() {
     return this->currSelectedGameLanguage;
 }
 
+//levelNumber starts with index 0 for level 1!
+void Assets::SetNewLastSelectedRaceTrack(int newLevelNumber) {
+    if (newLevelNumber != this->currLevelSelected) {
+        this->currLevelSelected = newLevelNumber;
+
+        //last selected Race track is stored at offset
+        //0x2C76 in CONFIG.DAT
+        //value 0 means level 1, value 1 means level 2 in the binary file and so on...
+        currentConfigFileDataByteArray[0x2C76] = char(newLevelNumber);
+    }
+}
+
+//levelNumber starts with index 0 for level 1!
+irr::u8 Assets::GetLastSelectedRaceTrack() {
+    return this->currLevelSelected;
+}
+
+irr::u8 Assets::GetMainPlayerSelectedCraft() {
+   return this->currMainPlayerCraftSelected;
+}
+
 bool Assets::DecodeCurrentGameLanguage() {
     if (!mCurrentConfigFileRead) {
         return false;
@@ -614,13 +787,198 @@ bool Assets::DecodeCurrentGameLanguage() {
     //for LANGUAGE_FRENCH 0x2
     //for LANGUAGE_SPANISH 0x3
     //for LANGUAGE_ITALIAN 0x4
-
     this->currSelectedGameLanguage = (irr::u8)(currentConfigFileDataByteArray[0x2C7A]);
 
     return true;
 }
 
-irr::u8 Assets::GetCurrentCraftColorScheme() {
+bool Assets::DecodeLastSelectedRaceTrack() {
+    if (!mCurrentConfigFileRead) {
+        return false;
+    }
+
+    //last selected Race track is stored at offset
+    //0x2C76 in CONFIG.DAT
+    //value 0 means level 1, value 1 means level 2 in the binary file and so on...
+    this->currLevelSelected = (irr::u8)(currentConfigFileDataByteArray[0x2C76]);
+
+    return true;
+}
+
+bool Assets::DecodeLastSelectedCraft() {
+    if (!mCurrentConfigFileRead) {
+        return false;
+    }
+
+    //last selected craft is stored at offset
+    //0x94C in CONFIG.DAT
+    //value 0 means KD1 Speeder (default selection at first start)
+    //value 1 means Berserker
+    //value 2 means Jugga
+    //value 3 means Vampyr
+    //value 4 means Outrider
+    //value 5 means Flexiwing
+    this->currMainPlayerCraftSelected = (irr::u8)(currentConfigFileDataByteArray[0x94C]);
+
+    return true;
+}
+
+bool Assets::DecodeAudioVolumes() {
+    if (!mCurrentConfigFileRead) {
+        return false;
+    }
+
+    //the current set music volume is stored at offset
+    //0x97D in CONFIG.DAT
+    //value 0 means volume off
+    //1 - 199 all values inbetween monoton rising volume setting
+    //value 200 means max volume
+    this->currVolumeMusic = (irr::u8)(currentConfigFileDataByteArray[0x97D]);
+
+    //the current set sound volume is stored at offset
+    //0x981 in CONFIG.DAT
+    //value 0 means volume off
+    //1 - 199 all values inbetween monoton rising volume setting
+    //value 200 means max volume
+    this->currVolumeSound = (irr::u8)(currentConfigFileDataByteArray[0x981]);
+
+    return true;
+}
+
+irr::u8 Assets::ConvertVolumeProjectToHioctane(irr::f32 newVolumeProject) {
+    //inside this project volume via SFML is handled
+    //differently; as a float from 0 (off) up to 100 percent
+    //of max volume
+    //therefore convert below
+    irr::f32 convVolume = (newVolumeProject / 100.0f) * 200.0f;
+    irr::u8 truncVolume = (irr::u8)(convVolume);
+
+    //plausi check
+    if (truncVolume < 0)
+        truncVolume = 0;
+
+    if (truncVolume > 200)
+        truncVolume = 200;
+
+    return truncVolume;
+}
+
+irr::f32 Assets::ConvertVolumeHioctaneToProject(irr::u8 volumeHioctane) {
+    //hioctane stores volume in config.dat file
+    //as unsigned char with range 0 (off) up to 200 (max volume)
+    //inside this project volume via SFML is handled
+    //differently; as a float from 0 (off) up to 100 percent
+    //of max volume
+    //therefore convert below
+    irr::f32 convVolume = (irr::f32)(volumeHioctane) / 2.0f;
+
+    //plausi check
+    if (convVolume < 0.0f)
+        convVolume = 0.0f;
+
+    if (convVolume > 100.0f)
+        convVolume = 100.0f;
+
+    return convVolume;
+}
+
+void Assets::SetSoundVolume(irr::f32 newSoundVolume) {
+    //inside this project volume via SFML is handled
+    //differently; as a float from 0 (off) up to 100 percent
+    //of max volume
+    //therefore convert below
+    irr::u8 truncVolume = ConvertVolumeProjectToHioctane(newSoundVolume);
+
+    if (truncVolume != this->currVolumeSound) {
+        this->currVolumeSound = truncVolume;
+
+        //the current set sound volume is stored at offset
+        //0x981 in CONFIG.DAT
+        //value 0 means volume off
+        //1 - 199 all values inbetween monoton rising volume setting
+        //value 200 means max volume
+        currentConfigFileDataByteArray[0x981] = char(truncVolume);
+    }
+}
+
+irr::f32 Assets::GetSoundVolume() {
+    return ConvertVolumeHioctaneToProject(this->currVolumeSound);
+}
+
+irr::f32 Assets::GetMusicVolume() {
+    return ConvertVolumeHioctaneToProject(this->currVolumeMusic);
+}
+
+void Assets::SetMusicVolume(irr::f32 newMusicVolume) {
+    //inside this project volume via SFML is handled
+    //differently; as a float from 0 (off) up to 100 percent
+    //of max volume
+    //therefore convert below
+    irr::u8 truncVolume = ConvertVolumeProjectToHioctane(newMusicVolume);
+
+    if (truncVolume != this->currVolumeMusic) {
+        this->currVolumeMusic = truncVolume;
+
+        //the current set music volume is stored at offset
+        //0x97D in CONFIG.DAT
+        //value 0 means volume off
+        //1 - 199 all values inbetween monoton rising volume setting
+        //value 200 means max volume
+        currentConfigFileDataByteArray[0x97D] = char(truncVolume);
+    }
+}
+
+void Assets::SetGameDifficulty(irr::u8 newDifficulty) {
+    if (newDifficulty != this->currGameDifficultyLevel) {
+        this->currGameDifficultyLevel = newDifficulty;
+
+        //current game set difficulty level is stored at
+        //0x977 in CONFIG.DAT
+        //value 0 means easy
+        //value 1 slightly higher difficulty
+        //value 2 again slightly higher difficulty
+        //value 3 means highest difficulty
+        currentConfigFileDataByteArray[0x977] = char(newDifficulty);
+    }
+}
+
+irr::u8 Assets::GetCurrentGameDifficulty() {
+    return this->currGameDifficultyLevel;
+}
+
+bool Assets::DecodeGameDifficultySetting() {
+    if (!mCurrentConfigFileRead) {
+        return false;
+    }
+
+    //current game set difficulty level is stored at
+    //0x977 in CONFIG.DAT
+    //value 0 means easy
+    //value 1 slightly higher difficulty
+    //value 2 again slightly higher difficulty
+    //value 3 means highest difficulty
+    this->currGameDifficultyLevel = (irr::u8)(currentConfigFileDataByteArray[0x977]);
+
+    return true;
+}
+
+void Assets::SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr) {
+    if (newSelectedCraftNr != this->currMainPlayerCraftSelected) {
+        this->currMainPlayerCraftSelected = newSelectedCraftNr;
+
+        //last selected craft is stored at offset
+        //0x94C in CONFIG.DAT
+        //value 0 means KD1 Speeder (default selection at first start)
+        //value 1 means Berserker
+        //value 2 means Jugga
+        //value 3 means Vampyr
+        //value 4 means Outrider
+        //value 5 means Flexiwing
+        currentConfigFileDataByteArray[0x94C] = char(newSelectedCraftNr);
+    }
+}
+
+irr::u8 Assets::GetColorSchemeIndexNumberFromColorScheme(irr::u8 configFileValue) {
     irr::u8 result = 0;
 
     //first translate from config.dat file value to
@@ -628,15 +986,24 @@ irr::u8 Assets::GetCurrentCraftColorScheme() {
     std::vector<irr::u8>::iterator it;
 
     for (it = this->mCraftColorSchemeConfigDatFileValue.begin(); it != this->mCraftColorSchemeConfigDatFileValue.end(); ++it) {
-        if ((*it) == this->currSelectedCraftColorScheme) {
+        if ((*it) == configFileValue) {
             return result;
         }
 
         result++;
     }
 
-    //we did not find value, return default first color scheme
+    //we did not find anything, return default
+    //color scheme with value 0
     return 0;
+}
+
+irr::u8 Assets::GetCurrentCraftColorScheme() {
+    //first translate from config.dat file value to
+    //number of color scheme we use in our project
+    irr::u8 result = GetColorSchemeIndexNumberFromColorScheme(this->currSelectedCraftColorScheme);
+
+    return result;
 }
 
 void Assets::SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme) {
@@ -696,7 +1063,8 @@ bool Assets::DecodeCurrentCraftColorScheme() {
     return true;
 }
 
-void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, irr::u8 statArmour, irr::u8 statWeight, irr::u8 statFirePower) {
+void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, irr::u8 statArmour,
+                      irr::u8 statWeight, irr::u8 statFirePower) {
     CraftInfoStruct* newCraft= new CraftInfoStruct();
     newCraft->craftNr = currCraftNr;
 
@@ -764,6 +1132,10 @@ void Assets::AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNr
 }
 
 void Assets::InitCrafts() {
+    //this is the order in which the game seems to handle the crafts
+    //KD-1 SPEEDER is also the default selection when the game starts
+    //without any config.dat file
+
     //Craft1
     AddCraft((char*)"KD-1 SPEEDER", (char*)("extract/models/car0-"), 6, 4, 5, 5);
 
@@ -852,5 +1224,42 @@ void Assets::InitRaceTracks() {
     //AddRaceTrack((char*)("8. ARCTIC LAND"), (char*)("extract/models/cone0-0.obj"), 5);
 
     //Track9, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    //AddRaceTrack((char*)("9. DEATH MATCH ARENA"), (char*)("extract/models/cone0-0.obj"), 5);
+    //AddRaceTrack((char*)("9. DEATH MATCH ARENA"), (char*)("extract/models/cone0-0  irr::u8 currSelectedCraftColorScheme; = GAME_CRAFTCOLSCHEME_MADMEDICINE;.obj"), 5);
 }
+
+void Assets::AddPilot(char *pilotName, bool humanPlayer, char *defaultCraftName) {
+    PilotInfoStruct* newPilot = new PilotInfoStruct();
+
+    newPilot->pilotNr = currPilotNr;
+    currPilotNr++;
+
+    strcpy(newPilot->pilotName, pilotName);
+    newPilot->humanPlayer = humanPlayer;
+    strcpy(newPilot->defaultCraftName, defaultCraftName);
+
+    //just take this color scheme as default
+    currSelectedCraftColorScheme = GAME_CRAFTCOLSCHEME_MADMEDICINE;
+
+    //add to my vector of pilots
+    mPilotVec->push_back(newPilot);
+}
+
+void Assets::InitCpPilots() {
+    //this players are all only used as computer players
+    AddPilot((char*)("MAD"), false, (char*)("KD-1 SPEEDER"));
+    AddPilot((char*)("ATROW"), false, (char*)("BESERKER"));
+    AddPilot((char*)("BARNSY"), false, (char*)("BESERKER"));
+    AddPilot((char*)("SHUNTLY"), false, (char*)("JUGGA"));
+    AddPilot((char*)("COPSE"), false, (char*)("VAMPYR"));
+    AddPilot((char*)("MANNY"), false, (char*)("OUTRIDER"));
+    AddPilot((char*)("MCLALIN"), false, (char*)("FLEXIWING"));
+}
+
+void Assets::SetComputerPlayersEnabled(bool enabled) {
+    this->computerPlayersEnabled = enabled;
+}
+
+bool Assets::GetComputerPlayersEnabled() {
+    return (this->computerPlayersEnabled);
+}
+

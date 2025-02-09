@@ -18,6 +18,7 @@
 #include "race.h"
 #include "draw/hud.h"
 #include "utils/logger.h"
+#include "resources/assets.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_INTRO 1
@@ -59,9 +60,6 @@ private:
     MyMusicStream* gameMusicPlayer = NULL;
     SoundEngine* gameSoundEngine = NULL;
 
-    float volumeSound = 80.0f; //60.0f;
-    float volumeMusic = 60.0f; //90.0f;
-
     //own game stuff
     TimeProfiler* mTimeProfiler;
     PrepareData* prepareData;
@@ -101,16 +99,21 @@ private:
     void GameLoopMenue(irr::f32 frameDeltaTime);
     void GameLoopRace(irr::f32 frameDeltaTime);
 
+    void HandleMenueActions();
+
     Race* mCurrentRace = NULL;
     bool mTimeStopped = false;
 
-    bool CreateNewRace(int load_levelnr, bool debugRace);
+    bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool debugRace);
     bool RunDemoMode(int load_levelnr);
 
     void CleanUpRace();
 
     bool mAdvanceFrameMode = false;
     irr::s32 mAdvanceFrameCnt = 0;
+
+    std::vector<PilotInfoStruct*> mPilotsNextRace;
+    void CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo);
 
 public:
     dimension2d<u32> mGameScreenRes;
@@ -122,7 +125,7 @@ public:
     bool DebugShowVariableBoxes = false;
 
     bool computerPlayersAttack = true;
-    bool runDemoMode = false;
+    bool runDemoMode = true;
 
     //Returns true for success, false for error occured
     bool InitGame();

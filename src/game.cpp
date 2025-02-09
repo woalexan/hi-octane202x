@@ -67,7 +67,9 @@ bool Game::InitSFMLAudio() {
         return false;
     }
 
-    gameMusicPlayer->SetVolume(volumeMusic);
+    //volumeMusic: 0 means no music, 100.0f means max volume
+    //get configured volume from Assets class
+    gameMusicPlayer->SetVolume(GameAssets->GetMusicVolume());
 
     gameSoundEngine = new SoundEngine();
     if (!gameSoundEngine->getInitOk()) {
@@ -75,7 +77,7 @@ bool Game::InitSFMLAudio() {
         return false;
     }
 
-    gameSoundEngine->SetVolume(volumeSound);
+    gameSoundEngine->SetVolume(GameAssets->GetSoundVolume());
 
     return true;
 }
@@ -187,8 +189,11 @@ void Game::DebugGame() {
 
     if (!runDemoMode) {
         //player wants to start the race
-        if (this->CreateNewRace(debugLevelNr, mDebugGame)) {
+        mPilotsNextRace = GameAssets->GetPilotInfoNextRace(true, false);
+
+        if (this->CreateNewRace(debugLevelNr, mPilotsNextRace, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
 
              GameLoop();
         }
@@ -231,6 +236,98 @@ void Game::AdvanceFrame(irr::s32 advanceFrameCount) {
     }
 }
 
+void Game::HandleMenueActions() {
+    //user triggered an menue action
+    if (pendingAction == MainMenue->ActQuitToOS) {
+        //make sure config.dat is updated
+        GameAssets->UpdateGameConfigFileExitGame();
+
+        //user wants to quit the program
+        ExitGame = true;
+    }
+
+    //this is how we handle a checkbox/slider value update
+    if (pendingAction == MainMenue->ActSetDifficultyLevel) {
+        //user wants to change difficulty level
+        this->GameAssets->SetGameDifficulty(pendingAction->currSetValue);
+    }
+
+    //this is how we handle a playername string change
+    if (pendingAction == MainMenue->ActSetPlayerName) {
+        //copy new selected main player name into player name array
+        char* newStr = pendingAction->newSetTextInputString;
+        this->GameAssets->SetNewMainPlayerName(newStr);
+    }
+
+    if (pendingAction == MainMenue->ActSetMusicVolume) {
+        //volumeMusic: 0 means no music, 100.0f means max volume
+        //from the volume slider we get unsigned char between 0 up to 16 (convert!)
+        irr::f32 volumeMusic = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
+        gameMusicPlayer->SetVolume(volumeMusic);
+
+        this->GameAssets->SetMusicVolume(volumeMusic);
+    }
+
+    if (pendingAction == MainMenue->ActSetSoundVolume) {
+        //volumeSound: 0 means no sound, 100.0f means max volume
+         //from the volume slider we get unsigned char between 0 up to 16 (convert!)
+        irr::f32 volumeSound = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
+        gameSoundEngine->SetVolume(volumeSound);
+
+        this->GameAssets->SetSoundVolume(volumeSound);
+    }
+
+    if (pendingAction == MainMenue->ActSetComputerPlayerEnable) {
+        //return value: currSetValue = 0: computer player off, 1: computer player on
+        //important note: if computer player is on/off is not stored in config.dat file
+        //in original game; game just resets to computer players on anytime you start game
+        if (pendingAction->currSetValue == 0) {
+            GameAssets->SetComputerPlayersEnabled(false);
+        } else {
+            GameAssets->SetComputerPlayersEnabled(true);
+        }
+    }
+
+    if (pendingAction == MainMenue->ActRace) {
+        //MainMenue->ShowGameLoadingScreen();
+
+        //player wants to start the race
+        mPilotsNextRace = GameAssets->GetPilotInfoNextRace(true, GameAssets->GetComputerPlayersEnabled());
+
+        if (this->CreateNewRace(pendingAction->currSetValue, mPilotsNextRace, mDebugGame)) {
+             mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
+        }
+    }
+
+    //take care of the special menue actions
+
+    //is game intro playing finished or was it interrupted?
+    if (pendingAction == MainMenue->ActIntroStop) {
+             //yes, change to game title screen
+             mGameState = DEF_GAMESTATE_GAMETITLE;
+             MainMenue->ShowGameTitle();
+    }
+
+    if (pendingAction == MainMenue->ActCloseRaceStatPage) {
+             //user pressed Return at race stat page
+             //cleanup race stat page and return back to
+             //main menue
+
+             //first cleanup data of race stats page
+             MainMenue->CleanupRaceStatsPage();
+
+             //do not forget to also cleanup last
+             //racestat struct memory!
+             mCurrentRace->CleanupRaceStatistics(lastRaceStat);
+
+             mGameState = DEF_GAMESTATE_MENUE;
+
+             //go back to main menue top page
+             MainMenue->ShowMainMenue();
+    }
+}
+
 void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
     if (mGameState == DEF_GAMESTATE_GAMETITLE) {
         showTitleAbsTime += frameDeltaTime;
@@ -259,75 +356,9 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
     MainMenue->AdvanceTime(frameDeltaTime);
 
     if (MainMenue->HandleActions(pendingAction)) {
-        //user triggered an menue action
-        if (pendingAction == MainMenue->ActQuitToOS) {
-            //make sure config.dat is updated
-            GameAssets->UpdateGameConfigFileExitGame();
-
-            //user wants to quit the program
-            ExitGame = true;
-        }
-
-        //this is how we handle a checkbox/slider value update
-        if (pendingAction == MainMenue->ActSetDifficultyLevel) {
-            //user wants to change difficulty level
-            //newLevel = pendingAction->currSetValue;
-        }
-
-        //this is how we handle a playername string change
-        if (pendingAction == MainMenue->ActSetPlayerName) {
-            //copy new selected main player name into player name array
-            char* newStr = pendingAction->newSetTextInputString;
-            this->GameAssets->SetNewMainPlayerName(newStr);
-        }
-
-        if (pendingAction == MainMenue->ActSetMusicVolume) {
-            //volumeMusic: 0 means no music, 100.0f means max volume
-            volumeMusic = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
-            gameMusicPlayer->SetVolume(volumeMusic);
-        }
-
-        if (pendingAction == MainMenue->ActSetSoundVolume) {
-            //volumeSound: 0 means no sound, 100.0f means max volume
-            volumeSound = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
-            gameSoundEngine->SetVolume(volumeSound);
-        }
-
-        if (pendingAction == MainMenue->ActRace) {
-            //MainMenue->ShowGameLoadingScreen();
-
-            //player wants to start the race
-            if (this->CreateNewRace(pendingAction->currSetValue, mDebugGame)) {
-                 mGameState = DEF_GAMESTATE_RACE;
-            }
-        }
-
-        //take care of the special menue actions
-
-        //is game intro playing finished or was it interrupted?
-        if (pendingAction == MainMenue->ActIntroStop) {
-                 //yes, change to game title screen
-                 mGameState = DEF_GAMESTATE_GAMETITLE;
-                 MainMenue->ShowGameTitle();
-        }
-
-        if (pendingAction == MainMenue->ActCloseRaceStatPage) {
-                 //user pressed Return at race stat page
-                 //cleanup race stat page and return back to
-                 //main menue
-
-                 //first cleanup data of race stats page
-                 MainMenue->CleanupRaceStatsPage();
-
-                 //do not forget to also cleanup last
-                 //racestat struct memory!
-                 mCurrentRace->CleanupRaceStatistics(lastRaceStat);
-
-                 mGameState = DEF_GAMESTATE_MENUE;
-
-                 //go back to main menue top page
-                 MainMenue->ShowMainMenue();
-        }
+       //user triggered an menue action
+       //handle it
+       HandleMenueActions();
     }
 
     driver->endScene();
@@ -373,39 +404,6 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         wchar_t* text2 = new wchar_t[400];
 
         mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
-
-       //mCurrentRace->player->GetHeightMapCollisionSensorDebugInfo(text2, 390);
-
-        /*    irr::f32 deltah1 = mCurrentRace->player->cameraSensor->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-            irr::f32 deltah2 = mCurrentRace->player->cameraSensor2->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-            irr::f32 deltah3 = mCurrentRace->player->cameraSensor3->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-            irr::f32 deltah4 = mCurrentRace->player->cameraSensor4->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-            irr::f32 deltah5 = mCurrentRace->player->cameraSensor5->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-            irr::f32 deltah6 = mCurrentRace->player->cameraSensor6->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-            irr::f32 deltah7 = mCurrentRace->player->cameraSensor7->wCoordPnt1.Y - mCurrentRace->player->cameraSensor->wCoordPnt1.Y;
-
-            irr::f32 maxh = fmax(deltah1, deltah2);
-            maxh = fmax(maxh, deltah3);
-            maxh = fmax(maxh, deltah4);
-            maxh = fmax(maxh, deltah5);
-            maxh = fmax(maxh, deltah6);
-            maxh = fmax(maxh, deltah7);
-
-
-            irr::f32 maxStep = fmax(mCurrentRace->player->cameraSensor->stepness, mCurrentRace->player->cameraSensor2->stepness);
-            maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor3->stepness);
-            maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor4->stepness);
-            maxStep = fmax(maxStep, mCurrentRace->player->cameraSensor5->stepness);
-
-            swprintf(text2, 390, L"%lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n %lf\n",
-                         deltah1,
-                         deltah2,
-                         deltah3,
-                         deltah4,
-                         deltah5,
-                     deltah6,
-                     deltah7,
-                     maxh);*/
 
            /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
                         mCurrentRace->player->dbgCameraVal,
@@ -604,56 +602,45 @@ void Game::GameLoop() {
    driver->drop();
 }
 
-bool Game::CreateNewRace(int load_levelnr, bool debugRace) {
+void Game::CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo) {
+    std::vector<PilotInfoStruct*>::iterator itPilot;
+    PilotInfoStruct* pntr;
+
+    //cleanup pilotInfo, we do not need it anymore
+    for (itPilot = pilotInfo.begin(); itPilot != pilotInfo.end(); ) {
+       pntr = (*itPilot);
+
+       itPilot = pilotInfo.erase(itPilot);
+
+       delete pntr;
+    }
+}
+
+bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool debugRace) {
     if (mCurrentRace != NULL)
         return false;
 
-    //gameSoundEngine->StartEngineSound();
-
     //create a new Race
     mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
-                           mTimeProfiler, this->mGameScreenRes, load_levelnr, false, debugRace, false);
+                           mTimeProfiler, this->mGameScreenRes, load_levelnr,
+                            GameAssets->mRaceTrackVec->at(load_levelnr-1)->currSelNrLaps, false, debugRace, false);
 
     mCurrentRace->Init();
 
-    //add first human player
-    std::string pl1Model("extract/models/car0-0.obj");
-    mCurrentRace->AddPlayer(true, (char*)"PLAYER", pl1Model);
+    //now add players according to pilotInfo
+    std::vector<PilotInfoStruct*>::iterator itPilot;
+    std::string modelName;
 
-    //std::string player_model("extract/models/jet0-0.obj");
-   //    std::string player_model2("extract/models/bike0-0.obj");
-   //    //std::string player_model("extract/models/car0-0.obj");
-   //    //std::string player_model("extract/models/jugga0-0.obj");
-   //    //std::string player_model("extract/models/marsh0-0.obj");
-   //    //std::string player_model("extract/models/skim0-0.obj");
+    for (itPilot = pilotInfo.begin(); itPilot != pilotInfo.end(); ++itPilot) {
+        modelName = GameAssets->GetCraftModelName((*itPilot)->defaultCraftName, (*itPilot)->currSelectedCraftColorScheme);
 
-    //add computer player 1
-    std::string pl2Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
+        //if there was a problem modelName is an empty string
+        if (modelName == "")
+            return false;
 
-    //add computer player 2
-    std::string pl3Model("extract/models/jugga0-3.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
-
-    //add computer player 3
-    std::string pl4Model("extract/models/skim0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
-
-    //add computer player 4
-    std::string pl5Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
-
-    //add computer player 5
-    std::string pl6Model("extract/models/marsh0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
-
-    //add computer player 6
-    std::string pl7Model("extract/models/jet0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
-
-    //add computer player 7
-    std::string pl8Model("extract/models/tank0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
+        //finally add the player to the race
+        mCurrentRace->AddPlayer((*itPilot)->humanPlayer, (*itPilot)->pilotName, modelName);
+    }
 
     mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
     mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
@@ -663,8 +650,6 @@ bool Game::CreateNewRace(int load_levelnr, bool debugRace) {
         cout << "Race creation failed!" << endl;
         return false;
     }
-
-    //StopTime();
 
     return true;
 }
@@ -677,7 +662,8 @@ bool Game::RunDemoMode(int load_levelnr) {
 
     //create a new Race in Demo Mode
     mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
-                           mTimeProfiler, this->mGameScreenRes, load_levelnr, true, false, false);
+                           mTimeProfiler, this->mGameScreenRes, load_levelnr,
+                            GameAssets->mRaceTrackVec->at(load_levelnr-1)->defaultNrLaps, true, false);
 
     mCurrentRace->Init();
 
