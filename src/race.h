@@ -37,6 +37,7 @@
 #include "models/expentity.h"
 #include "models/camera.h"
 #include "models/collectablespawner.h"
+#include "infrabase.h"
 
 using namespace std;
 
@@ -80,7 +81,7 @@ struct RaceStatsEntryStruct {
     //the race time
     irr::u32 raceTime;
 
-    //the rating number up to 20
+    //the rating number from 1 up to 20
     irr::u8 rating;
 
     //the position
@@ -109,10 +110,11 @@ class Cone; //Forward declaration
 class Camera; //Forward declaration
 class CollectableSpawner; //Forward declaration
 class SoundEngine; //Forward declaration
+class InfrastructureBase; //Forward declaration
 
 class Race {
 public:
-    Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
+    Race(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
          GameText* gameText, Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
          dimension2d<u32> gameScreenRes, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
 
@@ -177,6 +179,8 @@ public:
 
     //my Irrlicht device
     irr::IrrlichtDevice* mDevice;
+
+    InfrastructureBase* mInfraBase;
 
     //handles the columns (made of blocks)
     //of the level
@@ -272,6 +276,8 @@ public:
     //returns filename of sprite file for collectable
     //invalid entity types will revert to sprite number 42
     std::string GetCollectableSpriteFileName(Entity::EntityType mEntityType);
+
+    bool GetWasRaceFinished();
 
 private:
     int levelNr;

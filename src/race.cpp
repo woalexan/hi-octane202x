@@ -18,7 +18,7 @@
 
 #include "race.h"
 
-Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver, GameText* gameText,
+Race::Race(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver, GameText* gameText,
            Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
            dimension2d<u32> gameScreenRes, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam) {
     this->mDriver = driver;
@@ -31,6 +31,7 @@ Race::Race(irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::s
     this->mSoundEngine = soundEngine;
     this->mTimeProfiler = timeProfiler;
     this->mDemoMode = demoMode;
+    this->mInfraBase = infraBase;
 
     mRaceNumberOfLaps = nrLaps;
 
@@ -596,6 +597,10 @@ void Race::StopAllSounds() {
     mSoundEngine->StopAllSounds();
 }
 
+bool Race::GetWasRaceFinished() {
+    return mRaceWasFinished;
+}
+
 //ends the current race
 void Race::End() {
     //stop music and all sounds
@@ -1149,114 +1154,61 @@ void Race::PlayerHasFinishedLastLapOfRace(Player *whichPlayer) {
 
 //helper function which creates and returns the final race statistics
 std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
-    std::vector<RaceStatsEntryStruct*>* result = new std::vector<RaceStatsEntryStruct*>();
+    std::vector<RaceStatsEntryStruct*>* result = new std::vector<RaceStatsEntryStruct*>;
 
     result->clear();
 
-    //just put example data in here right now from a games example
-    RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("ABC"));
-    newEntry->hitAccuracy = 49;
-    newEntry->nrKills = 4;
-    newEntry->nrDeaths = 0;
-    newEntry->avgLapTime = 449;
-    newEntry->bestLapTime = 375;
-    newEntry->raceTime = 4943;
-    newEntry->rating = 16;
-    newEntry->racePosition = 1;
+    std::vector<Player*>::iterator itPlayer;
+    std::vector <LAPTIMEENTRY>::iterator itLap;
+    irr::u32 sumLapTimes = 0;
+    bool firstLapTime = true;
+    irr::u16 minLapTime = 0;
 
-    result->push_back(newEntry);
+    for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
+          RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
 
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("BARNSY"));
-    newEntry->hitAccuracy = 55;
-    newEntry->nrKills = 0;
-    newEntry->nrDeaths = 3;
-    newEntry->avgLapTime = 526;
-    newEntry->bestLapTime = 407;
-    newEntry->raceTime = 5794;
-    newEntry->rating = 4;
-    newEntry->racePosition = 5;
+          //process lap time data
+          for (itLap = (*itPlayer)->mPlayerStats->lapTimeList.begin(); itLap != (*itPlayer)->mPlayerStats->lapTimeList.end(); ++itLap) {
+              sumLapTimes += (*itLap).lapTimeMultiple100mSec;
 
-    result->push_back(newEntry);
+              if (firstLapTime) {
+                  firstLapTime = false;
+                  minLapTime = (*itLap).lapTimeMultiple100mSec;
+              } else {
+                  if ((*itLap).lapTimeMultiple100mSec < minLapTime) {
+                      minLapTime = (*itLap).lapTimeMultiple100mSec;
+                  }
+              }
+          }
 
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("SHUNTLY"));
-    newEntry->hitAccuracy = 45;
-    newEntry->nrKills = 3;
-    newEntry->nrDeaths = 1;
-    newEntry->avgLapTime = 657;
-    newEntry->bestLapTime = 456;
-    newEntry->raceTime = 7237;
-    newEntry->rating = 6;
-    newEntry->racePosition = 8;
+          strcpy(newEntry->playerName, (*itPlayer)->mPlayerStats->name);
+          newEntry->nrKills = (*itPlayer)->mPlayerStats->currKillCount;
+          newEntry->nrDeaths = (*itPlayer)->mPlayerStats->currDeathCount;
+          newEntry->raceTime = sumLapTimes;
+          newEntry->bestLapTime = minLapTime;
 
-    result->push_back(newEntry);
+          irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)((*itPlayer)->mPlayerStats->lapTimeList.size());
+          newEntry->avgLapTime = (irr::u16)(avgLapTime);
+          newEntry->racePosition = (*itPlayer)->mPlayerStats->currRacePlayerPos;
 
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("COPSE"));
-    newEntry->hitAccuracy = 69;
-    newEntry->nrKills = 0;
-    newEntry->nrDeaths = 4;
-    newEntry->avgLapTime = 520;
-    newEntry->bestLapTime = 392;
-    newEntry->raceTime = 5721;
-    newEntry->rating = 5;
-    newEntry->racePosition = 2;
+          irr::f32 accuracy = ((irr::f32)((*itPlayer)->mPlayerStats->shootsHit) / ((irr::f32)((*itPlayer)->mPlayerStats->shootsHit) +
+                                                                              (irr::f32)((*itPlayer)->mPlayerStats->shootsMissed))) * 100.0f;
 
-    result->push_back(newEntry);
+          newEntry->hitAccuracy = (irr::u8)(accuracy);
+          //plausi check
+          if (newEntry->hitAccuracy < 0)
+              newEntry->hitAccuracy = 0;
 
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("MANNY"));
-    newEntry->hitAccuracy = 53;
-    newEntry->nrKills = 0;
-    newEntry->nrDeaths = 2;
-    newEntry->avgLapTime = 543;
-    newEntry->bestLapTime = 397;
-    newEntry->raceTime = 5973;
-    newEntry->rating = 4;
-    newEntry->racePosition = 6;
+          if (newEntry->hitAccuracy > 100)
+              newEntry->hitAccuracy = 100;
 
-    result->push_back(newEntry);
+          //TODO: calculate later!
+          //rating goes from lowest 1 (worst) up to
+          //20 (best player)
+          newEntry->rating = 1;
 
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("MCLALIN"));
-    newEntry->hitAccuracy = 47;
-    newEntry->nrKills = 0;
-    newEntry->nrDeaths = 3;
-    newEntry->avgLapTime = 515;
-    newEntry->bestLapTime = 411;
-    newEntry->raceTime = 5671;
-    newEntry->rating = 4;
-    newEntry->racePosition = 5;
-
-    result->push_back(newEntry);
-
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("MAD"));
-    newEntry->hitAccuracy = 45;
-    newEntry->nrKills = 7;
-    newEntry->nrDeaths = 0;
-    newEntry->avgLapTime = 501;
-    newEntry->bestLapTime = 399;
-    newEntry->raceTime = 5519;
-    newEntry->rating = 15;
-    newEntry->racePosition = 3;
-
-    result->push_back(newEntry);
-
-    newEntry = new RaceStatsEntryStruct();
-    strcpy(newEntry->playerName, (char*)("ATROW"));
-    newEntry->hitAccuracy = 48;
-    newEntry->nrKills = 0;
-    newEntry->nrDeaths = 1;
-    newEntry->avgLapTime = 593;
-    newEntry->bestLapTime = 430;
-    newEntry->raceTime = 6533;
-    newEntry->rating = 4;
-    newEntry->racePosition = 7;
-
-    result->push_back(newEntry);
+          result->push_back(newEntry);
+    }
 
     return (result);
 }

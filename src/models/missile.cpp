@@ -369,9 +369,19 @@ void MissileLauncher::Trigger() {
          if (mParent->mTargetMissleLock) {
               lockedPlayer = mParent->mTargetPlayer;
               targetIsLocked = true;
+
+              //this was a hit, add to hit statistics for accuracy
+              mParent->mPlayerStats->shootsHit++;
+         } else {
+             //we fired at a green marked player
+             //this was a miss, add to miss statistics for accuracy
+             mParent->mPlayerStats->shootsMissed++;
          }
 
      } else {
+         //this was a miss, add to miss statistics for accuracy
+         mParent->mPlayerStats->shootsMissed++;
+
          //we do not target any player right now
          //the missile should target the terrain
          //shotTargetLoc = GetBulletImpactPoint();
