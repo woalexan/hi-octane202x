@@ -20,6 +20,7 @@
 #include "../audio/music.h"
 #include "../resources/assets.h"
 #include "../race.h"
+#include "../infrabase.h"
 
 //definition of available menue pages
 #define MENUE_AFTERGAMESTART 0
@@ -55,6 +56,8 @@
 //special "menue" actions
 #define MENUE_ACTION_INTROSTOP 100
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
+#define MENUE_ACTION_STARTDEMO 102
+#define MENUE_ACTION_SHOWHIGHSCOREPAGE 103
 
 //definition of possible menue states
 #define MENUE_STATE_TRANSITION 0  //menue window is currently moving, no item selection possible
@@ -84,6 +87,11 @@
 
 //3D model update period time in seconds
 #define MENUE_3DMODEL_UPDATEPERIODSEC 0.075f
+
+//after the user is inactive for 30 seconds in the menue
+//trigger an action automatically
+//implemented as in the original game
+const irr::f32 MENUE_USERINACTIVETIME_THRESHOLD = 30.0f;
 
 //this struct holds the information for a sound trigger event
 //used during the games intro playing
@@ -228,6 +236,7 @@ private:
     GameText* myGameTextRenderer;
     SoundEngine* mSoundEngine;
     Assets* mGameAssets;
+    InfrastructureBase* mInfraBase;
 
     //we need a music player for the game intro music
     MyMusicStream* mMusicPlayer;
@@ -580,9 +589,12 @@ private:
     void CleanupHighScorepage();
     irr::f32 absTimeElapsedAtHighScorePage;
 
+    //Timer which counts menue user inactive time
+    irr::f32 mMenueUserInactiveTimer;
+
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
-    Menue(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
+    Menue(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
           MyEventReceiver* eventReceiver, irr::scene::ISceneManager* mainSceneManager, SoundEngine* soundEngine,
           MyMusicStream* gameMusicPlayerParam, Assets* assets);
     ~Menue();
@@ -602,8 +614,12 @@ public:
     //special menue actions
     MenueAction* ActIntroStop;
     MenueAction* ActCloseRaceStatPage;
+    MenueAction* ActStartDemo;
+    MenueAction* ActShowHighScorePage;
 
     void Render(irr::f32 frameDeltaTime);
+    void HandleUserInactiveTimer(irr::f32 frameDeltaTime);
+
     void HandleInput();
     bool HandleActions(MenueAction* &pendingAction);
     void AdvanceTime(irr::f32 frameDeltaTime);

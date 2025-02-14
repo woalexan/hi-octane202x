@@ -195,6 +195,8 @@ add_executable(hi-octane202x
     src/utils/boundingbox/collision.h
     src/utils/boundingbox/collision.cpp
 
+    src/infrabase.h
+    src/infrabase.cpp
     src/game.h
     src/game.cpp
     src/race.h

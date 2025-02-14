@@ -126,6 +126,9 @@ void MachineGun::Trigger() {
          //mParent->mTargetPlayer->Damage(damage);
          mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, DEF_RACE_DAMAGETYPE_MGUN, mParent);
          mParent->mTargetPlayer->DamageGlas();
+
+         //this was a hit, add to hit statistics for accuracy
+         mParent->mPlayerStats->shootsHit++;
      } else {
          //we do not target any player right now
          //the bullet should impact the terrain
@@ -144,6 +147,10 @@ void MachineGun::Trigger() {
              }
 
              shotTargetLoc = triangleHit.hitPointOnTriangle + triangleNormal * irr::core::vector3df(0.2f, 0.2f, 0.2f);
+
+             //this was a miss, add to statistics of shoots target missed
+             //we need this for later accuracy calculations
+             mParent->mPlayerStats->shootsMissed++;
 
          } else {
              //did not find a shooting location target

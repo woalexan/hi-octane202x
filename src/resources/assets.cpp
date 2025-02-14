@@ -358,13 +358,8 @@ void Assets::SetNewRaceTrackDefaultNrLaps(irr::u32 nrRaceTrack, irr::u8 newNumbe
     }
 }
 
-void Assets::AddDriverAssessementString(char* newString) {
-    char* stringPntr;
-    irr::u8 strLen = strlen(newString);
-
-    //to be safe add one char extra :)
-    stringPntr = new char[strLen + 2];
-    strcpy(stringPntr, newString);
+void Assets::AddDriverAssessementString(const char* newString) {
+    char* stringPntr = strdup(newString);
 
     driverAssessementStrings->push_back(stringPntr);
 }
@@ -377,30 +372,30 @@ void Assets::InitDriverAssessementStrings() {
   //With the last ones I am not sure anymore if the belong to
   //the driver assessement or not. I will need to find this out in
   //the future
-  AddDriverAssessementString((char*)"IMMORTAL\0");
-  AddDriverAssessementString((char*)"HARDWIRED\0");
-  AddDriverAssessementString((char*)"OUTTA CONTROL\0");
-  AddDriverAssessementString((char*)"DEMON\0");
-  AddDriverAssessementString((char*)"DEADLY\0");
-  AddDriverAssessementString((char*)"WRECKER\0");
-  AddDriverAssessementString((char*)"DANGEROUS\0");
-  AddDriverAssessementString((char*)"TAILGATER\0");
-  AddDriverAssessementString((char*)"ANTISOCIAL\0");
-  AddDriverAssessementString((char*)"DUST DEVIL\0");
-  AddDriverAssessementString((char*)"UPWARDLY MOBILE\0");
-  AddDriverAssessementString((char*)"MEDIOCRE\0");
-  AddDriverAssessementString((char*)"TOO SLOW\0");
-  AddDriverAssessementString((char*)"ENDANGERED SPECIES\0");
-  AddDriverAssessementString((char*)"TARGET PRACTICE\0");
-  AddDriverAssessementString((char*)"BACK MARKER\0");
-  AddDriverAssessementString((char*)"CANYON KISSER\0");
-  AddDriverAssessementString((char*)"VICTIM\0");
-  AddDriverAssessementString((char*)"SCRAP\0");
-  AddDriverAssessementString((char*)"SMEAR\0");
+  AddDriverAssessementString("IMMORTAL");
+  AddDriverAssessementString("HARDWIRED");
+  AddDriverAssessementString("OUTTA CONTROL");
+  AddDriverAssessementString("DEMON");
+  AddDriverAssessementString("DEADLY");
+  AddDriverAssessementString("WRECKER");
+  AddDriverAssessementString("DANGEROUS");
+  AddDriverAssessementString("TAILGATER");
+  AddDriverAssessementString("ANTISOCIAL");
+  AddDriverAssessementString("DUST DEVIL");
+  AddDriverAssessementString("UPWARDLY MOBILE");
+  AddDriverAssessementString("MEDIOCRE");
+  AddDriverAssessementString("TOO SLOW");
+  AddDriverAssessementString("ENDANGERED SPECIES");
+  AddDriverAssessementString("TARGET PRACTICE");
+  AddDriverAssessementString("BACK MARKER");
+  AddDriverAssessementString("CANYON KISSER");
+  AddDriverAssessementString("VICTIM");
+  AddDriverAssessementString("SCRAP");
+  AddDriverAssessementString("SMEAR");
   //I believe the following string does not actually belong
   //to the driver assessement strings in Hi-Octance, because
   //the race stats page lists 20 different ratings, and not 21
-  //AddDriverAssessementString((char*)"CHEATING SUCKS\0");
+  //AddDriverAssessementString("CHEATING SUCKS");
 }
 
 irr::u8 Assets::GetNumberDriverAssessementStrings() {
@@ -421,8 +416,8 @@ void Assets::CleanUpDriverAssessementStrings() {
       //remove entry from vector
       it = this->driverAssessementStrings->erase(it);
 
-      //delete string itself as well
-      delete[] strPntr;
+      //free string itself as well
+      free(strPntr);
   }
 }
 

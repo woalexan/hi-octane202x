@@ -14,10 +14,6 @@ void Player::SetPlayerObject(PhysicsObject* phObjPtr) {
    this->phobj = phObjPtr;
 }
 
-int Player::randRangeInt(int min, int max) {
-   return min + rand() / (RAND_MAX / (max - min + 1) + 1);
-}
-
 void Player::DamageGlas() {
     //with a certain probability damage glas if another player
     //shoots with the machine gun at me
@@ -1969,7 +1965,7 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
 
         //choose available path random
         int rNum;
-        rNum = randRangeInt(0, nrWays - 1);
+        rNum = this->mRace->mInfraBase->randRangeInt(0, nrWays - 1);
 
         //LogMessage((char*)"Entered a new (unspecial) Waypoint-Link");
 
@@ -3362,9 +3358,8 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
 
         case CMD_FOLLOW_TARGETWAYPOINTLINK: {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
-            mCpLastFollowThisWayPointLink = currCommand->targetWaypointLink;
             //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
-            FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, false);
+            FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
             /*if (mHUD != NULL) {
               this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
             }*/
@@ -4269,6 +4264,9 @@ void Player::WasDestroyed() {
         computerPlayerCurrentSpeed = 0.0f;
         computerPlayerTargetSpeed = 0.0f;
     }
+
+    //increase my death count
+    this->mPlayerStats->currDeathCount++;
 
     //Player has now zero shield and is broken
     //Call recovery vehicle for help and set new

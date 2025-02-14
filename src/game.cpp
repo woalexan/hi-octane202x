@@ -140,7 +140,7 @@ bool Game::InitGame() {
     mTimeProfiler = new TimeProfiler();
 
     //create the games menue
-    MainMenue = new Menue(device, driver, mGameScreenRes, GameTexts, receiver, smgr, gameSoundEngine,
+    MainMenue = new Menue(InfraBase, device, driver, mGameScreenRes, GameTexts, receiver, smgr, gameSoundEngine,
                       gameMusicPlayer, GameAssets);
     if (!MainMenue->MenueInitializationSuccess) {
         cout << "Game menue init operation failed!" << endl;
@@ -191,7 +191,7 @@ void Game::DebugGame() {
         //player wants to start the race
         mPilotsNextRace = GameAssets->GetPilotInfoNextRace(true, false);
 
-        if (this->CreateNewRace(debugLevelNr, mPilotsNextRace, mDebugGame)) {
+        if (this->CreateNewRace(debugLevelNr, mPilotsNextRace, false, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
              CleanupPilotInfo(mPilotsNextRace);
 
@@ -294,7 +294,7 @@ void Game::HandleMenueActions() {
         //player wants to start the race
         mPilotsNextRace = GameAssets->GetPilotInfoNextRace(true, GameAssets->GetComputerPlayersEnabled());
 
-        if (this->CreateNewRace(pendingAction->currSetValue, mPilotsNextRace, mDebugGame)) {
+        if (this->CreateNewRace(pendingAction->currSetValue, mPilotsNextRace, false, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
              CleanupPilotInfo(mPilotsNextRace);
         }
@@ -320,11 +320,31 @@ void Game::HandleMenueActions() {
              //do not forget to also cleanup last
              //racestat struct memory!
              mCurrentRace->CleanupRaceStatistics(lastRaceStat);
+             lastRaceStat = NULL;
 
              mGameState = DEF_GAMESTATE_MENUE;
 
              //go back to main menue top page
              MainMenue->ShowMainMenue();
+    }
+
+    //show HighScorePage?
+    if (pendingAction == MainMenue->ActShowHighScorePage) {
+        MainMenue->ShowHighscore();
+    }
+
+    //start a demo?
+    if (pendingAction == MainMenue->ActStartDemo) {
+        //for the demo do not add a human player, but add computer players
+        mPilotsNextRace = GameAssets->GetPilotInfoNextRace(false, true);
+
+        //pick a random level number for the demo
+        int randLevelNr = this->InfraBase->randRangeInt(1, 6);
+
+        if (this->CreateNewRace(randLevelNr, mPilotsNextRace, true, mDebugGame)) {
+             mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
+        }
     }
 }
 
@@ -354,6 +374,7 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
     //time dependent menue actions triggers (start game demo,
     //show high score)
     MainMenue->AdvanceTime(frameDeltaTime);
+    MainMenue->HandleUserInactiveTimer(frameDeltaTime);
 
     if (MainMenue->HandleActions(pendingAction)) {
        //user triggered an menue action
@@ -528,6 +549,15 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     if (mCurrentRace->exitRace) {
         mCurrentRace->End();
 
+        this->lastRaceStat = NULL;
+
+        //was the race finished, that means all players went through the finish
+        //line and finished the last lap?
+        if (mCurrentRace->GetWasRaceFinished()) {
+            //yes it was, get race statistics
+            this->lastRaceStat = mCurrentRace->RetrieveFinalRaceStatistics();
+        }
+
         //clean up current race data
         delete mCurrentRace;
         mCurrentRace = NULL;
@@ -536,7 +566,15 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
             ExitGame = true;
         } else {
             mGameState = DEF_GAMESTATE_MENUE;
-            MainMenue->ShowMainMenue();
+
+            if (this->lastRaceStat != NULL) {
+                //Show race statistics
+                MainMenue->ShowRaceStats(lastRaceStat);
+            } else {
+                //there are no race statistics to show
+                //simply return to the main menue
+                MainMenue->ShowMainMenue();
+            }
         }
     }
 }
@@ -616,14 +654,14 @@ void Game::CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo) {
     }
 }
 
-bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool debugRace) {
+bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace) {
     if (mCurrentRace != NULL)
         return false;
 
     //create a new Race
-    mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
+    mCurrentRace = new Race(InfraBase, device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
                            mTimeProfiler, this->mGameScreenRes, load_levelnr,
-                            GameAssets->mRaceTrackVec->at(load_levelnr-1)->currSelNrLaps, false, debugRace, false);
+                            GameAssets->mRaceTrackVec->at(load_levelnr-1)->currSelNrLaps, demoMode, debugRace, false);
 
     mCurrentRace->Init();
 
@@ -661,7 +699,7 @@ bool Game::RunDemoMode(int load_levelnr) {
     //gameSoundEngine->StartEngineSound();
 
     //create a new Race in Demo Mode
-    mCurrentRace = new Race(device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
+    mCurrentRace = new Race(InfraBase, device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
                            mTimeProfiler, this->mGameScreenRes, load_levelnr,
                             GameAssets->mRaceTrackVec->at(load_levelnr-1)->defaultNrLaps, true, false);
 
@@ -715,4 +753,5 @@ void Game::CleanUpRace() {
 }
 
 Game::Game() {
+    InfraBase = new InfrastructureBase();
 }

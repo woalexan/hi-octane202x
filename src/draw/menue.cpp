@@ -228,6 +228,16 @@ void Menue::InitMenuePageEntries() {
     ActCloseRaceStatPage = new MenueAction();
     ActCloseRaceStatPage->actionNr = MENUE_ACTION_CLOSERACESTATPAGE;
 
+    //a special action that signals the Main loop that a demo
+    //should be started
+    ActStartDemo = new MenueAction();
+    ActStartDemo->actionNr = MENUE_ACTION_STARTDEMO;
+
+    //a special action that signals the Main loop that the
+    //highscore page should be shown
+    ActShowHighScorePage = new MenueAction();
+    ActShowHighScorePage->actionNr = MENUE_ACTION_SHOWHIGHSCOREPAGE;
+
     //define menue pages first
     TopMenuePage = new MenuePage();
     TopMenuePage->pageNumber = MENUE_TOPENTRY;
@@ -1926,6 +1936,41 @@ void Menue::CleanupIntro() {
    delete introTextures;
 }
 
+void Menue::HandleUserInactiveTimer(irr::f32 frameDeltaTime) {
+    //just increase inactive time in top menue page
+    if (currSelMenuePage != TopMenuePage)
+        return;
+
+    mMenueUserInactiveTimer += frameDeltaTime;
+
+    //user was long enough inactive?
+    if (mMenueUserInactiveTimer > MENUE_USERINACTIVETIME_THRESHOLD) {
+        //yes, trigger next defined action automatically
+        mMenueUserInactiveTimer = 0.0f;
+
+        //create random number to decide between 0 = run demo, and
+        //1 = show high score page
+        int rNum;
+        rNum = mInfraBase->randRangeInt(0, 0);
+
+       /* if (rNum == 1) {
+            //we want to trigger a demo because player was inactive in the menue
+            //for a longer time
+            //set here currValue to 0, because this is not a checkbox/slider action
+            ActStartDemo->currSetValue = 0;
+            currActionToExecute = ActStartDemo;
+        } else {*/
+            if (rNum == 0) {
+                //we want to show the highscore page because player was inactive in the menue
+                //for a longer time
+                //set here currValue to 0, because this is not a checkbox/slider action
+                ActShowHighScorePage->currSetValue = 0;
+                currActionToExecute = ActShowHighScorePage;
+            }
+       // }
+    }
+}
+
 void Menue::Render(irr::f32 frameDeltaTime) {
     //do we need to show special page? (for example game title or race loading screen?)
     if ((this->currSelMenuePage == gameTitleMenuePage) || (this->currSelMenuePage == raceLoadingMenuePage)) {
@@ -2324,6 +2369,8 @@ void Menue::ItemReturn() {
 }
 
 void Menue::RemoveInputTextFieldChar(MenueSingleEntry* textInputEntry) {
+    mMenueUserInactiveTimer = 0.0f;
+
     //is there still a character to be removed?
     if (textInputEntry->currTextInputFieldStrLen > 0) {
         textInputEntry->currTextInputFieldStrLen--;
@@ -2346,6 +2393,7 @@ void Menue::RemoveInputTextFieldChar(MenueSingleEntry* textInputEntry) {
 }
 
 void Menue::AddInputTextFieldChar(MenueSingleEntry* textInputEntry, char newCharToAdd) {
+    mMenueUserInactiveTimer = 0.0f;
 
     PlayMenueSound(SRES_MENUE_TYPEWRITEREFFECT1);
 
@@ -2611,6 +2659,8 @@ void Menue::HandleInputRaceSelection() {
     //only allow menue input in case window is fully open
     if (currMenueState == MENUE_STATE_SELACTIVE) {
         if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2624,6 +2674,8 @@ void Menue::HandleInputRaceSelection() {
         }
 
         if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2637,6 +2689,8 @@ void Menue::HandleInputRaceSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //store last selected race track in assets class
             this->mGameAssets->SetNewLastSelectedRaceTrack(currSelectedRaceTrack);
 
@@ -2651,6 +2705,8 @@ void Menue::HandleInputRaceSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2664,6 +2720,8 @@ void Menue::HandleInputRaceSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2676,6 +2734,8 @@ void Menue::HandleInputRaceSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //interrupt and return back to default main menue
             InterruptRaceSelection();
         }
@@ -2686,6 +2746,8 @@ void Menue::HandleInputShipSelection() {
     //only allow menue input in case window is fully open
     if (currMenueState == MENUE_STATE_SELACTIVE) {
         if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2703,6 +2765,8 @@ void Menue::HandleInputShipSelection() {
         }
 
         if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2720,11 +2784,15 @@ void Menue::HandleInputShipSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //player accepted race setup
             AcceptedRaceSetup();
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2738,6 +2806,8 @@ void Menue::HandleInputShipSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //play sound for changing selected menue item
             PlayMenueSound(SRES_MENUE_SELECTOTHERITEM);
 
@@ -2750,6 +2820,8 @@ void Menue::HandleInputShipSelection() {
         }
 
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+            mMenueUserInactiveTimer = 0.0f;
+
             //interrupt and return back to race track selection menue page
             this->currSelMenuePage = RaceTrackSelectionPage;
 
@@ -2780,6 +2852,7 @@ void Menue::HandleInput() {
     } else if (this->currSelMenuePage == gameIntroMenuePage) {
         //game intro is currently player
         if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+          mMenueUserInactiveTimer = 0.0f;
           //interrupt the intro
           //we just need to set the current frame number
           //to the number of the last frame
@@ -2795,26 +2868,33 @@ void Menue::HandleInput() {
             //be sure to use function IsKeyDownSingleEvent, to prevent
             //multiple input events during one keypress!
             if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+                mMenueUserInactiveTimer = 0.0f;
                 ItemUp();
             }
 
             if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+                mMenueUserInactiveTimer = 0.0f;
                 ItemDown();
             }
 
             if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+                mMenueUserInactiveTimer = 0.0f;
                 ItemReturn();
             }
 
             if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+                mMenueUserInactiveTimer = 0.0f;
                 ItemLeft();
             }
 
             if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+                mMenueUserInactiveTimer = 0.0f;
                 ItemRight();
             }
 
             if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+                mMenueUserInactiveTimer = 0.0f;
+
                 //when we press ESC we want to go back to parent
                 //menue page, as the original game
                 //play sound for changing selected menue item
@@ -3301,7 +3381,7 @@ void Menue::RecalculateRaceTrackStatLabels() {
 //Parameters:
 //  device = pointer to Irrlicht graphics device
 //  driver = pointer to Irrlicht Video driver
-Menue::Menue(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
+Menue::Menue(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
              MyEventReceiver* eventReceiver, irr::scene::ISceneManager *mainSceneManager, SoundEngine* soundEngine,
              MyMusicStream* gameMusicPlayerParam, Assets *assets) {
     myDriver = driver;
@@ -3312,6 +3392,7 @@ Menue::Menue(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr:
     mSoundEngine = soundEngine;
     mGameAssets = assets;
     mMusicPlayer = gameMusicPlayerParam;
+    mInfraBase = infraBase;
 
     //how many race tracks and crafts are available
     //for selection from assets class
@@ -3346,6 +3427,8 @@ Menue::Menue(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr:
 }
 
 void Menue::ShowMainMenue() {
+    mMenueUserInactiveTimer = 0.0f;
+
     //initially game shows main menue top page
     //with item Race selected
     currSelMenuePage = this->TopMenuePage;
@@ -3383,8 +3466,10 @@ void Menue::CleanupHighScorepage() {
         //pntr to the text variable; if visible is false, then we must not
         //delete the text string pointer!
         if ((*it)->visible) {
-           //visible was set to true, delete text pointer!
-           delete[] labelPntr->text;
+           //visible was set to true, free text pointer
+           //we malloced the text, therefore we need to use
+           //free here! not delete!!!
+           free(labelPntr->text);
         }
 
         //delete MenueTextLabel as well
@@ -3418,25 +3503,21 @@ void Menue::ShowHighscore() {
    char* highScoreValStr;
    char* assessementStr;
    irr::u32 nrCharsOverall = 0;
-   char* titleText;
-
-   titleText = new char[10];
-   strcpy(titleText, (char*)"HISCORES");
 
    //first add menue page title text
    newLabel = new MenueTextLabel();
    newLabel->drawPositionTxt.X = 264;
    newLabel->drawPositionTxt.Y = 45;
-   newLabel->text = titleText;
+   newLabel->text = strdup("HISCORES");
    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of highscore screen
-   //in function CleanupHighScorepage we need to delete also the
+   //in function CleanupHighScorepage we need to free also the
    //pntr to the text variable; if visible is false, then we must not
-   //delete the text string pointer!
-   newLabel->visible = true; //set to true, delete text pointer afterwards!
+   //free the text string pointer!
+   newLabel->visible = true; //set to true, free text pointer afterwards!
 
    highScorePageTextVec->push_back(newLabel);
 
@@ -3451,8 +3532,8 @@ void Menue::ShowHighscore() {
        newLabel = new MenueTextLabel();
        newLabel->drawPositionTxt.X = 56;
        newLabel->drawPositionTxt.Y = textYcoord;
-       newLabel->text = pntrTable->at(cnt)->namePlayer;
-       newLabel->visible = false; //we must not delete this text pointer!
+       newLabel->text = strdup(pntrTable->at(cnt)->namePlayer);
+       newLabel->visible = true; //we must free this text pointer!
        newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
 
        highScorePageTextVec->push_back(newLabel);
@@ -3471,8 +3552,11 @@ void Menue::ShowHighscore() {
                    newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = textYcoord;
-       newLabel->text = highScoreValStr;
-       newLabel->visible = true; //set to true, delete text pointer afterwards!
+       newLabel->text = strdup(highScoreValStr);
+
+       delete[] highScoreValStr;
+
+       newLabel->visible = true; //set to true, free text pointer afterwards!
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3491,8 +3575,8 @@ void Menue::ShowHighscore() {
                    newLabel->whichFont);
 
        newLabel->drawPositionTxt.Y = textYcoord;
-       newLabel->text = assessementStr;
-       newLabel->visible = false; //we must not delete this text pointer!
+       newLabel->text = strdup(assessementStr);
+       newLabel->visible = true; //we must free this text pointer!
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3537,12 +3621,13 @@ void Menue::CleanupRaceStatsPage() {
         //Reuse the visible bool variable in the MenueTextLabel struct
         //here for another purpose. If we set visible to true we know
         //that during the Cleanup process of variables of highscore screen
-        //in function CleanupRaceStatsPage we need to delete also the
+        //in function CleanupRaceStatsPage we need to free also the
         //pntr to the text variable; if visible is false, then we must not
-        //delete the text string pointer!
+        //free the text string pointer!
         if ((*it)->visible) {
-           //visible was set to true, delete text pointer!
-           delete[] labelPntr->text;
+           //visible was set to true, free text pointer!
+           //text was malloced, we NEED to use free!
+           free(labelPntr->text);
         }
 
         //delete MenueTextLabel as well
@@ -3562,27 +3647,23 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    irr::u32 columnXcoord;
    irr::u32 rowYCoord;
    irr::u32 nrCharsOverall = 0;
-   char* titleText;
 
    //******************** Draw title ****************
-
-   titleText = new char[12];
-   strcpy(titleText, (char*)"STATISTICS");
 
    //first add menue page title text
    newLabel = new MenueTextLabel();
    newLabel->drawPositionTxt.X = 225;
    newLabel->drawPositionTxt.Y = 25;
-   newLabel->text = titleText;
+   newLabel->text = strdup("STATISTICS");
    newLabel->whichFont = this->myGameTextRenderer->HudWhiteTextBannerFont;
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of highscore screen
-   //in function CleanupHighScorepage we need to delete also the
+   //in function CleanupHighScorepage we need to free also the
    //pntr to the text variable; if visible is false, then we must not
-   //delete the text string pointer!
-   newLabel->visible = true; //set to true, delete text pointer afterwards!
+   //free the text string pointer!
+   newLabel->visible = true; //set to true, free text pointer afterwards!
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3611,8 +3692,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
             newLabel->drawPositionTxt.Y = 75;
         }
 
-        newLabel->text = finalRaceStatistics->at(cnt)->playerName;
-        newLabel->visible = false; //we must not delete this text pointer!
+        newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
+        newLabel->visible = true; //set to true, free text pointer afterwards!
 
         raceStatsPageTextVec->push_back(newLabel);
 
@@ -3621,16 +3702,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    // ****************** HIT ACCURACY ***********
 
-   char* hitAccLbl = new char[14];
-   strcpy(hitAccLbl, "HIT ACCURACY");
-
    newLabel = new MenueTextLabel();
    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 235;
    newLabel->drawPositionTxt.Y = 91;
 
-   newLabel->text = hitAccLbl;
-   newLabel->visible = true; //we must delete this text pointer!
+   newLabel->text = strdup("HIT ACCURACY");
+   newLabel->visible = true; //we must free this text pointer!
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3638,16 +3716,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    // ****************** KILLS ***********
 
-   char* killsLbl = new char[14];
-   strcpy(killsLbl, "KILLS");
-
    newLabel = new MenueTextLabel();
    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 287;
    newLabel->drawPositionTxt.Y = 123;
 
-   newLabel->text = killsLbl;
-   newLabel->visible = true; //we must delete this text pointer!
+   newLabel->text = strdup("KILLS");
+   newLabel->visible = true; //we must free this text pointer!
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3655,16 +3730,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    // ****************** DEATHS ***********
 
-   char* deathsLbl = new char[14];
-   strcpy(deathsLbl, "DEATHS");
-
    newLabel = new MenueTextLabel();
    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 278;
    newLabel->drawPositionTxt.Y = 155;
 
-   newLabel->text = deathsLbl;
-   newLabel->visible = true; //we must delete this text pointer!
+   newLabel->text = strdup("DEATHS");
+   newLabel->visible = true; //we must free this text pointer!
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3672,16 +3744,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    // ****************** AVERAGE LAP ***********
 
-   char* avgLapLbl = new char[14];
-   strcpy(avgLapLbl, "AVERAGE LAP");
-
    newLabel = new MenueTextLabel();
    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 241;
    newLabel->drawPositionTxt.Y = 187;
 
-   newLabel->text = avgLapLbl;
-   newLabel->visible = true; //we must delete this text pointer!
+   newLabel->text = strdup("AVERAGE LAP");
+   newLabel->visible = true; //we must free this text pointer!
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3689,67 +3758,52 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    // ****************** BEST LAP ***********
 
-    char* bestLapLbl = new char[14];
-    strcpy(bestLapLbl, "BEST LAP");
-
     newLabel = new MenueTextLabel();
     newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 263;
     newLabel->drawPositionTxt.Y = 219;
 
-    newLabel->text = bestLapLbl;
-    newLabel->visible = true; //we must delete this text pointer!
+    newLabel->text = strdup("BEST LAP");
+    newLabel->visible = true; //we must free this text pointer!
 
     raceStatsPageTextVec->push_back(newLabel);
 
     nrCharsOverall += strlen(newLabel->text);
 
     // ****************** RACE TIME ***********
-
-    char* raceTime = new char[14];
-    strcpy(raceTime, "RACE TIME");
-
     newLabel = new MenueTextLabel();
     newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 255;
     newLabel->drawPositionTxt.Y = 251;
 
-    newLabel->text = raceTime;
-    newLabel->visible = true; //we must delete this text pointer!
+    newLabel->text = strdup("RACE TIME");
+    newLabel->visible = true; //we must free this text pointer!
 
     raceStatsPageTextVec->push_back(newLabel);
 
     nrCharsOverall += strlen(newLabel->text);
 
     // ****************** RATING ***********
-
-    char* ratingLbl = new char[14];
-    strcpy(ratingLbl, "RATING");
-
     newLabel = new MenueTextLabel();
     newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 281;
     newLabel->drawPositionTxt.Y = 283;
 
-    newLabel->text = ratingLbl;
-    newLabel->visible = true; //we must delete this text pointer!
+    newLabel->text = strdup("RATING");
+    newLabel->visible = true; //we must free this text pointer!
 
     raceStatsPageTextVec->push_back(newLabel);
 
     nrCharsOverall += strlen(newLabel->text);
 
     // ****************** POSITION ***********
-
-    char* positionLbl = new char[14];
-    strcpy(positionLbl, "POSITION");
-
     newLabel = new MenueTextLabel();
     newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 269;
     newLabel->drawPositionTxt.Y = 315;
 
-    newLabel->text = positionLbl;
-    newLabel->visible = true; //we must delete this text pointer!
+    newLabel->text = strdup("POSITION");
+    newLabel->visible = true; //we must free this text pointer!
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -3770,14 +3824,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->hitAccuracy);
        strcat(newText, "%");
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3798,14 +3855,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->nrKills);
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3826,14 +3886,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->nrDeaths);
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3854,14 +3917,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->avgLapTime);
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3882,14 +3948,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->bestLapTime);
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3910,14 +3979,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->raceTime);
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3939,14 +4011,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->rating);
        strcat(newText, "/20");
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3967,14 +4042,17 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->racePosition);
 
-       newLabel->text = newText;
+       newLabel->text = strdup(newText);
+
+       delete[] newText;
+
        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->visible = true; //we must delete this text pointer!
+       newLabel->visible = true; //we must free this text pointer!
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -3982,8 +4060,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    }
 
    // ****************** MAIN PLAYER ASSESSEMENT ***********
-
-   char* playerAssessement = new char[30];
+   char* playerAssessement;
    playerAssessement = this->mGameAssets->GetDriverAssessementString(
                this->mGameAssets->GetNumberDriverAssessementStrings() - finalRaceStatistics->at(0)->rating);
 
@@ -3994,8 +4071,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->drawPositionTxt.Y = 363;
 
-   newLabel->text = playerAssessement;
-   newLabel->visible = true; //we must delete this text pointer!
+   newLabel->text = strdup(playerAssessement);
+
+   newLabel->visible = true; //we must free this text pointer!
 
    raceStatsPageTextVec->push_back(newLabel);
 

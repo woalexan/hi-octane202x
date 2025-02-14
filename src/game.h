@@ -19,6 +19,7 @@
 #include "draw/hud.h"
 #include "utils/logger.h"
 #include "resources/assets.h"
+#include "infrabase.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_INTRO 1
@@ -41,6 +42,7 @@ struct MenueAction; //Forward declaration
 class Logger; //Forward declaration
 class SoundEngine; //Forward declaration
 class Assets; //Forward declaration
+class InfrastructureBase; //Forward declaration
 
 class Game {
 private:
@@ -48,7 +50,7 @@ private:
     IrrlichtDevice*                 device;
     video::IVideoDriver*	        driver;
     scene::ISceneManager*           smgr;
-    MyEventReceiver* receiver;
+    MyEventReceiver* receiver; //Irrlicht stuff
     IGUIEnvironment* guienv;
 
     //Irrlicht related, for debugging of game
@@ -66,6 +68,7 @@ private:
     GameText* GameTexts;
     Menue* MainMenue;
     Assets* GameAssets;
+    InfrastructureBase* InfraBase;
 
     //stores the current gamestate
     irr::u8 mGameState;
@@ -104,7 +107,7 @@ private:
     Race* mCurrentRace = NULL;
     bool mTimeStopped = false;
 
-    bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool debugRace);
+    bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace);
     bool RunDemoMode(int load_levelnr);
 
     void CleanUpRace();

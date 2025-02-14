@@ -123,7 +123,7 @@ typedef struct {
 } CPCOMMANDENTRY;
 
 typedef struct {
-    unsigned int lapNr;
+    irr::u8 lapNr;
     irr::u32 lapTimeMultiple100mSec;
 } LAPTIMEENTRY;
 
@@ -163,21 +163,35 @@ typedef struct {
     LAPTIMEENTRY lastLap;
     LAPTIMEENTRY LapBeforeLastLap;
 
-    int currRacePlayerPos = 0;
-    int overallPlayerNumber = 0;
+    irr::u8 currRacePlayerPos = 0;
+    irr::u8 overallPlayerNumber = 0;
 
-    int currLapNumber = 1;
+    irr::u8 currLapNumber = 1;
 
-    int raceNumberLaps = 6;
+    irr::u8 raceNumberLaps = 6;
 
-    int currKillCount = 0;
+    //for the accuracy calculation later
+    //in statistics
+    irr::u32 shootsMissed = 0;
+    irr::u32 shootsHit = 0;
 
-    char name[50];
+    //the number of occurences where this player
+    //has totaled another player completely
+    irr::u8 currKillCount = 0;
+
+    //the number of occurences where this player
+    //was totaled, for whatever reason
+    irr::u8 currDeathCount = 0;
+
+    //player names in Hi-Octane are limited
+    //to 8 characters, plus 1 termination char + 1 extra
+    //char to be on the safe side :)
+    char name[10];
 
     bool mPlayerCanMove;
     bool mPlayerCanShoot;
 
-    irr::u32 mPlayerCurrentState;
+    irr::u8 mPlayerCurrentState;
 } PLAYERSTATS;
 
 //struct for one heightmap collision "sensor" element
@@ -315,12 +329,9 @@ public:
     irr::u32 mCurrentPathSegCurrSegmentNr;
 
     WayPointLinkInfoStruct* mCpFollowThisWayPointLink;
-    WayPointLinkInfoStruct* mCpLastFollowThisWayPointLink;
 
     irr::f32 mCpFollowedWayPointLinkCurrentSpaceRightSide;
     irr::f32 mCpFollowedWayPointLinkCurrentSpaceLeftSide;
-
-    int randRangeInt(int min, int max);
 
     irr::core::vector3df debugPathPnt1;
     irr::core::vector3df debugPathPnt2;

@@ -259,7 +259,7 @@ private:
     std::vector<char*>* driverAssessementStrings;
     void InitDriverAssessementStrings();
     void CleanUpDriverAssessementStrings();
-    void AddDriverAssessementString(char* newString);
+    void AddDriverAssessementString(const char* newString);
 
     bool mCurrentConfigFileRead;
 
