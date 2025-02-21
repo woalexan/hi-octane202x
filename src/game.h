@@ -98,10 +98,10 @@ public:
     bool enableLightning = false;
     bool enableShadows = false;
     bool fullscreen = false;
-    bool DebugShowVariableBoxes = false;
+    bool DebugShowVariableBoxes = true;
 
     bool computerPlayersAttack = true;
-    bool runDemoMode = true;
+    bool runDemoMode = false;
 
     //Returns true for success, false for error occured
     bool InitGame();

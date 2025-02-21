@@ -403,6 +403,9 @@ public:
     irr::core::vector3df World1stPersonCamPosPnt;
     irr::core::vector3df World1stPersonCamTargetPnt;
 
+    //local coordinate for control of craft
+    irr::core::vector3d<irr::f32> LocalCraftForceCntrlPnt;
+
     //a local coordinate system point defined on the players craft, for height control
     irr::core::vector3d<irr::f32> LocalCraftFrontPnt;
     irr::core::vector3d<irr::f32> LocalCraftBackPnt;
@@ -720,6 +723,13 @@ public:
     irr::scene::ICameraSceneNode* DeliverActiveCamera();
 
     bool mOtherPlayerHasMissleLockAtMe = false;
+
+    void HideCraft();
+    void UnhideCraft();
+
+    bool mCraftVisible;
+
+    bool DoWeNeedHidePlayerModel();
 
 private:
     InfrastructureBase* mInfra;

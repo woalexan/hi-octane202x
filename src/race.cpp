@@ -2212,6 +2212,19 @@ void Race::HandleBasicInput() {
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
         playerCamera = !playerCamera;
+
+        //unhide all player models
+        std::vector<Player*>::iterator it;
+        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+            (*it)->UnhideCraft();
+        }
+
+        if (playerCamera) {
+           //hide the camera of the selected player
+           if (currPlayerFollow != NULL) {
+               currPlayerFollow->HideCraft();
+           }
+        }
     }
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
@@ -2384,15 +2397,16 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
 
 void Race::DrawSky() {
     if (mSkyImage != NULL) {
-
         //Draw sky
-        irr::core::vector2di movingWindowSize(640, 480);
-        irr::u32 moveX = 0;
+        irr::s32 moveX = 0;
 
-        moveX = (irr::u32)(((currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue - 180.0f) / 180.0f) * 150.0f);
+        irr::f32 hlp = ((currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue - 180.0f) / 180.0f) * 150.0f;
+        moveX = (irr::s32)(hlp);
 
         irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
                                           mSkyImage->getSize().Width / 2 + (1024 / 2) - 75 + moveX , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
+
+        //dbglocMovingWindow = locMovingWindow;
 
         irr::core::vector2di middlePos = (locMovingWindow.LowerRightCorner - locMovingWindow.UpperLeftCorner) / 2 + locMovingWindow.UpperLeftCorner;
 
@@ -2817,11 +2831,25 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
     if (whichPlayerNr < this->mPlayerVec.size()) {
        if (currPlayerFollow != NULL) {
             currPlayerFollow->DebugSelectionBox(false);
+
+            //unhide player model
+            currPlayerFollow->UnhideCraft();
        }
 
        currPlayerFollow = this->mPlayerVec.at(whichPlayerNr);
-       Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);
-       currPlayerFollow->DebugSelectionBox(true);
+
+       if (!mDemoMode) {
+           //do we need to hide selected player model
+           bool hideModel = currPlayerFollow->DoWeNeedHidePlayerModel();
+
+           if (hideModel) {
+               currPlayerFollow->HideCraft();
+           }
+
+            currPlayerFollow->DebugSelectionBox(true);
+       }
+
+       Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);   
     }
 }
 
@@ -3682,6 +3710,8 @@ void Race::FindNextPlayerToFollowInDemoMode() {
             //ok, lets follow this player now
             mFollowPlayerDemoMode = (*it);
             mFollowPlayerDemoModeTimeCounter = 0.0f;
+
+            break;
         }
     }
 }
@@ -3735,12 +3765,16 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
 
 void Race::ManagePlayerCamera() {
     irr::scene::ICameraSceneNode* activeCam = NULL;
+    bool hidePlayerModel;
 
     if (playerCamera) {
         //get active camera of currently selected
         //player, and check if it has changed
         if (this->currPlayerFollow != NULL) {
             activeCam = this->currPlayerFollow->DeliverActiveCamera();
+
+            //do we need to hide the player model?
+            hidePlayerModel = this->currPlayerFollow->DoWeNeedHidePlayerModel();
         }
     } else {
         //free moving camera to inspect the level/map
@@ -3753,6 +3787,17 @@ void Race::ManagePlayerCamera() {
     //has the active camera changed?
     //if so change it for rendering
     if (activeCam != currActiveCamera) {
+        //when we change camera and new camera is cockpit view of
+        //this player, then hide this players craft so that we do not
+        //see it in our own camera
+        if (playerCamera) {
+            if (hidePlayerModel) {
+                this->currPlayerFollow->HideCraft();
+            } else {
+                this->currPlayerFollow->UnhideCraft();
+            }
+        }
+
         mInfra->mSmgr->setActiveCamera(activeCam);
         currActiveCamera = activeCam;
     }

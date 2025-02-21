@@ -362,7 +362,7 @@ void HUD::InitUpgradeBar() {
     * Booster                  *
     ****************************/
 
-    Add1PlayerHudDisplayPart(upgradeBar, 270  , 265 ,  71);     //booster symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 273  , 364 ,  71);     //booster symbol
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 415 ,  71);     //booster upgrade level 1 symbol
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 429 ,  71);     //booster upgrade level 2 symbol
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 443 ,  71);     //booster upgrade level 3 symbol

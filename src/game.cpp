@@ -130,6 +130,15 @@ void Game::DebugGame() {
 
     int debugLevelNr = 1;
 
+    //set craft for main player
+    //value 0 means KD1 Speeder (default selection at first start)
+    //value 1 means Berserker
+    //value 2 means Jugga
+    //value 3 means Vampyr
+    //value 4 means Outrider
+    //value 5 means Flexiwing
+    mGameAssets->SetNewMainPlayerSelectedCraft(2);
+
     if (!runDemoMode) {
         //player wants to start the race
         mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, false);
@@ -445,6 +454,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
           swprintf(text2, 390, L"");
 
+        /*   swprintf(text2, 390, L"%d %d %d %d %lf",
+                       this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.X,
+                       this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.Y,
+                       this->mCurrentRace->dbglocMovingWindow.LowerRightCorner.X,
+                       this->mCurrentRace->dbglocMovingWindow.LowerRightCorner.Y, mCurrentRace->currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue);*/
+
                    /*
           swprintf(text2, 390, L"Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n", //Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n",
                         this->mCurrentRace->mPlayerVec.at(0)->mPlayerStats->currLapNumber,
@@ -620,8 +635,9 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
         mCurrentRace->AddPlayer((*itPilot)->humanPlayer, (*itPilot)->pilotName, modelName);
     }
 
-    mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
-    mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
+    //which player do we want to follow at the start
+    //of the race
+    mCurrentRace->DebugSelectPlayer(0);
 
     if (!mCurrentRace->ready) {
         //there was a problem with Race initialization

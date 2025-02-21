@@ -37,7 +37,7 @@ bool Camera::CanIObserveLocation(irr::core::vector3df location) {
 
     //TODO: Also check if we have line of sight, for example cast a ray etc...
 
-    if (distanceSQ < 80.0f)
+    if (distanceSQ < 120.0f)
         return true;
 
     return false;

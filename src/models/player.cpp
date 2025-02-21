@@ -463,6 +463,7 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
        PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();
     }
 
+    mCraftVisible = true;
     mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
 
     //create my internal camera SceneNode for 1st person
@@ -969,6 +970,11 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     WCDirVecFrontToCOG.normalize();
     irr::core::vector3df sideDirToLeft = WCDirVecFrontToCOG.crossProduct(VectorUp);
 
+    //define a local craft coordinate that is independent of the craft model size,
+    //so that for physics control the behavior of the craft does not depend on the model
+    //otherwise models like the berserker are much more difficult to control
+    LocalCraftForceCntrlPnt = LocalCraftOrigin - WCDirVecFrontToCOG * irr::core::vector3df(0.5f, 0.5f, 0.5f);
+
     sideDirToLeft.normalize();
     irr::core::vector3df WCDirVecCOGtoLeft = NewPosition - sideDirToLeft * WCDirVecFrontToCOG.getLength();
 
@@ -988,7 +994,10 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     LocalTopLookingCamPosPnt = WCDirVecCOGtoBack + irr::core::vector3df(0.0f, 1.2f, 0.5f);     //attempt since 04.09.2024
     LocalTopLookingCamTargetPnt = WCDirVecFrontToCOG + irr::core::vector3df(0.0f, 1.1f, 0.0f); //attempt since 04.09.2024
 
-    Local1stPersonCamPosPnt = (LocalCraftFrontPnt) * irr::core::vector3df(0.0f, 0.0f, 0.5f);
+    //Local1stPersonCamPosPnt = (LocalCraftFrontPnt) * irr::core::vector3df(0.0f, 0.0f, 0.5f);
+    //Local1stPersonCamTargetPnt = Local1stPersonCamPosPnt + irr::core::vector3df(0.0f, 0.0f, -0.2f);
+
+    Local1stPersonCamPosPnt = LocalCraftOrigin + irr::core::vector3df(0.0f, 0.2f, 0.4f);
     Local1stPersonCamTargetPnt = Local1stPersonCamPosPnt + irr::core::vector3df(0.0f, 0.0f, -0.2f);
 
     LocalCraftAboveCOGStabilizationPoint = irr::core::vector3df(0.0f, 1.0f, 0.0f);
@@ -1096,7 +1105,7 @@ void Player::Forward() {
         return;
 
         //to accelerate player add force in craft forward direction
-        this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
+        this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
         if (mPlayerStats->throttleVal < mPlayerStats->throttleMax)
@@ -1110,7 +1119,7 @@ void Player::CPForward() {
         return;
 
         //to accelerate player add force in craft forward direction
-        this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
+        this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
         if (mPlayerStats->throttleVal < mPlayerStats->throttleMax)
@@ -1132,7 +1141,7 @@ void Player::Backward() {
             mPlayerStats->throttleVal--;
     } else {
             //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
-            this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
             if (mPlayerStats->throttleVal > 0)
@@ -1155,7 +1164,7 @@ void Player::CPBackward() {
             return;
 
             //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
-            this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
             if (mPlayerStats->throttleVal > 0)
@@ -1175,8 +1184,8 @@ void Player::Left() {
     if (currentSideForce > 200.0f)
         currentSideForce = 200.0f;
 
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
-                                         PHYSIC_APPLYFORCE_ONLYROT);
+    this->phobj->AddLocalCoordForce(LocalCraftForceCntrlPnt, irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+                                     PHYSIC_APPLYFORCE_ONLYROT);
 }
 
 //this function is only used for the human player
@@ -1191,7 +1200,7 @@ void Player::Right() {
     if (currentSideForce < -200.0f)
         currentSideForce = -200.0f;
 
-    this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
+    this->phobj->AddLocalCoordForce(LocalCraftForceCntrlPnt, irr::core::vector3df(currentSideForce, 0.0f, 0.0f),
                                      PHYSIC_APPLYFORCE_ONLYROT);
 }
 
@@ -1455,7 +1464,7 @@ void Player::CPForceController() {
         irr::f32 corrForceOrientationAngle = 500.0f;
         irr::f32 corrDampingOrientationAngle = 50.0f;
 
-        irr::f32 angleVelocityCraftX = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).X * corrDampingOrientationAngle;
+        irr::f32 angleVelocityCraftX = this->phobj->GetVelocityLocalCoordPoint(LocalCraftForceCntrlPnt).X * corrDampingOrientationAngle;
 
         irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - angleVelocityCraftX;
 
@@ -1490,11 +1499,11 @@ void Player::CPForceController() {
         }
 
          mDbgForceAngle = corrForceAngle;
-         mDbgAngleVelocityCraftZ = this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Z;
+         mDbgAngleVelocityCraftZ = this->phobj->GetVelocityLocalCoordPoint(LocalCraftForceCntrlPnt).Z;
          mDbgAngleVelocityCraftX = angleVelocityCraftX;
 
-        this->phobj->AddLocalCoordForce(LocalCraftFrontPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
-                                             PHYSIC_APPLYFORCE_ONLYROT);
+         this->phobj->AddLocalCoordForce(LocalCraftForceCntrlPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
+                                              PHYSIC_APPLYFORCE_ONLYROT);
 
         /****************************************************/
         /*  Control Craft distance to current waypoint link */
@@ -2186,6 +2195,11 @@ void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::ve
 
 void Player::ExecuteHeightMapCollisionDetection() {
      UpdateHMapCollisionPointData();
+
+     //if player does jump currently do not execute heightmap
+     //collision detection
+     if (mCurrJumping)
+         return;
 
      //Execute the terrain heightmap tile collision detection
      //only if we do this morphing will also have an effect
@@ -3407,6 +3421,27 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
     return;
 }
 
+void Player::HideCraft() {
+    if (mCraftVisible) {
+        mCraftVisible = false;
+        this->Player_node->setVisible(false);
+    }
+}
+
+void Player::UnhideCraft() {
+    if (!mCraftVisible) {
+        mCraftVisible = true;
+        this->Player_node->setVisible(true);
+    }
+}
+
+bool Player::DoWeNeedHidePlayerModel() {
+    if (mCurrentViewMode == CAMERA_PLAYER_COCKPIT)
+        return true;
+
+    return false;
+}
+
 irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
     //are we on external view, and we have an external camera available?
     if (mCurrentViewMode == CAMERA_EXTERNALVIEW) {
@@ -3437,8 +3472,16 @@ irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
 
 void Player::ChangeViewMode() {
     if (mCurrentViewMode == CAMERA_PLAYER_COCKPIT) {
-          mCurrentViewMode = CAMERA_PLAYER_BEHINDCRAFT;
+         //unhide player craft model so that we can see
+         //it again from the outside
+         UnhideCraft();
+
+         mCurrentViewMode = CAMERA_PLAYER_BEHINDCRAFT;
     } else if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+        //hide player craft model so that we do not see
+        //it in our own camera
+        HideCraft();
+
         mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
     }
 }
@@ -3882,6 +3925,7 @@ void Player::UpdateCameras() {
     //1st person camera in cockpit
     mIntCamera->setPosition(this->World1stPersonCamPosPnt);
     mIntCamera->setTarget(this->World1stPersonCamTargetPnt);
+    mIntCamera->setUpVector(this->craftUpwardsVec);
 }
 
 void Player::UpdateInternalCoordVariables() {
