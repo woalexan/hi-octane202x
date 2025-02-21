@@ -60,7 +60,7 @@ Collectable::Collectable(Race* race, Entity::EntityType type, vector3d<irr::f32>
 }
 
 irr::f32 Collectable::GetCollectableCenterHeight() {
-    return (CollectableSize_h * 0.75f);
+    return (CollectableSize_h * 1.25f);
 }
 
 void Collectable::SetupSceneNode(Entity::EntityType type, irr::core::vector3df pos) {
@@ -68,7 +68,6 @@ void Collectable::SetupSceneNode(Entity::EntityType type, irr::core::vector3df p
     //Position in the level file could be the bottom location at the surface
     //therefore we need to add the height of the billboard to the Y coordinate
     Position = pos;
-    //Position.Y += (h * 0.5f);
 
     //Note 27.12.2024: put a little bit higher,
     //so that it can be collected much more reliable

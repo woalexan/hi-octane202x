@@ -122,6 +122,8 @@ public:
 
     bool ready;
 
+    //irr::core::recti dbglocMovingWindow;
+
     void HandleInput();
     void HandleBasicInput();
     void HandleComputerPlayers(irr::f32 frameDeltaTime);
