@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -14,6 +14,7 @@
 #include <vector>
 #include "../models/player.h"
 #include "gametext.h"
+#include "../infrabase.h"
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
 #define DEF_HUD_BANNERTEXT_MINSHOWTIME 1.0f //in seconds
@@ -53,13 +54,14 @@ struct BannerTextMessageStruct {
 class HUD {
 
 private:
-    irr::video::IVideoDriver* myDriver;
-    irr::IrrlichtDevice* myDevice;
-    GameText* myTextRenderer;
-
     irr::u8 mHudState = DEF_HUD_STATE_NOTDRAWN;
 
-    dimension2d<irr::u32> screenResolution;
+    InfrastructureBase* mInfra;
+
+    //a negative altPanelTexNr input value means no alternative texture (image) is used
+    void Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
+                                       irr::u16 panelTexNr, irr::u16 drawPosX,
+                                       irr::u16 drawPosY, irr::s16 altPanelTexNr = -1);
 
     void RenderTextBannerGraphics();
     void RenderPlayerLapTimes();
@@ -187,7 +189,7 @@ private:
     void RenderBigGreenText(irr::f32 deltaTime);
 
 public:
-    HUD(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* TextRenderer);
+    HUD(InfrastructureBase* infra);
     ~HUD();
 
     void SetMonitorWhichPlayer(Player* newPlayer);

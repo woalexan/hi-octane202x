@@ -139,7 +139,7 @@ Player::~Player() {
 
     //Remove my player Mesh
     if (this->PlayerMesh != NULL) {
-       this->mRace->mSmgr->getMeshCache()->removeMesh(this->PlayerMesh);
+       mInfra->mSmgr->getMeshCache()->removeMesh(this->PlayerMesh);
        this->PlayerMesh = NULL;
     }
 
@@ -398,9 +398,11 @@ void Player::AdvanceDbgColor() {
     }
 }
 
-Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition,
-               irr::core::vector3d<irr::f32> NewFrontAt, irr::scene::ISceneManager* smgr,
+Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+               irr::core::vector3d<irr::f32> NewFrontAt,
                irr::u8 nrLaps, bool humanPlayer) {
+
+    mInfra = infra;
 
     mPlayerStats = new PLAYERSTATS();
 
@@ -441,8 +443,8 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     //Position = NewPosition;
     //FrontDir = (NewFrontAt-Position).normalize(); //calculate direction vector
 
-    PlayerMesh = smgr->getMesh(model.c_str());
-    Player_node = smgr->addMeshSceneNode(PlayerMesh);
+    PlayerMesh = mInfra->mSmgr->getMesh(model.c_str());
+    Player_node = mInfra->mSmgr->addMeshSceneNode(PlayerMesh);
 
     //set player model initial orientation and position, later player craft is only moved by physics engine
     //also current change in Rotation of player craft model compared with this initial orientation is controlled by a
@@ -464,24 +466,24 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
 
     //create my internal camera SceneNode for 1st person
-    mIntCamera = this->mRace->mSmgr->addCameraSceneNode(NULL, NewPosition);
+    mIntCamera = mInfra->mSmgr->addCameraSceneNode(NULL, NewPosition);
 
     //create my internal camera SceneNode for 3rd person
-    mThirdPersonCamera = this->mRace->mSmgr->addCameraSceneNode(NULL, NewPosition);
+    mThirdPersonCamera = mInfra->mSmgr->addCameraSceneNode(NULL, NewPosition);
 
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
 
     //create my SmokeTrail particle system
-    mSmokeTrail = new SmokeTrail(this->mRace->mSmgr, this->mRace->mDriver, this, 20);
+    mSmokeTrail = new SmokeTrail(mInfra->mSmgr, mInfra->mDriver, this, 20);
 
     //create my Dust cloud emitter particles system
-    mDustBelowCraft = new DustBelowCraft(this->mRace->mSmgr, this->mRace->mDriver, this, 7);
+    mDustBelowCraft = new DustBelowCraft(mInfra->mSmgr, mInfra->mDriver, this, 7);
 
     //create my machinegun
-    mMGun = new MachineGun(this, mRace->mSmgr, mRace->mDriver);
+    mMGun = new MachineGun(this, mInfra->mSmgr, mInfra->mDriver);
 
     //create my missile launcher
-    mMissileLauncher = new MissileLauncher(this, mRace->mSmgr, mRace->mDriver);
+    mMissileLauncher = new MissileLauncher(this, mInfra->mSmgr, mInfra->mDriver);
 
     //create vector to store all the current broken Hud glas locations
     brokenGlasVec = new std::vector<HudDisplayPart*>();
@@ -1965,7 +1967,7 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
 
         //choose available path random
         int rNum;
-        rNum = this->mRace->mInfraBase->randRangeInt(0, nrWays - 1);
+        rNum = mInfra->randRangeInt(0, nrWays - 1);
 
         //LogMessage((char*)"Entered a new (unspecial) Waypoint-Link");
 
@@ -2124,7 +2126,7 @@ void Player::LogMessage(char *msgTxt) {
     strcat(combinedMsg, msgTxt);
     strcat(combinedMsg, "\0");
 
-    this->mRace->mGame->mLogger->AddLogMessage(combinedMsg);
+    mInfra->mLogger->AddLogMessage(combinedMsg);
 
     delete[] combinedMsg;
 }
@@ -5009,10 +5011,10 @@ void Player::FinishedLap() {
 //adds a single random location glas break
 void Player::AddGlasBreak() {
     irr::s32 rNum = rand();
-    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * this->mRace->mGame->mGameScreenRes.Width;
+    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * mInfra->mScreenRes.Width;
 
     rNum = rand();
-    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * this->mRace->mGame->mGameScreenRes.Height;
+    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * mInfra->mScreenRes.Height;
 
     HudDisplayPart* newGlasBreak = new HudDisplayPart();
     newGlasBreak->texture = this->mHUD->brokenGlas->texture;
@@ -5054,12 +5056,12 @@ void Player::CleanUpBrokenGlas() {
 
             if (pntr->texture != NULL) {
                 //remove underlying texture
-                this->mRace->mDriver->removeTexture(pntr->texture);
+                mInfra->mDriver->removeTexture(pntr->texture);
             }
 
             if (pntr->altTexture != NULL) {
                 //remove underlying texture
-                this->mRace->mDriver->removeTexture(pntr->altTexture);
+                mInfra->mDriver->removeTexture(pntr->altTexture);
             }
 
             delete pntr;

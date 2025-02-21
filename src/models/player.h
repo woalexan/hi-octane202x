@@ -261,8 +261,8 @@ struct HudDisplayPart; //Forward declaration
 
 class Player {
 public:
-    Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt,
-           irr::scene::ISceneManager* smgr, irr::u8 nrLaps, bool humanPlayer);
+    Player(Race* race, InfrastructureBase* infra, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt,
+           irr::u8 nrLaps, bool humanPlayer);
     ~Player();
 
     HMAPCOLLSENSOR* cameraSensor;
@@ -722,6 +722,8 @@ public:
     bool mOtherPlayerHasMissleLockAtMe = false;
 
 private:
+    InfrastructureBase* mInfra;
+
     irr::scene::IAnimatedMesh*  PlayerMesh;
 
     //for recording HeightMap Collision data for debugging

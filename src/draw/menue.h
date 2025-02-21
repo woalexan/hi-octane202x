@@ -146,6 +146,7 @@ typedef struct MenueAction {
 struct MenuePage; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
 class SoundEngine; //Forward declaration
+class InfrastructureBase; //Forward declaration
 
 //this struct holds the information about a single
 //menue entry
@@ -230,19 +231,14 @@ struct MenueTextLabel {
 class Menue {
 
 private:
-    irr::video::IVideoDriver* myDriver;
-    irr::IrrlichtDevice* myDevice;
-    MyEventReceiver* myEventReceiver;
-    GameText* myGameTextRenderer;
     SoundEngine* mSoundEngine;
     Assets* mGameAssets;
-    InfrastructureBase* mInfraBase;
+    InfrastructureBase* mInfra;
 
     //we need a music player for the game intro music
     MyMusicStream* mMusicPlayer;
 
     irr::video::ITexture* backgnd;
-    irr::core::dimension2d<irr::u32> screenResolution;
     std::vector<MenueGraphicPart*> GameLogo;
 
     //menue window graphic resources
@@ -594,8 +590,8 @@ private:
 
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
-    Menue(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
-          MyEventReceiver* eventReceiver, irr::scene::ISceneManager* mainSceneManager, SoundEngine* soundEngine,
+    Menue(InfrastructureBase* infra,
+           SoundEngine* soundEngine,
           MyMusicStream* gameMusicPlayerParam, Assets* assets);
     ~Menue();
 

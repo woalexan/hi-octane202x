@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -9,81 +9,70 @@
 
 #include "hud.h"
 
+//a negative altPanelTexNr input value means no alternative texture (image) is used
+void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
+                                   irr::u16 panelTexNr, irr::u16 drawPosX, irr::u16 drawPosY, irr::s16 altPanelTexNr) {
+
+    char fileName[50];
+    char fname[20];
+
+    //first build the name for the image file to load
+    strcpy(fileName, "extract/hud1player/panel0-1-");
+    sprintf (fname, "%0*u.bmp", 4, panelTexNr);
+    strcat(fileName, fname);
+
+    HudDisplayPart* newPart = new HudDisplayPart();
+    newPart->texture = mInfra->mDriver->getTexture(fileName);
+    //make image transparent, take color at pixel coord 0,0 for transparency color
+    mInfra->mDriver->makeColorKeyTexture(newPart->texture, irr::core::position2d<irr::s32>(0,0));
+
+    newPart->sizeTex = newPart->texture->getSize();
+    newPart->drawScrPosition.set(drawPosX, drawPosY);
+
+    if (altPanelTexNr < 0) {
+        //no alternative image specified
+        newPart->altTexture = NULL;
+    } else {
+        //alternative image specified
+        char altFileName[50];
+
+        //build the name for the alternative image file to load
+        strcpy(altFileName, "extract/hud1player/panel0-1-");
+        sprintf (fname, "%0*u.bmp", 4, (irr::u16)(altPanelTexNr));
+        strcat(altFileName, fname);
+
+        //load/add the alternative texture
+        newPart->altTexture = mInfra->mDriver->getTexture(altFileName);
+        mInfra->mDriver->makeColorKeyTexture(newPart->altTexture, irr::core::position2d<irr::s32>(0,0));
+    }
+
+    //add the new image/texture/piece to the
+    //specified bar/image vector
+    addToWhichBar->push_back(newPart);
+}
+
 void HUD::InitShieldBar() {
     //create dynamic variable
     shieldBar = new std::vector<HudDisplayPart*>;
 
     //initialize shield bar
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
-     //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
-     //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
+    //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
+    //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
 
     //for all shield images we can get the alpha channel color information from
     //pixel 0,0
     int Xoff = -2;
 
-    //Piece 1
-    HudDisplayPart* shieldBarPiece = new HudDisplayPart();
-    shieldBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0071.bmp");
-    shieldBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(shieldBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    shieldBarPiece->sizeTex = shieldBarPiece->texture->getSize();
-    shieldBarPiece->drawScrPosition.set(3+Xoff, 3);
+    Add1PlayerHudDisplayPart(shieldBar, 71, 3 + Xoff   , 3);     //Piece 1
+    Add1PlayerHudDisplayPart(shieldBar, 72, 41 + Xoff  , 3);     //Piece 2
+    Add1PlayerHudDisplayPart(shieldBar, 73, 67 + Xoff  , 3);     //Piece 3
+    Add1PlayerHudDisplayPart(shieldBar, 74, 75 + Xoff  , 3);     //Piece 4
+    Add1PlayerHudDisplayPart(shieldBar, 75, 95 + Xoff  , 3);     //Piece 5
+    Add1PlayerHudDisplayPart(shieldBar, 76, 113 + Xoff , 3);     //Piece 6
 
-    shieldBar->push_back(shieldBarPiece);
-
-    //Piece 2
-    shieldBarPiece = new HudDisplayPart();
-    shieldBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0072.bmp");
-    shieldBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(shieldBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    shieldBarPiece->sizeTex = shieldBarPiece->texture->getSize();
-    shieldBarPiece->drawScrPosition.set(41+Xoff, 3);
-
-    shieldBar->push_back(shieldBarPiece);
-
-    //Piece 3
-    shieldBarPiece = new HudDisplayPart();
-    shieldBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0073.bmp");
-    shieldBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(shieldBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    shieldBarPiece->sizeTex = shieldBarPiece->texture->getSize();
-    shieldBarPiece->drawScrPosition.set(67+Xoff, 3);
-
-    shieldBar->push_back(shieldBarPiece);
-
-    //Piece 4
-    shieldBarPiece = new HudDisplayPart();
-    shieldBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0074.bmp");
-    shieldBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(shieldBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    shieldBarPiece->sizeTex = shieldBarPiece->texture->getSize();
-    shieldBarPiece->drawScrPosition.set(75+Xoff, 3);
-
-    shieldBar->push_back(shieldBarPiece);
-
-    //Piece 5
-    shieldBarPiece = new HudDisplayPart();
-    shieldBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0075.bmp");
-    shieldBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(shieldBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    shieldBarPiece->sizeTex = shieldBarPiece->texture->getSize();
-    shieldBarPiece->drawScrPosition.set(95+Xoff, 3);
-
-    shieldBar->push_back(shieldBarPiece);
-
-    //Piece 6
-    shieldBarPiece = new HudDisplayPart();
-    shieldBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0076.bmp");
-    shieldBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(shieldBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    shieldBarPiece->sizeTex = shieldBarPiece->texture->getSize();
-    shieldBarPiece->drawScrPosition.set(113+Xoff, 3);
-
-    shieldBar->push_back(shieldBarPiece);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitAmmoBar() {
@@ -91,7 +80,7 @@ void HUD::InitAmmoBar() {
     ammoBar = new std::vector<HudDisplayPart*>;
 
     //initialize ammo bar
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -99,70 +88,17 @@ void HUD::InitAmmoBar() {
     //for all shield images we can get the alpha channel color information from
     //pixel 0,0
 
-     int Xoff = + 2;
-     irr::u32 scrSizeX = this->screenResolution.Width;
+    int Xoff = + 2;
+    irr::u16 scrSizeX = mInfra->mScreenRes.Width;
 
-    //Piece 1
-    HudDisplayPart* ammoBarPiece = new HudDisplayPart();
-    ammoBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0090.bmp");
-    ammoBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(ammoBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    ammoBarPiece->sizeTex = ammoBarPiece->texture->getSize();
-    ammoBarPiece->drawScrPosition.set(scrSizeX - 43 + Xoff, 3);
+    Add1PlayerHudDisplayPart(ammoBar, 90, scrSizeX - 43 + Xoff   , 3);    //Piece 1
+    Add1PlayerHudDisplayPart(ammoBar, 89, scrSizeX - 86 + Xoff   , 3);    //Piece 2
+    Add1PlayerHudDisplayPart(ammoBar, 88, scrSizeX - 114 + Xoff  , 3);    //Piece 3
+    Add1PlayerHudDisplayPart(ammoBar, 87, scrSizeX - 134 + Xoff  , 3);    //Piece 4
+    Add1PlayerHudDisplayPart(ammoBar, 86, scrSizeX - 152 + Xoff  , 3);    //Piece 5
+    Add1PlayerHudDisplayPart(ammoBar, 85, scrSizeX - 180 + Xoff  , 3);    //Piece 6
 
-    ammoBar->push_back(ammoBarPiece);
-
-    //Piece 2
-    ammoBarPiece = new HudDisplayPart();
-    ammoBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0089.bmp");
-    ammoBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(ammoBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    ammoBarPiece->sizeTex = ammoBarPiece->texture->getSize();
-    ammoBarPiece->drawScrPosition.set(scrSizeX - 86 + Xoff, 3);
-
-    ammoBar->push_back(ammoBarPiece);
-
-    //Piece 3
-    ammoBarPiece = new HudDisplayPart();
-    ammoBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0088.bmp");
-    ammoBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(ammoBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    ammoBarPiece->sizeTex = ammoBarPiece->texture->getSize();
-    ammoBarPiece->drawScrPosition.set(scrSizeX - 114 + Xoff, 3);
-
-    ammoBar->push_back(ammoBarPiece);
-
-    //Piece 4
-    ammoBarPiece = new HudDisplayPart();
-    ammoBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0087.bmp");
-    ammoBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(ammoBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    ammoBarPiece->sizeTex = ammoBarPiece->texture->getSize();
-    ammoBarPiece->drawScrPosition.set(scrSizeX - 134 + Xoff, 3);
-
-    ammoBar->push_back(ammoBarPiece);
-
-    //Piece 5
-    ammoBarPiece = new HudDisplayPart();
-    ammoBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0086.bmp");
-    ammoBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(ammoBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    ammoBarPiece->sizeTex = ammoBarPiece->texture->getSize();
-    ammoBarPiece->drawScrPosition.set(scrSizeX - 152 + Xoff, 3);
-
-    ammoBar->push_back(ammoBarPiece);
-
-    //Piece 6
-    ammoBarPiece = new HudDisplayPart();
-    ammoBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0085.bmp");
-    ammoBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(ammoBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    ammoBarPiece->sizeTex = ammoBarPiece->texture->getSize();
-    ammoBarPiece->drawScrPosition.set(scrSizeX - 180 + Xoff, 3);
-
-    ammoBar->push_back(ammoBarPiece);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitGasolineBar() {
@@ -170,7 +106,7 @@ void HUD::InitGasolineBar() {
     gasolineBar = new std::vector<HudDisplayPart*>;
 
     //initialize gasoline bar
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -179,177 +115,25 @@ void HUD::InitGasolineBar() {
     //pixel 0,0
     int Xoff = -3;
 
-    //Piece 1
-    HudDisplayPart* gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0000.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(80+Xoff, 3);
+    Add1PlayerHudDisplayPart(gasolineBar, 0  , 80 + Xoff    , 3);     //Piece 1
+    Add1PlayerHudDisplayPart(gasolineBar, 1  , 135 + Xoff   , 3);     //Piece 2
+    Add1PlayerHudDisplayPart(gasolineBar, 2  , 182 + Xoff   , 3);     //Piece 3
+    Add1PlayerHudDisplayPart(gasolineBar, 3  , 217 + Xoff   , 3);     //Piece 4
+    Add1PlayerHudDisplayPart(gasolineBar, 4  , 243 + Xoff   , 3);     //Piece 5
+    Add1PlayerHudDisplayPart(gasolineBar, 5  , 268 + Xoff   , 3);     //Piece 6
+    Add1PlayerHudDisplayPart(gasolineBar, 6  , 290 + Xoff   , 3);     //Piece 7
+    Add1PlayerHudDisplayPart(gasolineBar, 7  , 311 + Xoff   , 3);     //Piece 8
+    Add1PlayerHudDisplayPart(gasolineBar, 8  , 330 + Xoff   , 3);     //Piece 9
+    Add1PlayerHudDisplayPart(gasolineBar, 9  , 348 + Xoff   , 3);     //Piece 10
+    Add1PlayerHudDisplayPart(gasolineBar, 10 , 373 + Xoff   , 3);     //Piece 11
+    Add1PlayerHudDisplayPart(gasolineBar, 11 , 398 + Xoff   , 3);     //Piece 12
+    Add1PlayerHudDisplayPart(gasolineBar, 12 , 422 + Xoff   , 3);     //Piece 13
+    Add1PlayerHudDisplayPart(gasolineBar, 13 , 448 + Xoff   , 3);     //Piece 14
+    Add1PlayerHudDisplayPart(gasolineBar, 14 , 472 + Xoff   , 3);     //Piece 15
+    Add1PlayerHudDisplayPart(gasolineBar, 15 , 497 + Xoff   , 3);     //Piece 16
+    Add1PlayerHudDisplayPart(gasolineBar, 16 , 523 + Xoff   , 3);     //Piece 17
 
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 2
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0001.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(135+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 3
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0002.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(182+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 4
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0003.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(217+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 5
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0004.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(243+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 6
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0005.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(268+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 7
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0006.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(290+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 8
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0007.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(311+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 9
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0008.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(330+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 10
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0009.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(348+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 11
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0010.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(373+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 12
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0011.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(398+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 13
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0012.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(422+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 14
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0013.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(448+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 15
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0014.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(472+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 16
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0015.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(497+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    //Piece 17
-    gasolineBarPiece = new HudDisplayPart();
-    gasolineBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0016.bmp");
-    gasolineBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(gasolineBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    gasolineBarPiece->sizeTex = gasolineBarPiece->texture->getSize();
-    gasolineBarPiece->drawScrPosition.set(523+Xoff, 3);
-
-    gasolineBar->push_back(gasolineBarPiece);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitStartSignal() {
@@ -357,53 +141,24 @@ void HUD::InitStartSignal() {
     startSignal = new std::vector<HudDisplayPart*>;
 
     //initialize start signal
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
      * Start signal             *
      ****************************/
 
-    //red light
-    HudDisplayPart* symbol = new HudDisplayPart();
-    //signal not lit
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0280.bmp");
-    //alternative texture is the lit light
-    symbol->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0281.bmp");
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(symbol->altTexture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(50, 11);
+    //                                     signal not lit     alternative texture is the lit light
+    //                                     |                  |
+    Add1PlayerHudDisplayPart(startSignal, 280  , 50    , 11, 281);    //red light
+    Add1PlayerHudDisplayPart(startSignal, 282  , 113   , 10, 283);    //yellow light
+    Add1PlayerHudDisplayPart(startSignal, 284  , 176   , 10, 285);    //green light
 
-    startSignal->push_back(symbol);
-
-    //yellow light
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0282.bmp");
-    symbol->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0283.bmp");
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(symbol->altTexture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(113, 10);
-
-    startSignal->push_back(symbol);
-
-    //green light
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0284.bmp");
-    symbol->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0285.bmp");
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(symbol->altTexture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(176, 10);
-
-    startSignal->push_back(symbol);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitBrokenGlas() {
     //initialize texture for broken glass
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
      * Broken glas              *
@@ -411,12 +166,12 @@ void HUD::InitBrokenGlas() {
 
     //broken glas image
     brokenGlas = new HudDisplayPart();
-    brokenGlas->texture = myDriver->getTexture("extract/hud1player/panel0-1-0229.bmp");
-    myDriver->makeColorKeyTexture(brokenGlas->texture, irr::core::position2d<irr::s32>(0,0));
+    brokenGlas->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0229.bmp");
+    mInfra->mDriver->makeColorKeyTexture(brokenGlas->texture, irr::core::position2d<irr::s32>(0,0));
     brokenGlas->sizeTex = brokenGlas->texture->getSize();
     brokenGlas->drawScrPosition.set(0, 0);
 
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitMGHeatBar() {
@@ -424,7 +179,7 @@ void HUD::InitMGHeatBar() {
     mgHeatBar = new std::vector<HudDisplayPart*>;
 
     //initialize machine gun heat bar
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -433,167 +188,24 @@ void HUD::InitMGHeatBar() {
     //pixel 0,0
     int Xoff = 0;
 
-    //Piece 1
-    HudDisplayPart* mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0091.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(506+Xoff, 29);
+    Add1PlayerHudDisplayPart(mgHeatBar, 91  , 506 + Xoff ,  29);     //Piece 1
+    Add1PlayerHudDisplayPart(mgHeatBar, 92  , 521 + Xoff ,  29);     //Piece 2
+    Add1PlayerHudDisplayPart(mgHeatBar, 93  , 527 + Xoff ,  29);     //Piece 3
+    Add1PlayerHudDisplayPart(mgHeatBar, 94  , 533 + Xoff ,  29);     //Piece 4
+    Add1PlayerHudDisplayPart(mgHeatBar, 95  , 539 + Xoff ,  29);     //Piece 5
+    Add1PlayerHudDisplayPart(mgHeatBar, 96  , 545 + Xoff ,  29);     //Piece 6
+    Add1PlayerHudDisplayPart(mgHeatBar, 97  , 551 + Xoff ,  29);     //Piece 7
+    Add1PlayerHudDisplayPart(mgHeatBar, 98  , 557 + Xoff ,  29);     //Piece 8
+    Add1PlayerHudDisplayPart(mgHeatBar, 99  , 569 + Xoff ,  29);     //Piece 9
+    Add1PlayerHudDisplayPart(mgHeatBar, 100 , 581 + Xoff ,  29);     //Piece 10
+    Add1PlayerHudDisplayPart(mgHeatBar, 101 , 589 + Xoff ,  29);     //Piece 11
+    Add1PlayerHudDisplayPart(mgHeatBar, 102 , 597 + Xoff ,  29);     //Piece 12
+    Add1PlayerHudDisplayPart(mgHeatBar, 103 , 605 + Xoff ,  29);     //Piece 13
+    Add1PlayerHudDisplayPart(mgHeatBar, 104 , 613 + Xoff ,  29);     //Piece 14
+    Add1PlayerHudDisplayPart(mgHeatBar, 105 , 621 + Xoff ,  29);     //Piece 15
+    Add1PlayerHudDisplayPart(mgHeatBar, 106 , 629 + Xoff ,  29);     //Piece 16
 
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 2
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0092.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(521+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 3
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0093.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(527+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 4
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0094.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(533+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 5
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0095.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(539+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 6
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0096.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(545+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 7
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0097.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(551+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 8
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0098.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(557+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 9
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0099.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(569+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 10
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0100.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(581+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 11
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0101.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(589+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 12
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0102.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(597+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 13
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0103.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(605+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 14
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0104.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(613+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 15
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0105.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(621+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    //Piece 16
-    mgHeatBarPiece = new HudDisplayPart();
-    mgHeatBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0106.bmp");
-    mgHeatBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(mgHeatBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    mgHeatBarPiece->sizeTex = mgHeatBarPiece->texture->getSize();
-    mgHeatBarPiece->drawScrPosition.set(629+Xoff, 29);
-
-    mgHeatBar->push_back(mgHeatBarPiece);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitThrottleBar() {
@@ -601,7 +213,7 @@ void HUD::InitThrottleBar() {
     throttleBar = new std::vector<HudDisplayPart*>;
 
     //initialize throttle bar
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -610,216 +222,27 @@ void HUD::InitThrottleBar() {
     //pixel 0,0
     int Xoff = 0;
 
-    //Piece 1
-    HudDisplayPart* throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0017.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0036.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(115+Xoff, 15);
+    Add1PlayerHudDisplayPart(throttleBar, 17  , 115 + Xoff ,  15,   36);     //Piece 1
+    Add1PlayerHudDisplayPart(throttleBar, 18  , 139 + Xoff ,  15,   37);     //Piece 2
+    Add1PlayerHudDisplayPart(throttleBar, 19  , 160 + Xoff ,  15,   38);     //Piece 3
+    Add1PlayerHudDisplayPart(throttleBar, 20  , 185 + Xoff ,  15,   39);     //Piece 4
+    Add1PlayerHudDisplayPart(throttleBar, 21  , 206 + Xoff ,  15,   40);     //Piece 5
+    Add1PlayerHudDisplayPart(throttleBar, 22  , 229 + Xoff ,  15,   41);     //Piece 6
+    Add1PlayerHudDisplayPart(throttleBar, 23  , 247 + Xoff ,  15,   42);     //Piece 7
+    Add1PlayerHudDisplayPart(throttleBar, 24  , 268 + Xoff ,  15,   43);     //Piece 8
+    Add1PlayerHudDisplayPart(throttleBar, 25  , 289 + Xoff ,  15,   44);     //Piece 9
+    Add1PlayerHudDisplayPart(throttleBar, 26  , 308 + Xoff ,  15,   45);     //Piece 10
+    Add1PlayerHudDisplayPart(throttleBar, 27  , 327 + Xoff ,  15,   46);     //Piece 11
+    Add1PlayerHudDisplayPart(throttleBar, 28  , 346 + Xoff ,  15,   47);     //Piece 12
+    Add1PlayerHudDisplayPart(throttleBar, 29  , 368 + Xoff ,  15,   48);     //Piece 13
+    Add1PlayerHudDisplayPart(throttleBar, 30  , 394 + Xoff ,  15,   49);     //Piece 14
+    Add1PlayerHudDisplayPart(throttleBar, 31  , 420 + Xoff ,  15,   50);     //Piece 15
+    Add1PlayerHudDisplayPart(throttleBar, 32  , 445 + Xoff ,  15,   51);     //Piece 16
+    Add1PlayerHudDisplayPart(throttleBar, 33  , 468 + Xoff ,  15,   52);     //Piece 17
+    Add1PlayerHudDisplayPart(throttleBar, 34  , 491 + Xoff ,  15,   53);     //Piece 18
+    Add1PlayerHudDisplayPart(throttleBar, 35  , 513 + Xoff ,  15,   54);     //Piece 19
 
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 2
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0018.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0037.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(139+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 3
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0019.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0038.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(160+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 4
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0020.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0039.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(185+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 5
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0021.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0040.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(206+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 6
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0022.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0041.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(229+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 7
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0023.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0042.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(247+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 8
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0024.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0043.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(268+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 9
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0025.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0044.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(289+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 10
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0026.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0045.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(308+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 11
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0027.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0046.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(327+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 12
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0028.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0047.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(346+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 13
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0029.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0048.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(368+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 14
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0030.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0049.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(394+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 15
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0031.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0050.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(420+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 16
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0032.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0051.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(445+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 17
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0033.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0052.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(468+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 18
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0034.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0053.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(491+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    //Piece 19
-    throttleBarPiece = new HudDisplayPart();
-    throttleBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0035.bmp");
-    throttleBarPiece->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0054.bmp");
-    myDriver->makeColorKeyTexture(throttleBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(throttleBarPiece->altTexture, irr::core::position2d<irr::s32>(0,0));
-    throttleBarPiece->sizeTex = throttleBarPiece->texture->getSize();
-    throttleBarPiece->drawScrPosition.set(513+Xoff, 15);
-
-    throttleBar->push_back(throttleBarPiece);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitSpeedBar() {
@@ -827,7 +250,7 @@ void HUD::InitSpeedBar() {
     speedBar = new std::vector<HudDisplayPart*>;
 
     //initialize booster bar
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -836,167 +259,24 @@ void HUD::InitSpeedBar() {
     //pixel 0,0
     int Xoff = 0;
 
-    //Piece 1
-    HudDisplayPart* speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0055.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(125+Xoff, 27);
+    Add1PlayerHudDisplayPart(speedBar, 55  , 125 + Xoff ,  27);     //Piece 1
+    Add1PlayerHudDisplayPart(speedBar, 56  , 147 + Xoff ,  27);     //Piece 2
+    Add1PlayerHudDisplayPart(speedBar, 57  , 168 + Xoff ,  27);     //Piece 3
+    Add1PlayerHudDisplayPart(speedBar, 58  , 189 + Xoff ,  27);     //Piece 4
+    Add1PlayerHudDisplayPart(speedBar, 59  , 210 + Xoff ,  27);     //Piece 5
+    Add1PlayerHudDisplayPart(speedBar, 60  , 231 + Xoff ,  27);     //Piece 6
+    Add1PlayerHudDisplayPart(speedBar, 61  , 249 + Xoff ,  27);     //Piece 7
+    Add1PlayerHudDisplayPart(speedBar, 62  , 270 + Xoff ,  27);     //Piece 8
+    Add1PlayerHudDisplayPart(speedBar, 63  , 291 + Xoff ,  27);     //Piece 9
+    Add1PlayerHudDisplayPart(speedBar, 64  , 310 + Xoff ,  27);     //Piece 10
+    Add1PlayerHudDisplayPart(speedBar, 65  , 327 + Xoff ,  27);     //Piece 11
+    Add1PlayerHudDisplayPart(speedBar, 66  , 345 + Xoff ,  27);     //Piece 12
+    Add1PlayerHudDisplayPart(speedBar, 67  , 361 + Xoff ,  27);     //Piece 13
+    Add1PlayerHudDisplayPart(speedBar, 68  , 382 + Xoff ,  27);     //Piece 14
+    Add1PlayerHudDisplayPart(speedBar, 69  , 421 + Xoff ,  27);     //Piece 15
+    Add1PlayerHudDisplayPart(speedBar, 70  , 457 + Xoff ,  27);     //Piece 16
 
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 2
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0056.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(147+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 3
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0057.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(168+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 4
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0058.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(189+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 5
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0059.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(210+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 6
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0060.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(231+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 7
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0061.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(249+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 8
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0062.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(270+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 9
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0063.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(291+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 10
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0064.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(310+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 11
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0065.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(327+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 12
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0066.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(345+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 13
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0067.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(361+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 14
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0068.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(382+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 15
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0069.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(421+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    //Piece 16
-    speedBarPiece = new HudDisplayPart();
-    speedBarPiece->texture = myDriver->getTexture("extract/hud1player/panel0-1-0070.bmp");
-    speedBarPiece->altTexture = NULL;
-    myDriver->makeColorKeyTexture(speedBarPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    speedBarPiece->sizeTex = speedBarPiece->texture->getSize();
-    speedBarPiece->drawScrPosition.set(457+Xoff, 27);
-
-    speedBar->push_back(speedBarPiece);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitRacePosition() {
@@ -1005,7 +285,7 @@ void HUD::InitRacePosition() {
     numberPlayers = new std::vector<HudDisplayPart*>;
 
     //initialize race position characters
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -1019,115 +299,17 @@ void HUD::InitRacePosition() {
     //**********************************************************
     int Xoff = 0;
 
-    //number 0
-    HudDisplayPart* playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0107.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 1
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0108.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 2
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0109.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 3
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0110.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 4
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0111.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 5
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0112.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 6
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0113.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 7
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0114.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 8
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0115.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //number 9
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0116.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(2+Xoff, 28);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
-
-    //add the slash
-    playerRacePositionChar = new HudDisplayPart();
-    playerRacePositionChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0137.bmp");
-    playerRacePositionChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(playerRacePositionChar->texture, irr::core::position2d<irr::s32>(0,0));
-    playerRacePositionChar->sizeTex = playerRacePositionChar->texture->getSize();
-    playerRacePositionChar->drawScrPosition.set(53, 72);
-
-    currRacePlayerPosition->push_back(playerRacePositionChar);
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 107  , 2 + Xoff ,  28);     //number 0
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 108  , 2 + Xoff ,  28);     //number 1
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 109  , 2 + Xoff ,  28);     //number 2
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 110  , 2 + Xoff ,  28);     //number 3
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 111  , 2 + Xoff ,  28);     //number 4
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 112  , 2 + Xoff ,  28);     //number 5
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 113  , 2 + Xoff ,  28);     //number 6
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 114  , 2 + Xoff ,  28);     //number 7
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 115  , 2 + Xoff ,  28);     //number 8
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 116  , 2 + Xoff ,  28);     //number 9
+    Add1PlayerHudDisplayPart(currRacePlayerPosition, 137  , 53       ,  72);     //add the slash
 
     //*************************************************************
     //* 2nd init characters for overall number of players in race *
@@ -1136,117 +318,19 @@ void HUD::InitRacePosition() {
 
     Xoff = 0;
 
-    //number 0
-    HudDisplayPart* numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0127.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
+    Add1PlayerHudDisplayPart(numberPlayers, 127  , 83 + Xoff ,  72);     //number 0
+    Add1PlayerHudDisplayPart(numberPlayers, 128  , 83 + Xoff ,  72);     //number 1
+    Add1PlayerHudDisplayPart(numberPlayers, 129  , 83 + Xoff ,  72);     //number 2
+    Add1PlayerHudDisplayPart(numberPlayers, 130  , 83 + Xoff ,  72);     //number 3
+    Add1PlayerHudDisplayPart(numberPlayers, 131  , 83 + Xoff ,  72);     //number 4
+    Add1PlayerHudDisplayPart(numberPlayers, 132  , 83 + Xoff ,  72);     //number 5
+    Add1PlayerHudDisplayPart(numberPlayers, 133  , 83 + Xoff ,  72);     //number 6
+    Add1PlayerHudDisplayPart(numberPlayers, 134  , 83 + Xoff ,  72);     //number 7
+    Add1PlayerHudDisplayPart(numberPlayers, 135  , 83 + Xoff ,  72);     //number 8
+    Add1PlayerHudDisplayPart(numberPlayers, 136  , 83 + Xoff ,  72);     //number 9
+    Add1PlayerHudDisplayPart(numberPlayers, 137  , 83 + Xoff ,  72);     //add the slash
 
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 1
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0128.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 2
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0129.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 3
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0130.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 4
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0131.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 5
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0132.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 6
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0133.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 7
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0134.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 8
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0135.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //number 9
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0136.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    //add the slash
-    numberPlayerChar = new HudDisplayPart();
-    numberPlayerChar->texture = myDriver->getTexture("extract/hud1player/panel0-1-0137.bmp");
-    numberPlayerChar->altTexture = NULL;
-    myDriver->makeColorKeyTexture(numberPlayerChar->texture, irr::core::position2d<irr::s32>(0,0));
-    numberPlayerChar->sizeTex = numberPlayerChar->texture->getSize();
-    numberPlayerChar->drawScrPosition.set(83+Xoff, 72);
-
-    numberPlayers->push_back(numberPlayerChar);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitUpgradeBar() {
@@ -1254,141 +338,36 @@ void HUD::InitUpgradeBar() {
     upgradeBar = new std::vector<HudDisplayPart*>;
 
     //initialize upgrade bar symbols
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
      * Minigun                  *
      ****************************/
 
-    //minigun symbol
-    HudDisplayPart* symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0267.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(149, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //minigun upgrade level 1 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0269.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(219, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //minigun upgrade level 2 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0269.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(233, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //minigun upgrade level 3 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0269.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(247, 71);
-
-    upgradeBar->push_back(symbol);
+    Add1PlayerHudDisplayPart(upgradeBar, 267  , 149 ,  71);     //minigun symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 269  , 219 ,  71);     //minigun upgrade level 1 symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 269  , 233 ,  71);     //minigun upgrade level 2 symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 269  , 247 ,  71);     //minigun upgrade level 3 symbol
 
     /****************************
     * Missile                   *
     ****************************/
 
-    //missile symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0270.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(265, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //missile upgrade level 1 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0269.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(318, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //missile upgrade level 2 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0269.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(332, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //missile upgrade level 3 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0269.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(346, 71);
-
-    upgradeBar->push_back(symbol);
+    Add1PlayerHudDisplayPart(upgradeBar, 270  , 265 ,  71);     //missile symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 269  , 318 ,  71);     //missile upgrade level 1 symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 269  , 332 ,  71);     //missile upgrade level 2 symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 269  , 346 ,  71);     //missile upgrade level 3 symbol
 
     /****************************
     * Booster                  *
     ****************************/
 
-    //booster symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0273.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(364, 71);
+    Add1PlayerHudDisplayPart(upgradeBar, 270  , 265 ,  71);     //booster symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 274  , 415 ,  71);     //booster upgrade level 1 symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 274  , 429 ,  71);     //booster upgrade level 2 symbol
+    Add1PlayerHudDisplayPart(upgradeBar, 274  , 443 ,  71);     //booster upgrade level 3 symbol
 
-    upgradeBar->push_back(symbol);
-
-    //booster upgrade level 1 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0274.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(415, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //booster upgrade level 2 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0274.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(429, 71);
-
-    upgradeBar->push_back(symbol);
-
-    //booster upgrade level 3 symbol
-    symbol = new HudDisplayPart();
-    symbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0274.bmp");
-    symbol->altTexture = NULL;
-    myDriver->makeColorKeyTexture(symbol->texture, irr::core::position2d<irr::s32>(0,0));
-    symbol->sizeTex = symbol->texture->getSize();
-    symbol->drawScrPosition.set(443, 71);
-
-    upgradeBar->push_back(symbol);
-
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::SetHUDState(irr::u8 newHUDState) {
@@ -1587,7 +566,8 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
 
            //Draw the text
            //for Hud banner text we use HudWhiteTextBannerFont
-           myTextRenderer->DrawGameText(currShownBannerMsg->text, myTextRenderer->HudWhiteTextBannerFont, currShownBannerMsg->textPosition);
+           mInfra->mGameTexts->DrawGameText(currShownBannerMsg->text, mInfra->mGameTexts->HudWhiteTextBannerFont,
+                                        currShownBannerMsg->textPosition);
 
            if (!currShownBannerMsg->permanentMsg) {
             currShownBannerMsg->textStillShownSec -= deltaTime;
@@ -1666,31 +646,31 @@ void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
     }
 
     if (redLit) {
-         myDriver->draw2DImage((*startSignal)[0]->altTexture, (*startSignal)[0]->drawScrPosition,
+         mInfra->mDriver->draw2DImage((*startSignal)[0]->altTexture, (*startSignal)[0]->drawScrPosition,
                irr::core::rect<irr::s32>(0,0, (*startSignal)[0]->sizeTex.Width, (*startSignal)[0]->sizeTex.Height), 0,
                irr::video::SColor(255,255,255,255), true);
     } else {
-        myDriver->draw2DImage((*startSignal)[0]->texture, (*startSignal)[0]->drawScrPosition,
+        mInfra->mDriver->draw2DImage((*startSignal)[0]->texture, (*startSignal)[0]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, (*startSignal)[0]->sizeTex.Width, (*startSignal)[0]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
     }
 
     if (yellowLit) {
-         myDriver->draw2DImage((*startSignal)[1]->altTexture, (*startSignal)[1]->drawScrPosition,
+         mInfra->mDriver->draw2DImage((*startSignal)[1]->altTexture, (*startSignal)[1]->drawScrPosition,
                irr::core::rect<irr::s32>(0,0, (*startSignal)[1]->sizeTex.Width, (*startSignal)[1]->sizeTex.Height), 0,
                irr::video::SColor(255,255,255,255), true);
     } else {
-        myDriver->draw2DImage((*startSignal)[1]->texture, (*startSignal)[1]->drawScrPosition,
+        mInfra->mDriver->draw2DImage((*startSignal)[1]->texture, (*startSignal)[1]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, (*startSignal)[1]->sizeTex.Width, (*startSignal)[1]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
     }
 
     if (greenLit) {
-         myDriver->draw2DImage((*startSignal)[2]->altTexture, (*startSignal)[2]->drawScrPosition,
+         mInfra->mDriver->draw2DImage((*startSignal)[2]->altTexture, (*startSignal)[2]->drawScrPosition,
                irr::core::rect<irr::s32>(0,0, (*startSignal)[2]->sizeTex.Width, (*startSignal)[2]->sizeTex.Height), 0,
                irr::video::SColor(255,255,255,255), true);
     } else {
-        myDriver->draw2DImage((*startSignal)[2]->texture, (*startSignal)[2]->drawScrPosition,
+        mInfra->mDriver->draw2DImage((*startSignal)[2]->texture, (*startSignal)[2]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, (*startSignal)[2]->sizeTex.Width, (*startSignal)[2]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
     }
@@ -1706,7 +686,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             std::vector<HudDisplayPart*>::iterator itGlasBreak;
 
             for (itGlasBreak = this->monitorWhichPlayer->brokenGlasVec->begin(); itGlasBreak != this->monitorWhichPlayer->brokenGlasVec->end(); ++itGlasBreak) {
-                myDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
+                mInfra->mDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
                       irr::core::rect<irr::s32>(0,0, (*itGlasBreak)->sizeTex.Width, (*itGlasBreak)->sizeTex.Height), 0,
                       irr::video::SColor(255,255,255,255), true);
             }
@@ -1724,7 +704,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //draw as many shield bars as the current shield state of the ship allows
         for (int i = 0; i < perc ; i++) {
-            myDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*shieldBar)[i]->sizeTex.Width, (*shieldBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1740,7 +720,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = sizeVec;
 
         for (int i = 0; i < perc; i++) {
-            myDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*ammoBar)[i]->sizeTex.Width, (*ammoBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1756,7 +736,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = sizeVec;
 
         for (int i = (sizeVec - perc); i < sizeVec; i++) {
-            myDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*gasolineBar)[i]->sizeTex.Width, (*gasolineBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1780,14 +760,14 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //according to current player throttle setting draw unlighted default colors
         for (int i = 0; i < perc2; i++) {
-            myDriver->draw2DImage((*throttleBar)[i]->texture, (*throttleBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*throttleBar)[i]->texture, (*throttleBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*throttleBar)[i]->sizeTex.Width, (*throttleBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
 
         //according to current booster state draw over it with lighted colors
         for (int i = 0; i < perc; i++) {
-            myDriver->draw2DImage((*throttleBar)[i]->altTexture, (*throttleBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*throttleBar)[i]->altTexture, (*throttleBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*throttleBar)[i]->sizeTex.Width, (*throttleBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1803,7 +783,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = sizeVec;
 
         for (int i = 0; i < perc; i++) {
-            myDriver->draw2DImage((*speedBar)[i]->texture, (*speedBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*speedBar)[i]->texture, (*speedBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*speedBar)[i]->sizeTex.Width, (*speedBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1820,7 +800,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = sizeVec;
 
         for (int i = 0; i < perc; i++) {
-            myDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*mgHeatBar)[i]->sizeTex.Width, (*mgHeatBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1829,7 +809,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //symbol number 0 is the minigun symbol itself (for basic upgrade level 0)
         //the next three symbols 1, 2 and 3 are for upgrade levels 1, 2 and 3
         for (int i = 0; i <= monitorWhichPlayer->mPlayerStats->currMinigunUpgradeLevel; i++) {
-            myDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*upgradeBar)[i]->sizeTex.Width, (*upgradeBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1837,7 +817,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //symbol number 4 is the rocket symbol itself (for basic upgrade level 0)
         //the next three symbols 5, 6 and 7 are for upgrade levels 1, 2 and 3
         for (int i = 4; i <= (monitorWhichPlayer->mPlayerStats->currRocketUpgradeLevel + 4); i++) {
-            myDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*upgradeBar)[i]->sizeTex.Width, (*upgradeBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1845,7 +825,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //symbol number 8 is the booster symbol itself (for basic upgrade level 0)
         //the next three symbols 9, 10 and 11 are for upgrade levels 1, 2 and 3
         for (int i = 8; i <= (monitorWhichPlayer->mPlayerStats->currBoosterUpgradeLevel + 8); i++) {
-            myDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   irr::core::rect<irr::s32>(0,0, (*upgradeBar)[i]->sizeTex.Width, (*upgradeBar)[i]->sizeTex.Height), 0,
                   irr::video::SColor(255,255,255,255), true);
         }
@@ -1860,12 +840,12 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         if (hlp > 9)
             hlp = 9;
 
-        myDriver->draw2DImage((*currRacePlayerPosition)[hlp]->texture, (*currRacePlayerPosition)[hlp]->drawScrPosition,
+        mInfra->mDriver->draw2DImage((*currRacePlayerPosition)[hlp]->texture, (*currRacePlayerPosition)[hlp]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, (*currRacePlayerPosition)[hlp]->sizeTex.Width, (*currRacePlayerPosition)[hlp]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
 
         //draw the slash for player position (slash is #10 in the list)
-        myDriver->draw2DImage((*currRacePlayerPosition)[10]->texture, (*currRacePlayerPosition)[10]->drawScrPosition,
+        mInfra->mDriver->draw2DImage((*currRacePlayerPosition)[10]->texture, (*currRacePlayerPosition)[10]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, (*currRacePlayerPosition)[10]->sizeTex.Width, (*currRacePlayerPosition)[10]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
 
@@ -1879,7 +859,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             hlp = 9;
 
         //draw the overall number of players in the race
-        myDriver->draw2DImage((*numberPlayers)[hlp]->texture, (*numberPlayers)[hlp]->drawScrPosition,
+        mInfra->mDriver->draw2DImage((*numberPlayers)[hlp]->texture, (*numberPlayers)[hlp]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, (*numberPlayers)[hlp]->sizeTex.Width, (*numberPlayers)[hlp]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
 
@@ -1888,13 +868,15 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //first draw 2 red arrow symbol next to lap number display
         strcpy(&lapNumStr[0], ">");
         //RenderRedTextLapNumber(&lapNumStr[0], irr::core::vector2d<irr::s32>(128, 91));
-        myTextRenderer->DrawGameNumberText(lapNumStr, myTextRenderer->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(128, 91));
+        mInfra->mGameTexts->DrawGameNumberText(lapNumStr,
+                                               mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(128, 91));
 
         //first built string
         //important! pad with 2 leading zeros!
         sprintf(&lapNumStr[0], "%02d/%02d", monitorWhichPlayer->mPlayerStats->currLapNumber, monitorWhichPlayer->mPlayerStats->raceNumberLaps);
         //RenderRedTextLapNumber(&lapNumStr[0], irr::core::vector2d<irr::s32>(178, 93));
-        myTextRenderer->DrawGameNumberText(lapNumStr, myTextRenderer->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(178, 93));
+        mInfra->mGameTexts->DrawGameNumberText(lapNumStr,
+                                               mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(178, 93));
 
         //next draw red skull and current player kill count number
         char currKillCountStr[10];
@@ -1903,12 +885,14 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //strcpy(&currKillCountStr[0], "s");
         //RenderRedTextKillCount(&currKillCountStr[0], irr::core::vector2d<irr::s32>(559, 62));
         strcpy(&currKillCountStr[0], ">");
-        myTextRenderer->DrawGameNumberText(&currKillCountStr[0], myTextRenderer->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(559, 62));
+        mInfra->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mInfra->mGameTexts->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(559, 62));
 
         //now draw current kill number, dont forget the leading zeros!
         sprintf(&currKillCountStr[0], "%02d", monitorWhichPlayer->mPlayerStats->currKillCount);
         //RenderRedTextKillCount(&currKillCountStr[0], irr::core::vector2d<irr::s32>(592, 62));
-        myTextRenderer->DrawGameNumberText(&currKillCountStr[0], myTextRenderer->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(592, 62));
+        mInfra->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mInfra->mGameTexts->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(592, 62));
 
         BannerTextLogic(deltaTime);
 
@@ -1935,7 +919,8 @@ void HUD::RenderBigGreenText(irr::f32 deltaTime) {
         //Draw the text
         //we use HudBigGreenText
         if ((this->currentBigGreenTextState == 2) || (!blinkBigGreenText)) {
-            myTextRenderer->DrawGameText(currentBigGreenText, myTextRenderer->HudBigGreenText, currentBigGreenTextDrawPosition);
+            mInfra->mGameTexts->DrawGameText(currentBigGreenText,
+                                             mInfra->mGameTexts->HudBigGreenText, currentBigGreenTextDrawPosition);
         }
 
         //check how long we still need to show this text
@@ -2063,9 +1048,9 @@ void HUD::InitHudBannerText() {
     bannerTextState7 = new std::vector<HudDisplayPart*>;
 
     //initialize graphics needed for bottom screen banner text view
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
-    irr::s32 posY = (this->screenResolution.Height - 39);
+    irr::s32 posY = (mInfra->mScreenRes.Height - 39);
 
     /*************
      * State 1   * first/last symbols are seen from message banner
@@ -2073,7 +1058,7 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     HudDisplayPart* leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
     leftBoundarySymbState1->altTexture = NULL;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2081,7 +1066,7 @@ void HUD::InitHudBannerText() {
 
     //Right boundary block symbol
     HudDisplayPart* rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
     rightBoundarySymbState1->altTexture = NULL;
    // myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2097,7 +1082,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 3; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = myDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
         middleWhiteSymbState1Symb->altTexture = NULL;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -2122,7 +1107,7 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
     leftBoundarySymbState1->altTexture = NULL;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2130,7 +1115,7 @@ void HUD::InitHudBannerText() {
 
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
     rightBoundarySymbState1->altTexture = NULL;
     //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2145,7 +1130,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 5; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = myDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
         middleWhiteSymbState1Symb->altTexture = NULL;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -2170,7 +1155,7 @@ void HUD::InitHudBannerText() {
 
    //Left boundary block symbol
    leftBoundarySymbState1 = new HudDisplayPart();
-   leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+   leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
    leftBoundarySymbState1->altTexture = NULL;
    //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
    leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2178,7 +1163,7 @@ void HUD::InitHudBannerText() {
 
    //Right boundary block symbol
    rightBoundarySymbState1 = new HudDisplayPart();
-   rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+   rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
    rightBoundarySymbState1->altTexture = NULL;
    //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
    rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2193,7 +1178,7 @@ void HUD::InitHudBannerText() {
    //create all middle while background symbols (before text appears)
    for (int idx = 0; idx < 8; idx++) {
        middleWhiteSymbState1Symb = new HudDisplayPart();
-       middleWhiteSymbState1Symb->texture = myDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+       middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
        middleWhiteSymbState1Symb->altTexture = NULL;
      //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
        middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -2218,7 +1203,7 @@ void HUD::InitHudBannerText() {
 
   //Left boundary block symbol
   leftBoundarySymbState1 = new HudDisplayPart();
-  leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+  leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
   leftBoundarySymbState1->altTexture = NULL;
   //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
   leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2226,7 +1211,7 @@ void HUD::InitHudBannerText() {
 
   //Right boundary block symbol
   rightBoundarySymbState1 = new HudDisplayPart();
-  rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+  rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
   rightBoundarySymbState1->altTexture = NULL;
   //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
   rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2241,7 +1226,7 @@ void HUD::InitHudBannerText() {
   //create all middle while background symbols (before text appears)
   for (int idx = 0; idx < 10; idx++) {
       middleWhiteSymbState1Symb = new HudDisplayPart();
-      middleWhiteSymbState1Symb->texture = myDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+      middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
       middleWhiteSymbState1Symb->altTexture = NULL;
     //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
       middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -2266,7 +1251,7 @@ void HUD::InitHudBannerText() {
 
  //Left boundary block symbol
  leftBoundarySymbState1 = new HudDisplayPart();
- leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+ leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
  leftBoundarySymbState1->altTexture = NULL;
  //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
  leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2274,7 +1259,7 @@ void HUD::InitHudBannerText() {
 
  //Right boundary block symbol
  rightBoundarySymbState1 = new HudDisplayPart();
- rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+ rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
  rightBoundarySymbState1->altTexture = NULL;
  //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
  rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2289,7 +1274,7 @@ void HUD::InitHudBannerText() {
  //create all middle while background symbols (before text appears)
  for (int idx = 0; idx < 13; idx++) {
      middleWhiteSymbState1Symb = new HudDisplayPart();
-     middleWhiteSymbState1Symb->texture = myDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+     middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
      middleWhiteSymbState1Symb->altTexture = NULL;
    //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
      middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -2314,7 +1299,7 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
     leftBoundarySymbState1->altTexture = NULL;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2322,7 +1307,7 @@ void HUD::InitHudBannerText() {
 
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
     rightBoundarySymbState1->altTexture = NULL;
     //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2337,7 +1322,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 15; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = myDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
         middleWhiteSymbState1Symb->altTexture = NULL;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -2362,7 +1347,7 @@ void HUD::InitHudBannerText() {
 
        //Left boundary block symbol
        leftBoundarySymbState1 = new HudDisplayPart();
-       leftBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+       leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
        leftBoundarySymbState1->altTexture = NULL;
        //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
        leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -2370,7 +1355,7 @@ void HUD::InitHudBannerText() {
 
        //Right boundary block symbol
        rightBoundarySymbState1 = new HudDisplayPart();
-       rightBoundarySymbState1->texture = myDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+       rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
        rightBoundarySymbState1->altTexture = NULL;
        //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
        rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -2380,7 +1365,7 @@ void HUD::InitHudBannerText() {
        bannerTextState7->push_back(leftBoundarySymbState1);
        bannerTextState7->push_back(rightBoundarySymbState1);
 
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     //current banner text state is 0 (means nothing is shown at all)
     currentBannerTextState = 0;
@@ -2437,7 +1422,7 @@ void HUD::RenderTextBannerGraphics() {
         if (elementsToDraw != NULL) {
             //draw currently visible banner state
             for (ulong i = 0; i < elementsToDraw->size(); i++) {
-                myDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
+                mInfra->mDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
                       irr::core::rect<irr::s32>(0,0, elementsToDraw->at(i)->sizeTex.Width, elementsToDraw->at(i)->sizeTex.Height), 0,
                       irr::video::SColor(255,255,255,255), true);
 
@@ -2463,7 +1448,7 @@ void HUD::RenderPlayerLapTimes() {
     //amountFinishedLaps = 3, if three laps are finished, and the last lap is not the fastest lap -> print current lap info, last lap info, and fastest lap info
     //                        if two laps are finished, and the last lap is  the fastest lap -> print current lap info and fastest lap info
 
-    irr::u32 posY = (this->screenResolution.Height - 24);
+    irr::u32 posY = (mInfra->mScreenRes.Height - 24);
     irr::u32 posX;
     irr::u32 txtWidth;
 
@@ -2471,10 +1456,10 @@ void HUD::RenderPlayerLapTimes() {
     char text[20];
     sprintf(&text[0], "%2d.", this->monitorWhichPlayer->mPlayerStats->currLapNumber);
 
-    txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
+    txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed);
     posX = 38 - txtWidth;
 
-    this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
+    mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
     //2. render current lap time number in the lowest line
     // this text is written in a way that times are alignment on the right side
@@ -2484,7 +1469,7 @@ void HUD::RenderPlayerLapTimes() {
     //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
     //posX = 92 - txtWidth;
 
-    this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed, irr::core::position2di(56, posY));
+    mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
 
     //for the next line decrease Y coordinate
     posY -= 23;
@@ -2506,17 +1491,17 @@ void HUD::RenderPlayerLapTimes() {
     if ((this->monitorWhichPlayer->mPlayerStats->lastLap.lapNr != 0) && (this->monitorWhichPlayer->mPlayerStats->lastLap.lapNr != fastestLapNr)) {
         sprintf(&text[0], "%2d.", this->monitorWhichPlayer->mPlayerStats->lastLap.lapNr);
 
-        txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
+        txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed);
         posX = 38 - txtWidth;
 
-        this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
+        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
         sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->lastLap.lapTimeMultiple100mSec);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
         //posX = 92 - txtWidth;
 
-        this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed, irr::core::position2di(56, posY));
+        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
 
         //for the next line decrease Y coordinate
         posY -= 23;
@@ -2526,17 +1511,17 @@ void HUD::RenderPlayerLapTimes() {
     if ((this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapNr != 0) && (this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapNr != fastestLapNr)) {
         sprintf(&text[0], "%2d.", this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapNr);
 
-        txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
+        txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed);
         posX = 38 - txtWidth;
 
-        this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
+        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
         sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapTimeMultiple100mSec);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
         //posX = 92 - txtWidth;
 
-        this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed, irr::core::position2di(56, posY));
+        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
 
         //for the next line decrease Y coordinate
         posY -= 23;
@@ -2546,17 +1531,17 @@ void HUD::RenderPlayerLapTimes() {
     if (fastestLapNr != 0) {
         sprintf(&text[0], "%2d.", fastestLapNr);
 
-        txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberGrey);
+        txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey);
         posX = 38 - txtWidth;
 
-        this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberGrey, irr::core::position2di(posX, posY));
+        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(posX, posY));
 
         sprintf(&text[0], "%4d", fastestLapNrLapTimeMultiple100ms);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberGrey);
         //posX = 92 - txtWidth;
 
-        this->myTextRenderer->DrawGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberGrey, irr::core::position2di(56, posY));
+        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(56, posY));
     }
 }
 
@@ -2583,11 +1568,12 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
     newMsg->textAlreadyShownSec = 0.0f;
 
     //for Hud banner text we use HudWhiteTextBannerFont
-    irr::u32 currentTextWidthPixels = myTextRenderer->GetWidthPixelsGameText(newMsg->text, myTextRenderer->HudWhiteTextBannerFont);
+    irr::u32 currentTextWidthPixels = mInfra->mGameTexts->GetWidthPixelsGameText(newMsg->text,
+                                                                                 mInfra->mGameTexts->HudWhiteTextBannerFont);
 
     //calculate text position in a way that the new text is centered in the middle of the banner
-    newMsg->textPosition.Y = (this->screenResolution.Height - 39);
-    newMsg->textPosition.X = (this->screenResolution.Width / 2) - (currentTextWidthPixels / 2.0);
+    newMsg->textPosition.Y = (mInfra->mScreenRes.Height - 39);
+    newMsg->textPosition.X = (mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0);
 
     //add this new message to our current message vector
     this->bannerMessageVec->push_back(newMsg);
@@ -2636,27 +1622,29 @@ void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking) 
 
     //calculate big green text draw position
     //we use HudBigGreenText font
-    irr::u32 currentTextWidthPixels = myTextRenderer->GetWidthPixelsGameText(currentBigGreenText, myTextRenderer->HudBigGreenText);
-    irr::u32 currentTextHeightPixels = myTextRenderer->GetHeightPixelsGameText(currentBigGreenText, myTextRenderer->HudBigGreenText);
+    irr::u32 currentTextWidthPixels = mInfra->mGameTexts->GetWidthPixelsGameText(currentBigGreenText,
+                                                                                 mInfra->mGameTexts->HudBigGreenText);
+    irr::u32 currentTextHeightPixels = mInfra->mGameTexts->GetHeightPixelsGameText(currentBigGreenText,
+                                                                                   mInfra->mGameTexts->HudBigGreenText);
 
     //calculate text position in a way that the new text is centered in the middle of the player screen
-    currentBigGreenTextDrawPosition.Y = (this->screenResolution.Height / 2) - (currentTextHeightPixels / 2.0);
-    currentBigGreenTextDrawPosition.X = (this->screenResolution.Width / 2) - (currentTextWidthPixels / 2.0);
+    currentBigGreenTextDrawPosition.Y = (mInfra->mScreenRes.Height / 2) - (currentTextHeightPixels / 2.0);
+    currentBigGreenTextDrawPosition.X = (mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0);
 }
 
 void HUD::InitTargetStuff() {
     //initialize target other player ships stuff
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     targetSymbol = new HudDisplayPart();
     //green target symbol
-    targetSymbol->texture = myDriver->getTexture("extract/hud1player/panel0-1-0257.bmp");
+    targetSymbol->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0257.bmp");
 
     //red target symbol
-    targetSymbol->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0258.bmp");
+    targetSymbol->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0258.bmp");
 
-    myDriver->makeColorKeyTexture(targetSymbol->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(targetSymbol->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetSymbol->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetSymbol->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetSymbol->sizeTex = targetSymbol->texture->getSize();
 
@@ -2667,13 +1655,13 @@ void HUD::InitTargetStuff() {
     //arrow left of target symbol
     targetArrowLeft = new HudDisplayPart();
     //green arrow left
-    targetArrowLeft->texture = myDriver->getTexture("extract/hud1player/panel0-1-0263.bmp");
+    targetArrowLeft->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0263.bmp");
 
     //red arrow left
-    targetArrowLeft->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0264.bmp");
+    targetArrowLeft->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0264.bmp");
 
-    myDriver->makeColorKeyTexture(targetArrowLeft->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(targetArrowLeft->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowLeft->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowLeft->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowLeft->sizeTex = targetArrowLeft->texture->getSize();
 
@@ -2684,13 +1672,13 @@ void HUD::InitTargetStuff() {
     //arrow right of target symbol
     targetArrowRight = new HudDisplayPart();
     //green arrow right
-    targetArrowRight->texture = myDriver->getTexture("extract/hud1player/panel0-1-0265.bmp");
+    targetArrowRight->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0265.bmp");
 
     //red arrow right
-    targetArrowRight->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0266.bmp");
+    targetArrowRight->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0266.bmp");
 
-    myDriver->makeColorKeyTexture(targetArrowRight->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(targetArrowRight->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowRight->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowRight->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowRight->sizeTex = targetArrowRight->texture->getSize();
 
@@ -2701,13 +1689,13 @@ void HUD::InitTargetStuff() {
     //arrow above of target symbol
     targetArrowAbove = new HudDisplayPart();
     //green arrow above
-    targetArrowAbove->texture = myDriver->getTexture("extract/hud1player/panel0-1-0259.bmp");
+    targetArrowAbove->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0259.bmp");
 
     //red arrow above
-    targetArrowAbove->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0260.bmp");
+    targetArrowAbove->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0260.bmp");
 
-    myDriver->makeColorKeyTexture(targetArrowAbove->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(targetArrowAbove->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowAbove->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowAbove->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowAbove->sizeTex = targetArrowAbove->texture->getSize();
 
@@ -2718,13 +1706,13 @@ void HUD::InitTargetStuff() {
     //arrow below of target symbol
     targetArrowBelow = new HudDisplayPart();
     //green arrow below
-    targetArrowBelow->texture = myDriver->getTexture("extract/hud1player/panel0-1-0261.bmp");
+    targetArrowBelow->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0261.bmp");
 
     //red arrow below
-    targetArrowBelow->altTexture = myDriver->getTexture("extract/hud1player/panel0-1-0262.bmp");
+    targetArrowBelow->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0262.bmp");
 
-    myDriver->makeColorKeyTexture(targetArrowBelow->texture, irr::core::position2d<irr::s32>(0,0));
-    myDriver->makeColorKeyTexture(targetArrowBelow->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowBelow->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(targetArrowBelow->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowBelow->sizeTex = targetArrowBelow->texture->getSize();
 
@@ -2732,7 +1720,7 @@ void HUD::InitTargetStuff() {
     //here in this struct
     targetArrowBelow->drawScrPosition.set(0,0);
 
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 //Just taken from Irrlicht source code ISceneCollisionManager
@@ -2742,8 +1730,8 @@ core::position2d<s32> HUD::getScreenCoordinatesFrom3DPosition(
     const core::vector3df & pos3d, ICameraSceneNode* camera)
 {
 
-    irr::u32 Width = this->screenResolution.Width;
-    irr::u32 Height = this->screenResolution.Height;
+    irr::u32 Width = mInfra->mScreenRes.Width;
+    irr::u32 Height = mInfra->mScreenRes.Height;
 
     Width /= 2;
     Height /= 2;
@@ -2781,7 +1769,7 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
           //first we need to figure out where to draw target symbol on the 2D screen, so that the symbol is around
           //the targets player craft
-          ICameraSceneNode* actCamera = this->monitorWhichPlayer->mRace->mSmgr->getActiveCamera();
+          ICameraSceneNode* actCamera = mInfra->mSmgr->getActiveCamera();
 
           irr::core::vector3df targetPlayerPos = monitorWhichPlayer->mTargetPlayer->phobj->physicState.position;
 
@@ -2795,93 +1783,92 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
           irr::u32 lockProgress = this->monitorWhichPlayer->mTargetMissleLockProgr;
 
-          targetArrowLeft->drawScrPosition.X = targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
+          targetArrowLeft->drawScrPosition.X =
+                  targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
           targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2.0;
 
           targetArrowRight->drawScrPosition.X = targetPos.X + targetSymBHalfWidth + lockProgress;
           targetArrowRight->drawScrPosition.Y = targetArrowLeft->drawScrPosition.Y;
 
           targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2.0;
-          targetArrowAbove->drawScrPosition.Y = targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
+          targetArrowAbove->drawScrPosition.Y =
+                  targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
 
           targetArrowBelow->drawScrPosition.X = targetArrowAbove->drawScrPosition.X;
           targetArrowBelow->drawScrPosition.Y = targetPos.Y + targetSymBHalfHeight + lockProgress;
 
           if (!monitorWhichPlayer->mTargetMissleLock) {
              //no missle lock, green symbol and green text
-             myDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
+             mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
                 irr::core::rect<irr::s32>(0,0, targetSymbol->sizeTex.Width, targetSymbol->sizeTex.Height), 0,
                 irr::video::SColor(255,255,255,255), true);
 
                if (currShowTargetName) {
                     //write player name next to target symbol
-                    this->myTextRenderer->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-                        this->myTextRenderer->HudTargetNameGreen,
+                    mInfra->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
+                        mInfra->mGameTexts->HudTargetNameGreen,
                             irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
                                             targetSymbol->drawScrPosition.Y));
                }
 
              //left green arrow
-             myDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
+             mInfra->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
                 irr::core::rect<irr::s32>(0,0, targetArrowLeft->sizeTex.Width, targetArrowLeft->sizeTex.Height), 0,
                 irr::video::SColor(255,255,255,255), true);
 
              //right green arrow
-             myDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
+             mInfra->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
                 irr::core::rect<irr::s32>(0,0, targetArrowRight->sizeTex.Width, targetArrowRight->sizeTex.Height), 0,
                 irr::video::SColor(255,255,255,255), true);
 
              //above green arrow
-             myDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
+             mInfra->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
                 irr::core::rect<irr::s32>(0,0, targetArrowAbove->sizeTex.Width, targetArrowAbove->sizeTex.Height), 0,
                 irr::video::SColor(255,255,255,255), true);
 
              //below green arrow
-             myDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
+             mInfra->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
                 irr::core::rect<irr::s32>(0,0, targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height), 0,
                 irr::video::SColor(255,255,255,255), true);
           } else {
               //we also have missile lock, red symbol and red text
-              myDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
+              mInfra->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
                  irr::core::rect<irr::s32>(0,0, targetSymbol->sizeTex.Width, targetSymbol->sizeTex.Height), 0,
                  irr::video::SColor(255,255,255,255), true);
 
               if (currShowTargetName) {
                 //write player name next to target symbol
-                this->myTextRenderer->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-                        this->myTextRenderer->HudTargetNameRed,
+                mInfra->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
+                        mInfra->mGameTexts->HudTargetNameRed,
                         irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
                                              targetSymbol->drawScrPosition.Y));
               }
 
               //left red arrow
-              myDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
+              mInfra->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
                  irr::core::rect<irr::s32>(0,0, targetArrowLeft->sizeTex.Width, targetArrowLeft->sizeTex.Height), 0,
                  irr::video::SColor(255,255,255,255), true);
 
               //right red arrow
-              myDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
+              mInfra->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
                  irr::core::rect<irr::s32>(0,0, targetArrowRight->sizeTex.Width, targetArrowRight->sizeTex.Height), 0,
                  irr::video::SColor(255,255,255,255), true);
 
               //above red arrow
-              myDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
+              mInfra->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
                  irr::core::rect<irr::s32>(0,0, targetArrowAbove->sizeTex.Width, targetArrowAbove->sizeTex.Height), 0,
                  irr::video::SColor(255,255,255,255), true);
 
               //below red arrow
-              myDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
+              mInfra->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
                  irr::core::rect<irr::s32>(0,0, targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height), 0,
                  irr::video::SColor(255,255,255,255), true);
           }
      }
 }
 
-HUD::HUD(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver,  dimension2d<u32> screenRes, GameText* TextRenderer) {
-    myDriver = driver;
-    myDevice = device;
-    myTextRenderer = TextRenderer;
-    screenResolution = screenRes;
+HUD::HUD(InfrastructureBase* infra) {
+    mInfra = infra;
 
     monitorWhichPlayer = NULL;
 
@@ -2918,12 +1905,12 @@ void HUD::CleanUpHudDisplayPartVector(std::vector<HudDisplayPart*> &pntrVector) 
 
            if (pntr->texture != NULL) {
                //remove underlying texture
-               this->myDriver->removeTexture(pntr->texture);
+               mInfra->mDriver->removeTexture(pntr->texture);
            }
 
            if (pntr->altTexture != NULL) {
                //remove underlying texture
-               this->myDriver->removeTexture(pntr->altTexture);
+               mInfra->mDriver->removeTexture(pntr->altTexture);
            }
 
            delete pntr;
@@ -2985,12 +1972,12 @@ HUD::~HUD() {
 
     if (brokenGlas->texture != NULL) {
         //remove underlying texture
-        this->myDriver->removeTexture(brokenGlas->texture);
+        mInfra->mDriver->removeTexture(brokenGlas->texture);
     }
 
     if (brokenGlas->altTexture != NULL) {
         //remove underlying texture
-        this->myDriver->removeTexture(brokenGlas->altTexture);
+        mInfra->mDriver->removeTexture(brokenGlas->altTexture);
     }
 
     delete brokenGlas;
@@ -3026,12 +2013,12 @@ void HUD::DrawFinishedPlayerList() {
             //first draw 2 red arrow symbol next to lap number display
             sprintf(posStr, "%d", position);
 
-            myTextRenderer->DrawGameNumberText(posStr, myTextRenderer->HudLaptimeNumberGrey,
+            mInfra->mGameTexts->DrawGameNumberText(posStr, mInfra->mGameTexts->HudLaptimeNumberGrey,
                                                irr::core::vector2d<irr::s32>(posXNr, posY));
 
-            myTextRenderer->DrawHudSmallText(
+            mInfra->mGameTexts->DrawHudSmallText(
                         this->monitorWhichPlayer->mRace->playerRaceFinishedVec.at(position - 1)->mPlayerStats->name,
-                        this->myTextRenderer->HudTargetNameRed,  irr::core::vector2d<irr::s32>(posXPlayerName, posYPlayerName));
+                        this->mInfra->mGameTexts->HudTargetNameRed,  irr::core::vector2d<irr::s32>(posXPlayerName, posYPlayerName));
 
             posY += 24;
             posYPlayerName += 24;

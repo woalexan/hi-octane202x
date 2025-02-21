@@ -114,9 +114,9 @@ class InfrastructureBase; //Forward declaration
 
 class Race {
 public:
-    Race(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver *driver, irr::scene::ISceneManager* smgr, MyEventReceiver* eventReceiver,
-         GameText* gameText, Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine, TimeProfiler* timeProfiler,
-         dimension2d<u32> gameScreenRes, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
+    Race(InfrastructureBase* infra,
+         Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
+         int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
 
     ~Race();
 
@@ -171,16 +171,7 @@ public:
 
     Player* currPlayerFollow = NULL;
 
-    //my Irrlicht video driver
-    irr::video::IVideoDriver *mDriver;
-
-    //my Irrlicht scene manager
-    scene::ISceneManager *mSmgr;
-
-    //my Irrlicht device
-    irr::IrrlichtDevice* mDevice;
-
-    InfrastructureBase* mInfraBase;
+    InfrastructureBase* mInfra;
 
     //handles the columns (made of blocks)
     //of the level
@@ -333,17 +324,6 @@ private:
     //handles the file data structure of the
     //level
     LevelFile *mLevelRes;
-
-    TimeProfiler* mTimeProfiler;
-
-    //my Irrlicht event receiver
-    MyEventReceiver* mEventReceiver;
-
-    //my game Text object pointer
-    GameText* mGameText;
-
-    //the game screen resolution
-    dimension2d<u32> mGameScreenRes;
 
     //my sky image for the level background
     irr::video::ITexture* mSkyImage = NULL;
