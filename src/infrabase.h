@@ -11,14 +11,59 @@
 #define INFRABASE_H
 
 #include <iostream>
+#include <irrlicht/irrlicht.h>
+#include "input/input.h"
+#include "utils/logger.h"
+#include "resources/assets.h"
+#include "resources/readgamedata/preparedata.h"
+#include "utils/tprofile.h"
+
+using namespace std;
+
+using namespace irr;
+using namespace irr::core;
+using namespace irr::video;
+using namespace irr::scene;
+using namespace irr::gui;
+
+class Logger; //Forward declaration
 
 class InfrastructureBase {
 public:
-  InfrastructureBase();
+  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
   ~InfrastructureBase();
 
   //get a random int in the range between min and max
   int randRangeInt(int min, int max);
+
+  dimension2d<u32> mScreenRes;
+  Logger* mLogger;
+
+  bool GetInitOk();
+
+  //have all pointers as public
+  //so that we can access them easily everywhere
+  IrrlichtDevice* mDevice;
+  video::IVideoDriver* mDriver;
+  scene::ISceneManager* mSmgr;
+  MyEventReceiver* mEventReceiver;
+  IGUIEnvironment* mGuienv;
+
+  PrepareData* mPrepareData;
+  GameText* mGameTexts;
+  TimeProfiler* mTimeProfiler;
+
+private:
+  //Irrlicht stuff
+
+  bool mEnableShadows;
+  bool mFullscreen;
+
+  bool mInitOk = false;
+
+  //Returns true for success, false for error occured
+  bool InitIrrlicht();
+  bool InitGameResources();
 };
 
 

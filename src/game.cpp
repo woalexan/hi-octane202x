@@ -9,37 +9,6 @@
 
 #include "game.h"
 
-bool Game::InitIrrlicht() {
-    /************************************************/
-    /************** Init Irrlicht stuff *************/
-    /************************************************/
-
-    // create event receiver
-    receiver = new MyEventReceiver();
-
-    //set target screen resolution
-    mGameScreenRes.set(640,480);
-    //mGameScreenRes.set(1280,960);
-
-    //we need to enable stencil buffers, otherwise volumentric shadows
-    //will not work
-    device = createDevice(video::EDT_OPENGL, mGameScreenRes, 16, fullscreen, enableShadows, false, receiver);
-
-    if (device == 0) {
-          cout << "Failed Irrlicht device creation!" << endl;
-          return false;
-    }
-
-    //get pointer to video driver, Irrlicht scene manager
-    driver = device->getVideoDriver();
-    smgr = device->getSceneManager();
-
-    //get Irrlicht GUI functionality pointers
-    guienv = device->getGUIEnvironment();
-
-    return true;
-}
-
 void Game::StopTime() {
     if (!mTimeStopped) {
         mTimeStopped = true;
@@ -69,7 +38,7 @@ bool Game::InitSFMLAudio() {
 
     //volumeMusic: 0 means no music, 100.0f means max volume
     //get configured volume from Assets class
-    gameMusicPlayer->SetVolume(GameAssets->GetMusicVolume());
+    gameMusicPlayer->SetVolume(mGameAssets->GetMusicVolume());
 
     gameSoundEngine = new SoundEngine();
     if (!gameSoundEngine->getInitOk()) {
@@ -77,71 +46,45 @@ bool Game::InitSFMLAudio() {
         return false;
     }
 
-    gameSoundEngine->SetVolume(GameAssets->GetSoundVolume());
+    gameSoundEngine->SetVolume(mGameAssets->GetSoundVolume());
 
     return true;
 }
 
 bool Game::InitGameAssets() {
     /***********************************************************/
-    /* Extract game assets                                     */
-    /***********************************************************/
-    try {
-        prepareData = new PrepareData(device, driver);
-    }
-    catch (const std::string &msg) {
-        cout << "Game assets preparation operation failed!\n" << msg << endl;
-        return false;
-    }
-
-    /***********************************************************/
-    /* Load GameFonts                                          */
-    /***********************************************************/
-    GameTexts = new GameText(device, driver);
-
-    if (!GameTexts->GameTextInitializedOk) {
-        cout << "Game fonts init operation failed!" << endl;
-        return false;
-    }
-
-    /***********************************************************/
     /* Load and define game assets (Meshes, Tracks, Craft)     */
     /***********************************************************/
-    GameAssets = new Assets(device, driver, smgr, keepConfigDataFileUpdated);
+    mGameAssets = new Assets(mInfra->mDevice, mInfra->mDriver, mInfra->mSmgr, keepConfigDataFileUpdated);
 
     return true;
 }
 
 bool Game::InitGame() {
-    if (!InitIrrlicht())
+    dimension2d<u32> targetResolution;
+
+    //set target screen resolution
+    targetResolution.set(640,480);
+    //targetResolution.set(1280,960);
+
+    //create my infrastructure
+    mInfra = new InfrastructureBase(targetResolution, fullscreen, enableShadows);
+    if (!mInfra->GetInitOk())
         return false;
 
-    //log window left upper corner 100, 380
-    //log window right lower corner 540, 460
-    irr::core::rect logWindowPos(100, 380, 540, 460);
-
-    //create my logger class
-    mLogger = new Logger(guienv, logWindowPos);
-    mLogger->HideWindow();
-
-    if (!InitGameAssets())
-        return false;
-
-    mLogger->AddLogMessage((char*)"Game Assets initialized");
+    InitGameAssets();
 
     //InitSFMLAudio needs to be called after
-    //InitGameAssets, because it needs the
+    //InitGameResources, because it needs the
     //assets already unpacked to load sounds etc..
     if (!InitSFMLAudio())
         return false;
 
-    mLogger->AddLogMessage((char*)"Audio init ok");
-
-    mTimeProfiler = new TimeProfiler();
+    mInfra->mLogger->AddLogMessage((char*)"Audio init ok");
 
     //create the games menue
-    MainMenue = new Menue(InfraBase, device, driver, mGameScreenRes, GameTexts, receiver, smgr, gameSoundEngine,
-                      gameMusicPlayer, GameAssets);
+    MainMenue = new Menue(mInfra, gameSoundEngine,
+                      gameMusicPlayer, mGameAssets);
     if (!MainMenue->MenueInitializationSuccess) {
         cout << "Game menue init operation failed!" << endl;
         return false;
@@ -149,10 +92,10 @@ bool Game::InitGame() {
 
     if (DebugShowVariableBoxes) {
             //only for debugging
-            dbgTimeProfiler = guienv->addStaticText(L"Location",
+            dbgTimeProfiler = mInfra->mGuienv->addStaticText(L"Location",
                    rect<s32>(100,150,300,200), false, true, NULL, -1, true);
 
-            dbgText = guienv->addStaticText(L"",
+            dbgText = mInfra->mGuienv->addStaticText(L"",
                    rect<s32>(100,250,300,350), false, true, NULL, -1, true);
 
             /*dbgText2 = guienv->addStaticText(L"",
@@ -160,21 +103,21 @@ bool Game::InitGame() {
     }
 
     if (enableLightning) {
-        smgr->addLightSceneNode(0, vector3df(0, 100, 100),
+        mInfra->mSmgr->addLightSceneNode(0, vector3df(0, 100, 100),
             video::SColorf(1.0f, 1.0f, 1.0f), 1000.0f, -1);
     }
 
     //set a minimum amount of light everywhere, to not have black areas
     //in the level
     if (enableLightning) {
-       smgr->setAmbientLight(video::SColorf(0.4f, 0.4f, 0.4f));
+       mInfra->mSmgr->setAmbientLight(video::SColorf(0.4f, 0.4f, 0.4f));
     } else {
         //set max brightness everywhere
-        smgr->setAmbientLight(video::SColorf(1.0f, 1.0f, 1.0f));
+        mInfra->mSmgr->setAmbientLight(video::SColorf(1.0f, 1.0f, 1.0f));
     }
 
     if (enableShadows) {
-       smgr->setShadowColor(video::SColor(150,0,0,0));
+       mInfra->mSmgr->setShadowColor(video::SColor(150,0,0,0));
     }
 
     return true;
@@ -189,7 +132,7 @@ void Game::DebugGame() {
 
     if (!runDemoMode) {
         //player wants to start the race
-        mPilotsNextRace = GameAssets->GetPilotInfoNextRace(true, false);
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, false);
 
         if (this->CreateNewRace(debugLevelNr, mPilotsNextRace, false, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
@@ -240,7 +183,7 @@ void Game::HandleMenueActions() {
     //user triggered an menue action
     if (pendingAction == MainMenue->ActQuitToOS) {
         //make sure config.dat is updated
-        GameAssets->UpdateGameConfigFileExitGame();
+        mGameAssets->UpdateGameConfigFileExitGame();
 
         //user wants to quit the program
         ExitGame = true;
@@ -249,14 +192,14 @@ void Game::HandleMenueActions() {
     //this is how we handle a checkbox/slider value update
     if (pendingAction == MainMenue->ActSetDifficultyLevel) {
         //user wants to change difficulty level
-        this->GameAssets->SetGameDifficulty(pendingAction->currSetValue);
+        mGameAssets->SetGameDifficulty(pendingAction->currSetValue);
     }
 
     //this is how we handle a playername string change
     if (pendingAction == MainMenue->ActSetPlayerName) {
         //copy new selected main player name into player name array
         char* newStr = pendingAction->newSetTextInputString;
-        this->GameAssets->SetNewMainPlayerName(newStr);
+        mGameAssets->SetNewMainPlayerName(newStr);
     }
 
     if (pendingAction == MainMenue->ActSetMusicVolume) {
@@ -265,7 +208,7 @@ void Game::HandleMenueActions() {
         irr::f32 volumeMusic = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
         gameMusicPlayer->SetVolume(volumeMusic);
 
-        this->GameAssets->SetMusicVolume(volumeMusic);
+        mGameAssets->SetMusicVolume(volumeMusic);
     }
 
     if (pendingAction == MainMenue->ActSetSoundVolume) {
@@ -274,7 +217,7 @@ void Game::HandleMenueActions() {
         irr::f32 volumeSound = (float(pendingAction->currSetValue) / float(16)) * 100.0f;
         gameSoundEngine->SetVolume(volumeSound);
 
-        this->GameAssets->SetSoundVolume(volumeSound);
+        mGameAssets->SetSoundVolume(volumeSound);
     }
 
     if (pendingAction == MainMenue->ActSetComputerPlayerEnable) {
@@ -282,9 +225,9 @@ void Game::HandleMenueActions() {
         //important note: if computer player is on/off is not stored in config.dat file
         //in original game; game just resets to computer players on anytime you start game
         if (pendingAction->currSetValue == 0) {
-            GameAssets->SetComputerPlayersEnabled(false);
+            mGameAssets->SetComputerPlayersEnabled(false);
         } else {
-            GameAssets->SetComputerPlayersEnabled(true);
+            mGameAssets->SetComputerPlayersEnabled(true);
         }
     }
 
@@ -292,7 +235,7 @@ void Game::HandleMenueActions() {
         //MainMenue->ShowGameLoadingScreen();
 
         //player wants to start the race
-        mPilotsNextRace = GameAssets->GetPilotInfoNextRace(true, GameAssets->GetComputerPlayersEnabled());
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
 
         if (this->CreateNewRace(pendingAction->currSetValue, mPilotsNextRace, false, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
@@ -336,10 +279,10 @@ void Game::HandleMenueActions() {
     //start a demo?
     if (pendingAction == MainMenue->ActStartDemo) {
         //for the demo do not add a human player, but add computer players
-        mPilotsNextRace = GameAssets->GetPilotInfoNextRace(false, true);
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(false, true);
 
         //pick a random level number for the demo
-        int randLevelNr = this->InfraBase->randRangeInt(1, 6);
+        int randLevelNr = this->mInfra->randRangeInt(1, 6);
 
         if (this->CreateNewRace(randLevelNr, mPilotsNextRace, true, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
@@ -363,7 +306,7 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
         }
     }
 
-    driver->beginScene(true,true,
+    mInfra->mDriver->beginScene(true,true,
                 video::SColor(255,100,101,140));
 
     MainMenue->HandleInput();
@@ -382,12 +325,12 @@ void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
        HandleMenueActions();
     }
 
-    driver->endScene();
+    mInfra->mDriver->endScene();
 }
 
 void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
-    mTimeProfiler->StartOfGameLoop();
+    mInfra->mTimeProfiler->StartOfGameLoop();
 
     mCurrentRace->HandleBasicInput();
 
@@ -411,20 +354,20 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         mCurrentRace->HandleInput();
     }
 
-    mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntHandleInput);
 
     if (!this->mTimeStopped) {
         mCurrentRace->HandleComputerPlayers(frameDeltaTime);
     }
 
-    mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntHandleComputerPlayers);
 
     if (DebugShowVariableBoxes) {
 
         wchar_t* text = new wchar_t[200];
         wchar_t* text2 = new wchar_t[400];
 
-        mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
+        mInfra->mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
            /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
                         mCurrentRace->player->dbgCameraVal,
@@ -521,29 +464,29 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
             delete[] text2;
     }
 
-    driver->beginScene(true,true,
+    mInfra->mDriver->beginScene(true,true,
      video::SColor(255,100,101,140));
 
     //render scene: terrain, blocks, player craft, entities...
     mCurrentRace->Render();
 
-    smgr->drawAll();
+    mInfra->mSmgr->drawAll();
 
-    mTimeProfiler->Profile(mTimeProfiler->tIntRender3DScene);
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntRender3DScene);
 
     //2nd draw HUD over the scene, needs to be done at the end
     mCurrentRace->DrawHUD(frameDeltaTime);
     mCurrentRace->DrawMiniMap(frameDeltaTime);
 
     //render log window
-    mLogger->Render();
+    mInfra->mLogger->Render();
 
     //last draw text debug output from Irrlicht
-    guienv->drawAll();
+    mInfra->mGuienv->drawAll();
 
-    mTimeProfiler->Profile(mTimeProfiler->tIntRender2D);
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntRender2D);
 
-    driver->endScene();
+    mInfra->mDriver->endScene();
 
     //does the player want to end the race?
     if (mCurrentRace->exitRace) {
@@ -583,14 +526,14 @@ void Game::GameLoop() {
 
     // In order to do framerate independent movement, we have to know
     // how long it was since the last frame
-    u32 then = device->getTimer()->getTime();
+    u32 then = mInfra->mDevice->getTimer()->getTime();
 
-    while (device->run() && (ExitGame == false)) {
+    while (mInfra->mDevice->run() && (ExitGame == false)) {
        /*  if (device->isWindowActive())
             {*/
 
         //Work out a frame delta time.
-        const u32 now = device->getTimer()->getTime();
+        const u32 now = mInfra->mDevice->getTimer()->getTime();
         f32 frameDeltaTime = (f32)(now - then) / 1000.f; // Time in seconds
         then = now;
 
@@ -609,35 +552,33 @@ void Game::GameLoop() {
             }
         }
 
-        int fps = driver->getFPS();
+        int fps = mInfra->mDriver->getFPS();
 
         if (lastFPS != fps) {
                          core::stringw tmp(L"Hi-Octane 202X [");
-                         tmp += driver->getName();
+                         tmp += mInfra->mDriver->getName();
                          tmp += L"] Triangles drawn: ";
-                         tmp += driver->getPrimitiveCountDrawn();
+                         tmp += mInfra->mDriver->getPrimitiveCountDrawn();
                          tmp += " @ fps: ";
                          tmp += fps;
 
-                         device->setWindowCaption(tmp.c_str());
+                         mInfra->mDevice->setWindowCaption(tmp.c_str());
                          lastFPS = fps;
                      }
             //}
    }
 
-   //cleanup game texts
-   delete GameTexts;
-
    //cleanup game assets
-   delete GameAssets;
+   delete mGameAssets;
 
    //delete sound/music
    delete gameSoundEngine;
    delete gameMusicPlayer;
 
-   delete mTimeProfiler;
+   mInfra->mDriver->drop();
 
-   driver->drop();
+   //cleanup the infrastructure
+   delete mInfra;
 }
 
 void Game::CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo) {
@@ -659,9 +600,8 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
         return false;
 
     //create a new Race
-    mCurrentRace = new Race(InfraBase, device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
-                           mTimeProfiler, this->mGameScreenRes, load_levelnr,
-                            GameAssets->mRaceTrackVec->at(load_levelnr-1)->currSelNrLaps, demoMode, debugRace, false);
+    mCurrentRace = new Race(mInfra, this, gameMusicPlayer, gameSoundEngine, load_levelnr,
+                            mGameAssets->mRaceTrackVec->at(load_levelnr-1)->currSelNrLaps, demoMode, debugRace, false);
 
     mCurrentRace->Init();
 
@@ -670,7 +610,7 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
     std::string modelName;
 
     for (itPilot = pilotInfo.begin(); itPilot != pilotInfo.end(); ++itPilot) {
-        modelName = GameAssets->GetCraftModelName((*itPilot)->defaultCraftName, (*itPilot)->currSelectedCraftColorScheme);
+        modelName = mGameAssets->GetCraftModelName((*itPilot)->defaultCraftName, (*itPilot)->currSelectedCraftColorScheme);
 
         //if there was a problem modelName is an empty string
         if (modelName == "")
@@ -699,9 +639,8 @@ bool Game::RunDemoMode(int load_levelnr) {
     //gameSoundEngine->StartEngineSound();
 
     //create a new Race in Demo Mode
-    mCurrentRace = new Race(InfraBase, device, driver, smgr, receiver, GameTexts, this, gameMusicPlayer, gameSoundEngine,
-                           mTimeProfiler, this->mGameScreenRes, load_levelnr,
-                            GameAssets->mRaceTrackVec->at(load_levelnr-1)->defaultNrLaps, true, false);
+    mCurrentRace = new Race(mInfra, this, gameMusicPlayer, gameSoundEngine, load_levelnr,
+                            mGameAssets->mRaceTrackVec->at(load_levelnr-1)->defaultNrLaps, true, false);
 
     mCurrentRace->Init();
 
@@ -753,5 +692,4 @@ void Game::CleanUpRace() {
 }
 
 Game::Game() {
-    InfraBase = new InfrastructureBase();
 }

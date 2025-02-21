@@ -26,10 +26,10 @@ void Menue::StopMenueSound() {
 }
 
 bool Menue::InitMenueResources() {
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //first load background image for menue
-    backgnd = myDriver->getTexture("extract/images/oscr0-1.png");
+    backgnd = mInfra->mDriver->getTexture("extract/images/oscr0-1.png");
 
     if (backgnd == NULL) {
         //there was a texture loading error
@@ -40,14 +40,14 @@ bool Menue::InitMenueResources() {
     irr::core::dimension2d<irr::u32> backgndSize;
 
     backgndSize = backgnd->getSize();
-    if ((backgndSize.Width != screenResolution.Width) ||
-        (backgndSize.Height != screenResolution.Height)) {
+    if ((backgndSize.Width != mInfra->mScreenRes.Width) ||
+        (backgndSize.Height != mInfra->mScreenRes.Height)) {
         //background texture size does not fit with selected screen resolution
         return false;
     }
 
     //load gameTitle
-    gameTitle = myDriver->getTexture("extract/images/title.png");
+    gameTitle = mInfra->mDriver->getTexture("extract/images/title.png");
 
     if (gameTitle == NULL) {
         //there was a texture loading error
@@ -58,11 +58,11 @@ bool Menue::InitMenueResources() {
     gameTitleSize = gameTitle->getSize();
     //calculate position to draw gameTitle so that it is centered on the screen
     //because most likely target resolution does not fit with image resolution
-    gameTitleDrawPos.X = (screenResolution.Width - gameTitleSize.Width) / 2;
-    gameTitleDrawPos.Y = (screenResolution.Height - gameTitleSize.Height) / 2;
+    gameTitleDrawPos.X = (mInfra->mScreenRes.Width - gameTitleSize.Width) / 2;
+    gameTitleDrawPos.Y = (mInfra->mScreenRes.Height - gameTitleSize.Height) / 2;
 
     //load race loading screen
-    raceLoadingScr = myDriver->getTexture("extract/images/onet0-1.png");
+    raceLoadingScr = mInfra->mDriver->getTexture("extract/images/onet0-1.png");
 
     if (raceLoadingScr == NULL) {
         //there was a texture loading error
@@ -73,47 +73,47 @@ bool Menue::InitMenueResources() {
     raceLoadingScrSize = raceLoadingScr->getSize();
     //calculate position to draw race loading screen so that it is centered on the screen
     //because maybe target resolution does not fit with image resolution
-    raceLoadingScrDrawPos.X = (screenResolution.Width - raceLoadingScrSize.Width) / 2;
-    raceLoadingScrDrawPos.Y = (screenResolution.Height - raceLoadingScrSize.Height) / 2;
+    raceLoadingScrDrawPos.X = (mInfra->mScreenRes.Width - raceLoadingScrSize.Width) / 2;
+    raceLoadingScrDrawPos.Y = (mInfra->mScreenRes.Height - raceLoadingScrSize.Height) / 2;
 
     //load window graphic elements
-    wndCornerElementUpperLeftTex = myDriver->getTexture("extract/hud1player/panel0-1-0299.bmp");
+    wndCornerElementUpperLeftTex = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0299.bmp");
     if (wndCornerElementUpperLeftTex == NULL)
         return false;
     //define transparency color
-    myDriver->makeColorKeyTexture(wndCornerElementUpperLeftTex,
+    mInfra->mDriver->makeColorKeyTexture(wndCornerElementUpperLeftTex,
            irr::core::position2d<irr::s32>(wndCornerElementUpperLeftTex->getSize().Width - 1, wndCornerElementUpperLeftTex->getSize().Height - 1));
 
-    wndCornerElementUpperRightTex = myDriver->getTexture("extract//hud1player/panel0-1-0300.bmp");
+    wndCornerElementUpperRightTex = mInfra->mDriver->getTexture("extract//hud1player/panel0-1-0300.bmp");
     if (wndCornerElementUpperRightTex == NULL)
         return false;
     //define transparency color
-    myDriver->makeColorKeyTexture(wndCornerElementUpperRightTex,
+    mInfra->mDriver->makeColorKeyTexture(wndCornerElementUpperRightTex,
            irr::core::position2d<irr::s32>(0, wndCornerElementUpperRightTex->getSize().Height - 1));
 
-    wndCornerElementLowerLeftTex  = myDriver->getTexture("extract//hud1player/panel0-1-0301.bmp");
+    wndCornerElementLowerLeftTex  = mInfra->mDriver->getTexture("extract//hud1player/panel0-1-0301.bmp");
     if (wndCornerElementLowerLeftTex == NULL)
         return false;
     //define transparency color
-    myDriver->makeColorKeyTexture(wndCornerElementLowerLeftTex,
+    mInfra->mDriver->makeColorKeyTexture(wndCornerElementLowerLeftTex,
            irr::core::position2d<irr::s32>(wndCornerElementLowerLeftTex->getSize().Width - 1, 0));
 
-    wndCornerElementLowerRightTex = myDriver->getTexture("extract//hud1player/panel0-1-0302.bmp");
+    wndCornerElementLowerRightTex = mInfra->mDriver->getTexture("extract//hud1player/panel0-1-0302.bmp");
     if (wndCornerElementLowerRightTex == NULL)
         return false;
     //define transparency color
-    myDriver->makeColorKeyTexture(wndCornerElementLowerRightTex,
+    mInfra->mDriver->makeColorKeyTexture(wndCornerElementLowerRightTex,
            irr::core::position2d<irr::s32>(0, 0));
 
     irr::u32 resolutionMultiplier = 1;
 
     //Logo part 1
     MenueGraphicPart* GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = myDriver->getTexture("extract/images/logo0-1-0000.bmp");
+    GameLogoPiece->texture = mInfra->mDriver->getTexture("extract/images/logo0-1-0000.bmp");
     if (GameLogoPiece->texture == NULL) {
         return false;
     }
-    myDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
     GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
     GameLogoPiece->drawScrPosition.set(90 * resolutionMultiplier, 34 * resolutionMultiplier);
 
@@ -121,11 +121,11 @@ bool Menue::InitMenueResources() {
 
     //Logo part 2
     GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = myDriver->getTexture("extract/images/logo0-1-0001.bmp");
+    GameLogoPiece->texture = mInfra->mDriver->getTexture("extract/images/logo0-1-0001.bmp");
     if (GameLogoPiece->texture == NULL) {
         return false;
     }
-    myDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
     GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
     GameLogoPiece->drawScrPosition.set(220 * resolutionMultiplier, 34 * resolutionMultiplier);
 
@@ -133,11 +133,11 @@ bool Menue::InitMenueResources() {
 
     //Logo part 3
     GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = myDriver->getTexture("extract/images/logo0-1-0002.bmp");
+    GameLogoPiece->texture = mInfra->mDriver->getTexture("extract/images/logo0-1-0002.bmp");
     if (GameLogoPiece->texture == NULL) {
         return false;
     }
-    myDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
     GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
     GameLogoPiece->drawScrPosition.set(347 * resolutionMultiplier, 34 * resolutionMultiplier);
 
@@ -145,11 +145,11 @@ bool Menue::InitMenueResources() {
 
     //Logo part 4
     GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = myDriver->getTexture("extract/images/logo0-1-0003.bmp");
+    GameLogoPiece->texture = mInfra->mDriver->getTexture("extract/images/logo0-1-0003.bmp");
     if (GameLogoPiece->texture == NULL) {
         return false;
     }
-    myDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
     GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
     GameLogoPiece->drawScrPosition.set(474 * resolutionMultiplier, 34 * resolutionMultiplier);
 
@@ -157,11 +157,11 @@ bool Menue::InitMenueResources() {
 
     //Logo part 5
     GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = myDriver->getTexture("extract/images/logo0-1-0004.bmp");
+    GameLogoPiece->texture = mInfra->mDriver->getTexture("extract/images/logo0-1-0004.bmp");
     if (GameLogoPiece->texture == NULL) {
         return false;
     }
-    myDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
     GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
     GameLogoPiece->drawScrPosition.set(91 * resolutionMultiplier, 92 * resolutionMultiplier);
 
@@ -169,17 +169,17 @@ bool Menue::InitMenueResources() {
 
     //Logo part 6
     GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = myDriver->getTexture("extract/images/logo0-1-0005.bmp");
+    GameLogoPiece->texture = mInfra->mDriver->getTexture("extract/images/logo0-1-0005.bmp");
     if (GameLogoPiece->texture == NULL) {
         return false;
     }
-    myDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+    mInfra->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
     GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
     GameLogoPiece->drawScrPosition.set(218 * resolutionMultiplier, 92 * resolutionMultiplier);
 
     GameLogo.push_back(GameLogoPiece);
 
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     return true;
 }
@@ -918,11 +918,11 @@ void Menue::SetWindowAnimationVec() {
 void Menue::RenderWindow(irr::core::recti position) {
     //correct current position information with actually selected game resolution
     //specified locations in parameter are always based on 640x400 resolution game uses in VGA mode
-    position.UpperLeftCorner.X = (position.UpperLeftCorner.X * this->screenResolution.Width) / 640;
-    position.LowerRightCorner.X = (position.LowerRightCorner.X * this->screenResolution.Width) / 640;
+    position.UpperLeftCorner.X = (position.UpperLeftCorner.X * mInfra->mScreenRes.Width) / 640;
+    position.LowerRightCorner.X = (position.LowerRightCorner.X * mInfra->mScreenRes.Width) / 640;
 
-    position.UpperLeftCorner.Y = (position.UpperLeftCorner.Y * this->screenResolution.Height) / 400;
-    position.LowerRightCorner.Y = (position.LowerRightCorner.Y * this->screenResolution.Height) / 400;
+    position.UpperLeftCorner.Y = (position.UpperLeftCorner.Y * mInfra->mScreenRes.Height) / 400;
+    position.LowerRightCorner.Y = (position.LowerRightCorner.Y * mInfra->mScreenRes.Height) / 400;
 
     irr::core::recti backRectPos;
     backRectPos.UpperLeftCorner.X = position.UpperLeftCorner.X + 8;
@@ -931,10 +931,10 @@ void Menue::RenderWindow(irr::core::recti position) {
     backRectPos.LowerRightCorner.Y = position.LowerRightCorner.Y - 9;
 
     //draw window background (half transparent)
-    myDriver->draw2DRectangle(irr::video::SColor(60,103,174,145), backRectPos);
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(60,103,174,145), backRectPos);
 
     //draw left upper corner graphics element
-    myDriver->draw2DImage(wndCornerElementUpperLeftTex, position.UpperLeftCorner,
+    mInfra->mDriver->draw2DImage(wndCornerElementUpperLeftTex, position.UpperLeftCorner,
           irr::core::rect<irr::s32>(0,0, wndCornerElementUpperLeftTex->getSize().Width, wndCornerElementUpperLeftTex->getSize().Height), 0,
           irr::video::SColor(255,255,255,255), true);
 
@@ -943,7 +943,7 @@ void Menue::RenderWindow(irr::core::recti position) {
     coord.X = position.LowerRightCorner.X - wndCornerElementUpperRightTex->getSize().Width;
     coord.Y = position.UpperLeftCorner.Y;
 
-    myDriver->draw2DImage(wndCornerElementUpperRightTex, coord,
+    mInfra->mDriver->draw2DImage(wndCornerElementUpperRightTex, coord,
           irr::core::rect<irr::s32>(0,0, wndCornerElementUpperLeftTex->getSize().Width, wndCornerElementUpperLeftTex->getSize().Height), 0,
           irr::video::SColor(255,255,255,255), true);
 
@@ -951,7 +951,7 @@ void Menue::RenderWindow(irr::core::recti position) {
     coord.X = position.LowerRightCorner.X - wndCornerElementLowerRightTex->getSize().Width;
     coord.Y = position.LowerRightCorner.Y - wndCornerElementLowerRightTex->getSize().Height;
 
-    myDriver->draw2DImage(wndCornerElementLowerRightTex, coord,
+    mInfra->mDriver->draw2DImage(wndCornerElementLowerRightTex, coord,
           irr::core::rect<irr::s32>(0,0, wndCornerElementLowerRightTex->getSize().Width, wndCornerElementLowerRightTex->getSize().Height), 0,
           irr::video::SColor(255,255,255,255), true);
 
@@ -959,7 +959,7 @@ void Menue::RenderWindow(irr::core::recti position) {
     coord.X = position.UpperLeftCorner.X;
     coord.Y = position.LowerRightCorner.Y - wndCornerElementLowerLeftTex->getSize().Height;
 
-    myDriver->draw2DImage(wndCornerElementLowerLeftTex, coord,
+    mInfra->mDriver->draw2DImage(wndCornerElementLowerLeftTex, coord,
           irr::core::rect<irr::s32>(0,0, wndCornerElementLowerLeftTex->getSize().Width, wndCornerElementLowerLeftTex->getSize().Height), 0,
           irr::video::SColor(255,255,255,255), true);
 
@@ -971,13 +971,13 @@ void Menue::RenderWindow(irr::core::recti position) {
     coord.Y = position.UpperLeftCorner.Y + 8;
     coord2.Y = coord.Y;
     coord2.X = position.LowerRightCorner.X - wndCornerElementUpperRightTex->getSize().Width - 1;
-    myDriver->draw2DLine(coord, coord2, UpperLeftLineColor);
+    mInfra->mDriver->draw2DLine(coord, coord2, UpperLeftLineColor);
     //left line
     coord.X = position.UpperLeftCorner.X + 9;
     coord.Y = position.UpperLeftCorner.Y + wndCornerElementUpperLeftTex->getSize().Height;
     coord2.X = coord.X;
     coord2.Y = position.LowerRightCorner.Y - wndCornerElementLowerLeftTex->getSize().Height;
-    myDriver->draw2DLine(coord, coord2, UpperLeftLineColor);
+    mInfra->mDriver->draw2DLine(coord, coord2, UpperLeftLineColor);
 
     //Draw lower and right line around window
     irr::video::SColor LowerRightLineColor(255, 79, 89, 83);
@@ -986,13 +986,13 @@ void Menue::RenderWindow(irr::core::recti position) {
     coord.Y = position.LowerRightCorner.Y - 10;
     coord2.Y = coord.Y;
     coord2.X = position.LowerRightCorner.X - wndCornerElementLowerRightTex->getSize().Width - 1;
-    myDriver->draw2DLine(coord, coord2, LowerRightLineColor);
+    mInfra->mDriver->draw2DLine(coord, coord2, LowerRightLineColor);
     //right line
     coord.X = position.LowerRightCorner.X - 10;
     coord.Y = position.UpperLeftCorner.Y + 9;
     coord2.X = coord.X;
     coord2.Y = position.LowerRightCorner.Y - 10;
-    myDriver->draw2DLine(coord, coord2, LowerRightLineColor);
+    mInfra->mDriver->draw2DLine(coord, coord2, LowerRightLineColor);
 }
 
 void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
@@ -1001,8 +1001,8 @@ void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
 
     //calculate correct position
     cursorPos.UpperLeftCorner.X = textEntryField->drawTextScrPosition.X +
-            this->myGameTextRenderer->GetWidthPixelsGameText(textEntryField->currTextInputFieldStr,
-                     this->myGameTextRenderer->HudWhiteTextBannerFont) + 1;
+            mInfra->mGameTexts->GetWidthPixelsGameText(textEntryField->currTextInputFieldStr,
+                     mInfra->mGameTexts->HudWhiteTextBannerFont) + 1;
 
     cursorPos.UpperLeftCorner.Y = textEntryField->drawTextScrPosition.Y + 1;
 
@@ -1011,14 +1011,14 @@ void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
     cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 14;
 
     //scale resolution, initially defined for 640x400, we have other selected game resolution
-    cursorPos.UpperLeftCorner.X = (cursorPos.UpperLeftCorner.X * this->screenResolution.Width) / 640;
-    cursorPos.LowerRightCorner.X = (cursorPos.LowerRightCorner.X * this->screenResolution.Width) / 640;
+    cursorPos.UpperLeftCorner.X = (cursorPos.UpperLeftCorner.X * mInfra->mScreenRes.Width) / 640;
+    cursorPos.LowerRightCorner.X = (cursorPos.LowerRightCorner.X * mInfra->mScreenRes.Width) / 640;
 
-    cursorPos.UpperLeftCorner.Y = (cursorPos.UpperLeftCorner.Y * this->screenResolution.Height) / 400;
-    cursorPos.LowerRightCorner.Y = (cursorPos.LowerRightCorner.Y * this->screenResolution.Height) / 400;
+    cursorPos.UpperLeftCorner.Y = (cursorPos.UpperLeftCorner.Y * mInfra->mScreenRes.Height) / 400;
+    cursorPos.LowerRightCorner.Y = (cursorPos.LowerRightCorner.Y * mInfra->mScreenRes.Height) / 400;
 
     //draw cursor with greenish color
-    this->myDriver->draw2DRectangle(irr::video::SColor(255, 97, 165, 145), cursorPos);
+    this->mInfra->mDriver->draw2DRectangle(irr::video::SColor(255, 97, 165, 145), cursorPos);
 }
 
 irr::u32 Menue::GetNrofCharactersForMenueItem(MenueSingleEntry* whichMenueEntry) {
@@ -1076,12 +1076,12 @@ void Menue::PrintMenueEntries() {
 
                 //correct current text position information with actually selected game resolution
                 //specified locations in parameter are always based on 640x400 resolution game uses in VGA mode
-                txtPos.X = (txtPos.X * this->screenResolution.Width) / 640;
-                txtPos.Y = (txtPos.Y * this->screenResolution.Height) / 400;
+                txtPos.X = (txtPos.X * mInfra->mScreenRes.Width) / 640;
+                txtPos.Y = (txtPos.Y * mInfra->mScreenRes.Height) / 400;
 
                 //if current item to print is currently selected menue entry item print it in white text color
                 if ((currSelMenueSingleEntry->entryNumber == (*it)->entryNumber) && ((*it)->isTextEntryField == false)) {
-                    myGameTextRenderer->DrawGameText((*it)->entryText, myGameTextRenderer->HudWhiteTextBannerFont, txtPos, printCharLeft);
+                    mInfra->mGameTexts->DrawGameText((*it)->entryText, mInfra->mGameTexts->HudWhiteTextBannerFont, txtPos, printCharLeft);
 
                     if (MENUE_ENABLETYPEWRITEREFFECT) {
                         //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -1098,7 +1098,7 @@ void Menue::PrintMenueEntries() {
                     }
                 } else {
                         //item is currently not selected, draw in "greenish" color, or is a text input field entry item (is also green in original game)
-                        myGameTextRenderer->DrawGameText((*it)->entryText, myGameTextRenderer->GameMenueUnselectedEntryFont, txtPos, printCharLeft);
+                        mInfra->mGameTexts->DrawGameText((*it)->entryText, mInfra->mGameTexts->GameMenueUnselectedEntryFont, txtPos, printCharLeft);
 
                         if (MENUE_ENABLETYPEWRITEREFFECT) {
                             //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -1135,24 +1135,24 @@ void Menue::PrintMenueEntriesRaceSelection() {
              printCharLeft = -1;
          }
 
-          myGameTextRenderer->DrawGameText(currSelRaceTrackName, myGameTextRenderer->HudWhiteTextBannerFont, this->RaceTrackNameTitle->drawTextScrPosition, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(currSelRaceTrackName, mInfra->mGameTexts->HudWhiteTextBannerFont, this->RaceTrackNameTitle->drawTextScrPosition, printCharLeft);
           printCharLeft -= strlen(currSelRaceTrackName);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(SelRaceTrackNrLapsLabel->text, SelRaceTrackNrLapsLabel->whichFont,
+          mInfra->mGameTexts->DrawGameText(SelRaceTrackNrLapsLabel->text, SelRaceTrackNrLapsLabel->whichFont,
                                            SelRaceTrackNrLapsLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(SelRaceTrackNrLapsLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(SelRaceTrackBestLapLabel->text, SelRaceTrackBestLapLabel->whichFont,
+          mInfra->mGameTexts->DrawGameText(SelRaceTrackBestLapLabel->text, SelRaceTrackBestLapLabel->whichFont,
                                            SelRaceTrackBestLapLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(SelRaceTrackBestLapLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(SelRaceTrackBestRaceLabel->text, SelRaceTrackBestRaceLabel->whichFont,
+          mInfra->mGameTexts->DrawGameText(SelRaceTrackBestRaceLabel->text, SelRaceTrackBestRaceLabel->whichFont,
                                            SelRaceTrackBestRaceLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(SelRaceTrackBestRaceLabel->text);
           if (printCharLeft < 0)
@@ -1171,19 +1171,19 @@ void Menue::PrintMenueEntriesShipSelection() {
                 printCharLeft = -1;
             }
 
-          myGameTextRenderer->DrawGameText(currSelShipName, myGameTextRenderer->HudWhiteTextBannerFont, this->ShipNameTitle->drawTextScrPosition, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(currSelShipName, mInfra->mGameTexts->HudWhiteTextBannerFont, this->ShipNameTitle->drawTextScrPosition, printCharLeft);
           printCharLeft -= strlen(currSelShipName);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           //print current name of selected ship color scheme
-          myGameTextRenderer->DrawGameText(currSelShipColorSchemeName, myGameTextRenderer->GameMenueWhiteTextSmallSVGA, currSelectedShipColorSchemeTextPos, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(currSelShipColorSchemeName, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA, currSelectedShipColorSchemeTextPos, printCharLeft);
           printCharLeft -= strlen(currSelShipColorSchemeName);
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           //render the current selected ship stats
-          myGameTextRenderer->DrawGameText(ShipStatSpeedLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA, ShipStatSpeedLabel->drawPositionTxt, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(ShipStatSpeedLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatSpeedLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(ShipStatSpeedLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
@@ -1194,7 +1194,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(ShipStatArmourLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA, ShipStatArmourLabel->drawPositionTxt, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(ShipStatArmourLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatArmourLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(ShipStatArmourLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
@@ -1205,7 +1205,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(ShipStatWeightLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA, ShipStatWeightLabel->drawPositionTxt, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(ShipStatWeightLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatWeightLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(ShipStatWeightLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
@@ -1216,7 +1216,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          myGameTextRenderer->DrawGameText(ShipStatFirePowerLabel->text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA, ShipStatFirePowerLabel->drawPositionTxt, printCharLeft);
+          mInfra->mGameTexts->DrawGameText(ShipStatFirePowerLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatFirePowerLabel->drawPositionTxt, printCharLeft);
           printCharLeft -= strlen(ShipStatFirePowerLabel->text);
           if (printCharLeft < 0)
               printCharLeft = 0;
@@ -1250,13 +1250,13 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
 
         //at the beginning we need to recalculate the position from original game menue 640x400 resolution
         //to our set game screen resolution
-        position.UpperLeftCorner.X = (position.UpperLeftCorner.X * screenResolution.Width) / 640;
-        position.UpperLeftCorner.Y = (position.UpperLeftCorner.Y * screenResolution.Height) / 400;
-        position.LowerRightCorner.X = (position.LowerRightCorner.X * screenResolution.Width) / 640;
-        position.LowerRightCorner.Y = (position.LowerRightCorner.Y * screenResolution.Height) / 400;
+        position.UpperLeftCorner.X = (position.UpperLeftCorner.X * mInfra->mScreenRes.Width) / 640;
+        position.UpperLeftCorner.Y = (position.UpperLeftCorner.Y * mInfra->mScreenRes.Height) / 400;
+        position.LowerRightCorner.X = (position.LowerRightCorner.X * mInfra->mScreenRes.Width) / 640;
+        position.LowerRightCorner.Y = (position.LowerRightCorner.Y * mInfra->mScreenRes.Height) / 400;
 
         //step 1: draw outline of whole element using lineColor
-        myDriver->draw2DRectangleOutline(position, lineColor);
+        mInfra->mDriver->draw2DRectangleOutline(position, lineColor);
 
         //step 2: draw vertical lines along overall element so that
         //we seperate the element into nrSeperations pieces, also with lineColor
@@ -1271,7 +1271,7 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
             startPnt.X = currXcoord;
             endPnt.X = currXcoord;
 
-            myDriver->draw2DLine(startPnt, endPnt, lineColor);
+            mInfra->mDriver->draw2DLine(startPnt, endPnt, lineColor);
             currXcoordFloat += pixelDist;
             currXcoord = (irr::u32)(currXcoordFloat);
         }
@@ -1297,10 +1297,10 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
 
             if (cntFilledBlocks < filledBlocks) {
                 //filled block
-                myDriver->draw2DRectangle(colorRect, fillPos);
+                mInfra->mDriver->draw2DRectangle(colorRect, fillPos);
             } else {
                 //unfilled block (only draw outline of rect)
-                myDriver->draw2DRectangleOutline(fillPos, colorRect);
+                mInfra->mDriver->draw2DRectangleOutline(fillPos, colorRect);
             }
 
             cntFilledBlocks++;
@@ -1339,7 +1339,7 @@ void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor co
         position.LowerRightCorner.Y = (position.LowerRightCorner.Y * screenResolution.Height) / 400;*/
 
         //step 1: draw outline of whole element using lineColor
-        myDriver->draw2DRectangleOutline(position, lineColor);
+        mInfra->mDriver->draw2DRectangleOutline(position, lineColor);
 
         //step 2: draw vertical lines along overall element so that
         //we seperate the element into nrSeperations pieces, also with lineColor
@@ -1354,7 +1354,7 @@ void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor co
             startPnt.X = currXcoord;
             endPnt.X = currXcoord;
 
-            myDriver->draw2DLine(startPnt, endPnt, lineColor);
+            mInfra->mDriver->draw2DLine(startPnt, endPnt, lineColor);
             currXcoordFloat += pixelDist;
             currXcoord = (irr::u32)(currXcoordFloat);
         }
@@ -1377,7 +1377,7 @@ void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor co
             fillPos.LowerRightCorner = endPnt;
 
             //here we want to fill all blocks anyway
-            myDriver->draw2DRectangle(colorRect, fillPos);
+            mInfra->mDriver->draw2DRectangle(colorRect, fillPos);
 
             currXcoordFloat += pixelDist;
             currXcoord = (irr::u32)(currXcoordFloat);
@@ -1457,7 +1457,8 @@ void Menue::AdvanceTime(irr::f32 frameDeltaTime) {
 //that it is better to implement it by itself
 void Menue::RenderRaceSelection() {
     //first draw background picture
-    myDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0), irr::core::recti(0, 0, screenResolution.Width, screenResolution.Height)
+    mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+                                 irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
                           , 0, irr::video::SColor(255,255,255,255), true);
 
     //Render the currently selected window depending on the current
@@ -1703,12 +1704,12 @@ void Menue::RenderIntro(irr::f32 frameDeltaTime) {
 
     //first draw a black rectangle over the whole screen to make sure that the parts of the
     //screen that are outside of the intro frames region are black as well
-    myDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, screenResolution.Width, screenResolution.Height));
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
 
     if (introPlaying) {
         //draw the current intro frame
-        myDriver->draw2DImage(this->introTextures->at(currIntroFrame), introFrameScrDrawPos,
+        mInfra->mDriver->draw2DImage(this->introTextures->at(currIntroFrame), introFrameScrDrawPos,
                           irr::core::recti(0, 0, introFrameScrSize.Width, introFrameScrSize.Height)
                             , 0, irr::video::SColor(255,255,255,255), true);
 
@@ -1771,18 +1772,19 @@ void Menue::RenderIntro(irr::f32 frameDeltaTime) {
 void Menue::RenderImageMenuePage() {
     //first draw a black rectangle over the whole screen to make sure that the parts of the
     //screen that are outside of the drawn image regions are black as well
-    myDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, screenResolution.Width, screenResolution.Height));
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
 
     if (this->currSelMenuePage == gameTitleMenuePage) {
-        myDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0, gameTitleSize.Width, gameTitleSize.Height)
+        mInfra->mDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0,
+                         gameTitleSize.Width, gameTitleSize.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
     } else if (this->currSelMenuePage == raceLoadingMenuePage) {
-        myDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
+        mInfra->mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
 
         //at 190, 240 write "LOADING LEVEL"
-        myGameTextRenderer->DrawGameText((char*)("LOADING LEVEL"), myGameTextRenderer->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
+        mInfra->mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mInfra->mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
     }
 }
 
@@ -1823,7 +1825,7 @@ void Menue::IntroProcessLoopingSounds(irr::f32 currSoundPlayingTime) {
 
 void Menue::ShowIntro() {
     //first we need to load all textures (each frame is a texture) for the game intro
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     char frameFileName[50];
     char fname[20];
@@ -1841,7 +1843,7 @@ void Menue::ShowIntro() {
         strcat(frameFileName, fname);
 
         //load this image (texture)
-        newTex = myDriver->getTexture(frameFileName);
+        newTex = mInfra->mDriver->getTexture(frameFileName);
         if (newTex == NULL) {
             //there was a texture loading error
             //just skip intro and go immediately to
@@ -1852,15 +1854,15 @@ void Menue::ShowIntro() {
         introTextures->push_back(newTex);
     }
 
-    myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     //get size of texture from first frame
     introFrameScrSize = introTextures->at(0)->getSize();
 
     //calculate position to draw intro frames so that the are centered on the screen
     //because maybe target resolution does not fit with image resolution
-    introFrameScrDrawPos.X = (screenResolution.Width - introFrameScrSize.Width) / 2;
-    introFrameScrDrawPos.Y = (screenResolution.Height - introFrameScrSize.Height) / 2;
+    introFrameScrDrawPos.X = (mInfra->mScreenRes.Width - introFrameScrSize.Width) / 2;
+    introFrameScrDrawPos.Y = (mInfra->mScreenRes.Height - introFrameScrSize.Height) / 2;
 
     currIntroFrame = 0;
     numIntroFrame = 548;
@@ -1929,7 +1931,7 @@ void Menue::CleanupIntro() {
    //free each of the textures we loaded before
    for (it = this->introTextures->begin(); it != this->introTextures->end(); ++it) {
         //remove underlying texture
-        myDriver->removeTexture((*it));
+        mInfra->mDriver->removeTexture((*it));
    }
 
    //free vector at the end
@@ -1951,23 +1953,23 @@ void Menue::HandleUserInactiveTimer(irr::f32 frameDeltaTime) {
         //create random number to decide between 0 = run demo, and
         //1 = show high score page
         int rNum;
-        rNum = mInfraBase->randRangeInt(0, 0);
+        rNum = mInfra->randRangeInt(0, 1);
 
-       /* if (rNum == 1) {
+        if (rNum == 0) {
             //we want to trigger a demo because player was inactive in the menue
             //for a longer time
             //set here currValue to 0, because this is not a checkbox/slider action
             ActStartDemo->currSetValue = 0;
             currActionToExecute = ActStartDemo;
-        } else {*/
-            if (rNum == 0) {
+        } else {
+            if (rNum == 1) {
                 //we want to show the highscore page because player was inactive in the menue
                 //for a longer time
                 //set here currValue to 0, because this is not a checkbox/slider action
                 ActShowHighScorePage->currSetValue = 0;
                 currActionToExecute = ActShowHighScorePage;
             }
-       // }
+        }
     }
 }
 
@@ -1989,20 +1991,21 @@ void Menue::Render(irr::f32 frameDeltaTime) {
      //default menue rendering source code
 
      //first draw background picture
-      myDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0), irr::core::recti(0, 0, screenResolution.Width, screenResolution.Height)
+      mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+                          irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
                           , 0, irr::video::SColor(255,255,255,255), true);
 
         //draw game logo
         int sizeVec = GameLogo.size();
 
         for (int i = 0; i < sizeVec ; i++) {
-            myDriver->draw2DImage(GameLogo[i]->texture, GameLogo[i]->drawScrPosition,
+            mInfra->mDriver->draw2DImage(GameLogo[i]->texture, GameLogo[i]->drawScrPosition,
               irr::core::rect<irr::s32>(0,0, GameLogo[i]->sizeTex.Width, GameLogo[i]->sizeTex.Height), 0,
               irr::video::SColor(255,255,255,255), true);
         }
 
         //add my additional logo text
-        this->myGameTextRenderer->DrawGameText((char*)"20XX", this->myGameTextRenderer->HudBigGreenText, irr::core::position2di(368,92));
+        mInfra->mGameTexts->DrawGameText((char*)"20XX", mInfra->mGameTexts->HudBigGreenText, irr::core::position2di(368,92));
 
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
@@ -2038,7 +2041,8 @@ void Menue::Render(irr::f32 frameDeltaTime) {
 //the highscore page (which contains just formated texts)
 void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
     //first draw background picture
-    myDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0), irr::core::recti(0, 0, screenResolution.Width, screenResolution.Height)
+    mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+                          irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
 
     if (currSelMenuePage == gameHighscoreMenuePage) {
@@ -2086,7 +2090,7 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
 
     if (lblVecPntr != NULL) {
         for (it = lblVecPntr->begin(); it != lblVecPntr->end(); ++it) {
-            this->myGameTextRenderer->DrawGameText(
+            mInfra->mGameTexts->DrawGameText(
                         (*it)->text,
                         (*it)->whichFont,
                         (*it)->drawPositionTxt, printCharLeft);
@@ -2476,159 +2480,159 @@ void Menue::HandleTextInputField(MenueSingleEntry* textInputEntry) {
   //ESC or RETURN = accept and return currently entered text, and return to menue page above
   //allow player to enter the following keys as text: 0-9, A-Z ; is automatically all upper case
   //the game also allows to enter the player certain other special characters, I will not implement this right now!
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_0)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_0)) {
      AddInputTextFieldChar(textInputEntry, '0');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1)) {
      AddInputTextFieldChar(textInputEntry, '1');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2)) {
      AddInputTextFieldChar(textInputEntry, '2');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3)) {
      AddInputTextFieldChar(textInputEntry, '3');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4)) {
      AddInputTextFieldChar(textInputEntry, '4');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_5)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_5)) {
      AddInputTextFieldChar(textInputEntry, '5');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6)) {
      AddInputTextFieldChar(textInputEntry, '6');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7)) {
      AddInputTextFieldChar(textInputEntry, '7');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8)) {
      AddInputTextFieldChar(textInputEntry, '8');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9)) {
      AddInputTextFieldChar(textInputEntry, '9');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_A)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_A)) {
      AddInputTextFieldChar(textInputEntry, 'A');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
      AddInputTextFieldChar(textInputEntry, 'B');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
      AddInputTextFieldChar(textInputEntry, 'C');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_D)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_D)) {
      AddInputTextFieldChar(textInputEntry, 'D');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_E)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_E)) {
      AddInputTextFieldChar(textInputEntry, 'E');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
      AddInputTextFieldChar(textInputEntry, 'F');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_G)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_G)) {
      AddInputTextFieldChar(textInputEntry, 'G');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
      AddInputTextFieldChar(textInputEntry, 'H');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_I)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_I)) {
      AddInputTextFieldChar(textInputEntry, 'I');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
      AddInputTextFieldChar(textInputEntry, 'J');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_K)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_K)) {
      AddInputTextFieldChar(textInputEntry, 'K');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_L)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_L)) {
      AddInputTextFieldChar(textInputEntry, 'L');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_M)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_M)) {
      AddInputTextFieldChar(textInputEntry, 'M');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_N)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_N)) {
      AddInputTextFieldChar(textInputEntry, 'N');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_O)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_O)) {
      AddInputTextFieldChar(textInputEntry, 'O');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
      AddInputTextFieldChar(textInputEntry, 'P');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Q)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Q)) {
      AddInputTextFieldChar(textInputEntry, 'Q');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
      AddInputTextFieldChar(textInputEntry, 'R');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_S)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_S)) {
      AddInputTextFieldChar(textInputEntry, 'S');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
      AddInputTextFieldChar(textInputEntry, 'T');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_U)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_U)) {
      AddInputTextFieldChar(textInputEntry, 'U');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_V)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_V)) {
      AddInputTextFieldChar(textInputEntry, 'V');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_W)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_W)) {
      AddInputTextFieldChar(textInputEntry, 'W');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
      AddInputTextFieldChar(textInputEntry, 'X');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Y)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Y)) {
      AddInputTextFieldChar(textInputEntry, 'Y');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z)) {
      AddInputTextFieldChar(textInputEntry, 'Z');
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_BACK)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_BACK)) {
      RemoveInputTextFieldChar(textInputEntry);
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
      AcceptInputTextFieldValue(textInputEntry);
   }
 
-  if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+  if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
      AcceptInputTextFieldValue(textInputEntry);
   }
 }
@@ -2658,7 +2662,7 @@ void Menue::UpdateRaceTrackSelectionTypeWriterEffect() {
 void Menue::HandleInputRaceSelection() {
     //only allow menue input in case window is fully open
     if (currMenueState == MENUE_STATE_SELACTIVE) {
-        if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2673,7 +2677,7 @@ void Menue::HandleInputRaceSelection() {
             RecalculateRaceTrackStatLabels();
         }
 
-        if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2688,7 +2692,7 @@ void Menue::HandleInputRaceSelection() {
             RecalculateRaceTrackStatLabels();
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //store last selected race track in assets class
@@ -2704,7 +2708,7 @@ void Menue::HandleInputRaceSelection() {
             ChangeToShipSelection();
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2719,7 +2723,7 @@ void Menue::HandleInputRaceSelection() {
             Set3DModelRaceTrackWheelPositionIdx(currSelectedRaceTrack, 2);
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2733,7 +2737,7 @@ void Menue::HandleInputRaceSelection() {
             Set3DModelRaceTrackWheelPositionIdx(currSelectedRaceTrack, 1);
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //interrupt and return back to default main menue
@@ -2745,7 +2749,7 @@ void Menue::HandleInputRaceSelection() {
 void Menue::HandleInputShipSelection() {
     //only allow menue input in case window is fully open
     if (currMenueState == MENUE_STATE_SELACTIVE) {
-        if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2764,7 +2768,7 @@ void Menue::HandleInputShipSelection() {
             UnhideShipModels();
         }
 
-        if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2783,14 +2787,14 @@ void Menue::HandleInputShipSelection() {
             UnhideShipModels();
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //player accepted race setup
             AcceptedRaceSetup();
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2805,7 +2809,7 @@ void Menue::HandleInputShipSelection() {
             Set3DModelShipWheelPositionIdx(currSelectedShip, 2);
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2819,7 +2823,7 @@ void Menue::HandleInputShipSelection() {
             Set3DModelShipWheelPositionIdx(currSelectedShip, 1);
         }
 
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //interrupt and return back to race track selection menue page
@@ -2851,7 +2855,7 @@ void Menue::HandleInput() {
         HandleInputShipSelection();
     } else if (this->currSelMenuePage == gameIntroMenuePage) {
         //game intro is currently player
-        if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
           mMenueUserInactiveTimer = 0.0f;
           //interrupt the intro
           //we just need to set the current frame number
@@ -2867,32 +2871,32 @@ void Menue::HandleInput() {
         if (!currSelMenueSingleEntry->isTextEntryField) {
             //be sure to use function IsKeyDownSingleEvent, to prevent
             //multiple input events during one keypress!
-            if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+            if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
                 mMenueUserInactiveTimer = 0.0f;
                 ItemUp();
             }
 
-            if(myEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+            if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
                 mMenueUserInactiveTimer = 0.0f;
                 ItemDown();
             }
 
-            if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
+            if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
                 mMenueUserInactiveTimer = 0.0f;
                 ItemReturn();
             }
 
-            if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+            if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
                 mMenueUserInactiveTimer = 0.0f;
                 ItemLeft();
             }
 
-            if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+            if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
                 mMenueUserInactiveTimer = 0.0f;
                 ItemRight();
             }
 
-            if (myEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+            if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
                 mMenueUserInactiveTimer = 0.0f;
 
                 //when we press ESC we want to go back to parent
@@ -2948,7 +2952,8 @@ void Menue::FinalPositionShipSelectionWheelReached(irr::u8 newPosition) {
     RecalculateShipStatLabels();
 
     //recalculate X coordinate of ship name to center name!
-    irr::u32 newCoord = (screenResolution.Width / 2) - (myGameTextRenderer->GetWidthPixelsGameText(currSelShipName, myGameTextRenderer->HudWhiteTextBannerFont) / 2);
+    irr::u32 newCoord = (mInfra->mScreenRes.Width / 2) -
+            (mInfra->mGameTexts->GetWidthPixelsGameText(currSelShipName, mInfra->mGameTexts->HudWhiteTextBannerFont) / 2);
     this->ShipNameTitle->drawTextScrPosition.X = newCoord;
 
     UpdateShipSelectionTypeWriterEffect();
@@ -2972,7 +2977,8 @@ void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
     }
 
     //recalculate X coordinate of race track name to center race track name!
-    irr::u32 newCoord = (screenResolution.Width / 2) - (myGameTextRenderer->GetWidthPixelsGameText(currSelRaceTrackName, myGameTextRenderer->HudWhiteTextBannerFont) / 2);
+    irr::u32 newCoord = (mInfra->mScreenRes.Width / 2) -
+            (mInfra->mGameTexts->GetWidthPixelsGameText(currSelRaceTrackName, mInfra->mGameTexts->HudWhiteTextBannerFont) / 2);
     this->RaceTrackNameTitle->drawTextScrPosition.X = newCoord;
 
     RecalculateRaceTrackStatLabels();
@@ -3017,7 +3023,8 @@ void Menue::SetShipColorScheme(irr::u8 newSelectedColorScheme) {
     }
 
     //recalculate X coordinate of ship color scheme name to center name!
-    irr::u32 newCoord = (screenResolution.Width / 2) - (myGameTextRenderer->GetWidthPixelsGameText(currSelShipColorSchemeName, myGameTextRenderer->GameMenueWhiteTextSmallSVGA) / 2);
+    irr::u32 newCoord = (mInfra->mScreenRes.Width / 2) -
+            (mInfra->mGameTexts->GetWidthPixelsGameText(currSelShipColorSchemeName, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA) / 2);
     currSelectedShipColorSchemeTextPos.X = newCoord;
     currSelectedShipColorSchemeTextPos.Y = 59;
 }
@@ -3114,7 +3121,6 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
         TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
         this->ModelTrackSceneNodeVec.at(i)->setPosition(TrackCoord);
 
-        //currAngleDeg -= 60.0f;
         currAngleDeg -= (360.0f / irr::f32((this->numRaceTracksAvailable)));
     }
 }
@@ -3174,7 +3180,6 @@ void Menue::Update3DModelShipWheelPosition() {
         ShipCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
         this->ModelCraftsSceneNodeVec[i]->at(currSelectedShipColorScheme)->setPosition(ShipCoord);
 
-        //currAngleDeg -= 60.0f;
         currAngleDeg -= (360.0f / irr::f32((this->numCraftsAvailable)));
     }
 }
@@ -3205,7 +3210,6 @@ void Menue::InitRaceTrackSceneNodes() {
 
 void Menue::InitVehicleModels() {
     //load all necessary vehicle models using irrlicht
-    //char fileName[40];
 
     //irr::scene::IMesh* newMesh;
     irr::scene::IMeshSceneNode* newSceneNode;
@@ -3261,21 +3265,21 @@ void Menue::InitStatLabels() {
 
     SelRaceTrackNrLapsLabel = new MenueTextLabel();
     SelRaceTrackNrLapsLabel->text = new char[70];
-    SelRaceTrackNrLapsLabel->whichFont = myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    SelRaceTrackNrLapsLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
     strcpy(SelRaceTrackNrLapsLabel->text, "");
     //all the other variables will be setup later
 
     SelRaceTrackBestLapLabel = new MenueTextLabel();
     SelRaceTrackBestLapLabel->text = new char[70];
-    SelRaceTrackBestLapLabel->whichFont = myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    SelRaceTrackBestLapLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
     strcpy(SelRaceTrackBestLapLabel->text, "");
     //all the other variables will be setup later
 
     SelRaceTrackBestRaceLabel = new MenueTextLabel();
     SelRaceTrackBestRaceLabel->text = new char[70];
-    SelRaceTrackBestRaceLabel->whichFont = myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    SelRaceTrackBestRaceLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
     strcpy(SelRaceTrackBestRaceLabel->text, "");
     //all the other variables will be setup later
@@ -3312,8 +3316,10 @@ void Menue::CleanUpStatLabels() {
 }
 
 void Menue::CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord) {
-    irr::u32 textWidth = myGameTextRenderer->GetWidthPixelsGameText(label.text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA);
-    irr::u32 textHeight = myGameTextRenderer->GetHeightPixelsGameText(label.text, myGameTextRenderer->GameMenueUnselectedTextSmallSVGA);
+    irr::u32 textWidth =
+            mInfra->mGameTexts->GetWidthPixelsGameText(label.text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA);
+    irr::u32 textHeight =
+            mInfra->mGameTexts->GetHeightPixelsGameText(label.text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA);
 
     //8 pixels with per stat block width,
     irr::u32 statBlockWidth = 8 * currStatVal;
@@ -3349,8 +3355,8 @@ void Menue::RecalculateShipStatLabels() {
 }
 
 void Menue::CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di centerCoord) {
-    irr::u32 textWidth = myGameTextRenderer->GetWidthPixelsGameText(label.text, label.whichFont);
-    irr::u32 textHeight = myGameTextRenderer->GetHeightPixelsGameText(label.text, label.whichFont);
+    irr::u32 textWidth = mInfra->mGameTexts->GetWidthPixelsGameText(label.text, label.whichFont);
+    irr::u32 textHeight = mInfra->mGameTexts->GetHeightPixelsGameText(label.text, label.whichFont);
 
     label.drawPositionTxt.X = centerCoord.X - (textWidth / 2);
     label.drawPositionTxt.Y = centerCoord.Y - (textHeight / 2);
@@ -3378,21 +3384,14 @@ void Menue::RecalculateRaceTrackStatLabels() {
 }
 
 //Constructor, initialization of main menue
-//Parameters:
-//  device = pointer to Irrlicht graphics device
-//  driver = pointer to Irrlicht Video driver
-Menue::Menue(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenRes, GameText* textRenderer,
-             MyEventReceiver* eventReceiver, irr::scene::ISceneManager *mainSceneManager, SoundEngine* soundEngine,
+Menue::Menue(InfrastructureBase* infra,
+             SoundEngine* soundEngine,
              MyMusicStream* gameMusicPlayerParam, Assets *assets) {
-    myDriver = driver;
-    myDevice = device;
-    myGameTextRenderer = textRenderer;
-    screenResolution = screenRes;
-    myEventReceiver = eventReceiver;
+
     mSoundEngine = soundEngine;
     mGameAssets = assets;
     mMusicPlayer = gameMusicPlayerParam;
-    mInfraBase = infraBase;
+    mInfra = infra;
 
     //how many race tracks and crafts are available
     //for selection from assets class
@@ -3403,7 +3402,7 @@ Menue::Menue(InfrastructureBase* infraBase, irr::IrrlichtDevice* device, irr::vi
     this->ModelCraftsSceneNodeVec.clear();
 
     //create a new sceneManager for race track/ship selection page based on the main one
-    smgrMenue = mainSceneManager->createNewSceneManager();
+    smgrMenue = mInfra->mSmgr->createNewSceneManager();
 
     absoluteTime = 0.0f;
 
@@ -3509,7 +3508,7 @@ void Menue::ShowHighscore() {
    newLabel->drawPositionTxt.X = 264;
    newLabel->drawPositionTxt.Y = 45;
    newLabel->text = strdup("HISCORES");
-   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
@@ -3534,7 +3533,7 @@ void Menue::ShowHighscore() {
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = strdup(pntrTable->at(cnt)->namePlayer);
        newLabel->visible = true; //we must free this text pointer!
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3545,9 +3544,9 @@ void Menue::ShowHighscore() {
        sprintf(highScoreValStr, "%u", pntrTable->at(cnt)->highscoreVal);
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
        newLabel->drawPositionTxt.X =
-               313 - this->myGameTextRenderer->GetWidthPixelsGameText(
+               313 - mInfra->mGameTexts->GetWidthPixelsGameText(
                    highScoreValStr,
                    newLabel->whichFont) / 2;
 
@@ -3568,9 +3567,9 @@ void Menue::ShowHighscore() {
                    pntrTable->at(cnt)->playerAssessementVal);
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
        newLabel->drawPositionTxt.X =
-               592 - this->myGameTextRenderer->GetWidthPixelsGameText(
+               592 - mInfra->mGameTexts->GetWidthPixelsGameText(
                    assessementStr,
                    newLabel->whichFont);
 
@@ -3655,7 +3654,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    newLabel->drawPositionTxt.X = 225;
    newLabel->drawPositionTxt.Y = 25;
    newLabel->text = strdup("STATISTICS");
-   newLabel->whichFont = this->myGameTextRenderer->HudWhiteTextBannerFont;
+   newLabel->whichFont = mInfra->mGameTexts->HudWhiteTextBannerFont;
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
@@ -3681,8 +3680,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         //for the player name
         newLabel = new MenueTextLabel();
-        newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
-        newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+        newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
+        newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                     finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont) / 2;
         if (cnt % 2 == 0) {
            //even entries draw in the upper name line
@@ -3703,7 +3702,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    // ****************** HIT ACCURACY ***********
 
    newLabel = new MenueTextLabel();
-   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 235;
    newLabel->drawPositionTxt.Y = 91;
 
@@ -3717,7 +3716,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    // ****************** KILLS ***********
 
    newLabel = new MenueTextLabel();
-   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 287;
    newLabel->drawPositionTxt.Y = 123;
 
@@ -3731,7 +3730,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    // ****************** DEATHS ***********
 
    newLabel = new MenueTextLabel();
-   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 278;
    newLabel->drawPositionTxt.Y = 155;
 
@@ -3745,7 +3744,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    // ****************** AVERAGE LAP ***********
 
    newLabel = new MenueTextLabel();
-   newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
    newLabel->drawPositionTxt.X = 241;
    newLabel->drawPositionTxt.Y = 187;
 
@@ -3759,7 +3758,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    // ****************** BEST LAP ***********
 
     newLabel = new MenueTextLabel();
-    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 263;
     newLabel->drawPositionTxt.Y = 219;
 
@@ -3772,7 +3771,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     // ****************** RACE TIME ***********
     newLabel = new MenueTextLabel();
-    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 255;
     newLabel->drawPositionTxt.Y = 251;
 
@@ -3785,7 +3784,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     // ****************** RATING ***********
     newLabel = new MenueTextLabel();
-    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 281;
     newLabel->drawPositionTxt.Y = 283;
 
@@ -3798,7 +3797,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     // ****************** POSITION ***********
     newLabel = new MenueTextLabel();
-    newLabel->whichFont = this->myGameTextRenderer->GameMenueUnselectedTextSmallSVGA;
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
     newLabel->drawPositionTxt.X = 269;
     newLabel->drawPositionTxt.Y = 315;
 
@@ -3819,7 +3818,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->hitAccuracy);
        strcat(newText, "%");
@@ -3828,10 +3827,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -3851,7 +3850,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->nrKills);
 
@@ -3859,10 +3858,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -3882,7 +3881,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->nrDeaths);
 
@@ -3890,10 +3889,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -3913,7 +3912,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->avgLapTime);
 
@@ -3921,10 +3920,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -3944,7 +3943,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->bestLapTime);
 
@@ -3952,10 +3951,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -3975,7 +3974,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->raceTime);
 
@@ -3983,10 +3982,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -4006,7 +4005,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->rating);
        strcat(newText, "/20");
@@ -4015,10 +4014,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -4038,7 +4037,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        char* newText = new char[20];
 
        newLabel = new MenueTextLabel();
-       newLabel->whichFont = this->myGameTextRenderer->GameMenueWhiteTextSmallSVGA;
+       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->racePosition);
 
@@ -4046,10 +4045,10 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        delete[] newText;
 
-       newLabel->drawPositionTxt.X = columnXcoord - this->myGameTextRenderer->GetWidthPixelsGameText(
+       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                  newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.Y = rowYCoord - this->myGameTextRenderer->GetHeightPixelsGameText(
+       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
        newLabel->text, newLabel->whichFont) / 2;
 
        newLabel->visible = true; //we must free this text pointer!
@@ -4065,8 +4064,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
                this->mGameAssets->GetNumberDriverAssessementStrings() - finalRaceStatistics->at(0)->rating);
 
    newLabel = new MenueTextLabel();
-   newLabel->whichFont = this->myGameTextRenderer->HudWhiteTextBannerFont;
-   newLabel->drawPositionTxt.X = 320 - this->myGameTextRenderer->GetWidthPixelsGameText(
+   newLabel->whichFont = mInfra->mGameTexts->HudWhiteTextBannerFont;
+   newLabel->drawPositionTxt.X = 320 - mInfra->mGameTexts->GetWidthPixelsGameText(
                playerAssessement, newLabel->whichFont) / 2;
 
    newLabel->drawPositionTxt.Y = 363;

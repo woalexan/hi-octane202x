@@ -10,15 +10,9 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <irrlicht/irrlicht.h>
-#include "utils/tprofile.h"
-#include "input/input.h"
-#include "resources/readgamedata/preparedata.h"
 #include "draw/menue.h"
 #include "race.h"
 #include "draw/hud.h"
-#include "utils/logger.h"
-#include "resources/assets.h"
 #include "infrabase.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
@@ -27,14 +21,6 @@
 #define DEF_GAMESTATE_MENUE 3
 #define DEF_GAMESTATE_RACE 4
 #define DEF_GAMESTATE_DEMORACE 5
-
-using namespace std;
-
-using namespace irr;
-using namespace irr::core;
-using namespace irr::video;
-using namespace irr::scene;
-using namespace irr::gui;
 
 class Menue; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
@@ -46,29 +32,21 @@ class InfrastructureBase; //Forward declaration
 
 class Game {
 private:
-    //Irrlicht stuff
-    IrrlichtDevice*                 device;
-    video::IVideoDriver*	        driver;
-    scene::ISceneManager*           smgr;
-    MyEventReceiver* receiver; //Irrlicht stuff
-    IGUIEnvironment* guienv;
-
     //Irrlicht related, for debugging of game
     IGUIStaticText* dbgTimeProfiler;
     IGUIStaticText* dbgText;
     IGUIStaticText* dbgText2;
+
+    Assets* mGameAssets;
+    bool InitGameAssets();
 
     //SFML related, Audio, Music
     MyMusicStream* gameMusicPlayer = NULL;
     SoundEngine* gameSoundEngine = NULL;
 
     //own game stuff
-    TimeProfiler* mTimeProfiler;
-    PrepareData* prepareData;
-    GameText* GameTexts;
     Menue* MainMenue;
-    Assets* GameAssets;
-    InfrastructureBase* InfraBase;
+    InfrastructureBase* mInfra;
 
     //stores the current gamestate
     irr::u8 mGameState;
@@ -88,9 +66,6 @@ private:
     //with latest selected choices
     bool keepConfigDataFileUpdated = false;
 
-    //Returns true for success, false for error occured
-    bool InitIrrlicht();
-    bool InitGameAssets();
     bool InitSFMLAudio();
 
     int lastFPS = -1;
@@ -119,8 +94,6 @@ private:
     void CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo);
 
 public:
-    dimension2d<u32> mGameScreenRes;
-    Logger* mLogger;
 
     bool enableLightning = false;
     bool enableShadows = false;
