@@ -24,6 +24,8 @@
 
 class Menue; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
+struct PointTableEntryStruct; //Forward declaration
+struct PilotInfoStruct; //Forward declaration
 struct MenueAction; //Forward declaration
 class Logger; //Forward declaration
 class SoundEngine; //Forward declaration
@@ -72,6 +74,12 @@ private:
     MenueAction* pendingAction = NULL;
 
     std::vector<RaceStatsEntryStruct*>* lastRaceStat;
+    std::vector<PointTableEntryStruct*>* lastRacePointTable;
+    std::vector<PointTableEntryStruct*>* lastOverallChampionshipPointTable;
+
+    void AdvanceChampionship();
+
+    void CleanUpPointTable(std::vector<PointTableEntryStruct*> &tablePntr);
 
     void GameLoop();
     void GameLoopMenue(irr::f32 frameDeltaTime);
@@ -91,6 +99,7 @@ private:
     irr::s32 mAdvanceFrameCnt = 0;
 
     std::vector<PilotInfoStruct*> mPilotsNextRace;
+
     void CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo);
 
 public:

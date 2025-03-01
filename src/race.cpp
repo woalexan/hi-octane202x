@@ -2236,6 +2236,9 @@ void Race::HandleBasicInput() {
     }
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+        //only for debugging!
+        this->mRaceWasFinished = true;
+
         this->exitRace = true;
     }
 

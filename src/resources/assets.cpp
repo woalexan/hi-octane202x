@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -18,41 +18,63 @@ Assets::Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, ir
 
     mCurrentConfigFileRead = false;
 
-    if (ReadGameConfigFile(&currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen)) {
-        mCurrentConfigFileRead = true;
-    }
+    //try to locate config.dat file
+    //location that was found is stored in member
+    //variable mAbsPathConfigFile
+    if (!FindGameConfigFile()) {
+        //not found
+        char dirName[40];
 
-    //set main player name
-    if (mCurrentConfigFileRead) {
-        DecodeMainPlayerName();
-        DecodeHighScoreTable();
-        DecodeCurrentGameLanguage();
-        DecodeLastSelectedRaceTrack();
-        DecodeLastSelectedCraft();
-        DecodeGameDifficultySetting();
-        DecodeCurrentCraftColorScheme();
-        DecodeCurrentChampionshipName();
-        DecodeAudioVolumes();
+        strcpy(dirName, "originalgame/HIOCTANE.CD");
+
+        if (IsDirectoryPresent(dirName) != 1) {
+            //originalgame/HIOCTANE.CD directory not present
+            //create this directory
+
+            CreateDirectory("originalgame/HIOCTANE.CD");
+        }
+
+        strcpy(dirName, "originalgame/HIOCTANE.CD/SAVE");
+
+        if (IsDirectoryPresent(dirName) != 1) {
+            //originalgame/HIOCTANE.CD/SAVE directory not present
+            //create this directory
+
+            CreateDirectory("originalgame/HIOCTANE.CD/SAVE");
+        }
+
+        //create a completely new config.dat file from scratch
+        //with default settings
+        //this routine also sets up member config variables
+        //directly inside with default values
+        CreateNewConfigFileContents(&currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
+
+        //save the new file
+        char filenameTestFile[80];
+
+        strcpy(filenameTestFile, "originalgame/HIOCTANE.CD/SAVE/CONFIG.DAT");
+
+        //save the new config.dat file
+        WriteGameConfigFile(filenameTestFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
     } else {
-        //set default player name
-        strcpy(currMainPlayerName, "PLAYER");
-        strcpy(currChampionshipName, "");
+        //config.dat file found
+        if (ReadGameConfigFile(mAbsPathConfigFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen)) {
+            mCurrentConfigFileRead = true;
+        }
 
-        //set default race track selection
-        currLevelSelected = 0;           //is first level, as in the original game
-        currMainPlayerCraftSelected = 0; //is KD1-SPEEDER, as in the original game
-        currSelectedCraftColorScheme = 0; //is MAD-MEDICINE, the default color scheme
-
-        //if config.dat is missing, game always reverts to most
-        //easy difficulty level
-        currGameDifficultyLevel = 0;
-
-        //available range in config.dat game config file
-        //is from 0 to 200 (max volume)
-        //game sets it slightly below max volume when
-        //config is not available
-        currVolumeMusic = 188;
-        currVolumeSound = 188;
+        if (mCurrentConfigFileRead) {
+            DecodeMainPlayerName(&currentConfigFileDataByteArray);
+            DecodeHighScoreTable();
+            DecodeCurrentGameLanguage();
+            DecodeLastSelectedRaceTrack(&currentConfigFileDataByteArray);
+            DecodeLastSelectedCraft(&currentConfigFileDataByteArray);
+            DecodeGameDifficultySetting(&currentConfigFileDataByteArray);
+            DecodeCurrentCraftColorScheme(&currentConfigFileDataByteArray);
+            char* pntr = &this->currChampionshipName[0];
+            DecodeCurrentChampionshipName(&currentConfigFileDataByteArray, &pntr);
+            DecodeAudioVolumes();
+            DecodeGraphicSettings(&currentConfigFileDataByteArray);
+        }
     }
 
     InitDriverAssessementStrings();
@@ -150,6 +172,11 @@ Assets::~Assets() {
     if (mCurrentConfigFileRead) {
         delete[] this->currentConfigFileDataByteArray;
     }
+
+    //free abs path member variables
+    //to config file
+    free(mAbsPathConfigFile);
+    mAbsPathConfigFile = NULL;
 }
 
 //Helper function which compares our internal config data
@@ -167,7 +194,7 @@ void Assets::UpdateGameConfigFileExitGame() {
 
     //reread current file contents in config.dat for
     //comparing with internal config data
-    if (!ReadGameConfigFile(&compDataArrStr, compDataLength)) {
+    if (!ReadGameConfigFile(this->mAbsPathConfigFile, &compDataArrStr, compDataLength)) {
         return;
     }
 
@@ -187,16 +214,13 @@ void Assets::UpdateGameConfigFileExitGame() {
 
     if (rewriteFile) {
         //write modified CONFIG.DAT file
-        WriteGameConfigFile();
+        WriteGameConfigFile(mAbsPathConfigFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
     }
 
     delete[] compDataArrStr;
 }
 
-void Assets::ReadNullTerminatedString(char* bytes, size_t start_position, char* outString, irr::u8 maxStrLen) {
-  if (!mCurrentConfigFileRead)
-        return;
-
+void Assets::ReadNullTerminatedString(char* bytes, size_t start_position, char** outString, irr::u8 maxStrLen) {
   irr::u8 currRemaining = maxStrLen;
   bool endFound = false;
   char currChar;
@@ -204,7 +228,7 @@ void Assets::ReadNullTerminatedString(char* bytes, size_t start_position, char* 
 
   char helpstr[2];
 
-  strcpy(outString, "");
+  strcpy(*outString, "");
 
   while (!endFound && currRemaining > 0) {
       currChar = bytes[currPos];
@@ -215,7 +239,7 @@ void Assets::ReadNullTerminatedString(char* bytes, size_t start_position, char* 
           helpstr[0] = currChar;
           helpstr[1] = 0;
 
-          strcat(outString, helpstr);
+          strcat(*outString, helpstr);
 
           currRemaining--;
           currPos++;
@@ -247,10 +271,7 @@ void Assets::WriteNullTerminatedString(char* bytes, size_t start_position, char*
 }
 
 //nrRaceTrack = level number starting with 1
-bool Assets::DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct) {
-    if (!mCurrentConfigFileRead)
-        return false;
-
+void Assets::DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct) {
     //config file offsets found for the current
     //racetrack stats (each racetrack seems to have 74 bytes of stat
     //data available)
@@ -274,45 +295,39 @@ bool Assets::DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStru
     //read best lap time
     targetInfoStruct->bestLapTime = (irr::u32)(ConvertByteArray_ToInt32(currentConfigFileDataByteArray, dataOffset));
     //player names in Hi-Octane are limited to max 8 characters
-    ReadNullTerminatedString(currentConfigFileDataByteArray, dataOffset + 4, targetInfoStruct->bestPlayer, 8);
+    char* pntr = &targetInfoStruct->bestPlayer[0];
+
+    ReadNullTerminatedString(currentConfigFileDataByteArray, dataOffset + 4, &pntr, 8);
 
     //read best highscore
     targetInfoStruct->bestHighScore = (irr::u32)(ConvertByteArray_ToInt32(currentConfigFileDataByteArray, dataOffset + 36));
     //player names in Hi-Octane are limited to max 8 characters
-    ReadNullTerminatedString(currentConfigFileDataByteArray, dataOffset + 40, targetInfoStruct->bestHighScorePlayer, 8);
+    pntr = &targetInfoStruct->bestHighScorePlayer[0];
+
+    ReadNullTerminatedString(currentConfigFileDataByteArray, dataOffset + 40, &pntr, 8);
 
     //get current number of set laps for this race track
     targetInfoStruct->currSelNrLaps = (irr::u8)(currentConfigFileDataByteArray[dataOffset + 72]);
-
-    return true;
 }
 
 //helper function which reads the current set main player (player1)
 //name from CONFIG.DAT file
-bool Assets::DecodeMainPlayerName() {
-    if (!mCurrentConfigFileRead)
-        return false;
-
+void Assets::DecodeMainPlayerName(char** bufPntr) {
     //current player 1 name is stored in CONFIG.DAT
     //at offset 0x094F
     //player names in Hi-Octane are limited to max 8 characters
-    ReadNullTerminatedString(currentConfigFileDataByteArray, 0x094F, this->currMainPlayerName, 8);
+    char* pntr = &this->currMainPlayerName[0];
 
-    return true;
+    ReadNullTerminatedString((*bufPntr), 0x094F, &pntr, 8);
 }
 
 //helper function which reads the current championship
 //name from CONFIG.DAT file
-bool Assets::DecodeCurrentChampionshipName() {
-    if (!mCurrentConfigFileRead)
-        return false;
-
+void Assets::DecodeCurrentChampionshipName(char** bufPntr, char** outStr) {
     //current championship name is stored in CONFIG.DAT
     //at offset 0x0
     //championship name in Hi-Octane is limited to max 12 characters
-    ReadNullTerminatedString(currentConfigFileDataByteArray, 0x0, this->currChampionshipName, 12);
-
-    return true;
+    ReadNullTerminatedString((*bufPntr), 0x0, outStr, 12);
 }
 
 int32_t Assets::ConvertByteArray_ToInt32(char* bytes, size_t start_position) {
@@ -323,6 +338,18 @@ int32_t Assets::ConvertByteArray_ToInt32(char* bytes, size_t start_position) {
                                     (bytes[start_position + 1] << 8) +
                                     (bytes[start_position]));
     return (result);
+}
+
+void Assets::ConvertInt32_ToByteArray(char* outBytes, size_t start_position, int32_t inputVal) {
+    uint8_t byteLSB = (uint8_t)(inputVal & 0xFF);
+    uint8_t byteLeftOfLSB = (uint8_t)((inputVal >> 8) & 0xFF);
+    uint8_t byteRightOfMSB = (uint8_t)((inputVal >> 16) & 0xFF);
+    uint8_t byteMSB = (uint8_t)((inputVal >> 24) & 0xFF);
+
+    outBytes[start_position] = byteLSB;
+    outBytes[start_position + 1] = byteLeftOfLSB;
+    outBytes[start_position + 2] = byteRightOfMSB;
+    outBytes[start_position + 3] = byteMSB;
 }
 
 //allows to set a new number of default laps for a racetrack
@@ -347,7 +374,7 @@ void Assets::SetNewRaceTrackDefaultNrLaps(irr::u32 nrRaceTrack, irr::u8 newNumbe
         //data layout for each race track stat in config.dat seems to be
         //[4 Bytes best lap value][9 bytes for player name best lap, 9th byte = string termination char][23 bytes of
         //unknown data][4 Bytes best race value][9 bytes for player name best race, 9th byte = string termination char]
-        //[23 bytes of unknown data][1 Byte for current number laps set][1 Byte of unknown data]
+        //[23 bytes of unknown data][1 Byte for current number laps set][1 Byte of unknown data, must have 0x0F value]
 
         //calculate correct offset in file
         //for specified race track
@@ -421,34 +448,48 @@ void Assets::CleanUpDriverAssessementStrings() {
   }
 }
 
+//returns true if a config.dat file was
+//located, the absolute path to this file is stored
+//in member variable mAbsPathConfigFile
+bool Assets::FindGameConfigFile() {
+    //is there already an existing subfolder "HIOCTANE.CD"?
+    char dirName[40];
+    char fileName[60];
+
+    mAbsPathConfigFile = NULL;
+
+    strcpy(dirName, "originalgame/HIOCTANE.CD/SAVE");
+    strcpy(fileName, "originalgame/HIOCTANE.CD/SAVE/CONFIG.DAT");
+
+    if (IsDirectoryPresent(dirName) != 1) {
+        //originalgame/HIOCTANE.CD/SAVE directory not present
+        return false;
+    }
+
+    //now check for existing file CONFIG.DAT
+    if (FileExists(fileName) != 1) {
+        //config.dat file does not exist
+        return false;
+    }
+
+    //create a copy of this string and store
+    //it in member variable
+    //we need to free this variable later!
+    mAbsPathConfigFile = strdup(fileName);
+
+    return true;
+}
+
 //this function reads an existing original game
 //config file
 //returns true if a config file was read
 //false otherwise
-bool Assets::ReadGameConfigFile(char** targetBuf, size_t &outBufSize) {
-  //is there already an existing subfolder "HIOCTANE.CD"?
-  char dirName[40];
-  char fileName[60];
-
-  strcpy(dirName, "originalgame/HIOCTANE.CD/SAVE");
-  strcpy(fileName, "originalgame/HIOCTANE.CD/SAVE/CONFIG.DAT");
-
-  if (IsDirectoryPresent(dirName) != 1) {
-      //originalgame/HIOCTANE.CD/SAVE directory not present
-      return false;
-  }
-
-  //now check for existing file CONFIG.DAT
-  if (FileExists(fileName) != 1) {
-      //config.dat file does not exist
-      return false;
-  }
-
-  //original game config file is there
-  //read it
+//is also used for reading championship game save files
+bool Assets::ReadGameConfigFile(char* filename, char** targetBuf, size_t &outBufSize) {
+  //read specified file
   FILE* iFile;
 
-  iFile = fopen(fileName, "rb");
+  iFile = fopen(filename, "rb");
   fseek(iFile, 0L, SEEK_END);
   size_t size = ftell(iFile);
   fseek(iFile, 0L, SEEK_SET);
@@ -477,19 +518,22 @@ bool Assets::ReadGameConfigFile(char** targetBuf, size_t &outBufSize) {
   return true;
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetNewMainPlayerName(char* newName) {
-    if (strcmp(newName, this->currMainPlayerName) != 0) {
-        strcpy(this->currMainPlayerName, newName);
+    SetNewMainPlayerName(newName, &currentConfigFileDataByteArray);
+}
 
-        //write new name also in the config file
-        //data array
-        //main player name is stored at offset 0x094F in CONFIG.DAT
-        //name is limited to 8 characters only!
-        WriteNullTerminatedString(currentConfigFileDataByteArray, 0x094F, currMainPlayerName, 8);
+void Assets::SetNewMainPlayerName(char* newName, char** bufPntr) {
+    strcpy(this->currMainPlayerName, newName);
 
-        //make sure at byte 9 after this offset with store a 0 character (string termination)
-        currentConfigFileDataByteArray[0x094F + 9] = 0;
-    }
+    //write new name also in the config file
+    //data array
+    //main player name is stored at offset 0x094F in CONFIG.DAT
+    //name is limited to 8 characters only!
+    WriteNullTerminatedString(*bufPntr, 0x094F, currMainPlayerName, 8);
+
+    //make sure at byte 9 after this offset with store a 0 character (string termination)
+    (*bufPntr)[0x094F + 9] = 0;
 }
 
 char* Assets::GetNewMainPlayerName() {
@@ -550,6 +594,9 @@ irr::u8 Assets::RotateColorScheme(irr::u8 currentColorScheme) {
 
 std::vector<PilotInfoStruct*> Assets::GetPilotInfoNextRace(bool addHumanPlayer, bool addComputerPlayers) {
     std::vector<PilotInfoStruct*> pilotInfo;
+
+    pilotInfo.clear();
+
     irr::u8 currPilotNumber = 1;
     irr::u8 currentCpPlayerColorScheme;
 
@@ -602,19 +649,22 @@ std::vector<PilotInfoStruct*> Assets::GetPilotInfoNextRace(bool addHumanPlayer, 
     return pilotInfo;
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetCurrentChampionshipName(char* newName) {
-    if (strcmp(newName, this->currChampionshipName) != 0) {
-        strcpy(this->currChampionshipName, newName);
+    SetCurrentChampionshipName(newName, &currentConfigFileDataByteArray);
+}
 
-        //write new name also in the config file
-        //data array
-        //current championship name is stored at offset 0x0 in CONFIG.DAT
-        //name is limited to 12 characters only!
-        WriteNullTerminatedString(currentConfigFileDataByteArray, 0x0, currChampionshipName, 12);
+void Assets::SetCurrentChampionshipName(char* newName, char** bufPntr) {
+    strcpy(this->currChampionshipName, newName);
 
-        //make sure at byte 13 after this offset with store a 0 character (string termination)
-        currentConfigFileDataByteArray[0x0 + 13] = 0;
-    }
+    //write new name also in the config file
+    //data array
+    //current championship name is stored at offset 0x0 in CONFIG.DAT
+    //name is limited to 12 characters only!
+    WriteNullTerminatedString(*bufPntr, 0x0, currChampionshipName, 12);
+
+    //make sure at byte 13 after this offset with store a 0 character (string termination)
+    (*bufPntr)[0x0 + 13] = 0;
 }
 
 char* Assets::GetCurrentChampionshipName() {
@@ -636,31 +686,19 @@ std::vector<HighScoreEntryStruct*>* Assets::GetHighScoreTable() {
 //config file that was read before
 //returns true in case of success
 //false otherwiese
-bool Assets::WriteGameConfigFile() {
-  //if we did not read config file before
-  //we must not write it!
-  if (!this->mCurrentConfigFileRead) {
-     return false;
-  }
-
-  char fileName[60];
-
-  strcpy(fileName, "originalgame/HIOCTANE.CD/SAVE/CONFIG.DAT");
-
-  //original game config file is there
-  //read it
+bool Assets::WriteGameConfigFile(char* filename, char** sourceBuf, size_t inBufSize) {
   FILE* oFile;
 
-  oFile = fopen(fileName, "wb");
+  oFile = fopen(filename, "wb");
 
   size_t counter = 0;
 
   if (oFile != NULL)
   {
       do {
-          fputc(currentConfigFileDataByteArray[counter], oFile);
+          fputc((*sourceBuf)[counter], oFile);
           counter++;
-      } while (counter < currentConfigFileDataByteArrayLen);
+      } while (counter < inBufSize);
       fclose(oFile);
 
       return true;
@@ -669,12 +707,7 @@ bool Assets::WriteGameConfigFile() {
   return false;
 }
 
-bool Assets::DecodeHighScoreTable() {
-  if (!mCurrentConfigFileRead) {
-      highScoreTableVec = NULL;
-      return false;
-  }
-
+void Assets::DecodeHighScoreTable() {
   highScoreTableVec = new std::vector<HighScoreEntryStruct*>;
   highScoreTableVec->clear();
 
@@ -720,44 +753,49 @@ bool Assets::DecodeHighScoreTable() {
       newEntry->playerAssessementVal = (irr::u8)(currentConfigFileDataByteArray[dataOffset + 4]);
 
       //player names in Hi-Octane are limited to max 8 characters
-      ReadNullTerminatedString(currentConfigFileDataByteArray, dataOffset + 5, newEntry->namePlayer, 8);
+      char* pntr = &newEntry->namePlayer[0];
+      ReadNullTerminatedString(currentConfigFileDataByteArray, dataOffset + 5, &pntr, 8);
 
       this->highScoreTableVec->push_back(newEntry);
   }
-
-  return true;
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetCurrentGameLanguage(irr::u8 newLanguage) {
-    if (newLanguage != this->currSelectedGameLanguage) {
-        this->currSelectedGameLanguage = newLanguage;
+    SetCurrentGameLanguage(newLanguage, &currentConfigFileDataByteArray);
+}
 
-        //write new selected game language also into
-        //data array
-        //selected language is stored at offset 0x2C7A in CONFIG.DAT
-        //for LANGUAGE_ENGLISH 0x0
-        //for LANGUAGE_GERMAN 0x1
-        //for LANGUAGE_FRENCH 0x2
-        //for LANGUAGE_SPANISH 0x3
-        //for LANGUAGE_ITALIAN 0x4
-        currentConfigFileDataByteArray[0x2C7A] = char(newLanguage);
-    }
+void Assets::SetCurrentGameLanguage(irr::u8 newLanguage, char** bufPntr) {
+     this->currSelectedGameLanguage = newLanguage;
+
+     //write new selected game language also into
+     //data array
+     //selected language is stored at offset 0x2C7A in CONFIG.DAT
+     //for LANGUAGE_ENGLISH 0x0
+     //for LANGUAGE_GERMAN 0x1
+     //for LANGUAGE_FRENCH 0x2
+     //for LANGUAGE_SPANISH 0x3
+     //for LANGUAGE_ITALIAN 0x4
+     (*bufPntr)[0x2C7A] = char(newLanguage);
 }
 
 irr::u8 Assets::GetCurrentGameLanguage() {
     return this->currSelectedGameLanguage;
 }
 
-//levelNumber starts with index 0 for level 1!
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetNewLastSelectedRaceTrack(int newLevelNumber) {
-    if (newLevelNumber != this->currLevelSelected) {
-        this->currLevelSelected = newLevelNumber;
+    SetNewLastSelectedRaceTrack(newLevelNumber, &currentConfigFileDataByteArray);
+}
 
-        //last selected Race track is stored at offset
-        //0x2C76 in CONFIG.DAT
-        //value 0 means level 1, value 1 means level 2 in the binary file and so on...
-        currentConfigFileDataByteArray[0x2C76] = char(newLevelNumber);
-    }
+//levelNumber starts with index 0 for level 1!
+void Assets::SetNewLastSelectedRaceTrack(int newLevelNumber, char** bufPntr) {
+     this->currLevelSelected = newLevelNumber;
+
+     //last selected Race track is stored at offset
+     //0x2C76 in CONFIG.DAT
+     //value 0 means level 1, value 1 means level 2 in the binary file and so on...
+     (*bufPntr)[0x2C76] = char(newLevelNumber);
 }
 
 //levelNumber starts with index 0 for level 1!
@@ -769,11 +807,7 @@ irr::u8 Assets::GetMainPlayerSelectedCraft() {
    return this->currMainPlayerCraftSelected;
 }
 
-bool Assets::DecodeCurrentGameLanguage() {
-    if (!mCurrentConfigFileRead) {
-        return false;
-    }
-
+void Assets::DecodeCurrentGameLanguage() {
     //read new selected game language from
     //data array
     //selected language is stored at offset 0x2C7A in CONFIG.DAT
@@ -783,28 +817,16 @@ bool Assets::DecodeCurrentGameLanguage() {
     //for LANGUAGE_SPANISH 0x3
     //for LANGUAGE_ITALIAN 0x4
     this->currSelectedGameLanguage = (irr::u8)(currentConfigFileDataByteArray[0x2C7A]);
-
-    return true;
 }
 
-bool Assets::DecodeLastSelectedRaceTrack() {
-    if (!mCurrentConfigFileRead) {
-        return false;
-    }
-
+void Assets::DecodeLastSelectedRaceTrack(char** bufPntr) {
     //last selected Race track is stored at offset
     //0x2C76 in CONFIG.DAT
     //value 0 means level 1, value 1 means level 2 in the binary file and so on...
-    this->currLevelSelected = (irr::u8)(currentConfigFileDataByteArray[0x2C76]);
-
-    return true;
+    this->currLevelSelected = (irr::u8)((*bufPntr)[0x2C76]);
 }
 
-bool Assets::DecodeLastSelectedCraft() {
-    if (!mCurrentConfigFileRead) {
-        return false;
-    }
-
+void Assets::DecodeLastSelectedCraft(char** bufPntr) {
     //last selected craft is stored at offset
     //0x94C in CONFIG.DAT
     //value 0 means KD1 Speeder (default selection at first start)
@@ -813,16 +835,10 @@ bool Assets::DecodeLastSelectedCraft() {
     //value 3 means Vampyr
     //value 4 means Outrider
     //value 5 means Flexiwing
-    this->currMainPlayerCraftSelected = (irr::u8)(currentConfigFileDataByteArray[0x94C]);
-
-    return true;
+    this->currMainPlayerCraftSelected = (irr::u8)((*bufPntr)[0x94C]);
 }
 
-bool Assets::DecodeAudioVolumes() {
-    if (!mCurrentConfigFileRead) {
-        return false;
-    }
-
+void Assets::DecodeAudioVolumes() {
     //the current set music volume is stored at offset
     //0x97D in CONFIG.DAT
     //value 0 means volume off
@@ -836,8 +852,6 @@ bool Assets::DecodeAudioVolumes() {
     //1 - 199 all values inbetween monoton rising volume setting
     //value 200 means max volume
     this->currVolumeSound = (irr::u8)(currentConfigFileDataByteArray[0x981]);
-
-    return true;
 }
 
 irr::u8 Assets::ConvertVolumeProjectToHioctane(irr::f32 newVolumeProject) {
@@ -877,23 +891,26 @@ irr::f32 Assets::ConvertVolumeHioctaneToProject(irr::u8 volumeHioctane) {
     return convVolume;
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetSoundVolume(irr::f32 newSoundVolume) {
+    SetSoundVolume(newSoundVolume, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetSoundVolume(irr::f32 newSoundVolume, char** bufPntr) {
     //inside this project volume via SFML is handled
     //differently; as a float from 0 (off) up to 100 percent
     //of max volume
     //therefore convert below
     irr::u8 truncVolume = ConvertVolumeProjectToHioctane(newSoundVolume);
 
-    if (truncVolume != this->currVolumeSound) {
-        this->currVolumeSound = truncVolume;
+    this->currVolumeSound = truncVolume;
 
-        //the current set sound volume is stored at offset
-        //0x981 in CONFIG.DAT
-        //value 0 means volume off
-        //1 - 199 all values inbetween monoton rising volume setting
-        //value 200 means max volume
-        currentConfigFileDataByteArray[0x981] = char(truncVolume);
-    }
+    //the current set sound volume is stored at offset
+    //0x981 in CONFIG.DAT
+    //value 0 means volume off
+    //1 - 199 all values inbetween monoton rising volume setting
+    //value 200 means max volume
+    (*bufPntr)[0x981] = char(truncVolume);
 }
 
 irr::f32 Assets::GetSoundVolume() {
@@ -904,47 +921,35 @@ irr::f32 Assets::GetMusicVolume() {
     return ConvertVolumeHioctaneToProject(this->currVolumeMusic);
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetMusicVolume(irr::f32 newMusicVolume) {
+    SetMusicVolume(newMusicVolume, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetMusicVolume(irr::f32 newMusicVolume, char** bufPntr) {
     //inside this project volume via SFML is handled
     //differently; as a float from 0 (off) up to 100 percent
     //of max volume
     //therefore convert below
     irr::u8 truncVolume = ConvertVolumeProjectToHioctane(newMusicVolume);
 
-    if (truncVolume != this->currVolumeMusic) {
-        this->currVolumeMusic = truncVolume;
+    this->currVolumeMusic = truncVolume;
 
-        //the current set music volume is stored at offset
-        //0x97D in CONFIG.DAT
-        //value 0 means volume off
-        //1 - 199 all values inbetween monoton rising volume setting
-        //value 200 means max volume
-        currentConfigFileDataByteArray[0x97D] = char(truncVolume);
-    }
+    //the current set music volume is stored at offset
+    //0x97D in CONFIG.DAT
+    //value 0 means volume off
+    //1 - 199 all values inbetween monoton rising volume setting
+    //value 200 means max volume
+    (*bufPntr)[0x97D] = char(truncVolume);
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetGameDifficulty(irr::u8 newDifficulty) {
-    if (newDifficulty != this->currGameDifficultyLevel) {
-        this->currGameDifficultyLevel = newDifficulty;
-
-        //current game set difficulty level is stored at
-        //0x977 in CONFIG.DAT
-        //value 0 means easy
-        //value 1 slightly higher difficulty
-        //value 2 again slightly higher difficulty
-        //value 3 means highest difficulty
-        currentConfigFileDataByteArray[0x977] = char(newDifficulty);
-    }
+    SetGameDifficulty(newDifficulty, &currentConfigFileDataByteArray);
 }
 
-irr::u8 Assets::GetCurrentGameDifficulty() {
-    return this->currGameDifficultyLevel;
-}
-
-bool Assets::DecodeGameDifficultySetting() {
-    if (!mCurrentConfigFileRead) {
-        return false;
-    }
+void Assets::SetGameDifficulty(irr::u8 newDifficulty, char** bufPntr) {
+    this->currGameDifficultyLevel = newDifficulty;
 
     //current game set difficulty level is stored at
     //0x977 in CONFIG.DAT
@@ -952,25 +957,193 @@ bool Assets::DecodeGameDifficultySetting() {
     //value 1 slightly higher difficulty
     //value 2 again slightly higher difficulty
     //value 3 means highest difficulty
-    this->currGameDifficultyLevel = (irr::u8)(currentConfigFileDataByteArray[0x977]);
-
-    return true;
+    (*bufPntr)[0x977] = char(newDifficulty);
 }
 
-void Assets::SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr) {
-    if (newSelectedCraftNr != this->currMainPlayerCraftSelected) {
-        this->currMainPlayerCraftSelected = newSelectedCraftNr;
+irr::u8 Assets::GetCurrentGameDifficulty() {
+    return this->currGameDifficultyLevel;
+}
 
-        //last selected craft is stored at offset
-        //0x94C in CONFIG.DAT
-        //value 0 means KD1 Speeder (default selection at first start)
-        //value 1 means Berserker
-        //value 2 means Jugga
-        //value 3 means Vampyr
-        //value 4 means Outrider
-        //value 5 means Flexiwing
-        currentConfigFileDataByteArray[0x94C] = char(newSelectedCraftNr);
+irr::u8 Assets::GetCurrentTextureMappingQuality() {
+    return this->mTextureMappingQuality;
+}
+
+bool Assets::GetSkyEnabled() {
+    return this->mSkyEnabled;
+}
+
+bool Assets::GetShadingEnabled() {
+    return this->mShadingEnabled;
+}
+
+void Assets::DecodeGameDifficultySetting(char** bufPntr) {
+    //current game set difficulty level is stored at
+    //0x977 in CONFIG.DAT
+    //value 0 means easy
+    //value 1 slightly higher difficulty
+    //value 2 again slightly higher difficulty
+    //value 3 means highest difficulty
+    this->currGameDifficultyLevel = (irr::u8)((*bufPntr)[0x977]);
+}
+
+void Assets::DecodeGraphicSettings(char** bufPntr) {
+    /* Offsets in CONFIG.DAT
+    Offset 0x2996  Shading Off = 0, Shading On = 1 (Default On)
+    Offset 0x299A  Sky Off = 0, Sky On = 1         (Default On)
+
+    TextureMapping lowest setting:
+      0x299E = 0,  0x29A2 = 0, 0x29A6 = 0
+
+    TextureMapping 2nd lowest setting:
+      0x299E = 0,  0x29A2 = 0, 0x29A6 = 1
+
+    TextureMapping 3nd lowest setting:
+      0x299E = 1,  0x29A2 = 1, 0x29A6 = 1
+
+    TextureMapping 4th lowest setting:
+      0x299E = 2,  0x29A2 = 2, 0x29A6 = 1
+
+    TextureMapping 5th lowest setting:             (Default value)
+      0x299E = 3,  0x29A2 = 3, 0x29A6 = 1
+
+    TextureMapping highest setting:
+      0x299E = 3,  0x29A2 = 4, 0x29A6 = 1 */
+
+    irr::u8 currVal = (irr::u8)((*bufPntr)[0x2996]);
+    if (currVal == 0) mShadingEnabled = false;
+        else mShadingEnabled = true;
+
+    currVal = (irr::u8)((*bufPntr)[0x299A]);
+        if (currVal == 0) mSkyEnabled = false;
+            else mSkyEnabled = true;
+
+
+    currVal = (irr::u8)((*bufPntr)[0x299E]);
+    irr::u8 currVal2 = (irr::u8)((*bufPntr)[0x29A2]);
+    irr::u8 currVal3 = (irr::u8)((*bufPntr)[0x29A6]);
+
+    if ((currVal == 0) && (currVal2 == 0) && (currVal3 == 0)) {
+        mTextureMappingQuality = 0;
+        return;
     }
+
+    if ((currVal == 0) && (currVal2 == 0) && (currVal3 == 1)) {
+        mTextureMappingQuality = 1;
+        return;
+    }
+
+    if ((currVal == 1) && (currVal2 == 1) && (currVal3 == 1)) {
+        mTextureMappingQuality = 2;
+        return;
+    }
+
+    if ((currVal == 2) && (currVal2 == 2) && (currVal3 == 1)) {
+        mTextureMappingQuality = 3;
+        return;
+    }
+
+    if ((currVal == 2) && (currVal2 == 3) && (currVal3 == 1)) {
+        mTextureMappingQuality = 4;
+        return;
+    }
+
+    if ((currVal == 3) && (currVal2 == 4) && (currVal3 == 1)) {
+        mTextureMappingQuality = 5;
+        return;
+    }
+
+    //default value is second highest setting
+     mTextureMappingQuality = 4;
+}
+
+void Assets::SetSkyEnabled(bool newSkyEnabled, char** bufPntr) {
+    mSkyEnabled = newSkyEnabled;
+
+    if (mSkyEnabled) {
+        (*bufPntr)[0x299A] = 0x1;
+    } else {
+        (*bufPntr)[0x299A] = 0x0;
+    }
+}
+
+void Assets::SetShadingEnabled(bool newShadingEnabled, char** bufPntr) {
+    mShadingEnabled = newShadingEnabled;
+
+    if (mShadingEnabled) {
+        (*bufPntr)[0x2996] = 0x1;
+    } else {
+        (*bufPntr)[0x2996] = 0x0;
+    }
+}
+
+void Assets::SetTextureMappingQuality(irr::u8 newTextureMappingQuality, char** bufPntr) {
+    //only continue if newTextureMappingQuality value is valid
+    //valid range is from 0 up to max 5
+    if (newTextureMappingQuality > 5)
+        return;
+
+    mTextureMappingQuality = newTextureMappingQuality;
+
+    switch (mTextureMappingQuality) {
+        case 0: {
+             (*bufPntr)[0x299E] = 0x0;
+             (*bufPntr)[0x29A2] = 0x0;
+             (*bufPntr)[0x29A6] = 0x0;
+             break;
+        }
+        case 1: {
+             (*bufPntr)[0x299E] = 0x0;
+             (*bufPntr)[0x29A2] = 0x0;
+             (*bufPntr)[0x29A6] = 0x1;
+             break;
+        }
+        case 2: {
+             (*bufPntr)[0x299E] = 0x1;
+             (*bufPntr)[0x29A2] = 0x1;
+             (*bufPntr)[0x29A6] = 0x1;
+             break;
+        }
+        case 3: {
+             (*bufPntr)[0x299E] = 0x2;
+             (*bufPntr)[0x29A2] = 0x2;
+             (*bufPntr)[0x29A6] = 0x1;
+             break;
+        }
+        case 4: {
+             (*bufPntr)[0x299E] = 0x2;
+             (*bufPntr)[0x29A2] = 0x3;
+             (*bufPntr)[0x29A6] = 0x1;
+             break;
+        }
+        case 5: {
+             (*bufPntr)[0x299E] = 0x3;
+             (*bufPntr)[0x29A2] = 0x4;
+             (*bufPntr)[0x29A6] = 0x1;
+             break;
+        }
+        default: {
+            break;
+        }
+     }
+}
+
+//overloaded function to be called from outside, always works with config.dat
+void Assets::SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr) {
+    SetNewMainPlayerSelectedCraft(newSelectedCraftNr, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr, char** bufPntr) {
+    //last selected craft is stored at offset
+    //0x94C in CONFIG.DAT
+    //value 0 means KD1 Speeder (default selection at first start)
+    //value 1 means Berserker
+    //value 2 means Jugga
+    //value 3 means Vampyr
+    //value 4 means Outrider
+    //value 5 means Flexiwing
+    this->currMainPlayerCraftSelected = newSelectedCraftNr;
+
+    (*bufPntr)[0x94C] = char(newSelectedCraftNr);
 }
 
 irr::u8 Assets::GetColorSchemeIndexNumberFromColorScheme(irr::u8 configFileValue) {
@@ -1001,7 +1174,12 @@ irr::u8 Assets::GetCurrentCraftColorScheme() {
     return result;
 }
 
+//overloaded function to be called from outside, always works with config.dat
 void Assets::SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme) {
+    SetCurrentCraftColorScheme(newCraftColorScheme, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme, char** bufPntr) {
     irr::u8 result;
 
     //first we need to translate from color scheme numbering with use in our project
@@ -1014,48 +1192,19 @@ void Assets::SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme) {
         result = this->mCraftColorSchemeConfigDatFileValue.at(newCraftColorScheme);
     }
 
-    if (result != this->currSelectedCraftColorScheme) {
-        this->currSelectedCraftColorScheme = result;
+    this->currSelectedCraftColorScheme = result;
 
-        //write currently selected craft color scheme into
-        //data array
-        //current selected craft color scheme is stored at offset 0x26 in CONFIG.DAT
-        //this are the actual used values for each
-        //color scheme in this file
-        //MADMEDICINE 0x06
-        //ASSASSINS 0xAA
-        //GOREHOUNDS 0x4A
-        //FOOFIGHTERS 0x10
-        //DETHFEST 0x8C
-        //FIREPHREAKS 0x16
-        //STORMRIDERS 0x17
-        //BULLFROG 0x8F
-        currentConfigFileDataByteArray[0x26] = char(result);
-    }
+    //write currently selected craft color scheme into
+    //data array
+    //current selected craft color scheme is stored at offset 0x94B in CONFIG.DAT
+    (*bufPntr)[0x94B] = char(result);
 }
 
-bool Assets::DecodeCurrentCraftColorScheme() {
-    if (!mCurrentConfigFileRead) {
-        return false;
-    }
-
+void Assets::DecodeCurrentCraftColorScheme(char** bufPntr) {
     //read currently selected craft color scheme
     //data array
-    //current selected craft color scheme is stored at offset 0x26 in CONFIG.DAT
-    //this are the actual used values for each
-    //color scheme in this file
-    //MADMEDICINE 0x06
-    //ASSASSINS 0xAA
-    //GOREHOUNDS 0x4A
-    //FOOFIGHTERS 0x10
-    //DETHFEST 0x8C
-    //FIREPHREAKS 0x16
-    //STORMRIDERS 0x17
-    //BULLFROG 0x8F
-
-    this->currSelectedCraftColorScheme = (irr::u8)(currentConfigFileDataByteArray[0x26]);
-
-    return true;
+    //current selected craft color scheme is stored at offset 0x94B in CONFIG.DAT
+    this->currSelectedCraftColorScheme = (irr::u8)((*bufPntr)[0x94B]);
 }
 
 void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, irr::u8 statArmour,
@@ -1094,22 +1243,42 @@ void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, ir
     mCraftVec->push_back(newCraft);
 }
 
+//Returns a new (default valued) race track struct
+RaceTrackInfoStruct* Assets::CreateNewDefaultRaceTrackStats(irr::u8 levelNr, irr::u8 defaultNrLaps) {
+   RaceTrackInfoStruct* newTrack = new RaceTrackInfoStruct();
+
+   newTrack->levelNr = levelNr;
+
+   //default init values, if there is no CONFIG.DAT
+   //file yet
+   strcpy(newTrack->bestPlayer, "BULLFROG");
+   strcpy(newTrack->bestHighScorePlayer, "BULLFROG");
+   newTrack->bestLapTime = 9999;
+   newTrack->bestHighScore = 9999;
+
+   //set the original default number of laps
+   //defined by the original game
+   newTrack->defaultNrLaps = defaultNrLaps;
+   newTrack->currSelNrLaps = newTrack->defaultNrLaps;
+
+   return newTrack;
+}
+
 void Assets::AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNrLaps) {
-    RaceTrackInfoStruct* newTrack = new RaceTrackInfoStruct();
-    newTrack->levelNr = currLevelNr;
+    RaceTrackInfoStruct* newTrack;
 
     //if possible, read current race track stats from original game configuration file
     if (this->mCurrentConfigFileRead) {
+        newTrack = new RaceTrackInfoStruct();
+        newTrack->levelNr = currLevelNr;
+        newTrack->defaultNrLaps = defaultNrLaps;
+
+        //take the current settings from config.dat config file
         DecodeCurrentRaceTrackStats(newTrack->levelNr, newTrack);
     } else {
         //default init values, if there is no CONFIG.DAT
-        //file yet
-        strcpy(newTrack->bestPlayer, "BULLFROG");
-        strcpy(newTrack->bestHighScorePlayer, "BULLFROG");
-        newTrack->bestLapTime = 9999;
-        newTrack->bestHighScore = 9999;
-
-        newTrack->currSelNrLaps = newTrack->defaultNrLaps;
+        //file yet, create new track info with default game settings
+        newTrack = CreateNewDefaultRaceTrackStats(currLevelNr, defaultNrLaps);
     }
 
     currLevelNr++;
@@ -1120,7 +1289,6 @@ void Assets::AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNr
     newTrack->MeshTrack = this->mySmgr->getMesh(meshFileName);
 
     strcpy(newTrack->meshFileName, meshFileName);
-    newTrack->defaultNrLaps = defaultNrLaps;
 
     //add to list of current available race tracks
     mRaceTrackVec->push_back(newTrack);
@@ -1195,22 +1363,22 @@ void Assets::InitCrafts() {
 
 void Assets::InitRaceTracks() {
     //Track1
-    AddRaceTrack((char*)("1. AMAZON DELTA TURNPIKE"), (char*)("extract/models/track0-0.obj"), 11);
+    AddRaceTrack((char*)("1. AMAZON DELTA TURNPIKE"), (char*)("extract/models/track0-0.obj"), GAME_DEFAULT_LAPS_TRACK1);
 
     //Track2
-    AddRaceTrack((char*)("2. TRANS-ASIA INTERSTATE"), (char*)("extract/models/track0-1.obj"), 8);
+    AddRaceTrack((char*)("2. TRANS-ASIA INTERSTATE"), (char*)("extract/models/track0-1.obj"), GAME_DEFAULT_LAPS_TRACK2);
 
     //Track3
-    AddRaceTrack((char*)("3. SHANGHAI DRAGON"), (char*)("extract/models/track0-2.obj"), 9);
+    AddRaceTrack((char*)("3. SHANGHAI DRAGON"), (char*)("extract/models/track0-2.obj"), GAME_DEFAULT_LAPS_TRACK3);
 
     //Track4
-    AddRaceTrack((char*)("4. NEW CHERNOBYL CENTRAL"), (char*)("extract/models/track0-3.obj"), 8);
+    AddRaceTrack((char*)("4. NEW CHERNOBYL CENTRAL"), (char*)("extract/models/track0-3.obj"), GAME_DEFAULT_LAPS_TRACK4);
 
     //Track5
-    AddRaceTrack((char*)("5. SLAM CANYON"), (char*)("extract/models/track0-4.obj"), 9);
+    AddRaceTrack((char*)("5. SLAM CANYON"), (char*)("extract/models/track0-4.obj"), GAME_DEFAULT_LAPS_TRACK5);
 
     //Track6
-    AddRaceTrack((char*)("6. THRAK CITY"), (char*)("extract/models/track0-5.obj"), 5);
+    AddRaceTrack((char*)("6. THRAK CITY"), (char*)("extract/models/track0-5.obj"), GAME_DEFAULT_LAPS_TRACK6);
 
     //Track7, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
     //AddRaceTrack((char*)("7. ANCIENT MINE TOWN"), (char*)("extract/models/cone0-0.obj"), 5);
@@ -1258,3 +1426,883 @@ bool Assets::GetComputerPlayersEnabled() {
     return (this->computerPlayersEnabled);
 }
 
+//playerNr starting with index 0 for first player
+irr::u16 Assets::ReadChampionShipOverallPointTableEntry(char** bufPntr, irr::u8 playerNr) {
+    size_t offset = 0x2C7E + playerNr * 0x02;
+
+    irr::u16 val = (irr::u16)((*bufPntr)[offset + 1]) << 8; //handle MSB
+    val += (*bufPntr)[offset]; //add LSB
+
+    return val;
+}
+
+//playerNr starting with index 0 for first player
+void Assets::WriteChampionShipOverallPointTableEntry(char** bufPntr, irr::u8 playerNr, irr::u16 newPointsValue) {
+    size_t offset = 0x2C7E + playerNr * 0x02;
+
+    irr::u8 lsb = (irr::u8)(newPointsValue & 0x00FF);
+    (*bufPntr)[offset] = lsb;
+
+    irr::u16 hlper = (irr::u16)(newPointsValue & 0xFF00);
+    hlper = hlper >> 8;
+
+    irr::u8 msb = (irr::u8)(hlper);
+
+    (*bufPntr)[offset + 1] = msb;
+}
+
+void Assets::WriteChampionShipOverallPointTable(char** bufPntr) {
+    /*Current overall championship points are stored at the
+    end of config.dat and the save files (if championship is
+    saved),
+    current points are an irr::u16 variable type (16 bits)
+
+    Player 0 (Human) Championship Points  offset  0x2C7E LSB, 0x2C7F MSB
+    BARNSY offset  0x2C80 LSB,  0x2C81 is the MSB
+    SHUNTLY offset 0x2C82 LSB and so on
+    COPSE offset 0x2C84 LSB
+    MANNY offset 0x2C86 LSB
+    MCLALIN offset  0x2C88 LSB
+    MAD  offset  0x2C8A LSB
+    ATROW offset  0x2C8C LSB*/
+
+    //write points for all 8 players
+    for (irr::u8 idx = 0; idx < 8; idx++) {
+        WriteChampionShipOverallPointTableEntry(bufPntr, idx, mCurrChampionshipOverallPointVec.at(idx));
+    }
+}
+
+void Assets::DecodeChampionShipOverallPointTable(char** bufPntr) {
+    /*Current overall championship points are stored at the
+    end of config.dat and the save files (if championship is
+    saved),
+    current points are an irr::u16 variable type (16 bits)
+
+    Player 0 (Human) Championship Points  offset  0x2C7E LSB, 0x2C7F MSB
+    BARNSY offset  0x2C80 LSB,  0x2C81 is the MSB
+    SHUNTLY offset 0x2C82 LSB and so on
+    COPSE offset 0x2C84 LSB
+    MANNY offset 0x2C86 LSB
+    MCLALIN offset  0x2C88 LSB
+    MAD  offset  0x2C8A LSB
+    ATROW offset  0x2C8C LSB*/
+
+    mCurrChampionshipOverallPointVec.clear();
+
+    //read points for all 8 players
+    for (irr::u8 idx = 0; idx < 8; idx++) {
+        mCurrChampionshipOverallPointVec.push_back(ReadChampionShipOverallPointTableEntry(bufPntr, idx));
+    }
+}
+
+std::vector<PointTableEntryStruct*>* Assets::GetLastRacePointsTable(std::vector<RaceStatsEntryStruct*>* lastRaceStats) {
+    std::vector<PointTableEntryStruct*>* resultVec = new std::vector<PointTableEntryStruct*>();
+
+    resultVec->clear();
+
+    //for each player assign the points this player earned
+    /* The points earned by each player in a race
+       are very easily assigned by the original game
+       It just depends on the order of the final positions
+       at the race end;
+
+       1st place player gets 20 points
+       2nd place player gets 16 points
+       3rd place player gets 13 points
+       4th place player gets 11 points
+       5th place player gets 9 points
+       6th place player gets 7 points
+       7th place player gets 6 points
+       8th place player gets 5 points */
+
+      std::vector<irr::u8> pointAssigementVec;
+      pointAssigementVec.push_back(20);
+      pointAssigementVec.push_back(16);
+      pointAssigementVec.push_back(13);
+      pointAssigementVec.push_back(11);
+      pointAssigementVec.push_back(9);
+      pointAssigementVec.push_back(7);
+      pointAssigementVec.push_back(6);
+      pointAssigementVec.push_back(5);
+
+      std::vector<RaceStatsEntryStruct*>::iterator itEntry;
+      PointTableEntryStruct* newPointTabEntry;
+
+      for (itEntry = lastRaceStats->begin(); itEntry != lastRaceStats->end(); ++itEntry) {
+           //create a new point table entry item
+           newPointTabEntry = new PointTableEntryStruct();
+
+           //create a new temporary buffer with playername
+           //needs to be freed later! otherwise we have a memory leak
+           newPointTabEntry->namePlayer = strdup((*itEntry)->playerName);
+
+           //assign the earned points
+           newPointTabEntry->pointVal = pointAssigementVec.at((*itEntry)->racePosition - 1);
+
+           resultVec->push_back(newPointTabEntry);
+       }
+
+      return resultVec;
+}
+
+void Assets::NewChampionship() {
+    //if there was already a championship data array created before
+    //free its memory! otherwise we have a memory leak
+    if (currentChampionshipSaveGameDataByteArray != NULL) {
+        delete[] currentChampionshipSaveGameDataByteArray;
+    }
+
+    //create a new (default) config.dat file as a basis
+    //for championship save game later
+    CreateNewConfigFileContents(&currentChampionshipSaveGameDataByteArray, currentChampionshipSaveGameDataByteArrayLen);
+
+    //let championship start at first level
+    SetNewLastSelectedRaceTrack(0);
+
+    //reset championship name
+    strcpy(this->currChampionshipName, "");
+
+    //reset the overall championship player point table to all
+    //zero entries, but decoding the overall (new, empty) championship player point table
+    //all current values need to be zero, so that we allow the player to initially
+    //choose the player craft
+    DecodeChampionShipOverallPointTable(&currentChampionshipSaveGameDataByteArray);
+}
+
+//Helper function to determine if player can currently select a craft
+//during any point of the championship; In the original game the player
+//craft can only be selected once, right at the start of a new
+//championship
+bool Assets::CanPlayerCurrentlySelectCraftDuringChampionship() {
+    //allow selection, only if current level is first level
+    //and if all point entries in championship player point table are
+    //all zeroed out
+    irr::u32 pointSum = 0;
+
+    std::vector<irr::u16>::iterator it;
+
+    for (it = mCurrChampionshipOverallPointVec.begin(); it != mCurrChampionshipOverallPointVec.end(); ++it) {
+        pointSum += (*it);
+    }
+
+    if (pointSum != 0)
+        return false;
+
+    if (currLevelSelected != 0)
+        return false;
+
+    return true;
+}
+
+//This function does two things: Calculate new overall championship points for the currently active
+//championship. Secondly the new result point table is returned in a dynamically allocated vector of PointTableEntryStruct
+//structs
+std::vector<PointTableEntryStruct*>* Assets::UpdateChampionshipOverallPointTable
+                        (std::vector<PointTableEntryStruct*>* pointTableRace) {
+
+    std::vector<PointTableEntryStruct*>::iterator it;
+
+    irr::u8 idx = 0;
+
+    //first create the sum and update the current overall point table
+    for (it = pointTableRace->begin(); it != pointTableRace->end(); ++it) {
+        this->mCurrChampionshipOverallPointVec.at(idx) += (*it)->pointVal;
+
+        idx++;
+    }
+
+    std::vector<PointTableEntryStruct*>* resultVec = new std::vector<PointTableEntryStruct*>();
+
+    resultVec->clear();
+
+    std::vector<irr::u16>::iterator itSum;
+    PointTableEntryStruct* newPointTabEntry;
+
+    idx = 0;
+
+    for (itSum = mCurrChampionshipOverallPointVec.begin(); itSum != mCurrChampionshipOverallPointVec.end(); ++itSum) {
+         //create a new point table entry item
+         newPointTabEntry = new PointTableEntryStruct();
+
+         //create a new temporary buffer with playername
+         //needs to be freed later! otherwise we have a memory leak
+         newPointTabEntry->namePlayer = strdup(pointTableRace->at(idx)->namePlayer);
+
+         //assign the earned points
+         newPointTabEntry->pointVal = (*itSum);
+
+         resultVec->push_back(newPointTabEntry);
+
+         idx++;
+     }
+
+    return resultVec;
+}
+
+void Assets::CleanUpChampionshipSaveGameInfo() {
+    std::vector<ChampionshipSaveGameInfoStruct*>::iterator it;
+    ChampionshipSaveGameInfoStruct* pntr;
+
+    for (it = mChampionshipSavegameInfoVec.begin(); it != mChampionshipSavegameInfoVec.end(); ) {
+        pntr = (*it);
+
+        it = mChampionshipSavegameInfoVec.erase(it);
+
+        //free the string we created using strdup
+        //function before
+        free(pntr->championshipName);
+    }
+}
+
+//whichSlotNr start with index 0, for first savegame slot
+bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** championshipNameOutBuf) {
+    //only load if slot number is valid
+    if (whichSlotNr > 4)
+        return false;
+
+    strcpy(*championshipNameOutBuf, "EMPTY");
+
+    //build save game file name for search
+    char filename[80];
+    char fname[20];
+
+    strcpy(filename, "originalgame/HIOCTANE.CD/SAVE/SAVE");
+    sprintf (fname, "%0*u.DAT", 2, whichSlotNr);
+
+    strcat(filename, fname);
+
+    //does this file exist? If not or there is
+    //another problem simply exit
+    if (FileExists(filename) != 1)
+        return false;
+
+    char* helperSaveGameDataByteArray = NULL;
+    size_t helperSaveGameDataByteArrayLen = 0;
+
+    //file exists, read the savegame file
+    //into a temporary helper buffer
+    if (!ReadGameConfigFile(filename, &helperSaveGameDataByteArray, helperSaveGameDataByteArrayLen))
+        return false;
+
+    DecodeCurrentChampionshipName(&helperSaveGameDataByteArray, championshipNameOutBuf);
+
+    //cleanup the temporary buffer
+    delete[] helperSaveGameDataByteArray;
+
+    helperSaveGameDataByteArray = NULL;
+
+    //there was a savegame we successfully read
+    return true;
+}
+
+void Assets::SearchChampionshipSaveGames() {
+    //if there are already entries, delete them
+    //and free the memory, before we search again
+    if (mChampionshipSavegameInfoVec.size() > 0) {
+       CleanUpChampionshipSaveGameInfo();
+    }
+
+    mChampionshipSavegameInfoVec.clear();
+
+    //championship name helper buffer
+    //length is limited to 12 characters in Hi-Octane!
+    //plus 1 termination char + 1 char extra :)
+    char helperChampionshipName[14];
+    ChampionshipSaveGameInfoStruct* newStruct;
+
+    for (irr::u8 idx = 0; idx < 5; idx++) {
+         newStruct = new ChampionshipSaveGameInfoStruct();
+         newStruct->saveGameAvail = false;
+
+         char* pntr = &helperChampionshipName[0];
+
+         if (SearchChampionshipSaveGameSlot(idx, &pntr)) {
+            //we found a savegame in this slot
+            newStruct->saveGameAvail = true;
+         }
+
+         newStruct->championshipName = strdup(helperChampionshipName);
+
+         mChampionshipSavegameInfoVec.push_back(newStruct);
+    }
+}
+
+//slot number starting with index 0
+bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
+    //only load if slot number is valid
+    if (whichSlotNr > 4)
+        return false;
+
+    //build save game file name to load
+    char filename[80];
+    char fname[20];
+
+    strcpy(filename, "originalgame/HIOCTANE.CD/SAVE/SAVE");
+    sprintf (fname, "%0*u.DAT", 2, whichSlotNr);
+
+    strcat(filename, fname);
+
+    //delete the data of a possible already loaded save game
+    if (currentChampionshipSaveGameDataByteArray != NULL) {
+        delete[] currentChampionshipSaveGameDataByteArray;
+
+        currentChampionshipSaveGameDataByteArray = NULL;
+    }
+
+    //read the raw data of the championship save game file
+    //into the special buffer for championship data
+    if (!ReadGameConfigFile(filename, &currentChampionshipSaveGameDataByteArray, currentChampionshipSaveGameDataByteArrayLen))
+        return false;
+
+    //decode raw data into my members
+    //all of the settings below are now taken from the save game itself
+    //the original game does seem to do the same
+    DecodeMainPlayerName(&currentChampionshipSaveGameDataByteArray);
+    DecodeLastSelectedRaceTrack(&currentChampionshipSaveGameDataByteArray);
+    DecodeLastSelectedCraft(&currentChampionshipSaveGameDataByteArray);
+    DecodeGameDifficultySetting(&currentChampionshipSaveGameDataByteArray);
+    DecodeCurrentCraftColorScheme(&currentChampionshipSaveGameDataByteArray);
+    char* pntr = &this->currChampionshipName[0];
+    DecodeCurrentChampionshipName(&currentChampionshipSaveGameDataByteArray, &pntr);
+
+    //decode the overall championship player point table
+    DecodeChampionShipOverallPointTable(&currentChampionshipSaveGameDataByteArray);
+
+    //Next race track to continue championsship is stored at the same
+    //offset location where the last selected racetrack is
+    //saved in config.dat;
+
+    //----------------------------------
+
+    //Human Player (0) craft selection for the championship is also stored at the same offset location
+    //for last selected craft as in config.dat, just in the save game files
+    //---------------------------------
+
+    //Human player (0) craft color scheme selection in Championship is exactly stored at the same offset
+    //location as in config.dat file
+
+    return true;
+}
+
+bool Assets::SaveChampionshipSaveGame(irr::u8 whichSlotNr) {
+    //only save if slot number is valid
+    if (whichSlotNr > 4)
+        return false;
+
+    //if there is no data to be save exit
+    if (currentChampionshipSaveGameDataByteArray == NULL)
+        return false;
+
+    //build save game file name for
+    //writting the file
+    char filename[80];
+    char fname[20];
+
+    strcpy(filename, "originalgame/HIOCTANE.CD/SAVE/SAVE");
+    sprintf (fname, "%0*u.DAT", 2, whichSlotNr);
+
+    strcat(filename, fname);
+
+    //update all the data in the current savegame byte array
+
+    //I guess it looks weird, but I need to copy string temporarily inside
+    //another buffer, so that the strcpy function inside the routine SetNewMainPlayerName
+    //does not copy from the same buffer location into the same buffer location again
+    //I believe this would cause issues
+    char* hlpBuf = strdup(this->currMainPlayerName);
+    SetNewMainPlayerName(hlpBuf, &currentChampionshipSaveGameDataByteArray);
+    free(hlpBuf);
+
+    SetNewLastSelectedRaceTrack(this->currLevelSelected, &currentChampionshipSaveGameDataByteArray);
+    SetNewMainPlayerSelectedCraft(this->currMainPlayerCraftSelected, &currentChampionshipSaveGameDataByteArray);
+    SetCurrentCraftColorScheme(this->GetCurrentCraftColorScheme(), &currentChampionshipSaveGameDataByteArray);
+    SetGameDifficulty(this->currGameDifficultyLevel, &currentChampionshipSaveGameDataByteArray);
+
+    hlpBuf = strdup(this->currChampionshipName);
+    SetCurrentChampionshipName(hlpBuf, &currentChampionshipSaveGameDataByteArray);
+    free(hlpBuf);
+
+    //update the championship overall player point table
+    WriteChampionShipOverallPointTable(&currentChampionshipSaveGameDataByteArray);
+
+    //write the data of the championship save game file
+    //from the special buffer for championship data
+    if (!WriteGameConfigFile(filename, &currentChampionshipSaveGameDataByteArray, currentChampionshipSaveGameDataByteArrayLen))
+        return false;
+
+    return true;
+}
+
+void Assets::CreateEmptyHighScoreTableEntry(char** targetBuf, irr::u8 entryNr) {
+    size_t dataOffset;
+
+    dataOffset = 0x0994 + entryNr * 39;
+
+    memset(*targetBuf + dataOffset, 0, 39);
+
+    (*targetBuf)[dataOffset + 4] = 0x0F; //set default player assessement
+
+    char* dfltEntryName = strdup("BULLFROG");
+
+    //player names in Hi-Octane are limited to max 8 characters
+    WriteNullTerminatedString(*targetBuf, dataOffset + 5, dfltEntryName, strlen(dfltEntryName));
+
+    free(dfltEntryName);
+}
+
+void Assets::CreateEmptyHighScoreTable(char** targetBuf) {
+    //there are 50 highscore table entries we
+    //need to make
+    for (int idx = 0; idx < 50; idx++) {
+        CreateEmptyHighScoreTableEntry(targetBuf, idx);
+    }
+}
+
+//nrRaceTrack = level number starting with 1
+void Assets::WriteCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* inputInfoStruct, char** targetBuf) {
+    //config file offsets found for the current
+    //racetrack stats (each racetrack seems to have 74 bytes of stat
+    //data available)
+    //level 1 = 0x29AA = 10666 dec
+    //level 2 = 0x29F4 = 10740 dec
+    //level 3 = 0x2A3E = 10814 dec
+    //level 4 = 0x2A88 = 10888 dec
+    //level 5 = 0x2AD2 = 10962 dec
+    //level 6 = 0x2B1C = 11036 dec
+    //...
+
+    //data layout for each race track stat in config.dat seems to be
+    //[4 Bytes best lap value][9 bytes for player name best lap, 9th byte = string termination char][23 bytes of
+    //unknown data][4 Bytes best race value][9 bytes for player name best race, 9th byte = string termination char]
+    //[23 bytes of unknown data][1 Byte for current number laps set][1 Byte of unknown data]
+
+    //calculate correct offset in file
+    //for specified race track
+    size_t dataOffset = 0x29AA + 74 * (nrRaceTrack - 1);
+
+    //write best lap time
+    ConvertInt32_ToByteArray(*targetBuf, dataOffset,  inputInfoStruct->bestLapTime);
+
+    //player names in Hi-Octane are limited to max 8 characters
+    WriteNullTerminatedString(*targetBuf, dataOffset + 4, inputInfoStruct->bestPlayer, 8);
+
+    //write best highscore
+    ConvertInt32_ToByteArray(*targetBuf, dataOffset + 36,  inputInfoStruct->bestHighScore);
+
+    //player names in Hi-Octane are limited to max 8 characters
+    WriteNullTerminatedString(*targetBuf, dataOffset + 40, inputInfoStruct->bestHighScorePlayer, 8);
+
+    //write current number of set laps for this race track
+    (*targetBuf)[dataOffset + 72] = (irr::u8)(inputInfoStruct->currSelNrLaps);
+}
+
+void Assets::WriteMeSomeBytesIDoNotKnowWhatTheMean(char** targetBuf, irr::u8 unknownValue, size_t writePosition) {
+    for (int idx = 0; idx < 16; idx++) {
+        (*targetBuf)[writePosition + idx] = unknownValue;
+    }
+
+    for (int idx = 0; idx < 8; idx++) {
+        (*targetBuf)[writePosition + 16 + idx] = 0x0F;
+    }
+}
+
+void Assets::WriteMe8UnknownBytes(char** targetBuf, irr::u8 unknownValue, size_t writePosition) {
+    for (int idx = 0; idx < 8; idx++) {
+        (*targetBuf)[writePosition + idx] = unknownValue;
+    }
+}
+
+void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeBytes) {
+    //the default config.dat file has 11449 bytes
+    size_t size = 11449;
+
+    outNewSizeBytes = size;
+
+    *targetBuf = new char[size];
+
+    //initially fill overall file with all zeros
+    //size is in number of bytes to fill!
+    memset(*targetBuf, 0, size);
+
+    //now set the default settings
+    highScoreTableVec = NULL;
+
+    //create an empty highscore table
+    CreateEmptyHighScoreTable(targetBuf);
+
+    SetCurrentGameLanguage(GAME_LANGUAGE_ENGLISH, targetBuf);
+
+    //set default player name
+    SetNewMainPlayerName((char*)"PLAYER", targetBuf);
+
+    //there is currently no champhionship open
+    SetCurrentChampionshipName((char*)"", targetBuf);
+
+    //set default race track selection
+    SetNewLastSelectedRaceTrack(0, targetBuf);     //is first level, as in the original game
+    SetNewMainPlayerSelectedCraft(0, targetBuf);   //is KD1-SPEEDER, as in the original game
+    SetCurrentCraftColorScheme(0, targetBuf);      //is MAD-MEDICINE, the default color scheme
+
+    //if config.dat is missing, game always reverts to most
+    //easy difficulty level
+    SetGameDifficulty(0, targetBuf);
+
+    //available range in config.dat game config file
+    //is from 0 to 200 (max volume)
+    //game sets it slightly below max volume when
+    //config is not available
+    SetMusicVolume(60, targetBuf);
+    SetSoundVolume(60, targetBuf);
+
+    //enable default shading and sky
+    SetSkyEnabled(true, targetBuf);
+    SetShadingEnabled(true, targetBuf);
+
+    //default is second highest texture mapping
+    //quality, range is from 0 (lowest) to 5 (highest)
+    SetTextureMappingQuality(4, targetBuf);
+
+    //create default race track stats
+    RaceTrackInfoStruct* newTrack;
+
+    newTrack = CreateNewDefaultRaceTrackStats(1, GAME_DEFAULT_LAPS_TRACK1);
+    WriteCurrentRaceTrackStats(1, newTrack, targetBuf);
+    delete newTrack;
+
+    newTrack = CreateNewDefaultRaceTrackStats(2, GAME_DEFAULT_LAPS_TRACK2);
+    WriteCurrentRaceTrackStats(2, newTrack, targetBuf);
+    delete newTrack;
+
+    newTrack = CreateNewDefaultRaceTrackStats(3, GAME_DEFAULT_LAPS_TRACK3);
+    WriteCurrentRaceTrackStats(3, newTrack, targetBuf);
+    delete newTrack;
+
+    newTrack = CreateNewDefaultRaceTrackStats(4, GAME_DEFAULT_LAPS_TRACK4);
+    WriteCurrentRaceTrackStats(4, newTrack, targetBuf);
+    delete newTrack;
+
+    newTrack = CreateNewDefaultRaceTrackStats(5, GAME_DEFAULT_LAPS_TRACK5);
+    WriteCurrentRaceTrackStats(5, newTrack, targetBuf);
+    delete newTrack;
+
+    newTrack = CreateNewDefaultRaceTrackStats(6, GAME_DEFAULT_LAPS_TRACK6);
+    WriteCurrentRaceTrackStats(6, newTrack, targetBuf);
+    delete newTrack;
+
+    //to be completely humble I do not know why we need to write all the bytes
+    //below; I do not know currently what the mean for the game;
+    //I just know we have to write a lot of additional BULLFROG strings
+    //to be finished
+    char* bullFrogStr = strdup("BULLFROG");
+    irr::u8 maxLen = strlen(bullFrogStr);
+
+    size_t startOff = 0x1152;
+
+    for (int idx = 0; idx < 8; idx++) {
+        WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x1262);
+
+    startOff = 0x128A;
+
+    //we need even more Bullfrog strings
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMeSomeBytesIDoNotKnowWhatTheMean(targetBuf, 0x01, 0x138A);
+
+    startOff = 0x13C2;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMeSomeBytesIDoNotKnowWhatTheMean(targetBuf, 0x02, 0x14C2);
+
+    startOff = 0x14FA;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMeSomeBytesIDoNotKnowWhatTheMean(targetBuf, 0x03, 0x15FA);
+
+    startOff = 0x1632;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMeSomeBytesIDoNotKnowWhatTheMean(targetBuf, 0x04, 0x1732);
+
+    startOff = 0x176A;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMeSomeBytesIDoNotKnowWhatTheMean(targetBuf, 0x05, 0x186A);
+
+    startOff = 0x18A2;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x06, 0x19A2);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x19B2);
+
+    startOff = 0x19DA;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x07, 0x1ADA);
+    WriteMe8UnknownBytes(targetBuf, 0x01, 0x1AE2);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x1AEA);
+
+    startOff = 0x1B12;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x02, 0x1C1A);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x1C22);
+
+    startOff = 0x1C4A;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x01, 0x1D4A);
+    WriteMe8UnknownBytes(targetBuf, 0x03, 0x1D52);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x1D5A);
+
+    startOff = 0x1D82;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x02, 0x1E82);
+    WriteMe8UnknownBytes(targetBuf, 0x04, 0x1E8A);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x1E92);
+
+    startOff = 0x1EBA;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x03, 0x1FBA);
+    WriteMe8UnknownBytes(targetBuf, 0x05, 0x1FC2);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x1FCA);
+
+    startOff = 0x1FF2;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x04, 0x20F2);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x2102);
+
+    startOff = 0x212A;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x05, 0x222A);
+    WriteMe8UnknownBytes(targetBuf, 0x01, 0x2232);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x223A);
+
+    startOff = 0x2262;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x06, 0x2362);
+    WriteMe8UnknownBytes(targetBuf, 0x02, 0x236A);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x2372);
+
+    startOff = 0x239A;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x07, 0x249A);
+    WriteMe8UnknownBytes(targetBuf, 0x03, 0x24A2);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x24AA);
+
+    startOff = 0x24D2;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x04, 0x25DA);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x25E2);
+
+    startOff = 0x260A;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x01, 0x270A);
+    WriteMe8UnknownBytes(targetBuf, 0x05, 0x2712);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x271A);
+
+    startOff = 0x2742;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x02, 0x2842);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x2852);
+
+    startOff = 0x287A;
+
+    for (int idx = 0; idx < 8; idx++) {
+         WriteNullTerminatedString(*targetBuf, startOff + (idx * 0x20), bullFrogStr, maxLen);
+    }
+
+    WriteMe8UnknownBytes(targetBuf, 0x03, 0x297A);
+    WriteMe8UnknownBytes(targetBuf, 0x01, 0x2982);
+    WriteMe8UnknownBytes(targetBuf, 0x0F, 0x298A);
+
+    //Final comment: One day I would really want to know for
+    //what reason I had to write all of this random bytes...
+    //but I fear I will never know :(
+
+    free(bullFrogStr);
+
+    //Joystick calibration values must be also somewhere
+    //in the config.dat file, can not test this as I have
+    //no Joystick available
+
+    //write additional bytes where I do not know right now what
+    //the mean, so that we get a correct config.dat file
+    std::vector<std::pair<size_t, irr::u8>> byteVec;
+    std::vector<std::pair<size_t, irr::u8>>::iterator it;
+
+    byteVec.clear();
+
+    //pair is offset adress of file config.dat, second
+    //value is byte value to write
+    byteVec.push_back(std::make_pair(0x32, 0x08));
+    byteVec.push_back(std::make_pair(0x36, 0x01));
+    byteVec.push_back(std::make_pair(0x4C, 0x01));
+    byteVec.push_back(std::make_pair(0x4E, 0x08));
+    byteVec.push_back(std::make_pair(0x50, 0x05));
+    byteVec.push_back(std::make_pair(0x52, 0x50));
+
+    //last byte in the level statistic state bytes must have value 0x0F
+    //set correct value here, I do not know what this byte exactly does
+    byteVec.push_back(std::make_pair(0x29F3, 0x0F));
+    byteVec.push_back(std::make_pair(0x2A3D, 0x0F));
+    byteVec.push_back(std::make_pair(0x2A87, 0x0F));
+    byteVec.push_back(std::make_pair(0x2AD1, 0x0F));
+    byteVec.push_back(std::make_pair(0x2B1B, 0x0F));
+    byteVec.push_back(std::make_pair(0x2B65, 0x0F));
+
+    byteVec.push_back(std::make_pair(0x98C, 0x04));
+    byteVec.push_back(std::make_pair(0x9E0, 0x01));
+    byteVec.push_back(std::make_pair(0x9E1, 0x01));
+    byteVec.push_back(std::make_pair(0xA07, 0x02));
+    byteVec.push_back(std::make_pair(0xA08, 0x02));
+    byteVec.push_back(std::make_pair(0xA2E, 0x03));
+    byteVec.push_back(std::make_pair(0xA2F, 0x03));
+    byteVec.push_back(std::make_pair(0xA55, 0x04));
+    byteVec.push_back(std::make_pair(0xA56, 0x04));
+    byteVec.push_back(std::make_pair(0xA7C, 0x05));
+    byteVec.push_back(std::make_pair(0xA7D, 0x05));
+
+    byteVec.push_back(std::make_pair(0xAA3, 0x06));
+    byteVec.push_back(std::make_pair(0xACA, 0x07));
+    byteVec.push_back(std::make_pair(0xACB, 0x01));
+    byteVec.push_back(std::make_pair(0xAF2, 0x02));
+    byteVec.push_back(std::make_pair(0xB18, 0x01));
+    byteVec.push_back(std::make_pair(0xB19, 0x03));
+    byteVec.push_back(std::make_pair(0xB3F, 0x02));
+    byteVec.push_back(std::make_pair(0xB40, 0x04));
+    byteVec.push_back(std::make_pair(0xB66, 0x03));
+    byteVec.push_back(std::make_pair(0xB67, 0x05));
+    byteVec.push_back(std::make_pair(0xB8D, 0x04));
+    byteVec.push_back(std::make_pair(0xBB4, 0x05));
+    byteVec.push_back(std::make_pair(0xBB5, 0x01));
+    byteVec.push_back(std::make_pair(0xBDB, 0x06));
+    byteVec.push_back(std::make_pair(0xBDC, 0x02));
+    byteVec.push_back(std::make_pair(0xC02, 0x07));
+    byteVec.push_back(std::make_pair(0xC03, 0x03));
+    byteVec.push_back(std::make_pair(0xC2A, 0x04));
+    byteVec.push_back(std::make_pair(0xC50, 0x01));
+    byteVec.push_back(std::make_pair(0xC51, 0x05));
+    byteVec.push_back(std::make_pair(0xC77, 0x02));
+    byteVec.push_back(std::make_pair(0xC9E, 0x03));
+    byteVec.push_back(std::make_pair(0xC9F, 0x01));
+    byteVec.push_back(std::make_pair(0xCC5, 0x04));
+    byteVec.push_back(std::make_pair(0xCC6, 0x02));
+    byteVec.push_back(std::make_pair(0xCEC, 0x05));
+    byteVec.push_back(std::make_pair(0xCED, 0x03));
+    byteVec.push_back(std::make_pair(0xD13, 0x06));
+    byteVec.push_back(std::make_pair(0xD14, 0x04));
+    byteVec.push_back(std::make_pair(0xD3A, 0x07));
+    byteVec.push_back(std::make_pair(0xD3B, 0x05));
+    byteVec.push_back(std::make_pair(0xD88, 0x01));
+    byteVec.push_back(std::make_pair(0xD89, 0x01));
+    byteVec.push_back(std::make_pair(0xDAF, 0x02));
+    byteVec.push_back(std::make_pair(0xDB0, 0x02));
+    byteVec.push_back(std::make_pair(0xDD6, 0x03));
+    byteVec.push_back(std::make_pair(0xDD7, 0x03));
+    byteVec.push_back(std::make_pair(0xDFD, 0x04));
+    byteVec.push_back(std::make_pair(0xDFE, 0x04));
+    byteVec.push_back(std::make_pair(0xE24, 0x05));
+    byteVec.push_back(std::make_pair(0xE25, 0x05));
+    byteVec.push_back(std::make_pair(0xE4B, 0x06));
+    byteVec.push_back(std::make_pair(0xE72, 0x07));
+    byteVec.push_back(std::make_pair(0xE73, 0x01));
+    byteVec.push_back(std::make_pair(0xE9A, 0x02));
+    byteVec.push_back(std::make_pair(0xEC0, 0x01));
+    byteVec.push_back(std::make_pair(0xEC1, 0x03));
+    byteVec.push_back(std::make_pair(0xEE7, 0x02));
+    byteVec.push_back(std::make_pair(0xEE8, 0x04));
+    byteVec.push_back(std::make_pair(0xF0E, 0x03));
+    byteVec.push_back(std::make_pair(0xF0F, 0x05));
+    byteVec.push_back(std::make_pair(0xF35, 0x04));
+    byteVec.push_back(std::make_pair(0xF5C, 0x05));
+    byteVec.push_back(std::make_pair(0xF5D, 0x01));
+    byteVec.push_back(std::make_pair(0xF83, 0x06));
+    byteVec.push_back(std::make_pair(0xF84, 0x02));
+    byteVec.push_back(std::make_pair(0xFAA, 0x07));
+    byteVec.push_back(std::make_pair(0xFAB, 0x03));
+    byteVec.push_back(std::make_pair(0xFD2, 0x04));
+    byteVec.push_back(std::make_pair(0x101F, 0x02));
+    byteVec.push_back(std::make_pair(0x1046, 0x03));
+    byteVec.push_back(std::make_pair(0xFF8, 0x01));
+    byteVec.push_back(std::make_pair(0xFF9, 0x05));
+    byteVec.push_back(std::make_pair(0x1047, 0x01));
+    byteVec.push_back(std::make_pair(0x106D, 0x04));
+    byteVec.push_back(std::make_pair(0x106E, 0x02));
+    byteVec.push_back(std::make_pair(0x1094, 0x05));
+    byteVec.push_back(std::make_pair(0x1095, 0x03));
+    byteVec.push_back(std::make_pair(0x10BB, 0x06));
+    byteVec.push_back(std::make_pair(0x10BC, 0x04));
+    byteVec.push_back(std::make_pair(0x10E2, 0x07));
+    byteVec.push_back(std::make_pair(0x10E3, 0x05));
+    byteVec.push_back(std::make_pair(0x1130, 0x01));
+    byteVec.push_back(std::make_pair(0x1131, 0x01));
+
+    for (it = byteVec.begin(); it != byteVec.end(); ++it) {
+       (*targetBuf)[(*it).first] = (irr::u8)((*it).second);
+    }
+}

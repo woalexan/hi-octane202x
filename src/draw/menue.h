@@ -21,6 +21,7 @@
 #include "../resources/assets.h"
 #include "../race.h"
 #include "../infrabase.h"
+#include "../game.h"
 
 //definition of available menue pages
 #define MENUE_AFTERGAMESTART 0
@@ -42,6 +43,7 @@
 #define MENUE_INTRO 202
 #define MENUE_HIGHSCORE 203
 #define MENUE_RACESTATS 204
+#define MENUE_POINTSTABLE 205
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION NULL
@@ -53,11 +55,17 @@
 #define MENUE_ACTION_SETMUSICVOLUME 6
 #define MENUE_ACTION_SETSOUNDVOLUME 7
 
-//special "menue" actions
+//"special" menue actions
 #define MENUE_ACTION_INTROSTOP 100
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
 #define MENUE_ACTION_STARTDEMO 102
 #define MENUE_ACTION_SHOWHIGHSCOREPAGE 103
+#define MENUE_ACTION_CLOSEPOINTSTABLEPAGE 104
+
+//Championship menue actions
+#define MENUE_ACTION_CHAMPIONSHIP_CONTINUE 110
+#define MENUE_ACTION_CHAMPIONSHIP_LOADSLOT 111
+#define MENUE_ACTION_CHAMPIONSHIP_SAVESLOT 112
 
 //definition of possible menue states
 #define MENUE_STATE_TRANSITION 0  //menue window is currently moving, no item selection possible
@@ -86,7 +94,7 @@
 #define MENUE_TEXTENTRY_CURSORBLINKPERIODSEC 0.5f
 
 //3D model update period time in seconds
-#define MENUE_3DMODEL_UPDATEPERIODSEC 0.075f
+#define MENUE_3DMODEL_UPDATEPERIODSEC 0.015f
 
 //after the user is inactive for 30 seconds in the menue
 //trigger an action automatically
@@ -145,8 +153,11 @@ typedef struct MenueAction {
 
 struct MenuePage; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
+struct PointTableEntryStruct; //Forward declaration
+struct ChampionshipSaveGameInfoStruct; //Forward declaration
 class SoundEngine; //Forward declaration
 class InfrastructureBase; //Forward declaration
+class Assets; //Forward declaration
 
 //this struct holds the information about a single
 //menue entry
@@ -271,6 +282,8 @@ private:
 
     void AcceptedRaceSetup();
 
+    void UpdateChampionshipSaveGames();
+
     void RenderIntro(irr::f32 frameDeltaTime);
 
     //renderOnlyNumberBlocks = optional parameter, needed for type writer effect in menue
@@ -295,6 +308,7 @@ private:
 
     //Menue definitions for Championship page
     MenuePage* ChampionshipMenuePage;
+    MenueSingleEntry* ContinueChampionshipEntry;
     MenueSingleEntry* NewChampionshipEntry;
     MenueSingleEntry* LoadChampionshipEntry;
     MenueSingleEntry* SaveChampionshipEntry;
@@ -366,12 +380,17 @@ private:
     irr::u32 GetNrOfCharactersOnMenuePage(MenuePage* whichMenuePage);
     irr::u32 GetNrofCharactersForMenueItem(MenueSingleEntry* whichMenueEntry);
 
-    void ChangeToRaceSelection(MenueSingleEntry* callerItem);
+    //if parameter championshipMode is true, then race selection screen only allows to select exactly
+    //one preselected race track. Which race track is shown and selected depends on
+    //call this->mGameAssets->GetLastSelectedRaceTrack(). Also the number of laps for the following race does not depend on the
+    //user/player selection, but on the default number of laps for this racetrack. As in the original game.
+    void ShowRaceSelection(MenueSingleEntry* callerItem, bool championshipMode);
+
+    void ShowShipSelection();
+
     void InterruptRaceSelection();
     void HandleInputRaceSelection();
     void PrintMenueEntriesRaceSelection();
-
-    void ChangeToShipSelection();
 
     void ItemUp();
     void ItemDown();
@@ -513,6 +532,7 @@ private:
     MenuePage* gameIntroMenuePage;
     MenuePage* gameHighscoreMenuePage;
     MenuePage* raceStatsMenuePage;
+    MenuePage* pointsTablePage;
 
     //dummy menue entry which is not visible
     //for gameHiscoreMenuePage
@@ -521,6 +541,10 @@ private:
     //dummy menue entry which is not visible
     //for raceStatsMenuePage
     MenueSingleEntry* raceStatsMenueDummyEntry;
+
+    //dummy menue entry which is not visible
+    //for pointsTablePage
+    MenueSingleEntry* pointsTableMenueDummyEntry;
 
     void CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord);
     void InitStatLabels();
@@ -581,12 +605,17 @@ private:
     //stuff for the race stat page
     std::vector<MenueTextLabel*>* raceStatsPageTextVec;
 
+    //stuff for the point table page
+    std::vector<MenueTextLabel*>* pointsTablePageTextVec;
+
     void RenderStatTextPage(irr::f32 frameDeltaTime);
     void CleanupHighScorepage();
     irr::f32 absTimeElapsedAtHighScorePage;
 
     //Timer which counts menue user inactive time
     irr::f32 mMenueUserInactiveTimer;
+
+    void UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, std::vector<ChampionshipSaveGameInfoStruct*>::iterator it);
 
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
@@ -596,6 +625,10 @@ public:
     ~Menue();
 
     bool MenueInitializationSuccess;
+
+    //remembers if we entered the last race selection
+    //page in Championship mode or not
+    bool mChampionshipMode = false;
 
     MenueAction* ActRace;
     MenueAction* ActQuitToOS;
@@ -612,6 +645,12 @@ public:
     MenueAction* ActCloseRaceStatPage;
     MenueAction* ActStartDemo;
     MenueAction* ActShowHighScorePage;
+    MenueAction* ActClosePointsTablePage;
+
+    //championship menue actions
+    MenueAction* ActContinueChampionship;
+    MenueAction* ActLoadChampionshipSlot;
+    MenueAction* ActSaveChampionshipSlot;
 
     void Render(irr::f32 frameDeltaTime);
     void HandleUserInactiveTimer(irr::f32 frameDeltaTime);
@@ -623,10 +662,17 @@ public:
     void ShowGameTitle();
     void ShowGameLoadingScreen();
     void ShowMainMenue();
+    void ShowChampionshipMenue();
     void ShowIntro();
     void ShowHighscore();
     void ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistics);
     void CleanupRaceStatsPage();
+
+    //parameter overallPoints just controls which header text is used
+    void ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable, bool overallPoints);
+    void CleanupPointsTablePage();
+
+    void ContinueChampionship();
 };
 
 #endif // MENUE_H
