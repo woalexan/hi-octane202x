@@ -181,6 +181,32 @@ void Game::RunGame() {
     GameLoop();
 }
 
+void Game::AdvanceChampionship() {
+    //if we have not reached the last available
+    //level, advance championship forward
+    //to next level
+    irr::u8 currLevel = this->mGameAssets->GetLastSelectedRaceTrack();
+
+    if (currLevel < (this->mGameAssets->mRaceTrackVec->size() - 1)) {
+        //more levels available
+        //continue
+        this->mGameAssets->SetNewLastSelectedRaceTrack(currLevel + 1);
+
+        //go back to the championship
+        //menue
+        MainMenue->ShowChampionshipMenue();
+    } else {
+        //no more levels available
+        //return to top of main menue, as also
+        //the original game does
+
+        //at the same time set back to first level
+        mGameAssets->SetNewLastSelectedRaceTrack(0);
+
+        MainMenue->ShowMainMenue();
+    }
+}
+
 void Game::AdvanceFrame(irr::s32 advanceFrameCount) {
     if (this->mTimeStopped) {
         mAdvanceFrameMode = true;
@@ -263,6 +289,15 @@ void Game::HandleMenueActions() {
 
     if (pendingAction == MainMenue->ActCloseRaceStatPage) {
              //user pressed Return at race stat page
+
+             //if we are in a championship right now, then
+             //next step is too show the assigned/earned
+             //points for each player for the last race
+             if (MainMenue->mChampionshipMode) {
+                 //get assigned points
+                 lastRacePointTable = mGameAssets->GetLastRacePointsTable(lastRaceStat);
+             }
+
              //cleanup race stat page and return back to
              //main menue
 
@@ -276,8 +311,90 @@ void Game::HandleMenueActions() {
 
              mGameState = DEF_GAMESTATE_MENUE;
 
-             //go back to main menue top page
-             MainMenue->ShowMainMenue();
+             if (!MainMenue->mChampionshipMode) {
+                 //was just a normal single race
+                 //go back to main menue top page
+                 MainMenue->ShowMainMenue();
+             } else {
+                 //we are currently inside a championship
+
+                 //first recalculate overall championship point
+                 //table
+                 lastOverallChampionshipPointTable =
+                         mGameAssets->UpdateChampionshipOverallPointTable(lastRacePointTable);
+
+                 //lets continue to show race point table
+                 MainMenue->ShowPointsTablePage(lastRacePointTable, false);
+             }
+    }
+
+    //this action will actually be triggered in two cases
+    //if we have shown the user the race result point table, and
+    //if we have shown the user the overall championship point table
+    if (pendingAction == MainMenue->ActClosePointsTablePage) {
+        //cleanup point table page text labels
+        MainMenue->CleanupPointsTablePage();
+
+        //if we showed the user currently the first race
+        //point table, variable lastRacePointTable is not yet NULL
+        //in this case, we free this memory, and the continue to show the
+        //overall championship point table
+        //if lastRacePointTable is already NULL we returned from showing
+        //the overall championship point table; In this case we cleanup the
+        //lastOverallChampionshipPointTable table, and then we return to the
+        //current championship menue
+        if (lastRacePointTable != NULL) {
+          //we just showed the race point results
+          //start to show the overall championship point table
+
+          //also cleanup the variable lastRacePointTable
+          CleanUpPointTable(*lastRacePointTable);
+
+          lastRacePointTable = NULL;
+
+          //now show the overall championship point table
+          //Parameter needs to be set to true, so that the header text is correct!
+          MainMenue->ShowPointsTablePage(lastOverallChampionshipPointTable, true);
+        } else {
+            //we returned from showing the overall championship point table
+            //clean this table up
+            CleanUpPointTable(*lastOverallChampionshipPointTable);
+
+            lastOverallChampionshipPointTable = NULL;
+
+            AdvanceChampionship();
+        }
+    }
+
+    //user wants to continue the current championship?
+    if (pendingAction == MainMenue->ActContinueChampionship) {
+        MainMenue->ContinueChampionship();
+    }
+
+    //user wants to load a championship savegame?
+    if (pendingAction == MainMenue->ActLoadChampionshipSlot) {
+        //which slot we want to load is handed over
+        //in parameter currSetValue inside the action
+        //range of currSetValue is from 1 up to 5
+        //function expects value 0 up to 4
+        mGameAssets->LoadChampionshipSaveGame(pendingAction->currSetValue - 1);
+
+        //after loading of the save game
+        //go back to the main championship menue
+        MainMenue->ShowChampionshipMenue();
+    }
+
+    //user wants to save the current championship state?
+    if (pendingAction == MainMenue->ActSaveChampionshipSlot) {
+        //which slot we want to save to is handed over
+        //in parameter currSetValue inside the action
+        //range of currSetValue is from 1 up to 5
+        //function expects value 0 up to 4
+        mGameAssets->SaveChampionshipSaveGame(pendingAction->currSetValue - 1);
+
+        //after saving of the save game
+        //go back to the main championship menue
+        MainMenue->ShowChampionshipMenue();
     }
 
     //show HighScorePage?
@@ -298,6 +415,24 @@ void Game::HandleMenueActions() {
              CleanupPilotInfo(mPilotsNextRace);
         }
     }
+}
+
+void Game::CleanUpPointTable(std::vector<PointTableEntryStruct*> &tablePntr) {
+    std::vector<PointTableEntryStruct*>::iterator it;
+    PointTableEntryStruct* pntr;
+
+    for (it = tablePntr.begin(); it != tablePntr.end(); ) {
+        pntr = (*it);
+
+        it = tablePntr.erase(it);
+
+        //name of player was created using strdup function
+        //we need to use free here!
+        free(pntr->namePlayer);
+    }
+
+    //at the end also delete the vector
+    delete &tablePntr;
 }
 
 void Game::GameLoopMenue(irr::f32 frameDeltaTime) {

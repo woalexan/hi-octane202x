@@ -188,12 +188,6 @@ void Menue::AcceptedRaceSetup() {
     //show race loading page
     this->currSelMenuePage = raceLoadingMenuePage;
 
-    //set main player craft selection in assets class
-    this->mGameAssets->SetNewMainPlayerSelectedCraft(this->currSelectedShip);
-
-    //set new default craft color scheme
-    this->mGameAssets->SetCurrentCraftColorScheme(this->currSelectedShipColorScheme);
-
     //tell main program that we should start
     //the race
     //handover selected level number
@@ -227,6 +221,11 @@ void Menue::InitMenuePageEntries() {
     //page was closed by player
     ActCloseRaceStatPage = new MenueAction();
     ActCloseRaceStatPage->actionNr = MENUE_ACTION_CLOSERACESTATPAGE;
+
+    //a special action that signals the Main loop that points table
+    //page was closed by player
+    ActClosePointsTablePage = new MenueAction();
+    ActClosePointsTablePage->actionNr = MENUE_ACTION_CLOSEPOINTSTABLEPAGE;
 
     //a special action that signals the Main loop that a demo
     //should be started
@@ -279,7 +278,7 @@ void Menue::InitMenuePageEntries() {
     gameHighscoreMenuePage->parentMenuePage = NULL;
 
     gameHiscoreMenueDummyEntry = new MenueSingleEntry();
-    gameHiscoreMenueDummyEntry->entryText = (char*)"";
+    gameHiscoreMenueDummyEntry->entryText = strdup("");
     gameHiscoreMenueDummyEntry->entryNumber = 0;
     gameHiscoreMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
     gameHiscoreMenueDummyEntry->nextMenuePage = NULL;
@@ -294,13 +293,27 @@ void Menue::InitMenuePageEntries() {
     raceStatsMenuePage->parentMenuePage = NULL;
 
     raceStatsMenueDummyEntry = new MenueSingleEntry();
-    raceStatsMenueDummyEntry->entryText = (char*)"";
+    raceStatsMenueDummyEntry->entryText = strdup("");
     raceStatsMenueDummyEntry->entryNumber = 0;
     raceStatsMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
     raceStatsMenueDummyEntry->nextMenuePage = NULL;
     raceStatsMenueDummyEntry->triggerAction = ActCloseRaceStatPage;
 
     raceStatsMenuePage->pageEntryVec.push_back(raceStatsMenueDummyEntry);
+
+    //define dummy menue page for points table page
+    pointsTablePage = new MenuePage();
+    pointsTablePage->pageNumber = MENUE_POINTSTABLE;
+    pointsTablePage->parentMenuePage = NULL;
+
+    pointsTableMenueDummyEntry = new MenueSingleEntry();
+    pointsTableMenueDummyEntry->entryText = strdup("");
+    pointsTableMenueDummyEntry->entryNumber = 0;
+    pointsTableMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
+    pointsTableMenueDummyEntry->nextMenuePage = NULL;
+    pointsTableMenueDummyEntry->triggerAction = ActClosePointsTablePage;
+
+    pointsTablePage->pageEntryVec.push_back(pointsTableMenueDummyEntry);
 
     //now define menue page entries
 
@@ -309,21 +322,21 @@ void Menue::InitMenuePageEntries() {
      * ************************/
 
     Race = new MenueSingleEntry();
-    Race->entryText = (char*)"RACE";
+    Race->entryText = strdup("RACE");
     Race->entryNumber = 0;
     Race->drawTextScrPosition = irr::core::vector2di(282, 226);
     Race->nextMenuePage = RaceMenuePage;
     Race->triggerAction = NULL;
 
     Options = new MenueSingleEntry();
-    Options->entryText = (char*)"OPTIONS";
+    Options->entryText = strdup("OPTIONS");
     Options->entryNumber = 1;
     Options->drawTextScrPosition = irr::core::vector2di(256, 248);
     Options->nextMenuePage = OptionMenuePage;
     Options->triggerAction = NULL;
 
     QuitToOS = new MenueSingleEntry();
-    QuitToOS->entryText = (char*)"QUIT TO OS";
+    QuitToOS->entryText = strdup("QUIT TO OS");
     QuitToOS->entryNumber = 2;
     QuitToOS->drawTextScrPosition = irr::core::vector2di(224, 270);
     QuitToOS->nextMenuePage = NULL;
@@ -343,14 +356,14 @@ void Menue::InitMenuePageEntries() {
     * *****************************/
 
     SelectChampionsship = new MenueSingleEntry();
-    SelectChampionsship->entryText = (char*)"CHAMPIONSHIP";
+    SelectChampionsship->entryText = strdup("CHAMPIONSHIP");
     SelectChampionsship->entryNumber = 0;
     SelectChampionsship->drawTextScrPosition = irr::core::vector2di(204, 225);
     SelectChampionsship->nextMenuePage = ChampionshipMenuePage;
     SelectChampionsship->triggerAction = NULL;
 
     SelectSingleRace = new MenueSingleEntry();
-    SelectSingleRace->entryText = (char*)"SINGLE RACE";
+    SelectSingleRace->entryText = strdup("SINGLE RACE");
     SelectSingleRace->entryNumber = 1;
     SelectSingleRace->drawTextScrPosition = irr::core::vector2di(220, 248);
     SelectSingleRace->nextMenuePage = RaceTrackSelectionPage;
@@ -360,7 +373,7 @@ void Menue::InitMenuePageEntries() {
     //ActRace->actionNr = MENUE_ACTION_RACE;
 
     RaceMenuePageBackToMainMenue = new MenueSingleEntry();
-    RaceMenuePageBackToMainMenue->entryText = (char*)"MAIN MENUE";
+    RaceMenuePageBackToMainMenue->entryText = strdup("MAIN MENUE");
     RaceMenuePageBackToMainMenue->entryNumber = 2;
     RaceMenuePageBackToMainMenue->drawTextScrPosition = irr::core::vector2di(230, 270);
     RaceMenuePageBackToMainMenue->nextMenuePage = TopMenuePage;
@@ -374,39 +387,60 @@ void Menue::InitMenuePageEntries() {
     this->menuePageVector.push_back(RaceMenuePage);
 
     /****************************
-    * Championship Menue Page   *
-    * ***************************/
+     * Championship Actions     *
+     ****************************/
+
+    ActContinueChampionship = new MenueAction();
+    ActContinueChampionship->actionNr = MENUE_ACTION_CHAMPIONSHIP_CONTINUE;
+
+    ActLoadChampionshipSlot = new MenueAction();
+    ActLoadChampionshipSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_LOADSLOT;
+
+    ActSaveChampionshipSlot = new MenueAction();
+    ActSaveChampionshipSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_SAVESLOT;
+
+    /*****************************
+     * Championship Menue Page   *
+     * ***************************/
+
+    ContinueChampionshipEntry = new MenueSingleEntry();
+    ContinueChampionshipEntry->entryText = strdup("CONTINUE CHAMPIONSHIP");
+    ContinueChampionshipEntry->entryNumber = 0;
+    ContinueChampionshipEntry->drawTextScrPosition = irr::core::vector2di(120, 193);
+    ContinueChampionshipEntry->nextMenuePage = NULL;
+    //default make item not selectable
+    ContinueChampionshipEntry->itemSelectable = false;
+    ContinueChampionshipEntry->triggerAction = ActContinueChampionship;
 
     NewChampionshipEntry = new MenueSingleEntry();
-    NewChampionshipEntry->entryText = (char*)"NEW CHAMPIONSHIP";
-    NewChampionshipEntry->entryNumber = 0;
+    NewChampionshipEntry->entryText = strdup("NEW CHAMPIONSHIP");
+    NewChampionshipEntry->entryNumber = 1;
     NewChampionshipEntry->drawTextScrPosition = irr::core::vector2di(163, 215);
     NewChampionshipEntry->nextMenuePage = RaceTrackSelectionPage;
     NewChampionshipEntry->triggerAction = NULL;
 
     LoadChampionshipEntry = new MenueSingleEntry();
-    LoadChampionshipEntry->entryText = (char*)"LOAD CHAMPIONSHIP";
-    LoadChampionshipEntry->entryNumber = 1;
+    LoadChampionshipEntry->entryText = strdup("LOAD CHAMPIONSHIP");
+    LoadChampionshipEntry->entryNumber = 2;
     LoadChampionshipEntry->drawTextScrPosition = irr::core::vector2di(157, 237);
-    LoadChampionshipEntry->nextMenuePage = NULL;
     LoadChampionshipEntry->triggerAction = NULL;
     LoadChampionshipEntry->nextMenuePage = ChampionshipLoadMenuePage;
 
     SaveChampionshipEntry = new MenueSingleEntry();
-    SaveChampionshipEntry->entryText = (char*)"SAVE CHAMPIONSHIP";
-    SaveChampionshipEntry->entryNumber = 2;
+    SaveChampionshipEntry->entryText = strdup("SAVE CHAMPIONSHIP");
+    SaveChampionshipEntry->entryNumber = 3;
     SaveChampionshipEntry->drawTextScrPosition = irr::core::vector2di(157, 259);
-    SaveChampionshipEntry->nextMenuePage = NULL;
     SaveChampionshipEntry->triggerAction = NULL;
     SaveChampionshipEntry->nextMenuePage = ChampionshipSaveMenuePage;
 
     QuitChampionshipEntry = new MenueSingleEntry();
-    QuitChampionshipEntry->entryText = (char*)"QUIT CHAMPIONSHIP";
-    QuitChampionshipEntry->entryNumber = 3;
+    QuitChampionshipEntry->entryText = strdup("QUIT CHAMPIONSHIP");
+    QuitChampionshipEntry->entryNumber = 4;
     QuitChampionshipEntry->drawTextScrPosition = irr::core::vector2di(161, 281);
     QuitChampionshipEntry->nextMenuePage = RaceMenuePage;
     QuitChampionshipEntry->triggerAction = NULL;
 
+    ChampionshipMenuePage->pageEntryVec.push_back(ContinueChampionshipEntry);
     ChampionshipMenuePage->pageEntryVec.push_back(NewChampionshipEntry);
     ChampionshipMenuePage->pageEntryVec.push_back(LoadChampionshipEntry);
     ChampionshipMenuePage->pageEntryVec.push_back(SaveChampionshipEntry);
@@ -420,7 +454,7 @@ void Menue::InitMenuePageEntries() {
     * ********************************/
 
     ChampionshipSaveTxtLabel = new MenueSingleEntry();
-    ChampionshipSaveTxtLabel->entryText = (char*)"SAVE GAME";
+    ChampionshipSaveTxtLabel->entryText = strdup("SAVE GAME");
     ChampionshipSaveTxtLabel->entryNumber = 0;
     ChampionshipSaveTxtLabel->drawTextScrPosition = irr::core::vector2di(230, 162);
     ChampionshipSaveTxtLabel->nextMenuePage = NULL;
@@ -428,42 +462,42 @@ void Menue::InitMenuePageEntries() {
     ChampionshipSaveTxtLabel->itemSelectable = false;
 
     ChampionshipSaveSlot1 = new MenueSingleEntry();
-    ChampionshipSaveSlot1->entryText = (char*)"EMPTY";
+    ChampionshipSaveSlot1->entryText = strdup("EMPTY");
     ChampionshipSaveSlot1->entryNumber = 1;
     ChampionshipSaveSlot1->drawTextScrPosition = irr::core::vector2di(266, 206);
     ChampionshipSaveSlot1->nextMenuePage = NULL;
-    ChampionshipSaveSlot1->triggerAction = NULL;
+    ChampionshipSaveSlot1->triggerAction = ActSaveChampionshipSlot;
 
     ChampionshipSaveSlot2 = new MenueSingleEntry();
-    ChampionshipSaveSlot2->entryText = (char*)"EMPTY";
+    ChampionshipSaveSlot2->entryText = strdup("EMPTY");
     ChampionshipSaveSlot2->entryNumber = 2;
     ChampionshipSaveSlot2->drawTextScrPosition = irr::core::vector2di(266, 228);
     ChampionshipSaveSlot2->nextMenuePage = NULL;
-    ChampionshipSaveSlot2->triggerAction = NULL;
+    ChampionshipSaveSlot2->triggerAction = ActSaveChampionshipSlot;
 
     ChampionshipSaveSlot3 = new MenueSingleEntry();
-    ChampionshipSaveSlot3->entryText = (char*)"EMPTY";
+    ChampionshipSaveSlot3->entryText = strdup("EMPTY");
     ChampionshipSaveSlot3->entryNumber = 3;
     ChampionshipSaveSlot3->drawTextScrPosition = irr::core::vector2di(266, 250);
     ChampionshipSaveSlot3->nextMenuePage = NULL;
-    ChampionshipSaveSlot3->triggerAction = NULL;
+    ChampionshipSaveSlot3->triggerAction = ActSaveChampionshipSlot;
 
     ChampionshipSaveSlot4 = new MenueSingleEntry();
-    ChampionshipSaveSlot4->entryText = (char*)"EMPTY";
+    ChampionshipSaveSlot4->entryText = strdup("EMPTY");
     ChampionshipSaveSlot4->entryNumber = 4;
     ChampionshipSaveSlot4->drawTextScrPosition = irr::core::vector2di(266, 272);
     ChampionshipSaveSlot4->nextMenuePage = NULL;
-    ChampionshipSaveSlot4->triggerAction = NULL;
+    ChampionshipSaveSlot4->triggerAction = ActSaveChampionshipSlot;
 
     ChampionshipSaveSlot5 = new MenueSingleEntry();
-    ChampionshipSaveSlot5->entryText = (char*)"EMPTY";
+    ChampionshipSaveSlot5->entryText = strdup("EMPTY");
     ChampionshipSaveSlot5->entryNumber = 5;
     ChampionshipSaveSlot5->drawTextScrPosition = irr::core::vector2di(266, 294);
     ChampionshipSaveSlot5->nextMenuePage = NULL;
-    ChampionshipSaveSlot5->triggerAction = NULL;
+    ChampionshipSaveSlot5->triggerAction = ActSaveChampionshipSlot;
 
     ChampionshipSaveReturnToChampionsShipMenue = new MenueSingleEntry();
-    ChampionshipSaveReturnToChampionsShipMenue->entryText = (char*)"MAIN OPTIONS";
+    ChampionshipSaveReturnToChampionsShipMenue->entryText = strdup("MAIN OPTIONS");
     ChampionshipSaveReturnToChampionsShipMenue->entryNumber = 6;
     ChampionshipSaveReturnToChampionsShipMenue->drawTextScrPosition = irr::core::vector2di(208, 338);
     ChampionshipSaveReturnToChampionsShipMenue->nextMenuePage = ChampionshipMenuePage;
@@ -484,7 +518,7 @@ void Menue::InitMenuePageEntries() {
     * CHAMPIONSHIP LOAD Menue Page   *
     * ********************************/
     ChampionshipLoadTxtLabel = new MenueSingleEntry();
-    ChampionshipLoadTxtLabel->entryText = (char*)"LOAD GAME";
+    ChampionshipLoadTxtLabel->entryText = strdup("LOAD GAME");
     ChampionshipLoadTxtLabel->entryNumber = 0;
     ChampionshipLoadTxtLabel->drawTextScrPosition = irr::core::vector2di(230, 162);
     ChampionshipLoadTxtLabel->nextMenuePage = NULL;
@@ -492,42 +526,42 @@ void Menue::InitMenuePageEntries() {
     ChampionshipLoadTxtLabel->itemSelectable = false;
 
     ChampionshipLoadSlot1 = new MenueSingleEntry();
-    ChampionshipLoadSlot1->entryText = (char*)"EMPTY";
+    ChampionshipLoadSlot1->entryText = strdup("EMPTY");
     ChampionshipLoadSlot1->entryNumber = 1;
     ChampionshipLoadSlot1->drawTextScrPosition = irr::core::vector2di(266, 206);
     ChampionshipLoadSlot1->nextMenuePage = NULL;
-    ChampionshipLoadSlot1->triggerAction = NULL;
+    ChampionshipLoadSlot1->triggerAction = ActLoadChampionshipSlot;
 
     ChampionshipLoadSlot2 = new MenueSingleEntry();
-    ChampionshipLoadSlot2->entryText = (char*)"EMPTY";
+    ChampionshipLoadSlot2->entryText = strdup("EMPTY");
     ChampionshipLoadSlot2->entryNumber = 2;
     ChampionshipLoadSlot2->drawTextScrPosition = irr::core::vector2di(266, 228);
     ChampionshipLoadSlot2->nextMenuePage = NULL;
-    ChampionshipLoadSlot2->triggerAction = NULL;
+    ChampionshipLoadSlot2->triggerAction = ActLoadChampionshipSlot;
 
     ChampionshipLoadSlot3 = new MenueSingleEntry();
-    ChampionshipLoadSlot3->entryText = (char*)"EMPTY";
+    ChampionshipLoadSlot3->entryText = strdup("EMPTY");
     ChampionshipLoadSlot3->entryNumber = 3;
     ChampionshipLoadSlot3->drawTextScrPosition = irr::core::vector2di(266, 250);
     ChampionshipLoadSlot3->nextMenuePage = NULL;
-    ChampionshipLoadSlot3->triggerAction = NULL;
+    ChampionshipLoadSlot3->triggerAction = ActLoadChampionshipSlot;
 
     ChampionshipLoadSlot4 = new MenueSingleEntry();
-    ChampionshipLoadSlot4->entryText = (char*)"EMPTY";
+    ChampionshipLoadSlot4->entryText = strdup("EMPTY");
     ChampionshipLoadSlot4->entryNumber = 4;
     ChampionshipLoadSlot4->drawTextScrPosition = irr::core::vector2di(266, 272);
     ChampionshipLoadSlot4->nextMenuePage = NULL;
-    ChampionshipLoadSlot4->triggerAction = NULL;
+    ChampionshipLoadSlot4->triggerAction = ActLoadChampionshipSlot;
 
     ChampionshipLoadSlot5 = new MenueSingleEntry();
-    ChampionshipLoadSlot5->entryText = (char*)"EMPTY";
+    ChampionshipLoadSlot5->entryText = strdup("EMPTY");
     ChampionshipLoadSlot5->entryNumber = 5;
     ChampionshipLoadSlot5->drawTextScrPosition = irr::core::vector2di(266, 294);
     ChampionshipLoadSlot5->nextMenuePage = NULL;
-    ChampionshipLoadSlot5->triggerAction = NULL;
+    ChampionshipLoadSlot5->triggerAction = ActLoadChampionshipSlot;
 
     ChampionshipLoadReturnToChampionsShipMenue = new MenueSingleEntry();
-    ChampionshipLoadReturnToChampionsShipMenue->entryText = (char*)"MAIN OPTIONS";
+    ChampionshipLoadReturnToChampionsShipMenue->entryText = strdup("MAIN OPTIONS");
     ChampionshipLoadReturnToChampionsShipMenue->entryNumber = 6;
     ChampionshipLoadReturnToChampionsShipMenue->drawTextScrPosition = irr::core::vector2di(208, 338);
     ChampionshipLoadReturnToChampionsShipMenue->nextMenuePage = ChampionshipMenuePage;
@@ -548,31 +582,31 @@ void Menue::InitMenuePageEntries() {
     * OPTION Level Menue Page   *
     * **************************/
     ChangeName = new MenueSingleEntry();
-    ChangeName->entryText = (char*)"CHANGE NAME";
+    ChangeName->entryText = strdup("CHANGE NAME");
     ChangeName->entryNumber = 0;
     ChangeName->drawTextScrPosition = irr::core::vector2di(210, 182);
     ChangeName->nextMenuePage = ChangeNamePage;
 
     DetailOptions = new MenueSingleEntry();
-    DetailOptions->entryText = (char*)"DETAIL OPTIONS";
+    DetailOptions->entryText = strdup("DETAIL OPTIONS");
     DetailOptions->entryNumber = 1;
     DetailOptions->drawTextScrPosition = irr::core::vector2di(194, 204);
     DetailOptions->nextMenuePage = VideoDetailsPage;
 
     SoundOptions = new MenueSingleEntry();
-    SoundOptions->entryText = (char*)"SOUND OPTIONS";
+    SoundOptions->entryText = strdup("SOUND OPTIONS");
     SoundOptions->entryNumber = 2;
     SoundOptions->drawTextScrPosition = irr::core::vector2di(200, 226);
     SoundOptions->nextMenuePage = SoundOptionsPage;
 
     ReinitializeJoystick = new MenueSingleEntry();
-    ReinitializeJoystick->entryText = (char*)"REINITIALIZE JOYSTICK";
+    ReinitializeJoystick->entryText = strdup("REINITIALIZE JOYSTICK");
     ReinitializeJoystick->entryNumber = 3;
     ReinitializeJoystick->drawTextScrPosition = irr::core::vector2di(135, 248);
     ReinitializeJoystick->nextMenuePage = NULL;
 
     ComputerPlayersCheckBox = new MenueSingleEntry();
-    ComputerPlayersCheckBox->entryText = (char*)"COMPUTER PLAYERS";
+    ComputerPlayersCheckBox->entryText = strdup("COMPUTER PLAYERS");
     ComputerPlayersCheckBox->entryNumber = 4;
     ComputerPlayersCheckBox->drawTextScrPosition = irr::core::vector2di(144, 270);
     ComputerPlayersCheckBox->nextMenuePage = NULL;
@@ -591,7 +625,7 @@ void Menue::InitMenuePageEntries() {
     ComputerPlayersCheckBox->triggerAction = ActSetComputerPlayerEnable;
 
     DifficultyLevel = new MenueSingleEntry();
-    DifficultyLevel->entryText = (char*)"DIFFICULTY LEVEL";
+    DifficultyLevel->entryText = strdup("DIFFICULTY LEVEL");
     DifficultyLevel->entryNumber = 5;
     DifficultyLevel->drawTextScrPosition = irr::core::vector2di(152, 292);
     DifficultyLevel->nextMenuePage = NULL;
@@ -608,7 +642,7 @@ void Menue::InitMenuePageEntries() {
     DifficultyLevel->triggerAction = ActSetDifficultyLevel;
 
     OptionMenuePageBackToMainMenue = new MenueSingleEntry();
-    OptionMenuePageBackToMainMenue->entryText = (char*)"MAIN MENU";
+    OptionMenuePageBackToMainMenue->entryText = strdup("MAIN MENU");
     OptionMenuePageBackToMainMenue->entryNumber = 6;
     OptionMenuePageBackToMainMenue->drawTextScrPosition = irr::core::vector2di(230, 314);
     OptionMenuePageBackToMainMenue->nextMenuePage = TopMenuePage;
@@ -630,7 +664,7 @@ void Menue::InitMenuePageEntries() {
     //the first entry just is used to print label "ENTER NAME"
     //is not selectable
     EnterNameLabel = new MenueSingleEntry();
-    EnterNameLabel->entryText = (char*)"ENTER NAME";
+    EnterNameLabel->entryText = strdup("ENTER NAME");
     EnterNameLabel->entryNumber = 0;
     EnterNameLabel->drawTextScrPosition = irr::core::vector2di(219, 221);
     EnterNameLabel->nextMenuePage = NULL;
@@ -638,7 +672,7 @@ void Menue::InitMenuePageEntries() {
 
     //the second entry is used for player name input
     PlayerNameEnterField = new MenueSingleEntry();
-    PlayerNameEnterField->entryText = (char*)"";  //start with empty name!
+    PlayerNameEnterField->entryText = strdup("");  //start with empty name!
     PlayerNameEnterField->entryNumber = 1;
     PlayerNameEnterField->drawTextScrPosition = irr::core::vector2di(244, 260);
     PlayerNameEnterField->nextMenuePage = NULL;
@@ -665,7 +699,7 @@ void Menue::InitMenuePageEntries() {
     * Video Details Option Menue Page   *
     * ***********************************/
     EnableVSync = new MenueSingleEntry();
-    EnableVSync->entryText = (char*)"ENABLE VSYNC";
+    EnableVSync->entryText = strdup("ENABLE VSYNC");
     EnableVSync->entryNumber = 0;
     EnableVSync->drawTextScrPosition = irr::core::vector2di(144, 270);
     //enable vsync is a checkbox
@@ -679,7 +713,7 @@ void Menue::InitMenuePageEntries() {
     //ComputerPlayersCheckBox->triggerAction = ActSetComputerPlayerEnable;
 
     VideoPageBackToOptionsMenue = new MenueSingleEntry();
-    VideoPageBackToOptionsMenue->entryText = (char*)"MAIN OPTIONS";
+    VideoPageBackToOptionsMenue->entryText = strdup("MAIN OPTIONS");
     VideoPageBackToOptionsMenue->entryNumber = 1;
     VideoPageBackToOptionsMenue->drawTextScrPosition = irr::core::vector2di(230, 314);
     VideoPageBackToOptionsMenue->nextMenuePage = OptionMenuePage;
@@ -695,7 +729,7 @@ void Menue::InitMenuePageEntries() {
     * Sound Options Menue Page   *
     * ****************************/
     MusicVolumeSlider = new MenueSingleEntry();
-    MusicVolumeSlider->entryText = (char*)"MUSIC VOLUME";
+    MusicVolumeSlider->entryText = strdup("MUSIC VOLUME");
     MusicVolumeSlider->entryNumber = 0;
     MusicVolumeSlider->drawTextScrPosition = irr::core::vector2di(113, 225);
     //music volume is a slider with 16 blocks (17 different possible settings)
@@ -722,7 +756,7 @@ void Menue::InitMenuePageEntries() {
     MusicVolumeSlider->triggerAction = ActSetMusicVolume;
 
     EffectsVolumeSlider = new MenueSingleEntry();
-    EffectsVolumeSlider->entryText = (char*)"EFFECTS VOLUME";
+    EffectsVolumeSlider->entryText = strdup("EFFECTS VOLUME");
     EffectsVolumeSlider->entryNumber = 1;
     EffectsVolumeSlider->drawTextScrPosition = irr::core::vector2di(93, 247);
     //effects volume is a slider with 16 blocks (17 different possible settings)
@@ -749,7 +783,7 @@ void Menue::InitMenuePageEntries() {
     EffectsVolumeSlider->triggerAction = ActSetSoundVolume;
 
     SoundOptionsBackToOptionsMenue = new MenueSingleEntry();
-    SoundOptionsBackToOptionsMenue->entryText = (char*)"MAIN OPTIONS";
+    SoundOptionsBackToOptionsMenue->entryText = strdup("MAIN OPTIONS");
     SoundOptionsBackToOptionsMenue->entryNumber = 2;
     SoundOptionsBackToOptionsMenue->drawTextScrPosition = irr::core::vector2di(207, 269);
     SoundOptionsBackToOptionsMenue->nextMenuePage = OptionMenuePage;
@@ -764,7 +798,7 @@ void Menue::InitMenuePageEntries() {
 
     //Race track selection page
     RaceTrackNameTitle = new MenueSingleEntry();
-    RaceTrackNameTitle->entryText = (char*)"";
+    RaceTrackNameTitle->entryText = strdup("");
     RaceTrackNameTitle->entryNumber = 0;
     RaceTrackNameTitle->drawTextScrPosition = irr::core::vector2di(81, 38);
     RaceTrackNameTitle->nextMenuePage = NULL;
@@ -775,7 +809,7 @@ void Menue::InitMenuePageEntries() {
 
     //Ship selection page
     ShipNameTitle = new MenueSingleEntry();
-    ShipNameTitle->entryText = (char*)"";
+    ShipNameTitle->entryText = strdup("");
     ShipNameTitle->entryNumber = 0;
     ShipNameTitle->drawTextScrPosition = irr::core::vector2di(81, 38);
     ShipNameTitle->nextMenuePage = NULL;
@@ -1527,7 +1561,7 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
     //rotate race track and ship models around their Y-AXIS
     //objects are rotating counter clock wise around
     //Y axis
-    curr3DModelRotationDeg -= 500.0f * frameDeltaTime;
+    curr3DModelRotationDeg -= 100.0f * frameDeltaTime;
 
     if (curr3DModelRotationDeg > 360.0f)
         curr3DModelRotationDeg -= 360.0f;
@@ -1554,9 +1588,20 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
 
 void Menue::UnhideRaceTrackModels() {
     //unhide all race track 3D selection models
-    for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
-          this->ModelTrackSceneNodeVec.at(i)->setVisible(true);
-    }
+    //if we are not in championship mode, and can select all available race tracks
+    if (!mChampionshipMode) {
+        for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
+              this->ModelTrackSceneNodeVec.at(i)->setVisible(true);
+        }
+    } else {
+        //in championshipMode we only unhide the one racetrack we should
+        //actually see, all other racetracks we hide
+        for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
+              this->ModelTrackSceneNodeVec.at(i)->setVisible(false);
+        }
+
+        this->ModelTrackSceneNodeVec.at(currSelectedRaceTrack)->setVisible(true);
+   }
 }
 
 void Menue::HideRaceTrackModels() {
@@ -1582,7 +1627,7 @@ void Menue::HideShipModels() {
     }
 }
 
-void Menue::ChangeToShipSelection() {  
+void Menue::ShowShipSelection() {
     //hide race track models, otherwise we would also see them while
     //player ship selection
     HideRaceTrackModels();
@@ -1613,18 +1658,33 @@ void Menue::ChangeToShipSelection() {
     lastAnimationUpdateAbsTime = absoluteTime;
 }
 
-void Menue::ChangeToRaceSelection(MenueSingleEntry* callerItem) {
+//if parameter championshipMode is true, then race selection screen only allows to select exactly
+//one preselected race track. Which race track is shown and selected depends on
+//call this->mGameAssets->GetLastSelectedRaceTrack(). Also the number of laps for the following race does not depend on the
+//user/player selection, but on the default number of laps for this racetrack. As in the original game.
+void Menue::ShowRaceSelection(MenueSingleEntry* callerItem, bool championshipMode = false) {
     //remember from which menue item we were called, important!
     //so that we can return to the correct menue page later when
     //interrupting race track selection prematuraliy
     RaceTrackSelectionCallerMenueEntry = callerItem;
 
+    mChampionshipMode = championshipMode;
+
     //which race track was last selected, restore
     this->currSelectedRaceTrack = this->mGameAssets->GetLastSelectedRaceTrack();
 
-    //get current configured number of laps from config.dat
-    this->currentSelRaceLapNumberVal =
-            this->mGameAssets->mRaceTrackVec->at(this->currSelectedRaceTrack)->currSelNrLaps;
+    if (!championshipMode) {
+        //we are not in championShip mode
+        //get current configured number of laps from config.dat
+        this->currentSelRaceLapNumberVal =
+                this->mGameAssets->mRaceTrackVec->at(this->currSelectedRaceTrack)->currSelNrLaps;
+    } else {
+        //we are in championShip mode
+        //we always use default number of laps for the
+        //race
+        this->currentSelRaceLapNumberVal =
+                this->mGameAssets->mRaceTrackVec->at(this->currSelectedRaceTrack)->defaultNrLaps;
+    }
 
     //put selection "wheel" to correct position immediately, no animation => parameter 3
     Set3DModelRaceTrackWheelPositionIdx(currSelectedRaceTrack, 3);
@@ -1985,7 +2045,8 @@ void Menue::Render(irr::f32 frameDeltaTime) {
     if ((this->currSelMenuePage == RaceTrackSelectionPage) || (this->currSelMenuePage == ShipSelectionPage)) {
         //call racetrack and ship selection rendering source code
         RenderRaceSelection();
-    } else if ((this->currSelMenuePage == gameHighscoreMenuePage) || (this->currSelMenuePage == raceStatsMenuePage)) {
+    } else if ((this->currSelMenuePage == gameHighscoreMenuePage) || (this->currSelMenuePage == raceStatsMenuePage)
+               || (this->currSelMenuePage == pointsTablePage)) {
         RenderStatTextPage(frameDeltaTime);
     } else {
      //default menue rendering source code
@@ -2037,8 +2098,9 @@ void Menue::Render(irr::f32 frameDeltaTime) {
     }
 }
 
-//this render function is used for the race finished stat page and
-//the highscore page (which contains just formated texts)
+//this render function is used for the race finished stat page,
+//the point table pages, and the highscore page
+//(which contains just formated texts)
 void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
     //first draw background picture
     mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
@@ -2053,6 +2115,10 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
         RenderWindow(irr::core::recti(0, 0, 640, 334));
+    } else if (currSelMenuePage == pointsTablePage) {
+        //Render the currently selected window depending on the current
+        //window state (fully open vs. transitioning)
+        RenderWindow(irr::core::recti(25, 18, 618, 301));
     }
 
     irr::s32 printCharLeft = currNrCharsShownCnter;
@@ -2086,6 +2152,8 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
         lblVecPntr = highScorePageTextVec;
     } else if (currSelMenuePage == raceStatsMenuePage) {
         lblVecPntr = raceStatsPageTextVec;
+    } else if (currSelMenuePage == pointsTablePage) {
+        lblVecPntr = pointsTablePageTextVec;
     }
 
     if (lblVecPntr != NULL) {
@@ -2336,12 +2404,32 @@ void Menue::ItemReturn() {
         //special change to race selection menuePage?
         if (currSelMenueSingleEntry->nextMenuePage == RaceTrackSelectionPage) {
             //special handling for change to race selection part of menue logic
-            ChangeToRaceSelection(currSelMenueSingleEntry);
+
+            //if we are at the race menue page, this is a default new race request
+            //if not we want to create a new championship
+            if (currSelMenuePage == this->RaceMenuePage) {
+                ShowRaceSelection(currSelMenueSingleEntry);
+            } else {
+                //reset variables for new championship
+                mGameAssets->NewChampionship();
+
+                //disable the continue championship menue entry
+                ContinueChampionshipEntry->itemSelectable = false;
+
+                //we need to set parameter championShipMode = true!
+                ShowRaceSelection(currSelMenueSingleEntry, true);
+            }
         } else {
           //default menue behavior
 
           //change to first selectable item of activated page (beginning at the top)
           currSelMenuePage = currSelMenueSingleEntry->nextMenuePage;
+
+          //one special case, when we enter the championship savegame load or save page, we first need to search
+          //and update the available save games
+          if ((currSelMenuePage == ChampionshipLoadMenuePage) || (currSelMenuePage == ChampionshipSaveMenuePage)) {
+              UpdateChampionshipSaveGames();
+          }
 
           //do we use typewriter effect?
           if (MENUE_ENABLETYPEWRITEREFFECT) {
@@ -2360,15 +2448,18 @@ void Menue::ItemReturn() {
 
         SelectNewMenueEntryWithEntryNr(currSelMenuePage, MenuePageFindFirstSelectableEntryNr(currSelMenuePage));
       }
+
+      return;
     }
 
     //if not does this menue item have an action we can trigger?
     //when pressing Return key
     if (currSelMenueSingleEntry->triggerAction != NULL) {
-        //we want to trigger/execute an action by the user
-        //set here currValue to 0, because this is not a checkbox/slider action
-        currSelMenueSingleEntry->triggerAction->currSetValue = 0;
-        currActionToExecute = currSelMenueSingleEntry->triggerAction;
+           //we want to trigger/execute an action by the user
+            //we can reuse currSetValue here to indicate the main program
+            //for example which championship slot to load or save and so on
+            currSelMenueSingleEntry->triggerAction->currSetValue = currSelMenueSingleEntry->entryNumber;
+            currActionToExecute = currSelMenueSingleEntry->triggerAction;
     }
 }
 
@@ -2662,7 +2753,10 @@ void Menue::UpdateRaceTrackSelectionTypeWriterEffect() {
 void Menue::HandleInputRaceSelection() {
     //only allow menue input in case window is fully open
     if (currMenueState == MENUE_STATE_SELACTIVE) {
-        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+        //only allow to change the number of laps if we are not currently
+        //in championship mode; the same is true for the track selection keys
+        //in championship mode we can only see one racetrack, and no selection is possible
+        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP) && (!mChampionshipMode)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2677,7 +2771,7 @@ void Menue::HandleInputRaceSelection() {
             RecalculateRaceTrackStatLabels();
         }
 
-        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+        if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN) && (!mChampionshipMode)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2701,14 +2795,23 @@ void Menue::HandleInputRaceSelection() {
             //set new number of default laps for this race track
             this->mGameAssets->SetNewRaceTrackDefaultNrLaps(currSelectedRaceTrack, currentSelRaceLapNumberVal);
 
-            //change to Ship selection page
-            //TODO: add animation of window inbetween!
-            currSelMenuePage = ShipSelectionPage;
+            //if we are in championship mode, and the player should not be able to select craft
+            //anymore then skip ship selection completely
+            if (mChampionshipMode && (!mGameAssets->CanPlayerCurrentlySelectCraftDuringChampionship())) {
+                //skip ship selection
+                mMenueUserInactiveTimer = 0.0f;
 
-            ChangeToShipSelection();
+                //player accepted race setup
+                AcceptedRaceSetup();
+            } else {
+                //change to Ship selection page
+                currSelMenuePage = ShipSelectionPage;
+
+                ShowShipSelection();
+            }
         }
 
-        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_LEFT) && (!mChampionshipMode)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2723,7 +2826,7 @@ void Menue::HandleInputRaceSelection() {
             Set3DModelRaceTrackWheelPositionIdx(currSelectedRaceTrack, 2);
         }
 
-        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT)) {
+        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RIGHT) && (!mChampionshipMode)) {
             mMenueUserInactiveTimer = 0.0f;
 
             //play sound for changing selected menue item
@@ -2789,6 +2892,12 @@ void Menue::HandleInputShipSelection() {
 
         if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
             mMenueUserInactiveTimer = 0.0f;
+
+            //set main player craft selection in assets class
+            this->mGameAssets->SetNewMainPlayerSelectedCraft(this->currSelectedShip);
+
+            //set new default craft color scheme
+            this->mGameAssets->SetCurrentCraftColorScheme(this->currSelectedShipColorScheme);
 
             //player accepted race setup
             AcceptedRaceSetup();
@@ -3068,13 +3177,13 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
     //2 = wheel moving counter clock wise
     //3 = immediatley update position (no rotation), used for restoring last state
     if (RaceTrackWheelMoving == 1) {
-          currRaceTrackWheelAngleDeg += 5.0f;
+          currRaceTrackWheelAngleDeg += 2.0f;
 
           if (targetRaceTrackWheelAngleDeg < currRaceTrackWheelAngleDeg) {
               currRaceTrackWheelAngleDeg -= 360.0f;
           }
 
-          if ((targetRaceTrackWheelAngleDeg - currRaceTrackWheelAngleDeg) < 5.0f) {
+          if ((targetRaceTrackWheelAngleDeg - currRaceTrackWheelAngleDeg) < 2.0f) {
             //turning wheel is finished, set final correct value of angle
             RaceTrackWheelMoving = 0;
             currRaceTrackWheelAngleDeg = targetRaceTrackWheelAngleDeg;
@@ -3086,13 +3195,13 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
     }
 
     if (RaceTrackWheelMoving == 2) {
-        currRaceTrackWheelAngleDeg -= 5.0f;
+        currRaceTrackWheelAngleDeg -= 2.0f;
 
         if (targetRaceTrackWheelAngleDeg > currRaceTrackWheelAngleDeg) {
             currRaceTrackWheelAngleDeg += 360.0f;
         }
 
-        if ((currRaceTrackWheelAngleDeg - targetRaceTrackWheelAngleDeg) < 5.0f) {
+        if ((currRaceTrackWheelAngleDeg - targetRaceTrackWheelAngleDeg) < 2.0f) {
             //turning wheel is finished, set final correct value of angle
             RaceTrackWheelMoving = 0;
             currRaceTrackWheelAngleDeg = targetRaceTrackWheelAngleDeg;
@@ -3116,10 +3225,22 @@ void Menue::Update3DModelRaceTrackWheelPosition() {
     currAngleDeg = currRaceTrackWheelAngleDeg;
 
     for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
-        //Track number i
-        TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
-        TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
-        this->ModelTrackSceneNodeVec.at(i)->setPosition(TrackCoord);
+        if (!mChampionshipMode) {
+            //Track number i
+            TrackCoord.X = CircleRadius * sin((currAngleDeg / 180) * irr::core::PI);
+            TrackCoord.Z = CircleRadius * cos((currAngleDeg / 180) * irr::core::PI);
+            this->ModelTrackSceneNodeVec.at(i)->setPosition(TrackCoord);
+
+            //restore default scaling of race track models
+            this->ModelTrackSceneNodeVec.at(i)->setScale(irr::core::vector3df(1.0f, 1.0f, 1.0f));
+        } else {
+            //additional move the single racetrack model into the middle of the screen if
+            //we are in championship mode
+            this->ModelTrackSceneNodeVec.at(i)->setPosition(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+
+            //also scale model so that it is big enough
+            this->ModelTrackSceneNodeVec.at(i)->setScale(irr::core::vector3df(2.0f, 2.0f, 2.0f));
+        }
 
         currAngleDeg -= (360.0f / irr::f32((this->numRaceTracksAvailable)));
     }
@@ -3135,13 +3256,13 @@ void Menue::Update3DModelShipWheelPosition() {
     //2 = wheel moving counter clock wise
     //3 = immediatley update position (no rotation), used for restoring last state
     if (ShipWheelMoving == 1) {
-          currShipWheelAngleDeg += 5.0f;
+          currShipWheelAngleDeg += 2.0f;
 
           if (targetShipWheelAngleDeg < currShipWheelAngleDeg) {
               currShipWheelAngleDeg -= 360.0f;
           }
 
-          if ((targetShipWheelAngleDeg - currShipWheelAngleDeg) < 5.0f) {
+          if ((targetShipWheelAngleDeg - currShipWheelAngleDeg) < 2.0f) {
               //turning wheel is finished, set final correct value of angle
               ShipWheelMoving = 0;
               currShipWheelAngleDeg = targetShipWheelAngleDeg;
@@ -3150,13 +3271,13 @@ void Menue::Update3DModelShipWheelPosition() {
     }
 
     if (ShipWheelMoving == 2) {
-        currShipWheelAngleDeg -= 5.0f;
+        currShipWheelAngleDeg -= 2.0f;
 
         if (targetShipWheelAngleDeg > currShipWheelAngleDeg) {
             currShipWheelAngleDeg += 360.0f;
         }
 
-        if ((currShipWheelAngleDeg - targetShipWheelAngleDeg) < 5.0f) {
+        if ((currShipWheelAngleDeg - targetShipWheelAngleDeg) < 2.0f) {
             //turning wheel is finished, set final correct value of angle
             ShipWheelMoving = 0;
             currShipWheelAngleDeg = targetShipWheelAngleDeg;
@@ -3447,6 +3568,300 @@ void Menue::ShowMainMenue() {
     currMenueWindowAnimationFinalIdx = windowMenueAnimationStartGame->coordVec.size() - 1;
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
+}
+
+void Menue::UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, std::vector<ChampionshipSaveGameInfoStruct*>::iterator it) {
+    //free the old entry string
+    free(whichEntry.entryText);
+
+    //create the new updated string
+    whichEntry.entryText = strdup((*it)->championshipName);
+
+    //if there is a savegame available in this slot, allow to
+    //select it, otherwise do not
+    whichEntry.itemSelectable = (*it)->saveGameAvail;
+}
+
+void Menue::UpdateChampionshipSaveGames() {
+    //execute a low level search for save games
+    this->mGameAssets->SearchChampionshipSaveGames();
+
+    //the search result is stored in mChampionshipSavegameInfoVec
+    //member variable of Assets class
+    //update menue entries with this information
+    std::vector<ChampionshipSaveGameInfoStruct*>::iterator it;
+
+    irr::u8 idx = 0;
+
+    for (it = this->mGameAssets->mChampionshipSavegameInfoVec.begin(); it !=
+              this->mGameAssets->mChampionshipSavegameInfoVec.end(); ++it) {
+
+        switch(idx) {
+            case 0: {
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipLoadSlot1, it);
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipSaveSlot1, it);
+
+                //slots to save game are always selectable
+                ChampionshipSaveSlot1->itemSelectable = true;
+                break;
+            }
+
+            case 1: {
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipLoadSlot2, it);
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipSaveSlot2, it);
+
+                //slots to save game are always selectable
+                ChampionshipSaveSlot2->itemSelectable = true;
+                break;
+            }
+
+            case 2: {
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipLoadSlot3, it);
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipSaveSlot3, it);
+
+                //slots to save game are always selectable
+                ChampionshipSaveSlot3->itemSelectable = true;
+                break;
+            }
+
+            case 3: {
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipLoadSlot4, it);
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipSaveSlot4, it);
+
+                //slots to save game are always selectable
+                ChampionshipSaveSlot4->itemSelectable = true;
+                break;
+            }
+
+            case 4: {
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipLoadSlot5, it);
+                UpdateChampionshipLoadSlotMenueEntry(*ChampionshipSaveSlot5, it);
+
+                //slots to save game are always selectable
+                ChampionshipSaveSlot5->itemSelectable = true;
+                break;
+            }
+        }
+
+        idx++;
+    }
+
+    //cleanup the data transfer structs again
+    //we do not need them anymore, and we do not want to
+    //have a memory leak
+    mGameAssets->CleanUpChampionshipSaveGameInfo();
+}
+
+void Menue::ContinueChampionship() {
+    //we need to set parameter championShipMode = true!
+    ShowRaceSelection(currSelMenueSingleEntry, true);
+}
+
+void Menue::ShowChampionshipMenue() {
+    mMenueUserInactiveTimer = 0.0f;
+
+    //when a championship race is finished
+    //the original game returns to the championship
+    //top menue
+    currSelMenuePage = this->ChampionshipMenuePage;
+
+    //if there is currently a championship active, then allow to select
+    //the continue championship menue entry
+    //if not then do not activate this entry, in this case the player
+    //needs to first create a new championship
+    if (!mGameAssets->CanPlayerCurrentlySelectCraftDuringChampionship()) {
+        //championship is already created and ongoing
+        currSelMenueSingleEntry = this->ContinueChampionshipEntry;
+        this->ContinueChampionshipEntry->itemSelectable = true;
+    } else {
+        //player needs to first create a new championship
+        currSelMenueSingleEntry = this->NewChampionshipEntry;
+        this->ContinueChampionshipEntry->itemSelectable = false;
+    }
+
+    //initial setup for type writer effect
+    //of main menue
+    if (MENUE_ENABLETYPEWRITEREFFECT) {
+        typeWriterEffectNextCharacterAbsTime = absoluteTime;
+        currNrCharsShownCnter = 0;
+        finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+    }
+
+    //initially activate menue animation for start of game
+    currSelWindowAnimation = windowMenueAnimationStartGame;
+    currMenueWindowAnimationIdx = 0;
+    currMenueWindowAnimationFinalIdx = windowMenueAnimationStartGame->coordVec.size() - 1;
+    currMenueState = MENUE_STATE_TRANSITION;
+    lastAnimationUpdateAbsTime = absoluteTime;
+}
+
+//parameter overallPoints just controls which header text is used
+void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable, bool overallPoints = false) {
+   //if NULL simply return so that we do
+   //not crash
+   if (pointTable == NULL)
+       return;
+
+   //we want to output table sorted starting with highest number of points
+   std::vector<std::pair<irr::u16, char*>> sortedList;
+   sortedList.clear();
+
+   std::vector<PointTableEntryStruct*>::iterator itEntry;
+
+   for (itEntry = pointTable->begin(); itEntry != pointTable->end(); ++itEntry) {
+       sortedList.push_back(std::make_pair((*itEntry)->pointVal, (*itEntry)->namePlayer));
+   }
+
+   //now sort the vector with decreasing points
+   std::sort(sortedList.rbegin(), sortedList.rend());
+
+   //prepare text for this page
+   pointsTablePageTextVec = new std::vector<MenueTextLabel*>();
+   pointsTablePageTextVec->clear();
+
+   MenueTextLabel* newLabel;
+   irr::u32 textYcoord;
+   char* pointValStr;
+   irr::u32 nrCharsOverall = 0;
+
+   //first add menue page title text
+   newLabel = new MenueTextLabel();
+
+   if (!overallPoints) {
+        newLabel->text = strdup("POINTS");
+   } else {
+        newLabel->text = strdup("CHAMPIONSHIP TABLE");
+   }
+
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedEntryFont;
+
+   //calculate header text position
+   newLabel->drawPositionTxt.X = (this->mInfra->mScreenRes.Width / 2) -
+           this->mInfra->mGameTexts->GetWidthPixelsGameText(newLabel->text, newLabel->whichFont) / 2;
+   newLabel->drawPositionTxt.Y = 56;
+
+   //Reuse the visible bool variable in the MenueTextLabel struct
+   //here for another purpose. If we set visible to true we know
+   //that during the Cleanup process of variables of pointPageTable
+   //in function CleanupPointsTablePage we need to free also the
+   //pntr to the text variable; if visible is false, then we must not
+   //free the text string pointer!
+   newLabel->visible = true; //set to true, free text pointer afterwards!
+
+   pointsTablePageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
+   irr::u8 cnt = 0;
+
+   //loop over all players we want to show
+   for (auto it4 = sortedList.begin(); it4 != sortedList.end(); ++it4) {
+       //first calculate textYcoord according to entry line
+       textYcoord = 100 + cnt * 30;
+
+       //for the player name
+       newLabel = new MenueTextLabel();
+       newLabel->drawPositionTxt.X = 79;
+       newLabel->drawPositionTxt.Y = textYcoord;
+
+       //use the player name
+       newLabel->text = strdup((*it4).second);
+       newLabel->visible = true; //we must free this text pointer!
+
+       //for the first 3 entries use white font color
+       //for the remaining entries use header color
+       if (cnt < 3) {
+           newLabel->whichFont = mInfra->mGameTexts->HudWhiteTextBannerFont;
+       } else {
+           newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedEntryFont;
+       }
+
+       pointsTablePageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+
+       //the actual points value
+       pointValStr = new char[5];
+       //use the number of points
+       sprintf(pointValStr, "%u", (*it4).first);
+
+       newLabel = new MenueTextLabel();
+
+       //for the first 3 entries use white font color
+       //for the remaining entries use header color
+       if (cnt < 3) {
+           newLabel->whichFont = mInfra->mGameTexts->HudWhiteTextBannerFont;
+       } else {
+           newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedEntryFont;
+       }
+
+       newLabel->drawPositionTxt.X = 494;
+       newLabel->drawPositionTxt.Y = textYcoord;
+
+       newLabel->text = strdup(pointValStr);
+
+       delete[] pointValStr;
+
+       newLabel->visible = true; //set to true, free text pointer afterwards!
+
+       pointsTablePageTextVec->push_back(newLabel);
+
+       nrCharsOverall += strlen(newLabel->text);
+
+       cnt++;
+   }
+
+   //now we have all the text prepared
+   currSelMenuePage = this->pointsTablePage;
+
+   //there is a non visible dummy menue entry
+   //we need to use it, because we need at least one item
+   currSelMenueSingleEntry = pointsTableMenueDummyEntry;
+
+   //do we use typewriter effect?
+   if (MENUE_ENABLETYPEWRITEREFFECT) {
+     //reset typewriter effect to build
+     //next page correctly
+     currNrCharsShownCnter = 0;
+     finalNrChardsShownMenuePageFinished = nrCharsOverall;
+     typeWriterEffectNextCharacterAbsTime = absoluteTime;
+
+     //for typewriter effect we need to set menue state again
+     //to typewriter inbetween state
+     currMenueState = MENUE_STATE_TYPETEXT;
+   } else {
+     //no skip this effect
+     currMenueState = MENUE_STATE_SELACTIVE;
+   }
+}
+
+void Menue::CleanupPointsTablePage() {
+    std::vector<MenueTextLabel*>::iterator it;
+    MenueTextLabel* labelPntr;
+
+    for (it = this->pointsTablePageTextVec->begin(); it != this->pointsTablePageTextVec->end(); ) {
+        labelPntr = (*it);
+
+        it = this->pointsTablePageTextVec->erase(it);
+
+        //Reuse the visible bool variable in the MenueTextLabel struct
+        //here for another purpose. If we set visible to true we know
+        //that during the Cleanup process of variables of pointsTable screen
+        //in function CleanupPointsTablePage we need to free also the
+        //pntr to the text variable; if visible is false, then we must not
+        //free the text string pointer!
+        if ((*it)->visible) {
+           //visible was set to true, free text pointer!
+           //text was malloced, we NEED to use free!
+           free(labelPntr->text);
+        }
+
+        //delete MenueTextLabel as well
+        delete labelPntr;
+    }
+
+    //also delete the vector of MenueTextLabels we have used
+    delete pointsTablePageTextVec;
 }
 
 void Menue::CleanupHighScorepage() {

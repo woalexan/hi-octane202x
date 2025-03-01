@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -15,6 +15,7 @@
 #include "../utils/fileutils.h"
 #include "../utils/crc32.h"
 #include <string>
+#include "../race.h"
 
 //if we ever want to implement the other languages
 //stored in the game these are the values assigned to the current
@@ -28,14 +29,24 @@
 //values in CONFIG.DAT for the different race craft
 //color schemes, this are the actual used values for each
 //color scheme in this file
-#define GAME_CRAFTCOLSCHEME_MADMEDICINE 0x06
-#define GAME_CRAFTCOLSCHEME_ASSASSINS 0xAA
-#define GAME_CRAFTCOLSCHEME_GOREHOUNDS 0x4A
-#define GAME_CRAFTCOLSCHEME_FOOFIGHTERS 0x10
-#define GAME_CRAFTCOLSCHEME_DETHFEST 0x8C
-#define GAME_CRAFTCOLSCHEME_FIREPHREAKS 0x16
-#define GAME_CRAFTCOLSCHEME_STORMRIDERS 0x17
-#define GAME_CRAFTCOLSCHEME_BULLFROG 0x8F
+#define GAME_CRAFTCOLSCHEME_MADMEDICINE 0
+#define GAME_CRAFTCOLSCHEME_ASSASSINS 1
+#define GAME_CRAFTCOLSCHEME_GOREHOUNDS 2
+#define GAME_CRAFTCOLSCHEME_FOOFIGHTERS 3
+#define GAME_CRAFTCOLSCHEME_DETHFEST 4
+#define GAME_CRAFTCOLSCHEME_FIREPHREAKS 5
+#define GAME_CRAFTCOLSCHEME_STORMRIDERS 6
+#define GAME_CRAFTCOLSCHEME_BULLFROG 7
+
+//default number of race track laps
+#define GAME_DEFAULT_LAPS_TRACK1 11
+#define GAME_DEFAULT_LAPS_TRACK2 8
+#define GAME_DEFAULT_LAPS_TRACK3 9
+#define GAME_DEFAULT_LAPS_TRACK4 8
+#define GAME_DEFAULT_LAPS_TRACK5 9
+#define GAME_DEFAULT_LAPS_TRACK6 5
+
+struct RaceStatsEntryStruct; //Forward declaration
 
 struct RaceTrackInfoStruct {
     //number of this race track level
@@ -144,6 +155,20 @@ struct HighScoreEntryStruct {
     irr::u8 playerAssessementVal;
 };
 
+struct PointTableEntryStruct {
+    //the name of the player for this entry
+    char* namePlayer;
+
+    //the point value for this entry
+    irr::u8 pointVal;
+};
+
+struct ChampionshipSaveGameInfoStruct {
+    bool saveGameAvail;
+
+    char* championshipName;
+};
+
 class Assets {
 public:
     Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::scene::ISceneManager* smgr,
@@ -158,6 +183,7 @@ public:
     std::vector<PilotInfoStruct*> *mPilotVec;
     PilotInfoStruct* humanPilot;
 
+    //overloaded function to be called from outside, always works with config.dat
     void SetNewMainPlayerName(char* newName);
     char* GetNewMainPlayerName();
 
@@ -165,6 +191,7 @@ public:
      * Race Track setup  stuff            *
      * ************************************/
 
+    //overloaded function to be called from outside, always works with config.dat
     //levelNumber starts with index 0 for level 1!
     void SetNewLastSelectedRaceTrack(int newLevelNumber);
     //levelNumber starts with index 0 for level 1!
@@ -176,10 +203,11 @@ public:
      * Selected craft setup  stuff        *
      * ************************************/
 
+    //overloaded functions to be called from outside, always works with config.dat
     void SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr);
-    irr::u8 GetMainPlayerSelectedCraft();
-
     void SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme);
+
+    irr::u8 GetMainPlayerSelectedCraft();
     irr::u8 GetCurrentCraftColorScheme();
 
     //rotates through the available color schemes, so
@@ -210,6 +238,7 @@ public:
      * General game config stuff          *
      * ************************************/
 
+    //overloaded function to be called from outside, always works with config.dat
     void SetCurrentGameLanguage(irr::u8 newLanguage);
     irr::u8 GetCurrentGameLanguage();
 
@@ -218,6 +247,7 @@ public:
     void SetComputerPlayersEnabled(bool enabled);
     bool GetComputerPlayersEnabled();
 
+    //overloaded function to be called from outside, always works with config.dat
     void SetGameDifficulty(irr::u8 newDifficulty);
     irr::u8 GetCurrentGameDifficulty();
 
@@ -226,17 +256,68 @@ public:
     irr::f32 GetSoundVolume();
     irr::f32 GetMusicVolume();
 
+    irr::u8 GetCurrentTextureMappingQuality();
+    bool GetSkyEnabled();
+    bool GetShadingEnabled();
+
     /**************************************
      * Championship stuff                 *
      * ************************************/
 
+    //overloaded function to be called from outside, always works with config.dat
     void SetCurrentChampionshipName(char* newName);
     char* GetCurrentChampionshipName();
+
+    std::vector<PointTableEntryStruct*>* GetLastRacePointsTable(std::vector<RaceStatsEntryStruct*>* lastRaceStats);
+
+    //This function does two things: Calculate new overall championship points for the currently active
+    //championship. Secondly the new result point table is returned in a dynamically allocated vector of PointTableEntryStruct
+    //structs
+    std::vector<PointTableEntryStruct*>* UpdateChampionshipOverallPointTable(std::vector<PointTableEntryStruct*>* pointTableRace);
+
+    //Helper function to determine if player can currently select a craft
+    //during any point of the championship; In the original game the player
+    //craft can only be selected once, right at the start of a new
+    //championship
+    bool CanPlayerCurrentlySelectCraftDuringChampionship();
+
+    //resets all internal member variables to
+    //enter a new championship
+    void NewChampionship();
+
+    //returns true in case of success, false otherwise
+    bool LoadChampionshipSaveGame(irr::u8 whichSlotNr);
+    bool SaveChampionshipSaveGame(irr::u8 whichSlotNr);
+
+    void SearchChampionshipSaveGames();
+    std::vector<ChampionshipSaveGameInfoStruct*> mChampionshipSavegameInfoVec;
+    void CleanUpChampionshipSaveGameInfo();
 
 private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
     irr::scene::ISceneManager* mySmgr;
+
+    void SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr, char** bufPntr);
+    void SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme, char** bufPntr);
+    //levelNumber starts with index 0 for level 1!
+    void SetNewLastSelectedRaceTrack(int newLevelNumber, char** bufPntr);
+    void SetNewMainPlayerName(char* newName, char** bufPntr);
+    void SetCurrentChampionshipName(char* newName, char** bufPntr);
+    void SetGameDifficulty(irr::u8 newDifficulty, char** bufPntr);
+    void SetCurrentGameLanguage(irr::u8 newLanguage, char** bufPntr);
+    void SetSoundVolume(irr::f32 newSoundVolume, char** bufPntr);
+    void SetMusicVolume(irr::f32 newMusicVolume, char** bufPntr);
+    void SetSkyEnabled(bool newSkyEnabled, char** bufPntr);
+    void SetShadingEnabled(bool newShadingEnabled, char** bufPntr);
+    void SetTextureMappingQuality(irr::u8 newTextureMappingQuality, char** bufPntr);
+
+    void CreateEmptyHighScoreTableEntry(char** targetBuf, irr::u8 entryNr);
+    void CreateEmptyHighScoreTable(char** targetBuf);
+    void CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeBytes);
+    void WriteCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* inputInfoStruct, char** targetBuf);
+    void WriteMeSomeBytesIDoNotKnowWhatTheMean(char** targetBuf, irr::u8 unknownValue, size_t writePosition);
+    void WriteMe8UnknownBytes(char** targetBuf, irr::u8 unknownValue, size_t writePosition);
 
     bool mUpdateGameConfigFile;
 
@@ -245,6 +326,7 @@ private:
     irr::u8 currPilotNr = 1;
 
     void InitRaceTracks();
+    RaceTrackInfoStruct* CreateNewDefaultRaceTrackStats(irr::u8 levelNr, irr::u8 defaultNrLaps);
     void AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNrLaps);
     void InitCrafts();
     void AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, irr::u8 statArmour,
@@ -263,26 +345,42 @@ private:
 
     bool mCurrentConfigFileRead;
 
+    //returns true if a config.dat file was
+    //located, the absolute path to this file is stored
+    //in member variable mAbsPathConfigFile
+    bool FindGameConfigFile();
+    char* mAbsPathConfigFile = NULL;
+
     //Routines handling the default games config.dat file
-    bool ReadGameConfigFile(char** targetBuf, size_t &outBufSize);
-    bool WriteGameConfigFile();
+    //is also used for reading and saving championship game save files
+    bool ReadGameConfigFile(char* filename, char** targetBuf, size_t &outBufSize);
+    bool WriteGameConfigFile(char* filename, char** sourceBuf, size_t inBufSize);
 
     int32_t ConvertByteArray_ToInt32(char* bytes, size_t start_position);
-    void ReadNullTerminatedString(char* bytes, size_t start_position, char* outString, irr::u8 maxStrLen);
+    void ConvertInt32_ToByteArray(char* outBytes, size_t start_position, int32_t inputVal);
+    void ReadNullTerminatedString(char* bytes, size_t start_position, char** outString, irr::u8 maxStrLen);
     void WriteNullTerminatedString(char* bytes, size_t start_position, char* writeString, irr::u8 maxStrLen);
 
     //This functions only work in case the original games config file was already successfully read
     //before!
-    bool DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct);
-    bool DecodeMainPlayerName();
-    bool DecodeHighScoreTable();
-    bool DecodeCurrentGameLanguage();
-    bool DecodeCurrentCraftColorScheme();
-    bool DecodeCurrentChampionshipName();
-    bool DecodeLastSelectedRaceTrack();
-    bool DecodeLastSelectedCraft();
-    bool DecodeGameDifficultySetting();
-    bool DecodeAudioVolumes();
+
+    //the following routines are not only used to decode data from
+    //config.dat with general settings, but are also used in parallel
+    //to decode the information in championship save game files
+    void DecodeMainPlayerName(char** bufPntr);
+    void DecodeCurrentCraftColorScheme(char** bufPntr);
+    void DecodeCurrentChampionshipName(char** bufPntr, char** outStr);
+    void DecodeLastSelectedRaceTrack(char** bufPntr);
+    void DecodeLastSelectedCraft(char** bufPntr);
+    void DecodeGameDifficultySetting(char** bufPntr);
+    void DecodeGraphicSettings(char** bufPntr);
+
+    //the following routines are only used for config.dat
+    //handling
+    void DecodeCurrentRaceTrackStats(irr::u32 nrRaceTrack, RaceTrackInfoStruct* targetInfoStruct);
+    void DecodeHighScoreTable();
+    void DecodeCurrentGameLanguage();
+    void DecodeAudioVolumes();
 
     irr::u8 GetColorSchemeIndexNumberFromColorScheme(irr::u8 configFileValue);
     irr::u8 ConvertVolumeProjectToHioctane(irr::f32 newVolumeProject);
@@ -331,6 +429,33 @@ private:
     //currently set volume for music
     //ranges from 0 (off) up to 200 (max volume)
     irr::u8 currVolumeMusic;
+
+    //graphic option, shading enabled
+    bool mShadingEnabled;
+
+    //graphic option, sky enabled
+    bool mSkyEnabled;
+
+    //graphic option, texture mapping quality setting
+    //lowest setting is 0, highest possible setting is 5
+    irr::u8 mTextureMappingQuality;
+
+    /************************************************
+     * Championship save game stuff                 *
+     * **********************************************/
+
+    char* currentChampionshipSaveGameDataByteArray = NULL;
+    size_t currentChampionshipSaveGameDataByteArrayLen = 0;
+
+    std::vector<irr::u16> mCurrChampionshipOverallPointVec;
+
+    irr::u16 ReadChampionShipOverallPointTableEntry(char** bufPntr, irr::u8 playerNr);
+    void DecodeChampionShipOverallPointTable(char** bufPntr);
+
+    void WriteChampionShipOverallPointTableEntry(char** bufPntr, irr::u8 playerNr, irr::u16 newPointsValue);
+    void WriteChampionShipOverallPointTable(char** bufPntr);
+
+    bool SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** championshipNameOutBuf);
 };
 
 #endif // ASSETS_H

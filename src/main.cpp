@@ -55,11 +55,11 @@ int main()
     //init all ok
     //run the game in default way
     //via menue with next line
-    //mGame->RunGame();
+    mGame->RunGame();
 
     //uncomment next line to skip menue and to
     //enter race directly
-    mGame->DebugGame();
+    //mGame->DebugGame();
 
     return 0;
 }
