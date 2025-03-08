@@ -61,6 +61,21 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
     }
 }
 
+//delivers a random machine gun shoot location at the area of the
+//player craft model
+irr::core::vector3df Player::GetRandomMGunShootTargetLocation() {
+    irr::core::vector3df randLocation;
+
+    randLocation.set(mPlayerModelExtend.X * this->mInfra->randFloat(),
+                     mPlayerModelExtend.Y * this->mInfra->randFloat(),
+                     mPlayerModelExtend.Z * this->mInfra->randFloat());
+
+    randLocation -= mPlayerModelExtend * irr::core::vector3df(0.5f, 0.5f, 0.5f);
+    randLocation += this->phobj->physicState.position;
+
+    return randLocation;
+}
+
 //Get current weapon shooting target for this player
 //Returns true if there was a target found, False otherwise
 bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
@@ -125,6 +140,9 @@ Player::~Player() {
     //free memory of all player stats
     delete mPlayerStats;
     mPlayerStats = NULL;
+
+    delete mFinalPlayerStats;
+    mFinalPlayerStats = NULL;
 
     //delete/clean all stuff
     //linked to player commands
@@ -253,6 +271,9 @@ void Player::FinishedRace() {
     this->mCurrentViewMode = CAMERA_EXTERNALVIEW;
 
     SetNewState(STATE_PLAYER_FINISHED);
+
+    //create a copy of the final player stats
+    *mFinalPlayerStats = *mPlayerStats;
 
     LogMessage((char*)"I have finished the race");
 
@@ -404,6 +425,10 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     mInfra = infra;
 
+    //mFinalPlayerStats allows to make a copy of the
+    //final player stats, when the player finishes the race
+    mFinalPlayerStats = new PLAYERSTATS();
+
     mPlayerStats = new PLAYERSTATS();
 
     SetNewState(STATE_PLAYER_RACING);
@@ -411,9 +436,11 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     mPlayerStats->speed = 0.0f;
     mHumanPlayer = humanPlayer;
 
-    mPlayerStats->shieldVal = 100.0;
-    mPlayerStats->gasolineVal = 100.0;
-    mPlayerStats->ammoVal = 100.0;
+    mPlayerStats->shieldVal = mPlayerStats->shieldMax;
+    mPlayerStats->gasolineVal = mPlayerStats->gasolineMax;
+
+    //at the start the player has 6 missiles
+    mPlayerStats->ammoVal = mPlayerStats->ammoMax;
 
     mPlayerStats->boosterVal = 0.0;
     mPlayerStats->throttleVal = 0.0f;
@@ -422,9 +449,9 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     //integer value, each count equals to 100ms of time
     mPlayerStats->lapTimeList.clear();
     mPlayerStats->lastLap.lapNr = 0;
-    mPlayerStats->lastLap.lapTimeMultiple100mSec = 0;
+    mPlayerStats->lastLap.lapTimeMultiple40mSec = 0;
     mPlayerStats->LapBeforeLastLap.lapNr = 0;
-    mPlayerStats->LapBeforeLastLap.lapTimeMultiple100mSec = 0;
+    mPlayerStats->LapBeforeLastLap.lapTimeMultiple40mSec = 0;
     mPlayerStats->raceNumberLaps = nrLaps;
 
     mRace = race;
@@ -462,6 +489,14 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
        // add shadow
        PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();
     }
+
+    //get player bounding box, to use later for machine gun targeting
+    irr::core::aabbox3df Player_node_bbox = Player_node->getTransformedBoundingBox();
+
+    mPlayerModelExtend = Player_node_bbox.getExtent();
+    //reduce the extend by a factor of 2, so that we do not shoot at such
+    //a wide range at the player model
+    mPlayerModelExtend *= 0.5f;
 
     mCraftVisible = true;
     mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
@@ -3953,7 +3988,8 @@ void Player::UpdateInternalCoordVariables() {
 
 void Player::Update(irr::f32 frameDeltaTime) {
     if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
-        && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)) {
+        && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)
+        && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
             //advance current lap lap time, frameDeltaTime is in seconds
             mPlayerStats->currLapTimeExact += frameDeltaTime;
        }
@@ -3996,7 +4032,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
     }
 
     //calculate lap time for Hud display
-    mPlayerStats->currLapTimeMultiple100mSec = (mPlayerStats->currLapTimeExact * 10);
+    //the number of lap time in HUD seems to indicate the time in
+    //multiple of 40mSec, so every 40 mSec the number is increased by one integer
+    mPlayerStats->currLapTimeMultiple40mSec = (mPlayerStats->currLapTimeExact * 25);
 
     //calculate player craft world coordinates
     UpdateInternalCoordVariables();
@@ -4014,6 +4052,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
     /************ Update player camera stuff end ************/
 
     //check if this player is located at a charging station (gasoline, ammo or shield)
+
+    //Very important TODO: right now the charging speed will most likely dependent
+    //on the current FPS frame rate, this needs to be fixed!
     CheckForChargingStation();
 
     //execute code for fuel consumption, create low fuel
@@ -4023,6 +4064,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //execute source code to create low/empty ammo
     //warnings
     HandleAmmo();
+
+    //create low shield warnings
+    HandleShield();
 
     //TestCpForceControlLogicWithHumanPlayer();
 
@@ -4394,6 +4438,15 @@ HUD* Player::GetMyHUD() {
     return mHUD;
 }
 
+bool Player::IsCurrentlyValidTarget() {
+    //player is only a valid attack target
+    //when actively in racing state
+    if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING)
+        return true;
+
+    return false;
+}
+
 void Player::SetTarget(Player* newTarget) {
     if (newTarget != mLastTargetPlayer) {
         //reset missle lock progress to max value
@@ -4485,7 +4538,9 @@ void Player::CheckForChargingStation() {
         {
            atCharger = true;
 
-            this->mPlayerStats->shieldVal++;
+           //shield charging from completely empty to completely
+           //full does take approx. 4 seconds in the original game
+            this->mPlayerStats->shieldVal += 0.22f;
 
             RepairGlasBreaks();
 
@@ -4509,7 +4564,9 @@ void Player::CheckForChargingStation() {
         {
             atCharger = true;
 
-            this->mPlayerStats->ammoVal++;
+            //ammo charging from completely empty to completely
+            //full does take approx. 4 seconds in the original game
+            this->mPlayerStats->ammoVal += 0.02f;
             if (mHUD != NULL) {
                 if (mPlayerStats->ammoVal >= mPlayerStats->ammoMax) {
                     mPlayerStats->ammoVal = mPlayerStats->ammoMax;
@@ -4530,7 +4587,9 @@ void Player::CheckForChargingStation() {
         {
             atCharger = true;
 
-            this->mPlayerStats->gasolineVal++;
+            //fuel charging from completely empty to completely
+            //full does take approx. 4 seconds in the original game
+            this->mPlayerStats->gasolineVal += 0.15f;
 
              if (mHUD != NULL) {
                 if (mPlayerStats->gasolineVal >= mPlayerStats->gasolineMax) {
@@ -4798,24 +4857,29 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
 
 //is called when the player collected a collectable item of the
 //level
-void Player::CollectedCollectable(Collectable* whichCollectable) {
-    //play sound
-    if (this->mHumanPlayer) {
-        this->mRace->mSoundEngine->PlaySound(SRES_GAME_PICKUP);
-    }
-
-  //depending on the type of entity/collectable alter player stats
+bool Player::CollectedCollectable(Collectable* whichCollectable) {
+    //depending on the type of entity/collectable alter player stats
     Entity::EntityType type = whichCollectable->GetCollectableType();
 
-    //Alex TODO important: figure out what the items do exactly with the player stats and how
-    //much the effect is, right now this stuff does not make much sense to me
+    //Note 08.03.2025: I was able to figure out the fuel and ammo items by comparing the effects
+    //in the original game with the effects in my project approx.
     switch (type) {
         case Entity::EntityType::ExtraFuel:
+            //Fuel item can only be picked up by the player, if fuel is currently
+            //not at max
+            if (!(this->mPlayerStats->gasolineVal < (this->mPlayerStats->gasolineMax * 0.98f))) {
+                //fuel is pretty maxed out, return without picking item up
+                return false;
+            }
+
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"EXTRA FUEL", 4.0f);
             }
 
-            this->mPlayerStats->gasolineVal += 10.0f;
+            //after collecting an extra fuel when almost empty in the original game
+            //7 fuel bars where shown in the Hud afterwards, which is a fuel value between
+            //12f and 14f; so adding 12.0f should be approx. correct
+            this->mPlayerStats->gasolineVal += 12.0f;
             if (this->mPlayerStats->gasolineVal > this->mPlayerStats->gasolineMax)
                 this->mPlayerStats->gasolineVal = this->mPlayerStats->gasolineMax;
 
@@ -4826,9 +4890,10 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"FUEL FULL", 4.0f);
             }
 
-            this->mPlayerStats->gasolineVal += 100.0f;
-            if (this->mPlayerStats->gasolineVal > this->mPlayerStats->gasolineMax)
-                this->mPlayerStats->gasolineVal = this->mPlayerStats->gasolineMax;
+            //the fuel full item sets the current fuel level to
+            //max possible fuel level; the max possible fuel level is not modified
+
+            this->mPlayerStats->gasolineVal = this->mPlayerStats->gasolineMax;
 
             break;
 
@@ -4837,17 +4902,36 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE FULL", 4.0f);
             }
 
-            this->mPlayerStats->gasolineVal += 200.0f;
-            if (this->mPlayerStats->gasolineVal > this->mPlayerStats->gasolineMax)
-                this->mPlayerStats->gasolineVal = this->mPlayerStats->gasolineMax;
+            //the double fuel item sets the current gasoline level
+            //to twice the max possible value
+            //the max possible value is not modified;
+            //that means the first half possible distance the player
+            //takes on the course afterwards does not reduce the number of
+            //indicated fuel available bars in the Hud. This is also in the original
+            //game
+
+            this->mPlayerStats->gasolineVal = 2.0f * this->mPlayerStats->gasolineMax;
 
             break;
 
         case Entity::EntityType::ExtraAmmo:
+            //the extra ammo item increases the number of ammo
+            //(missiles) by exactly one missile. But this item can only be picked
+            //up by the player, if there is space for an additional missile
+            //if ammo is already at ammo max this item can not be picked up
+
+            if (!(this->mPlayerStats->ammoVal < this->mPlayerStats->ammoMax)) {
+                //ammo already full, collectible is not picked up
+                return false;
+            }
+
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"EXTRA AMMO", 4.0f);
             }
-            this->mPlayerStats->ammoVal += 10.0f;
+
+            //add one missile
+            this->mPlayerStats->ammoVal += 1.0f;
+
             if (this->mPlayerStats->ammoVal > this->mPlayerStats->ammoMax)
                 this->mPlayerStats->ammoVal = this->mPlayerStats->ammoMax;
 
@@ -4857,9 +4941,11 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"AMMO FULL", 4.0f);
             }
-            this->mPlayerStats->ammoVal += 100.0f;
-            if (this->mPlayerStats->ammoVal > this->mPlayerStats->ammoMax)
-                this->mPlayerStats->ammoVal = this->mPlayerStats->ammoMax;
+
+            //the ammo full item sets the number
+            //of available ammo (missiles) to max value
+            //the max possible number of ammo stays at 6
+            this->mPlayerStats->ammoVal = this->mPlayerStats->ammoMax;
 
             break;
 
@@ -4868,18 +4954,28 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE AMMO", 4.0f);
             }
 
-            this->mPlayerStats->ammoVal += 200.0f;
-            if (this->mPlayerStats->ammoVal > this->mPlayerStats->ammoMax)
-                this->mPlayerStats->ammoVal = this->mPlayerStats->ammoMax;
-
+            //the double ammo item sets the number
+            //of available ammo (missiles) to twice the max possible value
+            //the max possible number of ammo stays at 6
+            //that means the first 6 missiles that are fired, do not
+            //reduce the number of indicated bars in the Hud
+            this->mPlayerStats->ammoVal = 2.0f * this->mPlayerStats->ammoMax;
             break;
 
-        case Entity::EntityType::ExtraShield:
+        case Entity::EntityType::ExtraShield: 
+            //the extra shield item increases the number of shield
+            //hud bars by approx. 2 bars. But this item can only be picked
+            //up by the player, if the player has not already full shield
+            if (!(this->mPlayerStats->shieldVal < this->mPlayerStats->shieldMax)) {
+                //shield already full, collectible is not picked up
+                return false;
+            }
+
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"EXTRA SHIELD", 4.0f);
             }
 
-            this->mPlayerStats->shieldVal += 10.0f;
+            this->mPlayerStats->shieldVal += 15.0f;
             if (this->mPlayerStats->shieldVal > this->mPlayerStats->shieldMax)
                 this->mPlayerStats->shieldVal = this->mPlayerStats->shieldMax;
 
@@ -4890,9 +4986,11 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"SHIELD FULL", 4.0f);
             }
 
-            this->mPlayerStats->shieldVal += 100.0f;
-            if (this->mPlayerStats->shieldVal > this->mPlayerStats->shieldMax)
-                this->mPlayerStats->shieldVal = this->mPlayerStats->shieldMax;
+            //based on how the fuel and ammo full item works (observed in original
+            //game), I guessed that the shield item should do the same. I did not actually
+            //fact check this with the original game
+
+            this->mPlayerStats->shieldVal = this->mPlayerStats->shieldMax;
 
             break;
 
@@ -4901,42 +4999,58 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE SHIELD", 4.0f);
             }
 
-            this->mPlayerStats->shieldVal += 200.0f;
-            if (this->mPlayerStats->shieldVal > this->mPlayerStats->shieldMax)
-                this->mPlayerStats->shieldVal = this->mPlayerStats->shieldMax;
+            //based on how the fuel and ammo double item works (observed in original
+            //game), I guessed that the shield item should do the same. I did not actually
+            //fact check this with the original game
+
+            this->mPlayerStats->shieldVal = 2.0f * this->mPlayerStats->shieldMax;
 
             break;
 
         case Entity::EntityType::BoosterUpgrade:
-            //upgrade players booster
-            if (mHUD != NULL) {
-                this->mHUD->ShowBannerText((char*)"BOOSTER UPGRADED", 4.0f);
-            }
-
-            if (this->mPlayerStats->currBoosterUpgradeLevel < 3)
+            //can only be picked up if booster upgrade level is not already
+            //at max
+            if (this->mPlayerStats->currBoosterUpgradeLevel < 3) {
                 this->mPlayerStats->currBoosterUpgradeLevel++;
+
+                //upgrade players booster
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"BOOSTER UPGRADED", 4.0f);
+                }
+            } else {
+                return false;
+            }
 
             break;
 
         case Entity::EntityType::MissileUpgrade:
-            //upgrade players rocket
-            if (mHUD != NULL) {
-                this->mHUD->ShowBannerText((char*)"MISSILE UPGRADED", 4.0f);
-            }
-
-            if (this->mPlayerStats->currRocketUpgradeLevel < 3)
+            //can only be picked up if missile upgrade level is not already
+            //at max
+            if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
                 this->mPlayerStats->currRocketUpgradeLevel++;
+
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"MISSILE UPGRADED", 4.0f);
+                }
+            } else {
+                return false;
+            }
 
             break;
 
         case Entity::EntityType::MinigunUpgrade:
-            //upgrade players mini-gun
-            if (mHUD != NULL) {
-                this->mHUD->ShowBannerText((char*)"MINIGUN UPGRADED", 4.0f);
-            }
-
-            if (this->mPlayerStats->currMinigunUpgradeLevel < 3)
+            //can only be picked up if mini-gun upgrade level is not already
+            //at max
+            if (this->mPlayerStats->currMinigunUpgradeLevel < 3) {
                 this->mPlayerStats->currMinigunUpgradeLevel++;
+
+                //upgrade players mini-gun
+                if (mHUD != NULL) {
+                    this->mHUD->ShowBannerText((char*)"MINIGUN UPGRADED", 4.0f);
+                }
+            } else {
+                return false;
+            }
 
             break;
 
@@ -4957,6 +5071,14 @@ void Player::CollectedCollectable(Collectable* whichCollectable) {
         default:
             break;
     }
+
+    //play sound
+    if (this->mHumanPlayer) {
+        this->mRace->mSoundEngine->PlaySound(SRES_GAME_PICKUP);
+    }
+
+    //collectible was picked up
+    return true;
 
 //    //if this is a computer player, was this item planed to be picked
 //    //up? if so reset variables for collectable logic
@@ -4997,26 +5119,26 @@ void Player::FinishedLap() {
     //as we need this data every time we want to render a frame!
     if (mPlayerStats->currLapNumber > 1) {
         mPlayerStats->LapBeforeLastLap.lapNr = mPlayerStats->lastLap.lapNr;
-        mPlayerStats->LapBeforeLastLap.lapTimeMultiple100mSec = mPlayerStats->lastLap.lapTimeMultiple100mSec;
+        mPlayerStats->LapBeforeLastLap.lapTimeMultiple40mSec = mPlayerStats->lastLap.lapTimeMultiple40mSec;
     }
 
     if (mPlayerStats->currLapNumber > 0) {
         mPlayerStats->lastLap.lapNr = mPlayerStats->currLapNumber;
-        mPlayerStats->lastLap.lapTimeMultiple100mSec = mPlayerStats->currLapTimeMultiple100mSec;
+        mPlayerStats->lastLap.lapTimeMultiple40mSec = mPlayerStats->currLapTimeMultiple40mSec;
     }
 
     //make sure we have at least one laptime entry
     if (mPlayerStats->lapTimeList.size() > 0) {
         for(idx = mPlayerStats->lapTimeList.begin(); idx < mPlayerStats->lapTimeList.end(); idx++)
             {
-                if (mPlayerStats->currLapTimeMultiple100mSec <  (*idx).lapTimeMultiple100mSec)
+                if (mPlayerStats->currLapTimeMultiple40mSec <  (*idx).lapTimeMultiple40mSec)
                     break;
             }
     } else idx = mPlayerStats->lapTimeList.end();
 
     LAPTIMEENTRY newEntry;
     newEntry.lapNr = mPlayerStats->currLapNumber;
-    newEntry.lapTimeMultiple100mSec = mPlayerStats->currLapTimeMultiple100mSec;
+    newEntry.lapTimeMultiple40mSec = mPlayerStats->currLapTimeMultiple40mSec;
 
     mPlayerStats->lapTimeList.insert(idx, newEntry);
 
@@ -5049,7 +5171,7 @@ void Player::FinishedLap() {
 
     //reset current lap time
     mPlayerStats->currLapTimeExact = 0.0;
-    mPlayerStats->currLapTimeMultiple100mSec = 0;
+    mPlayerStats->currLapTimeMultiple40mSec = 0;
 }
 
 //adds a single random location glas break
@@ -5156,7 +5278,7 @@ void Player::HandleFuel() {
     //remove some gasoline if we are moving fast enough
     //TODO: check with actual game how gasoline burning works exactly
     if (phobj->physicState.speed > 3.0f) {
-        mPlayerStats->gasolineVal -= 0.02f;
+        mPlayerStats->gasolineVal -= 0.012f;
 
         if (mPlayerStats->gasolineVal <= 0.0f) {
             if (!mEmptyFuelWarningAlreadyShown) {
@@ -5175,7 +5297,7 @@ void Player::HandleFuel() {
                     mRecoveryVehicleCalled = true;
                 }
             }
-        } else if (mPlayerStats->gasolineVal < (mPlayerStats->gasolineMax * 0.25f)) {
+        } else if (mPlayerStats->gasolineVal <= 25.0f) {
             if (!mLowFuelWarningAlreadyShown) {
                 if (mHUD != NULL) {
                     this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
@@ -5194,21 +5316,49 @@ void Player::HandleFuel() {
           }
     }
 
-     if (mPlayerStats->gasolineVal > (mPlayerStats->gasolineMax * 0.25f)) {
+     if (mPlayerStats->gasolineVal > 25.0f) {
           mLowFuelWarningAlreadyShown = false;
      }
 }
 
+bool Player::ShouldAmmoBarBlink() {
+    if (mLowAmmoWarningAlreadyShown)
+        return true;
+
+    if (mEmptyAmmoWarningAlreadyShown)
+        return true;
+
+    return false;
+}
+
+bool Player::ShouldGasolineBarBlink() {
+    if (mLowFuelWarningAlreadyShown)
+        return true;
+
+    if (mEmptyFuelWarningAlreadyShown)
+        return true;
+
+    return false;
+}
+
+bool Player::ShouldShieldBarBlink() {
+    if (mLowShieldWarningAlreadyShown)
+        return true;
+
+    return false;
+}
+
 void Player::HandleAmmo() {
-    //TODO: check with actual game how ammo warnings and reduction works exactly
-    if (mPlayerStats->ammoVal <= 0.0f) {
+    //low ammo warning is activated if only 2 ammo (missile) or
+    //less are left available
+    if (mPlayerStats->ammoVal <= 0.9f) {
         if (!mEmptyAmmoWarningAlreadyShown) {
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
             }
             mEmptyAmmoWarningAlreadyShown = true;
         }
-    } else if (mPlayerStats->ammoVal < (mPlayerStats->ammoMax * 0.25f)) {
+    } else if (mPlayerStats->ammoVal < 2.5f) {
         if (!mLowAmmoWarningAlreadyShown) {
             if (mHUD != NULL) {
                 this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
@@ -5217,11 +5367,28 @@ void Player::HandleAmmo() {
         }
     }
 
-     if (mPlayerStats->ammoVal > 0.0f) {
+     if (mPlayerStats->ammoVal >= 1.0f) {
          mEmptyAmmoWarningAlreadyShown = false;
      }
 
-     if (mPlayerStats->ammoVal > (mPlayerStats->ammoMax * 0.25f)) {
+     if (mPlayerStats->ammoVal > 3.0f) {
           mLowAmmoWarningAlreadyShown = false;
      }
+}
+
+void Player::HandleShield() {
+    //low shield warning is activated if only 3 shield bars
+    //are remaining
+    if (mPlayerStats->shieldVal < (mPlayerStats->shieldMax * 0.5f)) {
+        if (!mLowShieldWarningAlreadyShown) {
+            if (mHUD != NULL) {
+                this->mHUD->ShowBannerText((char*)"SHIELD LOW", 4.0f, true);
+            }
+            mLowShieldWarningAlreadyShown = true;
+        }
+    }
+
+    if (mPlayerStats->shieldVal >= (mPlayerStats->shieldMax * 0.5f)) {
+          mLowShieldWarningAlreadyShown = false;
+    }
 }

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -366,6 +366,11 @@ void Game::HandleMenueActions() {
         }
     }
 
+    //user wants to enter championship menue?
+    if (pendingAction == MainMenue->ActEnterChampionshipMenue) {
+        MainMenue->ShowChampionshipMenue();
+    }
+
     //user wants to continue the current championship?
     if (pendingAction == MainMenue->ActContinueChampionship) {
         MainMenue->ContinueChampionship();
@@ -390,11 +395,41 @@ void Game::HandleMenueActions() {
         //in parameter currSetValue inside the action
         //range of currSetValue is from 1 up to 5
         //function expects value 0 up to 4
-        mGameAssets->SaveChampionshipSaveGame(pendingAction->currSetValue - 1);
+        //store the slot number inside this member,
+        //until we have a new championship name, and we can finally save
+        mSaveChampionShipToWhichSlot = pendingAction->currSetValue - 1;
+
+        //change the menue, so that the user can enter the new
+        //championship name
+        MainMenue->StartChampionshipNameInputAtSlot(mSaveChampionShipToWhichSlot);
+    }
+
+    //user finished entering new championship name at the end
+    //of savegame saving process?
+    if (pendingAction == MainMenue->ActFinalizeChampionshipSaveSlot) {
+        //the entered new championship string is stored in action
+        //variable newSetTextInputString
+        mGameAssets->SetCurrentChampionshipName(pendingAction->newSetTextInputString);
+
+        //finally create savegame file
+        mGameAssets->SaveChampionshipSaveGame(mSaveChampionShipToWhichSlot);
+
+        //now restore the menue item after championship
+        //name input
+        MainMenue->EndChampionshipNameInputAtSlot(mSaveChampionShipToWhichSlot);
 
         //after saving of the save game
         //go back to the main championship menue
         MainMenue->ShowChampionshipMenue();
+    }
+
+    //user wants to quit championship?
+    if (pendingAction == MainMenue->ActQuitChampionship) {
+        mGameAssets->QuitCurrentChampionship();
+
+        //as in the original game go back to the
+        //race menue
+        MainMenue->ShowRaceMenue();
     }
 
     //show HighScorePage?
@@ -671,6 +706,47 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         }
     }
 }
+
+/* Fade In and Out example
+ * //from https://github.com/XadillaX/irr-guide-examples/blob/master/Chapter%202/FadeInNFadeOut/main.cpp
+ *
+ *  f32 bg_r = 255.0f;
+    f32 bg_g = 255.0f;
+    f32 bg_b = 255.0f;
+    bool fadeOut = true;
+    int lastFPS = -1;
+
+    u32 then = device->getTimer()->getTime();
+    const f32 fadeRate = 0.1f;
+
+    while(device->run())
+    {
+        const u32 now = device->getTimer()->getTime();
+        const f32 frameDeltaTime = (f32)(now - then);
+        then = now;
+
+        if(bg_r <= 0.0f) fadeOut = false;
+        else
+        if(bg_r >= 255.0f) fadeOut = true;
+
+        if(fadeOut)
+        {
+            bg_r -= fadeRate * frameDeltaTime;
+            bg_g -= fadeRate * frameDeltaTime;
+            bg_b -= fadeRate * frameDeltaTime;
+        }
+        else
+        {
+            bg_r += fadeRate * frameDeltaTime;
+            bg_g += fadeRate * frameDeltaTime;
+            bg_b += fadeRate * frameDeltaTime;
+        }
+
+        driver->beginScene(true, true, SColor(255, bg_r, bg_g, bg_b));
+        driver->endScene();
+    }
+
+    */
 
 void Game::GameLoop() {
 

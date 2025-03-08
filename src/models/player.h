@@ -124,7 +124,7 @@ typedef struct {
 
 typedef struct {
     irr::u8 lapNr;
-    irr::u32 lapTimeMultiple100mSec;
+    irr::u32 lapTimeMultiple40mSec;
 } LAPTIMEENTRY;
 
 typedef struct {
@@ -134,9 +134,14 @@ typedef struct {
     irr::f32 shieldVal;
     irr::f32 gasolineVal;
     irr::f32 ammoVal;
-    irr::f32 shieldMax = 100.0;
-    irr::f32 gasolineMax = 100.0;
-    irr::f32 ammoMax = 100.0;
+
+    irr::f32 shieldMax = 50.0;
+    irr::f32 gasolineMax = 50.0;
+
+    //the player has ammo for 6 missiles
+    //at the start
+    irr::f32 ammoMax = 6.0;
+
     irr::f32 mgHeatVal = 0.0;
     irr::f32 mgHeatMax = 100.0;
 
@@ -157,7 +162,7 @@ typedef struct {
     //booster level, goes from 0 (no upgrade, to 3 upgrades)
     int currBoosterUpgradeLevel = 0;
 
-    irr::u32 currLapTimeMultiple100mSec = 0;
+    irr::u32 currLapTimeMultiple40mSec = 0;
     irr::f32 currLapTimeExact;
     std::vector <LAPTIMEENTRY> lapTimeList;
     LAPTIMEENTRY lastLap;
@@ -347,7 +352,10 @@ public:
     irr::u32 mCPTrackMovementNoClearClosestLinkCnter = 0;
     irr::u32 mCPTrackMovementLostProgressCnter = 0;
 
-    void CollectedCollectable(Collectable* whichCollectable);
+    //Returns true if the player actually picked the item up
+    //false otherwise; For example the extra ammo item is only picked
+    //up by players that have not already full ammo currenty
+    bool CollectedCollectable(Collectable* whichCollectable);
 
     void StartPlayingWarningSound();
     void StopPlayingWarningSound();
@@ -491,6 +499,10 @@ public:
 
     irr::scene::IMeshSceneNode* Player_node;
 
+    //is prepared value to later find random
+    //shooting target for mgun at player model quickly
+    irr::core::vector3df mPlayerModelExtend;
+
     //my player internal camera for cockpit
     irr::scene::ICameraSceneNode* mIntCamera;
     //my 3rd person camera from behind the craft
@@ -502,6 +514,10 @@ public:
     irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow;
 
     PLAYERSTATS *mPlayerStats;
+
+    //copy of the player stats when player
+    //crosses finish line the last time
+    PLAYERSTATS *mFinalPlayerStats = NULL;
 
     irr::f32 terrainTiltCraftLeftRightDeg;
     irr::f32 terrainTiltCraftFrontBackDeg;
@@ -730,6 +746,13 @@ public:
     bool mCraftVisible;
 
     bool DoWeNeedHidePlayerModel();
+    bool IsCurrentlyValidTarget();
+
+    bool ShouldAmmoBarBlink();
+    bool ShouldGasolineBarBlink();
+    bool ShouldShieldBarBlink();
+
+    irr::core::vector3df GetRandomMGunShootTargetLocation();
 
 private:
     InfrastructureBase* mInfra;
@@ -866,6 +889,7 @@ private:
 
     void HandleFuel();
     void HandleAmmo();
+    void HandleShield();
 
     void UpdateInternalCoordVariables();
 

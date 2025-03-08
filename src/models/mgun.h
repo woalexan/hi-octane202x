@@ -15,7 +15,12 @@
 #include "../audio/sound.h"
 #include "../race.h"
 
-#define DEF_MGUN_DAMAGE 1.0f
+//the machine gun damage should be choosen that a
+//craft with full ammo needs continious machine gun for
+//approx. 20 seconds, until it has no shield anymore
+#define DEF_MGUN_DAMAGE 0.33f
+
+const irr::f32 DEF_MGUN_REPETITION_DELAY = 0.1f;
 
 class Player; //Forwards declaration
 
@@ -30,6 +35,7 @@ struct MachineGunBulletImpactStruct {
     irr::scene::ISceneNodeAnimator *animator = NULL;
 
     bool shooting = false;
+    bool animatorActive = false;
 
     sf::Sound* mShotSound = NULL;
 };
@@ -69,6 +75,15 @@ private:
 
     irr::f32 timeAccu = 0.0f;
     irr::f32 coolOffTime = 0.0f;
+    irr::f32 reductionValue;
+
+    bool mCanShotAgain = true;
+    irr::f32 shootAgainDelay;
+
+    bool mCurrentFiring = false;
+    bool mLastFiring = false;
+
+    bool mGunOverheated = false;
 
     bool CpPlayerCurrentlyCoolDownNeeded = false;
 };

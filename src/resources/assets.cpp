@@ -1409,13 +1409,14 @@ void Assets::AddPilot(char *pilotName, bool humanPlayer, char *defaultCraftName)
 
 void Assets::InitCpPilots() {
     //this players are all only used as computer players
-    AddPilot((char*)("MAD"), false, (char*)("KD-1 SPEEDER"));
-    AddPilot((char*)("ATROW"), false, (char*)("BESERKER"));
+    //do not change the order of this pilots below!
     AddPilot((char*)("BARNSY"), false, (char*)("BESERKER"));
     AddPilot((char*)("SHUNTLY"), false, (char*)("JUGGA"));
     AddPilot((char*)("COPSE"), false, (char*)("VAMPYR"));
     AddPilot((char*)("MANNY"), false, (char*)("OUTRIDER"));
     AddPilot((char*)("MCLALIN"), false, (char*)("FLEXIWING"));
+    AddPilot((char*)("MAD"), false, (char*)("KD-1 SPEEDER"));
+    AddPilot((char*)("ATROW"), false, (char*)("BESERKER"));
 }
 
 void Assets::SetComputerPlayersEnabled(bool enabled) {
@@ -1469,6 +1470,15 @@ void Assets::WriteChampionShipOverallPointTable(char** bufPntr) {
     //write points for all 8 players
     for (irr::u8 idx = 0; idx < 8; idx++) {
         WriteChampionShipOverallPointTableEntry(bufPntr, idx, mCurrChampionshipOverallPointVec.at(idx));
+    }
+}
+
+void Assets::ResetChampionShipOverallPointTable() {
+    mCurrChampionshipOverallPointVec.clear();
+
+    for (irr::u8 idx = 0; idx < 8; idx++) {
+        //set all points to 0
+        mCurrChampionshipOverallPointVec.push_back(0);
     }
 }
 
@@ -1725,6 +1735,24 @@ void Assets::SearchChampionshipSaveGames() {
 
          mChampionshipSavegameInfoVec.push_back(newStruct);
     }
+}
+
+void Assets::QuitCurrentChampionship() {
+    if (currentChampionshipSaveGameDataByteArray == NULL)
+        return;
+
+    //simply free dynamic allocated memory
+    //for championship savegame data
+    delete[] currentChampionshipSaveGameDataByteArray;
+
+    currentChampionshipSaveGameDataByteArray = NULL;
+    currentChampionshipSaveGameDataByteArrayLen = 0;
+
+    //set current selected level back to
+    //first level
+    SetNewLastSelectedRaceTrack(0);
+
+    ResetChampionShipOverallPointTable();
 }
 
 //slot number starting with index 0
