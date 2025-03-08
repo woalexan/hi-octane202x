@@ -903,6 +903,8 @@ void Race::UpdatePlayerRacePositionRanking() {
 
     /****************************************************
      * Stage 1: Sort players by number of laps finished
+     *  Important: only look at players that have not
+     *  yet finished the race
      ****************************************************/
 
     //declaring vector of pairs containing number laps finished
@@ -910,8 +912,14 @@ void Race::UpdatePlayerRacePositionRanking() {
     vector< pair <irr::s32, Player*> > vecLapsFinished;
 
     for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+        if ((*it)->mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED) {
           vecLapsFinished.push_back( make_pair((*it)->mPlayerStats->currLapNumber, (*it)));
+        }
     }
+
+    //if all players are finished, just exit
+   if (vecLapsFinished.size() < 1)
+       return;
 
     //sort vector pairs in ascending current lap number
    std::sort(vecLapsFinished.begin(), vecLapsFinished.end());
@@ -987,7 +995,10 @@ void Race::UpdatePlayerRacePositionRanking() {
        UpdatePlayerRacePositionRankingHelper2(vecNextCheckPointExpected);
    }
 
-   int currPos = 1;
+   //what is the current overall position the players
+   //are still racing for?
+   int currPos = playerRaceFinishedVec.size() + 1;
+
    int numPlayers = mPlayerVec.size();
 
    //all player rankings are done and stored in this->playerRanking
@@ -1153,41 +1164,50 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
     std::vector<Player*>::iterator itPlayer;
     std::vector <LAPTIMEENTRY>::iterator itLap;
-    irr::u32 sumLapTimes = 0;
-    bool firstLapTime = true;
-    irr::u16 minLapTime = 0;
+    irr::u32 sumLapTimes;
+    bool firstLapTime;
+    irr::u16 minLapTime;
 
     for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
           RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
+          firstLapTime = true;
+          sumLapTimes = 0;
 
           //process lap time data
-          for (itLap = (*itPlayer)->mPlayerStats->lapTimeList.begin(); itLap != (*itPlayer)->mPlayerStats->lapTimeList.end(); ++itLap) {
-              sumLapTimes += (*itLap).lapTimeMultiple100mSec;
+          for (itLap = (*itPlayer)->mFinalPlayerStats->lapTimeList.begin(); itLap != (*itPlayer)->mFinalPlayerStats->lapTimeList.end(); ++itLap) {
+              sumLapTimes += (*itLap).lapTimeMultiple40mSec;
 
               if (firstLapTime) {
                   firstLapTime = false;
-                  minLapTime = (*itLap).lapTimeMultiple100mSec;
+                  minLapTime = (*itLap).lapTimeMultiple40mSec;
               } else {
-                  if ((*itLap).lapTimeMultiple100mSec < minLapTime) {
-                      minLapTime = (*itLap).lapTimeMultiple100mSec;
+                  if ((*itLap).lapTimeMultiple40mSec < minLapTime) {
+                      minLapTime = (*itLap).lapTimeMultiple40mSec;
                   }
               }
           }
 
-          strcpy(newEntry->playerName, (*itPlayer)->mPlayerStats->name);
-          newEntry->nrKills = (*itPlayer)->mPlayerStats->currKillCount;
-          newEntry->nrDeaths = (*itPlayer)->mPlayerStats->currDeathCount;
+          strcpy(newEntry->playerName, (*itPlayer)->mFinalPlayerStats->name);
+          newEntry->nrKills = (*itPlayer)->mFinalPlayerStats->currKillCount;
+          newEntry->nrDeaths = (*itPlayer)->mFinalPlayerStats->currDeathCount;
           newEntry->raceTime = sumLapTimes;
           newEntry->bestLapTime = minLapTime;
 
-          irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)((*itPlayer)->mPlayerStats->lapTimeList.size());
+          irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)((*itPlayer)->mFinalPlayerStats->lapTimeList.size());
           newEntry->avgLapTime = (irr::u16)(avgLapTime);
-          newEntry->racePosition = (*itPlayer)->mPlayerStats->currRacePlayerPos;
+          newEntry->racePosition = (*itPlayer)->mFinalPlayerStats->currRacePlayerPos;
 
-          irr::f32 accuracy = ((irr::f32)((*itPlayer)->mPlayerStats->shootsHit) / ((irr::f32)((*itPlayer)->mPlayerStats->shootsHit) +
-                                                                              (irr::f32)((*itPlayer)->mPlayerStats->shootsMissed))) * 100.0f;
+          irr::u32 nrShootsfired = (*itPlayer)->mFinalPlayerStats->shootsHit + (*itPlayer)->mFinalPlayerStats->shootsMissed;
+          irr::f32 accuracy;
+
+          if (nrShootsfired > 0) {
+                    accuracy = ((irr::f32)((*itPlayer)->mFinalPlayerStats->shootsHit) / (irr::f32)(nrShootsfired)) * 100.0f;
+          } else {
+              accuracy = 0.0f;
+          }
 
           newEntry->hitAccuracy = (irr::u8)(accuracy);
+
           //plausi check
           if (newEntry->hitAccuracy < 0)
               newEntry->hitAccuracy = 0;
@@ -1809,11 +1829,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     float progressMorph;
 
-    //if frameDeltaTime is too large we could get
+    irr::f32 physicsFrameDeltaTime = frameDeltaTime;
+
+    //if physicsFrameDeltaTime is too large we could get
     //weird physics effects, therefore clamp time to max
     //allowed level
-    if (frameDeltaTime > 0.1f)
-      frameDeltaTime = 0.01f;
+    if (physicsFrameDeltaTime > 0.1f)
+      physicsFrameDeltaTime = 0.01f;
 
     //if we are in race phase already handle morphs,
     //and update timers
@@ -1876,7 +1898,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntUpdatePlayers);
 
     //advance physics time and update sceneNode positions and orientations
-    mPhysics->AdvancePhysicsTime(frameDeltaTime);
+    mPhysics->AdvancePhysicsTime(physicsFrameDeltaTime);
 
     mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntAdvancePhysics);
 
@@ -2237,7 +2259,7 @@ void Race::HandleBasicInput() {
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
         //only for debugging!
-        this->mRaceWasFinished = true;
+        //this->mRaceWasFinished = true;
 
         this->exitRace = true;
     }
@@ -3619,14 +3641,16 @@ void Race::CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f3
             //does player bounding box intersect the bounding box of the collectible
             //item?
             if (playerBox.intersectsWithBox((*it)->boundingBox)) {
-                //yes, player collected the collectible
+                //yes, player does touch the collectible
 
-                //tell Collectible that is was collected
-                (*it)->PickedUp();
-
-                //tell player what he collected to alter
-                //his stats
-                player->CollectedCollectable((*it));
+                //tell player object that this item can
+                //be collected, and if so alter the players stats
+                //function returns true if the player actually collected
+                //this item, false otherwise
+                if (player->CollectedCollectable((*it))) {
+                    //tell Collectible that is was collected
+                    (*it)->PickedUp();
+                }
             }
         }
     }

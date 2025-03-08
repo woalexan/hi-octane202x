@@ -66,6 +66,9 @@
 #define MENUE_ACTION_CHAMPIONSHIP_CONTINUE 110
 #define MENUE_ACTION_CHAMPIONSHIP_LOADSLOT 111
 #define MENUE_ACTION_CHAMPIONSHIP_SAVESLOT 112
+#define MENUE_ACTION_CHAMPIONSHIP_SAVESLOT_FINALIZE 113
+#define MENUE_ACTION_CHAMPIONSHIP_QUIT 114
+#define MENUE_ACTION_CHAMPIONSHIP_ENTERMENUE 115
 
 //definition of possible menue states
 #define MENUE_STATE_TRANSITION 0  //menue window is currently moving, no item selection possible
@@ -616,6 +619,7 @@ private:
     irr::f32 mMenueUserInactiveTimer;
 
     void UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, std::vector<ChampionshipSaveGameInfoStruct*>::iterator it);
+    char* mNewChampionshipNameInputText;
 
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
@@ -651,6 +655,9 @@ public:
     MenueAction* ActContinueChampionship;
     MenueAction* ActLoadChampionshipSlot;
     MenueAction* ActSaveChampionshipSlot;
+    MenueAction* ActFinalizeChampionshipSaveSlot;
+    MenueAction* ActQuitChampionship;
+    MenueAction* ActEnterChampionshipMenue;
 
     void Render(irr::f32 frameDeltaTime);
     void HandleUserInactiveTimer(irr::f32 frameDeltaTime);
@@ -663,6 +670,7 @@ public:
     void ShowGameLoadingScreen();
     void ShowMainMenue();
     void ShowChampionshipMenue();
+    void ShowRaceMenue();
     void ShowIntro();
     void ShowHighscore();
     void ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistics);
@@ -673,6 +681,8 @@ public:
     void CleanupPointsTablePage();
 
     void ContinueChampionship();
+    void StartChampionshipNameInputAtSlot(irr::u8 whichSlotNr);
+    void EndChampionshipNameInputAtSlot(irr::u8 whichSlotNr);
 };
 
 #endif // MENUE_H

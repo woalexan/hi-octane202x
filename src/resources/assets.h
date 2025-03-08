@@ -284,6 +284,7 @@ public:
     //resets all internal member variables to
     //enter a new championship
     void NewChampionship();
+    void QuitCurrentChampionship();
 
     //returns true in case of success, false otherwise
     bool LoadChampionshipSaveGame(irr::u8 whichSlotNr);
@@ -456,6 +457,7 @@ private:
     void WriteChampionShipOverallPointTable(char** bufPntr);
 
     bool SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** championshipNameOutBuf);
+    void ResetChampionShipOverallPointTable();
 };
 
 #endif // ASSETS_H

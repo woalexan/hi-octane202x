@@ -355,12 +355,15 @@ void Menue::InitMenuePageEntries() {
     * SELECTION RACE Menue Page   *
     * *****************************/
 
+    ActEnterChampionshipMenue = new MenueAction();
+    ActEnterChampionshipMenue->actionNr = MENUE_ACTION_CHAMPIONSHIP_ENTERMENUE;
+
     SelectChampionsship = new MenueSingleEntry();
     SelectChampionsship->entryText = strdup("CHAMPIONSHIP");
     SelectChampionsship->entryNumber = 0;
     SelectChampionsship->drawTextScrPosition = irr::core::vector2di(204, 225);
-    SelectChampionsship->nextMenuePage = ChampionshipMenuePage;
-    SelectChampionsship->triggerAction = NULL;
+    SelectChampionsship->nextMenuePage = NULL;
+    SelectChampionsship->triggerAction = ActEnterChampionshipMenue;
 
     SelectSingleRace = new MenueSingleEntry();
     SelectSingleRace->entryText = strdup("SINGLE RACE");
@@ -399,6 +402,12 @@ void Menue::InitMenuePageEntries() {
     ActSaveChampionshipSlot = new MenueAction();
     ActSaveChampionshipSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_SAVESLOT;
 
+    ActFinalizeChampionshipSaveSlot = new MenueAction();
+    ActFinalizeChampionshipSaveSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_SAVESLOT_FINALIZE;
+
+    ActQuitChampionship = new MenueAction();
+    ActQuitChampionship->actionNr = MENUE_ACTION_CHAMPIONSHIP_QUIT;
+
     /*****************************
      * Championship Menue Page   *
      * ***************************/
@@ -431,14 +440,16 @@ void Menue::InitMenuePageEntries() {
     SaveChampionshipEntry->entryNumber = 3;
     SaveChampionshipEntry->drawTextScrPosition = irr::core::vector2di(157, 259);
     SaveChampionshipEntry->triggerAction = NULL;
+    //default make item not selectable
+    SaveChampionshipEntry->itemSelectable = false;
     SaveChampionshipEntry->nextMenuePage = ChampionshipSaveMenuePage;
 
     QuitChampionshipEntry = new MenueSingleEntry();
     QuitChampionshipEntry->entryText = strdup("QUIT CHAMPIONSHIP");
     QuitChampionshipEntry->entryNumber = 4;
     QuitChampionshipEntry->drawTextScrPosition = irr::core::vector2di(161, 281);
-    QuitChampionshipEntry->nextMenuePage = RaceMenuePage;
-    QuitChampionshipEntry->triggerAction = NULL;
+    QuitChampionshipEntry->nextMenuePage = NULL;
+    QuitChampionshipEntry->triggerAction = ActQuitChampionship;
 
     ChampionshipMenuePage->pageEntryVec.push_back(ContinueChampionshipEntry);
     ChampionshipMenuePage->pageEntryVec.push_back(NewChampionshipEntry);
@@ -3582,6 +3593,107 @@ void Menue::UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, s
     whichEntry.itemSelectable = (*it)->saveGameAvail;
 }
 
+//expected range from whichSlotNr is from 0 to 4
+void Menue::StartChampionshipNameInputAtSlot(irr::u8 whichSlotNr) {
+    if (whichSlotNr > 4)
+        return;
+
+    MenueSingleEntry* pntr;
+
+    switch (whichSlotNr) {
+        case 0: {
+           pntr = ChampionshipSaveSlot1; break;
+        }
+
+        case 1: {
+           pntr = ChampionshipSaveSlot2; break;
+        }
+
+        case 2: {
+           pntr = ChampionshipSaveSlot3; break;
+        }
+
+        case 3: {
+           pntr = ChampionshipSaveSlot4; break;
+        }
+
+        case 4: {
+           pntr = ChampionshipSaveSlot5; break;
+        }
+    }
+
+    //create temporary storage for text input string
+    mNewChampionshipNameInputText = new char[30];
+
+    //for start, copy existing name into input field
+    strcpy(mNewChampionshipNameInputText, pntr->entryText);
+
+    //we need to switch the menue item object at this location, into a text input
+    //field, so that the user can select a new championship name
+    pntr->isTextEntryField = true;
+
+    //initialize the input text field with current
+    //set input text
+    pntr->initTextPntr = mNewChampionshipNameInputText;
+
+    //free the current entryText, we loose pointer to it
+    //during text input field anyway
+    free(pntr->entryText);
+
+    //present text field string from source pointer location
+    SetInputTextField(pntr, pntr->initTextPntr);
+
+    //temporarily also change action, so that we can get the entered
+    //text in the game class, and we know when the championship
+    //name was entered
+    pntr->triggerAction = ActFinalizeChampionshipSaveSlot;
+}
+
+void Menue::EndChampionshipNameInputAtSlot(irr::u8 whichSlotNr) {
+    if (whichSlotNr > 4)
+        return;
+
+    MenueSingleEntry* pntr;
+
+    switch (whichSlotNr) {
+        case 0: {
+           pntr = ChampionshipSaveSlot1; break;
+        }
+
+        case 1: {
+           pntr = ChampionshipSaveSlot2; break;
+        }
+
+        case 2: {
+           pntr = ChampionshipSaveSlot3; break;
+        }
+
+        case 3: {
+           pntr = ChampionshipSaveSlot4; break;
+        }
+
+        case 4: {
+           pntr = ChampionshipSaveSlot5; break;
+        }
+    }
+
+    //we need to create a new buffer for the
+    //textEntry
+    pntr->entryText = strdup(pntr->currTextInputFieldStr);
+
+    //set back to normal menue item, not a text field anymore
+    pntr->isTextEntryField = false;
+
+    //NULL the pointer again
+    pntr->initTextPntr = NULL;
+
+    //restore the default action
+    pntr->triggerAction = ActSaveChampionshipSlot;
+
+    //delete temporary text storage again
+    delete[] mNewChampionshipNameInputText;
+}
+
 void Menue::UpdateChampionshipSaveGames() {
     //execute a low level search for save games
     this->mGameAssets->SearchChampionshipSaveGames();
@@ -3657,6 +3769,26 @@ void Menue::ContinueChampionship() {
     ShowRaceSelection(currSelMenueSingleEntry, true);
 }
 
+void Menue::ShowRaceMenue() {
+    mMenueUserInactiveTimer = 0.0f;
+
+    //show Race Menue
+    //with item Race selected
+    currSelMenuePage = this->RaceMenuePage;
+    currSelMenueSingleEntry = this->SelectChampionsship;
+
+    //initial setup for type writer effect
+    //of main menue
+    if (MENUE_ENABLETYPEWRITEREFFECT) {
+        typeWriterEffectNextCharacterAbsTime = absoluteTime;
+        currNrCharsShownCnter = 0;
+        finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+    }
+
+    currMenueState = MENUE_STATE_TYPETEXT;
+    lastAnimationUpdateAbsTime = absoluteTime;
+}
+
 void Menue::ShowChampionshipMenue() {
     mMenueUserInactiveTimer = 0.0f;
 
@@ -3668,15 +3800,17 @@ void Menue::ShowChampionshipMenue() {
     //if there is currently a championship active, then allow to select
     //the continue championship menue entry
     //if not then do not activate this entry, in this case the player
-    //needs to first create a new championship
+    //needs to first create a new championship, same is true for saving championship
     if (!mGameAssets->CanPlayerCurrentlySelectCraftDuringChampionship()) {
         //championship is already created and ongoing
         currSelMenueSingleEntry = this->ContinueChampionshipEntry;
         this->ContinueChampionshipEntry->itemSelectable = true;
+        this->SaveChampionshipEntry->itemSelectable = true;
     } else {
         //player needs to first create a new championship
         currSelMenueSingleEntry = this->NewChampionshipEntry;
         this->ContinueChampionshipEntry->itemSelectable = false;
+        this->SaveChampionshipEntry->itemSelectable = false;
     }
 
     //initial setup for type writer effect
@@ -3687,11 +3821,7 @@ void Menue::ShowChampionshipMenue() {
         finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
     }
 
-    //initially activate menue animation for start of game
-    currSelWindowAnimation = windowMenueAnimationStartGame;
-    currMenueWindowAnimationIdx = 0;
-    currMenueWindowAnimationFinalIdx = windowMenueAnimationStartGame->coordVec.size() - 1;
-    currMenueState = MENUE_STATE_TRANSITION;
+    currMenueState = MENUE_STATE_TYPETEXT;
     lastAnimationUpdateAbsTime = absoluteTime;
 }
 
@@ -4088,7 +4218,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    irr::u8 nrPlayers = finalRaceStatistics->size();
 
    //loop over all available entries we want to show
-   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt = cnt + 2) {
         //first calculate columnXcoord according to entry column from
         //left of screen to right
         columnXcoord = 50 + cnt * 78;
@@ -4098,13 +4228,32 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
         newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
         newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
                     finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont) / 2;
-        if (cnt % 2 == 0) {
-           //even entries draw in the upper name line
-           newLabel->drawPositionTxt.Y = 59;
-        } else {
-           //uneven entries, draw the name in lower line
-            newLabel->drawPositionTxt.Y = 75;
-        }
+
+        //even player entries draw in the upper name line
+        newLabel->drawPositionTxt.Y = 59;
+
+        newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
+        newLabel->visible = true; //set to true, free text pointer afterwards!
+
+        raceStatsPageTextVec->push_back(newLabel);
+
+        nrCharsOverall += strlen(newLabel->text);
+   }
+
+   //loop over all available entries we want to show
+   for (irr::u8 cnt = 1; cnt < nrPlayers; cnt = cnt + 2) {
+        //first calculate columnXcoord according to entry column from
+        //left of screen to right
+        columnXcoord = 50 + cnt * 78;
+
+        //for the player name
+        newLabel = new MenueTextLabel();
+        newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
+        newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
+                    finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont) / 2;
+
+        //uneven player entries, draw the name in lower line
+        newLabel->drawPositionTxt.Y = 75;
 
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
@@ -4127,101 +4276,6 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    raceStatsPageTextVec->push_back(newLabel);
 
    nrCharsOverall += strlen(newLabel->text);
-
-   // ****************** KILLS ***********
-
-   newLabel = new MenueTextLabel();
-   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 287;
-   newLabel->drawPositionTxt.Y = 123;
-
-   newLabel->text = strdup("KILLS");
-   newLabel->visible = true; //we must free this text pointer!
-
-   raceStatsPageTextVec->push_back(newLabel);
-
-   nrCharsOverall += strlen(newLabel->text);
-
-   // ****************** DEATHS ***********
-
-   newLabel = new MenueTextLabel();
-   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 278;
-   newLabel->drawPositionTxt.Y = 155;
-
-   newLabel->text = strdup("DEATHS");
-   newLabel->visible = true; //we must free this text pointer!
-
-   raceStatsPageTextVec->push_back(newLabel);
-
-   nrCharsOverall += strlen(newLabel->text);
-
-   // ****************** AVERAGE LAP ***********
-
-   newLabel = new MenueTextLabel();
-   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 241;
-   newLabel->drawPositionTxt.Y = 187;
-
-   newLabel->text = strdup("AVERAGE LAP");
-   newLabel->visible = true; //we must free this text pointer!
-
-   raceStatsPageTextVec->push_back(newLabel);
-
-   nrCharsOverall += strlen(newLabel->text);
-
-   // ****************** BEST LAP ***********
-
-    newLabel = new MenueTextLabel();
-    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 263;
-    newLabel->drawPositionTxt.Y = 219;
-
-    newLabel->text = strdup("BEST LAP");
-    newLabel->visible = true; //we must free this text pointer!
-
-    raceStatsPageTextVec->push_back(newLabel);
-
-    nrCharsOverall += strlen(newLabel->text);
-
-    // ****************** RACE TIME ***********
-    newLabel = new MenueTextLabel();
-    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 255;
-    newLabel->drawPositionTxt.Y = 251;
-
-    newLabel->text = strdup("RACE TIME");
-    newLabel->visible = true; //we must free this text pointer!
-
-    raceStatsPageTextVec->push_back(newLabel);
-
-    nrCharsOverall += strlen(newLabel->text);
-
-    // ****************** RATING ***********
-    newLabel = new MenueTextLabel();
-    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 281;
-    newLabel->drawPositionTxt.Y = 283;
-
-    newLabel->text = strdup("RATING");
-    newLabel->visible = true; //we must free this text pointer!
-
-    raceStatsPageTextVec->push_back(newLabel);
-
-    nrCharsOverall += strlen(newLabel->text);
-
-    // ****************** POSITION ***********
-    newLabel = new MenueTextLabel();
-    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 269;
-    newLabel->drawPositionTxt.Y = 315;
-
-    newLabel->text = strdup("POSITION");
-    newLabel->visible = true; //we must free this text pointer!
-
-    raceStatsPageTextVec->push_back(newLabel);
-
-    nrCharsOverall += strlen(newLabel->text);
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4255,6 +4309,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        nrCharsOverall += strlen(newLabel->text);
    }
 
+   // ****************** KILLS ***********
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 287;
+   newLabel->drawPositionTxt.Y = 123;
+
+   newLabel->text = strdup("KILLS");
+   newLabel->visible = true; //we must free this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
@@ -4285,6 +4353,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        nrCharsOverall += strlen(newLabel->text);
    }
+
+   // ****************** DEATHS ***********
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 278;
+   newLabel->drawPositionTxt.Y = 155;
+
+   newLabel->text = strdup("DEATHS");
+   newLabel->visible = true; //we must free this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4317,6 +4399,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        nrCharsOverall += strlen(newLabel->text);
    }
 
+   // ****************** AVERAGE LAP ***********
+
+   newLabel = new MenueTextLabel();
+   newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+   newLabel->drawPositionTxt.X = 241;
+   newLabel->drawPositionTxt.Y = 187;
+
+   newLabel->text = strdup("AVERAGE LAP");
+   newLabel->visible = true; //we must free this text pointer!
+
+   raceStatsPageTextVec->push_back(newLabel);
+
+   nrCharsOverall += strlen(newLabel->text);
+
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
@@ -4348,99 +4444,152 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
        nrCharsOverall += strlen(newLabel->text);
    }
 
-   //loop over all available entries we want to show
-   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
-       //first calculate columnXcoord according to entry column from
-       //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 4 * 32;
+   // ****************** BEST LAP ***********
 
-       char* newText = new char[20];
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 263;
+    newLabel->drawPositionTxt.Y = 219;
 
-       newLabel = new MenueTextLabel();
-       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
+    newLabel->text = strdup("BEST LAP");
+    newLabel->visible = true; //we must free this text pointer!
 
-       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->bestLapTime);
+    raceStatsPageTextVec->push_back(newLabel);
 
-       newLabel->text = strdup(newText);
+    nrCharsOverall += strlen(newLabel->text);
 
-       delete[] newText;
+    //loop over all available entries we want to show
+    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+        //first calculate columnXcoord according to entry column from
+        //left of screen to right
+        columnXcoord = 50 + cnt * 78;
+        rowYCoord = 113 + 4 * 32;
 
-       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
-                 newLabel->text, newLabel->whichFont) / 2;
+        char* newText = new char[20];
 
-       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
-       newLabel->text, newLabel->whichFont) / 2;
+        newLabel = new MenueTextLabel();
+        newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
-       newLabel->visible = true; //we must free this text pointer!
+        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->bestLapTime);
 
-       raceStatsPageTextVec->push_back(newLabel);
+        newLabel->text = strdup(newText);
 
-       nrCharsOverall += strlen(newLabel->text);
-   }
+        delete[] newText;
 
-   //loop over all available entries we want to show
-   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
-       //first calculate columnXcoord according to entry column from
-       //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 5 * 32;
+        newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
+                  newLabel->text, newLabel->whichFont) / 2;
 
-       char* newText = new char[20];
+        newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
+        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel = new MenueTextLabel();
-       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
+        newLabel->visible = true; //we must free this text pointer!
 
-       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->raceTime);
+        raceStatsPageTextVec->push_back(newLabel);
 
-       newLabel->text = strdup(newText);
+        nrCharsOverall += strlen(newLabel->text);
+    }
 
-       delete[] newText;
+    // ****************** RACE TIME ***********
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 255;
+    newLabel->drawPositionTxt.Y = 251;
 
-       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
-                 newLabel->text, newLabel->whichFont) / 2;
+    newLabel->text = strdup("RACE TIME");
+    newLabel->visible = true; //we must free this text pointer!
 
-       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
-       newLabel->text, newLabel->whichFont) / 2;
+    raceStatsPageTextVec->push_back(newLabel);
 
-       newLabel->visible = true; //we must free this text pointer!
+    nrCharsOverall += strlen(newLabel->text);
 
-       raceStatsPageTextVec->push_back(newLabel);
+    //loop over all available entries we want to show
+    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+        //first calculate columnXcoord according to entry column from
+        //left of screen to right
+        columnXcoord = 50 + cnt * 78;
+        rowYCoord = 113 + 5 * 32;
 
-       nrCharsOverall += strlen(newLabel->text);
-   }
+        char* newText = new char[20];
 
-   //loop over all available entries we want to show
-   for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
-       //first calculate columnXcoord according to entry column from
-       //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 6 * 32;
+        newLabel = new MenueTextLabel();
+        newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
 
-       char* newText = new char[20];
+        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->raceTime);
 
-       newLabel = new MenueTextLabel();
-       newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
+        newLabel->text = strdup(newText);
 
-       sprintf(newText, "%u", finalRaceStatistics->at(cnt)->rating);
-       strcat(newText, "/20");
+        delete[] newText;
 
-       newLabel->text = strdup(newText);
+        newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
+                  newLabel->text, newLabel->whichFont) / 2;
 
-       delete[] newText;
+        newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
+        newLabel->text, newLabel->whichFont) / 2;
 
-       newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
-                 newLabel->text, newLabel->whichFont) / 2;
+        newLabel->visible = true; //we must free this text pointer!
 
-       newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
-       newLabel->text, newLabel->whichFont) / 2;
+        raceStatsPageTextVec->push_back(newLabel);
 
-       newLabel->visible = true; //we must free this text pointer!
+        nrCharsOverall += strlen(newLabel->text);
+    }
 
-       raceStatsPageTextVec->push_back(newLabel);
+    // ****************** RATING ***********
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 281;
+    newLabel->drawPositionTxt.Y = 283;
 
-       nrCharsOverall += strlen(newLabel->text);
-   }
+    newLabel->text = strdup("RATING");
+    newLabel->visible = true; //we must free this text pointer!
+
+    raceStatsPageTextVec->push_back(newLabel);
+
+    nrCharsOverall += strlen(newLabel->text);
+
+    //loop over all available entries we want to show
+    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
+        //first calculate columnXcoord according to entry column from
+        //left of screen to right
+        columnXcoord = 50 + cnt * 78;
+        rowYCoord = 113 + 6 * 32;
+
+        char* newText = new char[20];
+
+        newLabel = new MenueTextLabel();
+        newLabel->whichFont = mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA;
+
+        sprintf(newText, "%u", finalRaceStatistics->at(cnt)->rating);
+        strcat(newText, "/20");
+
+        newLabel->text = strdup(newText);
+
+        delete[] newText;
+
+        newLabel->drawPositionTxt.X = columnXcoord - mInfra->mGameTexts->GetWidthPixelsGameText(
+                  newLabel->text, newLabel->whichFont) / 2;
+
+        newLabel->drawPositionTxt.Y = rowYCoord - mInfra->mGameTexts->GetHeightPixelsGameText(
+        newLabel->text, newLabel->whichFont) / 2;
+
+        newLabel->visible = true; //we must free this text pointer!
+
+        raceStatsPageTextVec->push_back(newLabel);
+
+        nrCharsOverall += strlen(newLabel->text);
+    }
+
+    // ****************** POSITION ***********
+    newLabel = new MenueTextLabel();
+    newLabel->whichFont = mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+    newLabel->drawPositionTxt.X = 269;
+    newLabel->drawPositionTxt.Y = 315;
+
+    newLabel->text = strdup("POSITION");
+    newLabel->visible = true; //we must free this text pointer!
+
+    raceStatsPageTextVec->push_back(newLabel);
+
+    nrCharsOverall += strlen(newLabel->text);
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {

@@ -344,7 +344,7 @@ void MissileLauncher::Trigger() {
         return;
 
     //is there even a missile left for this player?
-    this->mParent->mPlayerStats->ammoVal -= 20.0f;
+    this->mParent->mPlayerStats->ammoVal -= 1.0f;
 
     if (this->mParent->mPlayerStats->ammoVal < 0.0f) {
         this->mParent->mPlayerStats->ammoVal = 0.0f;

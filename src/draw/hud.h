@@ -23,6 +23,9 @@
 //blink period time for big green Hud text
 #define DEF_HUD_BIGGREENTEXT_BLINKPERIODTIME 0.5f //in seconds
 
+//blink period time for blinking hud bars
+#define DEF_HUD_BARS_BLINKPERIODE 0.25f //in seconds
+
 #define DEF_HUD_STATE_NOTDRAWN 0
 #define DEF_HUD_STATE_STARTSIGNAL 1
 #define DEF_HUD_STATE_RACE 2
@@ -185,8 +188,19 @@ private:
     //************************************
 
     void DrawFinishedPlayerList();
+    void DrawGasolineBar();
+    int GetNumberCurrentGasolineBars(irr::f32 gasolineVal);
+    void DrawAmmoBar();
+    void DrawShieldBar();
 
     void RenderBigGreenText(irr::f32 deltaTime);
+
+    bool mDrawAmmoBarTransparent = false;
+    bool mDrawGasolineBarTransparent = false;
+    bool mDrawShieldBarTransparent = false;
+
+    irr::f32 blinkBarTimer = 0.0f;
+    bool mDrawBarsTransparent = false;
 
 public:
     HUD(InfrastructureBase* infra);

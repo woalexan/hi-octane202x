@@ -98,141 +98,195 @@ void MachineGun::Trigger() {
 
     bool skipAnimation = false;
 
+    if (!mCanShotAgain)
+        return;
+
+    if (mGunOverheated) {
+            //shoot attempt that failed, because gun is to warm
+            //only play this sound for a human player, for a computer player
+            //this does not make sense, and only is disturbing
+            if (mParent->mHumanPlayer) {
+               if (mShotFailSound == NULL) {
+                    mShotFailSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED,
+                                                                             mParent->phobj->physicState.position, false);
+               }
+            }
+      return;
+    }
+
     //can we shoot one bullet more currently, or are already
     //all 4 possible shoots at the same time fired?
 
     //freeStruct will be returned as NULL if we can not fire another shot currently
     MachineGunBulletImpactStruct* freeStruct = GetCurrentlyAvailableImpactStruct();
 
-    if ((freeStruct != NULL) && (coolOffTime < 0.1f)) {
+    if (freeStruct != NULL) {
+        //we can shoot again
+        irr::core::vector3df shotTargetLoc;
 
-        CpPlayerCurrentlyCoolDownNeeded = false;
+        if (mParent->mTargetPlayer != NULL) {
+             //we have currently a player targeted, fire at the player
+             //use a random shoot target location based on the player craft model
+             shotTargetLoc = mParent->mTargetPlayer->GetRandomMGunShootTargetLocation();
+             irr::f32 damage = DEF_MGUN_DAMAGE;
+             //mParent->mTargetPlayer->Damage(damage);
+             mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, DEF_RACE_DAMAGETYPE_MGUN, mParent);
+             mParent->mTargetPlayer->DamageGlas();
 
-     this->mParent->mPlayerStats->mgHeatVal += 2.5f;
-
-     if (this->mParent->mPlayerStats->mgHeatVal >
-             (0.6 * this->mParent->mPlayerStats->mgHeatMax)) {
-             //gun gets hot
-             coolOffTime = 0.2f + this->mParent->mPlayerStats->mgHeatVal * 0.10f;
-             CpPlayerCurrentlyCoolDownNeeded = true;
-    } else coolOffTime = 0.2f;
-
-     irr::core::vector3df shotTargetLoc;
-
-     if (mParent->mTargetPlayer != NULL) {
-         //we have currently a player targeted, fire at the player
-         shotTargetLoc = mParent->mTargetPlayer->phobj->physicState.position;
-         irr::f32 damage = DEF_MGUN_DAMAGE;
-         //mParent->mTargetPlayer->Damage(damage);
-         mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, DEF_RACE_DAMAGETYPE_MGUN, mParent);
-         mParent->mTargetPlayer->DamageGlas();
-
-         //this was a hit, add to hit statistics for accuracy
-         mParent->mPlayerStats->shootsHit++;
-     } else {
-         //we do not target any player right now
-         //the bullet should impact the terrain
-         //shotTargetLoc = GetBulletImpactPoint();
-         RayHitTriangleInfoStruct triangleHit;
-         if (mParent->GetWeaponTarget(triangleHit)) {
-             //we found a valid target
-             //position impact sprite a little bit away from the triangle, to make it visible completely
-             irr::core::vector3df triangleNormal = triangleHit.hitTriangle.getNormal().normalize();
-             if (triangleNormal.dotProduct(triangleHit.rayDirVec) > 0.0f) {
-                 //triangle normal has opposite direction as the ray that hit it
-                 //this means most likely the triangle that was hit is seen by the ray/player from the backside
-                 //we need to negate direction of triangleNormal, because otherwise we offset sprite location
-                 //behind the triangle, and player will not be able to see it
-                 triangleNormal = -triangleNormal;
-             }
-
-             shotTargetLoc = triangleHit.hitPointOnTriangle + triangleNormal * irr::core::vector3df(0.2f, 0.2f, 0.2f);
-
-             //this was a miss, add to statistics of shoots target missed
-             //we need this for later accuracy calculations
-             mParent->mPlayerStats->shootsMissed++;
-
+             //this was a hit, add to hit statistics for accuracy
+             mParent->mPlayerStats->shootsHit++;
          } else {
-             //did not find a shooting location target
-             skipAnimation = true;
+             //we do not target any player right now
+             //the bullet should impact the terrain
+             //shotTargetLoc = GetBulletImpactPoint();
+             RayHitTriangleInfoStruct triangleHit;
+             if (mParent->GetWeaponTarget(triangleHit)) {
+                 //we found a valid target
+                 //position impact sprite a little bit away from the triangle, to make it visible completely
+                 irr::core::vector3df triangleNormal = triangleHit.hitTriangle.getNormal().normalize();
+                 if (triangleNormal.dotProduct(triangleHit.rayDirVec) > 0.0f) {
+                     //triangle normal has opposite direction as the ray that hit it
+                     //this means most likely the triangle that was hit is seen by the ray/player from the backside
+                     //we need to negate direction of triangleNormal, because otherwise we offset sprite location
+                     //behind the triangle, and player will not be able to see it
+                     triangleNormal = -triangleNormal;
+                 }
+
+                 shotTargetLoc = triangleHit.hitPointOnTriangle + triangleNormal * irr::core::vector3df(0.2f, 0.2f, 0.2f);
+
+                 //this was a miss, add to statistics of shoots target missed
+                 //we need this for later accuracy calculations
+                 mParent->mPlayerStats->shootsMissed++;
+
+             } else {
+                 //did not find a shooting location target
+                 skipAnimation = true;
+                 freeStruct->animatorActive = false;
+             }
+        }
+
+         //only if we know where to draw the animation draw it
+         //otherwise do not draw anything
+         if (!skipAnimation) {
+            //move animated sprite with bullet impact to
+            //new target location, and start animation
+            freeStruct->animSprite->setPosition(shotTargetLoc);
+            freeStruct->animSprite->setVisible(true);
+            freeStruct->animator = mSmgr->createTextureAnimator(animTexList, 50, false);
+            freeStruct->animSprite->addAnimator(freeStruct->animator);
+            freeStruct->animatorActive = true;
          }
-     }
 
-     //only if we know where to draw the animation draw it
-     //otherwise do not draw anything
-     if (!skipAnimation) {
-        //move animated sprite with bullet impact to
-        //new target location, and start animation
-        freeStruct->animSprite->setPosition(shotTargetLoc);
-        freeStruct->animSprite->setVisible(true);
-        freeStruct->animator = mSmgr->createTextureAnimator(animTexList, 50, false);
-        freeStruct->animSprite->addAnimator(freeStruct->animator);
-
-        freeStruct->shooting = true;
-     }
+         freeStruct->shooting = true;
+         mCanShotAgain = false;
+         shootAgainDelay = DEF_MGUN_REPETITION_DELAY;
 
      //if (mParent->mHumanPlayer) {
             freeStruct->mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT,
                                                                              mParent->phobj->physicState.position, false);
      //}
-
-    } else if ((freeStruct != NULL) && (coolOffTime > 0.1f)) {
-        //shoot attempt that failed, because gun is to warm
-        //only play this sound for a human player, for a computer player
-        //this does not make sense, and only is disturbing
-        if (mParent->mHumanPlayer) {
-           if (mShotFailSound == NULL) {
-                mShotFailSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED,
-                                                                         mParent->phobj->physicState.position, false);
-           }
-        }
     }
 }
 
 void MachineGun::Update(irr::f32 DeltaTime) {
     std::vector<MachineGunBulletImpactStruct*>::iterator it;
 
+    mLastFiring = mCurrentFiring;
+
+    mCurrentFiring = false;
+
+    //are we currently shooting?
     for (it = this->mBulletImpactVec.begin(); it != this->mBulletImpactVec.end(); ++it) {
+         if ((*it)->shooting) {
+             mCurrentFiring = true;
+             break;
+         }
+    }
 
-        if ((*it)->shooting && (*it)->animator->hasFinished()) {
-            (*it)->animator->drop();
-            (*it)->shooting = false;
-            (*it)->animSprite->setVisible(false);
+    for (it = this->mBulletImpactVec.begin(); it != this->mBulletImpactVec.end(); ++it) {
+            if ((*it)->shooting) {
+                if ((*it)->animatorActive) {
+                        if ((*it)->animator->hasFinished()) {
+                            (*it)->animator->drop();
+                            (*it)->shooting = false;
+                            (*it)->animSprite->setVisible(false);
+                        }
+                 } else {
+                   (*it)->shooting = false;
+                 }
             }
 
-    if ((*it)->mShotSound != NULL) {
-            if ((*it)->mShotSound->getStatus() == (*it)->mShotSound->Stopped) {
-                (*it)->mShotSound = NULL;
+            if ((*it)->mShotSound != NULL) {
+                if ((*it)->mShotSound->getStatus() == (*it)->mShotSound->Stopped) {
+                    (*it)->mShotSound = NULL;
+                }
             }
-        }
     }
 
     if (mShotFailSound != NULL) {
             if (mShotFailSound->getStatus() == mShotFailSound->Stopped) {
                 mShotFailSound = NULL;
             }
+    }
+
+    //we started or stopped firing
+    if (mLastFiring != mCurrentFiring) {
+        if (!mCurrentFiring) {
+            //we stopped firing right now
+            //calculate a new cooloff time, this time depends on the heat
+            //we had before stopping firing
+            //as higher the heat was the longer the cooloff time takes
+            //worst case for full heat is approx 1 second, for not much heat
+            //it is more like 200ms
+            coolOffTime = 0.05f + 0.7f * (this->mParent->mPlayerStats->mgHeatVal / this->mParent->mPlayerStats->mgHeatMax);
+
+            reductionValue = (this->mParent->mPlayerStats->mgHeatVal / (coolOffTime / 0.05f));
         }
+    }
 
     timeAccu += DeltaTime;
 
-    if (coolOffTime > 0.0f) {
-        coolOffTime -= DeltaTime;
+    if (timeAccu > 0.05) {
+        timeAccu = 0.0f;
 
-        if (coolOffTime < 0.0f)
-            coolOffTime = 0.0f;
+        if (mCurrentFiring) {
+            //we are currently firing, increase mgun heat value
+            //from lowest temp up to max temp it seems to take around 5 seconds in the
+            //original game
+            this->mParent->mPlayerStats->mgHeatVal += 2.5f;
+        } else {
+            //we are not firing right now, we can cooloff
+            if (this->mParent->mPlayerStats->mgHeatVal > 0.0f) {
+                //we still have heat to cool-off
+                //speed of cool-off depends on current value of variable coolOffTime
+                this->mParent->mPlayerStats->mgHeatVal -= reductionValue;
 
-        if (coolOffTime < 0.1f) {
+                if (this->mParent->mPlayerStats->mgHeatVal < 0.0f) {
+                    this->mParent->mPlayerStats->mgHeatVal = 0.0f;
+                }
+            }
+        }
+
+        if (this->mParent->mPlayerStats->mgHeatVal >= (0.95f * this->mParent->mPlayerStats->mgHeatMax)) {
+            this->mParent->mPlayerStats->mgHeatVal = this->mParent->mPlayerStats->mgHeatMax;
+
+            mGunOverheated = true;
+            CpPlayerCurrentlyCoolDownNeeded = true;
+         } else {
+            //we are not overheated anymore
+            mGunOverheated = false;
+        }
+
+        if (this->mParent->mPlayerStats->mgHeatVal < (0.3f * this->mParent->mPlayerStats->mgHeatMax)) {
             CpPlayerCurrentlyCoolDownNeeded = false;
         }
     }
 
-    if (timeAccu > 0.1) {
-        timeAccu = 0.0f;
-        if (this->mParent->mPlayerStats->mgHeatVal > 0.0f) {
-            this->mParent->mPlayerStats->mgHeatVal -= 0.5f;
+    if (!mCanShotAgain) {
+        shootAgainDelay -= DeltaTime;
 
-            if (this->mParent->mPlayerStats->mgHeatVal < 0.0f)
-                this->mParent->mPlayerStats->mgHeatVal = 0.0f;
+        if (shootAgainDelay < 0.0f) {
+            mCanShotAgain = true;
         }
     }
 }

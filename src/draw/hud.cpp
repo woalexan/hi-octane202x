@@ -676,8 +676,176 @@ void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
     }
 }
 
+void HUD::DrawAmmoBar() {
+    //the first bar is always visible, even when ammo
+    //is empty
+    int nrAddBars = ammoBar->size() - 1;
+
+    //how many additional bars needs to be drawn?
+    irr::f32 addBars = (monitorWhichPlayer->mPlayerStats->ammoVal / monitorWhichPlayer->mPlayerStats->ammoMax) * nrAddBars;
+
+    int addBarsInt = (int)(irr::core::round32(addBars));
+
+    if (addBarsInt < 0)
+        addBarsInt = 0;
+
+    if (addBarsInt > nrAddBars)
+        addBarsInt = nrAddBars;
+
+    for (int i = 0; i < (addBarsInt + 1); i++) {
+        if (!mDrawAmmoBarTransparent) {
+            mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
+                  irr::core::rect<irr::s32>(0,0, (*ammoBar)[i]->sizeTex.Width, (*ammoBar)[i]->sizeTex.Height), 0,
+                  irr::video::SColor(255,255,255,255), true);
+        } else {
+            mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
+                  irr::core::rect<irr::s32>(0,0, (*ammoBar)[i]->sizeTex.Width, (*ammoBar)[i]->sizeTex.Height), 0,
+                  irr::video::SColor(100,255,255,255), true);
+        }
+    }
+}
+
+void HUD::DrawShieldBar() {
+    int sizeVec = shieldBar->size();
+
+    irr::f32 perc = (monitorWhichPlayer->mPlayerStats->shieldVal / monitorWhichPlayer->mPlayerStats->shieldMax) * sizeVec;
+
+    int barsInt = (int)(irr::core::round32(perc));
+
+    if (barsInt < 0)
+        barsInt = 0;
+
+    if (barsInt > sizeVec)
+        barsInt = sizeVec;
+
+    //draw as many shield bars as the current shield state of the ship allows
+    for (int i = 0; i < barsInt ; i++) {
+        if (!mDrawShieldBarTransparent) {
+            mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
+                  irr::core::rect<irr::s32>(0,0, (*shieldBar)[i]->sizeTex.Width, (*shieldBar)[i]->sizeTex.Height), 0,
+                  irr::video::SColor(255,255,255,255), true);
+        } else {
+            mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
+                  irr::core::rect<irr::s32>(0,0, (*shieldBar)[i]->sizeTex.Width, (*shieldBar)[i]->sizeTex.Height), 0,
+                  irr::video::SColor(100,255,255,255), true);
+        }
+    }
+}
+
+//the number of gasoline bars drawn in HUD does not go up
+//linear with the amount of gasoline available
+//first the bars are disappearing slower, and when the gasoline
+//gets less the last bars disappear quicker
+int HUD::GetNumberCurrentGasolineBars(irr::f32 gasolineVal) {
+    if ((gasolineVal > 0.0f) && (gasolineVal <= 10.0f)) {
+        if (gasolineVal < 2.0f)
+            return 0;
+
+        if (gasolineVal < 4.0f)
+            return 1;
+
+        if (gasolineVal < 6.0f)
+            return 2;
+
+        if (gasolineVal < 8.0f)
+            return 3;
+
+        if (gasolineVal < 10.0f)
+            return 4;
+    } else if ((gasolineVal > 10.0f) && (gasolineVal <= 20.0f)) {
+        if (gasolineVal < 12.0f)
+            return 5;
+
+        if (gasolineVal < 14.0f)
+            return 6;
+
+        if (gasolineVal < 16.0f)
+            return 7;
+
+        if (gasolineVal < 18.0f)
+            return 8;
+
+        if (gasolineVal < 20.0f)
+            return 9;
+    } else if ((gasolineVal > 20.0f) && (gasolineVal <= 28.0f)) {
+        if (gasolineVal < 22.0f)
+            return 10;
+
+        if (gasolineVal < 24.0f)
+            return 11;
+
+        if (gasolineVal < 26.0f)
+            return 12;
+
+        if (gasolineVal < 28.0f)
+            return 13;
+    } else if ((gasolineVal > 28.0f) && (gasolineVal <= 31.0f)) {
+        return 14;
+    } else if ((gasolineVal > 31.0f) && (gasolineVal <= 37.0f)) {
+        return 15;
+    }  else if ((gasolineVal > 37.0f) && (gasolineVal <= 43.0f)) {
+        return 16;
+    } else if (gasolineVal > 43.0f) {
+        return 17;
+    }
+
+    return 0;
+}
+
+void HUD::DrawGasolineBar() {
+    int sizeVec = gasolineBar->size();
+
+    int nrBarsToDraw = GetNumberCurrentGasolineBars(monitorWhichPlayer->mPlayerStats->gasolineVal);
+
+    if (nrBarsToDraw < 0)
+        nrBarsToDraw = 0;
+
+    if (nrBarsToDraw > sizeVec)
+        nrBarsToDraw = sizeVec;
+
+    for (int i = (sizeVec - nrBarsToDraw); i < sizeVec; i++) {
+        if (!mDrawGasolineBarTransparent) {
+            mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
+                  irr::core::rect<irr::s32>(0,0, (*gasolineBar)[i]->sizeTex.Width, (*gasolineBar)[i]->sizeTex.Height), 0,
+                  irr::video::SColor(255,255,255,255), true);
+        } else {
+            mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
+                  irr::core::rect<irr::s32>(0,0, (*gasolineBar)[i]->sizeTex.Width, (*gasolineBar)[i]->sizeTex.Height), 0,
+                  irr::video::SColor(100,255,255,255), true);
+        }
+    }
+}
+
 void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
     if (monitorWhichPlayer != NULL) {
+
+        //in case a hud bar is empty of a low warning
+        //is present the bar does blink in the original
+        //game
+        blinkBarTimer += deltaTime;
+        if (blinkBarTimer >= DEF_HUD_BARS_BLINKPERIODE) {
+            blinkBarTimer = 0.0f;
+
+            mDrawBarsTransparent = !mDrawBarsTransparent;
+
+            if (monitorWhichPlayer->ShouldAmmoBarBlink()) {
+                mDrawAmmoBarTransparent = mDrawBarsTransparent;
+            } else {
+                mDrawAmmoBarTransparent = false;
+            }
+
+            if (monitorWhichPlayer->ShouldGasolineBarBlink()) {
+                mDrawGasolineBarTransparent = mDrawBarsTransparent;
+            } else {
+                mDrawGasolineBarTransparent = false;
+            }
+
+            if (monitorWhichPlayer->ShouldShieldBarBlink()) {
+                mDrawShieldBarTransparent = mDrawBarsTransparent;
+            } else {
+                mDrawShieldBarTransparent = false;
+            }
+        }
 
         DrawFinishedPlayerList();
 
@@ -692,59 +860,14 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             }
         }
 
-        int sizeVec = shieldBar->size();
+        DrawShieldBar();
+        DrawAmmoBar();
+        DrawGasolineBar();
 
-        irr::f32 perc = (monitorWhichPlayer->mPlayerStats->shieldVal / monitorWhichPlayer->mPlayerStats->shieldMax) * sizeVec;
-
-        if (perc < 0)
-            perc = 0;
-
-        if (perc > sizeVec)
-            perc = sizeVec;
-
-        //draw as many shield bars as the current shield state of the ship allows
-        for (int i = 0; i < perc ; i++) {
-            mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*shieldBar)[i]->sizeTex.Width, (*shieldBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
-        }
-
-        sizeVec = ammoBar->size();
-
-        perc = (monitorWhichPlayer->mPlayerStats->ammoVal / monitorWhichPlayer->mPlayerStats->ammoMax) * sizeVec;
-
-        if (perc < 0)
-            perc = 0;
-
-        if (perc > sizeVec)
-            perc = sizeVec;
-
-        for (int i = 0; i < perc; i++) {
-            mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*ammoBar)[i]->sizeTex.Width, (*ammoBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
-        }
-
-        sizeVec = gasolineBar->size();
-
-        perc = (monitorWhichPlayer->mPlayerStats->gasolineVal / monitorWhichPlayer->mPlayerStats->gasolineMax) * sizeVec;
-
-        if (perc < 0)
-            perc = 0;
-
-        if (perc > sizeVec)
-            perc = sizeVec;
-
-        for (int i = (sizeVec - perc); i < sizeVec; i++) {
-            mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*gasolineBar)[i]->sizeTex.Width, (*gasolineBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
-        }
-
-        sizeVec = throttleBar->size();
+        int sizeVec = throttleBar->size();
 
         irr::f32 perc2 = (monitorWhichPlayer->mPlayerStats->throttleVal / monitorWhichPlayer->mPlayerStats->throttleMax) * sizeVec;
-        perc = (monitorWhichPlayer->mPlayerStats->boosterVal / monitorWhichPlayer->mPlayerStats->boosterMax) * sizeVec;
+        irr::f32 perc = (monitorWhichPlayer->mPlayerStats->boosterVal / monitorWhichPlayer->mPlayerStats->boosterMax) * sizeVec;
 
         if (perc < 0)
             perc = 0;
@@ -1464,7 +1587,7 @@ void HUD::RenderPlayerLapTimes() {
     //2. render current lap time number in the lowest line
     // this text is written in a way that times are alignment on the right side
     //the length (width) of text to render afterwards
-    sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->currLapTimeMultiple100mSec);
+    sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->currLapTimeMultiple40mSec);
 
     //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
     //posX = 92 - txtWidth;
@@ -1479,12 +1602,12 @@ void HUD::RenderPlayerLapTimes() {
     //first lets see if there is already a fastest lap number & lap time available
     //get this info
     irr::u8 fastestLapNr = 0;
-    irr::u32 fastestLapNrLapTimeMultiple100ms;
+    irr::u32 fastestLapNrLapTimeMultiple40ms;
 
     if (amountFinishedLaps > 0) {
         //because player lap time table is a sorted vector, fastest lap is always first entry
         fastestLapNr = this->monitorWhichPlayer->mPlayerStats->lapTimeList[0].lapNr;
-        fastestLapNrLapTimeMultiple100ms = this->monitorWhichPlayer->mPlayerStats->lapTimeList[0].lapTimeMultiple100mSec;
+        fastestLapNrLapTimeMultiple40ms = this->monitorWhichPlayer->mPlayerStats->lapTimeList[0].lapTimeMultiple40mSec;
     }
 
     //if available print information about last lap, also important: only print this lap here as long this is not the fastest lap!
@@ -1496,7 +1619,7 @@ void HUD::RenderPlayerLapTimes() {
 
         mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
-        sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->lastLap.lapTimeMultiple100mSec);
+        sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->lastLap.lapTimeMultiple40mSec);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
         //posX = 92 - txtWidth;
@@ -1516,7 +1639,7 @@ void HUD::RenderPlayerLapTimes() {
 
         mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
-        sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapTimeMultiple100mSec);
+        sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapTimeMultiple40mSec);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
         //posX = 92 - txtWidth;
@@ -1536,7 +1659,7 @@ void HUD::RenderPlayerLapTimes() {
 
         mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(posX, posY));
 
-        sprintf(&text[0], "%4d", fastestLapNrLapTimeMultiple100ms);
+        sprintf(&text[0], "%4d", fastestLapNrLapTimeMultiple40ms);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberGrey);
         //posX = 92 - txtWidth;

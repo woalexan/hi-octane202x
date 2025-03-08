@@ -66,6 +66,13 @@ int InfrastructureBase::randRangeInt(int min, int max) {
    return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
+//get a random float value in the range of 0.0 up to 1.0
+float InfrastructureBase::randFloat() {
+    float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+    return r;
+}
+
 bool InfrastructureBase::GetInitOk() {
     return mInitOk;
 }

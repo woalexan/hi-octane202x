@@ -36,6 +36,9 @@ public:
   //get a random int in the range between min and max
   int randRangeInt(int min, int max);
 
+  //get a random float value in the range of 0.0 up to 1.0
+  float randFloat();
+
   dimension2d<u32> mScreenRes;
   Logger* mLogger;
 

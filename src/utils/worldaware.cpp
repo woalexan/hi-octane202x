@@ -976,14 +976,21 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
         //yes, select the player which is closest to the middle of the screen (which means
         //we search an angle closest to 0.0, and with a distance small enough)
         std::vector<irr::f32>::iterator itAngle;
-        irr::f32 currMinVal = abs(PlayerSeenAngleList[0]);
+        irr::f32 currMinVal;
         int8_t minElIndx = 0;
         int8_t currElIndx = 0;
+        bool firstElement = true;
 
         for (itAngle = PlayerSeenAngleList.begin(); itAngle != PlayerSeenAngleList.end(); ++itAngle) {
-            if (abs((*itAngle)) < currMinVal) {
-                //is the distance small enough? otherwise skip entry
-                if (PlayerSeenList[currElIndx].HitDistance < maxViewDistance) {
+            //skip players that are no valid target right now
+            //is the distance small enough? otherwise skip entry
+            if (PlayerSeenList[currElIndx].HitPlayerPntr->IsCurrentlyValidTarget()
+                 && (PlayerSeenList[currElIndx].HitDistance < maxViewDistance)) {
+                if (firstElement) {
+                    firstElement = false;
+                    minElIndx = currElIndx;
+                    currMinVal = abs(PlayerSeenAngleList[currElIndx]);
+                } else if (abs((*itAngle)) < currMinVal) {
                     minElIndx = currElIndx;
                     currMinVal = abs((*itAngle));
                 }
@@ -992,10 +999,14 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
             currElIndx++;
         }
 
-        resPlayer = PlayerSeenList[minElIndx].HitPlayerPntr;
+        if (!firstElement) {
+            //we did find a target player
+            resPlayer = PlayerSeenList[minElIndx].HitPlayerPntr;
+        }
     }
 
     //tell player if/which player he has targeted
+    //in case there is no valid target player we set NULL
     whichPlayer->SetTarget(resPlayer);
 
     if (WA_ALLOW_DEBUGGING) {
