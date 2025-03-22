@@ -10,8 +10,9 @@
 #include "fileutils.h"
 
 #include <stdexcept>
+#include <filesystem>
 
-int copy_file (char *iname, char *oname)
+/*int copy_file(char* iname, char* oname)
 {
     char *sysbuf;
 
@@ -21,12 +22,43 @@ int copy_file (char *iname, char *oname)
     fprintf (stderr, "Out of memory.\n");
     return 1;
     }
+
     strcpy (sysbuf, "cp ");
     strcat (sysbuf, iname);
     strcat (sysbuf, " ");
     strcat (sysbuf, oname);
     system (sysbuf);
     free (sysbuf);
+    return 0;
+}*/
+
+//source code example taken from https://markaicode.com/how-to-copy-file-contents-in-c/
+int copy_file(char* srcFileName, char* destFileName) {
+    FILE* sourceFile;
+    FILE* destFile;
+    char buffer[4096];
+    size_t bytesRead;
+
+    sourceFile = fopen(srcFileName, "rb");
+    if (sourceFile == NULL) {
+        printf("Error opening source file!\n");
+        return 1;
+    }
+
+    destFile = fopen(destFileName, "wb");
+    if (destFile == NULL) {
+        printf("Error creating destination file!\n");
+        fclose(sourceFile);
+        return 1;
+    }
+
+    while ((bytesRead = fread(buffer, 1, 4096, sourceFile)) > 0) {
+        fwrite(buffer, 1, bytesRead, destFile);
+    }
+
+    fclose(sourceFile);
+    fclose(destFile);
+
     return 0;
 }
 
@@ -62,10 +94,20 @@ int FileExists(const char *fname)
 //Returns 0 if directory was created succesfully
 //returns 1 if directory was not created due to problem
 void CreateDirectory(const char *dirPath) {
-    int check = mkdir(dirPath, 0777);
+    //16.03.2025: mkdir not available under windows
+    // therefore replaced
+    //int check = mkdir(dirPath, 0777);
 
-    // check if directory is created or not
-    if (check != 0) {
+     // check if directory is created or not
+    /*/if (check != 0) {
+        throw "Error creating directory: " + std::string(dirPath);
+    }*/
+
+    namespace fs = std::filesystem;
+    fs::create_directories(dirPath);
+
+    // check if directory is now existing
+    if (!(IsDirectoryPresent(dirPath) == 1)) {
         throw "Error creating directory: " + std::string(dirPath);
     }
 }

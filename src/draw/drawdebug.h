@@ -10,7 +10,7 @@
 #ifndef DRAWDEBUG_H
 #define DRAWDEBUG_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include <vector>
 
 class DrawDebug {

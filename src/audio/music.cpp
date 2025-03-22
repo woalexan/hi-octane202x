@@ -73,7 +73,7 @@ bool MyMusicStream::VerifyInstrumentFile() {
         }
         catch (const std::string &e) {
             //problem creating sub dir
-            std::cout << "Music: Problem creating missing Subdir for WOPL instrument file" << std::endl;
+            std::cout << "Music: Problem creating missing Subdir for WOPL instrument file (" << e << ")" << std::endl;
             return false;
         }
 
@@ -119,7 +119,7 @@ void MyMusicStream::SetVolume(float newVolume) {
     }
 }
 
-MyMusicStream::MyMusicStream(uint sampleRate) {
+MyMusicStream::MyMusicStream(unsigned int sampleRate) {
     //verify and if necessary create the
     //OPL3 instrument file
     if (!VerifyInstrumentFile()) {

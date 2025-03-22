@@ -72,13 +72,13 @@ bool FmBank::operator==(const FmBank &fb)
     res &= (Banks_Percussion.size() == fb.Banks_Percussion.size());
     if(res)
     {
-        int size = Ins_Melodic_box.size() * static_cast<int>(sizeof(Instrument));
+        int size = (int)(Ins_Melodic_box.size()) * static_cast<int>(sizeof(Instrument));
         res &= (memcmp(Ins_Melodic,      fb.Ins_Melodic,    static_cast<size_t>(size)) == 0);
-        size = Ins_Percussion_box.size() * static_cast<int>(sizeof(Instrument));
+        size = (int)(Ins_Percussion_box.size()) * static_cast<int>(sizeof(Instrument));
         res &= (memcmp(Ins_Percussion,   fb.Ins_Percussion, static_cast<size_t>(size)) == 0);
-        size = Banks_Melodic.size() * static_cast<int>(sizeof(MidiBank));
+        size = (int)(Banks_Melodic.size()) * static_cast<int>(sizeof(MidiBank));
         res &= (memcmp(Banks_Melodic.data(),   fb.Banks_Melodic.data(), static_cast<size_t>(size)) == 0);
-        size = Banks_Percussion.size() * static_cast<int>(sizeof(MidiBank));
+        size = (int)(Banks_Percussion.size()) * static_cast<int>(sizeof(MidiBank));
         res &= (memcmp(Banks_Percussion.data(),   fb.Banks_Percussion.data(), static_cast<size_t>(size)) == 0);
     }
     return res;

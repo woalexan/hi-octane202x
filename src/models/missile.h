@@ -10,7 +10,7 @@
 #ifndef MISSILE_H
 #define MISSILE_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "player.h"
 #include "../audio/sound.h"
 #include "../models/explauncher.h"

@@ -70,7 +70,7 @@ struct ExplosionFlyingDebrisStruct {
 
     irr::f32 detonationDelay;
 
-    uint currTexNrFlyingDebris = 0;
+    unsigned int currTexNrFlyingDebris = 0;
 
     irr::f32 timerAddNextSprite;
 
@@ -98,8 +98,6 @@ class Explosion {
             sf::Sound* mExplodeSound = NULL;
             bool exploded = false;
             bool exploding = false;
-
-            void UpdateExplosionSprites(irr::f32 DeltaTime);
 
             //adds a new sprite to a debris that is currently flying
             void AddNewSpriteToDebris(ExplosionFlyingDebrisStruct &debrisPntr, irr::core::vector3df newLocation, irr::core::vector3df currVel,

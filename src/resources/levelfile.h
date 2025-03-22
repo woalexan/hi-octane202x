@@ -15,7 +15,7 @@
 #ifndef LEVELFILE_H
 #define LEVELFILE_H
 
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include <string>
 #include <vector>
 #include <fstream>

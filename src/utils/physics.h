@@ -29,7 +29,7 @@
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../draw/drawdebug.h"
 #include "boundingbox/collision.h"
 #include "../models/player.h"

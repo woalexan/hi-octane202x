@@ -149,12 +149,30 @@ void Game::DebugGame() {
 
              GameLoop();
         }
+        else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
+        }
     } else {
         //we want to start a demo
         if (this->RunDemoMode(debugLevelNr)) {
              mGameState = DEF_GAMESTATE_DEMORACE;
 
              GameLoop();
+        }
+        else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
         }
     }
 }
@@ -275,6 +293,14 @@ void Game::HandleMenueActions() {
         if (this->CreateNewRace(pendingAction->currSetValue, mPilotsNextRace, false, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
              CleanupPilotInfo(mPilotsNextRace);
+        } else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
         }
     }
 
@@ -448,6 +474,14 @@ void Game::HandleMenueActions() {
         if (this->CreateNewRace(randLevelNr, mPilotsNextRace, true, mDebugGame)) {
              mGameState = DEF_GAMESTATE_RACE;
              CleanupPilotInfo(mPilotsNextRace);
+        } else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
         }
     }
 }
@@ -919,4 +953,7 @@ void Game::CleanUpRace() {
 }
 
 Game::Game() {
+}
+
+Game::~Game() {
 }

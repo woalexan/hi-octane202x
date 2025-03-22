@@ -102,12 +102,12 @@ std::vector<irr::core::vector3df> LevelTerrain::GetPlayerRaceTrackStartLocations
       //implement another workaround here to calculate more starting locations based on the first found ones
       //(for example simply place the other crafts with a certain distance behind the first ones like the game seems to do)
       if (fndStartLocations.size() < 8) {
-          irr::u8 missingPlaceNr = 8 - fndStartLocations.size();
+          irr::u8 missingPlaceNr = 8 - (irr::u8)(fndStartLocations.size());
 
           //just allow to add one additional starting places behind the ones
           //in the map
-          if (missingPlaceNr > fndStartLocations.size()) {
-              missingPlaceNr = fndStartLocations.size();
+          if (missingPlaceNr > (irr::u8)(fndStartLocations.size())) {
+              missingPlaceNr = (irr::u8)(fndStartLocations.size());
           }
 
           irr::f32 segSize = DEF_SEGMENTSIZE;
@@ -2008,7 +2008,7 @@ irr::f32 LevelTerrain::GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr
     }*/
 
     //what cell are we in?
-    vector2di cell(-x / this->segmentSize, z / this->segmentSize);
+    vector2di cell((irr::s32)( - x / this->segmentSize), (irr::s32)(z / this->segmentSize));
 
     ForceTileGridCoordRange(cell);
 

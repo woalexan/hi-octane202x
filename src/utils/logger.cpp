@@ -70,7 +70,7 @@ void Logger::AddLogMessage(char* logText) {
    mbstowcs(newLogMsg->logText, logText, textLen);
    wcscat(newLogMsg->logText, L"\n");
 
-   newLogMsg->logTextLen = wcslen(newLogMsg->logText);
+   newLogMsg->logTextLen = (irr::u32)(wcslen(newLogMsg->logText));
 
    //add new log message to the vector of current
    //log messages

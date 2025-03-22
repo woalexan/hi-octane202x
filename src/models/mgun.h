@@ -10,7 +10,7 @@
 #ifndef MGUN_H
 #define MGUN_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "player.h"
 #include "../audio/sound.h"
 #include "../race.h"

@@ -25,10 +25,11 @@ LevelFile::LevelFile(std::string filename) {
    ifstream ifile;
    std::streampos fileSize;
 
-   ifile.open(filename);
+   ifile.open(filename, std::ifstream::binary);
       if(ifile) {
-         std::cout <<"Level file found and openend" << endl;
+         std::cout <<"Level file found and openend succesfully" << endl;
       } else {
+        std::cout << "Could not open Level file" << endl;
         return;
       }
 
@@ -38,10 +39,21 @@ LevelFile::LevelFile(std::string filename) {
     ifile.seekg(0, std::ios::beg);
 
     // read the data:
-    std::vector<uint8_t> fileData(fileSize);
-    ifile.read((char*) &fileData[0], fileSize);
+    //std::vector<uint8_t> fileData(fileSize);
+    //ifile.read(reinterpret_cast<char*>(fileData.data()), fileData.size());
 
-    this->m_bytes = fileData;
+    //this->m_bytes = fileData;
+
+    //read the data
+    this->m_bytes.resize(fileSize);
+    ifile.read(reinterpret_cast<char*>(this->m_bytes.data()), this->m_bytes.size());
+
+    if (ifile)
+        std::cout << "Leveldata read succesfully (" << fileSize << " bytes)" << endl;
+    else {
+        std::cout << "Leveldata file read error: only " << ifile.gcount() << " bytes could be read!" << endl;
+        return;
+    }
 
     Crc32 crc;
     unsigned int cs = crc.ComputeChecksum(this->m_bytes);
@@ -227,7 +239,7 @@ void LevelFile::set_Ready(bool newstate) {
 bool LevelFile::ReturnEntityItemWithId(int searchId, EntityItem **fndItem) {
     bool notFound = true;
     std::vector<EntityItem*>::iterator looper;
-    uint itemIdx = 0;
+    unsigned int itemIdx = 0;
 
     for(looper = this->Entities.begin(); notFound && (looper != this->Entities.end()); ++looper) {
         if ((*looper)->get_ID() == searchId) {
@@ -356,7 +368,7 @@ bool LevelFile::loadMap() {
     // entry is 12 bytes long, map is at end of file
     int numBytes = 12 * Width() * Height();
 
-    int i = this->m_bytes.size() - numBytes;
+    int i = (int)(this->m_bytes.size()) - numBytes;
 
     for (int y = 0; y < Height(); y++) {
      for (int x = 0; x < Width(); x++) {
@@ -367,7 +379,7 @@ bool LevelFile::loadMap() {
          MapEntry *entry = new MapEntry(x, y, i, dataslice, ColumnDefinitions);
 
          if (entry->get_Column() != NULL) {
-              NewStruct.Vector3 = irr::core::vector3d<float>(x, 0, y);
+              NewStruct.Vector3 = irr::core::vector3d<float>((irr::f32)(x), 0.0f, (irr::f32)(y));
               NewStruct.Columns = entry->get_Column();
 
               this->Columns.push_back(NewStruct);
@@ -642,7 +654,7 @@ void LevelFile::VerifyRegionFound(irr::core::vector2di startCell, int foundTextu
         //calculate remaining stuff
         MapTileRegionStruct *newRegion = new MapTileRegionStruct();
 
-        newRegion->regionId = mMapRegionVec->size();
+        newRegion->regionId = (irr::u8)(mMapRegionVec->size());
         newRegion->regionType = expectedRegionType;
         newRegion->tileXmin = tileXmin;
         newRegion->tileXmax = tileXmax;
@@ -675,8 +687,8 @@ void LevelFile::DetectAdditionalRegionsTextureId() {
     for (it = this->PointsOfInterest.begin(); it !=this->PointsOfInterest.end(); ++it) {
          pos3D = (*it).Position;
 
-         cell.X = -pos3D.X / DEF_SEGMENTSIZE;
-         cell.Y = pos3D.Z / DEF_SEGMENTSIZE;
+         cell.X = (irr::s32)(-pos3D.X / DEF_SEGMENTSIZE);
+         cell.Y = (irr::s32)(pos3D.Z / DEF_SEGMENTSIZE);
 
          //shield charger has texture ID #51
          //ammo charger has texture ID #47
@@ -997,7 +1009,7 @@ void LevelFile::VerifyRegionFoundViaColumns(irr::core::vector2di startCell, int 
         //calculate remaining stuff
         MapTileRegionStruct *newRegion = new MapTileRegionStruct();
 
-        newRegion->regionId = mMapRegionVec->size();
+        newRegion->regionId = (irr::u8)(mMapRegionVec->size());
         newRegion->regionType = expectedRegionType;
         newRegion->tileXmin = tileXmin;
         newRegion->tileXmax = tileXmax;
@@ -1046,8 +1058,8 @@ void LevelFile::DetectAdditionalRegionsBasedOnColumns() {
     for (it = this->PointsOfInterest.begin(); it !=this->PointsOfInterest.end(); ++it) {
          pos3D = (*it).Position;
 
-         cell.X = -pos3D.X / DEF_SEGMENTSIZE;
-         cell.Y = pos3D.Z / DEF_SEGMENTSIZE;
+         cell.X = (irr::s32)(-pos3D.X / DEF_SEGMENTSIZE);
+         cell.Y = (irr::s32)(pos3D.Z / DEF_SEGMENTSIZE);
 
          //TextureIDs interesting for column charger station symbols
          //Fuel = 42

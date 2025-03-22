@@ -25,22 +25,37 @@
 #include "xtabdat8.h"
 #include <vector>
 #include <sstream>
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
+#include "../../definitions.h"
 
 #define OBJDATHEADER "BULLFROG OBJECT DATA"
 #define OBJDATHEADERLENGTH 58
 
-typedef struct {
-     int A;
-     int B;
-     int C;
+//16.03.2025: original code that was working
+//under linux
+/*typedef struct {
+    int A;
+    int B;
+    int C;
 }  __attribute__((packed)) ObjTriangle;
 
 typedef struct {
-     float X;
-     float Y;
-     float Z;
-   }  __attribute__((packed)) ObjVertex;
+    float X;
+    float Y;
+    float Z;
+}  __attribute__((packed)) ObjVertex;*/
+
+PACK(typedef struct {
+    int A;
+    int B;
+    int C;
+} ObjTriangle);
+
+PACK(typedef struct {
+    float X;
+    float Y;
+    float Z;
+} ObjVertex);
 
 class ObjectDatFile {
 

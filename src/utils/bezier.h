@@ -16,7 +16,7 @@
 #define BEZIER_H
 
 #include "../utils/path.h"
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include "../draw/drawdebug.h"
 #include "../models/levelterrain.h"
 

@@ -10,7 +10,7 @@
 #ifndef CONE_H
 #define CONE_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../race.h"
 
 class Race; //Forward declaration

@@ -14,7 +14,6 @@ anymore. Otherwise I would not have been able to compile it, or use it in my pro
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <values.h>
 #include "flifile.h"
 
 //SaveBlockToFile("!debug.dta",ChunkPacketHdr,DataSize-ChunkPos);
@@ -541,8 +540,8 @@ void rewriteMainHeader(FILE *destFile,ulong nFrames,FLIMainHeader *mainHdr)
 {
   ulong lastFilePos=ftell(destFile);
   fseek(destFile,0,SEEK_SET);
-  mainHdr->size=filesize(destFile);
-  mainHdr->frames=nFrames;
+  mainHdr->size=(uint32_t)(filesize(destFile));
+  mainHdr->frames=(uint16_t)(nFrames);
   saveDataToFile(mainHdr,sizeof_FLIMainHeader,destFile);
   fseek(destFile,lastFilePos,SEEK_SET);
 }
@@ -577,7 +576,7 @@ void addRequiredChunksAtFrameStart(FILE *destFile,ulong frameNumber,int options)
     free(currPcktChkHdr);
     //Separately we take care of palette content
     void *currChkData=allocateMem(palDataSize+1,errChunkData,0,options);
-    loadPalette("FLIFix.pal",currChkData,palDataSize,options);
+    loadPalette("FLIFix.pal",currChkData,(size_t)(palDataSize),options);
     saveDataToFile(currChkData,palDataSize,destFile);
     free(currChkData);
     };

@@ -10,7 +10,7 @@
 #ifndef ASSETS_H
 #define ASSETS_H
 
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include <vector>
 #include "../utils/fileutils.h"
 #include "../utils/crc32.h"
@@ -160,7 +160,7 @@ struct PointTableEntryStruct {
     char* namePlayer;
 
     //the point value for this entry
-    irr::u8 pointVal;
+    irr::u16 pointVal;
 };
 
 struct ChampionshipSaveGameInfoStruct {

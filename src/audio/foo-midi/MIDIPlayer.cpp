@@ -10,6 +10,10 @@
 
 //#include <CppCoreCheck/Warnings.h>
 
+#ifdef _MSC_VER 
+#include "Windows.h"
+#endif
+
 #include "MIDIPlayer.h"
 #include "Configuration.h"
 #include <cassert>

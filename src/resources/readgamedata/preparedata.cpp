@@ -260,8 +260,8 @@ void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilena
         throw std::string("Error: Model texture atlas not loaded");
     }
 
-    ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, this->modelTexAtlasSize.Width,
-                       this->modelTexAtlasSize.Height);
+    ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, (unsigned int)(this->modelTexAtlasSize.Width),
+                       (unsigned int)(this->modelTexAtlasSize.Height));
 
     if (!newConversion->LoadObjectDatFile(srcFilename)) {
         delete newConversion;
@@ -798,7 +798,7 @@ void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
 
         tileposx += tileSize;
 
-        if (tileposx >= origDimension.Width) {
+        if ((irr::u32)(tileposx) >= origDimension.Width) {
             tileposx = 0;
             tileposy += tileSize;
         }
@@ -940,7 +940,7 @@ void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap col
 }
 
 void PrepareData::ReadPaletteFile(char *palFile, unsigned char* paletteDataOut) {
-    int retcode=read_palette_rgb(paletteDataOut,palFile,(unsigned int)(256));
+    int retcode=read_palette_rgb(paletteDataOut,palFile,(uint16_t)(256));
 
     std::string msg = std::string();
     switch (retcode) {
@@ -1280,7 +1280,7 @@ void PrepareData::ExtractModelTextures() {
     strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
     strcpy(outputfile, "extract/models/tex0-0.png");
 
-    ConvertRawImageData(packfile, modelTexAtlasSize.Width, modelTexAtlasSize.Height, outputfile, 1.0);
+    ConvertRawImageData(packfile, (irr::u32)(modelTexAtlasSize.Width), (irr::u32)(modelTexAtlasSize.Height), outputfile, 1);
 
     /********************************************
     * We also need the TAB file to know where  *
@@ -1403,7 +1403,7 @@ void PrepareData::ExtractTmaps() {
         strcat(finalpathUnpacked, fname);
 
         //upscale Tmaps by a factor of 2
-        ConvertTMapImageData(finalpathUnpacked, finalpath, 2.0);
+        ConvertTMapImageData(finalpathUnpacked, finalpath, 2);
     }
 
     //cleanup unnecessary files
@@ -1568,7 +1568,7 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
 
     iFile = fopen(filename, "rb");
     fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
+    long size = ftell(iFile);
     fseek(iFile, 0L, SEEK_SET);
 
     //calculate amount of items to read from file
@@ -1696,7 +1696,7 @@ void PrepareData::ExtractMusic() {
 
     iFile = fopen(filename, "rb");
     fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
+    long size = ftell(iFile);
 
     //first we need to read INT32LE at EOF, and seek to
     //this position
@@ -1711,7 +1711,7 @@ void PrepareData::ExtractMusic() {
 
     short int readVal = 0;
     unsigned int N = 0;
-    size_t lastSeekPos;
+    long lastSeekPos;
 
     //now at this location count the number of INT16LE with value 01;
     //lets call the amount of repetitions N
@@ -1738,6 +1738,11 @@ void PrepareData::ExtractMusic() {
     //now read N times the following struct with tune offset information
     for (unsigned int cnt = 0; cnt < N; cnt++) {
          newTableEntry = (MUSICTABLEENTRY*)malloc(sizeof(MUSICTABLEENTRY));
+         if (newTableEntry == NULL) {
+             fclose(iFile);
+             throw std::string("ExtractMusic - Out of Memory");
+         }
+
          fread(newTableEntry, sizeof(MUSICTABLEENTRY), 1, iFile);
          VecMusicTableEntries.push_back(*newTableEntry);
          free(newTableEntry);
@@ -1759,6 +1764,11 @@ void PrepareData::ExtractMusic() {
     for(it = VecMusicTableEntries.begin(); it != VecMusicTableEntries.end(); ++it) {
         newTuneInformation = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
 
+        if (newTuneInformation == NULL) {
+            fclose(iFile);
+            throw std::string("ExtractMusic - Out of Memory");
+        }
+
         fseek(iFile, (it)->offTunes, SEEK_SET);
         fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
 
@@ -1770,6 +1780,11 @@ void PrepareData::ExtractMusic() {
 
         while (targetLenTuneSum > 0) {
             newTuneInformation = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
+            if (newTuneInformation == NULL) {
+                fclose(iFile);
+                throw std::string("ExtractMusic - Out of Memory");
+            }
+
             fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
             VecTuneInformation.push_back(*newTuneInformation);
             targetLenTuneSum -= newTuneInformation->tuneLenBytes;
@@ -1782,6 +1797,8 @@ void PrepareData::ExtractMusic() {
         //clear list again to make room for next file round
         VecTuneInformation.clear();
      }
+
+    fclose(iFile);
 }
 
 //The following routine uses the flifix source code,

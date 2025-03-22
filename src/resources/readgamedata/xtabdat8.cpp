@@ -23,6 +23,9 @@
 //in routine read_tabfile_data to make 3D Model export work correctly
 //Therefore this source code is not full original anymore!
 
+ //Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
+ // I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+
 //extracts all images within data file into outputDir
 int ExtractImages (char* datfname, char* tabfname, unsigned char* palette, char* outputDir)
 {
@@ -34,14 +37,14 @@ int ExtractImages (char* datfname, char* tabfname, unsigned char* palette, char*
     }
 
     //Looping through images and extracting to files
-    unsigned long picnum;
+    long picnum;
     for (picnum=0;picnum<images.count;picnum++)
     {
         //printf ("\rExtracting: picture number %*d", 4, picnum);
         char finalpath[80];
         char fname[20];
         strcpy(&finalpath[0], &outputDir[0]);
-        sprintf (fname, "%0*lu.bmp", 4, picnum);
+        sprintf (fname, "%0*ld.bmp", 4, picnum);
         strcat(finalpath, fname);
         IMAGEITEM *item=&(images.items[picnum]);
         if ((item->width*item->height)>0)
@@ -115,12 +118,12 @@ int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int
 
     if (verbose)
     {
-        printf("Processed %lu of %lu bytes of DAT file.\n",readcount,datf.filelength);
-        long unused=datf.filelength-readcount;
+        printf("Processed %lu of %zu bytes of DAT file.\n",readcount,datf.filelength);
+        size_t unused=datf.filelength-readcount;
         if (unused>=0)
-            printf("Bytes skipped: %ld\n",unused);
+            printf("Bytes skipped: %zu\n",unused);
           else  
-            printf("Bytes overlapping: %ld\n",-unused);
+            printf("Bytes overlapping: %zd\n",-unused);
     }
     free_tabfile_data(&tabf);
     free_datfile_data(&datf);
@@ -135,7 +138,7 @@ void DebugWriteTabFileContentsCsvTable(char* tabFileName, TABFILE* tabf) {
     strcpy(finalpath, tabFileName);
 
     //build new debug filename for text export
-    for (ulong i = 0; i < strlen(finalpath); i++) {
+    for (unsigned long i = 0; i < strlen(finalpath); i++) {
         if (finalpath[i] == '.') {
             dotPos = i;
         }
@@ -178,10 +181,16 @@ int read_tabfile_data(TABFILE* tabf,char* srcfname, bool skipFirstEntry)
         tabfp = fopen (srcfname, "rb");
         if (!tabfp)
         	return 1;
-        tabf->filelength=file_length_opened(tabfp);
+
+        tabf->filelength=(unsigned long)(file_length_opened(tabfp));
         tabf->count=tabf->filelength/6 - 1;
         tabf->items=static_cast<TABFILE_ITEM*>(malloc(tabf->count*sizeof(TABFILE_ITEM)));
-        if (!tabf->items) { fclose(tabfp);return 2; }
+
+        if (!tabf->items) { 
+            fclose(tabfp);
+            return 2; 
+        }
+
         unsigned char tabitm[6];
         //Note about the next two lines: In the original xtabdat8.cpp code the fread command 2 lines below
         //is always active to skip reading the first entry. This is necessary for most of the assets in Hioctane.
@@ -194,16 +203,18 @@ int read_tabfile_data(TABFILE* tabf,char* srcfname, bool skipFirstEntry)
             fread (tabitm, 6, 1, tabfp);
         }
 
-        int entrynum;
+        long entrynum;
         for (entrynum=0;entrynum<tabf->count;entrynum++)
         {
             TABFILE_ITEM *curitm=&(tabf->items[entrynum]);
-            unsigned long readed=fread (tabitm, 1, 6, tabfp);
-            curitm->offset=read_long_le_buf(tabitm);
-            curitm->width=tabitm[4];
-            curitm->height=tabitm[5];
-            if (readed < 6) return 3;
+            size_t readed=fread (tabitm, 1, 6, tabfp);
+            curitm->offset=(uint32_t)(read_long_le_buf(tabitm));
+            curitm->width=(uint8_t)(tabitm[4]);
+            curitm->height=(uint8_t)(tabitm[5]);
+            if (readed < 6) 
+                return 3;
         }
+
         fclose(tabfp);
 
         return 0;
@@ -217,19 +228,27 @@ void free_tabfile_data(TABFILE* tabf)
     tabf->count=0;
 }
 
-int read_datfile_data(DATFILE* datf,char* srcfname)
+int read_datfile_data(DATFILE* datf, char* srcfname)
 {
     FILE* datfp;
     datfp = fopen (srcfname, "rb");
-    if (!datfp) return 1;
+    if (!datfp) 
+        return 1;
+
     datf->count=read_short_le_file(datfp)-1;
-    datf->filelength=file_length_opened(datfp);
+    datf->filelength=(size_t)(file_length_opened(datfp));
     datf->data=static_cast<unsigned char*>(malloc(datf->filelength));
-    if (!datf->data) { fclose(datfp);return 2; }
+    if (!datf->data) { 
+        fclose(datfp);
+        return 2;
+    }
+
     fseek(datfp, 0, SEEK_SET);
-    unsigned long readed=fread(datf->data, 1, datf->filelength, datfp);
+    size_t readed=fread(datf->data, 1, datf->filelength, datfp);
     fclose(datfp);
-    if (readed < datf->filelength) return 3;
+    if (readed < datf->filelength)
+        return 3;
+
     return 0;
 }
 
@@ -251,7 +270,7 @@ int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,
         return 1;
     }
     //Looping through images
-    unsigned long picnum;
+    long picnum;
     unsigned long errnum=0;
     unsigned long skipnum=0;
     for (picnum=0;picnum<images->count;picnum++)
@@ -296,7 +315,7 @@ int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,
 
 void free_dattab_images(IMAGELIST* images)
 {
-    unsigned long picnum;
+    long picnum;
     for (picnum=0;picnum<images->count;picnum++)
     {
         IMAGEITEM* item=&(images->items[picnum]);
@@ -308,18 +327,18 @@ void free_dattab_images(IMAGELIST* images)
     images->count=0;
 }
 
-int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf,unsigned long off,unsigned int width,unsigned int height)
+int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf, uint32_t off, uint16_t width, uint16_t height)
 {
     //Filling image structure
     {
         image->width=width;
         image->height=height;
-        unsigned long imgsize=width*height;
+        uint32_t imgsize=width*height;
         image->data=static_cast<unsigned char*>(malloc(imgsize));
         image->alpha=static_cast<unsigned char*>(malloc(imgsize));
         if ((image->data==NULL)||(image->alpha==NULL))
             return XTABDAT8_NOMEMORY;
-        unsigned long i;
+        uint32_t i;
         for (i=0;i<imgsize;i++)
         {
             // Select color index when transparent
@@ -330,18 +349,18 @@ int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf,
     //Code of error, if any occured
     int errorcode=0;
     //Counter of readed bytes
-    unsigned long endoff=off; //Note 19.04.2024: geändert von long auf unsigned long, falls ab diesem Tag etwas nicht funktioniert
+    uint32_t endoff=off; //Note 19.04.2024: geändert von long auf unsigned long, falls ab diesem Tag etwas nicht funktioniert
     //Position in buffer on height
-    unsigned int row=0;
+    uint16_t row=0;
     //position in buffer on width
-	unsigned int col=0;
+	uint16_t col=0;
     char g;
 
     //Time to decode picture
     while (row < height)
     {
 
-        if ((unsigned long)(endoff) < datf->filelength)
+        if (endoff < datf->filelength)
             g = (char)(datf->data[endoff]);
         else
             {g = 0;errorcode|=XTABDAT8_ENDOFBUFFER;}
@@ -378,7 +397,7 @@ int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf,
                 } else
     		    {
                     //No leak error
-                    if ((unsigned long)(endoff) < datf->filelength)
+                    if (endoff < datf->filelength)
                     {
                         image->data[(width*row)+col]=datf->data[endoff];
                         image->alpha[(width*row)+col]=0;

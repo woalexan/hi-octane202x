@@ -31,6 +31,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.                                                                            */
 
+//Note 22.03.2025: I also made some source code modifications below. This is not 100% original source code
+//of the original author below.
+
 #include "crc32.h"
 
 Crc32::Crc32() {
@@ -52,10 +55,10 @@ Crc32::Crc32() {
 
 unsigned int Crc32::ComputeChecksum(std::vector<uint8_t> bytes) {
   unsigned int crc = 0xffffffff;
-  unsigned long len = bytes.size();
+  size_t len = bytes.size();
   unsigned char index;
 
-  for (unsigned long i = 0; i < len; ++i) {
+  for (size_t i = 0; i < len; ++i) {
         index = (uint8_t)(((crc) & 0xff) ^ bytes.at(i));
         crc = (uint8_t)((crc >> 8) ^ m_table[index]);
     }

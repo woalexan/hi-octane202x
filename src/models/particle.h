@@ -10,11 +10,11 @@
 #ifndef PARTICLE_H
 #define PARTICLE_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include <vector>
 #include <iostream>
 #include <cstdlib>
-#include "irrlicht/EDebugSceneTypes.h"
+#include "EDebugSceneTypes.h"
 #include "player.h"
 
 class Player; //Forward declaration

@@ -244,8 +244,8 @@ void Missile::Update(irr::f32 DeltaTime) {
         //calculate current cell below missile
         int current_cell_calc_x, current_cell_calc_y;
 
-        current_cell_calc_y = (currentLocation.Z / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
-        current_cell_calc_x = -(currentLocation.X / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
+        current_cell_calc_y = (int)(currentLocation.Z / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
+        current_cell_calc_x = -(int)(currentLocation.X / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
 
         MapEntry* mEntry = mParentLauncher->mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
@@ -325,8 +325,8 @@ irr::core::vector3df MissileLauncher::GetMissileLaunchLocation() {
     //calculate current cell below bullet impact position
     int current_cell_calc_x, current_cell_calc_y;
 
-    current_cell_calc_y = (Loc.Z / mParent->mRace->mLevelTerrain->segmentSize);
-    current_cell_calc_x = -(Loc.X / mParent->mRace->mLevelTerrain->segmentSize);
+    current_cell_calc_y = (int)(Loc.Z / mParent->mRace->mLevelTerrain->segmentSize);
+    current_cell_calc_x = -(int)(Loc.X / mParent->mRace->mLevelTerrain->segmentSize);
 
     MapEntry* mEntry = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 

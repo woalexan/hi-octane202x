@@ -426,7 +426,7 @@ void Assets::InitDriverAssessementStrings() {
 }
 
 irr::u8 Assets::GetNumberDriverAssessementStrings() {
-    return this->driverAssessementStrings->size();
+    return (irr::u8)(this->driverAssessementStrings->size());
 }
 
 char* Assets::GetDriverAssessementString(irr::u8 assessementLevel) {
@@ -1873,7 +1873,7 @@ void Assets::CreateEmptyHighScoreTableEntry(char** targetBuf, irr::u8 entryNr) {
     char* dfltEntryName = strdup("BULLFROG");
 
     //player names in Hi-Octane are limited to max 8 characters
-    WriteNullTerminatedString(*targetBuf, dataOffset + 5, dfltEntryName, strlen(dfltEntryName));
+    WriteNullTerminatedString(*targetBuf, dataOffset + 5, dfltEntryName, (irr::u8)(strlen(dfltEntryName)));
 
     free(dfltEntryName);
 }
@@ -2022,7 +2022,7 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     //I just know we have to write a lot of additional BULLFROG strings
     //to be finished
     char* bullFrogStr = strdup("BULLFROG");
-    irr::u8 maxLen = strlen(bullFrogStr);
+    irr::u8 maxLen = (irr::u8)(strlen(bullFrogStr));
 
     size_t startOff = 0x1152;
 

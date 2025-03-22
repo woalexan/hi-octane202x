@@ -10,7 +10,7 @@
 #ifndef RECOVERY_H
 #define RECOVERY_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "player.h"
 #include "../utils/path.h"
 

@@ -129,7 +129,7 @@ bool LevelBlocks::searchColumnWithPosition(int posKey, Column* &columnFnd) {
     bool notFound = true;
 
     std::vector<ColumnsByPositionStruct>::iterator it;
-    uint elementIdx = 0;
+    unsigned int elementIdx = 0;
 
     //search through all of the available columns
     for (it = ColumnsByPosition.begin(); notFound && (it != ColumnsByPosition.end()); ++it) {
@@ -243,7 +243,7 @@ SMesh* LevelBlocks::getBlocksMesh(int collisionSelector) {
         GetColumn = (*loopi);
 
         //each cube has 6 textures, therefore we can calculate number of cubes to draw
-        cubeCnt = (*loopi).pColumn->GeometryInfoList->textureIdData.size() / 6;
+        cubeCnt = (int)((*loopi).pColumn->GeometryInfoList->textureIdData.size()) / 6;
 
         texIt = (*loopi).pColumn->GeometryInfoList->textureIdData.begin();
         indicesVboIt = (*loopi).pColumn->GeometryInfoList->indicesVboData.begin();
@@ -295,11 +295,11 @@ SMesh* LevelBlocks::getBlocksMesh(int collisionSelector) {
             texIt = (*loopi).pColumn->GeometryInfoList->textureIdData.begin();
 
             //each cube has 24 vertices, calculate number of cubes in this column
-            cubeCnt = (*loopi).pColumn->GeometryInfoList->vertices.size() / 24;
+            cubeCnt = (int)((*loopi).pColumn->GeometryInfoList->vertices.size()) / 24;
 
             //also create statistics over vertice count, indice count, ...
-            numVertices += (*loopi).pColumn->GeometryInfoList->vertices.size();
-            numIndices += (*loopi).pColumn->GeometryInfoList->indicesVboData.size();
+            numVertices += (irr::u32)((*loopi).pColumn->GeometryInfoList->vertices.size());
+            numIndices += (irr::u32)((*loopi).pColumn->GeometryInfoList->indicesVboData.size());
             numNormals += cubeCnt * 6; //for each cube/box we have 6 normals (one normal for each side)
             numUVs += cubeCnt * 24; //for each cube/box we have 24 UVs
 
@@ -398,7 +398,7 @@ bool LevelBlocks::GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::
             //in upwards direction where no collision detection can take place
             //there is a 0 inside; from the moment when collision detection is activated
             //there are 1 values inside for the remaining blocks upwards
-            nrBlocks = colDef->mInCollisionMesh.size();
+            nrBlocks = (irr::u8)(colDef->mInCollisionMesh.size());
 
             firstCollDetBlock = nrBlocks;
 

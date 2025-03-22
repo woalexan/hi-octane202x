@@ -10,7 +10,7 @@
 #ifndef TPROFILE_H
 #define TPROFILE_H
 
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include <vector>
 #include "SFML/System.hpp"
 #include <algorithm>

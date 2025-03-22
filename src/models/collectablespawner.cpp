@@ -48,8 +48,8 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
                   if ((*it)->currVelocity.Y < 0.0f) {
                       //yes, sprite is falling down, now we need to calculate high about terrain tile below
                       //calculate current cell below sprite
-                      current_cell_calc_y = ((*it)->pntrCollectable->Position.Z / mRace->mLevelTerrain->segmentSize);
-                      current_cell_calc_x = -((*it)->pntrCollectable->Position.X / mRace->mLevelTerrain->segmentSize);
+                      current_cell_calc_y = (int)((*it)->pntrCollectable->Position.Z / mRace->mLevelTerrain->segmentSize);
+                      current_cell_calc_x = -(int)((*it)->pntrCollectable->Position.X / mRace->mLevelTerrain->segmentSize);
 
                       MapEntry* mEntry = mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 

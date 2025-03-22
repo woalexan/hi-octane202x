@@ -8,10 +8,15 @@
  * This is the link to the original authors project:
  * https://github.com/stuerp/foo_midi                                              */
 
+#ifdef _MSC_VER 
+#include "Windows.h"
+#endif
+
 #include "MIDIContainer.h"
 
 #include <string.h>
 #include <algorithm>
+#include "../../definitions.h"
 
 //array must not be a pointer, this will not work!
 #define _countof(array) (sizeof(array) / sizeof(array[0]))

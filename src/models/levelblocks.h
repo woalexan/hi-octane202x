@@ -12,7 +12,7 @@
 
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../resources/texture.h"
 #include "column.h"
 

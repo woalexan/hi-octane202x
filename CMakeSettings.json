@@ -1,0 +1,51 @@
+﻿{
+    "configurations": [
+        {
+            "name": "x64-Debug",
+            "generator": "Ninja",
+            "configurationType": "Debug",
+            "inheritEnvironments": [ "msvc_x64_x64" ],
+            "buildRoot": "${projectDir}\\build",
+            "installRoot": "${projectDir}\\build\\install\\${name}",
+            "buildCommandArgs": "",
+            "ctestCommandArgs": "",
+            "variables": [
+                {
+                    "name": "IRRLICHT_INCLUDE_DIR",
+                    "value": "C:/Alex/irrlicht/irrlicht-1.8.5/include",
+                    "type": "PATH"
+                },
+                {
+                    "name": "IRRLICHT_LIBRARY",
+                    "value": "C:/Alex/irrlicht/irrlicht-1.8.5/lib/Win64-visualStudio/Irrlicht.lib",
+                    "type": "FILEPATH"
+                },
+                {
+                    "name": "ADLMIDI_INCLUDE_DIR",
+                    "value": "C:/Alex/adlmidi/include",
+                    "type": "PATH"
+                },
+                {
+                    "name": "ADLMIDI_LIBRARY",
+                    "value": "C:/Alex/adlmidi/lib/adlmidi.lib",
+                    "type": "FILEPATH"
+                },
+                {
+                    "name": "SFML_INCLUDE_DIR",
+                    "value": "C:/Alex/sfml/SFML-2.6.2-windows-vc17-64-bit/SFML-2.6.2/include",
+                    "type": "PATH"
+                },
+                {
+                    "name": "SFML_ROOT",
+                    "value": "C:/Alex/sfml/SFML-2.6.2-windows-vc17-64-bit/SFML-2.6.2/lib",
+                    "type": "PATH"
+                },
+                {
+                    "name": "SFML_STATIC_LIBRARIES",
+                    "value": "True",
+                    "type": "BOOL"
+                }
+            ]
+        }
+    ]
+}

@@ -10,11 +10,11 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "levelterrain.h"
 #include <iostream>
 #include "../definitions.h"
-#include "irrlicht/irrMath.h"
+#include "irrMath.h"
 #include "../utils/physics.h"
 #include "../draw/hud.h"
 #include "collectable.h"
@@ -107,7 +107,7 @@ struct RayHitInfoStruct; //Forward declaration
 class Collectable; //Forward declaration
 class Camera; //Forward declaration
 
-typedef struct {
+typedef struct CpCommandEntry {
     uint8_t cmdType;
     EntityItem* targetEntity = NULL;
     irr::core::vector3df* targetPosition = NULL;
@@ -127,7 +127,7 @@ typedef struct {
     irr::u32 lapTimeMultiple40mSec;
 } LAPTIMEENTRY;
 
-typedef struct {
+typedef struct PlayerStats {
     irr::f32 speed;
     irr::f32 speedMax = MAX_PLAYER_SPEED;
 
@@ -201,7 +201,7 @@ typedef struct {
 
 //struct for one heightmap collision "sensor" element
 //which consists of 2 points for terrain stepness measurement
-typedef struct {
+typedef struct HMapCollSensor {
     //local coordinate for the craft 3D Model of the sensor element point
     irr::core::vector3df localPnt1;
     irr::core::vector3df localPnt2;
@@ -362,7 +362,6 @@ public:
 
     std::list<CPCOMMANDENTRY*>* cmdList;
     void AddCommand(uint8_t cmdType, EntityItem* targetEntity);
-    void AddCommand(uint8_t cmdType, irr::core::vector3df* targetLocation);
     void AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink);
     void AddCommand(uint8_t cmdType);
     void AddCommand(uint8_t cmdType, Collectable* whichCollectable);
@@ -614,7 +613,7 @@ public:
     irr::f32 currPlayerCraftForwardLeaningAngleDeg = 0.0f;
 
     void CPForceController();
-    void ProjectPlayerAtCurrentSegment();
+    //void ProjectPlayerAtCurrentSegment();
     void ReachedEndCurrentFollowingSegments();
     void PickupCollectableDefineNextSegment(Collectable* whichCollectable);
     void CpCheckCurrentPathForObstacles();

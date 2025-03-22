@@ -14,6 +14,10 @@
 // * do so, delete this exception statement from your version.                *
 // ****************************************************************************
 
+//Note 22.03.2025: I had to remove a "[[likely]]" attribute at two places in the original source code of
+//the author below, so that I can compile the project without errors in Visual Studio. Therefore the source
+//code below is not 100% the original source code of the author anymore.
+
 #include "xbrz.h"
 #include <cassert>
 #include <vector>
@@ -487,7 +491,7 @@ public:
 
     void readDhlp(Kernel_4x4& ker, int x) const //(x, y) is at kernel position F
     {
-        [[likely]] if (const int x_p2 = x + 2; 0 <= x_p2 && x_p2 < srcWidth_)
+        if (const int x_p2 = x + 2; 0 <= x_p2 && x_p2 < srcWidth_)
         {
             ker.d = s_m1 ? s_m1[x_p2] : 0;
             ker.h = s_0  ? s_0 [x_p2] : 0;
@@ -693,7 +697,7 @@ void scaleImage(const uint32_t* src, uint32_t* trg, int srcWidth, int srcHeight,
                 addTopR(blend_xy1, res.blend_j); //set 2nd known corner for (x, y + 1)
                 preProcBuf[x] = blend_xy1; //store on current buffer position for use on next row
 
-                [[likely]] if (x + 1 < srcWidth)
+                if (x + 1 < srcWidth)
                 {
                     //blend_xy1 -> blend_x1y1
                     clearAddTopL(blend_xy1, res.blend_k); //set 1st known corner for (x + 1, y + 1) and buffer for use on next column

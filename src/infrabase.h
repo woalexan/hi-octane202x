@@ -11,7 +11,7 @@
 #define INFRABASE_H
 
 #include <iostream>
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "input/input.h"
 #include "utils/logger.h"
 #include "resources/assets.h"

@@ -15,7 +15,7 @@
 #ifndef MORPH_H
 #define MORPH_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../resources/entityitem.h"
 #include <list>
 #include "../race.h"

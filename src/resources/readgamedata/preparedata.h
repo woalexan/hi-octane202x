@@ -18,12 +18,14 @@
 #include "dernc.h"
 #include "xtabdat8.h"
 #include "stdlib.h"
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../../utils/fileutils.h"
 #include "objectdatfile.h"
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flic.h"
 
+/* 16.03.2025: original code that worked under
+* linux
 //Never remove packed attribute below, because
 //otherwise read from File into this struct will
 //fail with wrong data!
@@ -47,6 +49,25 @@ typedef struct {
     unsigned int unknown;  //unknown (always 0xC0000000, or 192)
     unsigned int AllTunesLenBytes;
        } __attribute__((packed)) MUSICTABLEENTRY;
+       */
+
+//Never remove PACK prefix!
+PACK(typedef struct {
+        char soundFilename[12];
+        char padding1[6];
+        unsigned int offsetTune;
+        char padding2[4];
+        unsigned int tuneLenBytes;
+        short int unknown;
+     } SOUNDFILEENTRY);
+
+//Never remove PACK prefix!
+PACK(typedef struct {
+        unsigned int offTunes; //offset to the list of tunes
+        unsigned int offTune1; //offset to the first tune
+        unsigned int unknown;  //unknown (always 0xC0000000, or 192)
+        unsigned int AllTunesLenBytes;
+     } MUSICTABLEENTRY);         
 
 class PrepareData {
 

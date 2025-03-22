@@ -10,7 +10,7 @@
 #ifndef MUSIC_H
 #define MUSIC_H
 
-#include <adlmidi.h>
+#include "adlmidi.h"
 #include "ail/format_ail2_gtl.h"
 #include "ail/wopl_file.h"
 #include "ail/format_wohlstand_opl3.h"
@@ -23,7 +23,7 @@
 class MyMusicStream : public sf::SoundStream
 {
 public:
-    MyMusicStream(uint sampleRate);
+    MyMusicStream(unsigned int sampleRate);
     ~MyMusicStream();
     virtual bool onGetData(Chunk& data);
 

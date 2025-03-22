@@ -20,6 +20,10 @@ bool InfrastructureBase::InitIrrlicht() {
     //we need to enable stencil buffers, otherwise volumentric shadows
     //will not work
     mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 16, mFullscreen, mEnableShadows, false, mEventReceiver);
+    
+    //22.03.2025: Direct3D does not work right now, at least at my wifes notebook, because
+    //of "Could not lock DIRECT3D9 Texture." issue
+    //mDevice = createDevice(video::EDT_DIRECT3D9, mScreenRes, 16, mFullscreen, mEnableShadows, false, mEventReceiver);
 
     if (mDevice == 0) {
           cout << "Failed Irrlicht device creation!" << endl;

@@ -8,6 +8,10 @@
 //Note Wolf Alexander:  for original authors license file please see flic-LICENSE.txt
 //Source code taken from https://github.com/aseprite/flic
 
+//Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions under Visual Studio,
+//I decided to modify some parts of the original code below. Therefore the source code below is not the original
+//source code of the original author anymore.
+
 #include "flic.h"
 #include "flic_details.h"
 
@@ -78,7 +82,7 @@ bool Decoder::readFrame(Frame& frame)
       break;
   }
 
-  uint32_t frameStartPos = m_file->tell();
+  size_t frameStartPos = m_file->tell();
   uint32_t frameSize = read32();
   uint16_t magic = read16();
   assert(magic == FLI_FRAME_MAGIC_NUMBER);
@@ -91,14 +95,14 @@ bool Decoder::readFrame(Frame& frame)
   for (uint16_t i=0; i!=chunks; ++i)
     readChunk(frame);
 
-  m_file->seek(frameStartPos+frameSize);
+  m_file->seek(frameStartPos+(size_t)(frameSize));
   ++m_frameCount;
   return true;
 }
 
 void Decoder::readChunk(Frame& frame)
 {
-  uint32_t chunkStartPos = m_file->tell();
+  size_t chunkStartPos = m_file->tell();
   uint32_t chunkSize = read32();
   uint16_t type = read16();
 
@@ -115,7 +119,7 @@ void Decoder::readChunk(Frame& frame)
       break;
   }
 
-  m_file->seek(chunkStartPos+chunkSize);
+  m_file->seek(chunkStartPos+(size_t)(chunkSize));
 }
 
 void Decoder::readBlackChunk(Frame& frame)

@@ -7,6 +7,10 @@
 //Note Wolf Alexander:  for original authors license file please see flic-LICENSE.txt
 //Source code taken from https://github.com/aseprite/flic
 
+//Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions under Visual Studio,
+//I decided to modify some parts of the original code below. Therefore the source code below is not the original
+//source code of the original author anymore.
+
 #include "flic.h"
 #include "flic_details.h"
 
@@ -95,7 +99,7 @@ Encoder::~Encoder()
 {
   // Fill header information
   if (m_file->ok()) {
-    uint32_t size = m_file->tell();
+    uint32_t size = (uint32_t)(m_file->tell());
     m_file->seek(0);
 
     write32(size);              // Write file size
@@ -123,12 +127,12 @@ void Encoder::writeHeader(const Header& header)
 
 void Encoder::writeFrame(const Frame& frame)
 {
-  uint32_t frameStartPos = m_file->tell();
-  int nchunks = 0;
+  size_t frameStartPos = m_file->tell();
+  uint16_t nchunks = 0;
 
   switch (m_frameCount) {
-    case 0: m_offsetFrame1 = frameStartPos; break;
-    case 1: m_offsetFrame2 = frameStartPos; break;
+    case 0: m_offsetFrame1 = (uint32_t)(frameStartPos); break;
+    case 1: m_offsetFrame2 = (uint32_t)(frameStartPos); break;
   }
 
   write32(0);           // Frame size will be written at the end of this function
@@ -159,7 +163,7 @@ void Encoder::writeFrame(const Frame& frame)
 
   size_t frameEndPos = m_file->tell();
   m_file->seek(frameStartPos);
-  write32(frameEndPos - frameStartPos); // Frame size
+  write32((uint32_t)(frameEndPos - frameStartPos)); // Frame size
   write16(FLI_FRAME_MAGIC_NUMBER);      // Chunk type
   write16(nchunks);                     // Number of chunks
 
@@ -231,7 +235,7 @@ void Encoder::writeColorChunk(const Frame& frame)
   if ((chunkEndPos - chunkBeginPos) & 1) // Avoid odd chunk size
     ++chunkEndPos;
 
-  write32(chunkEndPos - chunkBeginPos); // Chunk size
+  write32((uint32_t)(chunkEndPos - chunkBeginPos)); // Chunk size
   write16(FLI_COLOR_256_CHUNK);         // Chunk type
   write16(npackets);                    // Number of packets
   m_file->seek(chunkEndPos);
@@ -256,7 +260,7 @@ void Encoder::writeBrunChunk(const Frame& frame)
   if ((chunkEndPos - chunkBeginPos) & 1) // Avoid odd chunk size
     ++chunkEndPos;
 
-  write32(chunkEndPos - chunkBeginPos);
+  write32((uint32_t)(chunkEndPos - chunkBeginPos));
   m_file->seek(chunkEndPos);
 }
 
@@ -296,7 +300,7 @@ void Encoder::writeBrunLineChunk(const Frame& frame, int y)
 
       // Is it better to reduce this packet just to compress future same pixels?
       if (maxSamePixels >= 4 && remain > (maxSameStart-it))
-        remain = (maxSameStart-it);
+        remain = (int)(maxSameStart-it);
 
       assert(remain > 0);
 
@@ -374,7 +378,7 @@ secondScanDone:;
   if ((chunkEndPos - chunkBeginPos) & 1) // Avoid odd chunk size
     ++chunkEndPos;
 
-  write32(chunkEndPos - chunkBeginPos);
+  write32((uint32_t)(chunkEndPos - chunkBeginPos));
   m_file->seek(chunkEndPos);
 }
 
@@ -418,7 +422,7 @@ void Encoder::writeLcLineChunk(const Frame& frame, int y)
                                            it, it+remain,
                                            &maxUnchangedStart);
       if (maxUnchangedPixels > 4 && remain > (maxUnchangedStart-it))
-        remain = (maxUnchangedStart-it);
+        remain = (int)(maxUnchangedStart-it);
 
       // Check if we can create a compressed packet
       uint8_t* maxSameStart = nullptr;
@@ -445,7 +449,7 @@ void Encoder::writeLcLineChunk(const Frame& frame, int y)
 
         // Is it better to reduce this packet just to compress future same pixels?
         if (maxSamePixels >= 4 && remain > (maxSameStart-it))
-          remain = (maxSameStart-it);
+          remain = (int)(maxSameStart-it);
 
         assert(remain > 0);
 

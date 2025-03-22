@@ -29,7 +29,7 @@ void CreateDirectory(const char *dirPath);
 //0 specified element is not a file, but something else
 int FileExists(const char *fname);
 
-int copy_file (char *iname, char *oname);
+int copy_file(char* srcFileName, char* destFileName);
 
 void PrepareSubDir(const char* dirName);
 

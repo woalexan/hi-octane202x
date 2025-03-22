@@ -812,7 +812,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                   entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)(currLen);
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -826,7 +826,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                       entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -840,7 +840,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                       entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -854,7 +854,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                       entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -868,7 +868,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                       entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -882,7 +882,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                     entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
           wcscat(outputText, entry);
@@ -896,7 +896,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                       entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -910,7 +910,7 @@ void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCh
                                                       entry, 190);
 
         currLen = wcslen(entry);
-        remChars -= currLen;
+        remChars -= (unsigned int)currLen;
 
         if (remChars > 0) {
          wcscat(outputText, entry);
@@ -2006,7 +2006,7 @@ WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<W
 
     //if there is only one waypoint link available
     //just return this one
-    int nrWays = linksNothingSpecial.size();
+    int nrWays = (int)(linksNothingSpecial.size());
     if (nrWays > 0) {
 
         //choose available path random
@@ -2075,7 +2075,7 @@ void Player::ReachedEndCurrentFollowingSegments() {
         std::vector<EntityItem*> availWaypoints =
               this->mRace->mPath->FindAllWayPointsInArea(endPointLink, 2.0f);
 
-        mDbgCpAvailWaypointNr = availWaypoints.size();
+        mDbgCpAvailWaypointNr = (irr::s32)(availWaypoints.size());
 
         if (mDbgCpAvailWaypointNr > 0) {
              std::vector<EntityItem*>::iterator it;
@@ -2099,7 +2099,7 @@ void Player::ReachedEndCurrentFollowingSegments() {
                 // }
              }
 
-             mDbgCpAvailWayPointLinksNr = mCpAvailWayPointLinks.size();
+             mDbgCpAvailWayPointLinksNr = (irr::s32)(mCpAvailWayPointLinks.size());
         }
 
         //do we currently want to pickup a collectible, this has priority
@@ -2160,8 +2160,8 @@ void Player::ReachedEndCurrentFollowingSegments() {
 void Player::LogMessage(char *msgTxt) {
     char* combinedMsg;
 
-    irr::u32 msgLen1 = strlen(this->mPlayerStats->name);
-    irr::u32 msgLen2 = strlen(msgTxt);
+    size_t msgLen1 = strlen(this->mPlayerStats->name);
+    size_t msgLen2 = strlen(msgTxt);
 
     combinedMsg = new char[msgLen1 + msgLen2 + 12];
     strcpy(combinedMsg, "Player ");
@@ -2627,8 +2627,8 @@ void Player::IsSpaceDown(bool down) {
                 mBoosterActive = false;
               }
 
-              if (this->mPlayerStats->boosterVal > 0)  {
-                  this->mPlayerStats->boosterVal -= 0.2;
+              if (this->mPlayerStats->boosterVal > 0.0f)  {
+                  this->mPlayerStats->boosterVal -= 0.2f;
               } else {
                   mMaxTurboActive = false;
 
@@ -2921,7 +2921,7 @@ void Player::PickupCollectableDefineNextSegment(Collectable* whichCollectable) {
         mCurrentPathSeg.push_back(*it);
     }
 
-    mCurrentPathSegNrSegments = mCurrentPathSeg.size();
+    mCurrentPathSegNrSegments = (irr::u32)(mCurrentPathSeg.size());
 
     CPTrackMovement();
 
@@ -3170,7 +3170,7 @@ void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::
     //update current player offset path value
     mCpCurrPathOffset = currOffset;
 
-    mCurrentPathSegNrSegments = mCurrentPathSeg.size();
+    mCurrentPathSegNrSegments = (irr::u32)(mCurrentPathSeg.size());
 
     CPTrackMovement();
 
@@ -3982,8 +3982,8 @@ void Player::UpdateInternalCoordVariables() {
 
     //recalculate current 2D cell coordinates
     //where the player is currently located
-    mCurrPosCellX = -(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
-    mCurrPosCellY = (this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
+    mCurrPosCellX = -(int)(this->phobj->physicState.position.X / mRace->mLevelTerrain->segmentSize);
+    mCurrPosCellY = (int)(this->phobj->physicState.position.Z / mRace->mLevelTerrain->segmentSize);
 }
 
 void Player::Update(irr::f32 frameDeltaTime) {
@@ -5187,7 +5187,7 @@ void Player::AddGlasBreak() {
     newGlasBreak->altTexture = this->mHUD->brokenGlas->altTexture;
     newGlasBreak->sizeTex = this->mHUD->brokenGlas->sizeTex;
 
-    newGlasBreak->drawScrPosition.set(rWidthFloat, rHeightFloat);
+    newGlasBreak->drawScrPosition.set((irr::s32)(rWidthFloat), (irr::s32)(rHeightFloat));
 
     this->brokenGlasVec->push_back(newGlasBreak);
 }
