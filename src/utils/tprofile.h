@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -18,6 +18,7 @@
 #include "wchar.h"
 
 #define TPROFILER_AVGNRSAMPLES 10
+#define TPROFILER_MAXTEXTCHARS 500
 
 class TimeProfilerResultObj {
 public:
@@ -53,12 +54,18 @@ private:
 class TimeProfiler {
     
 public:
-    TimeProfiler();
+    TimeProfiler(irr::gui::IGUIEnvironment* guienvPntr, irr::core::rect<irr::s32> logWindowPos);
     ~TimeProfiler();
 
     void StartOfGameLoop();
     void Profile(TimeProfilerResultObj* resultObj);
     void GetTimeProfileResultDescending(wchar_t* outputText, int maxCharNr, int printNrEntries);
+
+    void HideWindow();
+    void ShowWindow();
+    bool IsWindowHidden();
+
+    void UpdateWindow();
 
     TimeProfilerResultObj* tIntOverallGameLoop;
     TimeProfilerResultObj* tIntHandleInput;
@@ -74,12 +81,23 @@ public:
     TimeProfilerResultObj* tIntAfterPhysicsUpdate;
     TimeProfilerResultObj* tIntPlayerMonitoring;
     TimeProfilerResultObj* tIntUpdateParticleSystems;
+    TimeProfilerResultObj* tIntUpdateCones;
+    TimeProfilerResultObj* tIntProcessTriggers;
 
 private:
     float lastTimeStampMs;
     std::vector<TimeProfilerResultObj*>* mTimeProfileResVec;
 
     sf::Clock *mClock;
+
+    irr::core::rect<irr::s32> mCurrenttProfileOutputWindowPos;
+
+    irr::gui::IGUIEnvironment* mGuiEnv;
+    irr::gui::IGUIStaticText* tProfileOutputWindow;
+    irr::u32 mNumberOftProfilerResultsShown;
+
+    bool mWindowHidden;
+    wchar_t* mText;
 };
 
 #endif // TPROFILE_H

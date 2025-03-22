@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -95,7 +95,7 @@ void TimeProfiler::Profile(TimeProfilerResultObj* resultObj) {
     this->lastTimeStampMs = mClock->getElapsedTime().asMilliseconds();
 }
 
-TimeProfiler::TimeProfiler() {
+TimeProfiler::TimeProfiler(irr::gui::IGUIEnvironment* guienvPntr, irr::core::rect<irr::s32> logWindowPos) {
     //create my SFML clock
     //as soon as it is created it does start
     //running
@@ -116,6 +116,8 @@ TimeProfiler::TimeProfiler() {
     tIntPlayerMonitoring = new TimeProfilerResultObj((char*)("playerMonitoring"));
     tIntUpdateParticleSystems = new TimeProfilerResultObj((char*)("updateParticleSystems"));
     tIntAfterPhysicsUpdate = new TimeProfilerResultObj((char*)("afterPhysicsUpdate"));
+    tIntUpdateCones = new TimeProfilerResultObj((char*)("updateCones"));
+    tIntProcessTriggers = new TimeProfilerResultObj((char*)("processTriggers"));
 
     mTimeProfileResVec = new std::vector<TimeProfilerResultObj*>();
     mTimeProfileResVec->push_back(tIntOverallGameLoop);
@@ -130,6 +132,36 @@ TimeProfiler::TimeProfiler() {
     mTimeProfileResVec->push_back(tIntPlayerMonitoring);
     mTimeProfileResVec->push_back(tIntUpdateParticleSystems);
     mTimeProfileResVec->push_back(tIntAfterPhysicsUpdate);
+    mTimeProfileResVec->push_back(tIntUpdateCones);
+    mTimeProfileResVec->push_back(tIntProcessTriggers);
+
+    //create the time profiler result window
+    mGuiEnv = guienvPntr;
+    mCurrenttProfileOutputWindowPos = logWindowPos;
+
+    mWindowHidden = true;
+
+    //create the log window
+    this->tProfileOutputWindow = mGuiEnv->addStaticText(L"",
+           mCurrenttProfileOutputWindowPos, false, true, NULL, -1, true);
+
+    //we need to deactivate word wrap because if we do not
+    //there seems to be an Irrlicht bug or problem
+    //that causes an unexpected malloc assert problems somehow
+    this->tProfileOutputWindow->setWordWrap(false);
+
+    //how many lines of time profiler results we can max show at a time
+    //depends on the current logWindow size, and font height
+    irr::u32 fontHeight =
+            this->tProfileOutputWindow->getActiveFont()->getDimension(L"Lgq!").Height;
+
+    mNumberOftProfilerResultsShown = logWindowPos.getHeight() / fontHeight;
+
+    //initially hide window
+    this->tProfileOutputWindow->setVisible(false);
+
+    //create my internal text storage
+    mText = new wchar_t[TPROFILER_MAXTEXTCHARS];
 }
 
 void TimeProfiler::GetTimeProfileResultDescending(wchar_t* outputText, int maxCharNr, int printNrEntries) {
@@ -184,6 +216,27 @@ void TimeProfiler::GetTimeProfileResultDescending(wchar_t* outputText, int maxCh
    }
 }
 
+bool TimeProfiler::IsWindowHidden() {
+    return (mWindowHidden);
+}
+
+void TimeProfiler::HideWindow() {
+    mWindowHidden = true;
+    this->tProfileOutputWindow->setVisible(false);
+}
+
+void TimeProfiler::ShowWindow() {
+   mWindowHidden = false;
+   this->tProfileOutputWindow->setVisible(true);
+}
+
+void TimeProfiler::UpdateWindow() {
+   //update my internal text with last results
+   GetTimeProfileResultDescending(mText, TPROFILER_MAXTEXTCHARS, mNumberOftProfilerResultsShown);
+
+   tProfileOutputWindow->setText(mText);
+}
+
 TimeProfiler::~TimeProfiler() {
     delete mClock;
 
@@ -202,4 +255,9 @@ TimeProfiler::~TimeProfiler() {
     delete tIntPlayerMonitoring;
     delete tIntUpdateParticleSystems;
     delete tIntAfterPhysicsUpdate;
+    delete tIntUpdateCones;
+    delete tIntProcessTriggers;
+
+    //delete my internal text storage
+    delete[] mText;
 }

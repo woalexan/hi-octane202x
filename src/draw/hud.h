@@ -41,6 +41,7 @@ struct HudDisplayPart{
      irr::video::ITexture* texture;
      irr::video::ITexture* altTexture;
      irr::core::dimension2d<irr::s32> sizeTex;
+     irr::core::rect<irr::s32> sourceRect;
 };
 
 class Player; //Forward declaration
@@ -201,6 +202,9 @@ private:
 
     irr::f32 blinkBarTimer = 0.0f;
     bool mDrawBarsTransparent = false;
+
+    irr::video::SColor* mColorSolid;
+    irr::video::SColor* mColorTransparent;
 
 public:
     HUD(InfrastructureBase* infra);
