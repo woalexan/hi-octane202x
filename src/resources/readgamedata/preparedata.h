@@ -24,50 +24,29 @@
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flic.h"
 
-/* 16.03.2025: original code that worked under
-* linux
 //Never remove packed attribute below, because
 //otherwise read from File into this struct will
 //fail with wrong data!
 //this attribute prevents C struct padding!
 typedef struct {
-    char soundFilename[12];
-    char padding1[6];
-    unsigned int offsetTune;
-    char padding2[4];
-    unsigned int tuneLenBytes;
-    short int unknown;
-       } __attribute__((packed)) SOUNDFILEENTRY;
-
-//Never remove packed attribute below, because
-//otherwise read from File into this struct will
-//fail with wrong data!
-//this attribute prevents C struct padding!
-typedef struct {
-    unsigned int offTunes; //offset to the list of tunes
-    unsigned int offTune1; //offset to the first tune
-    unsigned int unknown;  //unknown (always 0xC0000000, or 192)
-    unsigned int AllTunesLenBytes;
-       } __attribute__((packed)) MUSICTABLEENTRY;
-       */
-
-//Never remove PACK prefix!
-PACK(typedef struct {
         char soundFilename[12];
         char padding1[6];
         unsigned int offsetTune;
         char padding2[4];
         unsigned int tuneLenBytes;
         short int unknown;
-     } SOUNDFILEENTRY);
+     } __attribute__((packed)) SOUNDFILEENTRY;
 
-//Never remove PACK prefix!
-PACK(typedef struct {
+//Never remove packed attribute below, because
+//otherwise read from File into this struct will
+//fail with wrong data!
+//this attribute prevents C struct padding!
+typedef struct {
         unsigned int offTunes; //offset to the list of tunes
         unsigned int offTune1; //offset to the first tune
         unsigned int unknown;  //unknown (always 0xC0000000, or 192)
         unsigned int AllTunesLenBytes;
-     } MUSICTABLEENTRY);         
+     } __attribute__((packed)) MUSICTABLEENTRY;
 
 class PrepareData {
 

@@ -91,6 +91,39 @@ void Race::IrrlichtStats(char* text) {
       cout << "----- " << std::string(text) << "----- " << std::endl << std::flush;
       cout << "Mesh count loaded: " << mInfra->mSmgr->getMeshCache()->getMeshCount() << std::endl << std::flush;
       cout << "Textures loaded: " << mInfra->mSmgr->getVideoDriver()->getTextureCount() << std::endl << std::flush;
+      core::array<scene::ISceneNode*> outNodes;
+
+      //get list of all existing sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
+
+      cout << "Scenenode count (all): " << outNodes.size() << std::endl << std::flush;
+      outNodes.clear();
+
+      //get list of all existing Billboard sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_BILLBOARD, outNodes, 0);
+
+      cout << "Scenenode count (Billboard): " << outNodes.size() << std::endl << std::flush;
+
+      //get list of all existing Mesh sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_MESH, outNodes, 0);
+
+      cout << "Scenenode count (Mesh): " << outNodes.size() << std::endl << std::flush;
+
+      outNodes.clear();
+
+      //get list of all existing light sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_LIGHT, outNodes, 0);
+
+      cout << "Scenenode count (light): " << outNodes.size() << std::endl << std::flush;
+
+      outNodes.clear();
+
+      //get list of all existing camera sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_CAMERA, outNodes, 0);
+
+      cout << "Scenenode count (camera): " << outNodes.size() << std::endl << std::flush;
+
+      outNodes.clear();
 
       irr::s32 texCnt;
       texCnt =  mInfra->mSmgr->getVideoDriver()->getTextureCount();

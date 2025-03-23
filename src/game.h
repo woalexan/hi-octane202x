@@ -109,7 +109,7 @@ public:
     bool enableLightning = false;
     bool enableShadows = false;
     bool fullscreen = false;
-    bool DebugShowVariableBoxes = true;
+    bool DebugShowVariableBoxes = false;
 
     bool computerPlayersAttack = true;
     bool runDemoMode = false;

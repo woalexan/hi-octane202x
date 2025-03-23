@@ -10,7 +10,10 @@
 #include "fileutils.h"
 
 #include <stdexcept>
+
+#ifdef _MSC_VER
 #include <filesystem>
+#endif
 
 /*int copy_file(char* iname, char* oname)
 {
@@ -94,14 +97,7 @@ int FileExists(const char *fname)
 //Returns 0 if directory was created succesfully
 //returns 1 if directory was not created due to problem
 void CreateDirectory(const char *dirPath) {
-    //16.03.2025: mkdir not available under windows
-    // therefore replaced
-    //int check = mkdir(dirPath, 0777);
-
-     // check if directory is created or not
-    /*/if (check != 0) {
-        throw "Error creating directory: " + std::string(dirPath);
-    }*/
+#ifdef _MSC_VER
 
     namespace fs = std::filesystem;
     fs::create_directories(dirPath);
@@ -110,6 +106,17 @@ void CreateDirectory(const char *dirPath) {
     if (!(IsDirectoryPresent(dirPath) == 1)) {
         throw "Error creating directory: " + std::string(dirPath);
     }
+
+#endif
+
+#ifdef __GNUC__
+    int check = mkdir(dirPath, 0777);
+
+    // check if directory is created or not
+    if (check != 0) {
+        throw "Error creating directory: " + std::string(dirPath);
+    }
+#endif
 }
 
 void PrepareSubDir(const char* dirName) {
