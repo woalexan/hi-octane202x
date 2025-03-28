@@ -24,7 +24,7 @@ long filesize(FILE *fp)
     long lastpos;
     
     if (!fp)
-	return -1;
+	    return -1;
     lastpos = ftell (fp);
     fseek (fp, 0, SEEK_END);
     length = ftell (fp);
@@ -105,14 +105,14 @@ if (ErrNum & errCritical)
   };
 }
 
-void loadPalette(const char *pal_file_name,void *palette_buffer,ulong BufSize,int Options)
+void loadPalette(const char *pal_file_name,void *palette_buffer,size_t BufSize,int Options)
 //Reads palette file, allocates buffer and returns it
 {
     FILE *palfp;
     palfp = fopen (pal_file_name, "rb");
     if (!palfp)
     { showError(errFileOpen,strerror(errno)); return; };
-    ulong ReadOK=fread(palette_buffer, BufSize, 1, palfp);
+    size_t ReadOK=fread(palette_buffer, BufSize, 1, palfp);
     if ((ReadOK!=BufSize) && !(Options & poIgnoreExceptions))
         showError(errFileRead,"I couldn't read enought bytes of palette file to reconstruct chunk.");
     if (Options & poDisplayAllInfo)
@@ -120,34 +120,34 @@ void loadPalette(const char *pal_file_name,void *palette_buffer,ulong BufSize,in
     fclose(palfp);
 }
 
-void saveBlockToNewFile(const char *FName,void *Buf,ulong BufSize)
+void saveBlockToNewFile(const char *FName,void *Buf,size_t BufSize)
 {
     FILE *File;
     File = fopen (FName, "wb");
-    ulong nWritten=fwrite(Buf,1,BufSize,File);
+    size_t nWritten=fwrite(Buf,1,BufSize,File);
     if (nWritten<BufSize) showError(errFileWrite,"SaveBlock function couldn't finish operation.");
     fclose(File);
 }
 
-void saveDataToFile(void *BufDest,ulong Size,FILE *DestFile)
+void saveDataToFile(void *BufDest,size_t Size,FILE *DestFile)
 {
-  ulong nWritten=fwrite(BufDest,1,Size,DestFile);
+  size_t nWritten=fwrite(BufDest,1,Size,DestFile);
   if (nWritten<Size) showError(errFileWrite+errCritical,strerror(errno));
 }
 
-int loadDataFromFile(FILE *File,void *Buf,ulong BytesToRead,int ErrNum,int Options)
+int loadDataFromFile(FILE *File,void *Buf,size_t BytesToRead,int ErrNum,int Options)
 /*
  Reads BytesToRead from file to the preallocated buffer.
 */
 {
   if (BytesToRead==0) return 1;
-  unsigned int ReadOK=fread(Buf,1,BytesToRead,File);
+  size_t ReadOK=fread(Buf,1,BytesToRead,File);
   if ((ReadOK!=BytesToRead) && !(Options & poIgnoreExceptions))
     {
     char *ErrMsg=(char *)malloc(256);
     if (ErrMsg!=NULL)
       {
-      sprintf(ErrMsg,"Couldn't read more than %u bytes, %lu needed. EOF or read error.",ReadOK,BytesToRead);
+      sprintf(ErrMsg,"Couldn't read more than %zu bytes, %zu needed. EOF or read error.",ReadOK,BytesToRead);
       showError(errFileRead|ErrNum,ErrMsg);
       free(ErrMsg);
       }

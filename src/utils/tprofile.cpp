@@ -81,9 +81,9 @@ void TimeProfilerResultObj::ResetStatistics() {
 void TimeProfiler::StartOfGameLoop() {
     //restart the clock, function also returns the measured time since the
     //last restart; this means in our case the overall last gameloop run time
-    tIntOverallGameLoop->AddMeasInterval(mClock->restart().asMilliseconds());
+    tIntOverallGameLoop->AddMeasInterval(float(mClock->restart().asMilliseconds()));
 
-    this->lastTimeStampMs = mClock->getElapsedTime().asMilliseconds();
+    this->lastTimeStampMs = (float)(mClock->getElapsedTime().asMilliseconds());
 }
 
 void TimeProfiler::Profile(TimeProfilerResultObj* resultObj) {
@@ -92,7 +92,7 @@ void TimeProfiler::Profile(TimeProfilerResultObj* resultObj) {
                     mClock->getElapsedTime().asMilliseconds() - this->lastTimeStampMs);
     }
 
-    this->lastTimeStampMs = mClock->getElapsedTime().asMilliseconds();
+    this->lastTimeStampMs = (float)(mClock->getElapsedTime().asMilliseconds());
 }
 
 TimeProfiler::TimeProfiler() {
@@ -172,9 +172,21 @@ void TimeProfiler::GetTimeProfileResultDescending(wchar_t* outputText, int maxCh
 
        remNrEntries--;
 
+       //22.03.2025: It seems Visual Studio automatically changes swprintf to instead using
+       //safer function swprintf_s which would be fine for me
+       //The problem is this function checks for validity of format strings, and simply %s as under GCC
+       //is not valid when specifiying a normal non wide C-string, and as a result text output does not work (only
+       //garbage is shown); To fix this we need to use special format string "%hs" under windows;
+       //But because I am not sure if GCC will accept this under Linux, I will keep the original code under GCC
+       //here
+#ifdef _MSC_VER 
+       swprintf(entry, 200, L"%hs : %.3f ms avg\n", mTimeProfileResultPntr->id, mTimeProfileResultPntr->avgDurationMs);
+#endif
+#ifdef __GNUC__
        swprintf(entry, 200, L"%s : %.3f ms avg\n", mTimeProfileResultPntr->id, mTimeProfileResultPntr->avgDurationMs);
+#endif
        currLen = wcslen(entry);
-       remChars -= currLen;
+       remChars -= (unsigned int)(currLen);
 
        if (remChars > 0) {
         wcscat(outputText, entry);

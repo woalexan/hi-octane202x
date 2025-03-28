@@ -10,7 +10,7 @@
 #ifndef HUD_H
 #define HUD_H
 
-#include <irrlicht/irrlicht.h>
+#include "irrlicht.h"
 #include <vector>
 #include "../models/player.h"
 #include "gametext.h"

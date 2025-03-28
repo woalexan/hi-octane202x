@@ -10,7 +10,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../race.h"
 #include "../models/player.h"
 

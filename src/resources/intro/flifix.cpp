@@ -258,7 +258,7 @@ ulong findBestPosition(ulong *framePosTable,FILE *animFile,ulong lastFrame,ulong
         //It has no matter if we compare (Offset-Delta) or (Offset+Delta)
         newOffset=offset+delta;
         if ( (newOffset>(sizeof_FLIMainHeader-2)) &&
-             (newOffset<=(filesize(animFile)-sizeof_FLIFrameHeader)) &&
+             (newOffset<=((ulong)(filesize(animFile))-sizeof_FLIFrameHeader)) &&
              (newOffset>framePosTable[lastFrame]) )
             loadFrameHeader(animFile,animFrameHdr,newOffset,foundedFrames+1,0,parseOptions);
         else
@@ -304,10 +304,10 @@ int chooseBestFrame(FILE *animFile,ulong maxFrameSize,ulong offset,ulong newOffs
       allowOld=0;
   //If we still not sure, do heavier tests
   if (allowOld||allowNot)
-    if (newOffset>filesize(animFile)-sizeof_FLIFrameHeader)
+    if (newOffset>(ulong)(filesize(animFile))-sizeof_FLIFrameHeader)
       allowFix=0;
   if (allowFix || allowNot)
-    if (offset>filesize(animFile)-sizeof_FLIFrameHeader)
+    if (offset>(ulong)(filesize(animFile))-sizeof_FLIFrameHeader)
       allowOld=0;
   if (allowFix || allowOld)
     if (validFrame(oldFrameHdr,maxFrameSize)||validFrame(newFrameHdr,maxFrameSize))
@@ -352,7 +352,7 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
   //Frame header
   FLIFrameHeader *animFrameHdr=(FLIFrameHeader *)allocateMem(sizeof(FLIFrameHeader)+1,errCritical|errFrameHdr,1,options);
   //Now let's browse through frames
-  while (offset<filesize(animFile))
+  while (offset<(ulong)(filesize(animFile)))
     {
     //Alternate frame start offset
     ulong fixedOffset=0;
@@ -605,7 +605,7 @@ void processFrameChunks(FILE *animFile,FILE *destFile,FLIFrameHeader *frameHdr,u
     //printf(">>Pozycje: AnimFile %lu DestFile %lu\n",ftell(AnimFile),tell(DestFile));
     };
   //Some frames needs little correction
-  frameHdr->chunks=realChunksNumber;
+  frameHdr->chunks=(uint16_t)(realChunksNumber);
   if ((frameHdr->chunks>1)&&((frameHdr->size%2)>0))
     {
     fseek(destFile,-1 ,SEEK_CUR);
@@ -624,7 +624,7 @@ void processFLISimple(FILE *animFile,FILE *destFile,ulong startFrame,ulong endFr
   //Po prostu przepisujemy zawarto_+ pliku do DestFile
   ulong bufSize=4096;
   void *buf=allocateMem(bufSize+1,errPlainData|errCritical,0,*options);
-  unsigned int nRead=1;
+  size_t nRead=1;
   while (nRead!=0)
     {
     nRead=fread(buf,bufSize,1,animFile);
@@ -658,7 +658,7 @@ void processFLIFile(FILE *animFile,FILE *destFile,ulong startFrame,ulong endFram
   ulong *framePosTable=(ulong *)allocateMem(sizeof(ulong)*(frames_count+3),errCritical|errFramePosTbl,1,globOptions);
   fillFramePosTable(framePosTable,animFile,&frames_count,((ulong)animMainHeader->width)*((ulong)animMainHeader->height),globOptions,globOptions);
   parseFileToSetOptions(framePosTable,animFile,frames_count,&globOptions);
-  animMainHeader->frames=frames_count;
+  animMainHeader->frames=(uint16_t)(frames_count);
   FLIFrameHeader *frameHdr=(FLIFrameHeader *)allocateMem(sizeof(FLIFrameHeader)+1,errCritical|errFramePosTbl,1,globOptions);
 
 //  printf("!ProcessFLIFile processing FramePosTable\n");

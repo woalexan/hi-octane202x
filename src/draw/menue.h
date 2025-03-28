@@ -10,7 +10,7 @@
 #ifndef MENUE_H
 #define MENUE_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include <vector>
 #include "gametext.h"
 #include "../input/input.h"

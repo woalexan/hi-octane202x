@@ -358,7 +358,7 @@ private:
 
         _PortNumbers.push_back((uint8_t) number);
 
-        number = _PortNumbers.size() - 1;
+        number = (T)(_PortNumbers.size()) - 1;
     }
 
     template <typename T> void limit_port_number(T & number) const

@@ -10,7 +10,7 @@
 #ifndef COLLECTABLESPAWNER_H
 #define COLLECTABLESPAWNER_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../race.h"
 #include "collectable.h"
 

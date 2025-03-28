@@ -10,7 +10,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include <vector>
 //#include "SFML/System.hpp"
 //#include <algorithm>

@@ -10,7 +10,7 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include <vector>
 
 using namespace irr::core;

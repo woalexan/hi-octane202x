@@ -24,12 +24,12 @@ bool StdioFileInterface::ok() const
 
 size_t StdioFileInterface::tell()
 {
-  return ftell(m_file);
+  return (size_t)(ftell(m_file));
 }
 
 void StdioFileInterface::seek(size_t absPos)
 {
-  fseek(m_file, absPos, SEEK_SET);
+  fseek(m_file, (long)(absPos), SEEK_SET);
 }
 
 uint8_t StdioFileInterface::read8()

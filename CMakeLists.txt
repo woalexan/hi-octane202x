@@ -6,8 +6,11 @@ if(NOT CMAKE_COMPILE_WARNING_AS_ERROR)
         set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
 endif()
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+
 # Configuration options
-set(SFML_STATIC_LIBRARIES FALSE CACHE BOOL "Use static SFML librares")
+set(SFML_STATIC_LIBRARIES FALSE CACHE BOOL "Use static SFML libraries")
 
 # General compiler options
 if (SFML_STATIC_LIBRARIES)
@@ -17,14 +20,33 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(Irrlicht REQUIRED)
+
+# If found, include and link; otherwise output error message
+if(Irrlicht_FOUND)
+        INCLUDE_DIRECTORIES(${IRRLICHT_INCLUDE_DIR})
+else()
+        set(IRRDIR "" CACHE PATH "Irrlicht top-level directory")
+        message("\n-> Irrlicht directory not found. Set IRRDIR to Irrlichts top-level path (containing \"include\" and \"lib\" directories).")
+        message("-> Make sure the Irrlicht libraries with the same configuration (Release/Debug, Static/Dynamic) exist.\n")
+endif()
+
 find_package(ADLMIDI REQUIRED)
+
+# If found, include and link; otherwise output error message
+if(ADLMIDI_FOUND)
+        INCLUDE_DIRECTORIES(${ADLMIDI_INCLUDE_DIR})
+else()
+        set(ADLMIDDIR "" CACHE PATH "Adlmidi top-level directory")
+        message("\n-> Adlmidi directory not found. Set ADLMIDDIR to Adlmidi top-level path (containing \"include\" and \"lib\" directories).")
+        message("-> Make sure the Adlmidi libraries with the same configuration (Release/Debug, Static/Dynamic) exist.\n")
+endif()
 
 ###########################
 
 # The following text was taken from SFML-Game-Development-Book Start
 # Find SFML
 # Note: SFML_STATIC_LIBRARIES determines which libraries are found by find_package()
-find_package(SFML 2 COMPONENTS audio system network)
+find_package(SFML 2 REQUIRED COMPONENTS audio system network)
 
 # If found, include and link; otherwise output error message
 if(SFML_FOUND)
@@ -41,9 +63,6 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-INCLUDE_DIRECTORIES(${IRRLICHT_INCLUDE_DIR})
-INCLUDE_DIRECTORIES(${ADLLIB_INCLUDE_DIR})
 
 add_executable(hi-octane202x
     src/definitions.h

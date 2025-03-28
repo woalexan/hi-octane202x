@@ -499,8 +499,15 @@ bool EntityItem::WriteChanges() {
     //we also need to swap X coordinate again
     //because my Irrlicht coordinate system is mirrored/swapped
     //compared to HiOctane level file
-    float newX = (int)(-vecHlp2.X); //- (DEF_SEGMENTSIZE * 0.5f);
-    float newZ = (int)(vecHlp2.Z);  //- (DEF_SEGMENTSIZE * 0.5f);
+    //22.03.2025: The additional in between steps with int variables
+    //does not really make sense, but I want to loose the decimals points here,
+    //and if I do not do this inbetween conversion visual studio complains about 
+    //it
+    int newXInt = (int)(-vecHlp2.X); //- (DEF_SEGMENTSIZE * 0.5f);
+    int newZInt = (int)(vecHlp2.Z);  //- (DEF_SEGMENTSIZE * 0.5f);
+
+    float newX = (float)(newXInt); 
+    float newZ = (float)(newZInt); 
 
     //convert X information to bytes
     ConvertAndWriteFloatToByteArray(newX, this->m_wBytes, 16);

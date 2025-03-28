@@ -311,8 +311,8 @@ void Explosion::UpdateDebris(irr::f32 DeltaTime) {
                     if ((*it)->currVelocity[idx].Y < 0.0f) {
                         //yes, sprite is falling down, now we need to calculate high about terrain tile below
                         //calculate current cell below sprite
-                        current_cell_calc_y = ((*it)->currSpritePos[idx].Z / mParentExplosionLauncher->mParentRace->mLevelTerrain->segmentSize);
-                        current_cell_calc_x = -((*it)->currSpritePos[idx].X / mParentExplosionLauncher->mParentRace->mLevelTerrain->segmentSize);
+                        current_cell_calc_y = (int)((*it)->currSpritePos[idx].Z / mParentExplosionLauncher->mParentRace->mLevelTerrain->segmentSize);
+                        current_cell_calc_x = -(int)((*it)->currSpritePos[idx].X / mParentExplosionLauncher->mParentRace->mLevelTerrain->segmentSize);
 
                         MapEntry* mEntry = mParentExplosionLauncher->mParentRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 

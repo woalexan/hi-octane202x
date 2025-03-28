@@ -6,6 +6,11 @@
     written by Tomasz Lis, Gdansk, Poland 2004-2006
     this software is under GNU license
 */
+
+//Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions under Visual Studio,
+//I decided to modify some parts of the original code below. Therefore the source code below is not the original
+//source code of the original author anymore.
+
 #ifndef __PrgTools_H
 #define __PrgTools_H
 
@@ -68,10 +73,10 @@ typedef struct
 
 long filesize(FILE *fp);
 void showError(int ErrNum, const char ErrText[]);
-void loadPalette(const char *FName,void *Buf,ulong BufSize,int Options);
-void saveBlockToNewFile(const char *FName,void *Buf,ulong BufSize);
-void saveDataToFile(void *BufDest,ulong Size,FILE *DestFile);
-int loadDataFromFile(FILE *File,void *Buf,ulong BytesToRead,int ErrNum,int Options);
+void loadPalette(const char *FName,void *Buf,size_t BufSize,int Options);
+void saveBlockToNewFile(const char *FName,void *Buf,size_t BufSize);
+void saveDataToFile(void *BufDest,size_t Size,FILE *DestFile);
+int loadDataFromFile(FILE *File,void *Buf,size_t BytesToRead,int ErrNum,int Options);
 void *allocateMem(ulong buffer_size,int ErrNum,int mem_clear,int Options);
 
 

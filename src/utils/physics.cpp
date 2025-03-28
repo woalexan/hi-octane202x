@@ -29,7 +29,7 @@
 #include "physics.h"
 
 ObjPhysicsDerivative Physics::evaluate( PhysicsObject* pObj, const ObjPhysicsState & initial,
-        double t, float dt, const ObjPhysicsDerivative & d ) {
+        irr::f32 t, float dt, const ObjPhysicsDerivative & d ) {
 
     //advance the physics state from t to t+dt using one set of derivatives
     ObjPhysicsState state;
@@ -60,7 +60,7 @@ ObjPhysicsDerivative Physics::evaluate( PhysicsObject* pObj, const ObjPhysicsSta
     return output;
 }
 
-irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsState & state, double t ) {
+irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t ) {
     // const float k = 15.0f;
     // const float b = 0.1f;
     // return -k * state.x - b * state.v;
@@ -96,7 +96,7 @@ irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsSta
     return sumForce;
 }
 
-irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState & state, double t) {
+irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t) {
     //return irr::core::vector3df(1.0f,0.0f,0.0f) - state.angularVelocity * 0.1f;
     //return irr::core::vector3df(1.0f,0.0f,0.0f) - state.angularVelocity * 0.1f;
 
@@ -148,7 +148,7 @@ irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState 
 }
 
 //Integration using Runge Kutta order 4 (or simply RK4)
-void Physics::integrate( PhysicsObject* pObj, ObjPhysicsState & state, double t, float dt ) {
+void Physics::integrate( PhysicsObject* pObj, ObjPhysicsState & state, irr::f32 t, float dt ) {
 
     ObjPhysicsDerivative a,b,c,d;
 
@@ -763,13 +763,13 @@ std::vector<RayHitTriangleInfoStruct*> Physics::ReturnTrianglesHitByRay(std::vec
             int trianglesReceived = 0;
 
             //make region for selecting triangles slightly bigger to make sure we find all triangles, also at the border
-            boxVertex1.X = (*it).X * segSize - segSize * 0.5;
-            boxVertex1.Y = (*it).Y * segSize - segSize * 0.5;
-            boxVertex1.Z = (*it).Z * segSize - segSize * 0.5;
+            boxVertex1.X = (irr::f32)((*it).X) * segSize - segSize * 0.5f;
+            boxVertex1.Y = (irr::f32)((*it).Y) * segSize - segSize * 0.5f;
+            boxVertex1.Z = (irr::f32)((*it).Z) * segSize - segSize * 0.5f;
 
-            boxVertex2.X = ((*it).X + 1) * segSize + segSize * 0.5;
-            boxVertex2.Y = ((*it).Y + 1) * segSize + segSize * 0.5;
-            boxVertex2.Z = ((*it).Z + 1) * segSize + segSize * 0.5;
+            boxVertex2.X = (irr::f32)((*it).X + 1) * segSize + segSize * 0.5f;
+            boxVertex2.Y = (irr::f32)((*it).Y + 1) * segSize + segSize * 0.5f;
+            boxVertex2.Z = (irr::f32)((*it).Z + 1) * segSize + segSize * 0.5f;
 
             irr::core::aabbox3df box(boxVertex1.X, boxVertex1.Y, boxVertex1.Z, boxVertex2.X, boxVertex2.Y, boxVertex2.Z);
 
@@ -869,7 +869,7 @@ bool Physics::HandleSphereWallCollision(const PhysicsCollisionArea& collArea, Ph
                 mWallNormal = repulsionNormal_;
             }
 //          core::plane3df collisionPlane(nearestPoint, lineToTriangle);
-            repulsion.setLength(0.001f+radius_-sqrt(nearestDistSq));
+            repulsion.setLength(0.001f+radius_-(float)(sqrt(nearestDistSq)));
 
             if (collisionResolutionActive) {
              *center += repulsion;
@@ -1230,24 +1230,24 @@ std::vector<irr::core::vector3di> Physics::voxel_traversal(irr::core::vector3df 
   // This id of the first/current voxel hit by the ray.
   // Using floor (round down) is actually very important,
   // the implicit int-casting will round up for negative numbers.
-  irr::core::vector3di current_voxel(std::floor(ray_start.X/_bin_size),
-                                std::floor(ray_start.Y/_bin_size),
-                                std::floor(ray_start.Z/_bin_size));
+  irr::core::vector3di current_voxel((irr::s32)(std::floor(ray_start.X/_bin_size)),
+                                (irr::s32)(std::floor(ray_start.Y/_bin_size)),
+                                (irr::s32)(std::floor(ray_start.Z/_bin_size)));
 
   // The id of the last voxel hit by the ray.
   // TODO: what happens if the end point is on a border?
-  irr::core::vector3di last_voxel(std::floor(ray_end.X/_bin_size),
-                             std::floor(ray_end.Y/_bin_size),
-                             std::floor(ray_end.Z/_bin_size));
+  irr::core::vector3di last_voxel((irr::s32)(std::floor(ray_end.X/_bin_size)),
+                             (irr::s32)(std::floor(ray_end.Y/_bin_size)),
+                             (irr::s32)(std::floor(ray_end.Z/_bin_size)));
 
   // Compute normalized ray direction.
   irr::core::vector3df ray = ray_end-ray_start;
   //ray.normalize();
 
   // In which direction the voxel ids are incremented.
-  irr::f32 stepX = (ray.X >= 0) ? 1:-1; // correct
-  irr::f32 stepY = (ray.Y >= 0) ? 1:-1; // correct
-  irr::f32 stepZ = (ray.Z >= 0) ? 1:-1; // correct
+  irr::f32 stepX = (ray.X >= 0) ? 1.0f:-1.0f; // correct
+  irr::f32 stepY = (ray.Y >= 0) ? 1.0f:-1.0f; // correct
+  irr::f32 stepZ = (ray.Z >= 0) ? 1.0f:-1.0f; // correct
 
   // Distance along the ray to the next voxel border from the current position (tMaxX, tMaxY, tMaxZ).
   irr::f32 next_voxel_boundary_x = (current_voxel.X+stepX)*_bin_size; // correct
@@ -1256,17 +1256,21 @@ std::vector<irr::core::vector3di> Physics::voxel_traversal(irr::core::vector3df 
 
   // tMaxX, tMaxY, tMaxZ -- distance until next intersection with voxel-border
   // the value of t at which the ray crosses the first vertical voxel boundary
-  irr::f32 tMaxX = (ray.X!=0) ? (next_voxel_boundary_x - ray_start.X)/ray.X : DBL_MAX; //
-  irr::f32 tMaxY = (ray.Y!=0) ? (next_voxel_boundary_y - ray_start.Y)/ray.Y : DBL_MAX; //
-  irr::f32 tMaxZ = (ray.Z!=0) ? (next_voxel_boundary_z - ray_start.Z)/ray.Z : DBL_MAX; //
+  //Wolf 22.03.2025: change end of the next 3 lines from DBL_MAX to now FLT_MAX, DBL_MAX does not
+  //make sense. If this source code breaks this could be the reason
+  irr::f32 tMaxX = (ray.X!=0) ? (next_voxel_boundary_x - ray_start.X)/ray.X : FLT_MAX; //
+  irr::f32 tMaxY = (ray.Y!=0) ? (next_voxel_boundary_y - ray_start.Y)/ray.Y : FLT_MAX; //
+  irr::f32 tMaxZ = (ray.Z!=0) ? (next_voxel_boundary_z - ray_start.Z)/ray.Z : FLT_MAX; //
 
   // tDeltaX, tDeltaY, tDeltaZ --
   // how far along the ray we must move for the horizontal component to equal the width of a voxel
   // the direction in which we traverse the grid
   // can only be FLT_MAX if we never go in that direction
-  irr::f32 tDeltaX = (ray.X!=0) ? _bin_size/ray.X*stepX : DBL_MAX;
-  irr::f32 tDeltaY = (ray.Y!=0) ? _bin_size/ray.Y*stepY : DBL_MAX;
-  irr::f32 tDeltaZ = (ray.Z!=0) ? _bin_size/ray.Z*stepZ : DBL_MAX;
+  //Wolf 22.03.2025: change end of the next 3 lines from DBL_MAX to now FLT_MAX, DBL_MAX does not
+  //make sense. If this source code breaks this could be the reason
+  irr::f32 tDeltaX = (ray.X!=0) ? _bin_size/ray.X*stepX : FLT_MAX;
+  irr::f32 tDeltaY = (ray.Y!=0) ? _bin_size/ray.Y*stepY : FLT_MAX;
+  irr::f32 tDeltaZ = (ray.Z!=0) ? _bin_size/ray.Z*stepZ : FLT_MAX;
 
   irr::core::vector3di diff(0,0,0);
   bool neg_ray=false;
@@ -1282,18 +1286,18 @@ std::vector<irr::core::vector3di> Physics::voxel_traversal(irr::core::vector3df 
   while(last_voxel != current_voxel) {
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {
-        current_voxel.X += stepX;
+        current_voxel.X += (irr::s32)(stepX);
         tMaxX += tDeltaX;
       } else {
-        current_voxel.Z += stepZ;
+        current_voxel.Z += (irr::s32)(stepZ);
         tMaxZ += tDeltaZ;
       }
     } else {
       if (tMaxY < tMaxZ) {
-        current_voxel.Y += stepY;
+        current_voxel.Y += (irr::s32)(stepY);
         tMaxY += tDeltaY;
       } else {
-        current_voxel.Z += stepZ;
+        current_voxel.Z += (irr::s32)(stepZ);
         tMaxZ += tDeltaZ;
       }
     }

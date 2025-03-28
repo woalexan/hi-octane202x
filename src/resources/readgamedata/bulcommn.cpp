@@ -16,44 +16,42 @@
 //Dev-C++ IDE version, modifications:
 //Tomasz Lis
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <cstring>
+ //Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
+ // I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
 
 #include "bulcommn.h"
 
-void write_short_le_file (FILE *fp, unsigned short x)
+void write_short_le_file (FILE *fp, uint16_t x)
 {
-    fputc ((int) (x&255), fp);
-    fputc ((int) ((x>>8)&255), fp);
+    fputc ((uint8_t) (x&255), fp);
+    fputc ((uint8_t) ((x>>8)&255), fp);
 }
 
-void write_short_le_buf (unsigned char *buff, unsigned short x)
+void write_short_le_buf (unsigned char *buff, uint16_t x)
 {
-    buff[0]=(x&255);
-    buff[1]=((x>>8)&255);
+    buff[0]= (uint8_t)(x&255);
+    buff[1]= (uint8_t)((x>>8)&255);
 }
 
-void write_long_le_file (FILE *fp, unsigned long x)
+void write_long_le_file (FILE *fp, uint32_t x)
 {
-    fputc ((int) (x&255), fp);
-    fputc ((int) ((x>>8)&255), fp);
-    fputc ((int) ((x>>16)&255), fp);
-    fputc ((int) ((x>>24)&255), fp);
+    fputc ((uint8_t) (x&255), fp);
+    fputc ((uint8_t) ((x>>8)&255), fp);
+    fputc ((uint8_t) ((x>>16)&255), fp);
+    fputc ((uint8_t) ((x>>24)&255), fp);
 }
 
-void write_long_le_buf (unsigned char *buff, unsigned long x)
+void write_long_le_buf (unsigned char *buff, uint32_t x)
 {
-    buff[0]=(x&255);
-    buff[1]=((x>>8)&255);
-    buff[2]=((x>>16)&255);
-    buff[3]=((x>>24)&255);
+    buff[0]= (uint8_t)(x&255);
+    buff[1]= (uint8_t)((x>>8)&255);
+    buff[2]= (uint8_t)((x>>16)&255);
+    buff[3]= (uint8_t)((x>>24)&255);
 }
 
-long read_long_le_file (FILE *fp)
+int32_t read_long_le_file (FILE *fp)
 {
-    long l;
+    int32_t l = 0;
     l = fgetc (fp);
     l += fgetc (fp)<<8;
     l += fgetc (fp)<<16;
@@ -61,9 +59,9 @@ long read_long_le_file (FILE *fp)
     return l;
 }
 
-long read_long_le_buf (unsigned char *buff)
+int32_t read_long_le_buf (unsigned char *buff)
 {
-    long l;
+    int32_t l;
     l = buff[0];
     l += buff[1]<<8;
     l += buff[2]<<16;
@@ -71,10 +69,9 @@ long read_long_le_buf (unsigned char *buff)
     return l;
 }
 
-
-long read_long_le_buf2 (unsigned char *buff)
+int32_t read_long_le_buf2 (unsigned char *buff)
 {
-    long l;
+    int32_t l;
     l = buff[4];
     l += buff[5]<<8;
     l += buff[6]<<16;
@@ -82,25 +79,25 @@ long read_long_le_buf2 (unsigned char *buff)
     return l;
 }
 
-unsigned short read_short_le_buf (unsigned char *buff)
+uint16_t read_short_le_buf (unsigned char *buff)
 {
-    long l;
+    uint16_t l;
     l = buff[0];
     l += buff[1]<<8;
     return l;
 }
 
-unsigned short read_short_le_file (FILE *fp)
+uint16_t read_short_le_file (FILE *fp)
 {
-    unsigned short l;
+    uint16_t l;
     l = fgetc (fp);
     l += fgetc (fp)<<8;
     return l;
 }
 
-long read_long_be_buf (unsigned char *buff)
+int32_t read_long_be_buf (unsigned char *buff)
 {
-    long l;
+    int32_t l;
     l =  buff[3];
     l += buff[2]<<8;
     l += buff[1]<<16;
@@ -108,36 +105,35 @@ long read_long_be_buf (unsigned char *buff)
     return l;
 }
 
-void write_short_be_buf (unsigned char *buff, unsigned short x)
+void write_short_be_buf (unsigned char *buff, uint16_t x)
 {
-    buff[1]=(x&255);
-    buff[0]=((x>>8)&255);
+    buff[1]=(uint8_t)(x&255);
+    buff[0]= (uint8_t)((x>>8)&255);
 }
 
-void write_long_be_buf (unsigned char *buff, unsigned long x)
+void write_long_be_buf (unsigned char *buff, uint32_t x)
 {
-    buff[3]=(x&255);
-    buff[2]=((x>>8)&255);
-    buff[1]=((x>>16)&255);
-    buff[0]=((x>>24)&255);
+    buff[3]=(uint8_t)(x&255);
+    buff[2]=(uint8_t)((x>>8)&255);
+    buff[1]=(uint8_t)((x>>16)&255);
+    buff[0]=(uint8_t)((x>>24)&255);
 }
 
-void write_bmp_idx (char *fname, int width, int height, 
+void write_bmp_idx (char *fname, uint16_t width, uint16_t height,
 		unsigned char *pal, char *data,
-		int red, int green, int blue, int mult)
+        int16_t red, int16_t green, int16_t blue, int16_t mult)
 {
-    long l;
-    int i, j;
+    uint16_t i, j;
     FILE *out;
     
     out = fopen (fname, "wb");
     if (!out)
     {
-	printf ("\nCan't open file %s. Aborting.\n", fname);
-	exit (1);
+	    printf ("\nCan't open file %s. Aborting.\n", fname);
+	    exit (1);
     }
     
-    l = width*height;
+    uint32_t l = width * height;
     fprintf (out, "BM");
     write_long_le_file (out, l+0x436);
     write_long_le_file (out, 0);
@@ -156,37 +152,36 @@ void write_bmp_idx (char *fname, int width, int height,
     
     for (i=0; i < 256; i++)
     {
-	fputc (pal[i*3+blue]*mult, out);
-	fputc (pal[i*3+green]*mult, out);
-	fputc (pal[i*3+red]*mult, out);
-	fputc (0, out);
+	    fputc (pal[i*3+blue]*mult, out);
+	    fputc (pal[i*3+green]*mult, out);
+	    fputc (pal[i*3+red]*mult, out);
+	    fputc (0, out);
     }
     
     for (i=1; i <= height; i++)
     {
-	fwrite (data+(height-i)*width, width, 1, out);
-	if (width & 3)
-	    for (j=0; j < 4-(width&3); j++)
-		fputc (0, out);
-    }
+	    fwrite (data+(height-i)*width, width, 1, out);
+	    if (width & 3)
+	        for (j=0; j < 4-(width&3); j++)
+		    fputc (0, out);
+        }
     
     fclose (out);
 }
 
-void write_bmp_24b (char *fname, int width, int height, char *data)
+void write_bmp_24b (char *fname, uint16_t width, uint16_t height, char *data)
 {
-    long l;
-    int i, j;
+    uint16_t i;
     FILE *out;
     
     out = fopen (fname, "wb");
     if (!out)
     {
-	printf ("\nCan't open file %s. Aborting.\n", fname);
-	exit (1);
+	    printf ("\nCan't open file %s. Aborting.\n", fname);
+	    exit (1);
     }
     
-    l = width*height;
+    uint32_t l = width * height;
     fprintf (out, "BM");
     write_long_le_file (out, 3*l+0x036);
     write_long_le_file (out, 0);
@@ -203,14 +198,14 @@ void write_bmp_24b (char *fname, int width, int height, char *data)
     write_long_le_file (out, 0);
     write_long_le_file (out, 0);
     
-    int datawidth=width*3;
+    int32_t datawidth=width*3;
     for (i=1; i <= height; i++)
     {
         fwrite (data+(height-i)*datawidth, datawidth, 1, out);
-        int padding_size=4-(datawidth&3);
+        int16_t padding_size=4-(datawidth&3);
         if ((padding_size&3) > 0)
         {
-            int cntr;
+            int16_t cntr;
             for (cntr=0;cntr<padding_size;cntr++)
     	        fputc (0, out);
         }
@@ -227,7 +222,8 @@ long file_length (char *path)
     
     fp = fopen (path, "rb");
     if (!fp)
-	return -1;
+	    return -1;
+
     fseek (fp, 0, SEEK_END);
     ret = ftell (fp);
     fclose (fp);
@@ -240,7 +236,8 @@ long file_length_opened (FILE *fp)
     long lastpos;
     
     if (!fp)
-	return -1;
+	    return -1;
+
     lastpos = ftell (fp);
     fseek (fp, 0, SEEK_END);
     length = ftell (fp);
@@ -297,13 +294,14 @@ int nth_bit_fourbytes( unsigned char c[4], int n ) {
     
 }
 
-int read_palette_rgb(unsigned char *palette, char *fname, unsigned int nColors)
+int read_palette_rgb(unsigned char *palette, char *fname, uint16_t nColors)
 {
     FILE *palfp;
     palfp = fopen (fname, "rb");
     if (!palfp) return 1;
-    int palSize=3*nColors;
-    int readed=fread (palette, 1, palSize, palfp);
+
+    size_t palSize= 3 * size_t(nColors);
+    size_t readed=fread (palette, 1, palSize, palfp);
     fclose(palfp);
     if (palSize!=readed) return 2;
     return 0;
@@ -325,7 +323,7 @@ int rnc_compressed_file (FILE *fp)
 {
     unsigned char buff[5];
     long lastpos = ftell (fp);
-    int readed=fread (buff, 1, 4, fp);
+    size_t readed=fread (buff, 1, 4, fp);
     fseek (fp, lastpos, SEEK_SET);
     if (readed<4) return 0;
     return rnc_compressed_buf(buff);

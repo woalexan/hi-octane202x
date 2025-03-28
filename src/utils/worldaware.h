@@ -80,12 +80,12 @@
 #define WORLDAWARE_H
 
 #include "../race.h"
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include "stdint.h"
 #include "../models/player.h"
 #include "stdlib.h"
 #include "../models/column.h"
-#include "irrlicht/irrMath.h"
+#include "irrMath.h"
 
 #define RAY_HIT_NOTHING 0
 #define RAY_HIT_TERRAIN 1

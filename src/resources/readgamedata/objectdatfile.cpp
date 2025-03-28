@@ -206,10 +206,10 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       char headerbuf[30];
       //copy expected header string for comparison
       strcpy(headerbuf, OBJDATHEADER);
-      int headerLen = strlen(headerbuf);
+      size_t headerLen = strlen(headerbuf);
 
       //now validate header Start
-      char headerRead[headerLen+1];
+      char headerRead[30];
 
       //copy read header from file
       for (int d = 0; d < headerLen; d++) {
@@ -231,7 +231,7 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       headerValid = true;
 
        //4 zerobytes should follow, verify
-      for (uint a = 0; a < 4; a++) {
+      for (unsigned int a = 0; a < 4; a++) {
         if (ByteArray[headerLen + a] != 0)
           headerValid = false;
       }
@@ -460,11 +460,11 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       {
           ObjVertex *newVertex = new ObjVertex();
 
-          newVertex->X = BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset) / (float)(1024.0f);
+          newVertex->X = (float)(BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset)) / (float)(1024.0f);
           offset += 2;
-          newVertex->Y = BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset) / (float)(1024.0f);
+          newVertex->Y = (float)(BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset)) / (float)(1024.0f);
           offset += 2;
-          newVertex->Z = BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset) / (float)(1024.0f);
+          newVertex->Z = (float)(BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset)) / (float)(1024.0f);
           offset += 2;
           ObjFileVertexVector->push_back(newVertex);
       }
@@ -589,7 +589,7 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
     long dotPos = -1;
 
     //build final export filenames
-    for (ulong i = 0; i < strlen(filename); i++) {
+    for (unsigned long i = 0; i < strlen(filename); i++) {
         if (filename[i] == '.') {
             dotPos = i;
         }
@@ -633,7 +633,7 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
     dotPos = -1;
 
     //build final export filenames
-    for (ulong i = 0; i < strlen(mtlFilename); i++) {
+    for (unsigned long i = 0; i < strlen(mtlFilename); i++) {
         if (mtlFilename[i] == '/') {
             dotPos = i;
         }
@@ -644,7 +644,7 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
     //we found a slash, we need
     //to remove something
     if (dotPos != -1) {
-       for (uint j = (dotPos + 1); j < strlen(mtlFilename); j++) {
+       for (unsigned int j = (dotPos + 1); j < strlen(mtlFilename); j++) {
            addStr[0] = mtlFilename[j];
            addStr[1] = 0;
            strcat(mtlNameFirstLine, addStr);
@@ -718,7 +718,7 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
     fprintf(oFile, "s 1\n");
 
     int idxFace;
-    int idx = ObjFileTriangleVector->size() * 3;
+    int idx = (int)(ObjFileTriangleVector->size()) * 3;
 
     fprintf(oFile, "f ");
 

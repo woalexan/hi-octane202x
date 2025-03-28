@@ -5,6 +5,11 @@
 //https://www.gamedeveloper.com/programming/c-data-structures-for-rigid-body-physics
 //According to the article page the author is Miguel Gomez
 
+//28.03.2025 Wolf Alexander: I made changes to the original source code of the author to prevent warnings about
+//type conversions (possible loss of data) under Visual Studio MSVC compiler. Therefore the code below is not the
+//original authors source anymore. I also changed the typedef name "POINT" to "POINT3D", because there is already
+//a POINT type in windef.h, which will for sure cause trouble
+
 #include "vector.h"
 #include "matrix.h"
 
@@ -44,9 +49,9 @@ public:
 
     // Right-Handed Rotations
     void rotateAboutX( const SCALAR& a ) {
-        if( 0 != a ) { //don’t rotate by 0
-            VECTOR b1 = this->y()*cos(a) + this->z()*sin(a);
-            VECTOR b2 = -this->y()*sin(a) + this->z()*cos(a);
+        if( 0.0f != a ) { //don’t rotate by 0
+            VECTOR b1 = this->y()*(float)(cos(a)) + this->z()*(float)(sin(a));
+            VECTOR b2 = -this->y()*(float)(sin(a)) + this->z()*(float)(cos(a));
 
             //set basis
             this->R[1] = b1;
@@ -56,9 +61,9 @@ public:
     }
 
     void rotateAboutY( const SCALAR& a ) {
-        if( 0 != a ) {//don’t rotate by 0
-            VECTOR b2 = this->z()*cos(a) + this->x()*sin(a); //rotate z
-            VECTOR b0 = -this->z()*sin(a) + this->x()*cos(a); //rotate x
+        if( 0.0f != a ) {//don’t rotate by 0
+            VECTOR b2 = this->z()*(float)(cos(a)) + this->x()*(float)(sin(a)); //rotate z
+            VECTOR b0 = -this->z()* (float)(sin(a)) + this->x()*(float)(cos(a)); //rotate x
 
             //set basis
             this->R[2] = b2;
@@ -68,10 +73,10 @@ public:
     }
 
     void rotateAboutZ( const SCALAR& a ) {
-        if( 0 != a ) {//don’t rotate by 0
+        if( 0.0f != a ) {//don’t rotate by 0
             //don’t over-write basis before calculation is done
-            VECTOR b0 = this->x()*cos(a) + this->y()*sin(a); //rotate x
-            VECTOR b1 = -this->x()*sin(a) + this->y()*cos(a); //rotate y
+            VECTOR b0 = this->x()*(float)(cos(a)) + this->y()*(float)(sin(a)); //rotate x
+            VECTOR b1 = -this->x()*(float)(sin(a)) + this->y()*(float)(cos(a)); //rotate y
 
             //set basis
             this->R[0] = b0;
@@ -81,10 +86,10 @@ public:
     }
 
     //rotate the basis about the unit axis u by theta (radians)
-    void rotate( const SCALAR& theta, const VECTOR& u );
+    //void rotate( const SCALAR& theta, const VECTOR& u );
 
     //rotate, length of da is theta, unit direction of da is u
-    void rotate( const VECTOR& da );
+    //void rotate( const VECTOR& da );
 
     // Transformations
 
@@ -92,7 +97,7 @@ public:
         return VECTOR( R.C[0].dot(v), R.C[1].dot(v), R.C[2].dot(v) );
     }
 
-    const POINT transformVectorToParent( const VECTOR& v ) const {
+    const POINT3D transformVectorToParent( const VECTOR& v ) const {
         return R.C[0] * v.x + R.C[1] * v.y + R.C[2] * v.z;
     }
 

@@ -326,8 +326,8 @@ const bool OBBOverlap(
            //this depth and normal is used for collision resolution
            std::vector<float>::iterator it;
            std::vector<float>::iterator minit = depths.begin();
-           uint elcnt = 0;
-           uint minel = 0;
+           unsigned int elcnt = 0;
+           unsigned int minel = 0;
 
            for (it = depths.begin(); it != depths.end(); ++it) {
              if ((*it) < (*minit)) {

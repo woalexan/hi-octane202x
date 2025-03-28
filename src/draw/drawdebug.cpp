@@ -8,6 +8,7 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "drawdebug.h"
+#include <cmath>
 
 DrawDebug::DrawDebug(irr::video::IVideoDriver *driver) {
     myDriver = driver;
@@ -90,7 +91,7 @@ irr::core::vector3df DrawDebug::GetOrthogonalVector(irr::core::vector3df inVec) 
   const double s = std::sqrt(x*x + y*y + z*z);
   const double g = std::copysign(s, z);  // note s instead of 1
   const double h = z + g;
-  return irr::core::vector3df(g*h - x*x, -x*y, -x*h);
+  return irr::core::vector3df((irr::f32)(g*h - x*x), (irr::f32)(- x * y), (irr::f32)(- x * h));
 }
 
 void DrawDebug::Draw3DArrow(irr::core::vector3df startPos, irr::core::vector3df arrowPosition, irr::video::SMaterial* color) {

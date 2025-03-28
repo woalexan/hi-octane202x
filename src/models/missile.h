@@ -10,7 +10,7 @@
 #ifndef MISSILE_H
 #define MISSILE_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "player.h"
 #include "../audio/sound.h"
 #include "../models/explauncher.h"
@@ -90,6 +90,7 @@ public:
 class MissileLauncher {
 public:
     MissileLauncher(Player* myParentPlayer, irr::scene::ISceneManager* smgr,  irr::video::IVideoDriver *driver);
+    ~MissileLauncher();
 
     bool ready;
     bool shooting = false;

@@ -323,7 +323,7 @@ bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::S
 //  loadAddFileNr = allows to specify additional files for loading character images file offsets
 //                  at the end
 //In case of an unexpected error this function returns NULL
-GameTextFont* GameText::LoadGameFont(char* fileName, ulong numOffset, ulong numChars, std::vector<int> loadAddFileNr,
+GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr,
                                      bool addOutline, irr::video::SColor* outLineColor) {
   myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
@@ -335,10 +335,10 @@ GameTextFont* GameText::LoadGameFont(char* fileName, ulong numOffset, ulong numC
   GameTextFont *newFont = new GameTextFont;
   newFont->CharacterVector.clear();
 
-  std::vector<ulong> loadFileNumbers;
+  std::vector<unsigned long> loadFileNumbers;
   loadFileNumbers.clear();
 
-  for (ulong idx = numOffset; idx < (numChars + numOffset); idx++) {
+  for (unsigned long idx = numOffset; idx < (numChars + numOffset); idx++) {
       loadFileNumbers.push_back(idx);
   }
 
@@ -347,7 +347,7 @@ GameTextFont* GameText::LoadGameFont(char* fileName, ulong numOffset, ulong numC
       loadFileNumbers.push_back(*it);
   }
 
-  std::vector<ulong>::iterator it2;
+  std::vector<unsigned long>::iterator it2;
 
   //for (ulong idx = numOffset; idx < (numChars + numOffset); idx++) {
   for (it2 = loadFileNumbers.begin(); it2 != loadFileNumbers.end(); ++it2) {

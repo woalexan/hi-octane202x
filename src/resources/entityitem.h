@@ -16,7 +16,7 @@
 #define ENTITYITEM_H
 
 #include "tableitem.h"
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include "../definitions.h"
 #include "../utils/crc32.h"
 

@@ -22,12 +22,16 @@
 //in routine read_tabfile_data to make 3D Model export work correctly
 //Therefore this source code is not full original anymore!
 
+ //Note 19.03.2025: After I ran into runtime issues in windows (using MSVC during compilation), and because I received many warnings
+ // about possible data loss due to type conversions, uninitialized variables and so on in Visual Studio, I decided to modify many parts of the
+ //original code below. I wanted to use variable types now with fixed defined bit lengths.
+
 // Data types
 
 typedef struct {
-    unsigned long offset;
-    unsigned int width;
-    unsigned int height;
+    uint32_t offset;
+    uint8_t width;
+    uint8_t height;
        } TABFILE_ITEM;
 
 typedef struct {
@@ -37,20 +41,20 @@ typedef struct {
        } TABFILE;
 
 typedef struct {
-    long count;
-    unsigned long filelength;
+    int16_t count;
+    size_t filelength;
     unsigned char* data;
        } DATFILE;
 
 typedef struct {
-    unsigned int width;
-    unsigned int height;
+    uint16_t width;
+    uint16_t height;
     unsigned char* data;
     unsigned char* alpha;
        } IMAGEITEM;
 
 typedef struct {
-    unsigned long count;
+    long count;
     IMAGEITEM* items;
        } IMAGELIST;
 
@@ -63,7 +67,7 @@ void free_datfile_data(DATFILE* datf);
 
 int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,DATFILE* datf,int verbose);
 void free_dattab_images(IMAGELIST* images);
-int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf,unsigned long off,unsigned int width,unsigned int height);
+int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf, uint32_t off, uint16_t width, uint16_t height);
 int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int verbose);
 
 //extracts all images within data file into outputDir

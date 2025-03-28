@@ -35,11 +35,11 @@ class InfrastructureBase; //Forward declaration
 class Game {
 private:
     //Irrlicht related, for debugging of game
-    IGUIStaticText* dbgTimeProfiler;
-    IGUIStaticText* dbgText;
-    IGUIStaticText* dbgText2;
+    IGUIStaticText* dbgTimeProfiler = NULL;
+    IGUIStaticText* dbgText = NULL;
+    IGUIStaticText* dbgText2 = NULL;
 
-    Assets* mGameAssets;
+    Assets* mGameAssets = NULL;
     bool InitGameAssets();
 
     //SFML related, Audio, Music
@@ -47,11 +47,11 @@ private:
     SoundEngine* gameSoundEngine = NULL;
 
     //own game stuff
-    Menue* MainMenue;
-    InfrastructureBase* mInfra;
+    Menue* MainMenue = NULL;
+    InfrastructureBase* mInfra = NULL;
 
     //stores the current gamestate
-    irr::u8 mGameState;
+    irr::u8 mGameState = DEF_GAMESTATE_INTRO;
 
     //counter to count how long we have showed
     //the games title
@@ -73,11 +73,11 @@ private:
     int lastFPS = -1;
     MenueAction* pendingAction = NULL;
 
-    std::vector<RaceStatsEntryStruct*>* lastRaceStat;
-    std::vector<PointTableEntryStruct*>* lastRacePointTable;
-    std::vector<PointTableEntryStruct*>* lastOverallChampionshipPointTable;
+    std::vector<RaceStatsEntryStruct*>* lastRaceStat = NULL;
+    std::vector<PointTableEntryStruct*>* lastRacePointTable = NULL;
+    std::vector<PointTableEntryStruct*>* lastOverallChampionshipPointTable = NULL;
 
-    irr::u8 mSaveChampionShipToWhichSlot;
+    irr::u8 mSaveChampionShipToWhichSlot = 0;
 
     void AdvanceChampionship();
 
@@ -109,7 +109,7 @@ public:
     bool enableLightning = false;
     bool enableShadows = false;
     bool fullscreen = false;
-    bool DebugShowVariableBoxes = true;
+    bool DebugShowVariableBoxes = false;
 
     bool computerPlayersAttack = true;
     bool runDemoMode = false;

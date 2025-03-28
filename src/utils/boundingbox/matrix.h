@@ -5,6 +5,11 @@
 //https://www.gamedeveloper.com/programming/c-data-structures-for-rigid-body-physics
 //According to the article page the author is Miguel Gomez
 
+//28.03.2025 Wolf Alexander: I made changes to the original source code of the author to prevent warnings about
+//type conversions (possible loss of data) under Visual Studio MSVC compiler. Therefore the code below is not the
+//original authors source anymore. I also changed the typedef name "POINT" to "POINT3D", because there is already
+//a POINT type in windef.h, which will for sure cause trouble
+
 #include "vector.h"
 
 // A 3x3 matrix
@@ -20,9 +25,9 @@ class MATRIX {
     MATRIX() {
 
         //identity matrix
-        C[0].x = 1;
-        C[1].y = 1;
-        C[2].z = 1;
+        C[0].x = 1.0f;
+        C[1].y = 1.0f;
+        C[2].z = 1.0f;
     }
 
     MATRIX( const VECTOR& c0, const VECTOR& c1, const VECTOR& c2 ) {
@@ -147,7 +152,7 @@ class MATRIX {
     }
 
     //matrix inverse
-    const MATRIX inverse() const;
+    //const MATRIX inverse() const;
     };
 
 #endif // MATRIX_H

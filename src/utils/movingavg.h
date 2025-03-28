@@ -10,7 +10,7 @@
 #ifndef MOVINGAVG_H
 #define MOVINGAVG_H
 
-#include "irrlicht/irrlicht.h"
+#include "irrlicht.h"
 #include <list>
 #include <vector>
 

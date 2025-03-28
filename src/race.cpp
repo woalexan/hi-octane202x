@@ -85,28 +85,50 @@ Race::Race(InfrastructureBase* infra,  Game* mParentGame, MyMusicStream* gameMus
     //for the start of the race we want to trigger
     //target group 1 once
     mPendingTriggerTargetGroups.push_back(1);
-
-    //load the correct music file for this level
-    char musicFileName[60];
-
-    //make assigement level number to music file
-    DeliverMusicFileName(loadLevelNr, musicFileName);
-
-    if (!mMusicPlayer->loadGameMusicFile(musicFileName)) {
-         cout << "Music load failed" << endl;
-    } else {
-        //start music playing
-        mMusicPlayer->StartPlay();
-      }
 }
 
 void Race::IrrlichtStats(char* text) {
       cout << "----- " << std::string(text) << "----- " << std::endl << std::flush;
       cout << "Mesh count loaded: " << mInfra->mSmgr->getMeshCache()->getMeshCount() << std::endl << std::flush;
       cout << "Textures loaded: " << mInfra->mSmgr->getVideoDriver()->getTextureCount() << std::endl << std::flush;
+      core::array<scene::ISceneNode*> outNodes;
+
+      //get list of all existing sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
+
+      cout << "Scenenode count (all): " << outNodes.size() << std::endl << std::flush;
+      outNodes.clear();
+
+      //get list of all existing Billboard sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_BILLBOARD, outNodes, 0);
+
+      cout << "Scenenode count (Billboard): " << outNodes.size() << std::endl << std::flush;
+
+      //get list of all existing Mesh sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_MESH, outNodes, 0);
+
+      cout << "Scenenode count (Mesh): " << outNodes.size() << std::endl << std::flush;
+
+      outNodes.clear();
+
+      //get list of all existing light sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_LIGHT, outNodes, 0);
+
+      cout << "Scenenode count (light): " << outNodes.size() << std::endl << std::flush;
+
+      outNodes.clear();
+
+      //get list of all existing camera sceneNodes
+      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_CAMERA, outNodes, 0);
+
+      cout << "Scenenode count (camera): " << outNodes.size() << std::endl << std::flush;
+
+      outNodes.clear();
 
       irr::s32 texCnt;
       texCnt =  mInfra->mSmgr->getVideoDriver()->getTextureCount();
+
+      return;
 
       //now we have our output filename
        char finalpath[50];
@@ -959,7 +981,7 @@ void Race::UpdatePlayerRacePositionRanking() {
                   //this means a next checkpoint value of 0 means actually more race progress then
                   //all higher numbers, fix nextCheckPointValue for the race progress sorting but just setting
                   //the number of next expected checkpoint higher
-                  nextCheckPointValueHelper = this->checkPointVec->size();
+                  nextCheckPointValueHelper = (int)(this->checkPointVec->size());
               }
           }
 
@@ -981,7 +1003,7 @@ void Race::UpdatePlayerRacePositionRanking() {
                     //this means a next checkpoint value of 0 means actually more race progress then
                     //all higher numbers, fix nextCheckPointValue for the race progress sorting but just setting
                     //the number of next expected checkpoint higher
-                    nextCheckPointValueHelper = this->checkPointVec->size();
+                    nextCheckPointValueHelper = (int)(this->checkPointVec->size());
                 }
             }
 
@@ -997,9 +1019,9 @@ void Race::UpdatePlayerRacePositionRanking() {
 
    //what is the current overall position the players
    //are still racing for?
-   int currPos = playerRaceFinishedVec.size() + 1;
+   int currPos = (int)(playerRaceFinishedVec.size()) + 1;
 
-   int numPlayers = mPlayerVec.size();
+   int numPlayers = (int)(mPlayerVec.size());
 
    //all player rankings are done and stored in this->playerRanking
    //Update player objects with this new ranking information
@@ -1232,8 +1254,8 @@ irr::core::dimension2di Race::CalcPlayerMiniMapPosition(Player* whichPlayer) {
     irr::f32 posPlWidth = miniMapPixelPerCellW * (irr::f32)(whichPlayer->mCurrPosCellX - this->miniMapStartW);
     irr::f32 posPlHeight = miniMapPixelPerCellH * (irr::f32)(whichPlayer->mCurrPosCellY - this->miniMapStartH);
 
-    miniMapLocation.Width = miniMapDrawLocation.X + posPlWidth;
-    miniMapLocation.Height = miniMapDrawLocation.Y + posPlHeight;
+    miniMapLocation.Width = miniMapDrawLocation.X + (irr::s32)(posPlWidth);
+    miniMapLocation.Height = miniMapDrawLocation.Y + (irr::s32)(posPlHeight);
 
     return miniMapLocation;
 }
@@ -1519,7 +1541,8 @@ void Race::InitMiniMap(irr::u32 levelNr) {
 
     //create minimap from level data
     //is not perfect, but better than nothing
-    irr::video::IImage* baseMiniMapPic = mLevelTerrain->CreateMiniMapInfo(miniMapStartW, miniMapEndW, miniMapStartH, miniMapEndH);
+    irr::video::IImage* baseMiniMapPic = 
+        mLevelTerrain->CreateMiniMapInfo(miniMapStartW, miniMapEndW, miniMapStartH, miniMapEndH);
 
     //file does not exist?
     if (FileExists(outputFilename) != 1) {
@@ -1596,133 +1619,147 @@ void Race::Init() {
 
     if (!LoadLevel(levelNr)) {
         //there was an error loading the level
-        ready = false;
+        return;
+    }
+        
+    //level was loaded ok, we can continue setup
+
+    //predefine mini map marker colors
+    //for max 8 players
+    mMiniMapMarkerColors.clear();
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 254, 254, 250)); //player 1 marker color (human player)
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  70, 121,  99)); //player 2 marker color
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 114,  53,  60)); //player 3 marker color
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 235, 112,  46)); //player 4 marker color
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 251, 220,  56)); //player 5 marker color
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 182,  32, 130)); //player 6 marker color
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  57,  77, 145)); //player 7 marker color
+    mMiniMapMarkerColors.push_back(new irr::video::SColor(255,   4,   6,   8)); //player 8 marker color
+
+    if (useAutoGenMinimap) {
+        //try to auto generate a own minimap
+        //based on the level file
+        //is not perfect
+        InitMiniMap(levelNr);
     } else {
-        //level was loaded ok, we can continue setup
-
-        //predefine mini map marker colors
-        //for max 8 players
-        mMiniMapMarkerColors.clear();
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 254, 254, 250)); //player 1 marker color (human player)
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  70, 121,  99)); //player 2 marker color
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 114,  53,  60)); //player 3 marker color
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 235, 112,  46)); //player 4 marker color
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 251, 220,  56)); //player 5 marker color
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255, 182,  32, 130)); //player 6 marker color
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  57,  77, 145)); //player 7 marker color
-        mMiniMapMarkerColors.push_back(new irr::video::SColor(255,   4,   6,   8)); //player 8 marker color
-
-        if (useAutoGenMinimap) {
-            //try to auto generate a own minimap
-            //based on the level file
-            //is not perfect
-            InitMiniMap(levelNr);
-        } else {
-            //use the original game supplied minimap
-            //drawings
-            InitMiniMapOriginal(levelNr);
-        }
-
-        /***********************************************************/
-        /* Init single player HUD                                  */
-        /***********************************************************/
-        Hud1Player = new HUD(mInfra);
-
-        //create my overall physics object
-        //also handover pointer to my DrawDebug object
-        this->mPhysics = new Physics(this, this->mDrawDebug);
-
-        //handover pointer to wall collision line (based on level file entities) data
-        this->mPhysics->SetLevelCollisionWallLineData(ENTWallsegmentsLine_List);
-
-        //create the object for path finding and services
-        mPath = new Path(this, mDrawDebug);
-
-        //create my players and setup their physics
-        //Wolf 22.12.2024: commented out, since add player we have no player object
-        //here anymore
-        //createPlayers(levelNr);
-
-        //get player start locations from the level file
-        mPlayerStartLocations =
-                this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
-
-        //HUD should show main player stats
-        //Wolf 22.12.2024: commented out, since add player we have no player object
-        //here anymore
-        if (mDemoMode) {
-                //if we do not skip the race start, switch the Hud
-                //to "start" mode
-                if (mCurrentPhase == DEF_RACE_PHASE_START) {
-                    Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
-
-                    //0.. means no light lit
-                    //with increasing value the start signal
-                    //advances towards the final state
-                    Hud1Player->SetStartSignalState(0);
-                } else {
-                    //in demo mode we do not want to draw a HUD
-                    //in case we skip the start
-                    Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
-                }
-        } else {
-                //if we do not skip the race start, switch the Hud
-                //to "start" mode
-                if (mCurrentPhase == DEF_RACE_PHASE_START) {
-                     Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
-
-                     //0.. means no light lit
-                     //with increasing value the start signal
-                     //advances towards the final state
-                     Hud1Player->SetStartSignalState(0);
-                } else {
-                     //in normal race mode we draw the HUD
-                     //if we skip the start we can already show the
-                     //race Hud
-                     Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
-               }
-        }
-
-        //give physics the triangle selectors for overall collision detection
-        this->mPhysics->AddCollisionMesh(triangleSelectorWallCollision);
-        this->mPhysics->AddCollisionMesh(triangleSelectorColumnswCollision);
-
-        //give physics the triangle selector for weapon targeting (ray casting at terrain/blocks)
-        this->mPhysics->AddRayTargetMesh(triangleSelectorColumnswCollision);
-        this->mPhysics->AddRayTargetMesh(triangleSelectorColumnswoCollision);
-        this->mPhysics->AddRayTargetMesh(triangleSelectorStaticTerrain);
-        this->mPhysics->AddRayTargetMesh(triangleSelectorDynamicTerrain);
-
-        //activate collisionResolution in physics
-        //can be disabled for debugging purposes
-        mPhysics->collisionResolutionActive = true;
-
-        //set initial camera location
-        //Wolf 22.12.2024: commented out, since add player we have no player object
-        //here anymore
-        //mCamera->setPosition(playerPhysicsObj->physicState.position + irr::core::vector3df(2.0f, 2.0f, 00.0f));
-        //mCamera->setTarget(playerPhysicsObj->physicState.position);
-
-        mInfra->mSmgr->setActiveCamera(mCamera);
-
-        SetupTopRaceTrackPointerOrigin();
-
-        //create the world awareness class
-        mWorldAware = new WorldAwareness(mInfra->mDevice, mInfra->mDriver, this);
-
-        //now use the new world aware class to further analyze all
-        //waypoint links for computer player movement control later
-        mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
-
-        //create my ExplosionLauncher
-        mExplosionLauncher = new ExplosionLauncher(this, mInfra->mSmgr, mInfra->mDriver);
-
-        //create a new Bezier object for testing
-        testBezier = new Bezier(mLevelTerrain, mDrawDebug);
-
-        ready = true;
+        //use the original game supplied minimap
+        //drawings
+        InitMiniMapOriginal(levelNr);
     }
 
+    /***********************************************************/
+    /* Init single player HUD                                  */
+    /***********************************************************/
+    Hud1Player = new HUD(mInfra);
+
+    //create my overall physics object
+    //also handover pointer to my DrawDebug object
+    this->mPhysics = new Physics(this, this->mDrawDebug);
+
+    //handover pointer to wall collision line (based on level file entities) data
+    this->mPhysics->SetLevelCollisionWallLineData(ENTWallsegmentsLine_List);
+
+    //create the object for path finding and services
+    mPath = new Path(this, mDrawDebug);
+
+    //create my players and setup their physics
+    //Wolf 22.12.2024: commented out, since add player we have no player object
+    //here anymore
+    //createPlayers(levelNr);
+
+    //get player start locations from the level file
+    mPlayerStartLocations =
+        this->mLevelTerrain->GetPlayerRaceTrackStartLocations();
+
+    //HUD should show main player stats
+    //Wolf 22.12.2024: commented out, since add player we have no player object
+    //here anymore
+    if (mDemoMode) {
+        //if we do not skip the race start, switch the Hud
+        //to "start" mode
+        if (mCurrentPhase == DEF_RACE_PHASE_START) {
+            Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+
+            //0.. means no light lit
+            //with increasing value the start signal
+            //advances towards the final state
+            Hud1Player->SetStartSignalState(0);
+        } else {
+                //in demo mode we do not want to draw a HUD
+                //in case we skip the start
+                Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
+               }
+    } else {
+              //if we do not skip the race start, switch the Hud
+              //to "start" mode
+              if (mCurrentPhase == DEF_RACE_PHASE_START) {
+                Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+
+                //0.. means no light lit
+                //with increasing value the start signal
+                //advances towards the final state
+                Hud1Player->SetStartSignalState(0);
+              } else {
+                        //in normal race mode we draw the HUD
+                        //if we skip the start we can already show the
+                        //race Hud
+                        Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
+                     }
+           }
+
+    //give physics the triangle selectors for overall collision detection
+    this->mPhysics->AddCollisionMesh(triangleSelectorWallCollision);
+    this->mPhysics->AddCollisionMesh(triangleSelectorColumnswCollision);
+
+    //give physics the triangle selector for weapon targeting (ray casting at terrain/blocks)
+    this->mPhysics->AddRayTargetMesh(triangleSelectorColumnswCollision);
+    this->mPhysics->AddRayTargetMesh(triangleSelectorColumnswoCollision);
+    this->mPhysics->AddRayTargetMesh(triangleSelectorStaticTerrain);
+    this->mPhysics->AddRayTargetMesh(triangleSelectorDynamicTerrain);
+
+    //activate collisionResolution in physics
+    //can be disabled for debugging purposes
+    mPhysics->collisionResolutionActive = true;
+
+    //set initial camera location
+    //Wolf 22.12.2024: commented out, since add player we have no player object
+    //here anymore
+    //mCamera->setPosition(playerPhysicsObj->physicState.position + irr::core::vector3df(2.0f, 2.0f, 00.0f));
+    //mCamera->setTarget(playerPhysicsObj->physicState.position);
+
+    mInfra->mSmgr->setActiveCamera(mCamera);
+
+    SetupTopRaceTrackPointerOrigin();
+
+    //create the world awareness class
+    mWorldAware = new WorldAwareness(mInfra->mDevice, mInfra->mDriver, this);
+
+    //now use the new world aware class to further analyze all
+    //waypoint links for computer player movement control later
+    mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
+
+    //create my ExplosionLauncher
+    mExplosionLauncher = new ExplosionLauncher(this, mInfra->mSmgr, mInfra->mDriver);
+
+    //create a new Bezier object for testing
+    testBezier = new Bezier(mLevelTerrain, mDrawDebug);
+
+    //load the correct music file for this level
+    char musicFileName[60];
+
+    //make assigement level number to music file
+    DeliverMusicFileName(levelNr, musicFileName);
+
+    if (!mMusicPlayer->loadGameMusicFile(musicFileName)) {
+        cout << "Music load failed" << endl;
+        return;
+    } else {
+             //start music playing
+             mMusicPlayer->StartPlay();
+           }
+
+    ready = true;
+  
     //only to test if we can save a levelfile properly!
     //std::string testsaveName("testsave.dat");
     //this->mLevelRes->Save(testsaveName);
@@ -1825,6 +1862,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //race start control function
     if (mCurrentPhase == DEF_RACE_PHASE_START) {
         ControlStartPhase(frameDeltaTime);
+    }
+
+    //if we are in final race phase (where we delay the exit of race)
+    //until all animators are done animating, so that we can clean them
+    //up during deconstructor of race object, hande this final phase here
+    if (mCurrentPhase == DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE) {
+        HandleExitRace();
     }
 
     float progressMorph;
@@ -2127,7 +2171,7 @@ void Race::CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d
                 //player->GetMyHUD()->ShowBannerText(&txt[0], 0.2f);
 
                 //tell player object about crossed checkpoint
-                whichPlayer->CrossedCheckPoint((*it)->value, checkPointVec->size());
+                whichPlayer->CrossedCheckPoint((*it)->value, (irr::s32)(checkPointVec->size()));
             }
         }
     }
@@ -2261,7 +2305,10 @@ void Race::HandleBasicInput() {
         //only for debugging!
         //this->mRaceWasFinished = true;
 
-        this->exitRace = true;
+        //24.03.2025: Add a final race phase where we wait until
+        //all currently working animators are finished
+        //this->exitRace = true;
+        InitiateExitRace();
     }
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
@@ -2270,6 +2317,49 @@ void Race::HandleBasicInput() {
             this->currPlayerFollow->ChangeViewMode();
         }
     }
+}
+
+//unfortunetly it seems we can not remove SceneNodes from SceneManager
+//that still have an animation going on; Animations are for example used
+//by the machinegun and missiles/explosions
+//The make sure that this animations are done when we finally exit the race
+//and the destructor of the race is called, I decided to add another final
+//race phase where the players are prevented to fire more machinguns and
+//missiles, so that no new animators are triggered
+//Then we delay the end of the race in the final phase as long, until all currently
+//running animations are done; Only then we finally exit the race
+//The function below is used to initiate this final phase of the race
+void Race::InitiateExitRace() {
+   //from now on prevent all players from firing
+   //the machine gun or another missile
+   //so that the animators have all time to finish
+   std::vector<Player*>::iterator it;
+
+   for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+       (*it)->DeactivateAttack();
+   }
+
+   //new race phase, we only wait until all animators have finished
+   this->mCurrentPhase = DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE;
+}
+
+void Race::HandleExitRace() {
+   //only if all animators are done, we finally really
+   //exit the race
+   bool allAnimatorsDone = true;
+
+   //all machine gun animators done
+   std::vector<Player*>::iterator it;
+
+   for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+       allAnimatorsDone &= (*it)->AllAnimatorsDone();
+   }
+
+   if (allAnimatorsDone) {
+       //now we can really exit the game
+       //all animators have finished
+       exitRace = true;
+   }
 }
 
 void Race::HandleInput() {
@@ -2344,6 +2434,8 @@ void Race::HandleInput() {
 //the routine below is from:
 //https://irrlicht.sourceforge.io/forum/viewtopic.php?t=43565
 //https://irrlicht.sourceforge.io/forum//viewtopic.php?p=246138#246138
+//But I had to modify it, to remove warnings "'argument': conversion from 'T' to 'T', possible loss of data"
+//in Visual Studio
 void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
      irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
      irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color) {
@@ -2361,26 +2453,26 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     // Find the positions of corners
     irr::core::vector2df corner[4];
 
-    corner[0] = irr::core::vector2df(position.X,position.Y);
-    corner[1] = irr::core::vector2df(position.X+sourceRect.getWidth()*scale.X,position.Y);
-    corner[2] = irr::core::vector2df(position.X,position.Y+sourceRect.getHeight()*scale.Y);
-    corner[3] = irr::core::vector2df(position.X+sourceRect.getWidth()*scale.X,position.Y+sourceRect.getHeight()*scale.Y);
+    corner[0] = irr::core::vector2df((irr::f32)(position.X),(irr::f32)(position.Y));
+    corner[1] = irr::core::vector2df((irr::f32)(position.X)+(irr::f32)(sourceRect.getWidth())*scale.X,(irr::f32)(position.Y));
+    corner[2] = irr::core::vector2df((irr::f32)(position.X),(irr::f32)(position.Y)+(irr::f32)(sourceRect.getHeight())*scale.Y);
+    corner[3] = irr::core::vector2df((irr::f32)(position.X)+(irr::f32)(sourceRect.getWidth())*scale.X,(irr::f32)(position.Y)+(irr::f32)(sourceRect.getHeight())*scale.Y);
 
     // Rotate corners
     if (rotation != 0.0f)
         for (int x = 0; x < 4; x++)
-            corner[x].rotateBy(rotation,irr::core::vector2df(rotationPoint.X, rotationPoint.Y));
+            corner[x].rotateBy(rotation,irr::core::vector2df((irr::f32)(rotationPoint.X), (irr::f32)(rotationPoint.Y)));
 
 
     // Find the uv coordinates of the sourceRect
     irr::core::vector2df uvCorner[4];
-    uvCorner[0] = irr::core::vector2df(sourceRect.UpperLeftCorner.X,sourceRect.UpperLeftCorner.Y);
-    uvCorner[1] = irr::core::vector2df(sourceRect.LowerRightCorner.X,sourceRect.UpperLeftCorner.Y);
-    uvCorner[2] = irr::core::vector2df(sourceRect.UpperLeftCorner.X,sourceRect.LowerRightCorner.Y);
-    uvCorner[3] = irr::core::vector2df(sourceRect.LowerRightCorner.X,sourceRect.LowerRightCorner.Y);
+    uvCorner[0] = irr::core::vector2df((irr::f32)(sourceRect.UpperLeftCorner.X),(irr::f32)(sourceRect.UpperLeftCorner.Y));
+    uvCorner[1] = irr::core::vector2df((irr::f32)(sourceRect.LowerRightCorner.X),(irr::f32)(sourceRect.UpperLeftCorner.Y));
+    uvCorner[2] = irr::core::vector2df((irr::f32)(sourceRect.UpperLeftCorner.X),(irr::f32)(sourceRect.LowerRightCorner.Y));
+    uvCorner[3] = irr::core::vector2df((irr::f32)(sourceRect.LowerRightCorner.X),(irr::f32)(sourceRect.LowerRightCorner.Y));
     for (int x = 0; x < 4; x++) {
-        float uvX = uvCorner[x].X/(float)texture->getSize().Width;
-        float uvY = uvCorner[x].Y/(float)texture->getSize().Height;
+        float uvX = uvCorner[x].X/(float)(texture->getSize().Width);
+        float uvY = uvCorner[x].Y/(float)(texture->getSize().Height);
         uvCorner[x] = irr::core::vector2df(uvX,uvY);
     }
 
@@ -2389,8 +2481,8 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     irr::u16 indices[6] = { 0, 1, 2, 3 ,2 ,1 };
 
     // Convert pixels to world coordinates
-    float screenWidth = driver->getScreenSize().Width;
-    float screenHeight = driver->getScreenSize().Height;
+    float screenWidth = (float)(driver->getScreenSize().Width);
+    float screenHeight = (float)(driver->getScreenSize().Height);
     for (int x = 0; x < 4; x++) {
         float screenPosX = ((corner[x].X/screenWidth)-0.5f)*2.0f;
         float screenPosY = ((corner[x].Y/screenHeight)-0.5f)*-2.0f;
@@ -3085,7 +3177,11 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
 
         if (mRaceFinishedWaitTimeCnter > DEF_RACE_FINISHED_WAITTIME_SEC) {
             //wait time counter finished, exit race
-            this->exitRace = true;
+
+            //24.03.2025: Add a final race phase where we wait until
+            //all currently working animators are finished
+            //this->exitRace = true;
+            InitiateExitRace();
         }
     } else {
         //race is not finished yet
@@ -3129,7 +3225,14 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    mTexLoader = new TextureLoader(mInfra->mDriver, texfilename);
 
+   //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
+
+   //was loading level data succesful? if not interrupt
+   if (!this->mLevelRes->get_Ready()) {
+       cout << "Race::LoadLevel failed, exiting" << endl << std::flush;
+       return false;
+   }
 
    char terrainname[50];
    strcpy(terrainname, "Terrain1");
@@ -3463,8 +3566,8 @@ void Race::CheckPointPostProcessing() {
                 pieceFound = -1;
 
                 for (int piece = 0; piece < 10; piece++) {
-                    linepiece.start = line3D.start + vecPiece * piece;
-                    linepiece.end = line3D.start + vecPiece * (piece + 1);
+                    linepiece.start = line3D.start + vecPiece * (irr::f32)(piece);
+                    linepiece.end = line3D.start + vecPiece * (irr::f32)(piece + 1);
 
                     if (bbox.intersectsWithLine(linepiece)) {
                         pieceFound = piece;
@@ -3949,7 +4052,7 @@ void Race::AddTrigger(EntityItem *entity) {
     box.Position = entity.Pos + Vector3.UnitY * 0.01f;
     Entities.AddNode(box);*/
 
-    irr::u8 regionType;
+    irr::u8 regionType = LEVELFILE_REGION_UNDEFINED;
 
     MapTileRegionStruct *newTriggerRegion = new MapTileRegionStruct();
 
@@ -4002,7 +4105,7 @@ void Race::AddTrigger(EntityItem *entity) {
     this->mLevelTerrain->ForceTileGridCoordRange(tileMin);
     this->mLevelTerrain->ForceTileGridCoordRange(tileMax);
 
-    newTriggerRegion->regionId = mTriggerRegionVec.size();
+    newTriggerRegion->regionId = (irr::u8)(mTriggerRegionVec.size());
     newTriggerRegion->regionType = regionType;
     newTriggerRegion->tileXmin = tileMin.X;
     newTriggerRegion->tileYmin = tileMin.Y;
@@ -4116,13 +4219,19 @@ void Race::createEntity(EntityItem *p_entity,
 
                     EntityItem* source;
 
+                    std::vector<Column*> sourceColumns;
+                    sourceColumns.clear();
+
                     //see if a entity with this ID exists
                     bool entFound = levelRes->ReturnEntityItemWithId(entity.getNextID(), &source);
 
+                    if (entFound) {
+                        sourceColumns = levelBlocks->ColumnsInRange(source->getCell().X, source->getCell().Y, w, h);
+                    }
+
                     // morph for this entity and its linked source
                     std::vector<Column*> targetColumns = levelBlocks->ColumnsInRange(entity.getCell().X , entity.getCell().Y, w, h);
-                    std::vector<Column*> sourceColumns = levelBlocks->ColumnsInRange(source->getCell().X , source->getCell().Y, w, h);
-
+                    
                     //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
                     //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
                     //so that later we can put this cells into their own Meshbuffers/SceneNodes
@@ -4145,22 +4254,24 @@ void Race::createEntity(EntityItem *p_entity,
                         }
                     }
 
-                    baseX = source->getCell().X - 5;
-                    baseY = source->getCell().Y - 5;
+                    if (entFound) {
+                        baseX = source->getCell().X - 5;
+                        baseY = source->getCell().Y - 5;
 
-                    for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
-                        for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                            cellCoord.set(idxX+baseX, idxY+baseY);
-                            this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
+                        for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
+                            for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
+                                cellCoord.set(idxX + baseX, idxY + baseY);
+                                this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
 
-                            this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
+                                this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
+                            }
                         }
                     }
 
                     // regular morph
                     if (targetColumns.size() == sourceColumns.size())
                     {
-                            for (uint i = 0; i < targetColumns.size(); i++)
+                            for (unsigned int i = 0; i < targetColumns.size(); i++)
                             {
                                 targetColumns[i]->MorphSource = sourceColumns[i];
                                 sourceColumns[i]->MorphSource = targetColumns[i];
@@ -4522,7 +4633,6 @@ void Race::UpdateCollectableSpawners(irr::f32 frameDeltaTime) {
 
 void Race::UpdateType2Collectables(irr::f32 frameDeltaTime) {
     std::vector<Collectable*>::iterator it;
-    Collectable* pntr;
 
     for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ) {
         //is this a type2 collectable

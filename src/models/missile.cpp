@@ -43,6 +43,21 @@ Missile::Missile(MissileLauncher* mParentLauncher, irr::core::vector3df launchLo
 }
 
 Missile::~Missile() {
+    //cleanup any remaining Scenenodes
+    std::vector<MissileSpriteStruct*>::iterator it;
+    MissileSpriteStruct* pntr;
+
+    for (it = mMissileSpriteVec.begin(); it != mMissileSpriteVec.end();) {
+        pntr = (*it);
+
+        it = mMissileSpriteVec.erase(it);
+
+        RemoveSmokeSprite(pntr);
+    }
+
+    if (mSceneNodeMissile != NULL) {
+        mSceneNodeMissile->remove();
+    }
 }
 
 void Missile::AddNewSmokeSprite(irr::core::vector3df newLocation) {
@@ -87,17 +102,17 @@ bool Missile::AreAllSmokeSpritesGone() {
 void Missile::UpdateSmokeSprites(irr::f32 DeltaTime) {
    //only add new smoke sprites to smoke trail if not yet exploded
    if (!exploded) {
-    this->remainingDistToNextSmoke -= DeltaTime * DEF_MISSILE_SPEED;
+        this->remainingDistToNextSmoke -= DeltaTime * DEF_MISSILE_SPEED;
 
-    //add a new missile smoke cloud sprite in the trail?
-    if (remainingDistToNextSmoke < 0.0f) {
-        remainingDistToNextSmoke = DEF_MISSILE_SMOKEDIST;
+        //add a new missile smoke cloud sprite in the trail?
+        if (remainingDistToNextSmoke < 0.0f) {
+            remainingDistToNextSmoke = DEF_MISSILE_SMOKEDIST;
 
-        //add the new smoke sprite at the current location of the missile
-        //I mean the location of the glowing ball that should ressemble the flying
-        //missile
-        AddNewSmokeSprite(this->currentLocation);
-    }
+            //add the new smoke sprite at the current location of the missile
+            //I mean the location of the glowing ball that should ressemble the flying
+            //missile
+            AddNewSmokeSprite(this->currentLocation);
+        }
    }
 
    //now update all currently existing smoke sprites of the missile
@@ -208,6 +223,7 @@ void Missile::Update(irr::f32 DeltaTime) {
             //simply explode, let the missile disappear
             mSceneNodeMissile->setVisible(false);
             mSceneNodeMissile->remove();
+            mSceneNodeMissile = NULL;
 
             //did the missile explode close to the target player, if so deal
             //damage to the targeted enemy player
@@ -244,8 +260,8 @@ void Missile::Update(irr::f32 DeltaTime) {
         //calculate current cell below missile
         int current_cell_calc_x, current_cell_calc_y;
 
-        current_cell_calc_y = (currentLocation.Z / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
-        current_cell_calc_x = -(currentLocation.X / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
+        current_cell_calc_y = (int)(currentLocation.Z / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
+        current_cell_calc_x = -(int)(currentLocation.X / mParentLauncher->mParent->mRace->mLevelTerrain->segmentSize);
 
         MapEntry* mEntry = mParentLauncher->mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
@@ -325,8 +341,8 @@ irr::core::vector3df MissileLauncher::GetMissileLaunchLocation() {
     //calculate current cell below bullet impact position
     int current_cell_calc_x, current_cell_calc_y;
 
-    current_cell_calc_y = (Loc.Z / mParent->mRace->mLevelTerrain->segmentSize);
-    current_cell_calc_x = -(Loc.X / mParent->mRace->mLevelTerrain->segmentSize);
+    current_cell_calc_y = (int)(Loc.Z / mParent->mRace->mLevelTerrain->segmentSize);
+    current_cell_calc_x = -(int)(Loc.X / mParent->mRace->mLevelTerrain->segmentSize);
 
     MapEntry* mEntry = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
@@ -421,26 +437,25 @@ void MissileLauncher::Update(irr::f32 DeltaTime) {
    Missile* mPntr;
 
    if (mCurrentMissilesVec.size() > 0 ) {
+           //search for missiles that have exploded already and should be deleted
+           //erase this missile from my list of current missiles vector
+           for (it = this->mCurrentMissilesVec.begin(); it != this->mCurrentMissilesVec.end();) {
+               if ((*it)->objToBeDeleted) {
+                    mPntr = (*it);
+                    it = mCurrentMissilesVec.erase(it);
 
-   //search for missiles that have exploded already and should be deleted
-   //erase this missile from my list of current missiles vector
-   for (it = this->mCurrentMissilesVec.begin(); it != this->mCurrentMissilesVec.end();) {
-       if ((*it)->objToBeDeleted) {
-            mPntr = (*it);
-            it = mCurrentMissilesVec.erase(it);
-
-            //delete the missile object itself
-            delete mPntr;
-            mPntr = NULL;
-       } else ++it;
-    }
+                    //delete the missile object itself
+                    delete mPntr;
+                    mPntr = NULL;
+               } else ++it;
+            }
    }
 
    if (mCurrentMissilesVec.size() > 0 ) {
-     //update all my current missiles
-    for (it = this->mCurrentMissilesVec.begin(); it != this->mCurrentMissilesVec.end(); ++it) {
-        (*it)->Update(DeltaTime);
-    }
+         //update all my current missiles
+        for (it = this->mCurrentMissilesVec.begin(); it != this->mCurrentMissilesVec.end(); ++it) {
+            (*it)->Update(DeltaTime);
+        }
    }
 
     if (mShotSound != NULL) {
@@ -459,5 +474,17 @@ MissileLauncher::MissileLauncher(Player* myParentPlayer, irr::scene::ISceneManag
 
     if (!LoadSprites()) {
         ready = false;
+    }
+}
+
+MissileLauncher::~MissileLauncher() {
+    std::vector <Missile*>::iterator it;
+    Missile* mPntr;
+
+    //remove remaining missiles
+    for (it = this->mCurrentMissilesVec.begin(); it != this->mCurrentMissilesVec.end(); ) {
+            mPntr = (*it);
+            it = mCurrentMissilesVec.erase(it);
+            delete mPntr;
     }
 }

@@ -1073,11 +1073,11 @@ irr::u32 Menue::GetNrofCharactersForMenueItem(MenueSingleEntry* whichMenueEntry)
             //yes is a checkbox/slider; Each block counts as one character
             //in the original game (number of blocks stored in checkBoxNrBlocks!)
             //we also have to add the items text length itself as well (see entryText)
-            return (strlen(whichMenueEntry->entryText) + whichMenueEntry->checkBoxNrBlocks);
+            return ((irr::u32)(strlen(whichMenueEntry->entryText)) + whichMenueEntry->checkBoxNrBlocks);
         }
 
         //is a simple menue entry items
-        return (strlen(whichMenueEntry->entryText));
+        return ((irr::u32)(strlen(whichMenueEntry->entryText)));
     }
 
     return 0;
@@ -1181,25 +1181,25 @@ void Menue::PrintMenueEntriesRaceSelection() {
          }
 
           mInfra->mGameTexts->DrawGameText(currSelRaceTrackName, mInfra->mGameTexts->HudWhiteTextBannerFont, this->RaceTrackNameTitle->drawTextScrPosition, printCharLeft);
-          printCharLeft -= strlen(currSelRaceTrackName);
+          printCharLeft -= (irr::u32)(strlen(currSelRaceTrackName));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           mInfra->mGameTexts->DrawGameText(SelRaceTrackNrLapsLabel->text, SelRaceTrackNrLapsLabel->whichFont,
                                            SelRaceTrackNrLapsLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(SelRaceTrackNrLapsLabel->text);
+          printCharLeft -= (irr::u32)(strlen(SelRaceTrackNrLapsLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           mInfra->mGameTexts->DrawGameText(SelRaceTrackBestLapLabel->text, SelRaceTrackBestLapLabel->whichFont,
                                            SelRaceTrackBestLapLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(SelRaceTrackBestLapLabel->text);
+          printCharLeft -= (irr::u32)(strlen(SelRaceTrackBestLapLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           mInfra->mGameTexts->DrawGameText(SelRaceTrackBestRaceLabel->text, SelRaceTrackBestRaceLabel->whichFont,
                                            SelRaceTrackBestRaceLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(SelRaceTrackBestRaceLabel->text);
+          printCharLeft -= (irr::u32)(strlen(SelRaceTrackBestRaceLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
     } 
@@ -1217,19 +1217,19 @@ void Menue::PrintMenueEntriesShipSelection() {
             }
 
           mInfra->mGameTexts->DrawGameText(currSelShipName, mInfra->mGameTexts->HudWhiteTextBannerFont, this->ShipNameTitle->drawTextScrPosition, printCharLeft);
-          printCharLeft -= strlen(currSelShipName);
+          printCharLeft -= (irr::u32)(strlen(currSelShipName));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           //print current name of selected ship color scheme
           mInfra->mGameTexts->DrawGameText(currSelShipColorSchemeName, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA, currSelectedShipColorSchemeTextPos, printCharLeft);
-          printCharLeft -= strlen(currSelShipColorSchemeName);
+          printCharLeft -= (irr::u32)(strlen(currSelShipColorSchemeName));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           //render the current selected ship stats
           mInfra->mGameTexts->DrawGameText(ShipStatSpeedLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatSpeedLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(ShipStatSpeedLabel->text);
+          printCharLeft -= (irr::u32)(strlen(ShipStatSpeedLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
@@ -1240,7 +1240,7 @@ void Menue::PrintMenueEntriesShipSelection() {
               printCharLeft = 0;
 
           mInfra->mGameTexts->DrawGameText(ShipStatArmourLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatArmourLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(ShipStatArmourLabel->text);
+          printCharLeft -= (irr::u32)(strlen(ShipStatArmourLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
@@ -1251,7 +1251,7 @@ void Menue::PrintMenueEntriesShipSelection() {
               printCharLeft = 0;
 
           mInfra->mGameTexts->DrawGameText(ShipStatWeightLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatWeightLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(ShipStatWeightLabel->text);
+          printCharLeft -= (irr::u32)(strlen(ShipStatWeightLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
@@ -1262,7 +1262,7 @@ void Menue::PrintMenueEntriesShipSelection() {
               printCharLeft = 0;
 
           mInfra->mGameTexts->DrawGameText(ShipStatFirePowerLabel->text, mInfra->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatFirePowerLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= strlen(ShipStatFirePowerLabel->text);
+          printCharLeft -= (irr::u32)(strlen(ShipStatFirePowerLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
@@ -1283,13 +1283,15 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
     //if no blocks should be currently rendered just exit straight away
     if ((renderOnlyNumberBlocks > 0) || (renderOnlyNumberBlocks == -1)) {
         //calculate pixelDist for each block (amount of pixels per block)
-        irr::f32 pixelDist = (position.LowerRightCorner.X - position.UpperLeftCorner.X) / nrBlocks;
+        irr::f32 pixelDist = 
+            ((irr::f32)(position.LowerRightCorner.X) - (irr::f32)(position.UpperLeftCorner.X)) / (irr::f32)(nrBlocks);
         irr::u8 drawNrBlocks = entry->checkBoxNrBlocks;
 
         //if we do not render all blocks (type writer effect) we need to shorten the outline as
         //well
         if ((renderOnlyNumberBlocks < entry->checkBoxNrBlocks) && (renderOnlyNumberBlocks != -1)) {
-            position.LowerRightCorner.X -= pixelDist * (entry->checkBoxNrBlocks - renderOnlyNumberBlocks);
+            position.LowerRightCorner.X -= 
+                (irr::s32)(pixelDist * (irr::f32)(entry->checkBoxNrBlocks - renderOnlyNumberBlocks));
             drawNrBlocks = renderOnlyNumberBlocks;
         }
 
@@ -1306,7 +1308,7 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
         //step 2: draw vertical lines along overall element so that
         //we seperate the element into nrSeperations pieces, also with lineColor
 
-        irr::f32 currXcoordFloat = position.UpperLeftCorner.X + pixelDist;
+        irr::f32 currXcoordFloat = (irr::f32)(position.UpperLeftCorner.X) + pixelDist;
         irr::u32 currXcoord = (irr::u32)(currXcoordFloat);
 
         irr::core::vector2d<irr::s32> startPnt(0, position.UpperLeftCorner.Y);
@@ -1326,9 +1328,9 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
         irr::f32 currXcoord2;
 
         irr::u8 filledBlocks = (irr::u8)((entry->currValue * nrBlocks) / (entry->maxValue));
-        currXcoordFloat = position.UpperLeftCorner.X;
+        currXcoordFloat = (irr::f32)(position.UpperLeftCorner.X);
         currXcoord = (irr::u32)(currXcoordFloat);
-        currXcoord2 = (irr::u32)(currXcoordFloat + pixelDist);
+        currXcoord2 = currXcoordFloat + pixelDist;
         startPnt.Y = position.UpperLeftCorner.Y + 1;
         endPnt.Y = position.LowerRightCorner.Y - 1;
         irr::core::recti fillPos(0,0,0,0);
@@ -1336,7 +1338,7 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
 
         for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
             startPnt.X = currXcoord + 1;
-            endPnt.X = currXcoord2 - 1;
+            endPnt.X = (irr::s32)(currXcoord2) - 1;
             fillPos.UpperLeftCorner = startPnt;
             fillPos.LowerRightCorner = endPnt;
 
@@ -1352,7 +1354,7 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
 
             currXcoordFloat += pixelDist;
             currXcoord = (irr::u32)(currXcoordFloat);
-            currXcoord2 = (irr::u32)(currXcoordFloat + pixelDist);
+            currXcoord2 = currXcoordFloat + pixelDist;
         }
     }
 }
@@ -1372,7 +1374,7 @@ void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor co
         //if we do not render all blocks (type writer effect) we need to shorten the outline as
         //well
         if ((renderOnlyNumberBlocks < drawNrBlocks) && (renderOnlyNumberBlocks != -1)) {
-            position.LowerRightCorner.X -= pixelDist * (drawNrBlocks - renderOnlyNumberBlocks);
+            position.LowerRightCorner.X -= (irr::s32)(pixelDist * (irr::f32)(drawNrBlocks - renderOnlyNumberBlocks));
             drawNrBlocks = renderOnlyNumberBlocks;
         }
 
@@ -1408,16 +1410,16 @@ void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor co
         //draw filled and unfilled blocks in one operation
         irr::f32 currXcoord2;
 
-        currXcoordFloat = position.UpperLeftCorner.X;
+        currXcoordFloat = (irr::f32)(position.UpperLeftCorner.X);
         currXcoord = (irr::u32)(currXcoordFloat);
-        currXcoord2 = (irr::u32)(currXcoordFloat + pixelDist);
+        currXcoord2 = currXcoordFloat + pixelDist;
         startPnt.Y = position.UpperLeftCorner.Y + 1;
         endPnt.Y = position.LowerRightCorner.Y - 1;
         irr::core::recti fillPos(0,0,0,0);
 
         for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
             startPnt.X = currXcoord + 1;
-            endPnt.X = currXcoord2 - 1;
+            endPnt.X = (irr::s32)(currXcoord2) - 1;
             fillPos.UpperLeftCorner = startPnt;
             fillPos.LowerRightCorner = endPnt;
 
@@ -1426,7 +1428,7 @@ void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor co
 
             currXcoordFloat += pixelDist;
             currXcoord = (irr::u32)(currXcoordFloat);
-            currXcoord2 = (irr::u32)(currXcoordFloat + pixelDist);
+            currXcoord2 = currXcoordFloat + pixelDist;
         }
     }
 }
@@ -1572,7 +1574,16 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
     //rotate race track and ship models around their Y-AXIS
     //objects are rotating counter clock wise around
     //Y axis
-    curr3DModelRotationDeg -= 100.0f * frameDeltaTime;
+    
+    //22.03.2025: Next line is original line before Windows Attempts
+    // where I found that at 3000 FPS in menue rendering rotation is
+    // way too slow
+    //curr3DModelRotationDeg -= 100.0f * frameDeltaTime;
+
+    //22.03.2025: 100.0f was correct value for rotation speed when running
+    //with fixed FPS of 60, but was still to fast under much more FPS
+    //therefore changed down to 35.0f
+    curr3DModelRotationDeg -= (35.0f) * (frameDeltaTime / (1/60.0f)) ;
 
     if (curr3DModelRotationDeg > 360.0f)
         curr3DModelRotationDeg -= 360.0f;
@@ -1664,7 +1675,7 @@ void Menue::ShowShipSelection() {
     //initially activate menue animation for start of game
     currSelWindowAnimation = windowMenueAnimationBetweenRaceAndShipSelection;
     currMenueWindowAnimationIdx = 0;
-    currMenueWindowAnimationFinalIdx = windowMenueAnimationBetweenRaceAndShipSelection->coordVec.size() - 1;
+    currMenueWindowAnimationFinalIdx = (irr::u8)(windowMenueAnimationBetweenRaceAndShipSelection->coordVec.size()) - 1;
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
 }
@@ -1715,7 +1726,7 @@ void Menue::ShowRaceSelection(MenueSingleEntry* callerItem, bool championshipMod
     //activate window animation for change of main menue to race selection page
     currSelWindowAnimation = windowMenueAnimationBeforeTrackSelection;
     currMenueWindowAnimationIdx = 0;
-    currMenueWindowAnimationFinalIdx = windowMenueAnimationBeforeTrackSelection->coordVec.size() - 1;
+    currMenueWindowAnimationFinalIdx = (irr::u8)(windowMenueAnimationBeforeTrackSelection->coordVec.size()) - 1;
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
 }
@@ -1737,7 +1748,7 @@ void Menue::InterruptRaceSelection() {
     //activate window animation for change of main menue to race selection page
     currSelWindowAnimation = windowMenueAnimationQuitTrackSelection;
     currMenueWindowAnimationIdx = 0;
-    currMenueWindowAnimationFinalIdx = windowMenueAnimationQuitTrackSelection->coordVec.size() - 1;
+    currMenueWindowAnimationFinalIdx = (irr::u8)(windowMenueAnimationQuitTrackSelection->coordVec.size()) - 1;
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
 
@@ -1958,7 +1969,7 @@ void Menue::ShowIntro() {
     AddIntroSoundTrigger(15.395f, SRES_INTRO_PAST);
     AddIntroSoundTrigger(17.32f, SRES_INTRO_SMALLCAR, true, 20.4f);
     AddIntroSoundTrigger(19.175f, SRES_INTRO_TURBO);
-    AddIntroSoundTrigger(19.33, SRES_INTRO_BOOSTER);
+    AddIntroSoundTrigger(19.33f, SRES_INTRO_BOOSTER);
     AddIntroSoundTrigger(20.4f, SRES_INTRO_PAST);
     AddIntroSoundTrigger(22.2f, SRES_INTRO_SCRAPE2);
     AddIntroSoundTrigger(26.0f, SRES_INTRO_EXPLODE);
@@ -1971,7 +1982,7 @@ void Menue::ShowIntro() {
 
     //start with the first sound event element at idx 0
     currIdxSoundEventVec = 0;
-    numSoundEvents = this->introSoundEventVec->size();
+    numSoundEvents = (irr::u8)(this->introSoundEventVec->size());
 
     introPlaying = true;
 
@@ -2068,7 +2079,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
                           , 0, irr::video::SColor(255,255,255,255), true);
 
         //draw game logo
-        int sizeVec = GameLogo.size();
+        int sizeVec = (int)(GameLogo.size());
 
         for (int i = 0; i < sizeVec ; i++) {
             mInfra->mDriver->draw2DImage(GameLogo[i]->texture, GameLogo[i]->drawScrPosition,
@@ -2176,7 +2187,7 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
 
             if (MENUE_ENABLETYPEWRITEREFFECT) {
                 //decrease number of characters left for printing in this rendering run (type writer effect) of game
-                printCharLeft -= strlen((*it)->text);
+                printCharLeft -= (irr::u32)(strlen((*it)->text));
 
                 if (printCharLeft < 0) {
                     printCharLeft = 0;
@@ -2534,7 +2545,7 @@ void Menue::AddInputTextFieldChar(MenueSingleEntry* textInputEntry, char newChar
 void Menue::SetInputTextField(MenueSingleEntry* textInputEntry, char* newText) {
    strncpy(textInputEntry->currTextInputFieldStr, newText, sizeof (textInputEntry->currTextInputFieldStr));
 
-   textInputEntry->currTextInputFieldStrLen = strlen(textInputEntry->currTextInputFieldStr);
+   textInputEntry->currTextInputFieldStrLen = (irr::u8)(strlen(textInputEntry->currTextInputFieldStr));
 
    //update menue item entry text, important (otherwise we do not see change reflected in Gui Dialog!
    textInputEntry->entryText = textInputEntry->currTextInputFieldStr;
@@ -2743,11 +2754,11 @@ void Menue::UpdateShipSelectionTypeWriterEffect() {
     if (MENUE_ENABLETYPEWRITEREFFECT) {
         currNrCharsShownCnter = 0;
         currMenueState = MENUE_STATE_TYPETEXT;
-        finalNrChardsShownMenuePageFinished = strlen(currSelShipName) + strlen(currSelShipColorSchemeName) +
-                strlen(ShipStatSpeedLabel->text) + ShipStatSpeedLabel->statNrBlocks +
-                strlen(ShipStatArmourLabel->text) + ShipStatArmourLabel->statNrBlocks +
-                strlen(ShipStatWeightLabel->text) + ShipStatWeightLabel->statNrBlocks +
-                strlen(ShipStatFirePowerLabel->text) + ShipStatFirePowerLabel->statNrBlocks;
+        finalNrChardsShownMenuePageFinished = (irr::u32)(strlen(currSelShipName)) + (irr::u32)(strlen(currSelShipColorSchemeName)) +
+            (irr::u32)(strlen(ShipStatSpeedLabel->text)) + ShipStatSpeedLabel->statNrBlocks +
+            (irr::u32)(strlen(ShipStatArmourLabel->text)) + ShipStatArmourLabel->statNrBlocks +
+            (irr::u32)(strlen(ShipStatWeightLabel->text)) + ShipStatWeightLabel->statNrBlocks +
+            (irr::u32)(strlen(ShipStatFirePowerLabel->text)) + ShipStatFirePowerLabel->statNrBlocks;
     }
 }
 
@@ -2755,9 +2766,9 @@ void Menue::UpdateRaceTrackSelectionTypeWriterEffect() {
     if (MENUE_ENABLETYPEWRITEREFFECT) {
         currNrCharsShownCnter = 0;
         currMenueState = MENUE_STATE_TYPETEXT;
-        finalNrChardsShownMenuePageFinished = strlen(currSelRaceTrackName) +
-                strlen(SelRaceTrackNrLapsLabel->text) + strlen(SelRaceTrackBestLapLabel->text) +
-                strlen(SelRaceTrackBestRaceLabel->text);
+        finalNrChardsShownMenuePageFinished = (irr::u32)(strlen(currSelRaceTrackName)) +
+            (irr::u32)(strlen(SelRaceTrackNrLapsLabel->text)) + (irr::u32)(strlen(SelRaceTrackBestLapLabel->text)) +
+            (irr::u32)(strlen(SelRaceTrackBestRaceLabel->text));
     }
 }
 
@@ -2892,7 +2903,7 @@ void Menue::HandleInputShipSelection() {
             if (currSelectedShipColorScheme > 0)
                 currSelectedShipColorScheme--;
             else
-                currSelectedShipColorScheme = (this->mGameAssets->mCraftColorSchemeNames.size() - 1);
+                currSelectedShipColorScheme = (irr::u8)(this->mGameAssets->mCraftColorSchemeNames.size()) - 1;
 
             //update ship color scheme
             SetShipColorScheme(currSelectedShipColorScheme);
@@ -2958,7 +2969,8 @@ void Menue::HandleInputShipSelection() {
 
             currSelWindowAnimation = windowMenueAnimationBetweenRaceAndShipSelection;
             currMenueWindowAnimationIdx = 0;
-            currMenueWindowAnimationFinalIdx = windowMenueAnimationBetweenRaceAndShipSelection->coordVec.size() - 1;
+            currMenueWindowAnimationFinalIdx = 
+                (irr::u8)(windowMenueAnimationBetweenRaceAndShipSelection->coordVec.size()) - 1;
             currMenueState = MENUE_STATE_TRANSITION;
             lastAnimationUpdateAbsTime = absoluteTime;
         }
@@ -3527,10 +3539,10 @@ Menue::Menue(InfrastructureBase* infra,
 
     //how many race tracks and crafts are available
     //for selection from assets class
-    numRaceTracksAvailable = mGameAssets->mRaceTrackVec->size();
+    numRaceTracksAvailable = (irr::u8)(mGameAssets->mRaceTrackVec->size());
     this->ModelTrackSceneNodeVec.clear();
 
-    numCraftsAvailable = mGameAssets->mCraftVec->size();
+    numCraftsAvailable = (irr::u8)(mGameAssets->mCraftVec->size());
     this->ModelCraftsSceneNodeVec.clear();
 
     //create a new sceneManager for race track/ship selection page based on the main one
@@ -3576,7 +3588,7 @@ void Menue::ShowMainMenue() {
     //initially activate menue animation for start of game
     currSelWindowAnimation = windowMenueAnimationStartGame;
     currMenueWindowAnimationIdx = 0;
-    currMenueWindowAnimationFinalIdx = windowMenueAnimationStartGame->coordVec.size() - 1;
+    currMenueWindowAnimationFinalIdx = (irr::u8)(windowMenueAnimationStartGame->coordVec.size()) - 1;
     currMenueState = MENUE_STATE_TRANSITION;
     lastAnimationUpdateAbsTime = absoluteTime;
 }
@@ -3880,7 +3892,7 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
 
    pointsTablePageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    irr::u8 cnt = 0;
 
@@ -3908,7 +3920,7 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
 
        pointsTablePageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
        //the actual points value
        pointValStr = new char[5];
@@ -3936,7 +3948,7 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
 
        pointsTablePageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
        cnt++;
    }
@@ -4065,7 +4077,7 @@ void Menue::ShowHighscore() {
 
    highScorePageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //loop over all 19 entries we want to show
    for (irr::u8 cnt = 0; cnt < 19; cnt++) {
@@ -4082,7 +4094,7 @@ void Menue::ShowHighscore() {
 
        highScorePageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
        //for the highscore value
        highScoreValStr = new char[5];
@@ -4104,7 +4116,7 @@ void Menue::ShowHighscore() {
 
        highScorePageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
        //for the player assessement string
        assessementStr =
@@ -4124,7 +4136,7 @@ void Menue::ShowHighscore() {
 
        highScorePageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    //now we have all the text prepared
@@ -4211,11 +4223,11 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    raceStatsPageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    // ****************** Write player names ***********
 
-   irr::u8 nrPlayers = finalRaceStatistics->size();
+   irr::u8 nrPlayers = (irr::u8)(finalRaceStatistics->size());
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt = cnt + 2) {
@@ -4237,7 +4249,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         raceStatsPageTextVec->push_back(newLabel);
 
-        nrCharsOverall += strlen(newLabel->text);
+        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    //loop over all available entries we want to show
@@ -4260,7 +4272,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         raceStatsPageTextVec->push_back(newLabel);
 
-        nrCharsOverall += strlen(newLabel->text);
+        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    // ****************** HIT ACCURACY ***********
@@ -4275,7 +4287,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    raceStatsPageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4306,7 +4318,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        raceStatsPageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    // ****************** KILLS ***********
@@ -4321,7 +4333,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    raceStatsPageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4351,7 +4363,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        raceStatsPageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    // ****************** DEATHS ***********
@@ -4366,7 +4378,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    raceStatsPageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4396,7 +4408,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        raceStatsPageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    // ****************** AVERAGE LAP ***********
@@ -4411,7 +4423,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    raceStatsPageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4441,7 +4453,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        raceStatsPageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    // ****************** BEST LAP ***********
@@ -4456,7 +4468,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     raceStatsPageTextVec->push_back(newLabel);
 
-    nrCharsOverall += strlen(newLabel->text);
+    nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
     //loop over all available entries we want to show
     for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4486,7 +4498,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         raceStatsPageTextVec->push_back(newLabel);
 
-        nrCharsOverall += strlen(newLabel->text);
+        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
     }
 
     // ****************** RACE TIME ***********
@@ -4500,7 +4512,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     raceStatsPageTextVec->push_back(newLabel);
 
-    nrCharsOverall += strlen(newLabel->text);
+    nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
     //loop over all available entries we want to show
     for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4530,7 +4542,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         raceStatsPageTextVec->push_back(newLabel);
 
-        nrCharsOverall += strlen(newLabel->text);
+        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
     }
 
     // ****************** RATING ***********
@@ -4544,7 +4556,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     raceStatsPageTextVec->push_back(newLabel);
 
-    nrCharsOverall += strlen(newLabel->text);
+    nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
     //loop over all available entries we want to show
     for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4575,7 +4587,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         raceStatsPageTextVec->push_back(newLabel);
 
-        nrCharsOverall += strlen(newLabel->text);
+        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
     }
 
     // ****************** POSITION ***********
@@ -4589,7 +4601,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     raceStatsPageTextVec->push_back(newLabel);
 
-    nrCharsOverall += strlen(newLabel->text);
+    nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //loop over all available entries we want to show
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
@@ -4619,7 +4631,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        raceStatsPageTextVec->push_back(newLabel);
 
-       nrCharsOverall += strlen(newLabel->text);
+       nrCharsOverall += (irr::u32)(strlen(newLabel->text));
    }
 
    // ****************** MAIN PLAYER ASSESSEMENT ***********
@@ -4640,7 +4652,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    raceStatsPageTextVec->push_back(newLabel);
 
-   nrCharsOverall += strlen(newLabel->text);
+   nrCharsOverall += (irr::u32)(strlen(newLabel->text));
 
    //now we have all the text prepared
    currSelMenuePage = this->raceStatsMenuePage;

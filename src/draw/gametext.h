@@ -10,7 +10,7 @@
 #ifndef GAMETEXT_H
 #define GAMETEXT_H
 
-#include <irrlicht/irrlicht.h>
+#include "irrlicht.h"
 #include <algorithm>
 #include <vector>
 
@@ -42,7 +42,7 @@ private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
 
-    GameTextFont* LoadGameFont(char* fileName, ulong numOffset, ulong numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = NULL);
+    GameTextFont* LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = NULL);
     irr::core::rect<irr::s32> FindCharArea(GameTextCharacterInfo *character, bool &succesFlag);
     bool AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor);
     void FreeTextFont(GameTextFont &pntrFont);

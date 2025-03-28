@@ -679,7 +679,7 @@ void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
 void HUD::DrawAmmoBar() {
     //the first bar is always visible, even when ammo
     //is empty
-    int nrAddBars = ammoBar->size() - 1;
+    int nrAddBars = (int)(ammoBar->size()) - 1;
 
     //how many additional bars needs to be drawn?
     irr::f32 addBars = (monitorWhichPlayer->mPlayerStats->ammoVal / monitorWhichPlayer->mPlayerStats->ammoMax) * nrAddBars;
@@ -706,7 +706,7 @@ void HUD::DrawAmmoBar() {
 }
 
 void HUD::DrawShieldBar() {
-    int sizeVec = shieldBar->size();
+    int sizeVec = (int)(shieldBar->size());
 
     irr::f32 perc = (monitorWhichPlayer->mPlayerStats->shieldVal / monitorWhichPlayer->mPlayerStats->shieldMax) * sizeVec;
 
@@ -793,7 +793,7 @@ int HUD::GetNumberCurrentGasolineBars(irr::f32 gasolineVal) {
 }
 
 void HUD::DrawGasolineBar() {
-    int sizeVec = gasolineBar->size();
+    int sizeVec = (int)(gasolineBar->size());
 
     int nrBarsToDraw = GetNumberCurrentGasolineBars(monitorWhichPlayer->mPlayerStats->gasolineVal);
 
@@ -864,7 +864,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         DrawAmmoBar();
         DrawGasolineBar();
 
-        int sizeVec = throttleBar->size();
+        int sizeVec = (int)(throttleBar->size());
 
         irr::f32 perc2 = (monitorWhichPlayer->mPlayerStats->throttleVal / monitorWhichPlayer->mPlayerStats->throttleMax) * sizeVec;
         irr::f32 perc = (monitorWhichPlayer->mPlayerStats->boosterVal / monitorWhichPlayer->mPlayerStats->boosterMax) * sizeVec;
@@ -873,13 +873,13 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = 0;
 
         if (perc > sizeVec)
-            perc = sizeVec;
+            perc = (irr::f32)(sizeVec);
 
         if (perc2 < 0)
             perc2 = 0;
 
         if (perc2 > sizeVec)
-            perc2 = sizeVec;
+            perc2 = (irr::f32)(sizeVec);
 
         //according to current player throttle setting draw unlighted default colors
         for (int i = 0; i < perc2; i++) {
@@ -895,7 +895,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
                   irr::video::SColor(255,255,255,255), true);
         }
 
-        sizeVec = speedBar->size();
+        sizeVec = (int)(speedBar->size());
 
         perc = (monitorWhichPlayer->mPlayerStats->speed / monitorWhichPlayer->mPlayerStats->speedMax) * sizeVec;
 
@@ -903,7 +903,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = 0;
 
         if (perc > sizeVec)
-            perc = sizeVec;
+            perc = (irr::f32)(sizeVec);
 
         for (int i = 0; i < perc; i++) {
             mInfra->mDriver->draw2DImage((*speedBar)[i]->texture, (*speedBar)[i]->drawScrPosition,
@@ -912,7 +912,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         }
 
         //Draw machine gun heat bar
-        sizeVec = mgHeatBar->size();
+        sizeVec = (int)(mgHeatBar->size());
 
         perc = (monitorWhichPlayer->mPlayerStats->mgHeatVal / monitorWhichPlayer->mPlayerStats->mgHeatMax) * sizeVec;
 
@@ -920,7 +920,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = 0;
 
         if (perc > sizeVec)
-            perc = sizeVec;
+            perc = (irr::f32)(sizeVec);
 
         for (int i = 0; i < perc; i++) {
             mInfra->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
@@ -1544,7 +1544,7 @@ void HUD::RenderTextBannerGraphics() {
 
         if (elementsToDraw != NULL) {
             //draw currently visible banner state
-            for (ulong i = 0; i < elementsToDraw->size(); i++) {
+            for (unsigned long i = 0; i < elementsToDraw->size(); i++) {
                 mInfra->mDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
                       irr::core::rect<irr::s32>(0,0, elementsToDraw->at(i)->sizeTex.Width, elementsToDraw->at(i)->sizeTex.Height), 0,
                       irr::video::SColor(255,255,255,255), true);
@@ -1674,7 +1674,7 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
     //create new banner text message struct for the new message
     BannerTextMessageStruct* newMsg = new BannerTextMessageStruct();
 
-    int textLen = strlen(text);
+    int textLen = (int)(strlen(text));
     newMsg->text = new char[textLen + 1];
     strcpy(newMsg->text, text);
 
@@ -1695,8 +1695,8 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
                                                                                  mInfra->mGameTexts->HudWhiteTextBannerFont);
 
     //calculate text position in a way that the new text is centered in the middle of the banner
-    newMsg->textPosition.Y = (mInfra->mScreenRes.Height - 39);
-    newMsg->textPosition.X = (mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0);
+    newMsg->textPosition.Y = (irr::s32)((mInfra->mScreenRes.Height - 39));
+    newMsg->textPosition.X = (irr::s32)((mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0));
 
     //add this new message to our current message vector
     this->bannerMessageVec->push_back(newMsg);
@@ -1726,7 +1726,7 @@ void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking) 
     //parameter; The array that we point to could disappear afterwards
     //because it was local in a function or similar problem.
     //Don't ask me why I know :)
-    int textLen = strlen(text);
+    int textLen = (int)(strlen(text));
     currentBigGreenText = new char[textLen + 1];
     strcpy(currentBigGreenText, text);
 
@@ -1751,8 +1751,8 @@ void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking) 
                                                                                    mInfra->mGameTexts->HudBigGreenText);
 
     //calculate text position in a way that the new text is centered in the middle of the player screen
-    currentBigGreenTextDrawPosition.Y = (mInfra->mScreenRes.Height / 2) - (currentTextHeightPixels / 2.0);
-    currentBigGreenTextDrawPosition.X = (mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0);
+    currentBigGreenTextDrawPosition.Y = (irr::s32)((mInfra->mScreenRes.Height / 2) - (currentTextHeightPixels / 2.0));
+    currentBigGreenTextDrawPosition.X = (irr::s32)((mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0));
 }
 
 void HUD::InitTargetStuff() {
@@ -1908,12 +1908,12 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
           targetArrowLeft->drawScrPosition.X =
                   targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
-          targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2.0;
+          targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2;
 
           targetArrowRight->drawScrPosition.X = targetPos.X + targetSymBHalfWidth + lockProgress;
           targetArrowRight->drawScrPosition.Y = targetArrowLeft->drawScrPosition.Y;
 
-          targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2.0;
+          targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2;
           targetArrowAbove->drawScrPosition.Y =
                   targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
 
@@ -2119,7 +2119,7 @@ HUD::~HUD() {
 }
 
 void HUD::DrawFinishedPlayerList() {
-    irr::u8 nrFinishedPlayers = this->monitorWhichPlayer->mRace->playerRaceFinishedVec.size();
+    irr::u8 nrFinishedPlayers = (irr::u8)(this->monitorWhichPlayer->mRace->playerRaceFinishedVec.size());
 
     if (nrFinishedPlayers > 0) {
         irr::u32 posXNr = 3;

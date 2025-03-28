@@ -98,9 +98,9 @@ void Column::ApplyMorph(float progress) {
         //if this column is hidden move column vertices
         //so far below the level that the are not visible anymore
         //for the player, therefore the column is "hidden"
-        u32 nrVertices = GeometryInfoList->vertices.size();
+        u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
 
-        for (uint i = 0; i < nrVertices; i++) {
+        for (unsigned int i = 0; i < nrVertices; i++) {
             irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
             irr::f32 h = homeHeight - 100.0f;
 
@@ -145,9 +145,9 @@ void Column::ApplyMorph(float progress) {
              std::cout << "Column morph - vertice count mismatch" << endl << std::flush;
      }
 
-    u32 nrVertices = GeometryInfoList->vertices.size();
+    u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
 
-    for (uint i = 0; i < nrVertices; i++) {
+    for (unsigned int i = 0; i < nrVertices; i++) {
         irr::f32 sourceHeight = MorphSource->GeometryInfoList->vertices[i].originalPosition.Y;
         irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
         irr::f32 h = homeHeight * (1.0f - progress) + sourceHeight * progress;

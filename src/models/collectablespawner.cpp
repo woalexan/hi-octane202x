@@ -23,6 +23,10 @@ void CollectableSpawner::AddCollectibleToRaceVector(Collectable* collectibleToAd
     //still add it to race vector of collectibles, so that it is properly
     //cleaned up from memory afterwards
     mRace->ENTCollectablesVec->push_back(collectibleToAdd);
+
+    //recalculate boundingBox
+    collectibleToAdd->billSceneNode->updateAbsolutePosition();
+    collectibleToAdd->boundingBox = collectibleToAdd->billSceneNode->getTransformedBoundingBox();
 }
 
 void CollectableSpawner::Update(irr::f32 deltaTime) {
@@ -39,42 +43,59 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
               if (!(*it)->collectableReachedFinalLocation) {
                     allCollectiblesReachedFinalLocation = false;
                     //item is still moving, calculate next position
-                  (*it)->pntrCollectable->UpdatePosition((*it)->pntrCollectable->Position + (*it)->currVelocity * deltaTime);
-                  (*it)->currVelocity = (*it)->currVelocity + this->mRace->mPhysics->mGravityVec * deltaTime;
+                    (*it)->pntrCollectable->UpdatePosition((*it)->pntrCollectable->Position + (*it)->currVelocity * deltaTime);
+                    (*it)->currVelocity = (*it)->currVelocity + this->mRace->mPhysics->mGravityVec * deltaTime;
 
-                  //check if sprite is currently moving towards ground, and is very close to race track ground (hits the ground)
-                  //in this case stop the movement of the collectable, and fix it in position
-                  //only check more if the sprite is currently falling towards the race track
-                  if ((*it)->currVelocity.Y < 0.0f) {
-                      //yes, sprite is falling down, now we need to calculate high about terrain tile below
-                      //calculate current cell below sprite
-                      current_cell_calc_y = ((*it)->pntrCollectable->Position.Z / mRace->mLevelTerrain->segmentSize);
-                      current_cell_calc_x = -((*it)->pntrCollectable->Position.X / mRace->mLevelTerrain->segmentSize);
+                    //check if sprite is currently moving towards ground, and is very close to race track ground (hits the ground)
+                    //in this case stop the movement of the collectable, and fix it in position
+                    //only check more if the sprite is currently falling towards the race track
+                    if ((*it)->currVelocity.Y < 0.0f) {
+                          //yes, sprite is falling down, now we need to calculate high about terrain tile below
+                          //calculate current cell below sprite
+                          current_cell_calc_y = (int)((*it)->pntrCollectable->Position.Z / mRace->mLevelTerrain->segmentSize);
+                          current_cell_calc_x = -(int)((*it)->pntrCollectable->Position.X / mRace->mLevelTerrain->segmentSize);
 
-                      MapEntry* mEntry = mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
+                          MapEntry* mEntry = mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
-                      //is there actually an entry?
-                      if (mEntry != NULL) {
-                           terrainHeight = mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight;
+                          //is there actually an entry?
+                          if (mEntry != NULL) {
+                               terrainHeight = mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight;
 
-                           //collectible too close to terrain, stop the collectible to continue further
-                           if (((*it)->pntrCollectable->Position.Y - terrainHeight) < ((*it)->pntrCollectable->GetCollectableCenterHeight())) {
-                               //to close to terrain, stop movement
-                               (*it)->mHitTerrain = true;
-                               (*it)->collectableReachedFinalLocation = true;
+                               //collectible too close to terrain, stop the collectible to continue further
+                               if (((*it)->pntrCollectable->Position.Y - terrainHeight) < ((*it)->pntrCollectable->GetCollectableCenterHeight())) {
+                                   //to close to terrain, stop movement
+                                   (*it)->mHitTerrain = true;
+                                   (*it)->collectableReachedFinalLocation = true;
+                               }
+                           } else {
+                              //we did not find a valid entry, let collectible disappear (hide it)
+                              //because we set it to not visible the computer players will not see it
+                              //and we can also not pick it up => no problem
+                              (*it)->collectableReachedFinalLocation = true;
+                              (*it)->pntrCollectable->SetVisible(false);
                            }
-                      } else {
-                          //we did not find a valid entry, let collectible disappear (hide it)
-                          //because we set it to not visible the computer players will not see it
-                          //and we can also not pick it up => no problem
-                          (*it)->collectableReachedFinalLocation = true;
-                          (*it)->pntrCollectable->SetVisible(false);
                       }
-                  }
-              } else {
-                    //item reached the final location, not moving anymore
+
+                    //reduce liftetime of collectible
+                    //if lifetime over remove this type 2 collectible
+                    (*it)->pntrCollectable->UpdateType2Collectable(deltaTime);
               }
          }
+
+          SpawnedCollectableInfoStruct* pntrStr;
+
+        //remove all type 2 collectibles that have no lifetime left
+        for (it = this->mSpawnedCollectablesVec.begin(); it != this->mSpawnedCollectablesVec.end(); ) {
+            if ((*it)->pntrCollectable->GetType2CollectableCleanUpNecessary()) {
+                pntrStr = (*it);
+                it = mSpawnedCollectablesVec.erase(it);
+
+                //delete the type 2 collectable again
+                delete pntrStr->pntrCollectable;
+            } else {
+                ++it;
+            }
+        }
 
         //process all items that have reached final position at the race track surface
         for (it = this->mSpawnedCollectablesVec.begin(); it != this->mSpawnedCollectablesVec.end(); ) {
@@ -90,7 +111,7 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
 
                //also delete the info struct
                delete pntrInfoStruct;
-           } else {
+            } else {
                //go to next element
                it++;
            }

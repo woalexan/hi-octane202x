@@ -10,7 +10,7 @@
 #ifndef MGUN_H
 #define MGUN_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "player.h"
 #include "../audio/sound.h"
 #include "../race.h"
@@ -43,6 +43,7 @@ struct MachineGunBulletImpactStruct {
 class MachineGun {
 public:
     MachineGun(Player* myParentPlayer, irr::scene::ISceneManager* smgr,  irr::video::IVideoDriver *driver);
+    ~MachineGun();
 
     bool ready;
 
@@ -50,6 +51,12 @@ public:
     void Update(irr::f32 DeltaTime);
 
     bool CoolDownNeeded();
+
+    //we can not remove scenenodes which have still
+    //an animations running when the race is over
+    //the race object uses this function to wait until
+    //all animations are done
+    bool AllAnimationsFinished();
 
 private:
     Player* mParent;

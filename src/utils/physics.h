@@ -29,7 +29,7 @@
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-#include <irrlicht/irrlicht.h>
+#include <irrlicht.h>
 #include "../draw/drawdebug.h"
 #include "boundingbox/collision.h"
 #include "../models/player.h"
@@ -57,7 +57,7 @@ struct RayHitTriangleInfoStruct {
     irr::core::triangle3df hitTriangle;
     irr::core::vector3df hitPointOnTriangle;
     irr::core::vector3df rayDirVec;
-    irr::f32 distFromRayStartSquared;
+    irr::f32 distFromRayStartSquared = 0.0f;
 };
 
 //PhysicsCollisionArea taken from game HCraft (which is also based on Irrlicht), and modified by me
@@ -109,8 +109,8 @@ struct PhysicsCollisionArea
 };
 
 struct ObjectPhysicsForce {
-    irr::u8 DbgForceType;
-    irr::u8 ApplyForceType;
+    irr::u8 DbgForceType = PHYSIC_DBG_FORCETYPE_GENERICALL;
+    irr::u8 ApplyForceType = PHYSIC_APPLYFORCE_REAL;
     irr::core::vector3df ForceStartPoint; //Start point is the point on the object where the force vector does start (attach)
     irr::core::vector3df ForceEndPoint; //End point of force vector
     irr::core::vector3df DbgLastArmVecStart; //vector for lastarm (used for debugging)
@@ -144,15 +144,15 @@ struct ObjPhysicsState {
        irr::core::vector3df angularVelocity;
 
        // constant values, for linear movement/translation
-       float mass;
-       float inverseMass;
+       float mass = 1.0f;
+       float inverseMass = 1.0f;
 
        //constant values, for orientation/rotation
-       float inertia;
-       float inverseInertia;
+       float inertia = 1.0f;
+       float inverseInertia = 1.0f;
 
        //speed
-       float speed;
+       float speed = 0.0f;
 
        //for local coordinates to world coordinates transformation
        //irr::core::matrix4 localToWorldTransMatrix;
@@ -206,7 +206,7 @@ public:
     //also ignored during collision detection
     bool mActive = true;
 
-    irr::scene::ISceneNode* sceneNode;
+    irr::scene::ISceneNode* sceneNode = NULL;
 
     //current axis aligned bounding box for the physics object
     //just used in step2 of collision detection, if step1 shows possible collision
@@ -214,7 +214,7 @@ public:
 
     //is the extend of the objects bounding box, is only used in step 1 of collision detection
     //(sphere to sphere collision detection) to save calculation effort
-    irr::f32 objBoundingBoxExtendSquared;
+    irr::f32 objBoundingBoxExtendSquared = 0.1f;
 
     ObjPhysicsState physicState;
     ObjPhysicsState previousPhysicState;
@@ -250,7 +250,7 @@ public:
     inline const PhysicsCollisionArea& GetCollisionArea() const     { return  mCollArea; }
     inline PhysicsCollisionArea& GetCollisionArea()                 { return  mCollArea; }
 
-    bool mHasTouchedWorldGeometry; // internal value, can be set/unset several times within one update
+    bool mHasTouchedWorldGeometry = false; // internal value, can be set/unset several times within one update
     bool CollidedOtherObjectLastTime = false;
 
     PhysicsCollisionArea mCollArea;	// polygons used for last collision
@@ -260,7 +260,7 @@ public:
 
     //is used for collision detection with blocks/edge of race track (collision mesh)
     //for this the race craft is modelled as a simple sphere with radius mRadius
-    float mRadius;
+    float mRadius = 0.1f;
 
     irr::core::vector3df    mModelCollCenter;           // the value we get from the model at the start of update
 
@@ -269,7 +269,7 @@ private:
     irr::core::vector3df alpha;
     irr::core::vector3df invalpha;
     
-    irr::core::vector3df    mCurrentStepCollCenter;     // actual result from current physics step
+    irr::core::vector3df mCurrentStepCollCenter;     // actual result from current physics step
 };
 
 //this struct holds the derivative of the primary state values above
@@ -285,18 +285,18 @@ class Physics {
 
 private:
     ObjPhysicsDerivative evaluate( PhysicsObject* pObj, const ObjPhysicsState & initial,
-        double t, float dt, const ObjPhysicsDerivative & d );
+        irr::f32 t, float dt, const ObjPhysicsDerivative & d );
 
-    irr::core::vector3df forceVec(PhysicsObject* pObj, const ObjPhysicsState & state, double t );
-    irr::core::vector3df torque(PhysicsObject* pObj, const ObjPhysicsState & state, double t);
+    irr::core::vector3df forceVec(PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t );
+    irr::core::vector3df torque(PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t);
 
     std::vector<PhysicsObject*> PhysicObjectVec;
 
-    double t = 0.0;   //absolute time for physics calculations
-    double dt = 0.001;  //0.001 // first stepsize I had, worked good for physics but not for collision at higher speeds  0.01; //stepsize for physics calculations
-    double physicsAccumulator = 0.0;
+    irr::f32 t = 0.0f;   //absolute time for physics calculations
+    irr::f32 dt = 0.001f;  //0.001 // first stepsize I had, worked good for physics but not for collision at higher speeds  0.01; //stepsize for physics calculations
+    irr::f32 physicsAccumulator = 0.0f;
 
-    void integrate( PhysicsObject* pObj, ObjPhysicsState & state, double t, float dt );
+    void integrate( PhysicsObject* pObj, ObjPhysicsState & state, irr::f32 t, float dt );
 
     //we do collision checks in 2 steps:
     //first we just handle all physics objects as spheres (distance derived from bounding boxes in irrlicht); we do sphere-to-sphere collision detection;
@@ -314,7 +314,7 @@ private:
     void RemoveObjToObjCollisionPair(PhysicsObject* obj1, PhysicsObject* obj2);
 
     //level wall collision 3D line data loaded from level file;
-    std::vector<LineStruct*> *ENTWallsegmentsLine_List;
+    std::vector<LineStruct*> *ENTWallsegmentsLine_List = NULL;
 
     Race *mParentRace;
     DrawDebug* mDebugObj;
@@ -369,14 +369,14 @@ public:
     PhysicsObject* GetObjectPntr(irr::scene::ISceneNode* sceneNode);
 
     irr::core::vector3df DbgsumTorqueVec;
-    irr::f32 DbgRunCollisionDetectionStage2;
-    irr::f32 DbgCollisionDetected;
-    irr::u32 DbgmCollisionTrianglesSize;
+    irr::f32 DbgRunCollisionDetectionStage2 = 0.0f;
+    irr::f32 DbgCollisionDetected = 0.0f;
+    irr::u32 DbgmCollisionTrianglesSize = 0;
 
     void SetLevelCollisionWallLineData(std::vector<LineStruct*> *newList);
 
     size_t GetNumTriangleSelectors() const  { return mCollisionSelectors.size(); }
-       irr::scene::ITriangleSelector* GetTriangleSelector(size_t index_) const;
+    //irr::scene::ITriangleSelector* GetTriangleSelector(size_t index_) const;
 
     void AddCollisionMesh(irr::scene::ITriangleSelector* selector_);
     bool RemoveCollisionMesh(irr::scene::ITriangleSelector* selector_);
@@ -392,7 +392,7 @@ public:
 
     void EmptyTriangleHitInfoVector(std::vector<RayHitTriangleInfoStruct*> &hitInfoTriangles);
 
-    void FindRayTargetTriangles(PhysicsObject& physObj, irr::core::vector3df dirVector);
+    //void FindRayTargetTriangles(PhysicsObject& physObj, irr::core::vector3df dirVector);
 
     irr::core::line3df DbgRayTargetLine;
 };
