@@ -128,7 +128,7 @@ bool Game::InitGame() {
 void Game::DebugGame() {
     mDebugGame = true;
 
-    int debugLevelNr = 1;
+    int debugLevelNr = 3;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -137,7 +137,7 @@ void Game::DebugGame() {
     //value 3 means Vampyr
     //value 4 means Outrider
     //value 5 means Flexiwing
-    mGameAssets->SetNewMainPlayerSelectedCraft(2);
+    mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     if (!runDemoMode) {
         //player wants to start the race
@@ -575,12 +575,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntHandleComputerPlayers);
 
+    //Update Time Profiler results
+    mInfra->mTimeProfiler->UpdateWindow();
+
     if (DebugShowVariableBoxes) {
 
-        wchar_t* text = new wchar_t[200];
         wchar_t* text2 = new wchar_t[400];
-
-        mInfra->mTimeProfiler->GetTimeProfileResultDescending(text, 200, 5);
 
            /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
                         mCurrentRace->player->dbgCameraVal,
@@ -656,7 +656,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
                     );*/
 
-          swprintf(text2, 390, L"");
+         // swprintf(text2, 390, L"");
+
+        swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
+                 this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,
+                 this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.Y, this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.X,
+                 this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.Y, this->mCurrentRace->dbgSkyMiddlePos.X, this->mCurrentRace->dbgSkyMiddlePos.Y);
 
         /*   swprintf(text2, 390, L"%d %d %d %d %lf",
                        this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.X,
@@ -675,11 +680,8 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                    this->mCurrentRace->mPlayerVec.at(1)->remainingDistanceToNextCheckPoint
                  //  );   */
 
-
-            dbgTimeProfiler->setText(text);
             dbgText->setText(text2);
 
-            delete[] text;
             delete[] text2;
     }
 
