@@ -90,6 +90,7 @@ public:
 class MissileLauncher {
 public:
     MissileLauncher(Player* myParentPlayer, irr::scene::ISceneManager* smgr,  irr::video::IVideoDriver *driver);
+    ~MissileLauncher();
 
     bool ready;
     bool shooting = false;

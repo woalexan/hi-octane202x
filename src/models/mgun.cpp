@@ -44,6 +44,23 @@ bool MachineGun::LoadSprites() {
    return true;
 }
 
+//we can not remove scenenodes which have still
+//an animations running when the race is over
+//the race object uses this function to wait until
+//all animations are done
+bool MachineGun::AllAnimationsFinished() {
+    std::vector<MachineGunBulletImpactStruct*>::iterator it;
+
+    for (it = this->mBulletImpactVec.begin(); it != this->mBulletImpactVec.end(); ++it) {
+        if ((*it)->animator != NULL) {
+           if (!(*it)->animator->hasFinished())
+               return false;
+        }
+    }
+
+    return true;
+}
+
 //returns NULL if currently all 4 shoots are fired, and no impact
 //struct (sprite scenenode and animator) is currently available
 //otherwise returns a random picked available impact struct
@@ -207,7 +224,9 @@ void MachineGun::Update(irr::f32 DeltaTime) {
             if ((*it)->shooting) {
                 if ((*it)->animatorActive) {
                         if ((*it)->animator->hasFinished()) {
+                            (*it)->animSprite->removeAnimator((*it)->animator);
                             (*it)->animator->drop();
+                            (*it)->animator = NULL;
                             (*it)->shooting = false;
                             (*it)->animSprite->setVisible(false);
                         }
@@ -319,5 +338,28 @@ MachineGun::MachineGun(Player* myParentPlayer, irr::scene::ISceneManager* smgr, 
 
             this->mBulletImpactVec.push_back(newImpactStruct);
         }
+    }
+}
+
+MachineGun::~MachineGun() {
+    //cleanup my SceneNodes
+    std::vector<MachineGunBulletImpactStruct*>::iterator it;
+    MachineGunBulletImpactStruct* pntr;
+
+    for (it = this->mBulletImpactVec.begin(); it != this->mBulletImpactVec.end(); ) {
+        pntr = (*it);
+
+        it = this->mBulletImpactVec.erase(it);
+
+        //remove all animators from this SceneNode
+        pntr->animSprite->removeAnimators();
+
+        if (pntr->mShotSound != NULL) {
+            pntr->mShotSound->stop();
+        }
+
+        //remove this SceneNode from the
+        //SceneManager
+        pntr->animSprite->remove();
     }
 }

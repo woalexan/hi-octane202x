@@ -60,4 +60,5 @@ void Camera::Update() {
 
 Camera::~Camera() {
     //cleanup camera stuff
+    mCamSceneNode->remove();
 }

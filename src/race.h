@@ -56,6 +56,7 @@ const irr::f32 DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER = 7.0f;
 #define DEF_RACE_PHASE_START 0
 #define DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE 1
 #define DEF_RACE_PHASE_RACING 2
+#define DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE 3
 
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
@@ -275,6 +276,9 @@ public:
 private:
     int levelNr;
     bool useAutoGenMinimap;
+
+    void InitiateExitRace();
+    void HandleExitRace();
 
     //the image for the base of the minimap
     //without the player location dots
@@ -529,8 +533,8 @@ private:
     void SpawnCollectiblesForPlayer(Player* player);
 
     void UpdateType2Collectables(irr::f32 frameDeltaTime);
-    std::vector<Collectable*> mType2CollectableForCleanupLater;
 
+    std::vector<Collectable*> mType2CollectableForCleanupLater;
 };
 
 #endif // RACE_H

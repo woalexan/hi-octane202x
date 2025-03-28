@@ -10,7 +10,7 @@ add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
 
 # Configuration options
-set(SFML_STATIC_LIBRARIES TRUE CACHE BOOL "Use static SFML libraries")
+set(SFML_STATIC_LIBRARIES FALSE CACHE BOOL "Use static SFML libraries")
 
 # General compiler options
 if (SFML_STATIC_LIBRARIES)
@@ -46,7 +46,7 @@ endif()
 # The following text was taken from SFML-Game-Development-Book Start
 # Find SFML
 # Note: SFML_STATIC_LIBRARIES determines which libraries are found by find_package()
-find_package(SFML 2 COMPONENTS audio system network)
+find_package(SFML 2 REQUIRED COMPONENTS audio system network)
 
 # If found, include and link; otherwise output error message
 if(SFML_FOUND)

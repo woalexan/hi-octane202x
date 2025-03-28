@@ -593,6 +593,9 @@ public:
     void SetupForStart();
     void SetupToSkipStart();
     void SetupForFirstWayToFinishLine();
+    void DeactivateAttack();
+
+    bool AllAnimatorsDone();
 
     CPCOMMANDENTRY* currCommand = NULL;
 
