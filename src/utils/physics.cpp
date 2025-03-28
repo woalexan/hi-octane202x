@@ -869,7 +869,7 @@ bool Physics::HandleSphereWallCollision(const PhysicsCollisionArea& collArea, Ph
                 mWallNormal = repulsionNormal_;
             }
 //          core::plane3df collisionPlane(nearestPoint, lineToTriangle);
-            repulsion.setLength(0.001f+radius_-sqrt(nearestDistSq));
+            repulsion.setLength(0.001f+radius_-(float)(sqrt(nearestDistSq)));
 
             if (collisionResolutionActive) {
              *center += repulsion;
