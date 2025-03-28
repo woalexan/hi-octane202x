@@ -23,30 +23,25 @@
 #include "objectdatfile.h"
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flic.h"
+#include <cstdint>
 
-//Never remove packed attribute below, because
-//otherwise read from File into this struct will
-//fail with wrong data!
-//this attribute prevents C struct padding!
+//each SOUNDFILEENTRY has 32 bytes
 typedef struct {
         char soundFilename[12];
         char padding1[6];
-        unsigned int offsetTune;
+        uint32_t offsetTune;
         char padding2[4];
-        unsigned int tuneLenBytes;
-        short int unknown;
-     } __attribute__((packed)) SOUNDFILEENTRY;
+        uint32_t tuneLenBytes;
+        int16_t unknown;
+     } SOUNDFILEENTRY;
 
-//Never remove packed attribute below, because
-//otherwise read from File into this struct will
-//fail with wrong data!
-//this attribute prevents C struct padding!
+//each MUSICTABLEENTRY has 16 bytes
 typedef struct {
-        unsigned int offTunes; //offset to the list of tunes
-        unsigned int offTune1; //offset to the first tune
-        unsigned int unknown;  //unknown (always 0xC0000000, or 192)
-        unsigned int AllTunesLenBytes;
-     } __attribute__((packed)) MUSICTABLEENTRY;
+        uint32_t offTunes; //offset to the list of tunes
+        uint32_t offTune1;   //offset to the first tune
+        uint32_t unknown;  //unknown (always 0xC0000000, or 192)
+        uint32_t AllTunesLenBytes;
+     } MUSICTABLEENTRY;
 
 class PrepareData {
 
@@ -64,6 +59,10 @@ private:
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
     std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
+
+    uint32_t read_uint32_le_file (FILE *fp);
+    void ReadSoundFileEntry(FILE* inputFile, SOUNDFILEENTRY* entry);
+    void ReadMusicFileEntry(FILE* inputFile, MUSICTABLEENTRY* entry);
 
     void ExtractGameScreens();
     void ExtractFonts();

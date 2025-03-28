@@ -203,6 +203,11 @@ Player::~Player() {
 
     delete mMovingAvgPlayerLeaningAngleLeftRightCalc;
     //delete mMovingAvgPlayerPositionCalc;
+
+    //delete my camera SceneNodes
+    this->mIntCamera->remove();
+    this->mThirdPersonCamera->remove();
+    this->externalCamera;
 }
 
 void Player::SetNewState(irr::u32 newPlayerState) {
@@ -262,6 +267,14 @@ void Player::SetNewState(irr::u32 newPlayerState) {
 
     //Update a connected HUD as well
     UpdateHUDState();
+}
+
+bool Player::AllAnimatorsDone() {
+    return (this->mMGun->AllAnimationsFinished());
+}
+
+void Player::DeactivateAttack() {
+    this->mPlayerStats->mPlayerCanShoot = false;
 }
 
 void Player::FinishedRace() {

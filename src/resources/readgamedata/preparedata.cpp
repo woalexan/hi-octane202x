@@ -1557,6 +1557,25 @@ void PrepareData::ExtractSounds() {
     }
 }
 
+uint32_t PrepareData::read_uint32_le_file (FILE *fp)
+{
+    uint32_t l = 0;
+    l = fgetc (fp);
+    l += fgetc (fp)<<8;
+    l += fgetc (fp)<<16;
+    l += fgetc (fp)<<24;
+    return l;
+}
+
+void PrepareData::ReadSoundFileEntry(FILE* inputFile, SOUNDFILEENTRY* entry) {
+    fread(entry->soundFilename, sizeof(entry->soundFilename), 1, inputFile);
+    fread(entry->padding1, sizeof (entry->padding1), 1, inputFile);
+    entry->offsetTune = read_uint32_le_file(inputFile);
+    fread(entry->padding2, sizeof (entry->padding2), 1, inputFile);
+    entry->tuneLenBytes = read_uint32_le_file(inputFile);
+    entry->unknown = static_cast<int16_t>(read_short_le_file(inputFile));
+}
+
 //Reads file format with sound file information, Returns all available SOUNDFILEENTRIES in entries
 //Returns true when successful, False otherwise
 void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries) {
@@ -1572,7 +1591,8 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
     fseek(iFile, 0L, SEEK_SET);
 
     //calculate amount of items to read from file
-    unsigned long itemnr = size / sizeof(SOUNDFILEENTRY);
+    //each SOUNDFILEENTRY has overall 32 bytes
+    unsigned long itemnr = size / 32;
 
     SOUNDFILEENTRY *newItem;
 
@@ -1583,7 +1603,8 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
     }
     do {
         newItem = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
-        fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
+        //fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
+        ReadSoundFileEntry(iFile, newItem);
         entries->push_back(*newItem);
         free(newItem);
         EntryNumber++;
@@ -1680,6 +1701,13 @@ void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
      }
 }
 
+void PrepareData::ReadMusicFileEntry(FILE* inputFile, MUSICTABLEENTRY* entry) {
+    entry->offTunes = read_uint32_le_file(inputFile);
+    entry->offTune1 = read_uint32_le_file(inputFile);
+    entry->unknown = read_uint32_le_file(inputFile);
+    entry->AllTunesLenBytes = read_uint32_le_file(inputFile);
+}
+
 //Extract music files
 //Returns true when successful, False otherwise
 void PrepareData::ExtractMusic() {
@@ -1730,9 +1758,6 @@ void PrepareData::ExtractMusic() {
 
     std::vector<MUSICTABLEENTRY> VecMusicTableEntries;
 
-    // Integer sizes are not well defined, so better check them
-    static_assert(sizeof(MUSICTABLEENTRY) == 16);
-
     MUSICTABLEENTRY *newTableEntry;
 
     //now read N times the following struct with tune offset information
@@ -1743,7 +1768,8 @@ void PrepareData::ExtractMusic() {
              throw std::string("ExtractMusic - Out of Memory");
          }
 
-         fread(newTableEntry, sizeof(MUSICTABLEENTRY), 1, iFile);
+         //fread(newTableEntry, sizeof(MUSICTABLEENTRY), 1, iFile);
+         ReadMusicFileEntry(iFile, newTableEntry);
          VecMusicTableEntries.push_back(*newTableEntry);
          free(newTableEntry);
     }
@@ -1754,9 +1780,6 @@ void PrepareData::ExtractMusic() {
     std::vector<MUSICTABLEENTRY>::iterator it;
 
     std::vector<SOUNDFILEENTRY> VecTuneInformation;
-
-    // Integer sizes are not well defined, so better check them
-    static_assert(sizeof(SOUNDFILEENTRY) == 32);
 
     SOUNDFILEENTRY *newTuneInformation;
     unsigned long targetLenTuneSum;
@@ -1770,7 +1793,8 @@ void PrepareData::ExtractMusic() {
         }
 
         fseek(iFile, (it)->offTunes, SEEK_SET);
-        fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
+        //fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
+        ReadSoundFileEntry(iFile, newTuneInformation);
 
         //in newTuneInformation we received now a value for lenTune
         //now we continue reading this kind of struct, until the sum of all of
@@ -1785,7 +1809,8 @@ void PrepareData::ExtractMusic() {
                 throw std::string("ExtractMusic - Out of Memory");
             }
 
-            fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
+            //fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
+            ReadSoundFileEntry(iFile, newTuneInformation);
             VecTuneInformation.push_back(*newTuneInformation);
             targetLenTuneSum -= newTuneInformation->tuneLenBytes;
             free(newTuneInformation);

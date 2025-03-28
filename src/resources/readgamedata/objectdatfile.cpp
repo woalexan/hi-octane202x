@@ -460,11 +460,11 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       {
           ObjVertex *newVertex = new ObjVertex();
 
-          newVertex->X = BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset) / (float)(1024.0f);
+          newVertex->X = (float)(BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset)) / (float)(1024.0f);
           offset += 2;
-          newVertex->Y = BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset) / (float)(1024.0f);
+          newVertex->Y = (float)(BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset)) / (float)(1024.0f);
           offset += 2;
-          newVertex->Z = BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset) / (float)(1024.0f);
+          newVertex->Z = (float)(BitConverterToInt16((unsigned char*)(&ByteArray[0]), offset)) / (float)(1024.0f);
           offset += 2;
           ObjFileVertexVector->push_back(newVertex);
       }

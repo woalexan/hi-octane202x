@@ -35,13 +35,13 @@ typedef struct {
     int A;
     int B;
     int C;
-} __attribute__((packed)) ObjTriangle;
+} ObjTriangle;
 
 typedef struct {
     float X;
     float Y;
     float Z;
-} __attribute__((packed)) ObjVertex;
+} ObjVertex;
 
 class ObjectDatFile {
 

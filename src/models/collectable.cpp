@@ -184,6 +184,11 @@ void Collectable::PickedUp() {
 
     //I am not active (visible) anymore, hide my sceneNode
     this->billSceneNode->setVisible(false);
+
+   //if type 2 collectible, delete this collectible
+   if (this->mEntityItem == NULL) {
+        this->remainingLifeTime = -1.0f;
+   }
 }
 
 //when a collectable is triggered it

@@ -128,6 +128,8 @@ void Race::IrrlichtStats(char* text) {
       irr::s32 texCnt;
       texCnt =  mInfra->mSmgr->getVideoDriver()->getTextureCount();
 
+      return;
+
       //now we have our output filename
        char finalpath[50];
 
@@ -1862,6 +1864,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
         ControlStartPhase(frameDeltaTime);
     }
 
+    //if we are in final race phase (where we delay the exit of race)
+    //until all animators are done animating, so that we can clean them
+    //up during deconstructor of race object, hande this final phase here
+    if (mCurrentPhase == DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE) {
+        HandleExitRace();
+    }
+
     float progressMorph;
 
     irr::f32 physicsFrameDeltaTime = frameDeltaTime;
@@ -2296,7 +2305,10 @@ void Race::HandleBasicInput() {
         //only for debugging!
         //this->mRaceWasFinished = true;
 
-        this->exitRace = true;
+        //24.03.2025: Add a final race phase where we wait until
+        //all currently working animators are finished
+        //this->exitRace = true;
+        InitiateExitRace();
     }
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
@@ -2305,6 +2317,49 @@ void Race::HandleBasicInput() {
             this->currPlayerFollow->ChangeViewMode();
         }
     }
+}
+
+//unfortunetly it seems we can not remove SceneNodes from SceneManager
+//that still have an animation going on; Animations are for example used
+//by the machinegun and missiles/explosions
+//The make sure that this animations are done when we finally exit the race
+//and the destructor of the race is called, I decided to add another final
+//race phase where the players are prevented to fire more machinguns and
+//missiles, so that no new animators are triggered
+//Then we delay the end of the race in the final phase as long, until all currently
+//running animations are done; Only then we finally exit the race
+//The function below is used to initiate this final phase of the race
+void Race::InitiateExitRace() {
+   //from now on prevent all players from firing
+   //the machine gun or another missile
+   //so that the animators have all time to finish
+   std::vector<Player*>::iterator it;
+
+   for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+       (*it)->DeactivateAttack();
+   }
+
+   //new race phase, we only wait until all animators have finished
+   this->mCurrentPhase = DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE;
+}
+
+void Race::HandleExitRace() {
+   //only if all animators are done, we finally really
+   //exit the race
+   bool allAnimatorsDone = true;
+
+   //all machine gun animators done
+   std::vector<Player*>::iterator it;
+
+   for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
+       allAnimatorsDone &= (*it)->AllAnimatorsDone();
+   }
+
+   if (allAnimatorsDone) {
+       //now we can really exit the game
+       //all animators have finished
+       exitRace = true;
+   }
 }
 
 void Race::HandleInput() {
@@ -3122,7 +3177,11 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
 
         if (mRaceFinishedWaitTimeCnter > DEF_RACE_FINISHED_WAITTIME_SEC) {
             //wait time counter finished, exit race
-            this->exitRace = true;
+
+            //24.03.2025: Add a final race phase where we wait until
+            //all currently working animators are finished
+            //this->exitRace = true;
+            InitiateExitRace();
         }
     } else {
         //race is not finished yet
