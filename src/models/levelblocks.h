@@ -69,9 +69,7 @@ public:
 
     void SwitchViewMode();
 
-private:
-    bool setupGeometry();
-   
+private:   
     irr::video::IVideoDriver *m_driver;
     TextureLoader* mTexSource;
     LevelTerrain* MyTerrain;
@@ -96,9 +94,6 @@ public:
      LevelFile* levelRes;
 
      float segmentSize;
-
-     irr::u16 get_width();
-     irr::u16 get_heigth();
 };
 
 #endif // LEVELBLOCKS_H

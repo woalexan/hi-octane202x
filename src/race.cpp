@@ -3474,8 +3474,8 @@ void Race::CheckPointPostProcessing() {
                 pieceFound = -1;
 
                 for (int piece = 0; piece < 10; piece++) {
-                    linepiece.start = line3D.start + vecPiece * piece;
-                    linepiece.end = line3D.start + vecPiece * (piece + 1);
+                    linepiece.start = line3D.start + vecPiece * (irr::f32)(piece);
+                    linepiece.end = line3D.start + vecPiece * (irr::f32)(piece + 1);
 
                     if (bbox.intersectsWithLine(linepiece)) {
                         pieceFound = piece;

@@ -18,8 +18,11 @@
 #include <algorithm>
 #include "../../definitions.h"
 
+//added for GCC under Linux, because was not available
+#ifdef __GNUC__
 //array must not be a pointer, this will not work!
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
+#endif
 
 MIDIEvent::MIDIEvent(const MIDIEvent & other)
 {

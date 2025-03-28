@@ -285,18 +285,18 @@ class Physics {
 
 private:
     ObjPhysicsDerivative evaluate( PhysicsObject* pObj, const ObjPhysicsState & initial,
-        double t, float dt, const ObjPhysicsDerivative & d );
+        irr::f32 t, float dt, const ObjPhysicsDerivative & d );
 
-    irr::core::vector3df forceVec(PhysicsObject* pObj, const ObjPhysicsState & state, double t );
-    irr::core::vector3df torque(PhysicsObject* pObj, const ObjPhysicsState & state, double t);
+    irr::core::vector3df forceVec(PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t );
+    irr::core::vector3df torque(PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t);
 
     std::vector<PhysicsObject*> PhysicObjectVec;
 
-    double t = 0.0;   //absolute time for physics calculations
-    double dt = 0.001;  //0.001 // first stepsize I had, worked good for physics but not for collision at higher speeds  0.01; //stepsize for physics calculations
-    double physicsAccumulator = 0.0;
+    irr::f32 t = 0.0f;   //absolute time for physics calculations
+    irr::f32 dt = 0.001f;  //0.001 // first stepsize I had, worked good for physics but not for collision at higher speeds  0.01; //stepsize for physics calculations
+    irr::f32 physicsAccumulator = 0.0f;
 
-    void integrate( PhysicsObject* pObj, ObjPhysicsState & state, double t, float dt );
+    void integrate( PhysicsObject* pObj, ObjPhysicsState & state, irr::f32 t, float dt );
 
     //we do collision checks in 2 steps:
     //first we just handle all physics objects as spheres (distance derived from bounding boxes in irrlicht); we do sphere-to-sphere collision detection;
@@ -376,7 +376,7 @@ public:
     void SetLevelCollisionWallLineData(std::vector<LineStruct*> *newList);
 
     size_t GetNumTriangleSelectors() const  { return mCollisionSelectors.size(); }
-       irr::scene::ITriangleSelector* GetTriangleSelector(size_t index_) const;
+    //irr::scene::ITriangleSelector* GetTriangleSelector(size_t index_) const;
 
     void AddCollisionMesh(irr::scene::ITriangleSelector* selector_);
     bool RemoveCollisionMesh(irr::scene::ITriangleSelector* selector_);
@@ -392,7 +392,7 @@ public:
 
     void EmptyTriangleHitInfoVector(std::vector<RayHitTriangleInfoStruct*> &hitInfoTriangles);
 
-    void FindRayTargetTriangles(PhysicsObject& physObj, irr::core::vector3df dirVector);
+    //void FindRayTargetTriangles(PhysicsObject& physObj, irr::core::vector3df dirVector);
 
     irr::core::line3df DbgRayTargetLine;
 };

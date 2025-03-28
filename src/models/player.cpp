@@ -91,7 +91,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
     allHitTriangles = this->mRace->mPhysics->ReturnTrianglesHitByRay( this->mRace->mPhysics->mRayTargetSelectors,
                                   startPnt, endPnt, true);
 
-    int vecSize = allHitTriangles.size();
+    int vecSize = (int)(allHitTriangles.size());
     std::vector<RayHitTriangleInfoStruct*>::iterator it;
 
     if (vecSize < 1)
@@ -950,12 +950,29 @@ void Player::GetHeightMapCollisionSensorDebugInfoEntryText(
         //only create debug text if state is not idle
         GetHeightMapCollisionSensorDebugStateName(collSensor, &stateName);
 
-        swprintf(outputText, maxCharNr, L"%s: %s %lf %lf %u\n",
+        //22.03.2025: It seems Visual Studio automatically changes swprintf to instead using
+        //safer function swprintf_s which would be fine for me
+        //The problem is this function checks for validity of format strings, and simply %s as under GCC
+        //is not valid when specifiying a normal non wide C-string, and as a result text output does not work (only
+        //garbage is shown); To fix this we need to use special format string "%hs" under windows;
+        //But because I am not sure if GCC will accept this under Linux, I will keep the original code under GCC
+        //here
+#ifdef _MSC_VER 
+        swprintf(outputText, maxCharNr, L"%hs: %hs %lf %lf %u\n",
                      collSensor->sensorName,
                      stateName,
                      collSensor->stepness,
                      collSensor->distance,
                      collSensor->collCnt);
+#endif
+#ifdef __GNUC__
+        swprintf(outputText, maxCharNr, L"%s: %s %lf %lf %u\n",
+            collSensor->sensorName,
+            stateName,
+            collSensor->stepness,
+            collSensor->distance,
+            collSensor->collCnt);
+#endif
 
           delete[] stateName;
         }
@@ -4034,7 +4051,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //calculate lap time for Hud display
     //the number of lap time in HUD seems to indicate the time in
     //multiple of 40mSec, so every 40 mSec the number is increased by one integer
-    mPlayerStats->currLapTimeMultiple40mSec = (mPlayerStats->currLapTimeExact * 25);
+    mPlayerStats->currLapTimeMultiple40mSec = (irr::u32)(mPlayerStats->currLapTimeExact * 25.0f);
 
     //calculate player craft world coordinates
     UpdateInternalCoordVariables();

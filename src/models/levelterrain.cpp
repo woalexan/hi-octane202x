@@ -1472,7 +1472,6 @@ void LevelTerrain::findTerrainOptimization() {
     int Width = levelRes->Width();
     int Height = levelRes->Height();
 
-    irr::f32 middle_cell_height;
     int neighb_cellx;
     int neighb_cellz;
 

@@ -29,7 +29,7 @@
 #include "physics.h"
 
 ObjPhysicsDerivative Physics::evaluate( PhysicsObject* pObj, const ObjPhysicsState & initial,
-        double t, float dt, const ObjPhysicsDerivative & d ) {
+        irr::f32 t, float dt, const ObjPhysicsDerivative & d ) {
 
     //advance the physics state from t to t+dt using one set of derivatives
     ObjPhysicsState state;
@@ -60,7 +60,7 @@ ObjPhysicsDerivative Physics::evaluate( PhysicsObject* pObj, const ObjPhysicsSta
     return output;
 }
 
-irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsState & state, double t ) {
+irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t ) {
     // const float k = 15.0f;
     // const float b = 0.1f;
     // return -k * state.x - b * state.v;
@@ -96,7 +96,7 @@ irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsSta
     return sumForce;
 }
 
-irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState & state, double t) {
+irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState & state, irr::f32 t) {
     //return irr::core::vector3df(1.0f,0.0f,0.0f) - state.angularVelocity * 0.1f;
     //return irr::core::vector3df(1.0f,0.0f,0.0f) - state.angularVelocity * 0.1f;
 
@@ -148,7 +148,7 @@ irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState 
 }
 
 //Integration using Runge Kutta order 4 (or simply RK4)
-void Physics::integrate( PhysicsObject* pObj, ObjPhysicsState & state, double t, float dt ) {
+void Physics::integrate( PhysicsObject* pObj, ObjPhysicsState & state, irr::f32 t, float dt ) {
 
     ObjPhysicsDerivative a,b,c,d;
 

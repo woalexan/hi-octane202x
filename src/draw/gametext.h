@@ -10,7 +10,7 @@
 #ifndef GAMETEXT_H
 #define GAMETEXT_H
 
-#include <irrlicht.h>
+#include "irrlicht.h"
 #include <algorithm>
 #include <vector>
 

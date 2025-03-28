@@ -24,7 +24,7 @@
 
 //User setup end
 
-#include <irrlicht.h>
+#include "irrlicht.h"
 
 struct LineStruct {
   //std::string name;

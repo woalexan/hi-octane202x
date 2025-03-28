@@ -46,10 +46,10 @@ class Morph; //Forward declaration
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
     //later during game (so that we have access to vertice data)
-    video::S3DVertex *vert1;
-    video::S3DVertex *vert2;
-    video::S3DVertex *vert3;
-    video::S3DVertex *vert4;
+    video::S3DVertex *vert1 = NULL;
+    video::S3DVertex *vert2 = NULL;
+    video::S3DVertex *vert3 = NULL;
+    video::S3DVertex *vert4 = NULL;
 
     //stores the tile vertex1 index for all the Meshbuffers where this
     //vertex is part of
@@ -66,10 +66,10 @@ struct TerrainTileData {
 
     //to allow easier recalculation of vertice normals during Terrain morphing also
     //store my vertice position for Y-axis information for every vertice here (positionVboData)
-    irr::f32 vert1CurrPositionY;
-    irr::f32 vert2CurrPositionY;
-    irr::f32 vert3CurrPositionY;
-    irr::f32 vert4CurrPositionY;
+    irr::f32 vert1CurrPositionY = 0.0f;
+    irr::f32 vert2CurrPositionY = 0.0f;
+    irr::f32 vert3CurrPositionY = 0.0f;
+    irr::f32 vert4CurrPositionY = 0.0f;
 
     bool vert1CurrPositionYDirty = false;
     bool vert2CurrPositionYDirty = false;
@@ -112,7 +112,7 @@ struct TerrainTileData {
     //is for example needed for player craft calculations
     //afterwards; when the Terrain does morph this value
     //keeps to be correct
-    irr::f32 currTileHeight;
+    irr::f32 currTileHeight = 0.0f;
 };
 
 class Race; //Forward declaration
@@ -202,8 +202,6 @@ private:
     vector3d<irr::f32> computeNormalFromMapEntries(int x, int z, float intensity);
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int textureId, int texMod);
-    void createTerrainTextures(char* filePath);
-    u32 countNumberFollowingTrianglesWithTextureId(u32 firstTriangleIdx, int textureId);
 
     void CreateTerrainMesh();
 

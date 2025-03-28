@@ -87,7 +87,7 @@ bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> 
     MapEntry* mapEntry;
     irr::core::vector3df endRoadTextureID3DPos;
 
-    nrCells = cells.size();
+    nrCells = (irr::s16)(cells.size());
 
     for (irr::s16 cellIdx = 0; cellIdx < nrCells; cellIdx++) {
         mapEntry = this->mRace->mLevelTerrain->GetMapEntry(cells.at(cellIdx).X, cells.at(cellIdx).Y);
@@ -129,7 +129,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
     irr::core::vector3df coord3D;
     std::vector<irr::core::vector2di> cells;
     irr::f32 minVal;
-    irr::f32 testOffset;
+    //irr::f32 testOffset;
     irr::f32 resolution = 0.2f;
 
     irr::f32 distStartEntityTextureId = FLT_MAX;
@@ -554,7 +554,7 @@ RayHitInfoStruct WorldAwareness::CastRay(IImage &image, irr::core::vector3df sta
            rayHitObject = true;
        }
 
-       currCol = image.getPixel(px, py);
+       currCol = image.getPixel((irr::u32)(px), (irr::u32)(py));
 
        if (currCol != *colorEmptySpace) {
            //we hit something
@@ -595,7 +595,7 @@ RayHitInfoStruct WorldAwareness::CastRay(IImage &image, irr::core::vector3df sta
            if (WA_ALLOW_DEBUGGING) {
                //debugging function is enabled, draw ray in debugging
                //image
-               debugWorld->setPixel(px,py, *colorRed);
+               debugWorld->setPixel((irr::u32)(px),(irr::u32)(py), *colorRed);
            }
            seenEmptySpace = true;
            currRayPos.X += dx;
@@ -700,8 +700,8 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
    { sqrt(1 + (vRayDir.Y / vRayDir.X) * (vRayDir.Y / vRayDir.X)), sqrt(1 + (vRayDir.X / vRayDir.Y) * (vRayDir.X / vRayDir.Y)) };
    irr::core::vector2di vMapCheck;
 
-   vMapCheck.X = vRayStart.X;   //truncates to integer
-   vMapCheck.Y = vRayStart.Y;   //truncates to integer
+   vMapCheck.X = (irr::s32)(vRayStart.X);   //truncates to integer
+   vMapCheck.Y = (irr::s32)(vRayStart.Y);   //truncates to integer
 
    irr::core::vector2df vRayLength1D;
    irr::core::vector2di vStep;
@@ -781,8 +781,10 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
                       (vRayStart.X + vRayDir.X * fDistance) * PixelScaleFactor,
                       (vRayStart.Y + vRayDir.Y * fDistance) * PixelScaleFactor);
 
-             DrawRectangle(*debugWorld, *colorRed, vMapCheck.X * PixelScaleFactor, vMapCheck.Y * PixelScaleFactor,
-                           (vMapCheck.X + 1) * PixelScaleFactor, (vMapCheck.Y + 1) * PixelScaleFactor);
+             DrawRectangle(*debugWorld, *colorRed, (irr::f32)(vMapCheck.X) * (irr::f32)(PixelScaleFactor),
+                          (irr::f32)(vMapCheck.Y) * (irr::f32)(PixelScaleFactor),
+                          (irr::f32)(vMapCheck.X + 1) * (irr::f32)(PixelScaleFactor),
+                          (irr::f32)(vMapCheck.Y + 1) * (irr::f32)(PixelScaleFactor));
          }
         } else {
            //we exited valid map region
@@ -1141,8 +1143,8 @@ void WorldAwareness::DrawLine(irr::video::IImage &image, irr::video::SColor &col
 }
 
 void WorldAwareness::SetPixelDynamicWorldMap(int playerNr, irr::f32 x1, irr::f32 y1) {
-    int x = (x1 / (float)(PixelScaleFactor));
-    int y = (y1 / (float)(PixelScaleFactor));
+    int x = (int)(x1 / (float)(PixelScaleFactor));
+    int y = (int)(y1 / (float)(PixelScaleFactor));
 
     int sizeX = mRace->mLevelTerrain->get_width();
     int sizeY = mRace->mLevelTerrain->get_heigth();
@@ -1161,7 +1163,7 @@ void WorldAwareness::DrawLineIntoDynamicWorldMap(int playerNr, irr::f32 x1, irr:
     irr::f32 ydiff = (y2 - y1);
 
     if(xdiff == 0.0f && ydiff == 0.0f) {
-        SetPixelDynamicWorldMap(playerNr, (u32)(x1), (u32)(y1));
+        SetPixelDynamicWorldMap(playerNr, x1, y1);
         return;
     }
 
@@ -1182,7 +1184,7 @@ void WorldAwareness::DrawLineIntoDynamicWorldMap(int playerNr, irr::f32 x1, irr:
             irr::f32 slope = ydiff / xdiff;
             for(irr::f32 x = xmin; x <= xmax; x += 1.0f) {
                 irr::f32 y = y1 + ((x - x1) * slope);
-                SetPixelDynamicWorldMap(playerNr, (u32)(x), (u32)(y));
+                SetPixelDynamicWorldMap(playerNr, x, y);
             }
         } else {
             irr::f32 ymin, ymax;
@@ -1201,7 +1203,7 @@ void WorldAwareness::DrawLineIntoDynamicWorldMap(int playerNr, irr::f32 x1, irr:
             irr::f32 slope = xdiff / ydiff;
             for(irr::f32 y = ymin; y <= ymax; y += 1.0f) {
                 irr::f32 x = x1 + ((y - y1) * slope);
-                SetPixelDynamicWorldMap(playerNr, (u32)(x), (u32)(y));
+                SetPixelDynamicWorldMap(playerNr, x, y);
             }
         }
 }

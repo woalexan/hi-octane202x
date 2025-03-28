@@ -215,7 +215,7 @@ long rnc_unpack (unsigned char *packed, unsigned char *unpacked, unsigned int fl
     // Check the packed-data CRC. Also save the unpacked-data CRC
     // for later.
 
-    if (rnc_crc(input, inputend-input) != bword(input-4))
+    if (rnc_crc(input, (unsigned long)(inputend-input)) != bword(input-4))
 	    if (!(flags&RNC_IGNORE_PACKED_CRC_ERROR)) return RNC_PACKED_CRC_ERROR;
     out_crc = bword(input-6);
 
@@ -303,7 +303,7 @@ long rnc_unpack (unsigned char *packed, unsigned char *unpacked, unsigned int fl
 		    *output = output[-posn];
 		    output++;
 	    }
-	    this_lee = (inputend - input) - (outputend - output);
+	    this_lee = (long)((inputend - input) - (outputend - output));
 	    if (lee < this_lee)
 		    lee = this_lee;
 	  }

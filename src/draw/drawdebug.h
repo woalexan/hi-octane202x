@@ -22,7 +22,6 @@ public:
     void Draw3DArrow(irr::core::vector3df startPos, irr::core::vector3df arrowPosition, irr::video::SMaterial* color);
     void Draw3DLine(irr::core::vector3df startPos, irr::core::vector3df endPos, irr::video::SMaterial* color);
     void Draw3DTriangle(const irr::core::triangle3df *triangle, irr::video::SColor color);
-    void Draw3DSphere(irr::core::vector3df pos, irr::f32 radius = 0.05f);
     void Draw3DRectangle(irr::core::vector3df v1, irr::core::vector3df v2, irr::core::vector3df v3, irr::core::vector3df v4,
                          irr::video::SMaterial* color);
 

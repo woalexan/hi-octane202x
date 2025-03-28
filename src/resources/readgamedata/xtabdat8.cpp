@@ -7,6 +7,7 @@
 
 #include "bulcommn.h"
 #include "xtabdat8.h"
+#include <inttypes.h>
 
 //source code taken from http://syndicate.lubiki.pl/downloads/bullfrog_utils_tabdat.zip
 //for readme file please see bullfrog_utils_tabdat-readme.txt
@@ -119,11 +120,11 @@ int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int
     if (verbose)
     {
         printf("Processed %lu of %zu bytes of DAT file.\n",readcount,datf.filelength);
-        size_t unused=datf.filelength-readcount;
+        int32_t unused= (int32_t)(datf.filelength)-(int32_t)(readcount);
         if (unused>=0)
-            printf("Bytes skipped: %zu\n",unused);
+            printf("Bytes skipped: %" PRIu32 "\n", unused);
           else  
-            printf("Bytes overlapping: %zd\n",-unused);
+            printf("Bytes overlapping: %" PRId32 "\n", unused);
     }
     free_tabfile_data(&tabf);
     free_datfile_data(&datf);

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 project(hi-octane202x LANGUAGES CXX)
 
 if(NOT CMAKE_COMPILE_WARNING_AS_ERROR)
-        set(CMAKE_COMPILE_WARNING_AS_ERROR FALSE)
+        set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
 endif()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)

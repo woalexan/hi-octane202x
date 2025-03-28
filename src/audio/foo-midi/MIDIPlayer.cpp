@@ -20,7 +20,7 @@
 #include <cmath>
 
 inline int MulDiv(int v1, int v2, int v3) {
-    return rint((double) v1 * (double) v2 / (double) v3);
+    return (int)(rint((double) v1 * (double) v2 / (double) v3));
 }
 
 /// <summary>
