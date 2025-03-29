@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -16,24 +16,38 @@
 #include "../intro/flifix.h"
 #include <iomanip>
 
-
 void UnpackDataFile(const char* packfile, const char* unpackfile);
 void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
 std::vector<unsigned char> loadRawFile(const char *filename);
 
+void PrepareData::CreatePalette() {
+    logging::Info("Create Palette information...");
 
-PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
-    myDevice = device;
-    myDriver = driver;
+    //locate the palette file
+    irr::io::path palFilePath =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("palet0-0.dat"));
+
+    if (palFilePath.empty()) {
+        //palette file not found!
+         throw std::string("Could not locate the original games palette file palet0-0.dat");
+    }
 
     //create memory for ingame palette
     palette=static_cast<unsigned char*>(malloc(768));
 
-    char palfile[50];
-    strcpy(&palfile[0], "originalgame/data/palet0-0.dat");
+    char* fname = strdup(palFilePath.c_str());
 
     //read ingame palette
-    ReadPaletteFile(&palfile[0], palette);
+    ReadPaletteFile(fname, palette);
+    free(fname);
+}
+
+PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
+    mInfra = mInfraPntr;
+
+    //load palette information needed for the later
+    //data preparation steps
+    CreatePalette();
 
     //only add next line temporarily to extract level textures for level 7 up to 9
     //from HiOctaneTools project
@@ -59,7 +73,11 @@ PrepareData::PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* 
     ExtractModels();
     ExtractIntro();
     ExtractAudio();
-    ExtractUserdata();
+
+    //29.03.2025: instead of adding this data, lets
+    //implement support for the extended version
+    //of the game
+    //ExtractUserdata();
 }
 
 PrepareData::~PrepareData() {
@@ -144,31 +162,115 @@ void PrepareData::ExtractMiniMaps() {
 void PrepareData::ExtractTerrainTextures() {
     logging::Info("Extracting terrain textures...");
 
-    for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
-        ExtractTerrainTexture(levelNr);
+    if (!mInfra->mExtendedGame) {
+        for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
+            ExtractTerrainTexture(levelNr);
+        }
+    } else {
+        for (char levelNr = '1'; levelNr <= '9'; levelNr++) {
+            ExtractTerrainTexture(levelNr);
+        }
     }
 }
 
 void PrepareData::ExtractLevels() {
     logging::Info("Extracting levels...");
 
+    //locate the needed input level file
+    irr::io::path inputLevelFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-1.dat"));
+
+    if (inputLevelFile.empty()) {
+        //map file not found!
+         throw std::string("Could not locate the original games map file level0-1.dat");
+    }
     PrepareSubDir("extract/level0-1");
-    UnpackDataFile("originalgame/maps/level0-1.dat", "extract/level0-1/level0-1-unpacked.dat");
+    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-1/level0-1-unpacked.dat");
 
+    inputLevelFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-2.dat"));
+
+    if (inputLevelFile.empty()) {
+        //map file not found!
+         throw std::string("Could not locate the original games map file level0-2.dat");
+    }
     PrepareSubDir("extract/level0-2");
-    UnpackDataFile("originalgame/maps/level0-2.dat", "extract/level0-2/level0-2-unpacked.dat");
+    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-2/level0-2-unpacked.dat");
 
+    inputLevelFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-3.dat"));
+
+    if (inputLevelFile.empty()) {
+        //map file not found!
+         throw std::string("Could not locate the original games map file level0-3.dat");
+    }
     PrepareSubDir("extract/level0-3");
-    UnpackDataFile("originalgame/maps/level0-3.dat", "extract/level0-3/level0-3-unpacked.dat");
+    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-3/level0-3-unpacked.dat");
 
+    inputLevelFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-4.dat"));
+
+    if (inputLevelFile.empty()) {
+        //map file not found!
+         throw std::string("Could not locate the original games map file level0-4.dat");
+    }
     PrepareSubDir("extract/level0-4");
-    UnpackDataFile("originalgame/maps/level0-4.dat", "extract/level0-4/level0-4-unpacked.dat");
+    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-4/level0-4-unpacked.dat");
 
+    inputLevelFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-5.dat"));
+
+    if (inputLevelFile.empty()) {
+        //map file not found!
+         throw std::string("Could not locate the original games map file level0-5.dat");
+    }
     PrepareSubDir("extract/level0-5");
-    UnpackDataFile("originalgame/maps/level0-5.dat", "extract/level0-5/level0-5-unpacked.dat");
+    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-5/level0-5-unpacked.dat");
 
+    inputLevelFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-6.dat"));
+
+    if (inputLevelFile.empty()) {
+        //map file not found!
+         throw std::string("Could not locate the original games map file level0-6.dat");
+    }
     PrepareSubDir("extract/level0-6");
-    UnpackDataFile("originalgame/maps/level0-6.dat", "extract/level0-6/level0-6-unpacked.dat");
+    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-6/level0-6-unpacked.dat");
+
+    //if we have the extended game version we also need to extract
+    //levels 7 up to 9
+    if (mInfra->mExtendedGame) {
+        //locate the needed input level file
+        irr::io::path inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-7.dat"));
+
+        if (inputLevelFile.empty()) {
+            //map file not found!
+             throw std::string("Could not locate the original games map file level0-7.dat");
+        }
+        PrepareSubDir("extract/level0-7");
+        UnpackDataFile(inputLevelFile.c_str(), "extract/level0-7/level0-7-unpacked.dat");
+
+        inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-8.dat"));
+
+        if (inputLevelFile.empty()) {
+            //map file not found!
+             throw std::string("Could not locate the original games map file level0-8.dat");
+        }
+        PrepareSubDir("extract/level0-8");
+        UnpackDataFile(inputLevelFile.c_str(), "extract/level0-8/level0-8-unpacked.dat");
+
+        inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-9.dat"));
+
+        if (inputLevelFile.empty()) {
+            //map file not found!
+             throw std::string("Could not locate the original games map file level0-9.dat");
+        }
+        PrepareSubDir("extract/level0-9");
+        UnpackDataFile(inputLevelFile.c_str(), "extract/level0-9/level0-9-unpacked.dat");
+    }
 }
 
 void PrepareData::ExtractEditor() {
@@ -186,13 +288,20 @@ void PrepareData::ExtractCheatPuzzle() {
     //read Cheat puzzle
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //data\puzzle.dat
-    //data\puzzle.tab
     //Unknown format 	RNC-compressed = No 	Cheat puzzle  112x96
 
     //is not RNC compressed, we can skip this step
 
     //scale puzzle by factor 4
-    ConvertRawImageData("originalgame/data/puzzle.dat", 112, 96, "extract/puzzle/puzzle.png", 4);
+    //locate the needed input data file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("puzzle.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file puzzle.dat");
+    }
+    ConvertRawImageData(inputDatFile.c_str(), 112, 96, "extract/puzzle/puzzle.png", 4);
 }
 
 void PrepareData::ExtractModels() {
@@ -237,19 +346,34 @@ void PrepareData::Extra3DModels() {
     ExtractNamed3DModel("sign0-", 1);
     ExtractNamed3DModel("skim0-", 8);
     ExtractNamed3DModel("tank0-", 8);
-    ExtractNamed3DModel("track0-", 6);
+
+    //if we have the extended version of the game we also need
+    //to extract 3 more race track 3D models for the menue
+    if (!mInfra->mExtendedGame) {
+        ExtractNamed3DModel("track0-", 6);
+    } else {
+        ExtractNamed3DModel("track0-", 9);
+    }
 }
 
 void PrepareData::ExtractNamed3DModel(const char* name, int n_models) {
-    std::string dat_path = "originalgame/objects/data/";
     std::string obj_path = "extract/models/";
+    irr::io::path inputDatFile;
 
     for (int idx = 0; idx < n_models; idx++) {
         std::string objname = std::string(name) + std::to_string(idx);
-        std::string datfile = dat_path + objname + ".dat";
+        std::string datfile = objname + ".dat";
         std::string objfile = obj_path + objname + ".obj";
 
-        Extract3DModel(datfile.c_str(), objfile.c_str(), objname.c_str());
+        inputDatFile = mInfra->LocateFileInFileList(mInfra->mOriginalGame->objectsFolder,
+                                             irr::core::string<fschar_t>(datfile.c_str()));
+
+        if (inputDatFile.empty()) {
+            //dat file not found!
+             throw "Could not locate the original games object data file " + datfile;
+        }
+
+        Extract3DModel(inputDatFile.c_str(), objfile.c_str(), objname.c_str());
     }
 }
 
@@ -284,7 +408,23 @@ void PrepareData::ExtractGameLogoSVGA() {
     //data\logo0-1.dat
     //data\logo0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Game logo (SVGA)
-    ExtractCompressedImagesFromDataFile("originalgame/data/logo0-1", "extract/images/logo0-1-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("logo0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file logo0-1.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("logo0-1.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file logo0-1.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/images/logo0-1-");
 }
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
@@ -295,7 +435,23 @@ void PrepareData::ExtractHUD1PlayerSVGA() {
     //data\panel0-1.dat
     //data\panel0-1.tab
     //Unknown format 	RNC-compressed = No 	HUD 1-Player (SVGA)
-    ExtractImagesfromDataFile("originalgame/data/panel0-1.dat", "originalgame/data/panel0-1.tab", palette, "extract/hud1player/panel0-1-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("panel0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file panel0-1.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("panel0-1.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file panel0-1.tab");
+    }
+    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/hud1player/panel0-1-");
 }
 
 //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
@@ -303,8 +459,34 @@ void PrepareData::ExtractHUD1PlayerSVGA() {
 void PrepareData::ExtractMiniMapsSVGA() {
     //data\track0-1.dat
     //data\track0-1.tab
-    //Unknown format 	RNC-compressed = No 	MiniMaps
-    ExtractImagesfromDataFile("originalgame/data/track0-1.dat", "originalgame/data/track0-1.tab", palette, "extract/minimaps/track0-1-");
+    //Unknown format 	RNC-compressed = No 	MiniMaps (for the non-extended version of the game!)
+    //Unknown format 	RNC-compressed = Yes! 	MiniMaps (for the extended version of the game!)
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("track0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file track0-1.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("track0-1.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file track0-1.tab");
+    }
+
+    //Important note: For the extended version of the game the minimap data file is RNC-compressed!
+    //if we do not do this right, then the minimap extraction will fail
+    if (mInfra->mExtendedGame) {
+        UnpackDataFile(inputDatFile.c_str(), "extract/tmp-unpacked.dat");
+    }
+
+    ExtractImagesfromDataFile("extract/tmp-unpacked.dat", inputTabFile.c_str(), palette, "extract/minimaps/track0-1-");
+
+    remove("extract/tmp-unpacked.dat");
 }
 
 class MinimapStitcher {
@@ -374,13 +556,13 @@ private:
 };
 
 void PrepareData::StitchMiniMaps() {
-    MinimapStitcher track1(myDevice, myDriver);
+    MinimapStitcher track1(mInfra->mDevice, mInfra->mDriver);
     track1.insert_image(0, 0, "extract/minimaps/track0-1-0000.bmp");
     track1.insert_image(6, 120, "extract/minimaps/track0-1-0001.bmp");
     track1.probe_transparent(0, 0, 0);
     track1.finalize("extract/minimaps/track0-1.png");
 
-    MinimapStitcher track2(myDevice, myDriver);
+    MinimapStitcher track2(mInfra->mDevice, mInfra->mDriver);
     track2.insert_image(0, 0, "extract/minimaps/track0-1-0002.bmp");
     track2.insert_image(120, 5, "extract/minimaps/track0-1-0003.bmp");
     track2.insert_image(74, 120, "extract/minimaps/track0-1-0004.bmp");
@@ -389,19 +571,32 @@ void PrepareData::StitchMiniMaps() {
 
     // track3 minimap is fully contained in file track0-1-0005.bmp -> no need for stitching
 
-    MinimapStitcher track4(myDevice, myDriver);
+    MinimapStitcher track4(mInfra->mDevice, mInfra->mDriver);
     track4.insert_image(0, 0, "extract/minimaps/track0-1-0006.bmp");
     track4.insert_image(27, 120, "extract/minimaps/track0-1-0007.bmp");
     track4.probe_transparent(0, 0, 0);
     track4.finalize("extract/minimaps/track0-4.png");
 
-    MinimapStitcher track5(myDevice, myDriver);
+    MinimapStitcher track5(mInfra->mDevice, mInfra->mDriver);
     track5.insert_image(0, 0, "extract/minimaps/track0-1-0008.bmp");
     track5.insert_image(18, 120, "extract/minimaps/track0-1-0009.bmp");
     track5.probe_transparent(0, 0, 0);
     track5.finalize("extract/minimaps/track0-5.png");
 
     // track6 minimap is fully contained in file track0-1-0010.bmp -> no need for stitching
+
+    //if we have the extended game version, we also need to stich the remaining
+    //maps as well
+    if (mInfra->mExtendedGame) {
+        MinimapStitcher track7(mInfra->mDevice, mInfra->mDriver);
+        track7.insert_image(0, 0, "extract/minimaps/track0-1-0011.bmp");
+        track7.insert_image(6, 126, "extract/minimaps/track0-1-0012.bmp");
+        track7.probe_transparent(0, 0, 0);
+        track7.finalize("extract/minimaps/track0-7.png");
+
+        // track8 minimap is fully contained in file track0-1-0013.bmp -> no need for stitching
+        // track9 minimap is fully contained in file track0-1-0014.bmp -> no need for stitching
+    }
 }
 
 //extracts the SVGA HUD for 2 Players in data\panel0-0.dat and data\panel0-0.tab
@@ -412,7 +607,23 @@ void PrepareData::ExtractHUD2PlayersSVGA() {
     //data\panel0-0.dat
     //data\panel0-0.tab
     //Unknown format 	RNC-compressed = No 	HUD 2-Player (SVGA)
-    ExtractImagesfromDataFile("originalgame/data/panel0-0.dat", "originalgame/data/panel0-0.tab", palette, "extract/hud2player/panel0-0-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("panel0-0.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file panel0-0.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("panel0-0.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file panel0-0.tab");
+    }
+    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/hud2player/panel0-0-");
 }
 
 //extracts the SVGA Large Green font in data\pfont0-1.dat and data\pfont0-1.tab
@@ -423,7 +634,23 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
     //data\pfont0-1.dat
     //data\pfont0-1.tab
     //Unknown format 	RNC-compressed = No 	Large Green Font (SVGA)
-    ExtractImagesfromDataFile("originalgame/data/pfont0-1.dat", "originalgame/data/pfont0-1.tab", palette, "extract/fonts/largegreen/pfont0-1-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("pfont0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file pfont0-1.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("pfont0-1.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file pfont0-1.tab");
+    }
+    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/fonts/largegreen/pfont0-1-");
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
@@ -434,7 +661,23 @@ void PrepareData::ExtractLargeFontSVGA() {
     //data\olfnt0-1.dat
     //data\olfnt0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Large white font (SVGA)
-    ExtractCompressedImagesFromDataFile("originalgame/data/olfnt0-1", "extract/fonts/large/olfnt0-1-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("olfnt0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file olfnt0-1.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("olfnt0-1.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file olfnt0-1.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/large/olfnt0-1-");
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -445,7 +688,23 @@ void PrepareData::ExtractSmallFontSVGA() {
     //data\osfnt0-1.dat
     //data\osfnt0-1.tab
     //Unknown format 	RNC-compressed = Yes 	Small white font (SVGA)
-    ExtractCompressedImagesFromDataFile("originalgame/data/osfnt0-1", "extract/fonts/smallsvga/osfnt0-1-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("osfnt0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file osfnt0-1.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("osfnt0-1.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file osfnt0-1.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/smallsvga/osfnt0-1-");
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -581,7 +840,7 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
 
         //now we have source and destination file names
         //load image with irrlicht
-        irr::video::IImage* srcImg = myDriver->createImageFromFile(finalpathSrc);
+        irr::video::IImage* srcImg = mInfra->mDriver->createImageFromFile(finalpathSrc);
 
         irr::core::dimension2d<irr::u32> srcDim(srcImg->getDimension().Width, srcImg->getDimension().Height);
 
@@ -590,7 +849,7 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
 
         //copy source image into new destination image
         irr::video::IImage* destImg =
-                myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(srcDim.Width, srcDim.Height));
+                mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(srcDim.Width, srcDim.Height));
 
         //copy pixel data
         srcImg->lock();
@@ -618,8 +877,8 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
 
         //now we have the font character with new color in image variable
         //save the result into a new image file
-        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpathDest, false);
-        myDriver->writeImageToFile(destImg, outputPic);
+        irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(finalpathDest, false);
+        mInfra->mDriver->writeImageToFile(destImg, outputPic);
 
         //close output file
         outputPic->drop();
@@ -635,7 +894,15 @@ void PrepareData::ExtractLoadingScreenSVGA() {
     //data\onet0-1.dat
     //data\onet0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
-    ConvertCompressedImageData("originalgame/data/onet0-1.dat", "extract/images/onet0-1.png", 640, 480, 1);
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("onet0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file onet0-1.dat");
+    }
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/onet0-1.png", 640, 480, 1);
 }
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab
@@ -646,7 +913,15 @@ void PrepareData::ExtractSelectionScreenSVGA() {
     //data\oscr0-1.dat
     //data\oscr0-1.tab
     //Raw VGA image 	RNC-compressed = Yes 	Loading and selection screens
-    ConvertCompressedImageData("originalgame/data/oscr0-1.dat", "extract/images/oscr0-1.png", 640, 480, 1);
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("oscr0-1.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file oscr0-1.dat");
+    }
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1.png", 640, 480, 1);
 }
 
 void PrepareData::ExtractSky(char skyNr) {
@@ -654,11 +929,20 @@ void PrepareData::ExtractSky(char skyNr) {
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw VGA image 	RNC-compressed = Yes 	256x256 Sky images
 
-    std::string packFile = std::string("originalgame/data/sky0-") + skyNr + ".dat";
+    std::string packFile = std::string("sky0-") + skyNr + ".dat";
     std::string outputFile = std::string("extract/sky/sky0-") + skyNr + ".png";
     std::string modifiedFile = std::string("extract/sky/modsky0-") + skyNr + ".png";
 
-    ConvertCompressedImageData(packFile.c_str(), outputFile.c_str(), 256, 256, 2);
+    //locate the needed input file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>(packFile.c_str()));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw "Could not locate the original games data file " + packFile;
+    }
+
+    ConvertCompressedImageData(inputDatFile.c_str(), outputFile.c_str(), 256, 256, 2);
     //create new modified sky image for easier usage
     ModifySkyImage(outputFile.c_str(), modifiedFile.c_str());
 }
@@ -667,9 +951,9 @@ void PrepareData::ExtractSky(char skyNr) {
 //in this project. The result is stored in another new image file
 void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* outputModifiedSkyFileName) {
     //first open original sky image again
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(origSkyFileName);
+    irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(origSkyFileName);
 
-    irr::video::IImage* origSky = myDriver->createImageFromFile(file);
+    irr::video::IImage* origSky = mInfra->mDriver->createImageFromFile(file);
 
     //get original sky image dimension
     irr::core::dimension2d<irr::u32> origDimension = origSky->getDimension();
@@ -680,7 +964,7 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 
     //create the new empty image for the modified sky file
     irr::video::IImage* imgNew =
-        myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(3 * origDimension.Width, origDimension.Height - 1));
+        mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(3 * origDimension.Width, origDimension.Height - 1));
 
     //first change: take lower part of picture starting with line 148, and move it to the top of the new picture
     origSky->copyTo(imgNew, irr::core::vector2d<irr::s32>(0, 0),
@@ -704,9 +988,9 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
                   irr::core::rect<irr::s32>(0, 0, origDimension.Width, 147));
 
     //create new file for writting
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputModifiedSkyFileName, false);
+    irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outputModifiedSkyFileName, false);
 
-    myDriver->writeImageToFile(imgNew, outputPic);
+    mInfra->mDriver->writeImageToFile(imgNew, outputPic);
 
     //close output file
     outputPic->drop();
@@ -722,8 +1006,8 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 //use to load the textures
 void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName) {
     //first open target image again
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-    irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
+    irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(targetFile);
+    irr::video::IImage* origAtlas = mInfra->mDriver->createImageFromFile(targetFile);
 
     //get original atlas image dimension
     irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
@@ -737,7 +1021,7 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
     //now export one tile after each other
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
         //create the new empty image for the next single tile
-        irr::video::IImage* imgNew = myDriver->createImage(
+        irr::video::IImage* imgNew = mInfra->mDriver->createImage(
             irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
             irr::core::dimension2d<irr::u32>(origDimension.Width, origDimension.Width));
 
@@ -750,8 +1034,8 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
         std::string finalpath = fp.str();
 
         // write image to file
-        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
-        myDriver->writeImageToFile(imgNew, outputPic);
+        irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
+        mInfra->mDriver->writeImageToFile(imgNew, outputPic);
         outputPic->drop();
     }
 
@@ -766,8 +1050,8 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
 //Returns true in case of success, returns false in case of unexpected problem
 void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
     //first open target image again
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(targetFile);
-    irr::video::IImage* origAtlas = myDriver->createImageFromFile(targetFile);
+    irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(targetFile);
+    irr::video::IImage* origAtlas = mInfra->mDriver->createImageFromFile(targetFile);
 
     //get HiOctaneTools atlas image dimension
     irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
@@ -788,7 +1072,7 @@ void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
 
         //create the new empty image for the next single tile
-        irr::video::IImage* imgNew = myDriver->createImage(
+        irr::video::IImage* imgNew = mInfra->mDriver->createImage(
             irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
             irr::core::dimension2d<irr::u32>(tileSize, tileSize));
 
@@ -808,8 +1092,8 @@ void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
         std::string finalpath = fp.str();
 
         //create new file for writting
-        irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
-        myDriver->writeImageToFile(imgNew, outputPic);
+        irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
+        mInfra->mDriver->writeImageToFile(imgNew, outputPic);
         outputPic->drop();
     }
 
@@ -825,15 +1109,25 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
 
     char texNr = levelNr - 1;  // looks like levels start with 1 but texture atlases start with 0
 
-    std::string orig_data_dir = "originalgame/data/";
     std::string extract_dir = "extract/";
 
-    std::string packfile = orig_data_dir + "textu0-" + texNr + ".dat";
+    std::string packfile("textu0-");
+    std::string packfile2 = packfile + texNr + ".dat";
+
     std::string outputFile = extract_dir + "textu0-" + texNr + "-orig.png";
     std::string levelDir = extract_dir + "level0-" + levelNr + '/';
     PrepareSubDir(levelDir.c_str());
 
-    ConvertCompressedImageData(packfile.c_str(), outputFile.c_str(), 64, 16384);
+    //locate the needed input file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>(packfile2.c_str()));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw "Could not locate the original games data file " + packfile2;
+    }
+
+    ConvertCompressedImageData(inputDatFile.c_str(), outputFile.c_str(), 64, 16384);
     //reorganize Terrain Atlas format to be Square
     //ReorganizeTerrainAtlas(&outputFile[0], &finalFile[0]);
     ExportTerrainTextures(outputFile.c_str(), levelDir.c_str(), "tex");
@@ -905,7 +1199,7 @@ irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u
     }
 
     //create an empty image with upscaled dimension
-    irr::video::IImage *upImg = myDriver->createImage(
+    irr::video::IImage *upImg = mInfra->mDriver->createImage(
         irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
         irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
@@ -926,7 +1220,7 @@ void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap col
                                     char* outputFilename, int scaleFactor) {
      //create an empty image
      irr::video::IImage* img =
-             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+             mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
 
     auto raw_buffer = (uint32_t*)img->lock();
     for (const unsigned char* src=ByteArray; src<ByteArray+sizex*sizey; src++) {
@@ -991,9 +1285,9 @@ void PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilena
 bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
         char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf) {
     //first open target image again
-    irr::io::IReadFile *file = myDevice->getFileSystem()->createAndOpenFile(atlasFileName);
+    irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(atlasFileName);
 
-    irr::video::IImage* origAtlas = myDriver->createImageFromFile(atlasFileName);
+    irr::video::IImage* origAtlas = mInfra->mDriver->createImageFromFile(atlasFileName);
 
     //get original atlas image dimension
     irr::core::dimension2d<irr::u32> origDimension = origAtlas->getDimension();
@@ -1020,7 +1314,7 @@ bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
 
         //create the new empty image for the next single tile
          irr::video::IImage* imgNew =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(itemPntr->width, itemPntr->height));
+            mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(itemPntr->width, itemPntr->height));
 
             //calculate start upper left corner of source rect in original Atlas, depending on Offset value for current picture
             srcYLoc = (itemPntr->offset / origDimension.Width);
@@ -1058,11 +1352,11 @@ bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
             strcat(finalpath, fname);
 
             //create new file for writting
-            irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(finalpath, false);
+            irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(finalpath, false);
 
             //if (scaleFactor == 1.0) {
                    //write original image data
-                  myDriver->writeImageToFile(imgNew, outputPic);
+                  mInfra->mDriver->writeImageToFile(imgNew, outputPic);
            // } else {
                     //write upscaled image data
                 //   myDriver->writeImageToFile(imgUp, outputPic);
@@ -1153,7 +1447,7 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
 
      //create an empty image
      irr::video::IImage* img =
-             myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+             mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
 
      //draw the image
      for (irr::u32 posx = 0; posx < sizex; posx++) {
@@ -1168,7 +1462,7 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
      //should the picture be upscaled?
      if (scaleFactor != 1.0) {
           //create an empty image with upscaled dimension
-         imgUp = myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
+         imgUp = mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
          //get the pointers to the raw image data
          uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
@@ -1182,15 +1476,15 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
        }
 
      //create new file for writting
-     irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+     irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
 
      //write image to file
      if (scaleFactor == 1.0) {
            //write original image data
-           myDriver->writeImageToFile(img, outputPic);
+           mInfra->mDriver->writeImageToFile(img, outputPic);
         } else {
             //write upscaled image data
-           myDriver->writeImageToFile(imgUp, outputPic);
+           mInfra->mDriver->writeImageToFile(imgUp, outputPic);
      }
 
      //close output file
@@ -1211,9 +1505,16 @@ void PrepareData::ExtractIntroductoryScreen() {
     //read introductory screen
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw image 320×200 	RNC-compressed = Yes 	320x200 Introductory screen
-    ConvertCompressedImageData("originalgame/data/title.dat", "extract/images/title.png", 320, 200, 2);
-}
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("title.dat"));
 
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file title.dat");
+    }
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title.png", 320, 200, 2);
+}
 
 //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab
 //returns true in case of success, returns false in case of unexpected error
@@ -1223,7 +1524,23 @@ void PrepareData::ExtractThinWhiteFontSVGA() {
     //data\hfont0-0.dat
     //data\hfont0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Thin white font (SVGA) (SVGA)
-    ExtractCompressedImagesFromDataFile("originalgame/data/hfont0-0", "extract/fonts/thinwhite/hfont0-0-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("hfont0-0.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file hfont0-0.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("hfont0-0.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file hfont0-0.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/thinwhite/hfont0-0-");
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
@@ -1234,7 +1551,23 @@ void PrepareData::ExtractEditorCursors() {
     //data\point0-0.dat
     //data\point0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor cursors
-    ExtractCompressedImagesFromDataFile("originalgame/data/point0-0", "extract/editor/point0-0-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("point0-0.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file point0-0.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("point0-0.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file point0-0.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/editor/point0-0-");
 }
 
 //extracts the Editor items large in data\hspr0-0.dat and data\hspr0-0.tab
@@ -1245,7 +1578,23 @@ void PrepareData::ExtractEditorItemsLarge() {
     //data\hspr0-0.dat
     //data\hspr0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor icons (large)
-    ExtractCompressedImagesFromDataFile("originalgame/data/hspr0-0", "extract/editor/hspr0-0-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("hspr0-0.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file hspr0-0.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("hspr0-0.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file hspr0-0.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/editor/hspr0-0-");
 }
 
 //extracts the Editor items small in data\mspr0-0.dat and data\mspr0-0.tab
@@ -1256,7 +1605,23 @@ void PrepareData::ExtractEditorItemsSmall() {
     //data\mspr0-0.dat
     //data\mspr0-0.tab
     //Unknown format 	RNC-compressed = Yes 	Editor icons (small)
-    ExtractCompressedImagesFromDataFile("originalgame/data/mspr0-0", "extract/editor/mspr0-0-");
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("mspr0-0.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file mspr0-0.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("mspr0-0.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games data file mspr0-0.tab");
+    }
+    ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/editor/mspr0-0-");
 }
 
 //extracts the Ingame Textures Atlas in data\tex0-0.dat and data\tex0-0.tab
@@ -1273,14 +1638,29 @@ void PrepareData::ExtractModelTextures() {
     modelTexAtlasSize.Width = 256;
     modelTexAtlasSize.Height = 768;
 
-    char packfile[65];
-    char tabfile[65];
+    //locate the needed input files
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->objectsFolder, irr::core::string<fschar_t>("tex0-0.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games object data file tex0-0.dat");
+    }
+
+    irr::io::path inputTabFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->objectsFolder, irr::core::string<fschar_t>("tex0-0.tab"));
+
+    if (inputTabFile.empty()) {
+        //tab file not found!
+         throw std::string("Could not locate the original games object data file tex0-0.tab");
+    }
+
     char outputfile[50];
-    strcpy(packfile, "originalgame/objects/data/tex0-0.dat");
-    strcpy(tabfile, "originalgame/objects/data/tex0-0.tab");
     strcpy(outputfile, "extract/models/tex0-0.png");
 
-    ConvertRawImageData(packfile, (irr::u32)(modelTexAtlasSize.Width), (irr::u32)(modelTexAtlasSize.Height), outputfile, 1);
+    ConvertRawImageData(inputDatFile.c_str(),
+                        (irr::u32)(modelTexAtlasSize.Width),
+                        (irr::u32)(modelTexAtlasSize.Height), outputfile, 1);
 
     /********************************************
     * We also need the TAB file to know where  *
@@ -1294,13 +1674,13 @@ void PrepareData::ExtractModelTextures() {
     //3D Model texture Atlas we HAVE to read the first TAB file entry as well,
     //because otherwise we are missing the first texture Atlas picture, and the
     //3D model texture mapping goes wrong
-    int retcode=read_tabfile_data(this->modelsTabFileInfo, tabfile, false);
+    int retcode=read_tabfile_data(this->modelsTabFileInfo, inputTabFile.c_str(), false);
     if (retcode!=0)
     switch (retcode) {
         case 1:
-            throw std::string("Cannot open TAB file: ") + tabfile;
+            throw std::string("Cannot open TAB file: ") + inputTabFile.c_str();
         default:
-            throw std::string("Error - Loading TAB file ") + tabfile + " returned fail code " + std::to_string(retcode);
+            throw std::string("Error - Loading TAB file ") + inputTabFile.c_str() + " returned fail code " + std::to_string(retcode);
     }
 
     /*char exportDir[50];
@@ -1312,7 +1692,7 @@ void PrepareData::ExtractModelTextures() {
     //which contains the listing of all contained pictures described
     //in the TAB file. For each picture the offset, width and height is
     //shown
-    DebugWriteTabFileContentsCsvTable(tabfile, this->modelsTabFileInfo);
+    DebugWriteTabFileContentsCsvTable(inputTabFile.c_str(), this->modelsTabFileInfo);
 
     //the next line allows to seperate the original texture Atlas
     //into seperate PNG images on the harddisc. This could be interesting
@@ -1333,8 +1713,17 @@ void PrepareData::ExtractTmaps() {
     //Many of the game's files are compressed using the Rob Northern Compression format;
     //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
 
+    //locate the needed input file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("tmaps.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games object data file tmaps.dat");
+    }
+
     //first seperate data in multiple export files, new file always starts with "RNC" magic characters
-    std::vector<unsigned char> ByteArray = loadRawFile("originalgame/data/tmaps.dat");
+    std::vector<unsigned char> ByteArray = loadRawFile(inputDatFile.c_str());
 
     //now seperate data into different new created file
     size_t counter = 0;
@@ -1373,7 +1762,7 @@ void PrepareData::ExtractTmaps() {
    //close last file
    fclose(oFile);
 
-   //RNC unpack all the sound files
+   //RNC unpack all the sprite files
    unsigned long filecnt;
 
    for (filecnt = 0; filecnt < ofilenr; filecnt++) {
@@ -1428,7 +1817,17 @@ void PrepareData::ExtractSounds() {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Many of the game's files are compressed using the Rob Northern Compression format;
     //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
-    std::vector<unsigned char> ByteArray = loadRawFile("originalgame/sound/sound.dat");
+
+    //locate the needed input file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->soundFolder, irr::core::string<fschar_t>("sound.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games sound data file sound.dat");
+    }
+
+    std::vector<unsigned char> ByteArray = loadRawFile(inputDatFile.c_str());
 
     //first seperate data in multiple export files, new file always starts with "RNC" magic characters
     size_t counter = 0;
@@ -1603,7 +2002,6 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
     }
     do {
         newItem = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
-        //fread(newItem, sizeof(SOUNDFILEENTRY), 1, iFile);
         ReadSoundFileEntry(iFile, newItem);
         entries->push_back(*newItem);
         free(newItem);
@@ -1714,15 +2112,22 @@ void PrepareData::ExtractMusic() {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT
 
-    char filename[65];
     char outputNameStr[50];
 
-    strcpy(filename, "originalgame/sound/music.dat");
+    //locate the needed input file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->soundFolder, irr::core::string<fschar_t>("music.dat"));
+
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games sound data file music.dat");
+    }
+
     strcpy(outputNameStr, "extract/music");
 
     FILE* iFile;
 
-    iFile = fopen(filename, "rb");
+    iFile = fopen(inputDatFile.c_str(), "rb");
     fseek(iFile, 0L, SEEK_END);
     long size = ftell(iFile);
 
@@ -1768,7 +2173,6 @@ void PrepareData::ExtractMusic() {
              throw std::string("ExtractMusic - Out of Memory");
          }
 
-         //fread(newTableEntry, sizeof(MUSICTABLEENTRY), 1, iFile);
          ReadMusicFileEntry(iFile, newTableEntry);
          VecMusicTableEntries.push_back(*newTableEntry);
          free(newTableEntry);
@@ -1793,7 +2197,6 @@ void PrepareData::ExtractMusic() {
         }
 
         fseek(iFile, (it)->offTunes, SEEK_SET);
-        //fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
         ReadSoundFileEntry(iFile, newTuneInformation);
 
         //in newTuneInformation we received now a value for lenTune
@@ -1809,7 +2212,6 @@ void PrepareData::ExtractMusic() {
                 throw std::string("ExtractMusic - Out of Memory");
             }
 
-            //fread(newTuneInformation, sizeof(SOUNDFILEENTRY), 1, iFile);
             ReadSoundFileEntry(iFile, newTuneInformation);
             VecTuneInformation.push_back(*newTuneInformation);
             targetLenTuneSum -= newTuneInformation->tuneLenBytes;
@@ -1840,14 +2242,17 @@ void PrepareData::PrepareIntro() {
     //Options description is avaible in the file where they are defined
     int globOptions = 0;
 
-    char filename[65];
-    char outputNameStr[50];
+    //locate the needed input file
+    irr::io::path inputDatFile =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->dataFolder, irr::core::string<fschar_t>("intro.dat"));
 
-    strcpy(filename, "originalgame/data/intro.dat");
-    strcpy(outputNameStr, "extract/intro/intro.fli");
+    if (inputDatFile.empty()) {
+        //dat file not found!
+         throw std::string("Could not locate the original games data file intro.dat");
+    }
 
-    char *srcFName = filename;
-    char *destFName = outputNameStr;
+    char *srcFName = strdup(inputDatFile.c_str());
+    char *destFName = strdup("extract/intro/intro.fli");
 
     //we need this option to succesfully repair
     //the original games fli movie file
@@ -1874,12 +2279,12 @@ void PrepareData::PrepareIntro() {
     closeFLIFiles(animFile,destFile,globOptions);
 
     //now load the FLI file and create for each frame a texture file for later
-    FILE* f = std::fopen(outputNameStr, "rb");
+    FILE* f = std::fopen("extract/intro/intro.fli", "rb");
     flic::StdioFileInterface file(f);
     flic::Decoder decoder(&file);
     flic::Header header;
     if (!decoder.readHeader(header)) {
-        throw std::string("Error reading FLI header in file ") + outputNameStr;
+        throw std::string("Error reading FLI header in file extract/intro/intro.fli");
     }
 
     std::vector<uint8_t> buffer(header.width * header.height);
@@ -1892,7 +2297,7 @@ void PrepareData::PrepareIntro() {
 
     for (long i = 0; i < header.frames; ++i) {
     if (!decoder.readFrame(frame)) {
-        throw std::string("Error reading frame ") + std::to_string(i) + " in file " + outputNameStr;
+        throw std::string("Error reading frame ") + std::to_string(i) + " in file extract/intro/intro.fli";
     }
        //process the current decoded frame data in buffer
 
@@ -1904,6 +2309,9 @@ void PrepareData::PrepareIntro() {
        //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
        ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2);
     }
+
+    free(srcFName);
+    free(destFName);
 }
 
 void PrepareData::ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
@@ -1915,15 +2323,12 @@ void PrepareData::ConvertCompressedImageData(const char* packfile, const char* o
     remove("extract/tmp-unpacked.dat");
 }
 
-void PrepareData::ExtractCompressedImagesFromDataFile(const char* basename, const char* outdir) {
-    std::string packfile = std::string(basename) + ".dat";
-    std::string tabfile = std::string(basename) + ".tab";
-
-    UnpackDataFile(packfile.c_str(), "extract/tmp-unpacked.dat");
+void PrepareData::ExtractCompressedImagesFromDataFile(const char* datFileName, const char* tabFileName, const char* outdir) {
+    UnpackDataFile(datFileName, "extract/tmp-unpacked.dat");
 
     ExtractImagesfromDataFile(
         "extract/tmp-unpacked.dat",
-        tabfile.c_str(),
+        tabFileName,
         palette,
         outdir);
 
@@ -1938,7 +2343,7 @@ irr::video::IImage* PrepareData::loadRawImage(const char* rawDataFilename, irr::
 
     //create an empty image
     irr::video::IImage* img =
-            myDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
+            mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
 
     auto readbuf = ByteArray.data();
     auto raw_buffer = (uint32_t*)img->lock();
@@ -1953,8 +2358,8 @@ irr::video::IImage* PrepareData::loadRawImage(const char* rawDataFilename, irr::
 }
 
 void PrepareData::saveIrrImage(const char* outputFilename, irr::video::IImage* img) {
-    irr::io::IWriteFile* outputPic = myDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
-    myDriver->writeImageToFile(img, outputPic);
+    irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+    mInfra->mDriver->writeImageToFile(img, outputPic);
     outputPic->drop();
     img->drop();
 }
@@ -1976,7 +2381,6 @@ void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsig
         throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
     }
 }
-
 
 // wrap main_unpack to take const char* arguments and throw an exception on error
 void UnpackDataFile(const char* packfile, const char* unpackfile) {

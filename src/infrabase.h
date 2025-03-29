@@ -17,6 +17,8 @@
 #include "resources/assets.h"
 #include "resources/readgamedata/preparedata.h"
 #include "utils/tprofile.h"
+#include "utils/logging.h"
+#include <vector>
 
 using namespace std;
 
@@ -27,6 +29,17 @@ using namespace irr::scene;
 using namespace irr::gui;
 
 class Logger; //Forward declaration
+class PrepareData; //Forward declaration
+
+struct OriginalGameFolderInfoStruct {
+    irr::io::IFileList* rootFolder;
+    irr::io::IFileList* dataFolder;
+    irr::io::IFileList* execFolder;
+    irr::io::IFileList* saveFolder;
+    irr::io::IFileList* mapsFolder;
+    irr::io::IFileList* objectsFolder;
+    irr::io::IFileList* soundFolder;
+};
 
 class InfrastructureBase {
 public:
@@ -56,6 +69,14 @@ public:
   GameText* mGameTexts;
   TimeProfiler* mTimeProfiler;
 
+  OriginalGameFolderInfoStruct* mOriginalGame;
+
+  std::vector<uint8_t> mGameVersionDate;
+  bool mExtendedGame = false;
+
+  //if specified file is not found, returns empty path
+  irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName);
+
 private:
   //Irrlicht stuff
 
@@ -63,6 +84,19 @@ private:
   bool mFullscreen;
 
   bool mInitOk = false;
+
+  //this paths are all absolute paths
+  irr::io::path mGameRootDir;
+  irr::io::path mOriginalGameRootDir;
+
+  irr::io::IFileList* CreateFileList(irr::io::path whichAbsPath);
+
+  //Returns true if original game found,
+  //False otherwise, resulting original
+  //game root dir is stored in mOriginalGameRootDir
+  bool LocateOriginalGame();
+  bool DetermineOriginalGameVersion();
+  bool ProcessGameVersionDate();
 
   //Returns true for success, false for error occured
   bool InitIrrlicht();

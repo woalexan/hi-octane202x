@@ -16,6 +16,7 @@
 #include "../utils/crc32.h"
 #include <string>
 #include "../race.h"
+#include "../infrabase.h"
 
 //if we ever want to implement the other languages
 //stored in the game these are the values assigned to the current
@@ -45,8 +46,12 @@
 #define GAME_DEFAULT_LAPS_TRACK4 8
 #define GAME_DEFAULT_LAPS_TRACK5 9
 #define GAME_DEFAULT_LAPS_TRACK6 5
+#define GAME_DEFAULT_LAPS_TRACK7 6
+#define GAME_DEFAULT_LAPS_TRACK8 6
+#define GAME_DEFAULT_LAPS_TRACK9 5
 
 struct RaceStatsEntryStruct; //Forward declaration
+class InfrastructureBase; //Forward declaration
 
 struct RaceTrackInfoStruct {
     //number of this race track level
@@ -171,8 +176,7 @@ struct ChampionshipSaveGameInfoStruct {
 
 class Assets {
 public:
-    Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::scene::ISceneManager* smgr,
-           bool updateGameConfigFile);
+    Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile);
     ~Assets();
 
     std::vector<RaceTrackInfoStruct*> *mRaceTrackVec;
@@ -295,9 +299,7 @@ public:
     void CleanUpChampionshipSaveGameInfo();
 
 private:
-    irr::video::IVideoDriver* myDriver;
-    irr::IrrlichtDevice* myDevice;
-    irr::scene::ISceneManager* mySmgr;
+    InfrastructureBase* mInfra;
 
     void SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr, char** bufPntr);
     void SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme, char** bufPntr);

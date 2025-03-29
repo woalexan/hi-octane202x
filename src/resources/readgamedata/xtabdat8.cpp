@@ -176,7 +176,7 @@ void DebugWriteTabFileContentsCsvTable(char* tabFileName, TABFILE* tabf) {
     fclose(oFile);
 }
 
-int read_tabfile_data(TABFILE* tabf,char* srcfname, bool skipFirstEntry)
+int read_tabfile_data(TABFILE* tabf,const char* srcfname, bool skipFirstEntry)
 {
         FILE* tabfp;
         tabfp = fopen (srcfname, "rb");
