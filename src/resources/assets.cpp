@@ -9,11 +9,8 @@
 
 #include "assets.h"
 
-Assets::Assets(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver, irr::scene::ISceneManager* smgr,
-               bool updateGameConfigFile) {
-    this->myDevice = device;
-    this->myDriver = driver;
-    this->mySmgr = smgr;
+Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
+    this->mInfra = mInfraPntr;
     mUpdateGameConfigFile = updateGameConfigFile;
 
     mCurrentConfigFileRead = false;
@@ -110,7 +107,7 @@ Assets::~Assets() {
            itRaceTrack = this->mRaceTrackVec->erase(itRaceTrack);
 
            //cleanup mesh
-           this->mySmgr->getMeshCache()->removeMesh(pntrTrack->MeshTrack);
+           mInfra->mSmgr->getMeshCache()->removeMesh(pntrTrack->MeshTrack);
 
            //delete struct itself
            delete pntrTrack;
@@ -146,7 +143,7 @@ Assets::~Assets() {
 
            //cleanup all meshes (we have different color schemes)
            for (unsigned long j = 0; j < pntrCraft->MeshCraft.size(); j++) {
-                this->mySmgr->getMeshCache()->removeMesh(pntrCraft->MeshCraft.at(j));
+                mInfra->mSmgr->getMeshCache()->removeMesh(pntrCraft->MeshCraft.at(j));
            }
 
            //delete struct itself
@@ -1225,7 +1222,7 @@ void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, ir
     //lets loop to load all available ship color schemes
     for (int i = 0; i < 8; i++) {
         sprintf(fileName, "%s%d.obj", meshFileName, i);
-        newMesh = this->mySmgr->getMesh(fileName);
+        newMesh = mInfra->mSmgr->getMesh(fileName);
 
         //add mesh to vector of available meshes (different color schemes)
         newCraft->MeshCraft.push_back(newMesh);
@@ -1286,7 +1283,7 @@ void Assets::AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNr
     strcpy(newTrack->name, nameTrack);
 
     //load the mesh
-    newTrack->MeshTrack = this->mySmgr->getMesh(meshFileName);
+    newTrack->MeshTrack = mInfra->mSmgr->getMesh(meshFileName);
 
     strcpy(newTrack->meshFileName, meshFileName);
 
@@ -1380,14 +1377,18 @@ void Assets::InitRaceTracks() {
     //Track6
     AddRaceTrack((char*)("6. THRAK CITY"), (char*)("extract/models/track0-5.obj"), GAME_DEFAULT_LAPS_TRACK6);
 
-    //Track7, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    //AddRaceTrack((char*)("7. ANCIENT MINE TOWN"), (char*)("extract/models/cone0-0.obj"), 5);
+    //if we have the extended original game version available
+    //also add the additional 3 race tracks
+    if (mInfra->mExtendedGame) {
+        //Track7
+        AddRaceTrack((char*)("7. ANCIENT MINE TOWN"), (char*)("extract/models/track0-6.obj"), GAME_DEFAULT_LAPS_TRACK7);
 
-    //Track8, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    //AddRaceTrack((char*)("8. ARCTIC LAND"), (char*)("extract/models/cone0-0.obj"), 5);
+        //Track8
+        AddRaceTrack((char*)("8. ARCTIC LAND"), (char*)("extract/models/track0-7.obj"), GAME_DEFAULT_LAPS_TRACK8);
 
-    //Track9, TODO: fix race track 3D model if I get it one day, also fix to correct number of default laps (I do not know)
-    //AddRaceTrack((char*)("9. DEATH MATCH ARENA"), (char*)("extract/models/cone0-0  irr::u8 currSelectedCraftColorScheme; = GAME_CRAFTCOLSCHEME_MADMEDICINE;.obj"), 5);
+        //Track9
+        AddRaceTrack((char*)("9. DEATH MATCH ARENA"), (char*)("extract/models/track0-8.obj"), GAME_DEFAULT_LAPS_TRACK9);
+    }
 }
 
 void Assets::AddPilot(char *pilotName, bool humanPlayer, char *defaultCraftName) {

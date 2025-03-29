@@ -60,7 +60,7 @@ typedef struct {
 
 // Routines
 
-int read_tabfile_data(TABFILE* tabf,char* srcfname, bool skipFirstEntry = true);
+int read_tabfile_data(TABFILE* tabf,const char* srcfname, bool skipFirstEntry = true);
 void free_tabfile_data(TABFILE* tabf);
 int read_datfile_data(DATFILE* datf,char* srcfname);
 void free_datfile_data(DATFILE* datf);

@@ -55,7 +55,7 @@ bool Game::InitGameAssets() {
     /***********************************************************/
     /* Load and define game assets (Meshes, Tracks, Craft)     */
     /***********************************************************/
-    mGameAssets = new Assets(mInfra->mDevice, mInfra->mDriver, mInfra->mSmgr, keepConfigDataFileUpdated);
+    mGameAssets = new Assets(mInfra, keepConfigDataFileUpdated);
 
     return true;
 }

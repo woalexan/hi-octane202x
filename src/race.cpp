@@ -661,48 +661,88 @@ void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageT
 }
 
 void Race::DeliverMusicFileName(unsigned int levelNr, char *musicFileName) {
-    switch (levelNr) {
-    case 1: {
-        strcpy(musicFileName, "extract/music/TGAME1.XMI");
-        break;
+    //which music is player in which level depends if the game is extended
+    //or not
+    if (!mInfra->mExtendedGame) {
+            //game version without the extension
+            switch (levelNr) {
+                case 1: {
+                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
+                    break;
+                }
+                case 2: {
+                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
+                    break;
+                }
+                case 3: {
+                    strcpy(musicFileName, "extract/music/TGAME3.XMI");
+                    break;
+                }
+                case 4: {
+                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
+                    break;
+                }
+                case 5: {
+                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
+                    break;
+                }
+                case 6: {
+                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
+                    break;
+                }
+                default: {
+                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
+                    break;
+                }
+            }
+    } else {
+         //extended game version
+         //here always two level in a row share the same music file
+         //level 9 is the exception, it has the same music as the
+         //other two levels before
+         switch (levelNr) {
+                case 1: {
+                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
+                    break;
+                }
+                case 2: {
+                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
+                    break;
+                }
+                case 3: {
+                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
+                    break;
+                }
+                case 4: {
+                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
+                    break;
+                }
+                case 5: {
+                    strcpy(musicFileName, "extract/music/TGAME3.XMI");
+                    break;
+                }
+                case 6: {
+                    strcpy(musicFileName, "extract/music/TGAME3.XMI");
+                    break;
+                }
+                case 7: {
+                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
+                    break;
+                }
+                case 8: {
+                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
+                    break;
+                }
+                case 9: {
+                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
+                    break;
+                }
+                default: {
+                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
+                    break;
+                }
+         }
     }
-    case 2: {
-        strcpy(musicFileName, "extract/music/TGAME2.XMI");
-        break;
-    }
-    case 3: {
-        strcpy(musicFileName, "extract/music/TGAME3.XMI");
-        break;
-    }
-    case 4: {
-        strcpy(musicFileName, "extract/music/TGAME4.XMI");
-        break;
-    }
-    case 5: {
-        strcpy(musicFileName, "extract/music/TGAME1.XMI");
-        break;
-    }
-    case 6: {
-        strcpy(musicFileName, "extract/music/TGAME2.XMI");
-        break;
-    }
-    case 7: {
-        strcpy(musicFileName, "extract/music/TGAME3.XMI");
-        break;
-    }
-    case 8: {
-        strcpy(musicFileName, "extract/music/TGAME4.XMI");
-        break;
-    }
-    case 9: {
-        strcpy(musicFileName, "extract/music/TGAME1.XMI");
-        break;
-    }
-    default: {
-        strcpy(musicFileName, "extract/music/TGAME1.XMI");
-        break;
-    }
-  }
 }
 
 //Stage 3 of player race ranking sorting: Sort by ascending remaining distance to next checkpoint
@@ -1291,12 +1331,27 @@ void Race::InitMiniMapOriginal(irr::u32 levelNr) {
         case 5: {
              strcpy(mapFilename, "extract/minimaps/track0-5.png");
              break;
-         }
+          }
 
          case 6: {
            strcpy(mapFilename, "extract/minimaps/track0-1-0010.bmp");
            break;
-       }
+         }
+
+         case 7: {
+           strcpy(mapFilename, "extract/minimaps/track0-7.png");
+           break;
+          }
+
+         case 8: {
+           strcpy(mapFilename, "extract/minimaps/track0-1-0013.bmp");
+           break;
+          }
+
+         case 9: {
+           strcpy(mapFilename, "extract/minimaps/track0-1-0014.bmp");
+           break;
+         }
     }
 
     //we need to establish the parameters for the level size
@@ -3157,9 +3212,9 @@ bool Race::LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core
         case 4: {strcat(filename, (char*)"modsky0-3.png"); break;}
         case 5: {strcat(filename, (char*)"modsky0-4.png"); break;}
         case 6: {strcat(filename, (char*)"modsky0-5.png"); break;}
-        case 7: {strcat(filename, (char*)"modsky0-0.png"); break;} //I do not know which sky this map uses right now TODO
-        case 8: {strcat(filename, (char*)"modsky0-0.png"); break;} //I do not know which sky this map uses right now TODO
-        case 9: {strcat(filename, (char*)"modsky0-0.png"); break;} //I do not know which sky this map uses right now TODO
+        case 7: {strcat(filename, (char*)"modsky0-0.png"); break;} //Level 7 uses sky0
+        case 8: {strcat(filename, (char*)"modsky0-0.png"); break;} //Level 8 also uses sky0
+        case 9: {strcat(filename, (char*)"modsky0-0.png"); break;} //Level 9 also uses sky0
         default: {
             //unknown levelNr
             return false;

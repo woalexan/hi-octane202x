@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -24,6 +24,7 @@
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flic.h"
 #include <cstdint>
+#include "../../infrabase.h"
 
 //each SOUNDFILEENTRY has 32 bytes
 typedef struct {
@@ -43,16 +44,16 @@ typedef struct {
         uint32_t AllTunesLenBytes;
      } MUSICTABLEENTRY;
 
+class InfrastructureBase; //Forward declaration
+
 class PrepareData {
 
 public:
-
-    PrepareData(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver);
+    PrepareData(InfrastructureBase* mInfraPntr);
     ~PrepareData();
 
 private:
-    irr::video::IVideoDriver* myDriver;
-    irr::IrrlichtDevice* myDevice;
+    InfrastructureBase* mInfra = NULL;
 
     //contains the ingame palette information
     unsigned char *palette;
@@ -63,6 +64,8 @@ private:
     uint32_t read_uint32_le_file (FILE *fp);
     void ReadSoundFileEntry(FILE* inputFile, SOUNDFILEENTRY* entry);
     void ReadMusicFileEntry(FILE* inputFile, MUSICTABLEENTRY* entry);
+
+    void CreatePalette();
 
     void ExtractGameScreens();
     void ExtractFonts();
@@ -181,7 +184,7 @@ private:
     //Returns true when successful, False otherwise
     void ReadSoundFileEntries(const char* filename, std::vector<SOUNDFILEENTRY> *entries);
 
-    void ExtractCompressedImagesFromDataFile(const char* basename, const char* outdir);
+    void ExtractCompressedImagesFromDataFile(const char* datFileName, const char* tabFileName, const char* outdir);
     void ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor=1);
 
     //writes raw video data into picture file, using specified palette file
