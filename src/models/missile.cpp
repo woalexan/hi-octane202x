@@ -230,10 +230,9 @@ void Missile::Update(irr::f32 DeltaTime) {
             if (this->mLockedPlayer != NULL) {
                 irr::f32 maxDealDamageRange = DEF_MISSILE_DEALDAMAGE_DISTRANGE;
                 if ((currentLocation - this->mLockedPlayer->phobj->physicState.position).getLength() < maxDealDamageRange) {
-                    //yes, we deal damage, lets deal 40% of max. possible shield value
-                    //I believe two missiles should almost kill a player if the player would have
-                    //max shield at the beginning, this is my educated guess
-                    irr::f32 oneMissileDamage = this->mLockedPlayer->mPlayerStats->shieldMax * 0.4f;
+                    //in the original game it needs 7 missiles at a player with initial full shield to
+                    //break this player down with a destroyed craft
+                    irr::f32 oneMissileDamage = this->mLockedPlayer->mPlayerStats->shieldMax / 7.0f;
                     //this->mLockedPlayer->Damage(oneMissileDamage);
                     mParentLauncher->mParent->mRace->DamagePlayer(this->mLockedPlayer, oneMissileDamage,
                                                                   DEF_RACE_DAMAGETYPE_MISSILE, mParentLauncher->mParent);

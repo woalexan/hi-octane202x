@@ -4069,6 +4069,13 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //calculate player craft world coordinates
     UpdateInternalCoordVariables();
 
+    //make sure this variable also gets updated for human
+    //players as well
+    if (mHumanPlayer) {
+        mCurrentCraftOrientationAngle =
+                this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
+    }
+
     //we must prevent running player height control while
     //we are attached to recovery vehicle, because here physics
     //model is not active and otherwise we get weird behavior

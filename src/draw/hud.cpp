@@ -29,6 +29,14 @@ void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
     newPart->sizeTex = newPart->texture->getSize();
     newPart->drawScrPosition.set(drawPosX, drawPosY);
 
+    //I decided to also prepare a member variable for the image
+    //source rect, so that it is always already available
+    //when we draw the Hud over and over again, so that we save CPU cycles
+    newPart->sourceRect.UpperLeftCorner.X = 0;
+    newPart->sourceRect.UpperLeftCorner.Y = 0;
+    newPart->sourceRect.LowerRightCorner.X = newPart->sizeTex.Width;
+    newPart->sourceRect.LowerRightCorner.Y = newPart->sizeTex.Height;
+
     if (altPanelTexNr < 0) {
         //no alternative image specified
         newPart->altTexture = NULL;
@@ -170,6 +178,10 @@ void HUD::InitBrokenGlas() {
     mInfra->mDriver->makeColorKeyTexture(brokenGlas->texture, irr::core::position2d<irr::s32>(0,0));
     brokenGlas->sizeTex = brokenGlas->texture->getSize();
     brokenGlas->drawScrPosition.set(0, 0);
+    brokenGlas->sourceRect.UpperLeftCorner.X = 0;
+    brokenGlas->sourceRect.UpperLeftCorner.Y = 0;
+    brokenGlas->sourceRect.LowerRightCorner.X = brokenGlas->sizeTex.Width;
+    brokenGlas->sourceRect.LowerRightCorner.Y = brokenGlas->sizeTex.Height;
 
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
@@ -647,32 +659,26 @@ void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
 
     if (redLit) {
          mInfra->mDriver->draw2DImage((*startSignal)[0]->altTexture, (*startSignal)[0]->drawScrPosition,
-               irr::core::rect<irr::s32>(0,0, (*startSignal)[0]->sizeTex.Width, (*startSignal)[0]->sizeTex.Height), 0,
-               irr::video::SColor(255,255,255,255), true);
+               (*startSignal)[0]->sourceRect, 0, *mColorSolid, true);
     } else {
         mInfra->mDriver->draw2DImage((*startSignal)[0]->texture, (*startSignal)[0]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, (*startSignal)[0]->sizeTex.Width, (*startSignal)[0]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
+              (*startSignal)[0]->sourceRect, 0, *mColorSolid, true);
     }
 
     if (yellowLit) {
          mInfra->mDriver->draw2DImage((*startSignal)[1]->altTexture, (*startSignal)[1]->drawScrPosition,
-               irr::core::rect<irr::s32>(0,0, (*startSignal)[1]->sizeTex.Width, (*startSignal)[1]->sizeTex.Height), 0,
-               irr::video::SColor(255,255,255,255), true);
+               (*startSignal)[1]->sourceRect, 0, *mColorSolid, true);
     } else {
         mInfra->mDriver->draw2DImage((*startSignal)[1]->texture, (*startSignal)[1]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, (*startSignal)[1]->sizeTex.Width, (*startSignal)[1]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
+              (*startSignal)[1]->sourceRect, 0, *mColorSolid, true);
     }
 
     if (greenLit) {
          mInfra->mDriver->draw2DImage((*startSignal)[2]->altTexture, (*startSignal)[2]->drawScrPosition,
-               irr::core::rect<irr::s32>(0,0, (*startSignal)[2]->sizeTex.Width, (*startSignal)[2]->sizeTex.Height), 0,
-               irr::video::SColor(255,255,255,255), true);
+               (*startSignal)[2]->sourceRect, 0, *mColorSolid, true);
     } else {
         mInfra->mDriver->draw2DImage((*startSignal)[2]->texture, (*startSignal)[2]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, (*startSignal)[2]->sizeTex.Width, (*startSignal)[2]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
+              (*startSignal)[2]->sourceRect, 0, *mColorSolid, true);
     }
 }
 
@@ -695,12 +701,10 @@ void HUD::DrawAmmoBar() {
     for (int i = 0; i < (addBarsInt + 1); i++) {
         if (!mDrawAmmoBarTransparent) {
             mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*ammoBar)[i]->sizeTex.Width, (*ammoBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*ammoBar)[i]->sourceRect, 0, *mColorSolid, true);
         } else {
             mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*ammoBar)[i]->sizeTex.Width, (*ammoBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(100,255,255,255), true);
+                  (*ammoBar)[i]->sourceRect, 0, *mColorTransparent, true);
         }
     }
 }
@@ -722,12 +726,10 @@ void HUD::DrawShieldBar() {
     for (int i = 0; i < barsInt ; i++) {
         if (!mDrawShieldBarTransparent) {
             mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*shieldBar)[i]->sizeTex.Width, (*shieldBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*shieldBar)[i]->sourceRect, 0, *mColorSolid, true);
         } else {
             mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*shieldBar)[i]->sizeTex.Width, (*shieldBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(100,255,255,255), true);
+                  (*shieldBar)[i]->sourceRect, 0, *mColorTransparent, true);
         }
     }
 }
@@ -806,12 +808,10 @@ void HUD::DrawGasolineBar() {
     for (int i = (sizeVec - nrBarsToDraw); i < sizeVec; i++) {
         if (!mDrawGasolineBarTransparent) {
             mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*gasolineBar)[i]->sizeTex.Width, (*gasolineBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*gasolineBar)[i]->sourceRect, 0, *mColorSolid, true);
         } else {
             mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*gasolineBar)[i]->sizeTex.Width, (*gasolineBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(100,255,255,255), true);
+                  (*gasolineBar)[i]->sourceRect, 0, *mColorTransparent, true);
         }
     }
 }
@@ -855,8 +855,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
             for (itGlasBreak = this->monitorWhichPlayer->brokenGlasVec->begin(); itGlasBreak != this->monitorWhichPlayer->brokenGlasVec->end(); ++itGlasBreak) {
                 mInfra->mDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
-                      irr::core::rect<irr::s32>(0,0, (*itGlasBreak)->sizeTex.Width, (*itGlasBreak)->sizeTex.Height), 0,
-                      irr::video::SColor(255,255,255,255), true);
+                      (*itGlasBreak)->sourceRect, 0, *mColorSolid, true);
             }
         }
 
@@ -884,15 +883,13 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //according to current player throttle setting draw unlighted default colors
         for (int i = 0; i < perc2; i++) {
             mInfra->mDriver->draw2DImage((*throttleBar)[i]->texture, (*throttleBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*throttleBar)[i]->sizeTex.Width, (*throttleBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*throttleBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //according to current booster state draw over it with lighted colors
         for (int i = 0; i < perc; i++) {
             mInfra->mDriver->draw2DImage((*throttleBar)[i]->altTexture, (*throttleBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*throttleBar)[i]->sizeTex.Width, (*throttleBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*throttleBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         sizeVec = (int)(speedBar->size());
@@ -907,8 +904,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         for (int i = 0; i < perc; i++) {
             mInfra->mDriver->draw2DImage((*speedBar)[i]->texture, (*speedBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*speedBar)[i]->sizeTex.Width, (*speedBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*speedBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //Draw machine gun heat bar
@@ -924,8 +920,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         for (int i = 0; i < perc; i++) {
             mInfra->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*mgHeatBar)[i]->sizeTex.Width, (*mgHeatBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*mgHeatBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //Draw upgrade bar
@@ -933,24 +928,21 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //the next three symbols 1, 2 and 3 are for upgrade levels 1, 2 and 3
         for (int i = 0; i <= monitorWhichPlayer->mPlayerStats->currMinigunUpgradeLevel; i++) {
             mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*upgradeBar)[i]->sizeTex.Width, (*upgradeBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //symbol number 4 is the rocket symbol itself (for basic upgrade level 0)
         //the next three symbols 5, 6 and 7 are for upgrade levels 1, 2 and 3
         for (int i = 4; i <= (monitorWhichPlayer->mPlayerStats->currRocketUpgradeLevel + 4); i++) {
             mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*upgradeBar)[i]->sizeTex.Width, (*upgradeBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //symbol number 8 is the booster symbol itself (for basic upgrade level 0)
         //the next three symbols 9, 10 and 11 are for upgrade levels 1, 2 and 3
         for (int i = 8; i <= (monitorWhichPlayer->mPlayerStats->currBoosterUpgradeLevel + 8); i++) {
             mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
-                  irr::core::rect<irr::s32>(0,0, (*upgradeBar)[i]->sizeTex.Width, (*upgradeBar)[i]->sizeTex.Height), 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
 
@@ -964,13 +956,11 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             hlp = 9;
 
         mInfra->mDriver->draw2DImage((*currRacePlayerPosition)[hlp]->texture, (*currRacePlayerPosition)[hlp]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, (*currRacePlayerPosition)[hlp]->sizeTex.Width, (*currRacePlayerPosition)[hlp]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
+              (*currRacePlayerPosition)[hlp]->sourceRect, 0, *mColorSolid, true);
 
         //draw the slash for player position (slash is #10 in the list)
         mInfra->mDriver->draw2DImage((*currRacePlayerPosition)[10]->texture, (*currRacePlayerPosition)[10]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, (*currRacePlayerPosition)[10]->sizeTex.Width, (*currRacePlayerPosition)[10]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
+              (*currRacePlayerPosition)[10]->sourceRect, 0, *mColorSolid, true);
 
         //draw overall number of players in race
         hlp = monitorWhichPlayer->mPlayerStats->overallPlayerNumber;
@@ -983,8 +973,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //draw the overall number of players in the race
         mInfra->mDriver->draw2DImage((*numberPlayers)[hlp]->texture, (*numberPlayers)[hlp]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, (*numberPlayers)[hlp]->sizeTex.Width, (*numberPlayers)[hlp]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
+              (*numberPlayers)[hlp]->sourceRect, 0, *mColorSolid, true);
 
         //render current lap number information
         char lapNumStr[10];
@@ -1547,7 +1536,7 @@ void HUD::RenderTextBannerGraphics() {
             for (unsigned long i = 0; i < elementsToDraw->size(); i++) {
                 mInfra->mDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
                       irr::core::rect<irr::s32>(0,0, elementsToDraw->at(i)->sizeTex.Width, elementsToDraw->at(i)->sizeTex.Height), 0,
-                      irr::video::SColor(255,255,255,255), true);
+                      *mColorSolid, true);
 
         }
 
@@ -1774,6 +1763,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetSymbol->drawScrPosition.set(0,0);
+    targetSymbol->sourceRect.UpperLeftCorner.set(0,0);
+    targetSymbol->sourceRect.LowerRightCorner.set(targetSymbol->sizeTex.Width, targetSymbol->sizeTex.Height);
 
     //arrow left of target symbol
     targetArrowLeft = new HudDisplayPart();
@@ -1791,6 +1782,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowLeft->drawScrPosition.set(0,0);
+    targetArrowLeft->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowLeft->sourceRect.LowerRightCorner.set(targetArrowLeft->sizeTex.Width, targetArrowLeft->sizeTex.Height);
 
     //arrow right of target symbol
     targetArrowRight = new HudDisplayPart();
@@ -1808,6 +1801,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowRight->drawScrPosition.set(0,0);
+    targetArrowRight->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowRight->sourceRect.LowerRightCorner.set(targetArrowRight->sizeTex.Width, targetArrowRight->sizeTex.Height);
 
     //arrow above of target symbol
     targetArrowAbove = new HudDisplayPart();
@@ -1825,6 +1820,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowAbove->drawScrPosition.set(0,0);
+    targetArrowAbove->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowAbove->sourceRect.LowerRightCorner.set(targetArrowAbove->sizeTex.Width, targetArrowAbove->sizeTex.Height);
 
     //arrow below of target symbol
     targetArrowBelow = new HudDisplayPart();
@@ -1842,6 +1839,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowBelow->drawScrPosition.set(0,0);
+    targetArrowBelow->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowBelow->sourceRect.LowerRightCorner.set(targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height);
 
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
@@ -1923,8 +1922,10 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           if (!monitorWhichPlayer->mTargetMissleLock) {
              //no missle lock, green symbol and green text
              mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
-                irr::core::rect<irr::s32>(0,0, targetSymbol->sizeTex.Width, targetSymbol->sizeTex.Height), 0,
-                irr::video::SColor(255,255,255,255), true);
+                targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
+
+             /*mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
+                targetSymbol->sourceRect, 0, *mColorSolid, true);*/
 
                if (currShowTargetName) {
                     //write player name next to target symbol
@@ -1936,28 +1937,23 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
              //left green arrow
              mInfra->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
-                irr::core::rect<irr::s32>(0,0, targetArrowLeft->sizeTex.Width, targetArrowLeft->sizeTex.Height), 0,
-                irr::video::SColor(255,255,255,255), true);
+                targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
              //right green arrow
              mInfra->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
-                irr::core::rect<irr::s32>(0,0, targetArrowRight->sizeTex.Width, targetArrowRight->sizeTex.Height), 0,
-                irr::video::SColor(255,255,255,255), true);
+                targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
              //above green arrow
              mInfra->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
-                irr::core::rect<irr::s32>(0,0, targetArrowAbove->sizeTex.Width, targetArrowAbove->sizeTex.Height), 0,
-                irr::video::SColor(255,255,255,255), true);
+                targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
              //below green arrow
              mInfra->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
-                irr::core::rect<irr::s32>(0,0, targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height), 0,
-                irr::video::SColor(255,255,255,255), true);
+                targetArrowBelow->sourceRect, 0, *mColorSolid, true);
           } else {
               //we also have missile lock, red symbol and red text
               mInfra->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
-                 irr::core::rect<irr::s32>(0,0, targetSymbol->sizeTex.Width, targetSymbol->sizeTex.Height), 0,
-                 irr::video::SColor(255,255,255,255), true);
+                 targetSymbol->sourceRect, 0, *mColorSolid, true);
 
               if (currShowTargetName) {
                 //write player name next to target symbol
@@ -1969,23 +1965,19 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
               //left red arrow
               mInfra->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
-                 irr::core::rect<irr::s32>(0,0, targetArrowLeft->sizeTex.Width, targetArrowLeft->sizeTex.Height), 0,
-                 irr::video::SColor(255,255,255,255), true);
+                 targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
               //right red arrow
               mInfra->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
-                 irr::core::rect<irr::s32>(0,0, targetArrowRight->sizeTex.Width, targetArrowRight->sizeTex.Height), 0,
-                 irr::video::SColor(255,255,255,255), true);
+                 targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
               //above red arrow
               mInfra->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
-                 irr::core::rect<irr::s32>(0,0, targetArrowAbove->sizeTex.Width, targetArrowAbove->sizeTex.Height), 0,
-                 irr::video::SColor(255,255,255,255), true);
+                 targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
               //below red arrow
               mInfra->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
-                 irr::core::rect<irr::s32>(0,0, targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height), 0,
-                 irr::video::SColor(255,255,255,255), true);
+                 targetArrowBelow->sourceRect, 0, *mColorSolid, true);
           }
      }
 }
@@ -1995,6 +1987,11 @@ HUD::HUD(InfrastructureBase* infra) {
 
     monitorWhichPlayer = NULL;
 
+    //create this colors as the are used all the time
+    //to save cpu cycles
+    mColorSolid = new irr::video::SColor(255,255,255,255);
+    mColorTransparent = new irr::video::SColor(100,255,255,255);
+
     InitShieldBar();
     InitAmmoBar();
     InitGasolineBar();
@@ -2002,8 +1999,6 @@ HUD::HUD(InfrastructureBase* infra) {
     InitSpeedBar();
     InitMGHeatBar();
     InitRacePosition();
-    //InitRedTextLapNumber();
-    //InitRedTextKillCounter();
     InitUpgradeBar();
     InitHudBannerText();
     InitTargetStuff();
@@ -2116,6 +2111,9 @@ HUD::~HUD() {
         delete[] currentBigGreenText;
         currentBigGreenText = NULL;
     }
+
+    delete mColorSolid;
+    delete mColorTransparent;
 }
 
 void HUD::DrawFinishedPlayerList() {

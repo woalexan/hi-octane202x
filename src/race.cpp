@@ -1912,13 +1912,20 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
             UpdateTimers(frameDeltaTime);
     }
 
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntMorphing);
+
+    //update all cones
+    UpdateCones(frameDeltaTime);
+
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntUpdateCones);
+
     //update external race track cameras
     UpdateExternalCameras();
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntMorphing);
-
     //process pending triggers
     ProcessPendingTriggers();
+
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntProcessTriggers);
 
     //update all players
     std::vector<Player*>::iterator itPlayer;
@@ -2224,6 +2231,12 @@ void Race::HandleBasicInput() {
          } else {
              mInfra->mLogger->HideWindow();
          }
+
+         if (mInfra->mTimeProfiler->IsWindowHidden()) {
+             mInfra->mTimeProfiler->ShowWindow();
+         } else {
+             mInfra->mTimeProfiler->HideWindow();
+         }
     }
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
@@ -2512,6 +2525,7 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     driver->setTransform(irr::video::ETS_VIEW,oldViewMat);
 }
 
+/* 09.03.2025: best DrawSky until now, keep during experiment below
 void Race::DrawSky() {
     if (mSkyImage != NULL) {
         //Draw sky
@@ -2529,6 +2543,45 @@ void Race::DrawSky() {
 
         draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow,
              irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
+             currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
+    }
+}*/
+
+void Race::DrawSky() {
+    if (mSkyImage != NULL) {
+        //we also need current player absolute orientation in deg-C
+        irr::f32 orientationAngle = currPlayerFollow->mCurrentCraftOrientationAngle;
+        irr::f32 hlp = ((currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue - 180.0f) / 180.0f) * 150.0f;
+
+        irr::f32 moveXFloat = (orientationAngle / 360.0f) * mSkyImage->getSize().Width + hlp;
+
+        dbgSkyMoveXfloat = moveXFloat;
+
+        //Draw sky
+        irr::s32 moveX = 0;
+
+        moveX = (irr::s32)(moveXFloat);
+
+        dbgSkyMoveXInt = moveX;
+
+        irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
+                                          mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX + 1024 , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
+
+        dbgSkyMovingWindow = locMovingWindow;
+
+        //dbglocMovingWindow = locMovingWindow;
+
+        irr::core::vector2di middlePos = (locMovingWindow.LowerRightCorner - locMovingWindow.UpperLeftCorner) / 2 + locMovingWindow.UpperLeftCorner;
+        dbgSkyMiddlePos = middlePos;
+
+        dbgSkyRotation = currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f;
+
+        /*draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow,
+             irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
+             currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));*/
+
+        draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow,
+             irr::core::vector2di(-300, -300), irr::core::vector2di( middlePos.X, middlePos.Y),
              currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
     }
 }
@@ -3795,6 +3848,33 @@ void Race::UpdateTimers(irr::f32 frameDeltaTime) {
 
     for (itTimer = mTimerVec.begin(); itTimer != mTimerVec.end(); ++itTimer) {
         (*itTimer)->Update(frameDeltaTime);
+    }
+}
+
+void Race::UpdateCones(irr::f32 frameDeltaTime) {
+    std::vector<Cone*>::iterator itCones;
+    std::vector<Player*>::iterator itPlayer;
+    irr::core::vector3df playerPos;
+    irr::f32 dist;
+    irr::f32 speed;
+
+    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+        playerPos = (*itPlayer)->phobj->physicState.position;
+
+        for (itCones = coneVec->begin(); itCones != coneVec->end(); ++itCones) {
+            if (!(*itCones)->mActivity) {
+                dist = (playerPos - (*itCones)->Position).getLengthSQ();
+
+                if (dist < 2.0f) {
+                    speed = (*itPlayer)->phobj->physicState.speed * 1.0f;
+                    (*itCones)->WasHit(mPlayerVec.at(0)->craftForwardDirVec, speed);
+                }
+            }
+        }
+    }
+
+    for (itCones = coneVec->begin(); itCones != coneVec->end(); ++itCones) {
+        (*itCones)->Update(frameDeltaTime);
     }
 }
 

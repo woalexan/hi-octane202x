@@ -123,6 +123,12 @@ public:
 
     bool ready;
 
+    irr::f32 dbgSkyMoveXfloat;
+    irr::s32 dbgSkyMoveXInt;
+    irr::core::recti dbgSkyMovingWindow;
+    irr::core::vector2di dbgSkyMiddlePos;
+    irr::f32 dbgSkyRotation;
+
     //irr::core::recti dbglocMovingWindow;
 
     void HandleInput();
@@ -466,6 +472,7 @@ private:
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
     void UpdateMorphs(irr::f32 frameDeltaTime);
     void UpdateTimers(irr::f32 frameDeltaTime);
+    void UpdateCones(irr::f32 frameDeltaTime);
     void UpdateExternalCameras();
 
     std::vector<Timer*> mTimerVec;

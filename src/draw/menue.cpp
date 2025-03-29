@@ -1583,7 +1583,8 @@ void Menue::Update3DModels(irr::f32 frameDeltaTime) {
     //22.03.2025: 100.0f was correct value for rotation speed when running
     //with fixed FPS of 60, but was still to fast under much more FPS
     //therefore changed down to 35.0f
-    curr3DModelRotationDeg -= (35.0f) * (frameDeltaTime / (1/60.0f)) ;
+    irr::f32 speedFactor = (frameDeltaTime / (irr::f32)(1.0f / 60.0f));
+    curr3DModelRotationDeg -= 1.5f * speedFactor;
 
     if (curr3DModelRotationDeg > 360.0f)
         curr3DModelRotationDeg -= 360.0f;

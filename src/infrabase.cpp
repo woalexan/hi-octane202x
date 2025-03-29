@@ -103,7 +103,7 @@ InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScr
 
     mLogger->AddLogMessage((char*)"Game Resources initialized");
 
-    mTimeProfiler = new TimeProfiler();
+    mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,200));
 
     mInitOk = true;
 }
