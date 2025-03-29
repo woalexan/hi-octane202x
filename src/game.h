@@ -111,7 +111,7 @@ public:
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
 
-    bool computerPlayersAttack = false;
+    bool computerPlayersAttack = true;
     bool runDemoMode = false;
 
     //Returns true for success, false for error occured

@@ -1763,6 +1763,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetSymbol->drawScrPosition.set(0,0);
+    targetSymbol->sourceRect.UpperLeftCorner.set(0,0);
+    targetSymbol->sourceRect.LowerRightCorner.set(targetSymbol->sizeTex.Width, targetSymbol->sizeTex.Height);
 
     //arrow left of target symbol
     targetArrowLeft = new HudDisplayPart();
@@ -1780,6 +1782,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowLeft->drawScrPosition.set(0,0);
+    targetArrowLeft->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowLeft->sourceRect.LowerRightCorner.set(targetArrowLeft->sizeTex.Width, targetArrowLeft->sizeTex.Height);
 
     //arrow right of target symbol
     targetArrowRight = new HudDisplayPart();
@@ -1797,6 +1801,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowRight->drawScrPosition.set(0,0);
+    targetArrowRight->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowRight->sourceRect.LowerRightCorner.set(targetArrowRight->sizeTex.Width, targetArrowRight->sizeTex.Height);
 
     //arrow above of target symbol
     targetArrowAbove = new HudDisplayPart();
@@ -1814,6 +1820,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowAbove->drawScrPosition.set(0,0);
+    targetArrowAbove->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowAbove->sourceRect.LowerRightCorner.set(targetArrowAbove->sizeTex.Width, targetArrowAbove->sizeTex.Height);
 
     //arrow below of target symbol
     targetArrowBelow = new HudDisplayPart();
@@ -1831,6 +1839,8 @@ void HUD::InitTargetStuff() {
     //just set the target position to 0,0; we do not really need this variable
     //here in this struct
     targetArrowBelow->drawScrPosition.set(0,0);
+    targetArrowBelow->sourceRect.UpperLeftCorner.set(0,0);
+    targetArrowBelow->sourceRect.LowerRightCorner.set(targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height);
 
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
@@ -1912,7 +1922,10 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           if (!monitorWhichPlayer->mTargetMissleLock) {
              //no missle lock, green symbol and green text
              mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
-                targetSymbol->sourceRect, 0, *mColorSolid, true);
+                targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
+
+             /*mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
+                targetSymbol->sourceRect, 0, *mColorSolid, true);*/
 
                if (currShowTargetName) {
                     //write player name next to target symbol
