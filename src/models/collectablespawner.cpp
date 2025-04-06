@@ -211,8 +211,7 @@ CollectableSpawner::~CollectableSpawner() {
            it = mSpawnedCollectablesVec.erase(it);
 
            //delete Collectable itself
-           //this frees SceneNode and texture inside
-           //collectable implementation
+           //this frees the SceneNode
            delete pntrCollectible;
 
            //also delete the info struct

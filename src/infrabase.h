@@ -76,6 +76,7 @@ public:
 
   //if specified file is not found, returns empty path
   irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName);
+  bool UpdateFileListSaveFolder();
 
 private:
   //Irrlicht stuff
@@ -88,6 +89,7 @@ private:
   //this paths are all absolute paths
   irr::io::path mGameRootDir;
   irr::io::path mOriginalGameRootDir;
+  irr::io::path saveFolderDataPath;
 
   irr::io::IFileList* CreateFileList(irr::io::path whichAbsPath);
 

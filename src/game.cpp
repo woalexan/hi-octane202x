@@ -656,12 +656,13 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
                     );*/
 
-         // swprintf(text2, 390, L"");
+          swprintf(text2, 390, L"");
 
-        swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
+       /* swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
                  this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,
                  this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.Y, this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.X,
-                 this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.Y, this->mCurrentRace->dbgSkyMiddlePos.X, this->mCurrentRace->dbgSkyMiddlePos.Y);
+                 this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.Y, this->mCurrentRace->dbgSkyMiddlePos.X, this->mCurrentRace->dbgSkyMiddlePos.Y);*/
+
 
         /*   swprintf(text2, 390, L"%d %d %d %d %lf",
                        this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.X,

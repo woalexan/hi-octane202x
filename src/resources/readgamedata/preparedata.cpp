@@ -482,11 +482,14 @@ void PrepareData::ExtractMiniMapsSVGA() {
     //if we do not do this right, then the minimap extraction will fail
     if (mInfra->mExtendedGame) {
         UnpackDataFile(inputDatFile.c_str(), "extract/tmp-unpacked.dat");
+
+        ExtractImagesfromDataFile("extract/tmp-unpacked.dat", inputTabFile.c_str(), palette, "extract/minimaps/track0-1-");
+
+        remove("extract/tmp-unpacked.dat");
+    } else {
+        //non extended game version does not use RNC compression!
+        ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/minimaps/track0-1-");
     }
-
-    ExtractImagesfromDataFile("extract/tmp-unpacked.dat", inputTabFile.c_str(), palette, "extract/minimaps/track0-1-");
-
-    remove("extract/tmp-unpacked.dat");
 }
 
 class MinimapStitcher {

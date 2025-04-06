@@ -13,28 +13,34 @@
 //False otherwise
 bool MachineGun::LoadSprites() {
    ITexture* newTex;
-   newTex = mDriver->getTexture("extract/sprites/tmaps0043.png");
+   //newTex = mDriver->getTexture("extract/sprites/tmaps0043.png");
+
+   //get pointer to preloaded texture
+   newTex = this->mParent->mRace->mTexLoader->spriteTex.at(43);
 
    if (newTex == NULL)
        return false;
 
    animTexList.push_back(newTex);
 
-   newTex = mDriver->getTexture("extract/sprites/tmaps0044.png");
+   //newTex = mDriver->getTexture("extract/sprites/tmaps0044.png");
+   newTex = this->mParent->mRace->mTexLoader->spriteTex.at(44);
 
    if (newTex == NULL)
        return false;
 
    animTexList.push_back(newTex);
 
-   newTex = mDriver->getTexture("extract/sprites/tmaps0045.png");
+   //newTex = mDriver->getTexture("extract/sprites/tmaps0045.png");
+   newTex = this->mParent->mRace->mTexLoader->spriteTex.at(45);
 
    if (newTex == NULL)
        return false;
 
    animTexList.push_back(newTex);
 
-   newTex = mDriver->getTexture("extract/sprites/tmaps0046.png");
+   //newTex = mDriver->getTexture("extract/sprites/tmaps0046.png");
+   newTex = this->mParent->mRace->mTexLoader->spriteTex.at(46);
 
    if (newTex == NULL)
        return false;
@@ -327,7 +333,7 @@ MachineGun::MachineGun(Player* myParentPlayer, irr::scene::ISceneManager* smgr, 
 
             newImpactStruct->animSprite = mSmgr->addBillboardSceneNode();
             newImpactStruct->animSprite->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
-            //newImpactStruct->animSprite->setMaterialTexture(0, spriteTex);
+
             newImpactStruct->animSprite->setMaterialFlag(irr::video::EMF_LIGHTING, true);
             newImpactStruct->animSprite->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
