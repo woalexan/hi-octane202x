@@ -50,6 +50,10 @@
 #define GAME_DEFAULT_LAPS_TRACK8 6
 #define GAME_DEFAULT_LAPS_TRACK9 5
 
+#define CONFIG_DAT_SIZE_DEFAULT_GAME 11449
+#define CONFIG_DAT_SIZE_EXTENDED_GAME 137833
+
+
 struct RaceStatsEntryStruct; //Forward declaration
 class InfrastructureBase; //Forward declaration
 
@@ -190,6 +194,35 @@ public:
     //overloaded function to be called from outside, always works with config.dat
     void SetNewMainPlayerName(char* newName);
     char* GetNewMainPlayerName();
+
+    //only for the extended version of the game
+    //overloaded function to be called from outside, always works with config.dat
+    void SetNewExtGameAdditionalPlayerNames(irr::u8 setPlayerNr,
+                                                    char* newName);
+
+    //only for the extended version of the game
+    //overloaded function to be called from outside, always works with config.dat
+    void SetExtGameDeathMatchLives(irr::u8 newDeathMatchLives);
+
+    //only for the extended version of the game
+    //overloaded function to be called from outside, always works with config.dat
+    void SetExtGameHotSeatPlayers(irr::u8 newHotSetPlayers);
+
+    //only useful for extended version of the
+    //original game
+    irr::u8 GetCurrentHotSeatPlayers();
+
+    //only useful for extended version of the
+    //original game
+    irr::u8 GetCurrentDeathMatchLives();
+
+    //only for the extended version of the game
+    //overloaded function to be called from outside, always works with config.dat
+    void SetExtGameHotSeatRacingTime(irr::u8 newHotSeatRacingTime);
+
+    //only useful for extended version of the
+    //original game
+    irr::u8 GetCurrentHotSeatRacingTime();
 
     /**************************************
      * Race Track setup  stuff            *
@@ -395,6 +428,45 @@ private:
     //8 characters in Hi-Octane!
     //plus 1 termination char + 1 char extra :)
     char currMainPlayerName[10];
+
+    /****************************************/
+    /* Extended game version settings Start */
+    /****************************************/
+
+    //the ability to change all player names only exists in the extended
+    //version of the original game; name length restriction is again max 8
+    //characters for the name itself, plus one termination char
+    char currPlayer2Name[10];
+    char currPlayer3Name[10];
+    char currPlayer4Name[10];
+    char currPlayer5Name[10];
+    char currPlayer6Name[10];
+    char currPlayer7Name[10];
+    char currPlayer8Name[10];
+
+    void DecodeExtGameAdditionalPlayerNames(char** bufPntr);
+
+    void SetNewExtGameAdditionalPlayerNames(irr::u8 setPlayerNr,
+                     char* newName, char** bufPntr);
+
+    irr::u8 currDeathMatchLives;
+    void DecodeDeathMatchLives(char** bufPntr);
+    void SetExtGameDeathMatchLives(irr::u8 newDeathMatchLives, char** bufPntr);
+
+    irr::u8 currHotSeatPlayers;
+    void DecodeHotSeatPlayers(char** bufPntr);
+    void SetExtGameHotSeatPlayers(irr::u8 newHotSetPlayers, char** bufPntr);
+
+    irr::u8 currHotSeatRacingTime;
+    void DecodeHotSeatRacingTime(char** bufPntr);
+
+    void SetExtGameHotSeatRacingTime(irr::u8 newHotSeatRacingTime, char** bufPntr);
+
+    /**************************************/
+    /* Extended game version settings End */
+    /**************************************/
+
+    char* GetCurrentAdditionalPlayerNames(irr::u8 currPlayerNr, char* defaultName);
 
     //main player selected craft, is set by menue
     //and restored from config.dat file

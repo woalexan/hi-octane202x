@@ -141,19 +141,18 @@ bool SteamParticle::Update(irr::f32 frameDeltaTime) {
 SteamParticle::~SteamParticle() {
 }
 
-SteamFountain::SteamFountain(EntityItem* entityItem, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
+SteamFountain::SteamFountain(Race* parentRace, EntityItem* entityItem, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
                              irr::u32 nrMaxParticles) {
     mSmgr = smgr;
     mDriver = driver;
+    mParentRace = parentRace;
 
     mPosition = location;
     mNrMaxParticles = nrMaxParticles;
     mEntityItem = entityItem;
 
-    //load the cloud sprite from the game
-    std::string spriteTexFile("extract/sprites/tmaps0017.png");
-
-    mSteamTex = mDriver->getTexture(spriteTexFile.c_str());
+    //get the cloud sprite from the game
+    mSteamTex = mParentRace->mTexLoader->spriteTex.at(17);
     mSteamTexSize = mSteamTex->getSize();
 
     mCurrSpriteVec = new std::vector<SteamParticle*>();
@@ -180,11 +179,6 @@ SteamFountain::~SteamFountain() {
     }
 
     delete mCurrSpriteVec;
-
-    if (mSteamTex != NULL) {
-        //free my sprite texture as well
-        mDriver->removeTexture(mSteamTex);
-    }
 }
 
 void SteamFountain::Activate() {
@@ -311,9 +305,9 @@ SmokeTrail::SmokeTrail(irr::scene::ISceneManager* smgr, irr::video::IVideoDriver
     mNrMaxParticles = nrMaxParticles;
 
     //load the smoke sprite from the game
-    std::string spriteTexFile("extract/sprites/tmaps0013.png");
+    //std::string spriteTexFile("extract/sprites/tmaps0013.png");
 
-    mSmokeTex = mDriver->getTexture(spriteTexFile.c_str());
+    mSmokeTex = parentPlayer->mRace->mTexLoader->spriteTex.at(13);
     mSmokeTexSize = mSmokeTex->getSize();
 
     mCurrSpriteVec = new std::vector<SmokeParticle*>();
@@ -340,11 +334,6 @@ SmokeTrail::~SmokeTrail() {
     }
 
     delete mCurrSpriteVec;
-
-    if (mSmokeTex != NULL) {
-        //free my sprite texture as well
-        mDriver->removeTexture(mSmokeTex);
-    }
 }
 
 void SmokeTrail::Activate() {

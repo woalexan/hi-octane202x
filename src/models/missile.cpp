@@ -315,7 +315,10 @@ void Missile::CheckForHitOfMissileTrigger(irr::core::vector3df explodedAtLocatio
 //False otherwise
 bool MissileLauncher::LoadSprites() {
     //load the glowing ball (missile) from game sprites
-    mMissileTex = mDriver->getTexture("extract/sprites/tmaps0000.png");
+    //mMissileTex = mDriver->getTexture("extract/sprites/tmaps0000.png");
+
+    //get the pointer to the preloaded texture
+    mMissileTex = this->mParent->mRace->mTexLoader->spriteTex.at(0);
 
     if (mMissileTex == NULL)
         return false;
@@ -323,7 +326,10 @@ bool MissileLauncher::LoadSprites() {
     mMissileTexSize = mMissileTex->getSize();
 
     //load the smoke cloud sprite that is used behind the missle
-    mSmokeTex = mDriver->getTexture("extract/sprites/tmaps0017.png");
+    //mSmokeTex = mDriver->getTexture("extract/sprites/tmaps0017.png");
+
+    //get the pointer to the preloaded texture
+    mSmokeTex = this->mParent->mRace->mTexLoader->spriteTex.at(17);
 
     if (mSmokeTex == NULL)
         return false;

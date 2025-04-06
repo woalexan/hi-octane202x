@@ -275,9 +275,22 @@ public:
 
     //returns filename of sprite file for collectable
     //invalid entity types will revert to sprite number 42
-    std::string GetCollectableSpriteFileName(Entity::EntityType mEntityType);
+    irr::u16 GetCollectableSpriteNumber(Entity::EntityType mEntityType);
 
     bool GetWasRaceFinished();
+
+    //my texture loader
+    TextureLoader *mTexLoader;
+
+    //stores the detected minimap race track positions
+    //referenced to Terrain tile coordinates from level
+    //file. We need this information later to be able
+    //to convert player level coordinates to 2D minimap
+    //positions
+    irr::u32 miniMapStartW;
+    irr::u32 miniMapEndW;
+    irr::u32 miniMapStartH;
+    irr::u32 miniMapEndH;
 
 private:
     int levelNr;
@@ -285,6 +298,8 @@ private:
 
     void InitiateExitRace();
     void HandleExitRace();
+
+    void CleanupAllSceneNodes();
 
     //the image for the base of the minimap
     //without the player location dots
@@ -297,15 +312,7 @@ private:
 
     void SetupTopRaceTrackPointerOrigin();
 
-    //stores the detected minimap race track positions
-    //referenced to Terrain tile coordinates from level
-    //file. We need this information later to be able
-    //to convert player level coordinates to 2D minimap
-    //positions
-    irr::u32 miniMapStartW;
-    irr::u32 miniMapEndW;
-    irr::u32 miniMapStartH;
-    irr::u32 miniMapEndH;
+    void CalibrateMiniMap(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP);
 
     //holds the pixels coordinates inside the minimap texture
     //image which are actually used by non transparent pixels
@@ -339,9 +346,6 @@ private:
 
     //my sky image for the level background
     irr::video::ITexture* mSkyImage = NULL;
-
-    //my texture loader
-    TextureLoader *mTexLoader;
 
     //class for world awareness functions
     //which are needed by computer player control functions

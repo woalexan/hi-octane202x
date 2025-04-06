@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -34,11 +34,39 @@ void TextureLoader::LoadLevelTextures(char* filePath) {
     }
 }
 
-TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, char* levelTexFilePath) {
+void TextureLoader::LoadSpriteTextures(char* filePath) {
+    int currTexIdx = 0;
+    char finalpath[70];
+    char fname[20];
+    irr::video::ITexture* newTex;
+
+    NumSpriteTextures = 0;
+
+    //there are 256 texture files to load
+    for (currTexIdx = 0; currTexIdx < 48; currTexIdx++) {
+        //create filename
+        strcpy(finalpath, filePath);
+        sprintf (fname, "%0*d.png", 4, currTexIdx);
+        strcat(finalpath, fname);
+
+        //loading the specified sprite texture file
+        newTex = m_driver->getTexture(finalpath);
+
+        //add new texture to sprite vector
+        this->spriteTex.push_back(newTex);
+
+        NumSpriteTextures++;
+    }
+}
+
+TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, char* levelTexFilePath,  char* spriteTexFilePath) {
    m_driver = myDriver;
 
    //load all level textures
    LoadLevelTextures(levelTexFilePath);
+
+   //load all sprite textures
+   LoadSpriteTextures(spriteTexFilePath);
 }
 
 TextureLoader::~TextureLoader() {
@@ -51,6 +79,21 @@ TextureLoader::~TextureLoader() {
            pntr = (*it);
 
            it = levelTex.erase(it);
+
+           //free texture via driver
+           m_driver->removeTexture(pntr);
+       }
+   }
+
+   //free all loaded sprites again
+   if (spriteTex.size() > 0) {
+       std::vector<irr::video::ITexture*>::iterator it;
+       irr::video::ITexture* pntr;
+
+       for (it = spriteTex.begin(); it != spriteTex.end(); ) {
+           pntr = (*it);
+
+           it = spriteTex.erase(it);
 
            //free texture via driver
            m_driver->removeTexture(pntr);

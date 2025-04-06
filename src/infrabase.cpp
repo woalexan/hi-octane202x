@@ -336,8 +336,22 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path hioctaneCdFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("HIOCTANE.CD"));
 
     if (hioctaneCdFolderPath.empty()) {
-        cout << "I was not able to locate the original game HIOCTANE.CD folder" << std::endl;
-        return false;
+        cout << "No HIOCTANE.CD folder found => create it" << std::endl;
+        try {
+            char newDir[100];
+            strcpy(newDir, mOriginalGame->rootFolder->getPath().c_str());
+            strcat(newDir, (char*)("hioctane.cd"));
+            CreateDirectory(newDir);
+
+            //need to update root folder file list
+            this->mOriginalGame->rootFolder->drop();
+            this->mOriginalGame->rootFolder = CreateFileList(origGameRootDirPath);
+
+            hioctaneCdFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("HIOCTANE.CD"));
+        } catch(...) {
+            cout << "Failed to create HIOCTANE.CD folder" << std::endl;
+            return false;
+        }
     }
 
     //under HIOCTANE.CD subdir there is another folder "save"
@@ -349,12 +363,32 @@ bool InfrastructureBase::LocateOriginalGame() {
     }
 
     //now search for the SAVE folder inside the objects folder
-    irr::io::path saveFolderDataPath = LocateFileInFileList(helperList, irr::core::string<fschar_t>("SAVE"));
+    saveFolderDataPath = LocateFileInFileList(helperList, irr::core::string<fschar_t>("SAVE"));
     helperList->drop();
 
     if (saveFolderDataPath.empty()) {
-        cout << "I was not able to locate the save directory inside the original games HIOCTANE.CD folder" << std::endl;
-        return false;
+        cout << "I did not find a save directory inside the original games HIOCTANE.CD folder => create it" << std::endl;
+        try {
+            char newDir[100];
+            strcpy(newDir, hioctaneCdFolderPath.c_str());
+            strcat(newDir, (char*)("/save"));
+            CreateDirectory(newDir);
+
+            //need to update file list
+            //under HIOCTANE.CD subdir there is another folder "save"
+            helperList = CreateFileList(hioctaneCdFolderPath);
+
+            if (helperList == NULL) {
+                cout << "I was not able to create the file list for the original games HIOCTANE.CD directory" << std::endl;
+                return false;
+            }
+
+            saveFolderDataPath = LocateFileInFileList(helperList, irr::core::string<fschar_t>("SAVE"));
+            helperList->drop();
+        }  catch (...) {
+            cout << "Failed to create save folder" << std::endl;
+            return false;
+        }
     }
 
     this->mOriginalGame->saveFolder = CreateFileList(saveFolderDataPath);
@@ -451,6 +485,22 @@ bool InfrastructureBase::ProcessGameVersionDate() {
     std::cout << "Unknown game version date!" << std::endl;
 
     return false;
+}
+
+bool InfrastructureBase::UpdateFileListSaveFolder() {
+    if (this->mOriginalGame->saveFolder != NULL) {
+        this->mOriginalGame->saveFolder->drop();
+    }
+
+    //recreate the file list
+    this->mOriginalGame->saveFolder = CreateFileList(saveFolderDataPath);
+
+    if (this->mOriginalGame->saveFolder == NULL) {
+        cout << "I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory" << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {

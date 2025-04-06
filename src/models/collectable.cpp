@@ -78,10 +78,10 @@ void Collectable::SetupSceneNode(Entity::EntityType type, irr::core::vector3df p
 
     //if entity type is invalid for a collectable the function below will fallback
     //to sprite number 42, which is a sprite I did not know the purpose of
-    std::string spriteFileName = mRace->GetCollectableSpriteFileName(type);
+    irr::u16 spriteNr = mRace->GetCollectableSpriteNumber(type);
 
-    //loading the specified entity (billboard) texture file
-    collectable_tex = m_driver->getTexture(spriteFileName.c_str());
+    //Point to the correct (billboard) texture
+    collectable_tex = mRace->mTexLoader->spriteTex.at(spriteNr);
     texturesize = collectable_tex->getSize();
 
     this->billSceneNode = this->m_smgr->addBillboardSceneNode();
@@ -170,9 +170,6 @@ Collectable::~Collectable() {
 
     //remove SceneNode
     this->billSceneNode->remove();
-
-    //remove texture
-    m_driver->removeTexture(collectable_tex);
 }
 
 bool Collectable::GetIfVisible() {

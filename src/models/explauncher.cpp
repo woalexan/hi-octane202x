@@ -3,21 +3,23 @@
 //Returns true in case of success
 //False otherwise
 bool ExplosionLauncher::LoadSprites() {
-    //load the explosion sprites
+    //get the explosion sprites
 
     irr::video::ITexture* newTex;
-    char fileName[50];
-    char fname[20];
+    //char fileName[50];
+    //char fname[20];
 
     //there are 12 explosion sprites to be loaded
     //for the explosion animation
     for (long i = 0; i < 13; i++) {
 
-        strcpy(fileName, "extract/sprites/tmaps");
+        /*strcpy(fileName, "extract/sprites/tmaps");
         sprintf (fname, "%0*lu.png", 4, i);
-        strcat(fileName, fname);
+        strcat(fileName, fname);*/
 
-        newTex = mDriver->getTexture(fileName);
+        //newTex = mDriver->getTexture(fileName);
+        //get pointer to preloaded texture
+        newTex = this->mParentRace->mTexLoader->spriteTex.at(i);
 
         if (newTex == NULL)
             return false;

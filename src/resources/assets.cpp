@@ -9,6 +9,30 @@
 
 #include "assets.h"
 
+/* 30.03.2025: Additional settings in CONFIG.DAT for extended original game version:
+ *
+    offset: 0x34D value from 0 (lowest lives) up to 4 (seems to be 5 lives?):  ("Death match lives")
+            Default value is the minimum (0) value
+    offset: 0x34E value from 2 (2 hot seat players, min) up to 8 (max possible players): ("Hot Seat Players")
+            The number of selected bars in the UI for this config setting can also not be moved below 2 selected bars
+            Default value is the minimum value (2)
+    offset: 0x34F value from 1 (lowest possible value) up to 5 (max possible value): ("Hot Seat Racing Time")
+            The number of selected bars in the UI for this config setting can also not be moved below 1 selected bar
+            Default value is the minimum value (1)
+
+    offset: 0x350  Start of Player2 name if other name is set, if no name is set there is simply a 0 byte (null termination char there)
+    offset: 0x370  Start of Player3 name, --
+    offset: 0x390  Start of Player4 name, --
+    offset: 0x3B0  Start of Player5 name, --
+    offset: 0x3D0  Start of Player6 name, --
+    offset: 0x3F0  Start of Player7 name, --
+    offset: 0x410  Start of Player8 name, --
+
+    Extended options that are not saved in the CONFIG.DAT file, but simply reset every time the game starts:
+
+     "Use saved best clone lap": just set to true when game starts, not stored in CONFIG.DAT
+ */
+
 Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
     this->mInfra = mInfraPntr;
     mUpdateGameConfigFile = updateGameConfigFile;
@@ -19,26 +43,7 @@ Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
     //location that was found is stored in member
     //variable mAbsPathConfigFile
     if (!FindGameConfigFile()) {
-        //not found
-        char dirName[40];
-
-        strcpy(dirName, "originalgame/HIOCTANE.CD");
-
-        if (IsDirectoryPresent(dirName) != 1) {
-            //originalgame/HIOCTANE.CD directory not present
-            //create this directory
-
-            CreateDirectory("originalgame/HIOCTANE.CD");
-        }
-
-        strcpy(dirName, "originalgame/HIOCTANE.CD/SAVE");
-
-        if (IsDirectoryPresent(dirName) != 1) {
-            //originalgame/HIOCTANE.CD/SAVE directory not present
-            //create this directory
-
-            CreateDirectory("originalgame/HIOCTANE.CD/SAVE");
-        }
+        //config.dat not found or invalid
 
         //create a completely new config.dat file from scratch
         //with default settings
@@ -47,12 +52,16 @@ Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
         CreateNewConfigFileContents(&currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
 
         //save the new file
-        char filenameTestFile[80];
+        char filenameTestFile[100];
 
-        strcpy(filenameTestFile, "originalgame/HIOCTANE.CD/SAVE/CONFIG.DAT");
+        strcpy(filenameTestFile, this->mInfra->mOriginalGame->saveFolder->getPath().c_str());
+        strcat(filenameTestFile, (char*)("config.dat"));
 
         //save the new config.dat file
         WriteGameConfigFile(filenameTestFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
+
+        //remember config.dat filename/file path
+        mAbsPathConfigFile = strdup(filenameTestFile);
     } else {
         //config.dat file found
         if (ReadGameConfigFile(mAbsPathConfigFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen)) {
@@ -71,7 +80,33 @@ Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
             DecodeCurrentChampionshipName(&currentConfigFileDataByteArray, &pntr);
             DecodeAudioVolumes();
             DecodeGraphicSettings(&currentConfigFileDataByteArray);
+
+            //decode additional settings for extended version of the game
+            if (mInfra->mExtendedGame) {
+                DecodeExtGameAdditionalPlayerNames(&currentConfigFileDataByteArray);
+                DecodeDeathMatchLives(&currentConfigFileDataByteArray);
+                DecodeHotSeatPlayers(&currentConfigFileDataByteArray);
+                DecodeHotSeatRacingTime(&currentConfigFileDataByteArray);
+            }
         }
+    }
+
+    //if we have no extended game version, make sure
+    //that player2 up to player8 player name is empty
+    //so that we always use the default names for computer players
+    if (!mInfra->mExtendedGame) {
+        strcpy(currPlayer2Name, "");
+        strcpy(currPlayer3Name, "");
+        strcpy(currPlayer4Name, "");
+        strcpy(currPlayer5Name, "");
+        strcpy(currPlayer6Name, "");
+        strcpy(currPlayer7Name, "");
+        strcpy(currPlayer8Name, "");
+
+        //also set default value for DeathMatchLives
+        currDeathMatchLives = 0;
+        currHotSeatPlayers = 2;
+        currHotSeatRacingTime = 1;
     }
 
     InitDriverAssessementStrings();
@@ -318,6 +353,41 @@ void Assets::DecodeMainPlayerName(char** bufPntr) {
     ReadNullTerminatedString((*bufPntr), 0x094F, &pntr, 8);
 }
 
+//helper function for extended game version config.dat which reads possible
+//players 2 up to 8 set names from CONFIG.DAT file
+void Assets::DecodeExtGameAdditionalPlayerNames(char** bufPntr) {
+    //additional player 2 up to 8 names are stored in CONFIG.DAT
+    //at the following offsets
+    //player names in Hi-Octane are limited to max 8 characters
+    //offset: 0x350  Start of Player2 name if other name is set, if no name is set there is simply a 0 byte (null termination char there)
+    char* pntr = &this->currPlayer2Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x350, &pntr, 8);
+
+    //offset: 0x370  Start of Player3 name, --
+    pntr = &this->currPlayer3Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x370, &pntr, 8);
+
+    //offset: 0x390  Start of Player4 name, --
+    pntr = &this->currPlayer4Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x390, &pntr, 8);
+
+    //offset: 0x3B0  Start of Player5 name, --
+    pntr = &this->currPlayer5Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x3B0, &pntr, 8);
+
+    //offset: 0x3D0  Start of Player6 name, --
+    pntr = &this->currPlayer6Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x3D0, &pntr, 8);
+
+    //offset: 0x3F0  Start of Player7 name, --
+    pntr = &this->currPlayer7Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x3F0, &pntr, 8);
+
+    //offset: 0x410  Start of Player8 name, --
+    pntr = &this->currPlayer8Name[0];
+    ReadNullTerminatedString((*bufPntr), 0x410, &pntr, 8);
+}
+
 //helper function which reads the current championship
 //name from CONFIG.DAT file
 void Assets::DecodeCurrentChampionshipName(char** bufPntr, char** outStr) {
@@ -446,34 +516,47 @@ void Assets::CleanUpDriverAssessementStrings() {
 }
 
 //returns true if a config.dat file was
-//located, the absolute path to this file is stored
+//located that is valid, the absolute path to this file is stored
 //in member variable mAbsPathConfigFile
 bool Assets::FindGameConfigFile() {
-    //is there already an existing subfolder "HIOCTANE.CD"?
-    char dirName[40];
-    char fileName[60];
+    //we know there must be already a subfolder "HIOCTANE.CD/SAVE"
+    //in the original games folder, because the source code in the infrabase
+    //takes care of this. If the folder was not there at the first start
+    //of the game this folder is created
+    //we just need to check now if the config.dat file is already there as well
+    //or if not
 
     mAbsPathConfigFile = NULL;
 
-    strcpy(dirName, "originalgame/HIOCTANE.CD/SAVE");
-    strcpy(fileName, "originalgame/HIOCTANE.CD/SAVE/CONFIG.DAT");
+    irr::io::path configFilePath =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>("config.dat"));
 
-    if (IsDirectoryPresent(dirName) != 1) {
-        //originalgame/HIOCTANE.CD/SAVE directory not present
+    if (configFilePath.empty()) {
+        cout << "I did not find an existing config.dat file => create default config" << std::endl;
         return false;
     }
 
-    //now check for existing file CONFIG.DAT
-    if (FileExists(fileName) != 1) {
-        //config.dat file does not exist
-        return false;
+    //does the config.dat file have a valid file size?
+    FILE* iFile;
+
+    iFile = fopen(configFilePath.c_str(), "rb");
+    fseek(iFile, 0L, SEEK_END);
+    size_t sizeFile = ftell(iFile);
+    fclose(iFile);
+
+    if (((!mInfra->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_DEFAULT_GAME))
+         || ((mInfra->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_EXTENDED_GAME))) {
+            cout << "Existing config.dat file filesize does not fit to expected size => recreate it" << std::endl;
+            return false;
     }
 
+    //we found a valid config.dat file
     //create a copy of this string and store
     //it in member variable
     //we need to free this variable later!
-    mAbsPathConfigFile = strdup(fileName);
+    mAbsPathConfigFile = strdup(configFilePath.c_str());
 
+    //we did find the config.dat file
     return true;
 }
 
@@ -533,6 +616,159 @@ void Assets::SetNewMainPlayerName(char* newName, char** bufPntr) {
     (*bufPntr)[0x094F + 9] = 0;
 }
 
+//overloaded function to be called from outside, always works with config.dat
+void Assets::SetNewExtGameAdditionalPlayerNames(irr::u8 setPlayerNr,
+                                                char* newName) {
+    SetNewExtGameAdditionalPlayerNames(setPlayerNr, newName,
+                             &currentConfigFileDataByteArray);
+}
+
+//function for the extended version of the game, where the player 2 up to 8
+//names can also be set as well, valid value for setPlayerNr is from 2 (2nd player)
+//up to max 8 (8th player)
+void Assets::SetNewExtGameAdditionalPlayerNames(irr::u8 setPlayerNr,
+                 char* newName, char** bufPntr) {
+    if (!mInfra->mExtendedGame)
+        return;
+
+    if ((setPlayerNr < 2) || (setPlayerNr > 8))
+        return;
+
+    switch (setPlayerNr) {
+        case 2: {
+            strcpy(this->currPlayer2Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //2nd player name is stored at offset 0x350 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x350, currPlayer2Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x350 + 9] = 0;
+            break;
+         }
+
+        case 3: {
+            strcpy(this->currPlayer3Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //3rd player name is stored at offset 0x370 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x370, currPlayer3Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x370 + 9] = 0;
+            break;
+         }
+
+        case 4: {
+            strcpy(this->currPlayer4Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //4th player name is stored at offset 0x390 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x390, currPlayer4Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x390 + 9] = 0;
+            break;
+         }
+
+        case 5: {
+            strcpy(this->currPlayer5Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //5th player name is stored at offset 0x3B0 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x3B0, currPlayer5Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x3B0 + 9] = 0;
+            break;
+         }
+
+        case 6: {
+            strcpy(this->currPlayer6Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //6th player name is stored at offset 0x3D0 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x3D0, currPlayer6Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x3D0 + 9] = 0;
+            break;
+         }
+
+        case 7: {
+            strcpy(this->currPlayer7Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //7th player name is stored at offset 0x3F0 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x3F0, currPlayer7Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x3F0 + 9] = 0;
+            break;
+         }
+
+        case 8: {
+            strcpy(this->currPlayer8Name, newName);
+
+            //write new name also in the config file
+            //data array
+            //8th player name is stored at offset 0x410 in CONFIG.DAT
+            //name is limited to 8 characters only!
+            WriteNullTerminatedString(*bufPntr, 0x410, currPlayer8Name, 8);
+
+            //make sure at byte 9 after this offset with store a 0 character (string termination)
+            (*bufPntr)[0x410 + 9] = 0;
+            break;
+         }
+    }
+}
+
+//only available in extended version of the game
+void Assets::DecodeDeathMatchLives(char** bufPntr) {
+    //current value for death match lives is stored at
+    //0x34D in CONFIG.DAT
+    //value 0
+    //value 1
+    //value 2
+    //value 3
+    //value 4 is the highest possible value
+    this->currDeathMatchLives = (irr::u8)((*bufPntr)[0x34D]);
+}
+
+//only useful for extended version of the
+//original game
+irr::u8 Assets::GetCurrentDeathMatchLives() {
+    return currDeathMatchLives;
+}
+
+//only available in extended version of the game
+void Assets::DecodeHotSeatPlayers(char **bufPntr) {
+    //current value for hot seat players is stored at
+    //0x34E in CONFIG.DAT
+    //value 2 min up to 8 max
+    this->currHotSeatPlayers = (irr::u8)((*bufPntr)[0x34E]);
+}
+
+//only available in extended version of the game
+void Assets::DecodeHotSeatRacingTime(char **bufPntr) {
+    //current value for hot seat racing time is stored at
+    //0x34F in CONFIG.DAT
+    //value 1 min up to 5 max
+    this->currHotSeatRacingTime = (irr::u8)((*bufPntr)[0x34F]);
+}
+
 char* Assets::GetNewMainPlayerName() {
     return this->currMainPlayerName;
 }
@@ -589,6 +825,102 @@ irr::u8 Assets::RotateColorScheme(irr::u8 currentColorScheme) {
     return (nextColorScheme);
 }
 
+//Helper function to implemented mechanism with possible
+//changed player2 up to player8 names in extended original
+//game version, valid range for variable currPlayerNr is 2 up to 8
+char* Assets::GetCurrentAdditionalPlayerNames(irr::u8 currPlayerNr, char* defaultName) {
+    //the non extended game always uses the default
+    //player/pilot names
+    if (!mInfra->mExtendedGame) {
+        return (defaultName);
+    }
+
+    if ((currPlayerNr < 2) || (currPlayerNr > 8)) {
+        return (defaultName);
+    }
+
+    //for the extended game version we need to check if another player
+    //name was specified in the current game config
+    //if yes, then return the changed name from current game config,
+    //if not, also return the default name
+    switch (currPlayerNr) {
+        case 2: {
+           if (currPlayer2Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer2Name);
+           }
+
+           break;
+        }
+
+        case 3: {
+           if (currPlayer3Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer3Name);
+           }
+
+           break;
+        }
+
+        case 4: {
+           if (currPlayer4Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer4Name);
+           }
+
+           break;
+        }
+
+        case 5: {
+           if (currPlayer5Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer5Name);
+           }
+
+           break;
+        }
+
+        case 6: {
+           if (currPlayer6Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer6Name);
+           }
+
+           break;
+        }
+
+        case 7: {
+           if (currPlayer7Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer7Name);
+           }
+
+           break;
+        }
+
+        case 8: {
+           if (currPlayer8Name[0] == 0) {
+              return (defaultName);
+           } else {
+               return (currPlayer8Name);
+           }
+
+           break;
+        }
+
+        default: {
+             return (defaultName);
+             break;
+        }
+    }
+}
+
 std::vector<PilotInfoStruct*> Assets::GetPilotInfoNextRace(bool addHumanPlayer, bool addComputerPlayers) {
     std::vector<PilotInfoStruct*> pilotInfo;
 
@@ -614,6 +946,9 @@ std::vector<PilotInfoStruct*> Assets::GetPilotInfoNextRace(bool addHumanPlayer, 
         pilotInfo.push_back(newPlayer);
     } else {
         currentCpPlayerColorScheme = currSelectedCraftColorScheme;
+
+        //if no human is involved, start pilot number with 2
+        currPilotNumber = 2;
     }
 
     if (addComputerPlayers) {
@@ -624,7 +959,9 @@ std::vector<PilotInfoStruct*> Assets::GetPilotInfoNextRace(bool addHumanPlayer, 
             newPlayer->pilotNr = currPilotNumber;
             currPilotNumber++;
 
-            strcpy(newPlayer->pilotName, ((*itPilot)->pilotName));
+            //function GetCurrentAdditionalPlayerNames takes care that we choose the correct names
+            //for additional players, regardless if extended game version or not
+            strcpy(newPlayer->pilotName, GetCurrentAdditionalPlayerNames(newPlayer->pilotNr, (*itPilot)->pilotName));
             newPlayer->humanPlayer = ((*itPilot)->humanPlayer);
 
             strcpy(newPlayer->defaultCraftName, (*itPilot)->defaultCraftName);
@@ -955,6 +1292,57 @@ void Assets::SetGameDifficulty(irr::u8 newDifficulty, char** bufPntr) {
     //value 2 again slightly higher difficulty
     //value 3 means highest difficulty
     (*bufPntr)[0x977] = char(newDifficulty);
+}
+
+//overloaded function to be called from outside, always works with config.dat
+void Assets::SetExtGameDeathMatchLives(irr::u8 newDeathMatchLives) {
+    SetExtGameDeathMatchLives(newDeathMatchLives, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetExtGameDeathMatchLives(irr::u8 newDeathMatchLives, char** bufPntr) {
+    this->currDeathMatchLives = newDeathMatchLives;
+    //current value for death match lives is stored at
+    //0x34D in CONFIG.DAT
+    //value 0
+    //value 1
+    //value 2
+    //value 3
+    //value 4 is the highest possible value
+    (*bufPntr)[0x34D] = char(newDeathMatchLives);
+}
+
+//overloaded function to be called from outside, always works with config.dat
+void Assets::SetExtGameHotSeatPlayers(irr::u8 newHotSetPlayers) {
+    SetExtGameHotSeatPlayers(newHotSetPlayers, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetExtGameHotSeatPlayers(irr::u8 newHotSetPlayers, char** bufPntr) {
+    this->currHotSeatPlayers = newHotSetPlayers;
+
+    //current value for hot seat players is stored at
+    //0x34E in CONFIG.DAT
+    //value from min 2 up to 8
+    (*bufPntr)[0x34E] = char(newHotSetPlayers);
+}
+
+//overloaded function to be called from outside, always works with config.dat
+void Assets::SetExtGameHotSeatRacingTime(irr::u8 newHotSeatRacingTime) {
+    SetExtGameHotSeatRacingTime(newHotSeatRacingTime, &currentConfigFileDataByteArray);
+}
+
+void Assets::SetExtGameHotSeatRacingTime(irr::u8 newHotSeatRacingTime, char** bufPntr) {
+    this->currHotSeatRacingTime = newHotSeatRacingTime;
+
+    //current value for hot seat racing time is stored at
+    //0x34F in CONFIG.DAT
+    //value from min 1 up to 5
+    (*bufPntr)[0x34F] = char(newHotSeatRacingTime);
+}
+
+//only useful for extended version of the
+//original game
+irr::u8 Assets::GetCurrentHotSeatPlayers() {
+    return currHotSeatPlayers;
 }
 
 irr::u8 Assets::GetCurrentGameDifficulty() {
@@ -1548,7 +1936,9 @@ std::vector<PointTableEntryStruct*>* Assets::GetLastRacePointsTable(std::vector<
            newPointTabEntry->namePlayer = strdup((*itEntry)->playerName);
 
            //assign the earned points
-           newPointTabEntry->pointVal = pointAssigementVec.at((*itEntry)->racePosition - 1);
+           if (((*itEntry)->racePosition > 0) && ((*itEntry)->racePosition < 9)) {
+                newPointTabEntry->pointVal = pointAssigementVec.at((*itEntry)->racePosition - 1);
+           }
 
            resultVec->push_back(newPointTabEntry);
        }
@@ -1674,17 +2064,22 @@ bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** champion
     strcpy(*championshipNameOutBuf, "EMPTY");
 
     //build save game file name for search
-    char filename[80];
     char fname[20];
 
-    strcpy(filename, "originalgame/HIOCTANE.CD/SAVE/SAVE");
-    sprintf (fname, "%0*u.DAT", 2, whichSlotNr);
+    //update file list for save directory
+    //otherwise we do not find the latest added files
+    if (!mInfra->UpdateFileListSaveFolder())
+        return false;
 
-    strcat(filename, fname);
+    //is this file existing?
+    sprintf (fname, "save%0*u.dat", 2, whichSlotNr);
 
     //does this file exist? If not or there is
     //another problem simply exit
-    if (FileExists(filename) != 1)
+    irr::io::path foundFilePath =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>(fname));
+
+    if (foundFilePath.empty())
         return false;
 
     char* helperSaveGameDataByteArray = NULL;
@@ -1692,8 +2087,14 @@ bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** champion
 
     //file exists, read the savegame file
     //into a temporary helper buffer
-    if (!ReadGameConfigFile(filename, &helperSaveGameDataByteArray, helperSaveGameDataByteArrayLen))
+    char* tempFileName = strdup(foundFilePath.c_str());
+
+    if (!ReadGameConfigFile(tempFileName, &helperSaveGameDataByteArray, helperSaveGameDataByteArrayLen)) {
+        free(tempFileName);
         return false;
+    }
+
+    free(tempFileName);
 
     DecodeCurrentChampionshipName(&helperSaveGameDataByteArray, championshipNameOutBuf);
 
@@ -1763,13 +2164,22 @@ bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
         return false;
 
     //build save game file name to load
-    char filename[80];
     char fname[20];
 
-    strcpy(filename, "originalgame/HIOCTANE.CD/SAVE/SAVE");
-    sprintf (fname, "%0*u.DAT", 2, whichSlotNr);
+    //update file list for save directory
+    if (!mInfra->UpdateFileListSaveFolder())
+        return false;
 
-    strcat(filename, fname);
+    //build file name
+    sprintf (fname, "save%0*u.dat", 2, whichSlotNr);
+
+    //does this file exist? If not or there is
+    //another problem simply exit
+    irr::io::path foundFilePath =
+            mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>(fname));
+
+    if (foundFilePath.empty())
+        return false;
 
     //delete the data of a possible already loaded save game
     if (currentChampionshipSaveGameDataByteArray != NULL) {
@@ -1780,13 +2190,25 @@ bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
 
     //read the raw data of the championship save game file
     //into the special buffer for championship data
-    if (!ReadGameConfigFile(filename, &currentChampionshipSaveGameDataByteArray, currentChampionshipSaveGameDataByteArrayLen))
+    char* tempFileName = strdup(foundFilePath.c_str());
+    if (!ReadGameConfigFile(tempFileName, &currentChampionshipSaveGameDataByteArray, currentChampionshipSaveGameDataByteArrayLen)) {
+        free(tempFileName);
         return false;
+    }
+
+    free(tempFileName);
 
     //decode raw data into my members
     //all of the settings below are now taken from the save game itself
     //the original game does seem to do the same
     DecodeMainPlayerName(&currentChampionshipSaveGameDataByteArray);
+
+    //if we have the extended game read the player2 up to player8 names
+    //back as well
+    if (mInfra->mExtendedGame) {
+       DecodeExtGameAdditionalPlayerNames(&currentChampionshipSaveGameDataByteArray);
+    }
+
     DecodeLastSelectedRaceTrack(&currentChampionshipSaveGameDataByteArray);
     DecodeLastSelectedCraft(&currentChampionshipSaveGameDataByteArray);
     DecodeGameDifficultySetting(&currentChampionshipSaveGameDataByteArray);
@@ -1824,11 +2246,11 @@ bool Assets::SaveChampionshipSaveGame(irr::u8 whichSlotNr) {
 
     //build save game file name for
     //writting the file
-    char filename[80];
+    char filename[100];
     char fname[20];
 
-    strcpy(filename, "originalgame/HIOCTANE.CD/SAVE/SAVE");
-    sprintf (fname, "%0*u.DAT", 2, whichSlotNr);
+    strcpy(filename, mInfra->mOriginalGame->saveFolder->getPath().c_str());
+    sprintf (fname, "/save%0*u.dat", 2, whichSlotNr);
 
     strcat(filename, fname);
 
@@ -1841,6 +2263,38 @@ bool Assets::SaveChampionshipSaveGame(irr::u8 whichSlotNr) {
     char* hlpBuf = strdup(this->currMainPlayerName);
     SetNewMainPlayerName(hlpBuf, &currentChampionshipSaveGameDataByteArray);
     free(hlpBuf);
+
+    //if we have the extended game version, we need to also
+    //write all other player names
+    if (mInfra->mExtendedGame) {
+        hlpBuf = strdup(this->currPlayer2Name);
+        SetNewExtGameAdditionalPlayerNames(2, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+
+        hlpBuf = strdup(this->currPlayer3Name);
+        SetNewExtGameAdditionalPlayerNames(3, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+
+        hlpBuf = strdup(this->currPlayer4Name);
+        SetNewExtGameAdditionalPlayerNames(4, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+
+        hlpBuf = strdup(this->currPlayer5Name);
+        SetNewExtGameAdditionalPlayerNames(5, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+
+        hlpBuf = strdup(this->currPlayer6Name);
+        SetNewExtGameAdditionalPlayerNames(6, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+
+        hlpBuf = strdup(this->currPlayer7Name);
+        SetNewExtGameAdditionalPlayerNames(7, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+
+        hlpBuf = strdup(this->currPlayer8Name);
+        SetNewExtGameAdditionalPlayerNames(8, hlpBuf, &currentChampionshipSaveGameDataByteArray);
+        free(hlpBuf);
+    }
 
     SetNewLastSelectedRaceTrack(this->currLevelSelected, &currentChampionshipSaveGameDataByteArray);
     SetNewMainPlayerSelectedCraft(this->currMainPlayerCraftSelected, &currentChampionshipSaveGameDataByteArray);
@@ -1943,7 +2397,21 @@ void Assets::WriteMe8UnknownBytes(char** targetBuf, irr::u8 unknownValue, size_t
 
 void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeBytes) {
     //the default config.dat file has 11449 bytes
-    size_t size = 11449;
+    //if we have the extended game version, we need to add
+    //so much 0 bytes to it, until we have a config file
+    //with a size of 137833 bytes at the end
+    //I can only assume the additional space was reserved
+    //for the additional extended original game game
+    //settings (like you can change all player names), the
+    //additional game modes and so on
+    //Non extended version has a 11449 bytes sized config.dat
+    //extended version has 137833 bytes
+    //so we add 126384 bytes
+    size_t size = CONFIG_DAT_SIZE_DEFAULT_GAME;
+
+    if (mInfra->mExtendedGame) {
+        size = CONFIG_DAT_SIZE_EXTENDED_GAME;
+    }
 
     outNewSizeBytes = size;
 
@@ -1963,6 +2431,27 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
 
     //set default player name
     SetNewMainPlayerName((char*)"PLAYER", targetBuf);
+
+    //if extended game version, set all player names from 2 up to 8
+    //to empty strings
+    if (mInfra->mExtendedGame) {
+        SetNewExtGameAdditionalPlayerNames(2, (char*)"", targetBuf);
+        SetNewExtGameAdditionalPlayerNames(3, (char*)"", targetBuf);
+        SetNewExtGameAdditionalPlayerNames(4, (char*)"", targetBuf);
+        SetNewExtGameAdditionalPlayerNames(5, (char*)"", targetBuf);
+        SetNewExtGameAdditionalPlayerNames(6, (char*)"", targetBuf);
+        SetNewExtGameAdditionalPlayerNames(7, (char*)"", targetBuf);
+        SetNewExtGameAdditionalPlayerNames(8, (char*)"", targetBuf);
+
+        //also set Death match lives to default value of 0
+        SetExtGameDeathMatchLives(0, targetBuf);
+
+        //also set hot seat player value to default value of 2
+        SetExtGameHotSeatPlayers(2, targetBuf);
+
+        //set hot seat racing time default value of 1
+        SetExtGameHotSeatRacingTime(1, targetBuf);
+    }
 
     //there is currently no champhionship open
     SetCurrentChampionshipName((char*)"", targetBuf);
@@ -2017,6 +2506,23 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     newTrack = CreateNewDefaultRaceTrackStats(6, GAME_DEFAULT_LAPS_TRACK6);
     WriteCurrentRaceTrackStats(6, newTrack, targetBuf);
     delete newTrack;
+
+    //if we have the extended original game version
+    //write also the information about the 3 additional
+    //race tracks
+    if (mInfra->mExtendedGame) {
+        newTrack = CreateNewDefaultRaceTrackStats(7, GAME_DEFAULT_LAPS_TRACK7);
+        WriteCurrentRaceTrackStats(7, newTrack, targetBuf);
+        delete newTrack;
+
+        newTrack = CreateNewDefaultRaceTrackStats(8, GAME_DEFAULT_LAPS_TRACK8);
+        WriteCurrentRaceTrackStats(8, newTrack, targetBuf);
+        delete newTrack;
+
+        newTrack = CreateNewDefaultRaceTrackStats(9, GAME_DEFAULT_LAPS_TRACK9);
+        WriteCurrentRaceTrackStats(9, newTrack, targetBuf);
+        delete newTrack;
+    }
 
     //to be completely humble I do not know why we need to write all the bytes
     //below; I do not know currently what the mean for the game;
@@ -2243,6 +2749,26 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     byteVec.push_back(std::make_pair(0x2AD1, 0x0F));
     byteVec.push_back(std::make_pair(0x2B1B, 0x0F));
     byteVec.push_back(std::make_pair(0x2B65, 0x0F));
+
+    if (mInfra->mExtendedGame) {
+       //add unknown value also for the additional 3 levels
+       byteVec.push_back(std::make_pair(0x2BAF, 0x0F));
+       byteVec.push_back(std::make_pair(0x2BF9, 0x0F));
+       byteVec.push_back(std::make_pair(0x2C43, 0x0F));
+
+       //30.03.2025: The extended game has 9 bytes with value 1 at the following locations,
+       //but I was not able to find out what the do. Lets just write them right now, so that
+       //we get a proper config.dat
+       byteVec.push_back(std::make_pair(0x430, 0x01));
+       byteVec.push_back(std::make_pair(0x431, 0x01));
+       byteVec.push_back(std::make_pair(0x432, 0x01));
+       byteVec.push_back(std::make_pair(0x433, 0x01));
+       byteVec.push_back(std::make_pair(0x434, 0x01));
+       byteVec.push_back(std::make_pair(0x435, 0x01));
+       byteVec.push_back(std::make_pair(0x436, 0x01));
+       byteVec.push_back(std::make_pair(0x437, 0x01));
+       byteVec.push_back(std::make_pair(0x438, 0x01));
+    }
 
     byteVec.push_back(std::make_pair(0x98C, 0x04));
     byteVec.push_back(std::make_pair(0x9E0, 0x01));
