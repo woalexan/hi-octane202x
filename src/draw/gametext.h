@@ -42,6 +42,8 @@ private:
     irr::video::IVideoDriver* myDriver;
     irr::IrrlichtDevice* myDevice;
 
+    void LoadInitialFont();
+
     GameTextFont* LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = NULL);
     irr::core::rect<irr::s32> FindCharArea(GameTextCharacterInfo *character, bool &succesFlag);
     bool AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor);
@@ -57,6 +59,8 @@ private:
 public:
     GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver);
     ~GameText();
+
+    void LoadFontsStep2();
 
     //Renders specified 2D text using irrlicht at the specified location
     //Parameters:
@@ -93,26 +97,26 @@ public:
     irr::u32 GetWidthPixelsGameNumberText(char* numberText, GameTextFont *whichFont);
 
     //main use is in Hud banner text at the lower part of the screen
-    GameTextFont* HudWhiteTextBannerFont;
+    GameTextFont* HudWhiteTextBannerFont = NULL;
 
     //is the white smaller text font that is used in the menue for example
     //to give additional information about number of laps etc...
-    GameTextFont* GameMenueWhiteTextSmallSVGA;
+    GameTextFont* GameMenueWhiteTextSmallSVGA = NULL;
 
     //is the green smaller text font that is used in the menue for example
     //to give additional information about number of laps etc...
     //is actually derived from loaded font GameMenueWhiteTextSmallSVGA, by just swapping color of
     //pixels from white to color "green"
-    GameTextFont* GameMenueUnselectedTextSmallSVGA;
+    GameTextFont* GameMenueUnselectedTextSmallSVGA = NULL;
 
     //main use is in the main menue of the page for entries that are not selected
     //is actually derived from loaded font HudWhiteTextBannerFont, by just swapping color of
     //pixels from white to color "green"
-    GameTextFont* GameMenueUnselectedEntryFont;
+    GameTextFont* GameMenueUnselectedEntryFont = NULL;
 
     //main use is text that is temporarily seen in the middle
     //of the Hud (for example Superman etc..)
-    GameTextFont* HudBigGreenText;
+    GameTextFont* HudBigGreenText = NULL;
 
     //main use is to display the lap time number text in Hud (there is a red and grey variant of the characters)
     //important note: this font only contains numbers from 0 up to 9, "." and "/" character!
@@ -120,21 +124,21 @@ public:
     //printing, which will draw the graphics symbol with the two red arrows that is used next to the current lap numbers
     //to print numbers text using this font we also have to use DrawGameNumberText routine instead
     //of method DrawGameText!
-    GameTextFont* HudLaptimeNumberRed;
-    GameTextFont* HudLaptimeNumberGrey;
+    GameTextFont* HudLaptimeNumberRed = NULL;
+    GameTextFont* HudLaptimeNumberGrey = NULL;
 
     //main use is to diplay the kill count in the Hud with the bigger red number letters
     //there is also a special character ">" that will draw the red skull used next to the current player kill count
-    GameTextFont* HudKillCounterNumberRed;
+    GameTextFont* HudKillCounterNumberRed = NULL;
 
     //the following two (very small fonts) are used
     //to describe target (opponents) names next
     //to the HUD target symbol
     //only characters from A up to Z are available!
-    GameTextFont* HudTargetNameGreen;
-    GameTextFont* HudTargetNameRed;
+    GameTextFont* HudTargetNameGreen = NULL;
+    GameTextFont* HudTargetNameRed = NULL;
 
-    GameTextFont* ThinWhiteText;
+    GameTextFont* ThinWhiteText = NULL;
 
     bool GameTextInitializedOk = false;
 };

@@ -10,8 +10,8 @@
 #include "sound.h"
 #include <iostream>
 
-bool SoundEngine::getInitOk() {
-    return mInitOk;
+bool SoundEngine::getSoundResourcesLoadOk() {
+    return mSoundResourcesLoadOk;
 }
 
 void SoundEngine::StopAllSounds() {
@@ -158,7 +158,9 @@ void SoundEngine::UpdateListenerLocation(irr::core::vector3df location, irr::cor
    sf::Listener::setDirection(frontDirVec.X, frontDirVec.Y, -frontDirVec.Z);
 }
 
-SoundEngine::SoundEngine() {
+SoundEngine::SoundEngine(InfrastructureBase* infraPnter) {
+    mInfra = infraPnter;
+
     //create new vector where we can store our soundbuffers/soundresources
     SoundResVec = new std::vector<SoundResEntry*>();
 
@@ -166,9 +168,6 @@ SoundEngine::SoundEngine() {
     SoundVec = new std::vector<sf::Sound*>();
 
     mNrSoundSources = 0;
-
-    //load all sound resource files
-    LoadSoundResources();
 
     mNonLocalizedSoundPos = new irr::core::vector3df(0.0f, 0.0f, 0.0f);
 }
@@ -317,55 +316,79 @@ void SoundEngine::StopLoopingSound(sf::Sound *pntrSound) {
     }
 }
 
-//Loads the available sound resources for the game
-void SoundEngine::LoadSoundResources() {
-    mInitOk = true;
-
-    //load all the sound resource files we need for this game
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT1, SRES_MENUE_TYPEWRITEREFFECT1);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT2, SRES_MENUE_TYPEWRITEREFFECT2);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_SELECTOTHERITEM, SRES_MENUE_SELECTOTHERITEM);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_CHANGECHECKBOXVAL, SRES_MENUE_CHANGECHECKBOXVAL);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_MENUE_WINDOWMOVEMENT, SRES_MENUE_WINDOWMOVEMENT);
-
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_PICKUP, SRES_GAME_PICKUP);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_REFUEL, SRES_GAME_REFUEL);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_LARGECAR, SRES_GAME_LARGECAR);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_WARNING, SRES_GAME_WARNING);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_TURBO, SRES_GAME_TURBO);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_BOOSTER, SRES_GAME_BOOSTER);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_COLLIDED, SRES_GAME_COLLISION);
-
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MGUN_SINGLESHOT, SRES_GAME_MGUN_SINGLESHOT);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MGUN_SHOTFAILED, SRES_GAME_MGUN_SHOTFAILED);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MGUN_LONGSHOT, SRES_GAME_MGUN_LONGSHOT);
-
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
-
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
-
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_RICCO1, SRES_GAME_RICCO1);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_RICCO2, SRES_GAME_RICCO2);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_RICCO3, SRES_GAME_RICCO3);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_LOCKON, SRES_GAME_LOCKON);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_START1, SRES_GAME_START1);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_GAME_START2, SRES_GAME_START2);
+//returns true if successful, false otherwise
+bool SoundEngine::LoadSoundResourcesIntro() {
+    bool initOk = true;
 
     //load all the intro sounds as well
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_TURBO, SRES_INTRO_TURBO);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_SMALLCAR, SRES_INTRO_SMALLCAR);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_SCRAPE2, SRES_INTRO_SCRAPE2);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_RICCOS, SRES_INTRO_RICCOS);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_PAST, SRES_INTRO_PAST);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_MISSILE, SRES_INTRO_MISSILE);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_MINIGUN, SRES_INTRO_MINIGUN);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
-    mInitOk &= mInitOk && LoadSoundResource(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_TURBO, SRES_INTRO_TURBO);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_SMALLCAR, SRES_INTRO_SMALLCAR);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_SCRAPE2, SRES_INTRO_SCRAPE2);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_RICCOS, SRES_INTRO_RICCOS);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_PAST, SRES_INTRO_PAST);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_MISSILE, SRES_INTRO_MISSILE);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_MINIGUN, SRES_INTRO_MINIGUN);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
+    initOk &= initOk && LoadSoundResource(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);
+
+    return initOk;
+}
+
+void SoundEngine::UnLoadSoundResourcesIntro() {
+    //remove all intro sounds again
+    DeleteSoundResource(SRES_INTRO_FIRE);
+    DeleteSoundResource(SRES_INTRO_EXPLODE);
+    DeleteSoundResource(SRES_INTRO_TURBO);
+    DeleteSoundResource(SRES_INTRO_SMALLCAR);
+    DeleteSoundResource(SRES_INTRO_SCRAPE2);
+    DeleteSoundResource(SRES_INTRO_RICCOS);
+    DeleteSoundResource(SRES_INTRO_PAST);
+    DeleteSoundResource(SRES_INTRO_MISSILE);
+    DeleteSoundResource(SRES_INTRO_MINIGUN);
+    DeleteSoundResource(SRES_INTRO_HELEHIT);
+    DeleteSoundResource(SRES_INTRO_FIREPAST);
+    DeleteSoundResource(SRES_INTRO_CURTAIN);
+    DeleteSoundResource(SRES_INTRO_BOOSTER);
+}
+
+//Loads the available sound resources for the game
+void SoundEngine::LoadSoundResources() {
+    mSoundResourcesLoadOk = true;
+
+    //load all the sound resource files we need for this game
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT1, SRES_MENUE_TYPEWRITEREFFECT1);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT2, SRES_MENUE_TYPEWRITEREFFECT2);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_SELECTOTHERITEM, SRES_MENUE_SELECTOTHERITEM);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_CHANGECHECKBOXVAL, SRES_MENUE_CHANGECHECKBOXVAL);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_WINDOWMOVEMENT, SRES_MENUE_WINDOWMOVEMENT);
+
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_PICKUP, SRES_GAME_PICKUP);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_REFUEL, SRES_GAME_REFUEL);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_LARGECAR, SRES_GAME_LARGECAR);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_WARNING, SRES_GAME_WARNING);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_TURBO, SRES_GAME_TURBO);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_BOOSTER, SRES_GAME_BOOSTER);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk &&LoadSoundResource(SFILE_GAME_COLLIDED, SRES_GAME_COLLISION);
+
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MGUN_SINGLESHOT, SRES_GAME_MGUN_SINGLESHOT);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MGUN_SHOTFAILED, SRES_GAME_MGUN_SHOTFAILED);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MGUN_LONGSHOT, SRES_GAME_MGUN_LONGSHOT);
+
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
+
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
+
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_RICCO1, SRES_GAME_RICCO1);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_RICCO2, SRES_GAME_RICCO2);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_RICCO3, SRES_GAME_RICCO3);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_LOCKON, SRES_GAME_LOCKON);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_START1, SRES_GAME_START1);
+    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_START2, SRES_GAME_START2);
 }
 
 //Loads a single specified sound resource
@@ -473,21 +496,6 @@ SoundEngine::~SoundEngine() {
     DeleteSoundResource(SRES_GAME_LOCKON);
     DeleteSoundResource(SRES_GAME_START1);
     DeleteSoundResource(SRES_GAME_START2);
-
-    //remove all the intro sounds as well
-    DeleteSoundResource(SRES_INTRO_FIRE);
-    DeleteSoundResource(SRES_INTRO_EXPLODE);
-    DeleteSoundResource(SRES_INTRO_TURBO);
-    DeleteSoundResource(SRES_INTRO_SMALLCAR);
-    DeleteSoundResource(SRES_INTRO_SCRAPE2);
-    DeleteSoundResource(SRES_INTRO_RICCOS);
-    DeleteSoundResource(SRES_INTRO_PAST);
-    DeleteSoundResource(SRES_INTRO_MISSILE);
-    DeleteSoundResource(SRES_INTRO_MINIGUN);
-    DeleteSoundResource(SRES_INTRO_HELEHIT);
-    DeleteSoundResource(SRES_INTRO_FIREPAST);
-    DeleteSoundResource(SRES_INTRO_CURTAIN);
-    DeleteSoundResource(SRES_INTRO_BOOSTER);
 
     delete SoundResVec;
 

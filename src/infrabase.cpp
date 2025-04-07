@@ -420,28 +420,36 @@ bool InfrastructureBase::LocateOriginalGame() {
     return true;
 }
 
-bool InfrastructureBase::InitGameResources() {
+bool InfrastructureBase::InitGameResourcesInitialStep() {
     /***********************************************************/
-    /* Extract game assets                                     */
+    /* Extract first game assets needed to show a first        */
+    /* graphical screen to the user while the original games   */
+    /* data is extracted                                       */
+    /* Most of the data extraction happens later from the      */
+    /* games main loop, so that rendering is not               */
+    /* completely blocked                                      */
     /***********************************************************/
     try {
         mPrepareData = new PrepareData(this);
     }
     catch (const std::string &msg) {
-        cout << "Game assets preparation operation failed!\n" << msg << endl;
+        cout << "Initial part of game assets preparation operation failed!\n" << msg << endl;
         return false;
     }
 
     /***********************************************************/
-    /* Load GameFonts                                          */
+    /* Load the first initial GameFont, so that we can show    */
+    /* a first graphical screen                                */
     /***********************************************************/
     mGameTexts = new GameText(mDevice, mDriver);
 
     if (!mGameTexts->GameTextInitializedOk) {
-        cout << "Game fonts init operation failed!" << endl;
+        cout << "First Game font init operation failed!" << endl;
         return false;
     }
 
+    //All preparations succesfull to show a first
+    //graphical screen
     return true;
 }
 
@@ -541,10 +549,14 @@ InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScr
     mLogger = new Logger(mGuienv, logWindowPos);
     mLogger->HideWindow();
 
-    if (!InitGameResources())
+    //Initial most basic game assets to be able
+    //to show a first graphical screen to the user
+    //remaining data extraction/loading of assets is
+    //done from main loop of the game
+    if (!InitGameResourcesInitialStep())
         return;
 
-    mLogger->AddLogMessage((char*)"Game Resources initialized");
+    mLogger->AddLogMessage((char*)"Initial Game Resources initialized");
 
     mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,200));
 

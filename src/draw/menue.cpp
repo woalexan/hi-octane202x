@@ -28,54 +28,6 @@ void Menue::StopMenueSound() {
 bool Menue::InitMenueResources() {
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
-    //first load background image for menue
-    backgnd = mInfra->mDriver->getTexture("extract/images/oscr0-1.png");
-
-    if (backgnd == NULL) {
-        //there was a texture loading error
-        //just return with false
-        return false;
-    }
-
-    irr::core::dimension2d<irr::u32> backgndSize;
-
-    backgndSize = backgnd->getSize();
-    if ((backgndSize.Width != mInfra->mScreenRes.Width) ||
-        (backgndSize.Height != mInfra->mScreenRes.Height)) {
-        //background texture size does not fit with selected screen resolution
-        return false;
-    }
-
-    //load gameTitle
-    gameTitle = mInfra->mDriver->getTexture("extract/images/title.png");
-
-    if (gameTitle == NULL) {
-        //there was a texture loading error
-        //just return with false
-        return false;
-    }
-
-    gameTitleSize = gameTitle->getSize();
-    //calculate position to draw gameTitle so that it is centered on the screen
-    //because most likely target resolution does not fit with image resolution
-    gameTitleDrawPos.X = (mInfra->mScreenRes.Width - gameTitleSize.Width) / 2;
-    gameTitleDrawPos.Y = (mInfra->mScreenRes.Height - gameTitleSize.Height) / 2;
-
-    //load race loading screen
-    raceLoadingScr = mInfra->mDriver->getTexture("extract/images/onet0-1.png");
-
-    if (raceLoadingScr == NULL) {
-        //there was a texture loading error
-        //just return with false
-        return false;
-    }
-
-    raceLoadingScrSize = raceLoadingScr->getSize();
-    //calculate position to draw race loading screen so that it is centered on the screen
-    //because maybe target resolution does not fit with image resolution
-    raceLoadingScrDrawPos.X = (mInfra->mScreenRes.Width - raceLoadingScrSize.Width) / 2;
-    raceLoadingScrDrawPos.Y = (mInfra->mScreenRes.Height - raceLoadingScrSize.Height) / 2;
-
     //load window graphic elements
     wndCornerElementUpperLeftTex = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0299.bmp");
     if (wndCornerElementUpperLeftTex == NULL)
@@ -184,10 +136,7 @@ bool Menue::InitMenueResources() {
     return true;
 }
 
-void Menue::AcceptedRaceSetup() {
-    //show race loading page
-    this->currSelMenuePage = raceLoadingMenuePage;
-
+void Menue::AcceptedRaceSetup() {  
     //tell main program that we should start
     //the race
     //handover selected level number
@@ -196,27 +145,6 @@ void Menue::AcceptedRaceSetup() {
 }
 
 void Menue::InitMenuePageEntries() {
-    //define dummy menue page for game title screen
-    gameTitleMenuePage = new MenuePage();
-    gameTitleMenuePage->pageNumber = MENUE_GAMETITLE;
-    gameTitleMenuePage->parentMenuePage = NULL;
-
-    //define dummy menue page for race loading screen
-    raceLoadingMenuePage = new MenuePage();
-    raceLoadingMenuePage->pageNumber = MENUE_LOADRACESCREEN;
-    raceLoadingMenuePage->parentMenuePage = NULL;
-
-    //define dummy menue page for game intro
-    gameIntroMenuePage = new MenuePage();
-    gameIntroMenuePage->pageNumber = MENUE_INTRO;
-    //if we press ESC in the intro go to game tile screen
-    gameIntroMenuePage->parentMenuePage = gameTitleMenuePage;
-
-    //a special action that signals the Main loop that playing
-    //the intro was either interrupted or finished
-    ActIntroStop = new MenueAction();
-    ActIntroStop->actionNr = MENUE_ACTION_INTROSTOP;
-
     //a special action that signals the Main loop that race stat
     //page was closed by player
     ActCloseRaceStatPage = new MenueAction();
@@ -1504,7 +1432,7 @@ void Menue::AdvanceTime(irr::f32 frameDeltaTime) {
 //that it is better to implement it by itself
 void Menue::RenderRaceSelection() {
     //first draw background picture
-    mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+    mInfra->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
                                  irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
                           , 0, irr::video::SColor(255,255,255,255), true);
 
@@ -1757,270 +1685,6 @@ void Menue::InterruptRaceSelection() {
     currSelectedRaceTrack = this->mGameAssets->GetLastSelectedRaceTrack();
 }
 
-void Menue::RenderIntro(irr::f32 frameDeltaTime) {
-    //render the next frame
-    if (introPlaying && (currIntroFrame >= numIntroFrame)) {
-        //start again from the first frame, for example for debugging
-        //currIntroFrame = 0;
-
-        //stop the game intro music again
-        if ((mMusicPlayer->getStatus() == mMusicPlayer->Playing) ||
-           (mMusicPlayer->getStatus() == mMusicPlayer->Paused)) {
-                //stop music
-                mMusicPlayer->StopPlay();
-        }
-
-        //make sure to also stops all sounds
-        if (mSoundEngine->IsAnySoundPlaying()) {
-            mSoundEngine->StopAllSounds();
-        }
-
-        //playing intro finished => tell main loop
-        this->ActIntroStop->currSetValue = 0;
-        this->currActionToExecute = this->ActIntroStop;
-
-        introPlaying = false;
-
-        //delete intro data
-        CleanupIntro();
-    }
-
-    //first draw a black rectangle over the whole screen to make sure that the parts of the
-    //screen that are outside of the intro frames region are black as well
-    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
-
-    if (introPlaying) {
-        //draw the current intro frame
-        mInfra->mDriver->draw2DImage(this->introTextures->at(currIntroFrame), introFrameScrDrawPos,
-                          irr::core::recti(0, 0, introFrameScrSize.Width, introFrameScrSize.Height)
-                            , 0, irr::video::SColor(255,255,255,255), true);
-
-        if (currIntroFrame > 0) {
-            introCurrTimeBetweenFramesSec += frameDeltaTime;
-
-            //lets add 1 second to align video and audio of intro better :)
-            introAbsTimeSound = introTargetTimeBetweenFramesSec * currIntroFrame + 1.0f;
-        } else {
-            introCurrTimeBetweenFramesSec = 0.0f;
-            introAbsTimeSound = 0.0f;
-            currIntroFrame = 1;
-        }
-
-        //time to draw the next frame?
-        if ((introTargetTimeBetweenFramesSec - introCurrTimeBetweenFramesSec - currFrameTimeErrorSec) < 0.0f)  {
-            //next time render the next frame
-            currIntroFrame++;
-
-            //add up overall time error
-            currFrameTimeErrorSec += (introCurrTimeBetweenFramesSec - introTargetTimeBetweenFramesSec);
-
-            //std::cout << (introCurrTimeBetweenFramesSec * 1000.0f) << " ms" << std::endl << std::flush;
-
-            introCurrTimeBetweenFramesSec =  0.0f;
-        }
-
-        //more sound events to trigger?
-        if (currIdxSoundEventVec < numSoundEvents) {
-            IntroSoundTriggerStruct* pntr = introSoundEventVec->at(currIdxSoundEventVec);
-
-            //time to trigger the next sound event?
-            if (introAbsTimeSound >= pntr->triggerAbsTime) {
-                //looping sound?
-                if (!pntr->looping) {
-                    mSoundEngine->PlaySound(pntr->soundResId);
-                } else {
-                    //is a looping sound
-                    //we need the sound buffer pointer to be able to
-                    //stop the sound later
-                    pntr->soundBufPntr =
-                            mSoundEngine->PlaySound(pntr->soundResId, true);
-                    pntr->loopSoundActive = true;
-                }
-
-                //is there one additional intro sound trigger event available
-                //if so set index to next event
-                if (currIdxSoundEventVec < numSoundEvents) {
-                    currIdxSoundEventVec++;
-                }
-            }
-        }
-
-        //make sure to shop looping sounds that are
-        //over at this point in time
-        IntroProcessLoopingSounds(introAbsTimeSound);
-    }
-}
-
-void Menue::RenderImageMenuePage() {
-    //first draw a black rectangle over the whole screen to make sure that the parts of the
-    //screen that are outside of the drawn image regions are black as well
-    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
-
-    if (this->currSelMenuePage == gameTitleMenuePage) {
-        mInfra->mDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0,
-                         gameTitleSize.Width, gameTitleSize.Height)
-                         , 0, irr::video::SColor(255,255,255,255), true);
-    } else if (this->currSelMenuePage == raceLoadingMenuePage) {
-        mInfra->mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
-                         , 0, irr::video::SColor(255,255,255,255), true);
-
-        //at 190, 240 write "LOADING LEVEL"
-        mInfra->mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mInfra->mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
-    }
-}
-
-void Menue::ShowGameTitle() {
-    this->currSelMenuePage = gameTitleMenuePage;
-}
-
-void Menue::ShowGameLoadingScreen() {
-    this->currSelMenuePage = raceLoadingMenuePage;
-}
-
-void Menue::AddIntroSoundTrigger(irr::f32 absTriggerTime, uint8_t soundIdNr, bool looping,
-                                 irr::f32 endLoopingTime) {
-   IntroSoundTriggerStruct* newTrigger = new IntroSoundTriggerStruct();
-
-   newTrigger->triggerAbsTime = absTriggerTime;
-   newTrigger->soundResId = soundIdNr;
-   newTrigger->looping = looping;
-   newTrigger->endLoopingAbsTime = endLoopingTime;
-
-   //add to vector of sound trigger events for the intro
-   this->introSoundEventVec->push_back(newTrigger);
-}
-
-void Menue::IntroProcessLoopingSounds(irr::f32 currSoundPlayingTime) {
-  std::vector<IntroSoundTriggerStruct*>::iterator it;
-
-  for (it = this->introSoundEventVec->begin(); it != this->introSoundEventVec->end(); ++it) {
-      if ((*it)->loopSoundActive) {
-          //is it time to stop the looping sound
-          if (currSoundPlayingTime >= (*it)->endLoopingAbsTime) {
-              (*it)->soundBufPntr->stop();
-              (*it)->loopSoundActive = false;
-          }
-      }
-  }
-}
-
-void Menue::ShowIntro() {
-    //first we need to load all textures (each frame is a texture) for the game intro
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
-
-    char frameFileName[50];
-    char fname[20];
-
-    introTextures = new std::vector<irr::video::ITexture*>();
-    introTextures->clear();
-
-    irr::video::ITexture* newTex;
-
-    for (long frameNr = 0; frameNr < 548; frameNr++) {
-        //first build the name for the image file to load
-        //that we have prepared during the first start of the game
-        strcpy(frameFileName, "extract/intro/frame");
-        sprintf (fname, "%0*lu.png", 4, frameNr);
-        strcat(frameFileName, fname);
-
-        //load this image (texture)
-        newTex = mInfra->mDriver->getTexture(frameFileName);
-        if (newTex == NULL) {
-            //there was a texture loading error
-            //just skip intro and go immediately to
-            //main menue
-            ShowGameTitle();
-        }
-
-        introTextures->push_back(newTex);
-    }
-
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
-
-    //get size of texture from first frame
-    introFrameScrSize = introTextures->at(0)->getSize();
-
-    //calculate position to draw intro frames so that the are centered on the screen
-    //because maybe target resolution does not fit with image resolution
-    introFrameScrDrawPos.X = (mInfra->mScreenRes.Width - introFrameScrSize.Width) / 2;
-    introFrameScrDrawPos.Y = (mInfra->mScreenRes.Height - introFrameScrSize.Height) / 2;
-
-    currIntroFrame = 0;
-    numIntroFrame = 548;
-
-    //define sounds for intro
-    introSoundEventVec = new std::vector<IntroSoundTriggerStruct*>();
-    introSoundEventVec->clear();
-
-    //make sure to add the sound trigger events of the intro
-    //in increasing time order! otherwise this want work
-    AddIntroSoundTrigger(0.0f, SRES_INTRO_FIRE, true, 8.15f);
-    AddIntroSoundTrigger(4.7f, SRES_INTRO_PAST);
-    AddIntroSoundTrigger(5.7f, SRES_INTRO_PAST);
-    AddIntroSoundTrigger(7.1f, SRES_INTRO_SMALLCAR, true, 10.32f);
-    AddIntroSoundTrigger(8.2f, SRES_INTRO_MINIGUN, true, 9.24f);
-    AddIntroSoundTrigger(8.2f, SRES_INTRO_RICCOS);
-    AddIntroSoundTrigger(9.8f, SRES_INTRO_TURBO);
-    AddIntroSoundTrigger(9.96f, SRES_INTRO_BOOSTER);
-    AddIntroSoundTrigger(12.1f, SRES_INTRO_SMALLCAR, true, 14.4f);
-    AddIntroSoundTrigger(12.8f, SRES_INTRO_MISSILE);
-    AddIntroSoundTrigger(13.1f, SRES_INTRO_EXPLODE);
-    AddIntroSoundTrigger(15.395f, SRES_INTRO_PAST);
-    AddIntroSoundTrigger(17.32f, SRES_INTRO_SMALLCAR, true, 20.4f);
-    AddIntroSoundTrigger(19.175f, SRES_INTRO_TURBO);
-    AddIntroSoundTrigger(19.33f, SRES_INTRO_BOOSTER);
-    AddIntroSoundTrigger(20.4f, SRES_INTRO_PAST);
-    AddIntroSoundTrigger(22.2f, SRES_INTRO_SCRAPE2);
-    AddIntroSoundTrigger(26.0f, SRES_INTRO_EXPLODE);
-    AddIntroSoundTrigger(26.3f, SRES_INTRO_PAST);
-    AddIntroSoundTrigger(30.1f, SRES_INTRO_FIRE, true, 34.8f);
-    AddIntroSoundTrigger(33.6f, SRES_INTRO_TURBO);
-    AddIntroSoundTrigger(34.76f, SRES_INTRO_BOOSTER);
-    AddIntroSoundTrigger(35.8f, SRES_INTRO_PAST);
-    AddIntroSoundTrigger(38.8f, SRES_INTRO_CURTAIN);
-
-    //start with the first sound event element at idx 0
-    currIdxSoundEventVec = 0;
-    numSoundEvents = (irr::u8)(this->introSoundEventVec->size());
-
-    introPlaying = true;
-
-    //the speed field in the game intro FLI file had the value 5
-    //this means we need to draw each 5 * (1/70) seconds a new frame => 71.4285714285714 ms
-    introTargetTimeBetweenFramesSec = 5.0f * (1.0f / 70.0f);
-
-    currFrameTimeErrorSec = 0.0f;
-    introCurrTimeBetweenFramesSec = 0.0f;
-
-    //start the intro music at the same time
-    if (!mMusicPlayer->loadGameMusicFile((char*)"extract/music/TINTRO2.XMI")) {
-         std::cout << "Music load failed" << std::endl;
-    } else {
-        //start music playing
-        mMusicPlayer->StartPlay();
-    }
-
-    //all was ok, show intro
-    this->currSelMenuePage = gameIntroMenuePage;
-}
-
-//This function cleans up the 548 textures we had to load for the intro
-//Important after the intro!
-void Menue::CleanupIntro() {
-   std::vector<irr::video::ITexture*>::iterator it;
-
-   //free each of the textures we loaded before
-   for (it = this->introTextures->begin(); it != this->introTextures->end(); ++it) {
-        //remove underlying texture
-        mInfra->mDriver->removeTexture((*it));
-   }
-
-   //free vector at the end
-   delete introTextures;
-}
-
 void Menue::HandleUserInactiveTimer(irr::f32 frameDeltaTime) {
     //just increase inactive time in top menue page
     if (currSelMenuePage != TopMenuePage)
@@ -2057,13 +1721,6 @@ void Menue::HandleUserInactiveTimer(irr::f32 frameDeltaTime) {
 }
 
 void Menue::Render(irr::f32 frameDeltaTime) {
-    //do we need to show special page? (for example game title or race loading screen?)
-    if ((this->currSelMenuePage == gameTitleMenuePage) || (this->currSelMenuePage == raceLoadingMenuePage)) {
-        RenderImageMenuePage();
-    } else //render game intro
-    if (this->currSelMenuePage == gameIntroMenuePage) {
-        RenderIntro(frameDeltaTime);
-    } else
     //racetrack selection and ship selection menue is so different, render it independently
     if ((this->currSelMenuePage == RaceTrackSelectionPage) || (this->currSelMenuePage == ShipSelectionPage)) {
         //call racetrack and ship selection rendering source code
@@ -2075,7 +1732,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
      //default menue rendering source code
 
      //first draw background picture
-      mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+      mInfra->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
                           irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
                           , 0, irr::video::SColor(255,255,255,255), true);
 
@@ -2126,7 +1783,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
 //(which contains just formated texts)
 void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
     //first draw background picture
-    mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+    mInfra->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
                           irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
 
@@ -2986,15 +2643,6 @@ void Menue::HandleInput() {
     } else if (this->currSelMenuePage == ShipSelectionPage) {
         //call ship selection input handling code
         HandleInputShipSelection();
-    } else if (this->currSelMenuePage == gameIntroMenuePage) {
-        //game intro is currently player
-        if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
-          mMenueUserInactiveTimer = 0.0f;
-          //interrupt the intro
-          //we just need to set the current frame number
-          //to the number of the last frame
-          currIntroFrame = numIntroFrame;
-        }
     } else {
      //default menue input handling source code
 
@@ -3529,14 +3177,11 @@ void Menue::RecalculateRaceTrackStatLabels() {
 }
 
 //Constructor, initialization of main menue
-Menue::Menue(InfrastructureBase* infra,
-             SoundEngine* soundEngine,
-             MyMusicStream* gameMusicPlayerParam, Assets *assets) {
-
+Menue::Menue(InfrastructureBase* infra, SoundEngine* soundEngine, Game* game, Assets *assets) {
     mSoundEngine = soundEngine;
     mGameAssets = assets;
-    mMusicPlayer = gameMusicPlayerParam;
     mInfra = infra;
+    mGame = game;
 
     //how many race tracks and crafts are available
     //for selection from assets class

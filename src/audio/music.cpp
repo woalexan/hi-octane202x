@@ -24,7 +24,22 @@ bool MyMusicStream::prepareInstrumentFile() {
     //is file SAMPLE.OPL
      AIL_GTL *AILBank = new AIL_GTL;
      FmBank *testAILBank = new FmBank();
-     if (AILBank->loadFile("originalgame/sound/sample.opl", *testAILBank) != FfmtErrCode::ERR_OK) {
+
+     //find original instrument file
+     irr::io::path inputDatFile =
+             mInfra->LocateFileInFileList(mInfra->mOriginalGame->soundFolder, irr::core::string<fschar_t>("sample.opl"));
+
+     if (inputDatFile.empty()) {
+         //input file not found!
+          std::cout << "Music: Could not locate the original games sound data file sample.opl" << std::endl;
+          delete testAILBank;
+          delete  AILBank;
+          return false;
+     }
+
+     std::string inputFileName(inputDatFile.c_str());
+
+     if (AILBank->loadFile(inputFileName, *testAILBank) != FfmtErrCode::ERR_OK) {
          //there was an error loading the file
          std::cout << "Music: Failed loading originalgame/sound/sample.opl instrument file" << std::endl;
          delete testAILBank;
@@ -35,9 +50,11 @@ bool MyMusicStream::prepareInstrumentFile() {
      //create the instrument information in the
      //so called wOPL (WohlstandOPL) file format
      WohlstandOPL3 *wOPLBank = new WohlstandOPL3();
-     if (wOPLBank->saveFile((char*)(MUSIC_INSTRFILE_PATH), *testAILBank) != FfmtErrCode::ERR_OK) {
+
+     std::string outputFileName((char*)(MUSIC_INSTRFILE_PATH));
+     if (wOPLBank->saveFile(outputFileName, *testAILBank) != FfmtErrCode::ERR_OK) {
          //there was an error writing the new file
-         std::cout << "Music: Failed writing " << MUSIC_INSTRFILE_PATH << " wOPLinstrument file" << std::endl;
+         std::cout << "Music: Failed writing " << outputFileName << " wOPLinstrument file" << std::endl;
          delete wOPLBank;
          delete testAILBank;
          delete  AILBank;
@@ -77,7 +94,7 @@ bool MyMusicStream::VerifyInstrumentFile() {
             return false;
         }
 
-        std::cout << "Music: Create " << MUSIC_INSTRFILE_PATH << " wOPL instrument file" << std::endl;
+        std::cout << "Music: Create " << std::string(MUSIC_INSTRFILE_PATH) << " wOPL instrument file" << std::endl;
         if (!prepareInstrumentFile()) {
             std::cout << "Music: File creation failed" << std::endl;
             return false;
@@ -92,7 +109,7 @@ bool MyMusicStream::VerifyInstrumentFile() {
         std::cout << "Music: File creation failed" << std::endl;
         return false;
     } else if (fileExists == 1) {
-        std::cout << "Music: Instrument file " << MUSIC_INSTRFILE_PATH << " found" << std::endl;
+        std::cout << "Music: Instrument file " << std::string(MUSIC_INSTRFILE_PATH) << " found" << std::endl;
         //file exists already
         return true;
     }
@@ -119,7 +136,9 @@ void MyMusicStream::SetVolume(float newVolume) {
     }
 }
 
-MyMusicStream::MyMusicStream(unsigned int sampleRate) {
+MyMusicStream::MyMusicStream(InfrastructureBase* infraPnter, unsigned int sampleRate) {
+    mInfra = infraPnter;
+
     //verify and if necessary create the
     //OPL3 instrument file
     if (!VerifyInstrumentFile()) {

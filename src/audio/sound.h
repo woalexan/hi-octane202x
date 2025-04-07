@@ -14,6 +14,7 @@
 #include "../definitions.h"
 #include <cstdint>
 #include "../models/player.h"
+#include "../infrabase.h"
 
 //File name definition
 #define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"
@@ -100,6 +101,7 @@
 #define SOUND_MAXNR 20
 
 class Player; //Forward declaration
+class InfrastructureBase; //forward declaration
 
 struct SoundResEntry {
     sf::SoundBuffer* pntrSoundBuf;
@@ -108,10 +110,10 @@ struct SoundResEntry {
 
 class SoundEngine {
 public:
-  SoundEngine();
+  SoundEngine(InfrastructureBase* infraPnter);
   ~SoundEngine();
 
-  bool getInitOk();
+  bool getSoundResourcesLoadOk();
 
   //play sound with localized sound source
   sf::Sound* PlaySound(uint8_t soundResId, irr::core::vector3df sourceLocation, bool looping = false);
@@ -136,7 +138,6 @@ public:
   //players engine sound (sound modulation vs. rotation of player craft etc...)
   void SetPlayerSpeed(Player* player, float speed, float maxSpeed);
 
-
   bool GetIsSoundActive();
 
   //sets a new sound volume for all available sound
@@ -145,10 +146,18 @@ public:
 
   void UpdateListenerLocation(irr::core::vector3df location, irr::core::vector3df frontDirVec);
 
-private:
-  bool mInitOk = false;
-  bool mPlaySound = true;
+  //returns true if successful, false otherwise
+  bool LoadSoundResourcesIntro();
+  void UnLoadSoundResourcesIntro();
+
   void LoadSoundResources();
+
+private:
+  //pointer to infrastructure
+  InfrastructureBase* mInfra;
+
+  bool mSoundResourcesLoadOk = false;
+  bool mPlaySound = true;
 
   sf::Sound* PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, bool looping = false);
 

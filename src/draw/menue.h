@@ -17,7 +17,6 @@
 #include <string.h>
 #include "math.h"
 #include "../audio/sound.h"
-#include "../audio/music.h"
 #include "../resources/assets.h"
 #include "../race.h"
 #include "../infrabase.h"
@@ -38,12 +37,9 @@
 #define MENUE_SELECTSHIP 11
 
 //special "menue" pages
-#define MENUE_GAMETITLE 200
-#define MENUE_LOADRACESCREEN 201
-#define MENUE_INTRO 202
-#define MENUE_HIGHSCORE 203
-#define MENUE_RACESTATS 204
-#define MENUE_POINTSTABLE 205
+#define MENUE_HIGHSCORE 202
+#define MENUE_RACESTATS 203
+#define MENUE_POINTSTABLE 204
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION NULL
@@ -56,7 +52,6 @@
 #define MENUE_ACTION_SETSOUNDVOLUME 7
 
 //"special" menue actions
-#define MENUE_ACTION_INTROSTOP 100
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
 #define MENUE_ACTION_STARTDEMO 102
 #define MENUE_ACTION_SHOWHIGHSCOREPAGE 103
@@ -104,31 +99,6 @@
 //implemented as in the original game
 const irr::f32 MENUE_USERINACTIVETIME_THRESHOLD = 30.0f;
 
-//this struct holds the information for a sound trigger event
-//used during the games intro playing
-typedef struct IntroSoundTriggerStruct {
-    //absolute time of intro playing progress
-    //when to trigger this sound
-    irr::f32 triggerAbsTime;
-
-    //sound resource Id to trigger
-    uint8_t soundResId;
-
-    //if true looping sound is currently
-    //playing
-    bool loopSoundActive = false;
-
-    //if true sound will loop
-    bool looping;
-
-    //absolute time of intro playing
-    //to end looping sound again
-    irr::f32 endLoopingAbsTime;
-
-    //needed for looping sounds
-    sf::Sound* soundBufPntr = NULL;
-} IntroSoundTriggerStruct;
-
 //this struct holds the information for a menue
 //graphical element (mostly logo)
 typedef struct MenueGraphicPart {
@@ -161,6 +131,7 @@ struct ChampionshipSaveGameInfoStruct; //Forward declaration
 class SoundEngine; //Forward declaration
 class InfrastructureBase; //Forward declaration
 class Assets; //Forward declaration
+class Game; //Forward declaration
 
 //this struct holds the information about a single
 //menue entry
@@ -248,11 +219,8 @@ private:
     SoundEngine* mSoundEngine;
     Assets* mGameAssets;
     InfrastructureBase* mInfra;
+    Game* mGame;
 
-    //we need a music player for the game intro music
-    MyMusicStream* mMusicPlayer;
-
-    irr::video::ITexture* backgnd;
     std::vector<MenueGraphicPart*> GameLogo;
 
     //menue window graphic resources
@@ -516,23 +484,8 @@ private:
     ShipStatLabel* ShipStatWeightLabel;
     ShipStatLabel* ShipStatFirePowerLabel;
 
-    //special images
-    irr::video::ITexture* gameTitle;
-    irr::core::vector2di gameTitleDrawPos;
-    irr::core::dimension2d<irr::u32> gameTitleSize;
-
-    irr::video::ITexture* raceLoadingScr;
-    irr::core::vector2di raceLoadingScrDrawPos;
-    irr::core::dimension2d<irr::u32> raceLoadingScrSize;
-
-    void RenderImageMenuePage();
-
-    //create a dummy menue page for showing
-    //game title screen and race loading screen
-    //same is true for game intro and high score table page
-    MenuePage* gameTitleMenuePage;
-    MenuePage* raceLoadingMenuePage;
-    MenuePage* gameIntroMenuePage;
+    //create a dummy menue page for
+    //high score table page
     MenuePage* gameHighscoreMenuePage;
     MenuePage* raceStatsMenuePage;
     MenuePage* pointsTablePage;
@@ -577,31 +530,6 @@ private:
     void RenderShipStatBoxes(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
                                irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks);
 
-    //stuff for game intro playing
-    std::vector<irr::video::ITexture*>* introTextures;
-    irr::u32 currIntroFrame;
-    irr::u32 numIntroFrame;
-    irr::core::vector2di introFrameScrDrawPos;
-    irr::core::dimension2d<irr::u32> introFrameScrSize;
-    bool introPlaying = false;
-
-    //absolute time for intro rendering
-    irr::f32 introTargetTimeBetweenFramesSec;
-    irr::f32 introCurrTimeBetweenFramesSec;
-    irr::f32 currFrameTimeErrorSec;
-    irr::f32 introAbsTimeSound;
-
-    //sound stuff for intro playing
-    std::vector<IntroSoundTriggerStruct*>* introSoundEventVec;
-    irr::u8 currIdxSoundEventVec;
-    irr::u8 numSoundEvents;
-
-    void AddIntroSoundTrigger(irr::f32 absTriggerTime, uint8_t soundIdNr,
-                              bool looping = false,  irr::f32 endLoopingTime = 0.0f);
-    void IntroProcessLoopingSounds(irr::f32 currSoundPlayingTime);
-
-    void CleanupIntro();
-
     //stuff for the highscore page
     std::vector<MenueTextLabel*>* highScorePageTextVec;
 
@@ -624,8 +552,7 @@ private:
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
     Menue(InfrastructureBase* infra,
-           SoundEngine* soundEngine,
-          MyMusicStream* gameMusicPlayerParam, Assets* assets);
+           SoundEngine* soundEngine, Game* game, Assets* assets);
     ~Menue();
 
     bool MenueInitializationSuccess;
@@ -645,7 +572,6 @@ public:
     MenueAction* ActSetSoundVolume;
 
     //special menue actions
-    MenueAction* ActIntroStop;
     MenueAction* ActCloseRaceStatPage;
     MenueAction* ActStartDemo;
     MenueAction* ActShowHighScorePage;

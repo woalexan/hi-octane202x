@@ -26,6 +26,21 @@
 #include <cstdint>
 #include "../../infrabase.h"
 
+#define PREP_DATA_INITSTATE 0
+#define PREP_DATA_EXTRACTGAMESCREENS 1
+#define PREP_DATA_EXTRACTFONTS 2
+#define PREP_DATA_EXTRACTHUD 3
+#define PREP_DATA_EXTRACTSKIES 4
+#define PREP_DATA_EXTRACTSPRITES 5
+#define PREP_DATA_EXTRACTMINIMAPS 6
+#define PREP_DATA_EXTRACTTERRAINTEXTURES 7
+#define PREP_DATA_EXTRACTLEVELS 8
+#define PREP_DATA_EXTRACTMODELS 9
+#define PREP_DATA_EXTRACTINTRO 10
+#define PREP_DATA_EXTRACTAUDIO 11
+#define PREP_DATA_EXTRACTMISC 12
+#define PREP_DATA_FINISHED 13
+
 //each SOUNDFILEENTRY has 32 bytes
 typedef struct {
         char soundFilename[12];
@@ -52,8 +67,19 @@ public:
     PrepareData(InfrastructureBase* mInfraPntr);
     ~PrepareData();
 
+    //returns true if data preparation was succesfully
+    //finished
+    bool ExecuteNextStep();
+    std::string currentStepDescription;
+
+    //returns true if game data is already available
+    //false otherwise if further extraction is needed
+    bool GameDataAvailable();
+
 private:
     InfrastructureBase* mInfra = NULL;
+
+    irr::u8 mCurrentStep = PREP_DATA_INITSTATE;
 
     //contains the ingame palette information
     unsigned char *palette;
@@ -66,6 +92,8 @@ private:
     void ReadMusicFileEntry(FILE* inputFile, MUSICTABLEENTRY* entry);
 
     void CreatePalette();
+
+    void ExtractInitialData();
 
     void ExtractGameScreens();
     void ExtractFonts();
