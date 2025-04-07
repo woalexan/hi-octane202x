@@ -13,14 +13,18 @@
 #include "draw/menue.h"
 #include "race.h"
 #include "draw/hud.h"
+#include "draw/introplayer.h"
 #include "infrabase.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
-#define DEF_GAMESTATE_INTRO 1
-#define DEF_GAMESTATE_GAMETITLE 2
-#define DEF_GAMESTATE_MENUE 3
-#define DEF_GAMESTATE_RACE 4
-#define DEF_GAMESTATE_DEMORACE 5
+#define DEF_GAMESTATE_EXTRACTDATA 1
+#define DEF_GAMESTATE_LOADDATA 2
+#define DEF_GAMESTATE_INTRO 3
+#define DEF_GAMESTATE_GAMETITLE 4
+#define DEF_GAMESTATE_MENUE 5
+#define DEF_GAMESTATE_RACE 6
+#define DEF_GAMESTATE_DEMORACE 7
+#define DEF_GAMESTATE_ERROR 10
 
 class Menue; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
@@ -31,6 +35,8 @@ class Logger; //Forward declaration
 class SoundEngine; //Forward declaration
 class Assets; //Forward declaration
 class InfrastructureBase; //Forward declaration
+class IntroPlayer; //Forward declaration
+class MyMusicStream; //forward declaration
 
 class Game {
 private:
@@ -40,7 +46,6 @@ private:
     IGUIStaticText* dbgText2 = NULL;
 
     Assets* mGameAssets = NULL;
-    bool InitGameAssets();
 
     //SFML related, Audio, Music
     MyMusicStream* gameMusicPlayer = NULL;
@@ -48,14 +53,11 @@ private:
 
     //own game stuff
     Menue* MainMenue = NULL;
+    IntroPlayer* gameIntroPlayer = NULL;
     InfrastructureBase* mInfra = NULL;
 
     //stores the current gamestate
-    irr::u8 mGameState = DEF_GAMESTATE_INTRO;
-
-    //counter to count how long we have showed
-    //the games title
-    irr::f32 showTitleAbsTime = 0.0f;
+    irr::u8 mGameState = DEF_GAMESTATE_AFTERINIT;
 
     bool ExitGame = false;
     bool mDebugGame = false;
@@ -95,6 +97,17 @@ private:
     bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace);
     bool RunDemoMode(int load_levelnr);
 
+    void RenderDataExtractionScreen();
+    bool LoadBackgroundImage();
+    void GameLoopExtractData();
+    void GameLoopTitleScreenLoadData();
+    void GameLoopLoadRaceScreen();
+    bool LoadAdditionalGameImages();
+
+    bool LoadGameData();
+
+    void GameLoopIntro(irr::f32 frameDeltaTime);
+
     void CleanUpRace();
 
     bool mAdvanceFrameMode = false;
@@ -104,7 +117,17 @@ private:
 
     void CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo);
 
+    //special images for the game
+    irr::video::ITexture* gameTitle;
+    irr::core::vector2di gameTitleDrawPos;
+    irr::core::dimension2d<irr::u32> gameTitleSize;
+
+    irr::video::ITexture* raceLoadingScr;
+    irr::core::vector2di raceLoadingScrDrawPos;
+    irr::core::dimension2d<irr::u32> raceLoadingScrSize;
+
 public:
+    irr::video::ITexture* backgnd;
 
     bool enableLightning = false;
     bool enableShadows = false;
@@ -115,7 +138,9 @@ public:
     bool runDemoMode = false;
 
     //Returns true for success, false for error occured
-    bool InitGame();
+    bool InitGameStep1();
+    bool InitGameStep2();
+
     void RunGame();
     void DebugGame();
 

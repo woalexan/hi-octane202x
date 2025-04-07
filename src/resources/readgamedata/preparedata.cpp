@@ -42,6 +42,140 @@ void PrepareData::CreatePalette() {
     free(fname);
 }
 
+//returns true if data preparation was succesfully
+//finished
+bool PrepareData::ExecuteNextStep() {
+    //if we are done, return true
+    if (mCurrentStep == PREP_DATA_FINISHED)
+        return true;
+
+    switch (mCurrentStep) {
+        case PREP_DATA_EXTRACTGAMESCREENS: {
+            ExtractGameScreens();
+            mCurrentStep = PREP_DATA_EXTRACTFONTS;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME FONTS");
+            break;
+         }
+
+        case PREP_DATA_EXTRACTFONTS: {
+            ExtractFonts();
+            mCurrentStep = PREP_DATA_EXTRACTHUD;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME HUD");
+            break;
+        }
+
+        case PREP_DATA_EXTRACTHUD: {
+             ExtractHuds();
+             mCurrentStep = PREP_DATA_EXTRACTSKIES;
+             currentStepDescription.clear();
+             currentStepDescription.append("GAME SKIES");
+             break;
+        }
+
+        case PREP_DATA_EXTRACTSKIES: {
+             ExtractSkies();
+             mCurrentStep = PREP_DATA_EXTRACTSPRITES;
+             currentStepDescription.clear();
+             currentStepDescription.append("GAME SPRITES");
+             break;
+        }
+
+        case PREP_DATA_EXTRACTSPRITES: {
+             ExtractSprites();
+             mCurrentStep = PREP_DATA_EXTRACTMINIMAPS;
+             currentStepDescription.clear();
+             currentStepDescription.append("GAME MINIMAPS");
+             break;
+        }
+
+        case PREP_DATA_EXTRACTMINIMAPS: {
+             ExtractMiniMaps();
+             mCurrentStep = PREP_DATA_EXTRACTTERRAINTEXTURES;
+             currentStepDescription.clear();
+             currentStepDescription.append("GAME TERRAIN TEXTURES");
+             break;
+        }
+
+        case PREP_DATA_EXTRACTTERRAINTEXTURES: {
+            ExtractTerrainTextures();
+            mCurrentStep = PREP_DATA_EXTRACTLEVELS;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME LEVELS");
+            break;
+        }
+
+        case PREP_DATA_EXTRACTLEVELS: {
+            ExtractLevels();
+            mCurrentStep = PREP_DATA_EXTRACTMISC;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME MISC");
+            break;
+        }
+
+        case PREP_DATA_EXTRACTMISC: {
+            ExtractEditor();
+            ExtractCheatPuzzle();
+            mCurrentStep = PREP_DATA_EXTRACTMODELS;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME MODELS");
+            break;
+        }
+
+        case PREP_DATA_EXTRACTMODELS: {
+            ExtractModels();
+            mCurrentStep = PREP_DATA_EXTRACTINTRO;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME INTRO");
+            break;
+        }
+
+        case PREP_DATA_EXTRACTINTRO: {
+            ExtractIntro();
+            mCurrentStep = PREP_DATA_EXTRACTAUDIO;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME AUDIO");
+            break;
+        }
+
+        case PREP_DATA_EXTRACTAUDIO: {
+            ExtractAudio();
+            mCurrentStep = PREP_DATA_FINISHED;
+            currentStepDescription.clear();
+            break;
+        }
+    }
+
+    //not finished yet
+    return false;
+}
+
+void PrepareData::ExtractInitialData() {
+    logging::Info("Extracting first game logo and font...");
+    PrepareSubDir("extract/images");
+
+    ExtractSelectionScreenSVGA();
+
+    PrepareSubDir("extract/fonts");
+    PrepareSubDir("extract/fonts/smallsvga");
+
+    ExtractSmallFontSVGA();
+
+    mCurrentStep = PREP_DATA_EXTRACTGAMESCREENS;
+    currentStepDescription.clear();
+    currentStepDescription.append("Game screens");
+}
+
+//returns true if game data is already available
+//false otherwise if further extraction is needed
+bool PrepareData::GameDataAvailable() {
+    if (mCurrentStep == PREP_DATA_FINISHED)
+        return true;
+
+    return false;
+}
+
 PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     mInfra = mInfraPntr;
 
@@ -56,11 +190,19 @@ PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     //check if extraction directory is already present
     //if not create this directory
     if (IsDirectoryPresent("extract") == 1) {
+        mCurrentStep = PREP_DATA_FINISHED;
         return;
     }
+
+    //need to create folder for data
+    //extraction
     CreateDirectory("extract");
 
-    ExtractGameScreens();
+    //only extract the one image we want to
+    //show while data is prepared, and one of the fonts
+    ExtractInitialData();
+
+   /* ExtractGameScreens();
     ExtractFonts();
     ExtractHuds();
     ExtractSkies();
@@ -72,7 +214,7 @@ PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     ExtractCheatPuzzle();
     ExtractModels();
     ExtractIntro();
-    ExtractAudio();
+    ExtractAudio();*/
 
     //29.03.2025: instead of adding this data, lets
     //implement support for the extended version
@@ -86,24 +228,24 @@ PrepareData::~PrepareData() {
 
 void PrepareData::ExtractGameScreens() {
     logging::Info("Extracting game logos...");
-    PrepareSubDir("extract/images");
+    //PrepareSubDir("extract/images");
 
     ExtractGameLogoSVGA();
     ExtractIntroductoryScreen();
     ExtractLoadingScreenSVGA();
-    ExtractSelectionScreenSVGA();
+    //ExtractSelectionScreenSVGA();
 }
 
 void PrepareData::ExtractFonts() {
     //extract SVGA game logo data if not all exported files present
     logging::Info("Extracting game fonts...");
-    PrepareSubDir("extract/fonts");
+    //PrepareSubDir("extract/fonts");
 
     PrepareSubDir("extract/fonts/thinwhite");
     ExtractThinWhiteFontSVGA();
 
-    PrepareSubDir("extract/fonts/smallsvga");
-    ExtractSmallFontSVGA();
+    //PrepareSubDir("extract/fonts/smallsvga");
+    //ExtractSmallFontSVGA();
 
     PrepareSubDir("extract/fonts/smallsvgagreenish");
     //create greenish font for unselected items in menue (but based for smaller text size)

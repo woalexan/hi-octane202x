@@ -102,7 +102,7 @@ private:
 
   //Returns true for success, false for error occured
   bool InitIrrlicht();
-  bool InitGameResources();
+  bool InitGameResourcesInitialStep();
 };
 
 

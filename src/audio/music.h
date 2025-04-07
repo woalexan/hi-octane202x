@@ -16,14 +16,17 @@
 #include "ail/format_wohlstand_opl3.h"
 #include "SFML/Audio.hpp"
 #include "../utils/fileutils.h"
+#include "../infrabase.h"
 
 #define MUSIC_BUFSIZE 8192
 #define MUSIC_INSTRFILE_PATH "extract/InstrOPL.wopl"
 
+class InfrastructureBase; //forward declaration
+
 class MyMusicStream : public sf::SoundStream
 {
 public:
-    MyMusicStream(unsigned int sampleRate);
+    MyMusicStream(InfrastructureBase* infraPnter, unsigned int sampleRate);
     ~MyMusicStream();
     virtual bool onGetData(Chunk& data);
 
@@ -43,6 +46,9 @@ public:
     void SetVolume(float newVolume);
 
 private:
+    //pointer to infrastructure
+    InfrastructureBase* mInfra;
+
     //Its kind of dirty that we used two buffers
     //but leave it like this right now
     uint8_t *buffer; /* Audio buffer */

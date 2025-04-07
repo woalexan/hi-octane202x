@@ -30,7 +30,7 @@ bool Game::InitSFMLAudio() {
     uint32_t audioSampleRate = AUDIO_SAMPLERATE;
 
     //init music
-    gameMusicPlayer = new MyMusicStream(audioSampleRate);
+    gameMusicPlayer = new MyMusicStream(mInfra, audioSampleRate);
     if (!gameMusicPlayer->getInitOk()) {
         cout << "Music init failed!" << endl;
         return false;
@@ -40,39 +40,50 @@ bool Game::InitSFMLAudio() {
     //get configured volume from Assets class
     gameMusicPlayer->SetVolume(mGameAssets->GetMusicVolume());
 
-    gameSoundEngine = new SoundEngine();
-    if (!gameSoundEngine->getInitOk()) {
-        cout << "Sound resource init failed!" << endl;
-        return false;
-    }
+    gameSoundEngine = new SoundEngine(mInfra);
 
     gameSoundEngine->SetVolume(mGameAssets->GetSoundVolume());
 
     return true;
 }
 
-bool Game::InitGameAssets() {
-    /***********************************************************/
-    /* Load and define game assets (Meshes, Tracks, Craft)     */
-    /***********************************************************/
-    mGameAssets = new Assets(mInfra, keepConfigDataFileUpdated);
+bool Game::LoadGameData() {
+    //load all sound resource files
+    gameSoundEngine->LoadSoundResources();
+
+    if (!gameSoundEngine->getSoundResourcesLoadOk()) {
+        cout << "Sound resource init failed!" << endl;
+        return false;
+    }
+
+    //load all remaining game font
+    mInfra->mGameTexts->LoadFontsStep2();
+
+    if (!mInfra->mGameTexts->GameTextInitializedOk) {
+        cout << "Second game font init operation failed!" << endl;
+        return false;
+    }
+
+    //create the game menue
+    MainMenue = new Menue(mInfra, gameSoundEngine, this, mGameAssets);
+    if (!MainMenue->MenueInitializationSuccess) {
+        cout << "Game menue init operation failed!" << endl;
+        return false;
+    }
 
     return true;
 }
 
-bool Game::InitGame() {
-    dimension2d<u32> targetResolution;
-
-    //set target screen resolution
-    targetResolution.set(640,480);
-    //targetResolution.set(1280,960);
-
-    //create my infrastructure
-    mInfra = new InfrastructureBase(targetResolution, fullscreen, enableShadows);
-    if (!mInfra->GetInitOk())
-        return false;
-
-    InitGameAssets();
+//fully initializes the remaining game
+//components
+//before calling this function we need to be sure that all
+//original game files were already extracted before and are
+//available
+bool Game::InitGameStep2() {
+    /***********************************************************/
+    /* Load and define game assets (Meshes, Tracks, Craft)     */
+    /***********************************************************/
+    mGameAssets = new Assets(mInfra, keepConfigDataFileUpdated);
 
     //InitSFMLAudio needs to be called after
     //InitGameResources, because it needs the
@@ -81,14 +92,6 @@ bool Game::InitGame() {
         return false;
 
     mInfra->mLogger->AddLogMessage((char*)"Audio init ok");
-
-    //create the games menue
-    MainMenue = new Menue(mInfra, gameSoundEngine,
-                      gameMusicPlayer, mGameAssets);
-    if (!MainMenue->MenueInitializationSuccess) {
-        cout << "Game menue init operation failed!" << endl;
-        return false;
-    }
 
     if (DebugShowVariableBoxes) {
             //only for debugging
@@ -118,6 +121,31 @@ bool Game::InitGame() {
 
     if (enableShadows) {
        mInfra->mSmgr->setShadowColor(video::SColor(150,0,0,0));
+    }
+
+    return true;
+}
+
+//creates the most basic game infrastructure, and
+//extracts basic things to be able to show a first
+//graphical screen
+bool Game::InitGameStep1() {
+    dimension2d<u32> targetResolution;
+
+    //set target screen resolution
+    targetResolution.set(640,480);
+    //targetResolution.set(1280,960);
+
+    //create my infrastructure
+    mInfra = new InfrastructureBase(targetResolution, fullscreen, enableShadows);
+    if (!mInfra->GetInitOk())
+        return false;
+
+    //load the background image we need
+    //for data extraction screen rendering and
+    //main menue
+    if (!LoadBackgroundImage()) {
+        return false;
     }
 
     return true;
@@ -178,23 +206,16 @@ void Game::DebugGame() {
 }
 
 void Game::RunGame() {
-    mDebugGame = false;
-
-    if (!SkipGameIntro) {
-        MainMenue->ShowIntro();
-        mGameState = DEF_GAMESTATE_INTRO;
+    //further game data needs to be extracted?
+    if (!mInfra->mPrepareData->GameDataAvailable()) {
+        mGameState = DEF_GAMESTATE_EXTRACTDATA;
     } else {
-      //go immediately to the game title screen
-      MainMenue->ShowGameTitle();
-      mGameState = DEF_GAMESTATE_GAMETITLE;
-
-      //lastRaceStat = this->mCurrentRace->RetrieveFinalRaceStatistics();
-
-      //MainMenue->ShowRaceStats(lastRaceStat);
-      //mGameState = DEF_GAMESTATE_MENUE;
+        if (!InitGameStep2()) {
+            mGameState = DEF_GAMESTATE_ERROR;
+        } else {
+            mGameState = DEF_GAMESTATE_INTRO;
+        }
     }
-
-    showTitleAbsTime = 0.0f;
 
     GameLoop();
 }
@@ -307,11 +328,11 @@ void Game::HandleMenueActions() {
     //take care of the special menue actions
 
     //is game intro playing finished or was it interrupted?
-    if (pendingAction == MainMenue->ActIntroStop) {
+    /*if (pendingAction == MainMenue->ActIntroStop) {
              //yes, change to game title screen
              mGameState = DEF_GAMESTATE_GAMETITLE;
              MainMenue->ShowGameTitle();
-    }
+    }*/
 
     if (pendingAction == MainMenue->ActCloseRaceStatPage) {
              //user pressed Return at race stat page
@@ -504,21 +525,186 @@ void Game::CleanUpPointTable(std::vector<PointTableEntryStruct*> &tablePntr) {
     delete &tablePntr;
 }
 
-void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
-    if (mGameState == DEF_GAMESTATE_GAMETITLE) {
-        showTitleAbsTime += frameDeltaTime;
+bool Game::LoadAdditionalGameImages() {
+     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
-        if (showTitleAbsTime > 3.0f) {
-            MainMenue->ShowMainMenue();
+     //load gameTitle
+     gameTitle = mInfra->mDriver->getTexture("extract/images/title.png");
 
-            //next line just for debugging/testing
-            //of HighScore page
-            //MainMenue->ShowHighscore();
+     if (gameTitle == NULL) {
+         //there was a texture loading error
+         //just return with false
+         return false;
+     }
 
-            mGameState = DEF_GAMESTATE_MENUE;
-        }
+     gameTitleSize = gameTitle->getSize();
+     //calculate position to draw gameTitle so that it is centered on the screen
+     //because most likely target resolution does not fit with image resolution
+     gameTitleDrawPos.X = (mInfra->mScreenRes.Width - gameTitleSize.Width) / 2;
+     gameTitleDrawPos.Y = (mInfra->mScreenRes.Height - gameTitleSize.Height) / 2;
+
+     //load race loading screen
+     raceLoadingScr = mInfra->mDriver->getTexture("extract/images/onet0-1.png");
+
+     if (raceLoadingScr == NULL) {
+         //there was a texture loading error
+         //just return with false
+         return false;
+     }
+
+     raceLoadingScrSize = raceLoadingScr->getSize();
+     //calculate position to draw race loading screen so that it is centered on the screen
+     //because maybe target resolution does not fit with image resolution
+     raceLoadingScrDrawPos.X = (mInfra->mScreenRes.Width - raceLoadingScrSize.Width) / 2;
+     raceLoadingScrDrawPos.Y = (mInfra->mScreenRes.Height - raceLoadingScrSize.Height) / 2;
+
+     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+
+     return true;
+}
+
+bool Game::LoadBackgroundImage() {
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+
+    //first load background image for menue
+    backgnd = mInfra->mDriver->getTexture("extract/images/oscr0-1.png");
+
+    if (backgnd == NULL) {
+        //there was a texture loading error
+        //just return with false
+        return false;
     }
 
+    irr::core::dimension2d<irr::u32> backgndSize;
+
+    backgndSize = backgnd->getSize();
+    if ((backgndSize.Width != mInfra->mScreenRes.Width) ||
+        (backgndSize.Height != mInfra->mScreenRes.Height)) {
+        //background texture size does not fit with selected screen resolution
+        return false;
+    }
+
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+
+    return true;
+}
+
+void Game::RenderDataExtractionScreen() {
+    //first draw background picture
+     mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+                         irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
+                         , 0, irr::video::SColor(255,255,255,255), true);
+
+     char* infoText = strdup("EXTRACTING GAME DATA, PLEASE STANDBY...");
+     char* currStepText = strdup(mInfra->mPrepareData->currentStepDescription.c_str());
+
+     irr::u32 textHeight = mInfra->mGameTexts->GetHeightPixelsGameText(infoText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+     irr::u32 textWidth = mInfra->mGameTexts->GetWidthPixelsGameText(infoText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+
+     irr::core::position2di txtPos;
+     txtPos.X = mInfra->mScreenRes.Width / 2 - textWidth / 2;
+     txtPos.Y = mInfra->mScreenRes.Height / 2 - textHeight / 2;
+
+     //write info text, warning: at the data extraction stage of the game only single font GameMenueWhiteTextSmallSVGA is
+     //available!
+     mInfra->mGameTexts->DrawGameText(infoText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA, txtPos);
+
+     textHeight = mInfra->mGameTexts->GetHeightPixelsGameText(currStepText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+     textWidth = mInfra->mGameTexts->GetWidthPixelsGameText(currStepText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+
+     txtPos.X = mInfra->mScreenRes.Width / 2 - textWidth / 2;
+     txtPos.Y += 25;
+
+     mInfra->mGameTexts->DrawGameText(currStepText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA, txtPos);
+
+     free(infoText);
+     free(currStepText);
+}
+
+void Game::GameLoopExtractData() {
+    //execute next data extraction step
+    //returns true if data extraction process is finished
+    try {
+        if (mInfra->mPrepareData->ExecuteNextStep()) {
+            //data extraction is finished
+            //continue game initialization (audio, assets)
+            if (!InitGameStep2()) {
+                mGameState = DEF_GAMESTATE_ERROR;
+                return;
+            }
+            mGameState = DEF_GAMESTATE_INTRO;
+            return;
+        }
+    }
+     catch (const std::string &msg) {
+            cout << "Step 2 of game assets preparation operation failed!\n" << msg << endl;
+            mGameState = DEF_GAMESTATE_ERROR;
+            return;
+    }
+
+    mInfra->mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //update graphical image about current status
+    RenderDataExtractionScreen();
+
+    mInfra->mDriver->endScene();
+}
+
+void Game::GameLoopTitleScreenLoadData() {
+    //we need to load additional images
+    if (!LoadAdditionalGameImages()) {
+        std::cout << "Loading of game tile and race loading images failed" << std::endl;
+        mGameState = DEF_GAMESTATE_ERROR;
+        return;
+    }
+
+    mInfra->mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //first draw a black rectangle over the whole screen to make sure that the parts of the
+    //screen that are outside of the drawn image regions are black as well
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
+
+    //draw game tile screen
+    mInfra->mDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0,
+                     gameTitleSize.Width, gameTitleSize.Height)
+                     , 0, irr::video::SColor(255,255,255,255), true);
+
+    mInfra->mDriver->endScene();
+
+    //now load data
+    if (!LoadGameData()) {
+        mGameState = DEF_GAMESTATE_ERROR;
+        return;
+    } else {
+        //was succesfull, now continue to main menue
+        mGameState = DEF_GAMESTATE_MENUE;
+        MainMenue->ShowMainMenue();
+    }
+}
+
+void Game::GameLoopLoadRaceScreen() {
+    mInfra->mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //first draw a black rectangle over the whole screen to make sure that the parts of the
+    //screen that are outside of the drawn image regions are black as well
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
+
+    //draw load race screen
+    mInfra->mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
+                     , 0, irr::video::SColor(255,255,255,255), true);
+
+    //at 190, 240 write "LOADING LEVEL"
+    mInfra->mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mInfra->mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
+
+    mInfra->mDriver->endScene();
+}
+
+void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
     mInfra->mDriver->beginScene(true,true,
                 video::SColor(255,100,101,140));
 
@@ -785,6 +971,47 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     */
 
+void Game::GameLoopIntro(irr::f32 frameDeltaTime) {
+    //if we want to skip the intro, do it now
+    if (SkipGameIntro) {
+        mGameState = DEF_GAMESTATE_GAMETITLE;
+        return;
+    }
+
+    //we want to play the intro
+    //first time we need to initially the
+    //intro player
+    if (gameIntroPlayer == NULL) {
+        gameIntroPlayer = new IntroPlayer(mInfra, gameSoundEngine, gameMusicPlayer);
+        if (!gameIntroPlayer->Init()) {
+            //init of intro failed => skip intro
+            mGameState = DEF_GAMESTATE_GAMETITLE;
+            return;
+        }
+
+        //start playing intro
+        gameIntroPlayer->Play();
+    } else {
+            mInfra->mDriver->beginScene(true,true,
+                        video::SColor(255,100,101,140));
+
+            if (gameIntroPlayer->introPlaying) {
+                    gameIntroPlayer->RenderIntro(frameDeltaTime);
+                    gameIntroPlayer->HandleInput();
+            }
+
+            mInfra->mDriver->endScene();
+
+            if (gameIntroPlayer->introFinished) {
+                    //intro playing finished
+                    //delete introplayer again
+                    delete gameIntroPlayer;
+
+                    mGameState = DEF_GAMESTATE_GAMETITLE;
+            }
+    }
+}
+
 void Game::GameLoop() {
 
     // In order to do framerate independent movement, we have to know
@@ -801,8 +1028,21 @@ void Game::GameLoop() {
         then = now;
 
         switch (mGameState) {
-            case DEF_GAMESTATE_GAMETITLE:
-            case DEF_GAMESTATE_INTRO:
+            case DEF_GAMESTATE_EXTRACTDATA: {
+                GameLoopExtractData();
+                break;
+            }
+
+            case DEF_GAMESTATE_INTRO: {
+                GameLoopIntro(frameDeltaTime);
+                break;
+            }
+
+            //shows game title, loads game data
+            case DEF_GAMESTATE_GAMETITLE: {
+                   GameLoopTitleScreenLoadData();
+                   break;
+            }
             case DEF_GAMESTATE_MENUE: {
                 GameLoopMenue(frameDeltaTime);
                 break;
@@ -811,6 +1051,12 @@ void Game::GameLoop() {
             case DEF_GAMESTATE_DEMORACE:
             case DEF_GAMESTATE_RACE: {
                 GameLoopRace(frameDeltaTime);
+                break;
+            }
+
+            case DEF_GAMESTATE_ERROR: {
+                //there was an error, exit game
+                ExitGame = true;
                 break;
             }
         }
@@ -959,4 +1205,19 @@ Game::Game() {
 }
 
 Game::~Game() {
+    //cleanup background images
+    if (backgnd != NULL) {
+        backgnd->drop();
+        backgnd = NULL;
+    }
+
+    if (gameTitle != NULL) {
+        gameTitle->drop();
+        gameTitle = NULL;
+    }
+
+    if (raceLoadingScr != NULL) {
+        raceLoadingScr->drop();
+        raceLoadingScr = NULL;
+    }
 }

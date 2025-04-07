@@ -712,17 +712,24 @@ irr::u32 GameText::GetWidthPixelsGameNumberText(char* numberText, GameTextFont *
     return width;
 }
 
-//Constructor, initialization of all available and needed GameText fonts
-//Parameters:
-//  device = pointer to Irrlicht graphics device
-//  driver = pointer to Irrlicht Video driver
-// In case of unexpected initialization issue this constructor sets public
-// member GameTextInitializedOk to false, and to true otherwise.
-GameText::GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
-    myDriver = driver;
-    myDevice = device;
-    this->GameTextInitializedOk = true;
+void GameText::LoadInitialFont() {
+    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
+    std::vector<int> addFileOffs = {};
 
+    //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
+    GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/osfnt0-1-", 0, 241, addFileOffs, true, outLineColor);
+
+    //was there are problem loading the text font?
+    if (GameMenueWhiteTextSmallSVGA == NULL) {
+        GameTextInitializedOk = false;
+    }
+
+    delete outLineColor;
+}
+
+//this function handles loading fonts step 2
+//from the mainloop of the game
+void GameText::LoadFontsStep2() {
     irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
     std::vector<int> addFileOffs = {};
 
@@ -731,14 +738,6 @@ GameText::GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver
 
     //was there are problem loading the text font?
     if (HudWhiteTextBannerFont == NULL) {
-        GameTextInitializedOk = false;
-    }
-
-    //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
-    GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/osfnt0-1-", 0, 241, addFileOffs, true, outLineColor);
-
-    //was there are problem loading the text font?
-    if (GameMenueWhiteTextSmallSVGA == NULL) {
         GameTextInitializedOk = false;
     }
 
@@ -818,38 +817,82 @@ GameText::GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver
     delete outLineColor2;
 }
 
+//Constructor, initialization of all available and needed GameText fonts
+//Parameters:
+//  device = pointer to Irrlicht graphics device
+//  driver = pointer to Irrlicht Video driver
+// In case of unexpected initialization issue this constructor sets public
+// member GameTextInitializedOk to false, and to true otherwise.
+GameText::GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
+    myDriver = driver;
+    myDevice = device;
+    this->GameTextInitializedOk = true;
+
+    //only load an initial font so that we can
+    //continue to the main loop of the game
+    //so that we do not block the rendering
+    LoadInitialFont();
+}
+
 GameText::~GameText() {
     //cleanup all fonts
-    FreeTextFont(*HudWhiteTextBannerFont);
-    HudWhiteTextBannerFont = NULL;
+    //06.04.2025: Because font loading happens now in 2 steps
+    //make sure we do not try to unload font that was not
+    //loaded yet, especially if we delete object again before
+    //second load step was executed. Therefore adding NULL
+    //check before attempting to free font
+    if (HudWhiteTextBannerFont != NULL) {
+        FreeTextFont(*HudWhiteTextBannerFont);
+        HudWhiteTextBannerFont = NULL;
+    }
 
-    FreeTextFont(*HudBigGreenText);
-    HudBigGreenText = NULL;
+    if (HudBigGreenText != NULL) {
+        FreeTextFont(*HudBigGreenText);
+        HudBigGreenText = NULL;
+    }
 
-    FreeTextFont(*HudLaptimeNumberRed);
-    HudLaptimeNumberRed = NULL;
+    if (HudLaptimeNumberRed != NULL) {
+        FreeTextFont(*HudLaptimeNumberRed);
+        HudLaptimeNumberRed = NULL;
+    }
 
-    FreeTextFont(*HudLaptimeNumberGrey);
-    HudLaptimeNumberGrey = NULL;
+    if (HudLaptimeNumberGrey != NULL) {
+        FreeTextFont(*HudLaptimeNumberGrey);
+        HudLaptimeNumberGrey = NULL;
+    }
 
-    FreeTextFont(*HudKillCounterNumberRed);
-    HudKillCounterNumberRed = NULL;
+    if (HudKillCounterNumberRed != NULL) {
+        FreeTextFont(*HudKillCounterNumberRed);
+        HudKillCounterNumberRed = NULL;
+    }
 
-    FreeTextFont(*GameMenueUnselectedEntryFont);
-    GameMenueUnselectedEntryFont = NULL;
+    if (GameMenueUnselectedEntryFont != NULL) {
+        FreeTextFont(*GameMenueUnselectedEntryFont);
+        GameMenueUnselectedEntryFont = NULL;
+    }
 
-    FreeTextFont(*HudTargetNameGreen);
-    HudTargetNameGreen = NULL;
+    if (HudTargetNameGreen != NULL) {
+        FreeTextFont(*HudTargetNameGreen);
+        HudTargetNameGreen = NULL;
+    }
 
-    FreeTextFont(*HudTargetNameRed);
-    HudTargetNameRed = NULL;
+    if (HudTargetNameRed != NULL) {
+        FreeTextFont(*HudTargetNameRed);
+        HudTargetNameRed = NULL;
+    }
 
-    FreeTextFont(*ThinWhiteText);
-    ThinWhiteText = NULL;
+    if (ThinWhiteText != NULL) {
+        FreeTextFont(*ThinWhiteText);
+        ThinWhiteText = NULL;
+    }
 
-    FreeTextFont(*GameMenueWhiteTextSmallSVGA);
-    GameMenueWhiteTextSmallSVGA = NULL;
+    if (GameMenueWhiteTextSmallSVGA != NULL) {
+        FreeTextFont(*GameMenueWhiteTextSmallSVGA);
+        GameMenueWhiteTextSmallSVGA = NULL;
+    }
 
-    FreeTextFont(*GameMenueUnselectedTextSmallSVGA);
-    GameMenueUnselectedTextSmallSVGA = NULL;
+    if (GameMenueUnselectedTextSmallSVGA != NULL) {
+        FreeTextFont(*GameMenueUnselectedTextSmallSVGA);
+        GameMenueUnselectedTextSmallSVGA = NULL;
+    }
 }

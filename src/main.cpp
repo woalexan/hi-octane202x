@@ -48,13 +48,13 @@ int main()
     //create new game object
     mGame = new Game();
 
-    //try to init game
-    if (!mGame->InitGame())
+    //try to init most basic
+    //game components, so that we
+    //can show a first graphical screen
+    if (!mGame->InitGameStep1())
        return 1;
 
-    //init all ok
-    //run the game in default way
-    //via menue with next line
+    //run the game
     mGame->RunGame();
 
     //uncomment next line to skip menue and to

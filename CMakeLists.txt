@@ -120,6 +120,8 @@ add_executable(hi-octane202x
     src/draw/hud.cpp
     src/draw/menue.h
     src/draw/menue.cpp
+    src/draw/introplayer.h
+    src/draw/introplayer.cpp
 
     src/input/input.h
     src/input/input.cpp
