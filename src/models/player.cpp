@@ -1409,6 +1409,8 @@ void Player::TestCpForceControlLogicWithHumanPlayer() {
         mCurrentCraftOrientationAngle =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
 
+        //UpdateCurrentCraftOrientationAngleAvg();
+
          irr::f32 angleDotProduct = this->currClosestWayPointLink.first->LinkDirectionVec.dotProduct(craftForwardDirVec);
 
         irr::f32 angleRad = acosf(angleDotProduct);
@@ -1423,6 +1425,25 @@ void Player::TestCpForceControlLogicWithHumanPlayer() {
          dbgDistError = distError;
     }
 }
+/*
+void Player::UpdateCurrentCraftOrientationAngleAvg() {
+    if (mCurrentCraftOrientationAngleSamples > 10) {
+        this->mCurrentCraftOrientationAngleVec.pop_front();
+        mCurrentCraftOrientationAngleSamples--;
+    }
+
+    this->mCurrentCraftOrientationAngleVec.push_back(mCurrentCraftOrientationAngle);
+    mCurrentCraftOrientationAngleSamples++;
+
+    std::list<irr::f32>::iterator itList;
+    irr::f32 avgVal = 0.0f;
+
+    for (itList = this->mCurrentCraftOrientationAngleVec.begin(); itList != this->mCurrentCraftOrientationAngleVec.end(); ++itList) {
+        avgVal += (*itList);
+    }
+
+    mCurrentCraftOrientationAngleAvg = (avgVal / (irr::f32)(mCurrentCraftOrientationAngleSamples));
+}*/
 
 void Player::CPForceController() {
 
@@ -1510,6 +1531,8 @@ void Player::CPForceController() {
 
         mCurrentCraftOrientationAngle =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
+
+        //UpdateCurrentCraftOrientationAngleAvg();
 
          irr::f32 angleDotProduct = this->cPCurrentFollowSeg->LinkDirectionVec.dotProduct(craftForwardDirVec);
 
@@ -4074,6 +4097,8 @@ void Player::Update(irr::f32 frameDeltaTime) {
     if (mHumanPlayer) {
         mCurrentCraftOrientationAngle =
                 this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
+
+        //UpdateCurrentCraftOrientationAngleAvg();
     }
 
     //we must prevent running player height control while

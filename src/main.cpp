@@ -57,9 +57,5 @@ int main()
     //run the game
     mGame->RunGame();
 
-    //uncomment next line to skip menue and to
-    //enter race directly
-    //mGame->DebugGame();
-
     return 0;
 }

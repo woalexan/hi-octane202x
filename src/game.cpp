@@ -153,10 +153,10 @@ bool Game::InitGameStep1() {
 
 //This function allows to quickly enter a race for
 //game debugging, and to skip the menue etc.
-void Game::DebugGame() {
-    mDebugGame = true;
+void Game::SetupDebugGame() {
 
-    int debugLevelNr = 3;
+    //which level should be directly entered?
+    nextRaceLevelNr = 4;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -167,42 +167,24 @@ void Game::DebugGame() {
     //value 5 means Flexiwing
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
-    if (!runDemoMode) {
-        //player wants to start the race
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, false);
+    //add computer players?
+    mGameAssets->SetComputerPlayersEnabled(false);
 
-        if (this->CreateNewRace(debugLevelNr, mPilotsNextRace, false, mDebugGame)) {
-             mGameState = DEF_GAMESTATE_RACE;
-             CleanupPilotInfo(mPilotsNextRace);
+    mGameState = DEF_GAMESTATE_INITRACE;
+}
 
-             GameLoop();
-        }
-        else {
-            CleanupPilotInfo(mPilotsNextRace);
+//This function allows to quickly enter a demo race for
+//demo debugging, and to skip the menue etc.
+void Game::SetupDebugDemo() {
 
-            mGameState = DEF_GAMESTATE_MENUE;
+    //which level should be directly entered
+    //during demo mode
+    nextRaceLevelNr = 1;
 
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
-        }
-    } else {
-        //we want to start a demo
-        if (this->RunDemoMode(debugLevelNr)) {
-             mGameState = DEF_GAMESTATE_DEMORACE;
+    //in demo mode computer players need to be enabled!
+    mGameAssets->SetComputerPlayersEnabled(true);
 
-             GameLoop();
-        }
-        else {
-            CleanupPilotInfo(mPilotsNextRace);
-
-            mGameState = DEF_GAMESTATE_MENUE;
-
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
-        }
-    }
+    mGameState = DEF_GAMESTATE_INITDEMO;
 }
 
 void Game::RunGame() {
@@ -306,23 +288,10 @@ void Game::HandleMenueActions() {
     }
 
     if (pendingAction == MainMenue->ActRace) {
-        //MainMenue->ShowGameLoadingScreen();
-
-        //player wants to start the race
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
-
-        if (this->CreateNewRace(pendingAction->currSetValue, mPilotsNextRace, false, mDebugGame)) {
-             mGameState = DEF_GAMESTATE_RACE;
-             CleanupPilotInfo(mPilotsNextRace);
-        } else {
-            CleanupPilotInfo(mPilotsNextRace);
-
-            mGameState = DEF_GAMESTATE_MENUE;
-
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
-        }
+        //next level number selected in race track selection page
+        //at the end is handed over in pendingAction->currSetValue;
+        nextRaceLevelNr = pendingAction->currSetValue;
+        mGameState = DEF_GAMESTATE_INITRACE;
     }
 
     //take care of the special menue actions
@@ -486,24 +455,10 @@ void Game::HandleMenueActions() {
 
     //start a demo?
     if (pendingAction == MainMenue->ActStartDemo) {
-        //for the demo do not add a human player, but add computer players
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(false, true);
-
         //pick a random level number for the demo
-        int randLevelNr = this->mInfra->randRangeInt(1, 6);
+        nextRaceLevelNr = this->mInfra->randRangeInt(1, mGameAssets->mRaceTrackVec->size());
 
-        if (this->CreateNewRace(randLevelNr, mPilotsNextRace, true, mDebugGame)) {
-             mGameState = DEF_GAMESTATE_RACE;
-             CleanupPilotInfo(mPilotsNextRace);
-        } else {
-            CleanupPilotInfo(mPilotsNextRace);
-
-            mGameState = DEF_GAMESTATE_MENUE;
-
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
-        }
+        mGameState = DEF_GAMESTATE_INITDEMO;
     }
 }
 
@@ -679,9 +634,18 @@ void Game::GameLoopTitleScreenLoadData() {
         mGameState = DEF_GAMESTATE_ERROR;
         return;
     } else {
-        //was succesfull, now continue to main menue
-        mGameState = DEF_GAMESTATE_MENUE;
-        MainMenue->ShowMainMenue();
+        if (!mDebugRace && !mDebugDemoMode) {
+            //was succesfull, now continue to main menue
+            mGameState = DEF_GAMESTATE_MENUE;
+            MainMenue->ShowMainMenue();
+        } else if (mDebugRace) {
+            //we want to directly create a race for debugging
+            //of game mechanics and enter it
+            SetupDebugGame();
+        } else if (mDebugDemoMode) {
+            //we want to directly create a demo for debugging
+            SetupDebugDemo();
+        }
     }
 }
 
@@ -702,6 +666,40 @@ void Game::GameLoopLoadRaceScreen() {
     mInfra->mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mInfra->mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
 
     mInfra->mDriver->endScene();
+
+    if (mGameState == DEF_GAMESTATE_INITRACE) {
+        //player wants to start the race
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
+
+        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, false, mDebugRace)) {
+             mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
+        } else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
+        }
+    } else if (mGameState == DEF_GAMESTATE_INITDEMO) {
+        //for the demo do not add a human player, but add computer players
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(false, true);
+
+        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, true, mDebugRace)) {
+             mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
+        } else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
+        }
+    }
 }
 
 void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
@@ -842,12 +840,27 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
                     );*/
 
-          swprintf(text2, 390, L"");
+         // swprintf(text2, 390, L"");
 
        /* swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
                  this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,
                  this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.Y, this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.X,
                  this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.Y, this->mCurrentRace->dbgSkyMiddlePos.X, this->mCurrentRace->dbgSkyMiddlePos.Y);*/
+
+        /*swprintf(text2, 390, L"Vert1: %lf %lf %lf \n Vert2: %lf %lf %lf \n Vert3: %lf %lf %lf \n Vert4: %lf %lf %lf \n", mCurrentRace->dbgSkyVertice1.Pos.X,
+                 mCurrentRace->dbgSkyVertice1.Pos.Y, mCurrentRace->dbgSkyVertice1.Pos.Z, mCurrentRace->dbgSkyVertice2.Pos.X,
+                 mCurrentRace->dbgSkyVertice2.Pos.Y, mCurrentRace->dbgSkyVertice2.Pos.Z,
+                 mCurrentRace->dbgSkyVertice3.Pos.X,
+                                  mCurrentRace->dbgSkyVertice3.Pos.Y, mCurrentRace->dbgSkyVertice3.Pos.Z,
+                 mCurrentRace->dbgSkyVertice4.Pos.X,
+                 mCurrentRace->dbgSkyVertice4.Pos.Y, mCurrentRace->dbgSkyVertice4.Pos.Z);*/
+
+        /*swprintf(text2, 390, L"UV1: %lf %lf \n UV2: %lf %lf \n UV3: %lf %lf \n UV4: %lf %lf \n", mCurrentRace->dbgSkyVertice1.TCoords.X,
+                 mCurrentRace->dbgSkyVertice1.TCoords.X, mCurrentRace->dbgSkyVertice2.TCoords.X, mCurrentRace->dbgSkyVertice2.TCoords.Y,
+                 mCurrentRace->dbgSkyVertice3.TCoords.X, mCurrentRace->dbgSkyVertice3.TCoords.Y,
+                 mCurrentRace->dbgSkyVertice4.TCoords.X, mCurrentRace->dbgSkyVertice4.TCoords.Y);*/
+
+        swprintf(text2, 390, L"");
 
 
         /*   swprintf(text2, 390, L"%d %d %d %d %lf",
@@ -913,7 +926,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         delete mCurrentRace;
         mCurrentRace = NULL;
 
-        if (mDebugGame) {
+        //if we were in game debugging mode simply skip
+        //main menue, and exit game immediately
+        if (mDebugRace || mDebugDemoMode) {
             ExitGame = true;
         } else {
             mGameState = DEF_GAMESTATE_MENUE;
@@ -1048,6 +1063,12 @@ void Game::GameLoop() {
                 break;
             }
 
+            case DEF_GAMESTATE_INITDEMO:
+            case DEF_GAMESTATE_INITRACE: {
+                   GameLoopLoadRaceScreen();
+                   break;
+            }
+
             case DEF_GAMESTATE_DEMORACE:
             case DEF_GAMESTATE_RACE: {
                 GameLoopRace(frameDeltaTime);
@@ -1136,60 +1157,6 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
     if (!mCurrentRace->ready) {
         //there was a problem with Race initialization
         cout << "Race creation failed!" << endl;
-        return false;
-    }
-
-    return true;
-}
-
-bool Game::RunDemoMode(int load_levelnr) {
-    if (mCurrentRace != NULL)
-        return false;
-
-    //gameSoundEngine->StartEngineSound();
-
-    //create a new Race in Demo Mode
-    mCurrentRace = new Race(mInfra, this, gameMusicPlayer, gameSoundEngine, load_levelnr,
-                            mGameAssets->mRaceTrackVec->at(load_levelnr-1)->defaultNrLaps, true, false);
-
-    mCurrentRace->Init();
-
-    //add computer player 1
-    std::string pl2Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIE", pl2Model);
-
-    //add computer player 2
-    std::string pl3Model("extract/models/jugga0-3.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIZ", pl3Model);
-
-    //add computer player 3
-    std::string pl4Model("extract/models/skim0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KID", pl4Model);
-
-    //add computer player 4
-    std::string pl5Model("extract/models/bike0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIV", pl5Model);
-
-    //add computer player 5
-    std::string pl6Model("extract/models/marsh0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIF", pl6Model);
-
-    //add computer player 6
-    std::string pl7Model("extract/models/jet0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIS", pl7Model);
-
-    //add computer player 7
-    std::string pl8Model("extract/models/tank0-0.obj");
-    mCurrentRace->AddPlayer(false, (char*)"KIA", pl8Model);
-
-    mCurrentRace->currPlayerFollow = this->mCurrentRace->mPlayerVec.at(0);
-    mCurrentRace->Hud1Player->SetMonitorWhichPlayer(mCurrentRace->mPlayerVec.at(0));
-
-    //StopTime();
-
-    if (!mCurrentRace->ready) {
-        //there was a problem with Race initialization
-        cout << "Demo creation failed!" << endl;
         return false;
     }
 

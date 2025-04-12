@@ -85,6 +85,20 @@ Race::Race(InfrastructureBase* infra,  Game* mParentGame, MyMusicStream* gameMus
     //for the start of the race we want to trigger
     //target group 1 once
     mPendingTriggerTargetGroups.push_back(1);
+
+    //test code
+
+    /*const IGeometryCreator * geom = mInfra->mSmgr->getGeometryCreator();
+
+    IMesh* testmesh = geom->createCubeMesh(irr::core::vector3df(1.0f, 1.0f, 1.0f));
+
+    //testcube
+    testcube = this->mInfra->mSmgr->addMeshSceneNode(testmesh, 0, -1, irr::core::vector3df(-14.0f, 10.0f, 90.0f));
+    testmesh->drop();
+
+    testcube->setMaterialTexture(0, this->mGame->backgnd);
+    testcube->setMaterialFlag(irr::video::EMF_LIGHTING, true);
+    testcube->getMaterial(0).EmissiveColor = irr::video::SColor(255, 255, 0, 0);*/
 }
 
 void Race::CleanupAllSceneNodes() {
@@ -2616,7 +2630,8 @@ void Race::HandleInput() {
 //https://irrlicht.sourceforge.io/forum/viewtopic.php?t=43565
 //https://irrlicht.sourceforge.io/forum//viewtopic.php?p=246138#246138
 //But I had to modify it, to remove warnings "'argument': conversion from 'T' to 'T', possible loss of data"
-//in Visual Studio
+//in Visual Studio, and to fix a sudden random image flipping issue depending on the current selected
+//camera setup
 void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
      irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
      irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color) {
@@ -2630,6 +2645,12 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     // Store and clear the view matrix
     irr::core::matrix4 oldViewMat = driver->getTransform(irr::video::ETS_VIEW);
     driver->setTransform(irr::video::ETS_VIEW,irr::core::matrix4());
+
+    //10.04.2025: I had some problems with the original code that depending on the camera
+    //position sometimes the sky image would be flipped suddently around, right now it seems also setting
+    //the ETS_WORLD transform to unity matrix fixed my problem
+    irr::core::matrix4 oldWordMat = driver->getTransform(irr::video::ETS_WORLD);
+    driver->setTransform(irr::video::ETS_WORLD,irr::core::matrix4());
 
     // Find the positions of corners
     irr::core::vector2df corner[4];
@@ -2678,8 +2699,8 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     material.TextureLayer[0].Texture = texture;
     //the following line did not work, therefore I commented it out
     /*material.MaterialTypeParam = irr::video::pack_texureBlendFunc
-            (irr::video::EBF_SRC_ALPHA, irr::video::EBF_ONE_MINUS_SRC_ALPHA, irr::video::EMFN_MODULATE_1X, irr::video::EAS_TEXTURE | irr::video::EAS_VERTEX_COLOR);
-*/
+            (irr::video::EBF_SRC_ALPHA, irr::video::EBF_ONE_MINUS_SRC_ALPHA, irr::video::EMFN_MODULATE_1X, irr::video::EAS_TEXTURE | irr::video::EAS_VERTEX_COLOR);*/
+
     if (useAlphaChannel)
         material.MaterialType = irr::video::EMT_ONETEXTURE_BLEND;
     else
@@ -2691,67 +2712,42 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     // Restore projection and view matrices
     driver->setTransform(irr::video::ETS_PROJECTION,oldProjMat);
     driver->setTransform(irr::video::ETS_VIEW,oldViewMat);
+
+    //10.04.2025: added line, we also need to restore
+    //now the ETS_WORLD transform to the original values
+    driver->setTransform(irr::video::ETS_WORLD,oldWordMat);
 }
 
-/* 09.03.2025: best DrawSky until now, keep during experiment below
 void Race::DrawSky() {
     if (mSkyImage != NULL) {
-        //Draw sky
-        irr::s32 moveX = 0;
-
-        irr::f32 hlp = ((currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue - 180.0f) / 180.0f) * 150.0f;
-        moveX = (irr::s32)(hlp);
-
-        irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
-                                          mSkyImage->getSize().Width / 2 + (1024 / 2) - 75 + moveX , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
-
-        //dbglocMovingWindow = locMovingWindow;
-
-        irr::core::vector2di middlePos = (locMovingWindow.LowerRightCorner - locMovingWindow.UpperLeftCorner) / 2 + locMovingWindow.UpperLeftCorner;
-
-        draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow,
-             irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
-             currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
-    }
-}*/
-
-void Race::DrawSky() {
-    if (mSkyImage != NULL) {
-        //we also need current player absolute orientation in deg-C
+        //we also need current player absolute orientation in degree
         irr::f32 orientationAngle = currPlayerFollow->mCurrentCraftOrientationAngle;
+
         irr::f32 hlp = ((currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue - 180.0f) / 180.0f) * 150.0f;
 
-        irr::f32 moveXFloat = (orientationAngle / 360.0f) * mSkyImage->getSize().Width + hlp;
-
-        dbgSkyMoveXfloat = moveXFloat;
+        //sky pattern repeats itself every 512 pixels
+        //each modified sky image has 2 copies of initial image next
+        //to each other, so 360 degree full rotation should move
+        //image window by 1024 pixels
+        irr::f32 moveXFloat = (orientationAngle / 360.0f) * 1024.0f + hlp;
 
         //Draw sky
         irr::s32 moveX = 0;
 
-        moveX = (irr::s32)(moveXFloat);
+        moveX = -(irr::s32)(moveXFloat);
 
-        dbgSkyMoveXInt = moveX;
+        irr::core::recti locMovingWindow( 256 - 25 + moveX , 80,
+                                          256 - 25 + moveX + 1024 , mSkyImage->getSize().Height - 30);
 
-        irr::core::recti locMovingWindow( mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX , (mSkyImage->getSize().Height / 2 - (680 / 2)) +50 ,
-                                          mSkyImage->getSize().Width / 2 - (1024 / 2) - 75 + moveX + 1024 , mSkyImage->getSize().Height / 2 + (680 / 2) + 150 );
+        irr::core::vector2di sizeMovingWindow = locMovingWindow.getSize();
+        irr::core::vector2di drawPosWorldLeftUpperCorner = irr::core::vector2di(-200, -75);
 
-        dbgSkyMovingWindow = locMovingWindow;
+        irr::core::vector2di middlePos = (sizeMovingWindow - drawPosWorldLeftUpperCorner) / 2 + drawPosWorldLeftUpperCorner;
 
-        //dbglocMovingWindow = locMovingWindow;
-
-        irr::core::vector2di middlePos = (locMovingWindow.LowerRightCorner - locMovingWindow.UpperLeftCorner) / 2 + locMovingWindow.UpperLeftCorner;
-        dbgSkyMiddlePos = middlePos;
-
-        dbgSkyRotation = currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f;
-
-        /*draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow,
-             irr::core::vector2di(-200, -200), irr::core::vector2di( middlePos.X, middlePos.Y),
-             currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));*/
-
-        draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow,
-             irr::core::vector2di(-300, -300), irr::core::vector2di( middlePos.X, middlePos.Y),
-             currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.25f, irr::core::vector2df(1.0f, 1.0f), false, irr::video::SColor(255,255,255,255));
-    }
+         draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow, drawPosWorldLeftUpperCorner, middlePos,
+              -currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.35f, irr::core::vector2df(1.0f, 1.0f),
+              false, irr::video::SColor(255,255,255,255));
+        }
 }
 
 void Race::DrawTestShape() {
