@@ -123,14 +123,6 @@ public:
 
     bool ready;
 
-    irr::f32 dbgSkyMoveXfloat;
-    irr::s32 dbgSkyMoveXInt;
-    irr::core::recti dbgSkyMovingWindow;
-    irr::core::vector2di dbgSkyMiddlePos;
-    irr::f32 dbgSkyRotation;
-
-    //irr::core::recti dbglocMovingWindow;
-
     void HandleInput();
     void HandleBasicInput();
     void HandleComputerPlayers(irr::f32 frameDeltaTime);
@@ -360,6 +352,8 @@ private:
     std::vector<PhysicsObject*> mPlayerPhysicObjVec;
 
     std::vector<Player*> playerRanking;
+
+    scene::IMeshSceneNode* testcube;
 
     //my camera
     scene::ICameraSceneNode* mCamera;

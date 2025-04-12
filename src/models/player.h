@@ -484,6 +484,13 @@ public:
     irr::core::vector3df craftSidewaysToRightVec;
 
     irr::f32 mCurrentCraftOrientationAngle;
+    /*irr::f32 mCurrentCraftOrientationAngleAvg;
+    std::list<irr::f32> mCurrentCraftOrientationAngleVec;
+    irr::u8 mCurrentCraftOrientationAngleSamples = 0;
+    void UpdateCurrentCraftOrientationAngleAvg();*/
+
+    irr::f32 dbgmskyPos = 0.0f;
+    irr::u8 dbgmskyPosNr = 0;
 
     irr::f32 mAngleError;
 

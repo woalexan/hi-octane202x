@@ -24,6 +24,8 @@
 #define DEF_GAMESTATE_MENUE 5
 #define DEF_GAMESTATE_RACE 6
 #define DEF_GAMESTATE_DEMORACE 7
+#define DEF_GAMESTATE_INITRACE 8
+#define DEF_GAMESTATE_INITDEMO 9
 #define DEF_GAMESTATE_ERROR 10
 
 class Menue; //Forward declaration
@@ -60,7 +62,6 @@ private:
     irr::u8 mGameState = DEF_GAMESTATE_AFTERINIT;
 
     bool ExitGame = false;
-    bool mDebugGame = false;
 
     //set true to skip playing
     //game intro
@@ -95,7 +96,6 @@ private:
     bool mTimeStopped = false;
 
     bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace);
-    bool RunDemoMode(int load_levelnr);
 
     void RenderDataExtractionScreen();
     bool LoadBackgroundImage();
@@ -126,6 +126,13 @@ private:
     irr::core::vector2di raceLoadingScrDrawPos;
     irr::core::dimension2d<irr::u32> raceLoadingScrSize;
 
+    //if true skips main menue, and jumps directly to
+    //defined race for game mechanics debugging
+    bool mDebugRace = false;
+    bool mDebugDemoMode = true;
+
+    int nextRaceLevelNr = 1;
+
 public:
     irr::video::ITexture* backgnd;
 
@@ -135,14 +142,14 @@ public:
     bool DebugShowVariableBoxes = false;
 
     bool computerPlayersAttack = true;
-    bool runDemoMode = false;
 
     //Returns true for success, false for error occured
     bool InitGameStep1();
     bool InitGameStep2();
 
     void RunGame();
-    void DebugGame();
+    void SetupDebugGame();
+    void SetupDebugDemo();
 
     void StopTime();
     void StartTime();
