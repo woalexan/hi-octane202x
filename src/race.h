@@ -139,7 +139,7 @@ public:
 
     std::vector<irr::core::vector3df> mPlayerStartLocations;
 
-    void HandleCraftHeightMapCollisions();
+    void HandleCraftHeightMapCollisions(irr::f32 deltaTime, PhysicsObject* whichObj);
 
     void CallRecoveryVehicleForHelp(Player* whichPlayer);
 

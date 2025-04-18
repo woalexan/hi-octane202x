@@ -561,7 +561,7 @@ void Physics::RemoveObjToObjCollisionPair(PhysicsObject* obj1, PhysicsObject* ob
     }
 }
 
-void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
+void Physics::HandleObjToObjCollision(PhysicsObject *currObj, irr::f32 deltaTime) {
    std::vector<PhysicsObject*>::iterator it;
    std::vector<PhysicsObject*>::iterator it2;
 
@@ -571,15 +571,28 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
    irr::core::vector3df collNormal(0.0f, 0.0f, 0.0f);
    irr::f32 collDepth = 0.0f;
 
-   std::vector<PhysicsObject*>::iterator endit = this->PhysicObjectVec.end();
-   endit--;
+   std::vector<PhysicsObject*>::iterator startit;
+   bool found = false;
 
-   for (it = this->PhysicObjectVec.begin(); it != endit; ++it) {
+   //which object is the current one?
+   for (it = this->PhysicObjectVec.begin(); it != this->PhysicObjectVec.end(); ++it) {
+       if ((*it) == currObj) {
+           //current object found
+           startit = it;
+           found = true;
+           break;
+       }
+   }
 
-        std::vector<PhysicsObject*>::iterator startit = it;
-        startit++;
+   if (!found) {
+       return;
+   }
 
-     for (it2 = startit; it2 != this->PhysicObjectVec.end(); ++it2) {
+   //we do not want to check this object
+   //with itself, therefore move to next object
+   startit++;
+
+   for (it2 = startit; it2 != this->PhysicObjectVec.end(); ++it2) {
 
        //check only for collision if both objects are "active"
        if ((*it)->mActive && (*it2)->mActive) {
@@ -613,7 +626,7 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
                       if (!somethingNan) {
                               AddObjToObjCollisionPair((*it), (*it2));
 
-                              irr::f32 elasticity = 0.1f;
+                              irr::f32 elasticity = 0.3f;
 
                               irr::f32 Ua = (*it)->physicState.velocity.dotProduct(collNormal);
                               irr::f32 Ub = -(*it2)->physicState.velocity.dotProduct(collNormal);
@@ -629,16 +642,16 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
 
                               //better limit forces, because otherwise horrible
                               //things may happen with the world
-                              if (fabs(force1) > 500.0f) {
-                                  force1 = sgn(force1) * 500.0f;
+                              if (fabs(force1) > 2000.0f) {
+                                  force1 = sgn(force1) * 2000.0f;
                               }
 
-                              if (fabs(force2) > 500.0f) {
-                                  force2 = sgn(force2) * 500.0f;
+                              if (fabs(force2) > 2000.0f) {
+                                  force2 = sgn(force2) * 2000.0f;
                               }
 
-                              (*it)->AddFriction(100.0f);
-                              (*it2)->AddFriction(100.0f);
+                              (*it)->AddFriction(5000.0f);
+                              (*it2)->AddFriction(5000.0f);
 
                             (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
                                                     PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
@@ -666,7 +679,6 @@ void Physics::HandleObjToObjCollision(irr::f32 deltaTime) {
          }
        }
      }
-   }
 }
 
 void Physics::AddCollisionMesh(irr::scene::ITriangleSelector* selector_)
@@ -1052,7 +1064,7 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
                     //execute collision detection and resolution
                     //between physics objects themselves (via bounding boxes)
-                    HandleObjToObjCollision(frameDeltaTime);
+                    HandleObjToObjCollision((*it), dt);
 
                     //Wolf Alexander 24.10.2024: For the heightmap collision to work we
                     //need to immediately update the sceneNodes here inside the loop
@@ -1067,14 +1079,13 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
                     (*it)->sceneNode->updateAbsolutePosition();
 
-                    //execute all craft terrain height map collisions
-                    this->mParentRace->HandleCraftHeightMapCollisions();
+                    //execute craft terrain height map collisions
+                    this->mParentRace->HandleCraftHeightMapCollisions(dt, (*it));
 
                     (*it)->previousPhysicState = (*it)->physicState;
                     this->integrate((*it), (*it)->physicState, t, dt);
                  }
              }
-
 
              t += dt;
              physicsAccumulator -= dt;

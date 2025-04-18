@@ -1746,7 +1746,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
         }
 
         //add my additional logo text
-        mInfra->mGameTexts->DrawGameText((char*)"20XX", mInfra->mGameTexts->HudBigGreenText, irr::core::position2di(368,92));
+        mInfra->mGameTexts->DrawGameText((char*)"202X", mInfra->mGameTexts->HudBigGreenText, irr::core::position2di(368,92));
 
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)

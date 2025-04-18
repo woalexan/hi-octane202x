@@ -1676,14 +1676,16 @@ void Race::InitMiniMap(irr::u32 levelNr) {
     miniMapPixelPerCellH = (irr::f32)(miniMapSize.Height) / ((irr::f32)(miniMapEndH) - (irr::f32)(miniMapStartH));
 }
 
-void Race::HandleCraftHeightMapCollisions() {
+void Race::HandleCraftHeightMapCollisions(irr::f32 deltaTime, PhysicsObject* whichObj) {
     std::vector<Player*>::iterator itPlayer;
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
-        (*itPlayer)->ExecuteHeightMapCollisionDetection();
+        //to which player does this PhysicsObject belong to?
+        if ((*itPlayer)->phobj == whichObj) {
+            //yes, it belongs to this player
+            (*itPlayer)->ExecuteHeightMapCollisionDetection(deltaTime);
+        }
     }
-
-    //player->ExecuteHeightMapCollisionDetection();
 }
 
 void Race::Init() {
@@ -1808,12 +1810,6 @@ void Race::Init() {
     //activate collisionResolution in physics
     //can be disabled for debugging purposes
     mPhysics->collisionResolutionActive = true;
-
-    //set initial camera location
-    //Wolf 22.12.2024: commented out, since add player we have no player object
-    //here anymore
-    //mCamera->setPosition(playerPhysicsObj->physicState.position + irr::core::vector3df(2.0f, 2.0f, 00.0f));
-    //mCamera->setTarget(playerPhysicsObj->physicState.position);
 
     mInfra->mSmgr->setActiveCamera(mCamera);
 
@@ -2326,6 +2322,16 @@ void Race::HandleBasicInput() {
              mInfra->mTimeProfiler->HideWindow();
          }
     }
+
+    /*if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
+    {
+         this->mPlayerVec.at(0)->StartDbgRecording();
+    }
+
+    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F6))
+    {
+         this->mPlayerVec.at(0)->EndDbgRecording();
+    }*/
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
     {
@@ -2962,9 +2968,9 @@ void Race::Render() {
       /*mDriver->setMaterial(*mDrawDebug->green);
       mDriver->draw3DLine(mPhysics->DbgRayTargetLine.start, mPhysics->DbgRayTargetLine.end);*/
 
-      if (DEF_DBG_WALLCOLLISIONS) {
+      /*if (DEF_DBG_WALLCOLLISIONS) {
               mDrawDebug->Draw3DTriangle(&playerPhysicsObj->mNearestTriangle,  irr::video::SColor(0, 255, 0,127));
-      }
+      }*/
 
     /*  irr::core::vector2di hlpe;
 
@@ -3108,6 +3114,8 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
         if (currPlayerFollow != NULL) {
+
+
             /*if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
                                        mDrawDebug->cyan);
@@ -3475,7 +3483,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
    this->mLevelBlocks = new LevelBlocks(this->mLevelTerrain, this->mLevelRes, mInfra->mSmgr, mInfra->mDriver, mTexLoader,
-                                        this->mGame->enableLightning);
+                                        DebugShowWallCollisionMesh, this->mGame->enableLightning);
 
    //create all level entities
    //this are not only items to pickup by the player
@@ -3917,7 +3925,11 @@ void Race::createWallCollisionData() {
     wallCollisionMeshSceneNode = mInfra->mSmgr->addOctreeSceneNode(wallCollisionMesh, 0, IDFlag_IsPickable);
 
     //hide the collision mesh that the player does not see it
-    wallCollisionMeshSceneNode->setVisible(DEF_DBG_WALLCOLLISIONS);
+    wallCollisionMeshSceneNode->setVisible(false);
+
+    if (DebugShowWallCollisionMesh) {
+        wallCollisionMeshSceneNode->setVisible(true);
+    }
 
     wallCollisionMeshSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, true);
     //wallCollisionMeshSceneNode->setDebugDataVisible(EDS_BBOX);
@@ -4319,8 +4331,12 @@ void Race::AddTrigger(EntityItem *entity) {
     if (entity->getEntityType() == Entity::EntityType::TriggerCraft) {
         regionType = LEVELFILE_REGION_TRIGGERCRAFT;
 
-        //craft trigger can trigger so often as it wants to
-        newTriggerRegion->mOnlyTriggerOnce = false;
+        //12.04.2025: From original game observations it seems
+        //player craft trigger events can also only happen
+        //once; Otherwise the morphs in the levels would not work
+        //as observed in the original game, and would trigger more then
+        //once
+        newTriggerRegion->mOnlyTriggerOnce = true;
         newTriggerRegion->mAlreadyTriggered = false;
 
         tileMax.X += offsetXCells;

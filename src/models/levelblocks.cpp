@@ -47,9 +47,8 @@ LevelBlocks::~LevelBlocks() {
   }
 }
 
-LevelBlocks::LevelBlocks(LevelTerrain* myTerrain,
-                         LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver, TextureLoader* textureSource,
-                         bool enableLightning) {
+LevelBlocks::LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
+                         TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning) {
    this->m_driver = driver;
    MyTerrain = myTerrain;
    MySmgr = mySmgr;
@@ -97,6 +96,10 @@ LevelBlocks::LevelBlocks(LevelTerrain* myTerrain,
 
    //Uncomment next line to only see wireframe of the Buildings
    BlockCollisionSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+
+   if (debugShowWallCollisionMesh) {
+       BlockCollisionSceneNode->setDebugDataVisible(EDS_BBOX);
+   }
 
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
