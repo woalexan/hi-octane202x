@@ -12,7 +12,6 @@
 
 //User setup start
 
-#define DEF_DBG_WALLCOLLISIONS false
 #define DEF_PLAYERCANGOBACKWARDS false
 
 //Audio settings

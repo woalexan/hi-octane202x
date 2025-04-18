@@ -156,7 +156,7 @@ bool Game::InitGameStep1() {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 4;
+    nextRaceLevelNr = 1;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -168,7 +168,7 @@ void Game::SetupDebugGame() {
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     //add computer players?
-    mGameAssets->SetComputerPlayersEnabled(false);
+    mGameAssets->SetComputerPlayersEnabled(true);
 
     mGameState = DEF_GAMESTATE_INITRACE;
 }
@@ -840,7 +840,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
                     );*/
 
-         // swprintf(text2, 390, L"");
+          swprintf(text2, 390, L"");
 
        /* swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
                  this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,
@@ -859,9 +859,6 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                  mCurrentRace->dbgSkyVertice1.TCoords.X, mCurrentRace->dbgSkyVertice2.TCoords.X, mCurrentRace->dbgSkyVertice2.TCoords.Y,
                  mCurrentRace->dbgSkyVertice3.TCoords.X, mCurrentRace->dbgSkyVertice3.TCoords.Y,
                  mCurrentRace->dbgSkyVertice4.TCoords.X, mCurrentRace->dbgSkyVertice4.TCoords.Y);*/
-
-        swprintf(text2, 390, L"");
-
 
         /*   swprintf(text2, 390, L"%d %d %d %d %lf",
                        this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.X,

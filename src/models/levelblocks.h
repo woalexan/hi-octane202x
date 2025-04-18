@@ -37,8 +37,8 @@ struct ColumnsByPositionStruct {
 
 class LevelBlocks {
 public:
-    LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
-                bool enableLightning);
+    LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver,
+                TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning);
     ~LevelBlocks();
 
     //MapEntry* GetMapEntry(int x, int y);

@@ -50,7 +50,7 @@ const irr::f32 CP_PLAYER_STUCKDETECTION_MINDISTANCE_LIMIT = 2.0f;
 const irr::f32 CP_PLAYER_STUCKDETECTION_THRESHOLD_SEC = 3.0f;
 const irr::f32 CP_PLAYER_STUCKDETECTION_PERIOD_SEC = 0.5f;
 
-const irr::f32 CRAFT_JUMPDETECTION_THRES = 0.2f;
+const irr::f32 CRAFT_JUMPDETECTION_THRES = 1.2f;
 
 const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMAX = 1500.0f;  //2000.0f
 const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMIN = 50.0f;
@@ -309,6 +309,16 @@ public:
     irr::f32 dbgCameraVal;
     irr::f32 dbgCameraTargetVal;
 
+    bool mDbgCurrRecording = false;
+
+    std::vector<irr::f32> *dbgRecordFrontHeight;
+    std::vector<irr::f32> *dbgRecordBackHeight;
+    std::vector<irr::u8> *dbgRecordCurrJumping;
+    std::vector<irr::u8> *dbgRecordCurrCollision;
+
+    void StartDbgRecording();
+    void EndDbgRecording();
+
     bool firstNoKeyPressed = false;
 
     //True means humanPlayer
@@ -421,8 +431,6 @@ public:
 
     irr::core::vector3d<irr::f32> LocalCraftOrigin;
 
-    irr::core::vector3d<irr::f32> LocalCraftFrontPnt2;
-
     //local position on the craft where smoke pours out if
     //player is damaged
     irr::core::vector3d<irr::f32> LocalCraftSmokePnt;
@@ -488,9 +496,6 @@ public:
     std::list<irr::f32> mCurrentCraftOrientationAngleVec;
     irr::u8 mCurrentCraftOrientationAngleSamples = 0;
     void UpdateCurrentCraftOrientationAngleAvg();*/
-
-    irr::f32 dbgmskyPos = 0.0f;
-    irr::u8 dbgmskyPosNr = 0;
 
     irr::f32 mAngleError;
 
@@ -596,6 +601,7 @@ public:
     void CpAddCommandTowardsNextCheckpoint();
 
     void CraftHeightControl();
+    void JumpControl(irr::f32 deltaTime);
 
     void SetupForStart();
     void SetupToSkipStart();
@@ -668,7 +674,7 @@ public:
 
     HMAPCOLLSTRUCT mHMapCollPntData;
 
-    void ExecuteHeightMapCollisionDetection();
+    void ExecuteHeightMapCollisionDetection(irr::f32 deltaTime);
 
     void GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCharNr);
     void GetHeightMapCollisionSensorDebugInfoEntryText(HMAPCOLLSENSOR *collSensor,
@@ -694,6 +700,7 @@ public:
 
     //true if player craft is currently jumping
     bool mCurrJumping = false;
+    irr::f32 mCurrInAirTime;
 
     bool firstHeightControlLoop = true;
 
@@ -701,6 +708,10 @@ public:
     //logic
     irr::f32 lastHeightFront;
     irr::f32 lastHeightBack;
+
+    irr::f32 lastDistCraftTerrainBack;
+    irr::f32 currDistCraftTerrainFront;
+    irr::f32 currDistCraftTerrainBack;
 
     irr::u8 playerAbsAngleSkytListElementNr = 0;
 
@@ -793,7 +804,11 @@ private:
     void StoreHeightMapCollisionDbgRecordingDataForFrame();
 
     void UpdateHMapCollisionPointData();
-    void HeightMapCollision(HMAPCOLLSENSOR &collSensor);
+
+    //returns true if a collision at this sensor was detected
+    bool HeightMapCollision(HMAPCOLLSENSOR &collSensor);
+
+    void JumpControlPhysicsLoop(irr::f32 deltaTime);
 
     bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
     bool GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
@@ -807,7 +822,7 @@ private:
     void CheckForTriggerCraftRegion();
     void CalcPlayerCraftLeaningAngle();
 
-    void HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2);
+    //void HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2);
     void UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor);
 
     void CreateHMapCollisionPointData();

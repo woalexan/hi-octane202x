@@ -129,7 +129,7 @@ private:
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging
     bool mDebugRace = false;
-    bool mDebugDemoMode = true;
+    bool mDebugDemoMode = false;
 
     int nextRaceLevelNr = 1;
 

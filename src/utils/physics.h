@@ -306,7 +306,7 @@ private:
     bool CheckForWallCollision(PhysicsObject *obj1,
                irr::core::vector3df collNormal, irr::f32 depth);
 
-    void HandleObjToObjCollision(irr::f32 deltaTime);
+    void HandleObjToObjCollision(PhysicsObject *currObj, irr::f32 deltaTime);
 
     std::vector<PhyCollisionPair> currObjToObjCollisionPairs;
     void AddObjToObjCollisionPair(PhysicsObject* obj1, PhysicsObject* obj2);

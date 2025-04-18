@@ -544,6 +544,11 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     //create a moving average calculation helper for craft position over 10 samples
     //mMovingAvgPlayerPositionCalc = new MovingAverageCalculator(MVG_AVG_TYPE_IRRCOREVECT3DF, 10);
+
+    dbgRecordFrontHeight = new std::vector<irr::f32>();
+    dbgRecordBackHeight = new std::vector<irr::f32>();
+    dbgRecordCurrJumping = new std::vector<irr::u8>();
+    dbgRecordCurrCollision = new std::vector<irr::u8>();
 }
 
 //helper function, I one time thought I would need it especially for Recovery craft, when dropping the
@@ -2228,78 +2233,102 @@ void Player::LogMessage(char *msgTxt) {
     delete[] combinedMsg;
 }
 
-void Player::HeightMapCollisionResolve(irr::core::plane3df cplane, irr::core::vector3df pnt1, irr::core::vector3df pnt2) {
-    irr::f32 dist;
-    irr::core::vector3df outIntersect;
-    irr::core::vector3df collResolutionDirVec;
+void Player::StartDbgRecording() {
+    if (mDbgCurrRecording)
+        return;
 
-    //allow max 10 iterations to resolve collision
-    //to prevent endless loops
-    for (int resolvCnt = 0; resolvCnt < 10; resolvCnt++) {
-        if (cplane.getIntersectionWithLimitedLine(pnt1, pnt2, outIntersect)) {
-            /*irr::core::vector2di outCell;
-            //we need to correct Y coordinate of intersection point, so that it is at the height of the tile below
-            outIntersect.Y =
-                    this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(outIntersect.X, outIntersect.Z, outCell);
+    dbgRecordBackHeight->clear();
+    dbgRecordFrontHeight->clear();
+    dbgRecordCurrJumping->clear();
+    dbgRecordCurrCollision->clear();
 
-            dbgInterset = outIntersect;*/
+    mDbgCurrRecording = true;
+}
+void Player::EndDbgRecording() {
+    if (!mDbgCurrRecording)
+        return;
 
-            collResolutionDirVec = (outIntersect - pnt1);
-            dist = collResolutionDirVec.getLength();
-        } else {
-            //no more intersection
-            break;
-        }
+    //write output file
 
-        dbgDistance = dist;
+    //write the debugging output file
+    FILE* outputFile;
 
-        //if we have enough distance exit
-        if (dist > 0.0f)
-            break;
+    outputFile = fopen((char*)("collexport.txt"), "w");
 
-        if (resolvCnt == 0) {
-            //a collision should occur, play collision sound
-            if (!this->mCurrJumping) {
-                this->Collided();
-            }
-        }
+    int maxIdx = dbgRecordFrontHeight->size();
 
-        //prevent collision detection to modify Y coordinate, this should
-        //eliminate all kind of unwanted effects, like moving the craft
-        //upwards a hill during a continious collision situation
-        //with the terrain etc.
-        collResolutionDirVec.Y = 0.0f;
+    for (int currIdx = 0; currIdx < maxIdx; currIdx++) {
 
-        //add a force that pushes the object away from the terrain tile we collided with
-        this->phobj->physicState.position -= collResolutionDirVec * dist;
-        this->phobj->AddWorldCoordForce(this->phobj->physicState.position,
-                this->phobj->physicState.position - collResolutionDirVec * 2.0f, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
-     }
+        fprintf(outputFile, "%lf;%lf;%u;%u\n",
+                dbgRecordFrontHeight->at(currIdx),
+                dbgRecordBackHeight->at(currIdx),
+                dbgRecordCurrJumping->at(currIdx),
+                dbgRecordCurrCollision->at(currIdx)
+               );
 
-    //Also slow the craft down considerably by adding friction
-    //because otherwise the player gets no penalty by colliding with walls
-    this->phobj->AddFriction(2.0f);
+    }
+
+    fclose(outputFile);
 }
 
-void Player::ExecuteHeightMapCollisionDetection() {
+void Player::ExecuteHeightMapCollisionDetection(irr::f32 deltaTime) {
      UpdateHMapCollisionPointData();
+
+     //as a preparation to collision detection via heightmap
+     //we need to do craft jump detection, so that we know
+     //when we need to disable the detection
+     JumpControlPhysicsLoop(deltaTime);
 
      //if player does jump currently do not execute heightmap
      //collision detection
-     if (mCurrJumping)
+     if (mCurrJumping) {
+
+         if (mDbgCurrRecording) {
+                dbgRecordCurrCollision->push_back(0);
+         }
          return;
+     }
 
      //Execute the terrain heightmap tile collision detection
      //only if we do this morphing will also have an effect
      //on the craft movements
-     HeightMapCollision(*mHMapCollPntData.front);
-     HeightMapCollision(*mHMapCollPntData.frontLeft45deg);
-     HeightMapCollision(*mHMapCollPntData.frontRight45deg);
-     HeightMapCollision(*mHMapCollPntData.left);
-     HeightMapCollision(*mHMapCollPntData.right);
-     HeightMapCollision(*mHMapCollPntData.back);
-     HeightMapCollision(*mHMapCollPntData.backLeft45deg);
-     HeightMapCollision(*mHMapCollPntData.backRight45deg);
+     irr::u8 collval = 0;
+
+     if (HeightMapCollision(*mHMapCollPntData.front)) {
+         collval = 1;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.frontLeft45deg)) {
+         collval = 2;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.frontRight45deg)) {
+         collval = 3;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.left)) {
+         collval = 4;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.right)) {
+         collval = 5;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.back)) {
+         collval = 6;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.backLeft45deg)) {
+         collval = 7;
+     }
+
+     if (HeightMapCollision(*mHMapCollPntData.backRight45deg)) {
+         collval = 8;
+     }
+
+     if (mDbgCurrRecording) {
+         dbgRecordCurrCollision->push_back(collval);
+     }
 
      //store heightmap collision detection debugging results for frame
      //StoreHeightMapCollisionDbgRecordingDataForFrame();
@@ -2321,7 +2350,8 @@ void Player::ExecuteHeightMapCollisionDetection() {
 //height of surrounding tiles. I need to do the same, which I will try to do here.
 //I know it seems kind of messy to have different kind of collisions in the same
 //game, but that is all I can do now
-void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
+//returns true if a collision at this sensor was detected
+bool Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
 
     irr::f32 dist;
     irr::core::vector3df collPlanePos1Coord;
@@ -2332,6 +2362,7 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
     irr::core::vector3df deltaGround;
     irr::f32 step;
     irr::core::plane3df cplane;
+    bool collDet = false;
 
     collSensor.stepness = 0.0f;
     collSensor.distance = 0.0f;
@@ -2437,6 +2468,7 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
 
                 //a collision should occur, play collision sound
                 if (!this->mCurrJumping) {
+                    collDet = true;
                     this->Collided();
                 }
 
@@ -2473,6 +2505,7 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
 
                 //a collision should occur, play collision sound
                 if (!this->mCurrJumping) {
+                    collDet = true;
                     this->Collided();
                 }
 
@@ -2498,6 +2531,8 @@ void Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
 
         }
     }
+
+    return (collDet);
 }
 
 void Player::StoreHeightMapCollisionDbgRecordingDataForFrame() {
@@ -4197,18 +4232,32 @@ void Player::Update(irr::f32 frameDeltaTime) {
     }
 }
 
-void Player::CraftHeightControl() {
-    //*****************************************************
-    //* Hovercraft height control force calculation Start *  solution 1: with the 4 local points left, right, front and back of craft
-    //*****************************************************
+void Player::JumpControlPhysicsLoop(irr::f32 deltaTime) {
+    this->Player_node->updateAbsolutePosition();
+    irr::core::matrix4 matr = this->Player_node->getAbsoluteTransformation();
 
-    //remember last distance in front of craft towards race track
-    //needed for jump detection
-    lastHeightFront = currHeightFront;
-    lastHeightBack = currHeightBack;
+    irr::core::vector3df frontCraftPoint(LocalCraftFrontPnt);
+    matr.transformVect(frontCraftPoint);
 
-    //establish height information of race track below player craft
-    GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
+    irr::core::vector2di outCellFront;
+    irr::f32 frontTerrainHeight = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                frontCraftPoint.X,
+                frontCraftPoint.Z,
+                outCellFront);
+
+    /*irr::core::vector3df backCraftPoint(LocalCraftBackPnt);
+    matr.transformVect(backCraftPoint);
+
+    irr::core::vector2di outCellBack;
+    irr::f32 backTerrainHeight = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                backCraftPoint.X,
+                backCraftPoint.Z,
+                outCellBack);*/
+
+    //update current distanced based on the heightmap collision
+    //data
+    currDistCraftTerrainFront = frontCraftPoint.Y - frontTerrainHeight;
+    //currDistCraftTerrainBack =  backCraftPoint.Y - backTerrainHeight;
 
     //internal variable firstHeightControlLoop is used to prevent a
     //first unwanted JUMP detection when the first loop of PlayerCraftHeightControl is
@@ -4218,28 +4267,30 @@ void Player::CraftHeightControl() {
         if (!mCurrJumping) {
             //are we suddently start a jump?
             //we should be able to detect this when the front distance between craft
-            //and race track below goes suddently much longer, but the distance from the craft
-            //back to the racetrack is still similar then before
-            if (currHeightFront < (lastHeightFront - CRAFT_JUMPDETECTION_THRES)) {
-                if (currHeightBack > (lastHeightBack - CRAFT_JUMPDETECTION_THRES)) {
-                    this->mCurrJumping = true;
-                 /*   if (mHUD !=NULL) {
-                        this->mHUD->ShowGreenBigText("JUMP", 4.0f);
-                    }*/
-                }
+            //and race track below is suddently much bigger (because of the hole in the front
+            //of the craft that is opening)
+            if ((currDistCraftTerrainFront - HOVER_HEIGHT) > CRAFT_JUMPDETECTION_THRES ) {
+                  this->mCurrJumping = true;
+
+                  //reset in air time
+                  mCurrInAirTime = 0.0f;
+
+                  //message for debugging
+                  /*if (mHUD !=NULL) {
+                         this->mHUD->ShowGreenBigText((char*)("JUMP"), 0.5f, false);
+                  }*/
             }
         } else {
             //craft currently jumping
             //is the jump over again?
-            //the jump is over when distance at craft front and
-            //back towards the race track is similar enough again
-            irr::f32 heightFrontJump = (WorldCoordCraftFrontPnt.Y - (currHeightFront + HOVER_HEIGHT));
-
-            if (heightFrontJump < HOVER_HEIGHT) {
+            //the jump is over when distance between craft front and race track
+            //falls below normal hover height
+            if (currDistCraftTerrainFront < HOVER_HEIGHT) {
                 this->mCurrJumping = false;
-/*
-                if (mHUD !=NULL) {
-                    this->mHUD->ShowGreenBigText("JUMP END", 4.0f);
+
+                //message for debugging
+                /*if (mHUD !=NULL) {
+                    this->mHUD->ShowGreenBigText((char*)("JUMP END"), 0.1f, false);
                 }*/
             }
         }
@@ -4248,17 +4299,72 @@ void Player::CraftHeightControl() {
             //slowly move craft downwards while jumping, instead of the normal
             //craft height control below, while we jump we are disconnected from the
             //race track surface
-            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin - irr::core::vector3df(0.0f, 50.0f, 0.0f), PHYSIC_APPLYFORCE_REAL,
-                                            PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 
-            //when we jump exit, no more height control necessary
-            return;
+            //make the force downwards dependent on in air time
+            //that means shorter jumps are easier for the player keeping
+            //the downwards force first lower
+            //but then with increasing air time the downward force is increased
+            //so that the player does not fly to long through the air
+            mCurrInAirTime += deltaTime;
+
+            irr::core::vector3df downwardForce(0.0f, 0.0f, 0.0f);
+
+            //14.04.2025: For the first level 6 jump and more jumps in level 8 we need a little bit of help to be able
+            //to make the jump without using the booster; otherwise we can not fly over the wall on
+            //the other side. Therefore let player model fly upwards at the beginning
+            //feels weird, but there is no other solution right now :(
+            if (mCurrInAirTime < 0.3f) {
+                downwardForce.Y = -10.0f + 33.3f * mCurrInAirTime;
+            } else if (mCurrInAirTime > 0.3f) {
+                downwardForce.Y = 0.0f + 10.0f * (mCurrInAirTime - 0.3f);
+            }
+
+            //put limit at maximum force downwards
+            if (downwardForce.Y > 25.0f)
+                downwardForce.Y = 25.0f;
+
+            //Apply force to the players model
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin - downwardForce, PHYSIC_APPLYFORCE_REAL,
+                                            PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
         }
+
+        /*if (mDbgCurrRecording) {
+            dbgRecordFrontHeight->push_back(frontTerrainHeight);
+            dbgRecordBackHeight->push_back(backTerrainHeight);
+            if (mCurrJumping) {
+                dbgRecordCurrJumping->push_back(1);
+            } else {
+                   dbgRecordCurrJumping->push_back(0);
+            }
+        }*/
+
     } else {
         //internal variables to prevent first unwanted
         //jump after start of race
         firstHeightControlLoop = false;
     }
+}
+
+void Player::CraftHeightControl() {
+    //*****************************************************
+    //* Hovercraft height control force calculation Start *  solution 1: with the 4 local points left, right, front and back of craft
+    //*****************************************************
+
+    //remember last distance in front of craft towards race track
+    //needed for jump detection
+
+    lastHeightFront = currHeightFront;
+    lastHeightBack = currHeightBack;
+
+    //establish height information of race track below player craft
+    GetHeightRaceTrackBelowCraft(currHeightFront, currHeightBack, currHeightLeft, currHeightRight);
+
+    currDistCraftTerrainFront = WorldCoordCraftFrontPnt.Y - currHeightFront;
+    currDistCraftTerrainBack = WorldCoordCraftBackPnt.Y - currHeightBack;
+
+    //when we jump exit, no more height control necessary
+    if (mCurrJumping)
+        return;
 
     /*DbgCurrRaceTrackHeightFront = currHeightFront;
     DbgCurrRaceTrackHeightBack = currHeightBack;
@@ -4302,11 +4408,6 @@ void Player::CraftHeightControl() {
     //best values until now 01.08.2024
     irr::f32 corrForceHeight = 100.0f;
     irr::f32 corrDampingHeight = 10.0f;
-
-    //if craft is at all points higher than racetrack let it go towards racetrack slower (too allow something like a jump)
-    /*if ((heightErrorFront > 0.0f) && (heightErrorBack > 0.0f) && (heightErrorLeft > 0.0f) && (heightErrorRight > 0.0f)) {
-        corrForceHeight = 40.0f;
-    }*/
 
     irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->yAxisDirVector);
 
@@ -4551,7 +4652,16 @@ void Player::CheckForTriggerCraftRegion() {
     if (mCurrentCraftTriggerRegion != NULL) {
         if (mCurrentCraftTriggerRegion != mLastCraftTriggerRegion) {
             //yes, we hit a new trigger region
-            mRace->PlayerEnteredCraftTriggerRegion(this, mCurrentCraftTriggerRegion);
+
+            //is this a one time trigger only trigger?
+            if (((*itRegion)->mOnlyTriggerOnce && (!(*itRegion)->mAlreadyTriggered))
+                    || (!(*itRegion)->mOnlyTriggerOnce)) {
+                       if ((*itRegion)->mOnlyTriggerOnce) {
+                           (*itRegion)->mAlreadyTriggered = true;
+                       }
+
+                       mRace->PlayerEnteredCraftTriggerRegion(this, mCurrentCraftTriggerRegion);
+            }
         }
     }
 }
@@ -4847,10 +4957,10 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
     irr::core::vector3df rightDir;
     irr::core::vector3df backDir;*/
 
-    irr::core::vector3df pos_in_worldspace_frontPos(LocalCraftFrontPnt);
     this->Player_node->updateAbsolutePosition();
     irr::core::matrix4 matr = this->Player_node->getAbsoluteTransformation();
 
+    irr::core::vector3df pos_in_worldspace_frontPos(LocalCraftFrontPnt);
     matr.transformVect(pos_in_worldspace_frontPos);
 
     irr::core::vector2di outCellFront;
@@ -4961,7 +5071,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
 
         case Entity::EntityType::DoubleFuel:
             if (mHUD != NULL) {
-                this->mHUD->ShowBannerText((char*)"DOUBLE FULL", 4.0f);
+                this->mHUD->ShowBannerText((char*)"DOUBLE FUEL", 4.0f);
             }
 
             //the double fuel item sets the current gasoline level
