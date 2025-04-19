@@ -30,7 +30,7 @@ void Player::DamageGlas() {
 
 void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints) {    
     //if this player has already finished the race ignore checkpoints
-    if (this->GetCurrentState() == STATE_PLAYER_FINISHED)
+    if (mPlayerStats->mHasFinishedRace)
         return;
 
     //crossed checkpoint is the one we need to cross next?
@@ -207,7 +207,6 @@ Player::~Player() {
     //delete my camera SceneNodes
     this->mIntCamera->remove();
     this->mThirdPersonCamera->remove();
-    this->externalCamera;
 }
 
 void Player::SetNewState(irr::u32 newPlayerState) {
@@ -249,21 +248,20 @@ void Player::SetNewState(irr::u32 newPlayerState) {
             break;
         }
 
-        //in the finished state the player should be able to
-        //move, but not shoot; the human player craft is taken
-        //over in this state by the computer player control
-        case STATE_PLAYER_FINISHED: {
-            this->mPlayerStats->mPlayerCanMove = true;
-            this->mPlayerStats->mPlayerCanShoot = false;
-            break;
-        }
-
         case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE: {
            this->mPlayerStats->mPlayerCanMove = false;
            this->mPlayerStats->mPlayerCanShoot = false;
            break;
         }
    }
+
+    //in the finished state the player should be able to
+    //move, but not shoot; the human player craft is taken
+    //over in this state by the computer player control
+    if (mPlayerStats->mHasFinishedRace) {
+        this->mPlayerStats->mPlayerCanMove = true;
+        this->mPlayerStats->mPlayerCanShoot = false;
+    }
 
     //Update a connected HUD as well
     UpdateHUDState();
@@ -283,10 +281,15 @@ void Player::FinishedRace() {
      * computer player takes over controlling this craft */
     this->mCurrentViewMode = CAMERA_EXTERNALVIEW;
 
-    SetNewState(STATE_PLAYER_FINISHED);
+    mPlayerStats->mHasFinishedRace = true;
 
     //create a copy of the final player stats
     *mFinalPlayerStats = *mPlayerStats;
+
+    //Update a connected HUD as well
+    //so that change of mHasFinishedRace changes
+    //the HUD state
+    UpdateHUDState();
 
     LogMessage((char*)"I have finished the race");
 
@@ -385,6 +388,7 @@ void Player::FreedFromRecoveryVehicleAgain() {
        //this not only sets the player state to racing again
        //which means the player is allowed to move
        //but also enables drawing of HUD again
+       //as long as the player has not finished the race yet
        SetNewState(STATE_PLAYER_RACING);
 
        //if we are a computer player, and we got stuck and the stuck
@@ -3421,6 +3425,12 @@ void Player::CurrentCommandFinished() {
     //RunComputerPlayerLogic
     currCommand = NULL;
 
+    //19.04.2025: Note: I had a very rare segmentation fault today
+    //in the next line, because it seeems currCommand was initially NULL
+    //at the top, which caused an access to a NULL in the line below
+    //if this occurs again in future, should I adding an exit here if
+    //oldCmd == NULL?
+
     if (oldCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
         //we have to do maybe more cleanup
         if (oldCmd->targetWaypointLink != NULL) {
@@ -3574,9 +3584,16 @@ irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
             //does focus at us
             externalCamera->Update();
 
+            //make sure player model is
+            //visible again
+            UnhideCraft();
+
             return externalCamera->mCamSceneNode;
         } else {
             //as a fallback return my cockpit view
+            //make sure player model is hidden first
+            HideCraft();
+
             return mIntCamera;
         }
     }
@@ -3586,6 +3603,8 @@ irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
     }
 
     if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+         UnhideCraft();
+
          return mThirdPersonCamera;
     }
 
@@ -4075,7 +4094,7 @@ void Player::UpdateInternalCoordVariables() {
 }
 
 void Player::Update(irr::f32 frameDeltaTime) {
-    if ((mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED)
+    if ((!mPlayerStats->mHasFinishedRace)
         && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BEFORESTART)
         && (mPlayerStats->mPlayerCurrentState != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
             //advance current lap lap time, frameDeltaTime is in seconds
@@ -4106,7 +4125,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
         //started, that means the first player has reached the finish line the
         //first time; we also know this, because here also the player state changed
         //to racing state
-        if (GetCurrentState() == STATE_PLAYER_RACING) {
+        if ((GetCurrentState() == STATE_PLAYER_RACING) && (!mPlayerStats->mHasFinishedRace)) {
             //handle missle lock timing logic
             if (this->mTargetMissleLockProgr > 0) {
                 mTargetMissleLockProgr--;
@@ -4116,6 +4135,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
                     this->mTargetMissleLock = true;
                 }
             }
+        } else {
+            //player is not racing right now, or has finished the race
+            this->mTargetMissleLock = false;
         }
     }
 
@@ -4558,12 +4580,17 @@ void Player::UpdateHUDState() {
         }
     case STATE_PLAYER_EMPTYFUEL:
     case STATE_PLAYER_RACING: {
-            mHUD->SetHUDState(DEF_HUD_STATE_RACE);
+            //19.04.2025: If the player has already finished the race
+            //then do not draw HUD anymore, otherwise draw it again
+            if (!mPlayerStats->mHasFinishedRace) {
+                mHUD->SetHUDState(DEF_HUD_STATE_RACE);
+            } else {
+                mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
+            }
             break;
         }
 
     case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE:
-    case STATE_PLAYER_FINISHED:
     case STATE_PLAYER_BROKEN:  {
         //if there is a connected HUD we need to disable
         //its drawing, because if the player is destroyed there
@@ -4603,8 +4630,10 @@ HUD* Player::GetMyHUD() {
 
 bool Player::IsCurrentlyValidTarget() {
     //player is only a valid attack target
-    //when actively in racing state
-    if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING)
+    //when actively in racing state, and if not yet
+    //finished the race
+    if ((this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) &&
+        (!mPlayerStats->mHasFinishedRace))
         return true;
 
     return false;
@@ -5359,6 +5388,14 @@ void Player::AddGlasBreak() {
     newGlasBreak->altTexture = this->mHUD->brokenGlas->altTexture;
     newGlasBreak->sizeTex = this->mHUD->brokenGlas->sizeTex;
 
+    //I decided to also prepare a member variable for the image
+    //source rect, so that it is always already available
+    //when we draw the Hud over and over again, so that we save CPU cycles
+    newGlasBreak->sourceRect.UpperLeftCorner.X = 0;
+    newGlasBreak->sourceRect.UpperLeftCorner.Y = 0;
+    newGlasBreak->sourceRect.LowerRightCorner.X = newGlasBreak->sizeTex.Width;
+    newGlasBreak->sourceRect.LowerRightCorner.Y = newGlasBreak->sizeTex.Height;
+
     newGlasBreak->drawScrPosition.set((irr::s32)(rWidthFloat), (irr::s32)(rHeightFloat));
 
     this->brokenGlasVec->push_back(newGlasBreak);
@@ -5418,7 +5455,12 @@ void Player::CpPlayerHandleAttack() {
 
     //if the target player has already finished the race also
     //do not shot at him
-    if (mTargetPlayer->GetCurrentState() == STATE_PLAYER_FINISHED)
+    if (mTargetPlayer->mPlayerStats->mHasFinishedRace)
+        return;
+
+    //if the first player has not crossed the finished line
+    //the first time we also do not want to allow shooting
+    if (!mRace->RaceAllowsPlayersToAttack())
         return;
 
     //if we have a (red) perfect lock on another player, we have enough ammo

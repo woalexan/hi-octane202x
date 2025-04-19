@@ -40,6 +40,8 @@ bool InfrastructureBase::InitIrrlicht() {
     //get game root dir, is an absolute path
     mGameRootDir = mDevice->getFileSystem()->getWorkingDirectory();
 
+    //mDriver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 10, 30, .03f, false, true);
+
     return true;
 }
 
