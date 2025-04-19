@@ -299,8 +299,8 @@ void Recovery::State_PlayerGrabbed(irr::f32 deltaTime) {
 
         absAngleError = mPlayerDropOfAbsAngle - currPlayerAbsAngle;
 
-        //allow max 2 deg error
-        if (abs(absAngleError) > 2.0f) {
+        //allow max 5 deg error
+        if (abs(absAngleError) > 5.0f) {
             //we have to correct current recovery & player craft angle of orientation
 
             //calculate local angle, starting point is orientation of ship
@@ -339,7 +339,7 @@ void Recovery::State_PlayerGrabbed(irr::f32 deltaTime) {
 
     //have we reached the player dropoff location?
     if (targetReached &&
-            (!mPlayerDropOfDirVecFound || (mPlayerDropOfDirVecFound && (abs(absAngleError) < 2.0f)))) {
+            (!mPlayerDropOfDirVecFound || (mPlayerDropOfDirVecFound && (abs(absAngleError) < 5.0f)))) {
         //yes we have
         mCurrentState = STATE_RECOVERY_PUTPLAYERBACK;
 

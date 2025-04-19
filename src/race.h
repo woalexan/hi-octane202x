@@ -47,7 +47,7 @@ const irr::f32 DEF_RACE_FINISHED_WAITTIME_SEC = 7.0f;
 
 //maximum time the external camera is following a specific player
 //in demo mode, until change to the next scene
-const irr::f32 DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER = 7.0f;
+const irr::f32 DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER = 10.0f;
 
 #define DEF_RACE_DAMAGETYPE_UNDEF 0
 #define DEF_RACE_DAMAGETYPE_MGUN 1
@@ -261,6 +261,8 @@ public:
     bool mDemoMode;
 
     void PlayerCrossesFinishLineTheFirstTime();
+
+    bool RaceAllowsPlayersToAttack();
 
     /*void SetPlayerLocationAndAlignToTrackHeight(Player* player, irr::core::vector3df newLocation,
                                                 irr::core::vector3df newFrontDirVec);*/

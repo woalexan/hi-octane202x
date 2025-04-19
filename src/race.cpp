@@ -855,6 +855,13 @@ void Race::PlayerCrossesFinishLineTheFirstTime() {
     }
 }
 
+bool Race::RaceAllowsPlayersToAttack() {
+    if (mCurrentPhase == DEF_RACE_PHASE_RACING)
+        return true;
+
+    return false;
+}
+
 void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     Player* newPlayer;
 
@@ -1006,7 +1013,7 @@ void Race::UpdatePlayerRacePositionRanking() {
     vector< pair <irr::s32, Player*> > vecLapsFinished;
 
     for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
-        if ((*it)->mPlayerStats->mPlayerCurrentState != STATE_PLAYER_FINISHED) {
+        if (!(*it)->mPlayerStats->mHasFinishedRace) {
           vecLapsFinished.push_back( make_pair((*it)->mPlayerStats->currLapNumber, (*it)));
         }
     }
@@ -1257,10 +1264,13 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
     result->clear();
 
     std::vector<Player*>::iterator itPlayer;
+    std::vector<Player*>::iterator itPlayerSearch;
     std::vector <LAPTIMEENTRY>::iterator itLap;
     irr::u32 sumLapTimes;
     bool firstLapTime;
     irr::u16 minLapTime;
+    int fndIdx;
+    bool entryFound;
 
     for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
           RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
@@ -1289,7 +1299,25 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
           irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)((*itPlayer)->mFinalPlayerStats->lapTimeList.size());
           newEntry->avgLapTime = (irr::u16)(avgLapTime);
-          newEntry->racePosition = (*itPlayer)->mFinalPlayerStats->currRacePlayerPos;
+
+          //we find the final race position at which the player finished, in the order of the
+          //player elements in the playerRaceFinishedVec vector, first finished player (position 1)
+          //is first entry in this vector
+          fndIdx = 1;
+          entryFound = false;
+
+          for (itPlayerSearch = this->playerRaceFinishedVec.begin(); itPlayerSearch != this->playerRaceFinishedVec.end(); ++itPlayerSearch) {
+              //we found the position of this player in the
+              //ranking list
+              if ((*itPlayerSearch) == (*itPlayer)) {
+                  entryFound = true;
+                  break;
+              }
+
+              fndIdx++;
+          }
+
+          newEntry->racePosition = fndIdx;
 
           irr::u32 nrShootsfired = (*itPlayer)->mFinalPlayerStats->shootsHit + (*itPlayer)->mFinalPlayerStats->shootsMissed;
           irr::f32 accuracy;
@@ -1314,7 +1342,15 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
           //20 (best player)
           newEntry->rating = 1;
 
-          result->push_back(newEntry);
+          //only if player was found in ranking add it to the
+          //results table
+          if (entryFound) {
+            result->push_back(newEntry);
+          } else {
+              //do not add player result
+              //just delete struct again
+              delete newEntry;
+          }
     }
 
     return (result);
@@ -1942,6 +1978,7 @@ void Race::ControlStartPhase(irr::f32 frameDeltaTime) {
 }
 
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
+
     //are we in Race start phase, if so also call
     //race start control function
     if (mCurrentPhase == DEF_RACE_PHASE_START) {
@@ -3183,7 +3220,7 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
 
        currPlayerFollow = this->mPlayerVec.at(whichPlayerNr);
 
-       if (!mDemoMode) {
+    //   if (!mDemoMode) {
            //do we need to hide selected player model
            bool hideModel = currPlayerFollow->DoWeNeedHidePlayerModel();
 
@@ -3192,7 +3229,7 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
            }
 
             currPlayerFollow->DebugSelectionBox(true);
-       }
+      // }
 
        Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);   
     }
@@ -4121,8 +4158,7 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
         //camera
         mFollowPlayerDemoModeTimeCounter += deltaTime;
 
-        if ((mFollowPlayerDemoModeTimeCounter > DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER) ||
-            (mFollowPlayerDemoMode->externalCamera == NULL)) {
+        if (mFollowPlayerDemoModeTimeCounter > DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER) {
               //we need to find the next available player to follow
               FindNextPlayerToFollowInDemoMode();
         }
@@ -4132,13 +4168,31 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
         //get active camera of player we currently follow
         //in demo mode
         if (this->mFollowPlayerDemoMode != NULL) {
-            //update external camera focus
-            this->mFollowPlayerDemoMode->externalCamera->Update();
+           if (mFollowPlayerDemoMode->externalCamera != NULL) {
+                mFollowPlayerDemoMode->UnhideCraft();
 
-            activeCam = this->mFollowPlayerDemoMode->externalCamera->mCamSceneNode;
+                //update external camera focus
+                this->mFollowPlayerDemoMode->externalCamera->Update();
+
+                activeCam = this->mFollowPlayerDemoMode->externalCamera->mCamSceneNode;
+            } else {
+               //as a workaround use cockpit camera of this player
+               mFollowPlayerDemoMode->HideCraft();
+
+               activeCam = this->mFollowPlayerDemoMode->mIntCamera;
+           }
+        } else {
+            return;
         }
     } else {
         //free moving camera to inspect the level/map
+        //make sure to unhide all players
+        std::vector<Player*>::iterator it;
+
+        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+            (*it)->UnhideCraft();
+        }
+
         activeCam = mCamera;
     }
 
@@ -4170,6 +4224,13 @@ void Race::ManagePlayerCamera() {
         }
     } else {
         //free moving camera to inspect the level/map
+        //make sure to unhide all player models
+        std::vector<Player*>::iterator it;
+
+        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+            (*it)->UnhideCraft();
+        }
+
         activeCam = mCamera;
     }
 

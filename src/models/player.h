@@ -87,8 +87,7 @@ const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 #define STATE_PLAYER_RACING 2
 #define STATE_PLAYER_EMPTYFUEL 3
 #define STATE_PLAYER_BROKEN 4
-#define STATE_PLAYER_FINISHED 5
-#define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 6
+#define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 5
 
 #define CP_MISSION_WAITFORRACESTART 0
 #define CP_MISSION_FINISHLAPS 1
@@ -174,6 +173,8 @@ typedef struct PlayerStats {
     irr::u8 currLapNumber = 1;
 
     irr::u8 raceNumberLaps = 6;
+
+    bool mHasFinishedRace = false;
 
     //for the accuracy calculation later
     //in statistics
