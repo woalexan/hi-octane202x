@@ -538,6 +538,45 @@ void Race::UpdateRecoveryVehicles(irr::f32 deltaTime) {
    }
 }
 
+//returns an available recovery vehicle for physics reset
+//if no recovery vehicle is available returns NULL
+Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffPointAfterReset) {
+    std::vector<Recovery*>::iterator itRec;
+    irr::f32 distance;
+    vector< pair <irr::f32, Recovery*> > vecAvailRecoveryVehicles;
+
+    for (itRec = recoveryVec->begin(); itRec != recoveryVec->end(); ++itRec) {
+            //currently available?
+            if ((*itRec)->CurrentlyReadyforMission()) {
+                //yes it is, calculate distance between recovery vehicle and the drop off position
+                //we want to call the closest one
+                distance = (dropOffPointAfterReset - (*itRec)->GetCurrentPosition()).getLength();
+
+                vecAvailRecoveryVehicles.push_back( make_pair(distance, (*itRec)));
+            }
+    }
+
+    //if there is at least one recovery vehicle available sort them by descending distance,
+    //and select one for this player physics recovery, otherwise do nothing
+    //and return NULL
+    if (vecAvailRecoveryVehicles.size() > 0) {
+            //sort vector pairs in descending value of distance
+           std::sort(vecAvailRecoveryVehicles.rbegin(), vecAvailRecoveryVehicles.rend());
+
+           //start with the last element in sorted vector (which is the closest recovery vehicle
+           //to the dropoff location)
+           auto it4 = vecAvailRecoveryVehicles.rbegin();
+
+           //return the selected recovery vehicle to help this player
+           //for physics reset
+           return ((*it4).second);
+        }
+
+    //currently no recovery vehicles available
+    //return NULL
+    return (NULL);
+}
+
 void Race::CleanUpCones() {
     std::vector<Cone*>::iterator it;
     Cone* pntr;
@@ -1879,6 +1918,8 @@ void Race::Init() {
            }
 
     ready = true;
+
+    //this->mGame->StopTime();
   
     //only to test if we can save a levelfile properly!
     //std::string testsaveName("testsave.dat");
@@ -2360,15 +2401,23 @@ void Race::HandleBasicInput() {
          }
     }
 
-    /*if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
+    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
     {
-         this->mPlayerVec.at(0)->StartDbgRecording();
+      //   this->mPlayerVec.at(0)->StartDbgRecording();
+        /*if (testtrans < 255)
+            testtrans = testtrans + 1;
+
+         testBill->setColor(irr::video::SColor(255, testtrans,testtrans,testtrans));*/
     }
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F6))
     {
-         this->mPlayerVec.at(0)->EndDbgRecording();
-    }*/
+        // this->mPlayerVec.at(0)->EndDbgRecording();
+        /*if (testtrans > 0)
+            testtrans = testtrans - 1;
+
+         testBill->setColor(irr::video::SColor(255, testtrans,testtrans,testtrans));*/
+    }
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
     {
@@ -3192,6 +3241,31 @@ void Race::Render() {
 
         //DebugShowAllObstaclePlayers();
 
+       /* std::vector<Player*>::iterator it;
+        bool playerTrouble;
+
+        mPlayersInTrouble = 0;
+
+        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+            playerTrouble = false;
+            if (isnan((*it)->phobj->physicState.position.X) == 1)
+                playerTrouble = true;
+
+            if (isnan((*it)->phobj->physicState.position.Y) == 1)
+                playerTrouble = true;
+
+            if (isnan((*it)->phobj->physicState.position.Z) == 1)
+                playerTrouble = true;
+
+            if (playerTrouble) {
+                mPlayersInTrouble++;
+            } else {
+
+                mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it)->phobj->physicState.position,
+                                       this->mDrawDebug->red);
+            }
+        }*/
+
         if (DebugShowTriggerRegions) {
             IndicateTriggerRegions();
         }
@@ -3559,6 +3633,11 @@ bool Race::LoadLevel(int loadLevelNr) {
   //create final overall triangle selectors for collision
   //with physics
   createFinalCollisionData();
+
+  //create a bounding box for valid player
+  //location testing
+  mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
+  validPlayerLocationBBox = mLevelTerrain->StaticTerrainSceneNode->getTransformedBoundingBox();
 
   return true;
 }
@@ -4773,7 +4852,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::SteamStrong: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 48);
+               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 100);
 
                //only for first testing
                //sf->Activate();
@@ -4789,7 +4868,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::SteamLight: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 24);
+               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 50);
 
                //only for first testing
                //sf->Activate();

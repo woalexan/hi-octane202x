@@ -166,6 +166,10 @@ public:
     std::vector<WayPointLinkInfoStruct*> DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(
             WayPointLinkInfoStruct* inputWayPointLink);
 
+    //is used within Recovery vehicle to be able to execute a workaround in case we do not know the location
+    //anymore where to put a player back after its physics reset
+    std::vector<WayPointLinkInfoStruct*> DeliverAllWayPointLinksThatLeadIntoPlayersNextExpectedCheckpoint(Player* player);
+
 private:
     Race* mRace;
     DrawDebug* mDrawDebug;

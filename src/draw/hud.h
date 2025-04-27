@@ -206,6 +206,8 @@ private:
     irr::video::SColor* mColorSolid;
     irr::video::SColor* mColorTransparent;
 
+    irr::video::SColor* mColorTargetSymbolHealthBar;
+
 public:
     HUD(InfrastructureBase* infra);
     ~HUD();

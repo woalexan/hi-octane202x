@@ -21,6 +21,7 @@ SpriteParticle::SpriteParticle(irr::scene::ISceneManager* smgr, irr::video::ITex
     mSpriteTexSize = mSpriteTex->getSize();
     mParticlePos = startLocation;
     mLifeTimeSec = lifeTimeSec;
+
     mInitSize = initSize;
     mEndLifeSize = endLifeSize;
     mCurrParticleSize = mInitSize;
@@ -32,7 +33,7 @@ SpriteParticle::SpriteParticle(irr::scene::ISceneManager* smgr, irr::video::ITex
     mSceneNode = smgr->addBillboardSceneNode();
     mSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
     mSceneNode->setMaterialTexture(0, mSpriteTex);
-    mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, true);
+    mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
     mSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
     //mSceneNode->setDebugDataVisible(irr::scene::EDS_BBOX);
@@ -43,6 +44,24 @@ SpriteParticle::SpriteParticle(irr::scene::ISceneManager* smgr, irr::video::ITex
 
     mSceneNode->setPosition(mParticlePos);
     mSceneNode->setSize(mInitSize * rNumFloat);
+
+    //default set movementVelocity option to all 0
+    //(=not used)
+    mInitialMovementVelocity.set(0.0f, 0.0f, 0.0f);
+    mFinalMovementVelocity.set(0.0f, 0.0f, 0.0f);
+
+    //make the sprite completely visible
+    mCurrVerticeColor.set(255, 255, 255, 255);
+    mSceneNode->setColor(mCurrVerticeColor);
+}
+
+//allows to setup movement velocity for this particle
+void SpriteParticle::SetMovemenVelocity(irr::core::vector3df initialVelocity, irr::core::vector3df finalVelocity) {
+    mInitialMovementVelocity = initialVelocity;
+    mFinalMovementVelocity = finalVelocity;
+
+    //we use the movement velocity option now
+    mUseMovementVelocity = true;
 }
 
 SpriteParticle::~SpriteParticle() {
@@ -56,21 +75,57 @@ void SpriteParticle::ResetParticle() {
 //Update returns true if particle still has remaining lifetime
 //returns false if lifetime is over
 bool SpriteParticle::Update(irr::f32 frameDeltaTime) {
-    if (mLastVisible != mVisible) {
+    /*if (mLastVisible != mVisible) {
         if (mVisible) {
+            //make the sprite again as solid as possible
+            mCurrVerticeColor.set(255, 255, 255, 255);
+            mSceneNode->setColor(mCurrVerticeColor);
+
             this->mSceneNode->setVisible(true);
         }
     }
 
-    mLastVisible = mVisible;
+    mLastVisible = mVisible;*/
 
-    if (mLifeTimeSec > 0.0f)
+    if (mLifeTimeSec > 0.0f) {
+        irr::f32 lifeTimeAlphaVal = ((this->lifeTimeSecParam - mLifeTimeSec) / lifeTimeSecParam);
+
+        if (lifeTimeAlphaVal > 1.0f)
+            lifeTimeAlphaVal = 1.0f;
+
+        if (lifeTimeAlphaVal < 0.0f)
+            lifeTimeAlphaVal = 0.0f;
+
+        //if movement velocity option is used,
+        //apply it
+        if (mUseMovementVelocity) {
+            irr::core::vector3df currVelocityEffect = irr::core::lerp(mInitialMovementVelocity, mFinalMovementVelocity, lifeTimeAlphaVal);
+
+            this->mParticlePos += currVelocityEffect * frameDeltaTime;
+        }
+
+        //at the end of the lifetime fade the particle
+        //out
+        if (mVisible) {
+            if (lifeTimeAlphaVal > 0.5f) {
+                irr::u8 fadeVal = (irr::u8)(255.0f * (1.0f - (lifeTimeAlphaVal - 0.5f)/0.5f));
+
+                //if we want to fade out (make the billBoardSceneNode more transparent)
+                //we just need to set the Vertices colors more black
+                mCurrVerticeColor.set(255, fadeVal, fadeVal, fadeVal);
+                this->mSceneNode->setColor(mCurrVerticeColor);
+            }
+        }
+
         return true;
+    }
     else return false;
 }
 
 void SpriteParticle::ShowParticle() {
     mVisible = true;
+    mCurrVerticeColor.set(255, 255, 255, 255);
+    mSceneNode->setColor(mCurrVerticeColor);
     this->mSceneNode->setVisible(true);
 }
 
@@ -96,6 +151,9 @@ void SteamParticle::ResetParticle() {
 
     mSceneNode->setPosition(mParticlePos);
     mSceneNode->setSize(mInitSize * rNumFloat);
+
+   //show particle again
+   ShowParticle();
 }
 
 //Update returns true if particle still has remaining lifetime
@@ -202,8 +260,8 @@ void SteamFountain::TriggerUpdate(irr::f32 frameDeltaTime) {
     if (mActivated) {
         absTimeSinceLastUpdate += frameDeltaTime;
 
-        //only update sprites every 0.5 seconds
-        if (absTimeSinceLastUpdate > 0.1) {
+        //only update sprites every 10 mSeconds
+        if (absTimeSinceLastUpdate > 0.01) {
 
             //we can create more particles
             if (mCurrNrParticels < mNrMaxParticles) {
@@ -235,7 +293,7 @@ void SteamFountain::TriggerUpdate(irr::f32 frameDeltaTime) {
 void SmokeParticle::ResetParticle(irr::core::vector3df newStartLocation) {
     //let particle restart
     mParticlePos = newStartLocation;
-    //mLifeTimeSec = lifeTimeSecParam;
+    mLifeTimeSec = lifeTimeSecParam;
     mCurrParticleSize = mInitSize;
 
     //I want a random number between 0.8f and 1.2f
@@ -244,15 +302,14 @@ void SmokeParticle::ResetParticle(irr::core::vector3df newStartLocation) {
 
     mSceneNode->setPosition(mParticlePos);
     mSceneNode->setSize(mInitSize * rNumFloat);
+
+    ShowParticle();
 }
 
 //Update returns true if particle still has remaining lifetime
 //returns false if lifetime is over
 bool SmokeParticle::Update(irr::f32 frameDeltaTime, irr::core::vector3df newStartLocation) {
    mLifeTimeSec -= frameDeltaTime;
-
-   if (mIsReset)
-       return true;
 
    if (mLifeTimeSec > 0.0f) {
      //this particle has some time left
@@ -261,29 +318,24 @@ bool SmokeParticle::Update(irr::f32 frameDeltaTime, irr::core::vector3df newStar
 
      mParticlePos.Y += 3.0f * rNumFloat * frameDeltaTime;
 
-   /*  rNum = rand();
+     rNum = rand();
      rNumFloat = (float(rNum - (RAND_MAX / 2)) / float (RAND_MAX));
 
-     mParticlePos.X += 0.4f * rNumFloat * frameDeltaTime;
+     mParticlePos.X += 0.7f * rNumFloat * frameDeltaTime;
 
      rNum = rand();
      rNumFloat = (float(rNum - (RAND_MAX / 2)) / float (RAND_MAX));
 
-     mParticlePos.Z += 0.4f * rNumFloat * frameDeltaTime;*/
+     mParticlePos.Z += 0.7f * rNumFloat * frameDeltaTime;
 
      //calculate new size depending on remaining particle lifetime
      mCurrParticleSize = mInitSize + mEndLifeSize * (1.0f - (mLifeTimeSec / lifeTimeSecParam));
-
 
      mSceneNode->setPosition(mParticlePos);
      mSceneNode->setSize(mCurrParticleSize);
 
    } else {
-       if (!mIsReset) {
-        //this particles time is over
-        ResetParticle(newStartLocation);
-        mIsReset = true;
-       }
+       HideParticle();
    }
 
     SpriteParticle::Update(frameDeltaTime);
@@ -339,75 +391,53 @@ SmokeTrail::~SmokeTrail() {
 void SmokeTrail::Activate() {
     absTimeSinceLastActivation = 0.0f;
 
-    mCurrNrParticels = 0;
-
     mActivated = true;
     absTimeSinceLastUpdate = 0.0f;
-
-    std::vector<SmokeParticle*>::iterator it;
-
-    //show all already existing particles
-    if (mCurrSpriteVec->size() > 0) {
-        for (it = mCurrSpriteVec->begin(); it != mCurrSpriteVec->end(); ++it) {
-            (*it)->ShowParticle();
-        }
-    }
 }
 
 void SmokeTrail::Deactivate() {
     absTimeSinceLastActivation = 0.0f;
 
-    mCurrNrParticels = 0;
-
     mActivated = false;
     absTimeSinceLastUpdate = 0.0f;
-
-    std::vector<SmokeParticle*>::iterator it;
-
-    //hide all already existing particles
-    if (mCurrSpriteVec->size() > 0) {
-        for (it = mCurrSpriteVec->begin(); it != mCurrSpriteVec->end(); ++it) {
-            (*it)->HideParticle();
-        }
-    }
 }
 
 void SmokeTrail::Update(irr::f32 frameDeltaTime) {
     absTimeSinceLastActivation += frameDeltaTime;
 
-    if (mActivated) {
-        absTimeSinceLastUpdate += frameDeltaTime;
+    absTimeSinceLastUpdate += frameDeltaTime;
 
-        //only update sprites every 0.5 seconds
-        if (absTimeSinceLastUpdate > 0.1) {
+        //only update sprites every 0.01 seconds
+        if (absTimeSinceLastUpdate > 0.01) {
 
-            //we can create more particles
-            if (mCurrNrParticels < mNrMaxParticles) {
-               //old reusable particle left?
-               std::vector<SmokeParticle*>::iterator it;
-               SmokeParticle* pntr = NULL;
-               for (it = this->mCurrSpriteVec->begin(); it != this->mCurrSpriteVec->end(); it++) {
-                   if (!((*it)->mLifeTimeSec > 0.0f)) {
-                       pntr = (*it);
-                       break;
-                   }
-               }
+            if (mActivated) {
+                    //we can create more particles
+                    if (mCurrNrParticels < mNrMaxParticles) {
+                       //old reusable particle left?
+                       std::vector<SmokeParticle*>::iterator it;
+                       SmokeParticle* pntr = NULL;
+                       for (it = this->mCurrSpriteVec->begin(); it != this->mCurrSpriteVec->end(); it++) {
+                           if (!((*it)->mLifeTimeSec > 0.0f)) {
+                               pntr = (*it);
+                               break;
+                           }
+                       }
 
-              if (pntr != NULL) {
-                  pntr->mLifeTimeSec = 1.2f;
-                  pntr->mIsReset = false;
-              } else {
-                   //nothing available anymore, create a new particle
-                   SmokeParticle* newParticle = new SmokeParticle(mSmgr, mSmokeTex,
-                             this->mParentPlayer->WorldCoordCraftSmokePnt, 1.2f,
-                                                               irr::core::dimension2d<irr::f32>(0.1f, 0.1f), irr::core::dimension2d<irr::f32>(0.4f, 0.4f));
+                      if (pntr != NULL) {
+                          pntr->ResetParticle(this->mParentPlayer->WorldCoordCraftSmokePnt);
+                      } else {
+                           //nothing available anymore, create a new particle
+                           SmokeParticle* newParticle = new SmokeParticle(mSmgr, mSmokeTex,
+                                     this->mParentPlayer->WorldCoordCraftSmokePnt, 0.6f,
+                                                                       irr::core::dimension2d<irr::f32>(0.2f, 0.2f), irr::core::dimension2d<irr::f32>(0.4f, 0.4f));
 
-                 //add new particle to my particle list
-                 this->mCurrSpriteVec->push_back(newParticle);
-              }
+                         //add new particle to my particle list
+                         this->mCurrSpriteVec->push_back(newParticle);
+                      }
 
-              mCurrNrParticels++;
-          }
+                      mCurrNrParticels++;
+                  }
+            }
 
           std::vector<SmokeParticle*>::iterator it;
 
@@ -424,7 +454,6 @@ void SmokeTrail::Update(irr::f32 frameDeltaTime) {
 
             absTimeSinceLastUpdate = 0.0f;
       }
-    }
 }
 
 //***************************************************
@@ -434,7 +463,7 @@ void SmokeTrail::Update(irr::f32 frameDeltaTime) {
 void DustParticle::ResetParticle(irr::core::vector3df newStartLocation) {
     //let particle restart
     mParticlePos = newStartLocation;
-    //mLifeTimeSec = lifeTimeSecParam;
+    mLifeTimeSec = lifeTimeSecParam;
     mCurrParticleSize = mInitSize;
 
     //I want a random number between 0.8f and 1.2f
@@ -443,15 +472,16 @@ void DustParticle::ResetParticle(irr::core::vector3df newStartLocation) {
 
     mSceneNode->setPosition(mParticlePos);
     mSceneNode->setSize(mInitSize * rNumFloat);
+
+    //unhide existing sceneNode of particles
+    //again
+    ShowParticle();
 }
 
 //Update returns true if particle still has remaining lifetime
 //returns false if lifetime is over
 bool DustParticle::Update(irr::f32 frameDeltaTime, irr::core::vector3df newStartLocation) {
    mLifeTimeSec -= frameDeltaTime;
-
-   if (mIsReset)
-       return true;
 
    if (mLifeTimeSec > 0.0f) {
      //this particle has some time left
@@ -502,10 +532,8 @@ DustBelowCraft::DustBelowCraft(irr::scene::ISceneManager* smgr, irr::video::IVid
 
     mNrMaxParticles = nrMaxParticles;
 
-    //load the cloud sprite from the game
-    std::string spriteTexFile("extract/sprites/tmaps0017.png");
-
-    mDustTex = mDriver->getTexture(spriteTexFile.c_str());
+    //get the cloud sprite from the game
+    mDustTex = mParentPlayer->mRace->mTexLoader->spriteTex.at(17);
     mDustTexSize = mDustTex->getSize();
 
     mCurrSpriteVec = new std::vector<DustParticle*>();
@@ -532,11 +560,6 @@ DustBelowCraft::~DustBelowCraft() {
     }
 
     delete mCurrSpriteVec;
-
-    if (mDustTex != NULL) {
-        //free my sprite texture as well
-        mDriver->removeTexture(mDustTex);
-    }
 }
 
 void DustBelowCraft::Activate() {
@@ -546,15 +569,6 @@ void DustBelowCraft::Activate() {
 
     mActivated = true;
     absTimeSinceLastUpdate = 0.0f;
-
-    std::vector<DustParticle*>::iterator it;
-
-    //show all already existing particles
-    if (mCurrSpriteVec->size() > 0) {
-        for (it = mCurrSpriteVec->begin(); it != mCurrSpriteVec->end(); ++it) {
-            (*it)->ShowParticle();
-        }
-    }
 }
 
 void DustBelowCraft::Deactivate() {
@@ -564,53 +578,98 @@ void DustBelowCraft::Deactivate() {
 
     mActivated = false;
     absTimeSinceLastUpdate = 0.0f;
+}
 
-    std::vector<DustParticle*>::iterator it;
+void DustBelowCraft::SetupVelocityParticle(DustParticle* particlePntr) {
+    if (particlePntr == NULL)
+        return;
 
-    //hide all already existing particles
-    if (mCurrSpriteVec->size() > 0) {
-        for (it = mCurrSpriteVec->begin(); it != mCurrSpriteVec->end(); ++it) {
-            (*it)->HideParticle();
-        }
+    int rNum;
+
+    //first get a random direction for velocity in X-Z plane, so that
+    //the particles fly away in all directions from the craft
+    irr::core::vector3df initialVelocity;
+
+    //derive a random flying velocity direction vector for the debris
+    rNum = rand();
+    irr::f32 rNumFloat1 = 0.5f + (float(rNum) / float (RAND_MAX))  * 0.5f;
+
+    rNum = rand();
+    irr::f32 rNumFloat2 = 0.5f + (float(rNum) / float (RAND_MAX))  * 0.5f;
+
+    rNum = rand();
+    if (float(rNum) > (float (RAND_MAX) * 0.5f)) {
+        rNumFloat1 = -rNumFloat1;
     }
+
+    rNum = rand();
+    if (float(rNum) > (float (RAND_MAX) * 0.5f)) {
+        rNumFloat2 = -rNumFloat2;
+    }
+
+    rNum = rand();
+    //velocity for Y axis only upwards, not that the object is shoot into the ground
+    irr::f32 rNumFloat3 = 1.0f + (float(rNum) / float (RAND_MAX))  * 2.0f;
+
+    initialVelocity.X = rNumFloat1 * 0.3f;
+    initialVelocity.Y = rNumFloat3 * 0.05f;
+    initialVelocity.Z = rNumFloat2 * 0.3f;
+
+    //for the final velocity reduce sideways
+    //velocity quite a lot, as the craft is not moving the
+    //dust particles so much anymore in this greater distance
+    //but increase the speed upwards in Y direction
+    irr::core::vector3df finalVel;
+    finalVel.X = initialVelocity.X * 0.25f;
+    finalVel.Z = initialVelocity.Z * 0.25f;
+    finalVel.Y = initialVelocity.Y * 2.0f;
+
+    particlePntr->SetMovemenVelocity(initialVelocity, finalVel);
 }
 
 void DustBelowCraft::Update(irr::f32 frameDeltaTime) {
     absTimeSinceLastActivation += frameDeltaTime;
 
-    if (mActivated) {
-        absTimeSinceLastUpdate += frameDeltaTime;
+    absTimeSinceLastUpdate += frameDeltaTime;
 
-        //only update sprites every 0.5 seconds
-        if (absTimeSinceLastUpdate > 0.1) {
+    //only update sprites every 0.01 seconds
+    if (absTimeSinceLastUpdate > 0.01) {
+            //are we currently above dirt, and need to create more particles?
+            if (mActivated) {
+                    //we can create more particles
+                    if (mCurrNrParticels < mNrMaxParticles) {
+                       //old reusable particle left?
+                       std::vector<DustParticle*>::iterator it;
+                       DustParticle* pntr = NULL;
+                       for (it = this->mCurrSpriteVec->begin(); it != this->mCurrSpriteVec->end(); it++) {
+                           if (!((*it)->mLifeTimeSec > 0.0f)) {
+                               pntr = (*it);
+                               break;
+                           }
+                       }
 
-            //we can create more particles
-            if (mCurrNrParticels < mNrMaxParticles) {
-               //old reusable particle left?
-               std::vector<DustParticle*>::iterator it;
-               DustParticle* pntr = NULL;
-               for (it = this->mCurrSpriteVec->begin(); it != this->mCurrSpriteVec->end(); it++) {
-                   if (!((*it)->mLifeTimeSec > 0.0f)) {
-                       pntr = (*it);
-                       break;
-                   }
-               }
+                      if (pntr != NULL) {
+                          pntr->mIsReset = false;
 
-              if (pntr != NULL) {
-                  pntr->mLifeTimeSec = 0.5f;
-                  pntr->mIsReset = false;
-              } else {
-                   //nothing available anymore, create a new particle
-                   DustParticle* newParticle = new DustParticle(mSmgr, mDustTex,
-                             this->mParentPlayer->WorldCraftDustPnt, 0.5f,
-                                                               irr::core::dimension2d<irr::f32>(0.1f, 0.1f), irr::core::dimension2d<irr::f32>(0.4f, 0.4f));
+                          //setup new particle velocities
+                          SetupVelocityParticle(pntr);
 
-                 //add new particle to my particle list
-                 this->mCurrSpriteVec->push_back(newParticle);
-              }
+                      } else {
+                           //nothing available anymore, create a new particle
+                           DustParticle* newParticle = new DustParticle(mSmgr, mDustTex,
+                                     this->mParentPlayer->WorldCraftDustPnt, DEF_DUSTPARTICLELIFETIME,
+                                                                       irr::core::dimension2d<irr::f32>(0.3f, 0.3f), irr::core::dimension2d<irr::f32>(0.4f, 0.4f));
 
-              mCurrNrParticels++;
-          }
+                           //setup new particle velocities
+                           SetupVelocityParticle(newParticle);
+
+                           //add new particle to my particle list
+                           this->mCurrSpriteVec->push_back(newParticle);
+                      }
+
+                      mCurrNrParticels++;
+                  }
+            }
 
           std::vector<DustParticle*>::iterator it;
 
@@ -619,6 +678,7 @@ void DustBelowCraft::Update(irr::f32 frameDeltaTime) {
               if (!(*it)->Update(absTimeSinceLastUpdate,
                             this->mParentPlayer->WorldCraftDustPnt)) {
                   //current particle stopped to exist (no lifetime anymore)
+                  (*it)->HideParticle();
                   if (mCurrNrParticels > 0) {
                       mCurrNrParticels--;
                   }
@@ -627,5 +687,5 @@ void DustBelowCraft::Update(irr::f32 frameDeltaTime) {
 
             absTimeSinceLastUpdate = 0.0f;
       }
-    }
+
 }
