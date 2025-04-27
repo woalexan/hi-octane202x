@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -530,7 +530,7 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     mSmokeTrail = new SmokeTrail(mInfra->mSmgr, mInfra->mDriver, this, 20);
 
     //create my Dust cloud emitter particles system
-    mDustBelowCraft = new DustBelowCraft(mInfra->mSmgr, mInfra->mDriver, this, 7);
+    mDustBelowCraft = new DustBelowCraft(mInfra->mSmgr, mInfra->mDriver, this, 100);
 
     //create my machinegun
     mMGun = new MachineGun(this, mInfra->mSmgr, mInfra->mDriver);
@@ -756,6 +756,96 @@ void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr:
         this->lastClosestWayPointLink.first = newClosestWayPointLink.first;
         this->lastClosestWayPointLink.second = newClosestWayPointLink.second;
     }
+}
+
+irr::core::vector3df Player::PhysicsResetFindNewDropOffLocation
+    (WayPointLinkInfoStruct* lastValidWayPointLink, irr::core::vector3df lastValidCraftPosition) {
+
+    //if we have an valid (not NULL) last valid waypoint link for this player,
+    //use this location as a dropoff position after physics reset
+    //if not this function will decide based on the last known valid craft
+    //position before the physics issues was detected
+    irr::core::vector3df targetDropPos;
+
+    if (lastValidWayPointLink != NULL) {
+        //take middle point between start and end of the last waypoint link
+        targetDropPos = (lastValidWayPointLink->pLineStruct->B - lastValidWayPointLink->pLineStruct->A) * irr::core::vector3df(0.5f, 0.5f, 0.5f)
+                + lastValidWayPointLink->pLineStruct->A;
+    } else {
+        //use the last valid craft position
+        targetDropPos = lastValidCraftPosition;
+    }
+
+}
+
+//Sometimes physics causes a NaN player
+//craft coordinate, and the player is lost for the
+//whole race if we do not do anything about this
+//This is the purpose of the mechanism below
+void Player::PhysicsIssueDetector() {
+    return;
+    //is my physics in trouble?
+    //we know if at least one of my 3D coordinates is not
+    //a number anymore
+    bool playerInTrouble = false;
+
+    if (isnan(phobj->physicState.position.X) == 1)
+        playerInTrouble = true;
+
+    if (isnan(phobj->physicState.position.Y) == 1)
+        playerInTrouble = true;
+
+    if (isnan(phobj->physicState.position.Z) == 1)
+        playerInTrouble = true;
+
+    if (!playerInTrouble) {
+        //are we still inside the valid player location
+        //level terrain bounding box
+        if (!mRace->validPlayerLocationBBox.isPointInside(this->phobj->physicState.position)) {
+            playerInTrouble = true;
+        }
+    }
+
+    if (playerInTrouble) {
+         LogMessage((char*)"My physics is in trouble, in need a reset");
+
+         mPhysicResetCnter++;
+
+         irr::core::vector3df dropOffPoint = PhysicsResetFindNewDropOffLocation(lastValidclosestWayPointLink, lastValidCraftPosition);
+
+         Recovery* rec;
+
+         //search for a recovery vehicle for the physics reset
+         rec = mRace->FindRecoveryVehicleForPhysicsReset(dropOffPoint);
+
+         if (rec != NULL) {
+             //we found a recovery vehicle for help
+             bool resetSuccesfull = rec->RequestSupportPhysicsReset(this, dropOffPoint);
+             if (resetSuccesfull) {
+                     LogMessage((char*)"Physics reset succesfull");
+             } else {
+                 //Physics reset failed
+                 LogMessage((char*)"Physics reset failed");
+             }
+         }
+    } else {
+        //currently we have no issue
+        //remember current valid position and waypointLink
+        lastValidclosestWayPointLink = currClosestWayPointLink.first;
+        lastValidCraftPosition = this->phobj->physicState.position;
+    }
+}
+
+void Player::ResetMyPhysics(irr::core::vector3df newResetCraftLocation) {
+    //Deactivate my physics
+    phobj->mActive = false;
+
+    //set new location, reset physics state variables
+    phobj->physicState.position = newResetCraftLocation;
+    phobj->physicState.momentum.set(0.0f, 0.0f, 0.0f);
+    phobj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+    phobj->physicState.recalculate();
+    phobj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
 }
 
 //calculate local coordinates for heightmap collision points of craft
@@ -4103,6 +4193,12 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     updateSlowCnter += frameDeltaTime;
 
+    //sometimes if something goes wrong in player craft
+    //physics the craft position coordinates get invalid (NaN)
+    //and the player is lost, we need to fix this, so that the
+    //race can be finished by the human player
+    PhysicsIssueDetector();
+
     this->mPlayerStats->speed = this->phobj->physicState.speed;
 
     //very special case: if the human player craft broke down (player died) we want
@@ -4220,7 +4316,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
     mLastBoosterActive = mBoosterActive;
     mLastMaxTurboActive = mMaxTurboActive;
 
-    mPlayerModelSmoking = this->mPlayerStats->shieldVal < (0.3 * this->mPlayerStats->shieldMax);
+    //I "measured" it in the original game, around the point of ~33% of the max health a player
+    //starts to have a "smoke trail"
+    mPlayerModelSmoking = this->mPlayerStats->shieldVal < (0.33f * this->mPlayerStats->shieldMax);
 
     if (mPlayerModelSmoking != mLastPlayerModelSmoking) {
         if (mPlayerModelSmoking) {

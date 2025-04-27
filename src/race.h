@@ -143,6 +143,10 @@ public:
 
     void CallRecoveryVehicleForHelp(Player* whichPlayer);
 
+    //returns an available recovery vehicle for physics reset
+    //if no recovery vehicle is available returns NULL
+    Recovery* FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffPointAfterReset);
+
     bool exitRace = false;
 
     //handles the height map terrain
@@ -285,6 +289,10 @@ public:
     irr::u32 miniMapEndW;
     irr::u32 miniMapStartH;
     irr::u32 miniMapEndH;
+
+    irr::u8 mPlayersInTrouble;
+
+    irr::core::aabbox3df validPlayerLocationBBox;
 
 private:
     int levelNr;

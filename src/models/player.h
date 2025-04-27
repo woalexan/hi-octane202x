@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -775,6 +775,8 @@ public:
 
     irr::core::vector3df GetRandomMGunShootTargetLocation();
 
+    void ResetMyPhysics(irr::core::vector3df newResetCraftLocation);
+
 private:
     InfrastructureBase* mInfra;
 
@@ -918,7 +920,18 @@ private:
 
     void UpdateInternalCoordVariables();
 
+    /* Player physics recovery detection */
+    WayPointLinkInfoStruct* lastValidclosestWayPointLink = NULL;
+    irr::core::vector3df lastValidCraftPosition;
+
+    void PhysicsIssueDetector();
+
+    irr::core::vector3df PhysicsResetFindNewDropOffLocation(WayPointLinkInfoStruct* lastValidWayPointLink, irr::core::vector3df lastValidCraftPosition);
+
 public:
+
+     irr::u16 mPhysicResetCnter = 0;
+
     HUD* mHUD = NULL;
 
     std::vector<Collectable*> mCpCollectablesSeenByPlayer;

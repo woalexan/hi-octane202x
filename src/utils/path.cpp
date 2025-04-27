@@ -131,6 +131,40 @@ std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntpSp
     return result;
 }
 
+//is used within Recovery vehicle to be able to execute a workaround in case we do not know the location
+//anymore where to put a player back after its physics reset
+std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntoPlayersNextExpectedCheckpoint(Player* player) {
+    std::vector<WayPointLinkInfoStruct*> result;
+    result.clear();
+
+    if (player == NULL)
+        return result;
+
+    //which waypoint link lays below the players next
+    //expected checkpoint
+    irr::s32 nextCheckPoint = player->nextCheckPointValue;
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+    WayPointLinkInfoStruct* checkPointLink = NULL;
+
+    for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
+       //there is a checkpoint at this waypoint link?
+       if ((*it)->pntrCheckPoint != NULL) {
+           //we found it?
+           if ((*it)->pntrCheckPoint->value == nextCheckPoint) {
+               checkPointLink = (*it);
+               break;
+           }
+       }
+    }
+
+    if (checkPointLink == NULL)
+        return result;
+
+    result = DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(checkPointLink);
+
+    return result;
+}
 
 EntityItem* Path::FindNearestWayPointToPlayer(Player* whichPlayer) {
    if (whichPlayer == NULL)

@@ -1979,6 +1979,20 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
               mInfra->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
                  targetArrowBelow->sourceRect, 0, *mColorSolid, true);
           }
+
+          irr::core::rect<irr::s32> healthBarLocation;
+          irr::f32 barWidthFloat = (2.0f * (float)(targetSymBHalfWidth)) *
+                  (this->monitorWhichPlayer->mTargetPlayer->mPlayerStats->shieldVal / this->monitorWhichPlayer->mTargetPlayer->mPlayerStats->shieldMax);
+
+          irr::u32 barWidth = (irr::u32)(barWidthFloat);
+
+          healthBarLocation.UpperLeftCorner.X = targetSymbol->drawScrPosition.X;
+          healthBarLocation.UpperLeftCorner.Y = targetPos.Y + targetSymBHalfHeight + 2;
+          healthBarLocation.LowerRightCorner.X = targetSymbol->drawScrPosition.X + barWidth;
+          healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
+
+          //draw a small health bar below the target symbol
+          mInfra->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, NULL);
      }
 }
 
@@ -1991,6 +2005,10 @@ HUD::HUD(InfrastructureBase* infra) {
     //to save cpu cycles
     mColorSolid = new irr::video::SColor(255,255,255,255);
     mColorTransparent = new irr::video::SColor(100,255,255,255);
+
+    //color of the small healtbar below
+    //the target cross of other players we aim at
+    mColorTargetSymbolHealthBar = new irr::video::SColor(255, 57, 147, 44);
 
     InitShieldBar();
     InitAmmoBar();
@@ -2114,6 +2132,7 @@ HUD::~HUD() {
 
     delete mColorSolid;
     delete mColorTransparent;
+    delete mColorTargetSymbolHealthBar;
 }
 
 void HUD::DrawFinishedPlayerList() {

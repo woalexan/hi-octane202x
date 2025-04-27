@@ -51,6 +51,58 @@ Recovery::Recovery(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::I
     localCoordClaw.set(0.0f, -2.3f, 0.0f);
 }
 
+//returns true in case of success, false otherwise
+bool Recovery::RequestSupportPhysicsReset(Player *requester, irr::core::vector3df dropOfLocation) {
+    //first tell player to reset its
+    //internal physics, as the new location
+    //use my current claw coordinate
+
+    //update my claws position
+    this->Recovery_node->updateAbsolutePosition();
+
+    irr::core::vector3df pos_in_world(localCoordClaw);
+    this->Recovery_node->getAbsoluteTransformation().transformVect(pos_in_world);
+
+    this->worldCoordClaw = pos_in_world;
+
+    requester->ResetMyPhysics(worldCoordClaw);
+
+    //set the repair target = requester player
+    repairTarget = requester;
+
+    //call method to determine player dropoff position
+    //returns false if this fails
+    if (!FindPlayerDropOfPositionPhysicsReset(dropOfLocation)) {
+        return false;
+    }
+
+    //tell player that I have grabbed him
+    requester->SetGrabedByRecoveryVehicle(this);
+
+    //now inside here I have to skip some states
+    //as we do not move to the player first, but instead
+    //go immediately to the dropOfPoint
+    mCurrentState = STATE_RECOVERY_PLAYERGRABBED;
+
+    //from this moment on the player craft model must be
+    //locked to this claw until the player is freed again
+    //this was already done in players ResetMyPhysics function before
+
+    irr::core::vector2di cellOut;
+
+    //get height of terrain at the drop zone
+    this->mPlayerDropOfPosition.Y =
+            this->repairTarget->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(
+                this->mPlayerDropOfPosition.X, this->mPlayerDropOfPosition.Z, cellOut);
+
+    //we want to put the player craft in the default hover height above the terrain
+    this->mPlayerDropOfPosition.Y += repairTarget->GetHoverHeight();
+
+    //the rest of this process will be handled in the default
+    //recovery vehicle state machine
+    return true;
+}
+
 bool Recovery::CurrentlyReadyforMission() {
     //we are ready for a new mission if we either are currently idling at our home
     //(starting) position, or if we are currently on the way back to the starting position
@@ -189,6 +241,98 @@ void Recovery::FindPlayerDropOfPosition() {
 
         this->mPlayerDropOfPosition = closestWayPoint->getCenter();
     }
+}
+
+//Returns true if we find a dropoff location, False otherwise when we failed
+bool Recovery::FindPlayerDropOfPositionPhysicsReset(irr::core::vector3df dropOffLocation) {
+    bool workaroundNecessary = false;
+    std::vector<WayPointLinkInfoStruct*> wayPointLinks;
+
+    //where do we want to drop of player again?
+    //find closest waypoint to specified location
+    EntityItem* closestWayPoint =
+            this->repairTarget->mRace->mPath->FindNearestWayPointToLocation(dropOffLocation);
+
+    if (closestWayPoint != NULL) {
+        //to which waypoint Link does this waypoint belong too?
+        //we need the waypoint link to now the racing direction, because
+        //we want to turn the player into race direction when we drop him off again
+        wayPointLinks =
+                this->repairTarget->mRace->mPath->FindWaypointLinksForWayPoint(closestWayPoint, true, true, NULL);
+
+        if (wayPointLinks.size() <= 0) {
+           workaroundNecessary = true;
+        }
+    } else {
+        workaroundNecessary = true;
+    }
+
+    if (workaroundNecessary) {
+        //if we do not find anything, use a workaround based on the players
+        //next expected checkpoint to hit
+        wayPointLinks = this->mRace->mPath->DeliverAllWayPointLinksThatLeadIntoPlayersNextExpectedCheckpoint(this->repairTarget);
+    }
+
+    //if we still have nothing give up
+    if (wayPointLinks.size() <= 0) {
+        return false;
+    }
+
+    //we have a list of waypoint links where we can move the player to again
+    //Also run additional logic here that only allows to pick target repositioning waypoint
+    //links here, that have enough free space around them on both sides
+    //if the closest waypoint link does not, then this logic should pick the one before which has.
+    std::vector<WayPointLinkInfoStruct*>::iterator itLink;
+
+    WayPointLinkInfoStruct* dropOfLink = NULL;
+    std::vector<WayPointLinkInfoStruct*> alternatives;
+
+    for (itLink = wayPointLinks.begin(); itLink != wayPointLinks.end(); ++itLink) {
+         if (WayPointLinkAcceptableForDropOf(*itLink)) {
+                 //good drop of link found => ok
+                 dropOfLink = (*itLink);
+                 break;
+         }
+    }
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it2;
+    //we did still not find anything?
+    //try to go back one waypoint link before
+    for (itLink = wayPointLinks.begin(); itLink != wayPointLinks.end(); ++itLink) {
+         if (dropOfLink != NULL)
+             break;
+
+         alternatives = this->mRace->mPath->DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(*itLink);
+
+         if (alternatives.size() > 0) {
+             for (it2 = alternatives.begin(); it2 != alternatives.end(); ++it2) {
+                 if (WayPointLinkAcceptableForDropOf(*it2)) {
+                       //alternative drop of link found => ok
+                       dropOfLink = (*it2);
+                       break;
+                 }
+             }
+         }
+     }
+
+    if (dropOfLink != NULL) {
+         //we did find the waypoint link, get the drop off direction vector
+         irr::core::vector3df mPlayerDropOfDirVec = dropOfLink->LinkDirectionVec.normalize();
+
+         //derive a craft absolute orientation angle for drop off we want to achieve
+         mPlayerDropOfAbsAngle = repairTarget->mRace->GetAbsOrientationAngleFromDirectionVec(mPlayerDropOfDirVec);
+
+         mPlayerDropOfDirVecFound = true;
+
+         //drop player of in the middle of the WaypointLink we found
+         this->mPlayerDropOfPosition =
+                   (dropOfLink->pLineStruct->B - dropOfLink->pLineStruct->A) *
+                       irr::core::vector3df(0.5f, 0.5f, 0.5f) + dropOfLink->pLineStruct->A;
+
+                return true;
+     }
+
+    return false;
 }
 
 //returns true if the recovery vehicle has reached the current movement target

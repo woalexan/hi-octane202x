@@ -46,6 +46,9 @@ public:
 
     void Update(irr::f32 deltaTime);
 
+    //returns true in case of success, false otherwise
+    bool RequestSupportPhysicsReset(Player *requester, irr::core::vector3df dropOfLocation);
+
 private:
     //my current position I am at
     irr::core::vector3df mPosition;
@@ -88,6 +91,9 @@ private:
 
     void UpdateSceneNode();
     void FindPlayerDropOfPosition();
+
+    //Returns true if we find a dropoff location, False otherwise when we failed
+    bool FindPlayerDropOfPositionPhysicsReset(irr::core::vector3df dropOffLocation);
     bool WayPointLinkAcceptableForDropOf(WayPointLinkInfoStruct* link);
 
     void State_MoveToDuty(irr::f32 deltaTime);

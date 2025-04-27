@@ -841,6 +841,15 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     );*/
 
           swprintf(text2, 390, L"");
+/*
+        std::vector<Player*>::iterator it;
+        irr::u16 cntIssues = 0;
+
+        for (it = this->mCurrentRace->mPlayerVec.begin(); it != this->mCurrentRace->mPlayerVec.end(); ++it) {
+            cntIssues += (*it)->mPhysicResetCnter;
+        }
+
+          swprintf(text2, 390, L"%d", cntIssues);*/
 
        /* swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
                  this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,

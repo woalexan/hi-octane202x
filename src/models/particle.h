@@ -17,6 +17,8 @@
 #include "EDebugSceneTypes.h"
 #include "player.h"
 
+const irr::f32 DEF_DUSTPARTICLELIFETIME = 2.0f;  //0.5f before debugging, reset back to this value!
+
 class Player; //Forward declaration
 
 class SpriteParticle {
@@ -30,11 +32,14 @@ public:
     //returns false if lifetime is over
     virtual bool Update(irr::f32 frameDeltaTime);
 
+    //allows to setup movement velocity for this particle
+    void SetMovemenVelocity(irr::core::vector3df initialVelocity, irr::core::vector3df finalVelocity);
+
     void ShowParticle();
     void HideParticle();
 
     irr::f32 mLifeTimeSec;
-    bool mIsReset = false;
+    bool mIsReset = true;
 
     protected:
      irr::scene::ISceneManager* mSmgr;
@@ -46,6 +51,7 @@ public:
      irr::core::dimension2d<irr::u32> mSpriteTexSize;
 
      irr::scene::IBillboardSceneNode* mSceneNode;
+     irr::video::SColor mCurrVerticeColor;
 
      //initial sprite size after creation
      irr::core::dimension2d<irr::f32> mInitSize;
@@ -60,6 +66,18 @@ public:
      //we need to store initial settings
      irr::core::vector3d<irr::f32> startLocationParam;
      virtual void ResetParticle();
+
+     //allows to set an initial movement velocity for the
+     //particle at the beginning of the life time
+     irr::core::vector3df mInitialMovementVelocity;
+
+     //allows to set a final movement velocity for the
+     //particle at the end of the life time, for times inbetween
+     //the movementDir will be interpolated
+     irr::core::vector3df mFinalMovementVelocity;
+
+     //default we do not use movement velocity option
+     bool mUseMovementVelocity = false;
 };
 
 class SteamParticle: public SpriteParticle {
@@ -217,8 +235,7 @@ private:
 
     std::vector<DustParticle*>* mCurrSpriteVec;
 
-    void CreateParticle() {
-    }
+    void SetupVelocityParticle(DustParticle* particlePntr);
 };
 
 #endif // PARTICLE_H
