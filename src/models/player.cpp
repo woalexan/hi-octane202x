@@ -758,96 +758,6 @@ void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr:
     }
 }
 
-irr::core::vector3df Player::PhysicsResetFindNewDropOffLocation
-    (WayPointLinkInfoStruct* lastValidWayPointLink, irr::core::vector3df lastValidCraftPosition) {
-
-    //if we have an valid (not NULL) last valid waypoint link for this player,
-    //use this location as a dropoff position after physics reset
-    //if not this function will decide based on the last known valid craft
-    //position before the physics issues was detected
-    irr::core::vector3df targetDropPos;
-
-    if (lastValidWayPointLink != NULL) {
-        //take middle point between start and end of the last waypoint link
-        targetDropPos = (lastValidWayPointLink->pLineStruct->B - lastValidWayPointLink->pLineStruct->A) * irr::core::vector3df(0.5f, 0.5f, 0.5f)
-                + lastValidWayPointLink->pLineStruct->A;
-    } else {
-        //use the last valid craft position
-        targetDropPos = lastValidCraftPosition;
-    }
-
-}
-
-//Sometimes physics causes a NaN player
-//craft coordinate, and the player is lost for the
-//whole race if we do not do anything about this
-//This is the purpose of the mechanism below
-void Player::PhysicsIssueDetector() {
-    return;
-    //is my physics in trouble?
-    //we know if at least one of my 3D coordinates is not
-    //a number anymore
-    bool playerInTrouble = false;
-
-    if (isnan(phobj->physicState.position.X) == 1)
-        playerInTrouble = true;
-
-    if (isnan(phobj->physicState.position.Y) == 1)
-        playerInTrouble = true;
-
-    if (isnan(phobj->physicState.position.Z) == 1)
-        playerInTrouble = true;
-
-    if (!playerInTrouble) {
-        //are we still inside the valid player location
-        //level terrain bounding box
-        if (!mRace->validPlayerLocationBBox.isPointInside(this->phobj->physicState.position)) {
-            playerInTrouble = true;
-        }
-    }
-
-    if (playerInTrouble) {
-         LogMessage((char*)"My physics is in trouble, in need a reset");
-
-         mPhysicResetCnter++;
-
-         irr::core::vector3df dropOffPoint = PhysicsResetFindNewDropOffLocation(lastValidclosestWayPointLink, lastValidCraftPosition);
-
-         Recovery* rec;
-
-         //search for a recovery vehicle for the physics reset
-         rec = mRace->FindRecoveryVehicleForPhysicsReset(dropOffPoint);
-
-         if (rec != NULL) {
-             //we found a recovery vehicle for help
-             bool resetSuccesfull = rec->RequestSupportPhysicsReset(this, dropOffPoint);
-             if (resetSuccesfull) {
-                     LogMessage((char*)"Physics reset succesfull");
-             } else {
-                 //Physics reset failed
-                 LogMessage((char*)"Physics reset failed");
-             }
-         }
-    } else {
-        //currently we have no issue
-        //remember current valid position and waypointLink
-        lastValidclosestWayPointLink = currClosestWayPointLink.first;
-        lastValidCraftPosition = this->phobj->physicState.position;
-    }
-}
-
-void Player::ResetMyPhysics(irr::core::vector3df newResetCraftLocation) {
-    //Deactivate my physics
-    phobj->mActive = false;
-
-    //set new location, reset physics state variables
-    phobj->physicState.position = newResetCraftLocation;
-    phobj->physicState.momentum.set(0.0f, 0.0f, 0.0f);
-    phobj->physicState.orientation.set(irr::core::vector3df(0.0f, 0.0f, 0.0f));
-    phobj->physicState.recalculate();
-    phobj->SetAirFriction(CRAFT_AIRFRICTION_NOTURBO);
-}
-
 //calculate local coordinates for heightmap collision points of craft
 void Player::CreateHMapCollisionPointData() {
     this->Player_node->updateAbsolutePosition();
@@ -1262,65 +1172,95 @@ irr::core::quaternion Player::GetQuaternionFromPlayerModelRotation() {
     return result;
 }*/
 
-void Player::Forward() {
+void Player::Forward(irr::f32 deltaTime) {
     //if player can not move right now simply
     //exit
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
+
+    //29.04.2025: for throttleVal calculation we need to take into accont
+    //the current frame rate! otherwise the throttle change speed
+    //depends heavily on the frame rate of the computer!
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
 
         //to accelerate player add force in craft forward direction
         this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
-        if (mPlayerStats->throttleVal < mPlayerStats->throttleMax)
-            mPlayerStats->throttleVal++;
+        if (mPlayerStats->throttleVal < mPlayerStats->throttleMax) {
+            //+1.0f is for constant 60FPS
+            mPlayerStats->throttleVal += 1.0f * speedFactor;
+        }
 }
 
-void Player::CPForward() {
+void Player::CPForward(irr::f32 deltaTime) {
     //if player can not move right now simply
     //exit
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
+
+    //29.04.2025: for throttleVal calculation we need to take into accont
+    //the current frame rate! otherwise the throttle change speed
+    //depends heavily on the frame rate of the computer!
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
 
         //to accelerate player add force in craft forward direction
         this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
-        if (mPlayerStats->throttleVal < mPlayerStats->throttleMax)
-            mPlayerStats->throttleVal++;
+        if (mPlayerStats->throttleVal < mPlayerStats->throttleMax) {
+            //+1.0f is for constant 60FPS
+            mPlayerStats->throttleVal += 1.0f * speedFactor;
+        }
 }
 
-void Player::Backward() {
+void Player::Backward(irr::f32 deltaTime) {
     //if player can not move right now simply
     //exit
     if (!this->mPlayerStats->mPlayerCanMove)
         return;
+
+    //29.04.2025: for throttleVal calculation we need to take into accont
+    //the current frame rate! otherwise the throttle change speed
+    //depends heavily on the frame rate of the computer!
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
 
     if (!DEF_PLAYERCANGOBACKWARDS) {
         //we can not go backwards in Hioctane
         //we can only add friction to brake
         this->phobj->AddFriction(10.0f);
 
-        if (mPlayerStats->throttleVal > 0)
-            mPlayerStats->throttleVal--;
+        if (mPlayerStats->throttleVal > 0) {
+            //-1.0f is for constant 60FPS
+            mPlayerStats->throttleVal -= 1.0f * speedFactor;
+        }
     } else {
             //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
             this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
-            if (mPlayerStats->throttleVal > 0)
-                mPlayerStats->throttleVal--;
+            if (mPlayerStats->throttleVal > 0) {
+                //-1.0f is for constant 60FPS
+                mPlayerStats->throttleVal -= 1.0f * speedFactor;
+            }
     }
 }
 
-void Player::CPBackward() {
+void Player::CPBackward(irr::f32 deltaTime) {
+    //29.04.2025: for throttleVal calculation we need to take into accont
+    //the current frame rate! otherwise the throttle change speed
+    //depends heavily on the frame rate of the computer!
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
     if (!DEF_PLAYERCANGOBACKWARDS) {
         //we can not go backwards in Hioctane
         //we can only add friction to brake
         this->phobj->AddFriction(1000.0f);
 
-        if (mPlayerStats->throttleVal > 0)
-            mPlayerStats->throttleVal--;
+        if (mPlayerStats->throttleVal > 0) {
+            //-1.0f is for constant 60FPS
+            mPlayerStats->throttleVal -= 1.0f * speedFactor;
+        }
     } else {
         //if player can not move right now simply
         //exit
@@ -1331,8 +1271,10 @@ void Player::CPBackward() {
             this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
 
-            if (mPlayerStats->throttleVal > 0)
-                mPlayerStats->throttleVal--;
+            if (mPlayerStats->throttleVal > 0) {
+                //-1.0f is for constant 60FPS
+                mPlayerStats->throttleVal -= 1.0f * speedFactor;
+            }
     }
 }
 
@@ -1544,7 +1486,7 @@ void Player::UpdateCurrentCraftOrientationAngleAvg() {
     mCurrentCraftOrientationAngleAvg = (avgVal / (irr::f32)(mCurrentCraftOrientationAngleSamples));
 }*/
 
-void Player::CPForceController() {
+void Player::CPForceController(irr::f32 deltaTime) {
 
     mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
 
@@ -1555,22 +1497,29 @@ void Player::CPForceController() {
         SetNewState(STATE_PLAYER_EMPTYFUEL);
     }
 
+    //29.04.2025: for state change we need to take into accont
+    //the current frame rate! otherwise the state changes
+    //depend heavily on the frame rate of the computer!
+    //all values below were defined at constant 60FPS at
+    //my development computer
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
     if ((computerPlayerTargetSpeed + mTargetSpeedAdjust) > computerPlayerCurrentSpeed) {
-        computerPlayerCurrentSpeed += mCpCurrentAccelRate;
+        computerPlayerCurrentSpeed += mCpCurrentAccelRate * speedFactor;
     } else if (computerPlayerCurrentSpeed > (computerPlayerTargetSpeed - mTargetSpeedAdjust)) {
-        computerPlayerCurrentSpeed -= mCpCurrentDeaccelRate;
+        computerPlayerCurrentSpeed -= mCpCurrentDeaccelRate * speedFactor;
     }
 
     //is there a craft very close in front of us, then go slower
     if (this->mCraftDistanceAvailFront < 5.0f) {
-        mTargetSpeedAdjust -= 0.2f;
+        mTargetSpeedAdjust -= 0.2f * speedFactor;
 
         if (mTargetSpeedAdjust < 0.0f) {
             mTargetSpeedAdjust = 0.0f;
         }
     } else {
         if (mTargetSpeedAdjust < 0.0f) {
-            mTargetSpeedAdjust += 0.2f;
+            mTargetSpeedAdjust += 0.2f * speedFactor;
 
             if (mTargetSpeedAdjust > 0.0f)
             {
@@ -1583,10 +1532,10 @@ void Player::CPForceController() {
     if (this->phobj->physicState.speed < (computerPlayerCurrentSpeed * 0.9f))
     {
         //go faster
-        this->CPForward();
+        this->CPForward(deltaTime);
     } else if (this->phobj->physicState.speed > (computerPlayerCurrentSpeed * 1.1f)) {
         //go slower
-       this->CPBackward();
+       this->CPBackward(deltaTime);
     }
 
     if (!this->mPlayerStats->mPlayerCanMove)
@@ -2746,9 +2695,8 @@ void Player::MaxTurboReached() {
             //now play booster sound
             mRace->mSoundEngine->PlaySound(SRES_GAME_BOOSTER, false);
 
-            //give the player model a speed boost
-            this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, -500.0f), PHYSIC_APPLYFORCE_REAL,
-                                        PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
+            //give model speed boost for 20 mseconds
+            mRemainingMaxTurboActiveTime = 0.02f;
 
             //reduce air friction to give player faster speeds with turbo
             this->phobj->SetAirFriction(CRAFT_AIRFRICTION_TURBO);
@@ -2758,7 +2706,7 @@ void Player::MaxTurboReached() {
     }
 }
 
-void Player::IsSpaceDown(bool down) {
+void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
     mBoosterActive = down;
 
     //if this player can not move prevent
@@ -2771,7 +2719,20 @@ void Player::IsSpaceDown(bool down) {
     //a new turbo is not possible
     if (mMaxTurboActive) {
         mBoosterActive = false;
+
+        //give the player model a speed boost for a defined time
+        if (mRemainingMaxTurboActiveTime > 0.0f) {
+            this->phobj->AddLocalCoordForce(irr::core::vector3df(0.0f, 0.0f, 0.0f), irr::core::vector3df(0.0f, 0.0f, -500.0f), PHYSIC_APPLYFORCE_REAL,
+                                        PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
+
+            mRemainingMaxTurboActiveTime -= deltaTime;
+        }
     }
+
+    //we need to scale the values below with the current frame rate
+    //otherwise the booster charging/discharging speed depends on the current
+    //computer FPS rate!
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
 
         if (mBoosterActive) {
 
@@ -2785,7 +2746,7 @@ void Player::IsSpaceDown(bool down) {
                 this->mPlayerStats->boosterVal = 0;
            }
 
-           this->mPlayerStats->boosterVal += 1.0;
+           this->mPlayerStats->boosterVal += 1.0 * speedFactor;
 
            if (this->mPlayerStats->boosterVal >= this->mPlayerStats->boosterMax) {
                //we reached max turbo level
@@ -2810,7 +2771,9 @@ void Player::IsSpaceDown(bool down) {
               }
 
               if (this->mPlayerStats->boosterVal > 0.0f)  {
-                  this->mPlayerStats->boosterVal -= 0.2f;
+                  //again scale booster value decrement value by current FPS of
+                  //computer to get frame rate independent behavior!
+                  this->mPlayerStats->boosterVal -= 0.2f * speedFactor;
               } else {
                   mMaxTurboActive = false;
 
@@ -3639,7 +3602,7 @@ void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
     //for all computer players in this race we need to call the
     //CPForceController which has the job to control the crafts movement
     //so that the computer is following the currenty definded target path
-    CPForceController();
+    CPForceController(deltaTime);
 
     return;
 }
@@ -4193,12 +4156,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     updateSlowCnter += frameDeltaTime;
 
-    //sometimes if something goes wrong in player craft
-    //physics the craft position coordinates get invalid (NaN)
-    //and the player is lost, we need to fix this, so that the
-    //race can be finished by the human player
-    PhysicsIssueDetector();
-
     this->mPlayerStats->speed = this->phobj->physicState.speed;
 
     //very special case: if the human player craft broke down (player died) we want
@@ -4270,11 +4227,11 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //Very important TODO: right now the charging speed will most likely dependent
     //on the current FPS frame rate, this needs to be fixed!
-    CheckForChargingStation();
+    CheckForChargingStation(frameDeltaTime);
 
     //execute code for fuel consumption, create low fuel
     //warnings, and change player state in case fuel is empty
-    HandleFuel();
+    HandleFuel(frameDeltaTime);
 
     //execute source code to create low/empty ammo
     //warnings
@@ -4287,10 +4244,17 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     CalcPlayerCraftLeaningAngle();
 
-    if (!isnan(currPlayerCraftLeaningAngleDeg)) {
-            //update average value for craft leaning angle left/right
-            //is needed to rotate sky image
-            mCurrentAvgPlayerLeaningAngleLeftRightValue = mMovingAvgPlayerLeaningAngleLeftRightCalc->AddNewValue(currPlayerCraftLeaningAngleDeg);
+    nextLeaningAngleUpdate -= frameDeltaTime;
+
+    if (nextLeaningAngleUpdate < 0.0f) {
+        //update avg leaning angle every 16 ms
+        nextLeaningAngleUpdate = 0.016;
+
+        if (!isnan(currPlayerCraftLeaningAngleDeg)) {
+                //update average value for craft leaning angle left/right
+                //is needed to rotate sky image
+                mCurrentAvgPlayerLeaningAngleLeftRightValue = mMovingAvgPlayerLeaningAngleLeftRightCalc->AddNewValue(currPlayerCraftLeaningAngleDeg);
+        }
     }
 
     //update moving average of current player position
@@ -4793,7 +4757,7 @@ void Player::CheckForTriggerCraftRegion() {
     }
 }
 
-void Player::CheckForChargingStation() {
+void Player::CheckForChargingStation(irr::f32 deltaTime) {
     mCurrChargingFuel = false;
     mCurrChargingAmmo = false;
     mCurrChargingShield = false;
@@ -4826,6 +4790,11 @@ void Player::CheckForChargingStation() {
     bool cFuel;
     bool cAmmo;
 
+    //29.04.2025: for charging speed we need to take into account
+    //the current frame rate! otherwise the charging rate
+    //depends heavily on the frame rate of the computer!
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
     //see if we are currently in an charging area with this player
     this->mRace->mLevelTerrain->CheckPosInsideChargingRegion(mCurrPosCellX, mCurrPosCellY,
                                                              cShield, cFuel, cAmmo);
@@ -4839,7 +4808,9 @@ void Player::CheckForChargingStation() {
 
            //shield charging from completely empty to completely
            //full does take approx. 4 seconds in the original game
-            this->mPlayerStats->shieldVal += 0.22f;
+           //the value 0.22f below was defined to be correct at constant 60FPS
+           //(Vsync on). If we have different FPS rate we need to scale value!
+            this->mPlayerStats->shieldVal += 0.22f * speedFactor;
 
             RepairGlasBreaks();
 
@@ -4865,7 +4836,8 @@ void Player::CheckForChargingStation() {
 
             //ammo charging from completely empty to completely
             //full does take approx. 4 seconds in the original game
-            this->mPlayerStats->ammoVal += 0.02f;
+            //value below is for constant 60 FPS, scale with FPS!
+            this->mPlayerStats->ammoVal += 0.02f * speedFactor;
             if (mHUD != NULL) {
                 if (mPlayerStats->ammoVal >= mPlayerStats->ammoMax) {
                     mPlayerStats->ammoVal = mPlayerStats->ammoMax;
@@ -4888,7 +4860,10 @@ void Player::CheckForChargingStation() {
 
             //fuel charging from completely empty to completely
             //full does take approx. 4 seconds in the original game
-            this->mPlayerStats->gasolineVal += 0.15f;
+            //value 0.15f below is correct for constant 60FPS
+            //we need to scale with correct current FPS value to get
+            //frame rate independent correct charging speed
+            this->mPlayerStats->gasolineVal += 0.15f * speedFactor;
 
              if (mHUD != NULL) {
                 if (mPlayerStats->gasolineVal >= mPlayerStats->gasolineMax) {
@@ -5049,12 +5024,17 @@ void Player::CheckDustCloudEmitter() {
 
     mEmitDustCloud = false;
 
-    //check if our texture ID is present in the dirt tex id list
-    //if so then emit clouds
-    for (std::vector<irr::s32>::iterator itTex = dirtTexIdsVec->begin(); itTex != dirtTexIdsVec->end(); ++itTex) {
-        if ((*itTex) == texId) {
-            mEmitDustCloud = true;
-            break;
+    //if craft is close enough to the terrain below
+    //(and can) technically emit dust, continue checking for
+    //texture Id, otherwise we will not emit Dust
+    if ((this->phobj->physicState.position.Y - tilePntr->m_Height) < (3 * HOVER_HEIGHT)) {
+        //check if our texture ID is present in the dirt tex id list
+        //if so then emit clouds
+        for (std::vector<irr::s32>::iterator itTex = dirtTexIdsVec->begin(); itTex != dirtTexIdsVec->end(); ++itTex) {
+            if ((*itTex) == texId) {
+                mEmitDustCloud = true;
+                break;
+            }
         }
     }
 
@@ -5586,11 +5566,19 @@ void Player::CpPlayerHandleAttack() {
     }
 }
 
-void Player::HandleFuel() {
+void Player::HandleFuel(irr::f32 deltaTime) {
     //remove some gasoline if we are moving fast enough
     //TODO: check with actual game how gasoline burning works exactly
     if (phobj->physicState.speed > 3.0f) {
-        mPlayerStats->gasolineVal -= 0.012f;
+
+        //29.04.2025: for gasoline burn we need to take into accont
+        //the current frame rate! otherwise the fuel consumption rate
+        //depends heavily on the frame rate of the computer!
+        irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
+        //the value 0.012f below was determined at my computer at constant
+        //60FPS to be correct
+        mPlayerStats->gasolineVal -= 0.012f * speedFactor;
 
         if (mPlayerStats->gasolineVal <= 0.0f) {
             if (!mEmptyFuelWarningAlreadyShown) {

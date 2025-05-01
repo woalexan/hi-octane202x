@@ -247,6 +247,8 @@ public:
     irr::core::vector3df ConvertToWorldCoord(irr::core::vector3df pointLocalCoord);
     irr::core::vector3df ConvertToLocalCoord(irr::core::vector3df pointWorldCoord);
 
+    bool ForceValid(irr::core::vector3df forceVec);
+
     inline const PhysicsCollisionArea& GetCollisionArea() const     { return  mCollArea; }
     inline PhysicsCollisionArea& GetCollisionArea()                 { return  mCollArea; }
 
@@ -395,6 +397,8 @@ public:
     //void FindRayTargetTriangles(PhysicsObject& physObj, irr::core::vector3df dirVector);
 
     irr::core::line3df DbgRayTargetLine;
+
+    bool ForceValid(irr::core::vector3df forceVec);
 };
 
 #endif // PHYSICS_H

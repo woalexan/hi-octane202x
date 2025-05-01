@@ -28,7 +28,7 @@
 const irr::f32 RECOVERY_VEHICLE_SPEED = 12.0f;
 const irr::f32 RECOVERY_VEHICLE_SPEED_CRAWL = 5.0f;
 
-const irr::f32 RECOVERY_VEHICLE_DROPOFTARGET_FREESPACE_REQ = 1.0f;
+const irr::f32 RECOVERY_VEHICLE_DROPOFTARGET_FREESPACE_REQ = 0.1f;  //1.0f
 const irr::f32 RECOVERY_VEHICLE_ACCELDEACCELRATE = 0.1f;
 
 class Player; //Forward declaration
@@ -45,9 +45,6 @@ public:
     irr::core::vector3df GetCurrentPosition();
 
     void Update(irr::f32 deltaTime);
-
-    //returns true in case of success, false otherwise
-    bool RequestSupportPhysicsReset(Player *requester, irr::core::vector3df dropOfLocation);
 
 private:
     //my current position I am at
@@ -92,8 +89,6 @@ private:
     void UpdateSceneNode();
     void FindPlayerDropOfPosition();
 
-    //Returns true if we find a dropoff location, False otherwise when we failed
-    bool FindPlayerDropOfPositionPhysicsReset(irr::core::vector3df dropOffLocation);
     bool WayPointLinkAcceptableForDropOf(WayPointLinkInfoStruct* link);
 
     void State_MoveToDuty(irr::f32 deltaTime);

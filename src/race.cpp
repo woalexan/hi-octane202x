@@ -2649,24 +2649,24 @@ void Race::CalibrateMiniMap(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startH
         }
 }
 
-void Race::HandleInput() {
+void Race::HandleInput(irr::f32 deltaTime) {
      if (mPlayerVec.at(0)->mHumanPlayer) {
             bool playerNoTurningKeyPressed = true;
 
              if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
-                mPlayerVec.at(0)->Forward();
+                mPlayerVec.at(0)->Forward(deltaTime);
              }
 
              if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_DOWN))
              {
-                mPlayerVec.at(0)->Backward();
+                mPlayerVec.at(0)->Backward(deltaTime);
              }
 
              if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_SPACE))
              {
-                mPlayerVec.at(0)->IsSpaceDown(true);
+                mPlayerVec.at(0)->IsSpaceDown(true, deltaTime);
              } else {
-                mPlayerVec.at(0)->IsSpaceDown(false);
+                mPlayerVec.at(0)->IsSpaceDown(false, deltaTime);
              }
 
              if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_LEFT)) {
@@ -3241,7 +3241,12 @@ void Race::Render() {
 
         //DebugShowAllObstaclePlayers();
 
-       /* std::vector<Player*>::iterator it;
+      /*  if (currPlayerFollow != NULL) {
+            mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, currPlayerFollow->phobj->physicState.position,
+                                   this->mDrawDebug->orange);
+        }*/
+
+      /*  std::vector<Player*>::iterator it;
         bool playerTrouble;
 
         mPlayersInTrouble = 0;

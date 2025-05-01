@@ -326,8 +326,8 @@ public:
     //False is for computer player
     bool mHumanPlayer;
 
-    void Forward();
-    void Backward();
+    void Forward(irr::f32 deltaTime);
+    void Backward(irr::f32 deltaTime);
     void Left();
     void Right();
     void NoTurningKeyPressed();
@@ -356,8 +356,8 @@ public:
     irr::f32 dbgAngleError;
     irr::f32 dbgDistError;
 
-    void CPForward();
-    void CPBackward();
+    void CPForward(irr::f32 deltaTime);
+    void CPBackward(irr::f32 deltaTime);
     void CPTrackMovement();
 
     irr::u32 mCPTrackMovementNoClearClosestLinkCnter = 0;
@@ -629,7 +629,7 @@ public:
 
     irr::f32 currPlayerCraftForwardLeaningAngleDeg = 0.0f;
 
-    void CPForceController();
+    void CPForceController(irr::f32 deltaTime);
     //void ProjectPlayerAtCurrentSegment();
     void ReachedEndCurrentFollowingSegments();
     void PickupCollectableDefineNextSegment(Collectable* whichCollectable);
@@ -656,11 +656,12 @@ public:
     bool mLastBoosterActive = false;
     sf::Sound* TurboSound;
 
-    void IsSpaceDown(bool down);
+    void IsSpaceDown(bool down, irr::f32 deltaTime);
     void MaxTurboReached();
 
     bool mMaxTurboActive = false;
     bool mLastMaxTurboActive = false;
+    irr::f32 mRemainingMaxTurboActiveTime;
 
     void Collided();
     void AfterPhysicsUpdate();
@@ -718,6 +719,7 @@ public:
 
     MovingAverageCalculator* mMovingAvgPlayerLeaningAngleLeftRightCalc;
     irr::f32 mCurrentAvgPlayerLeaningAngleLeftRightValue;
+    irr::f32 nextLeaningAngleUpdate = -1.0f;
 
     //MovingAverageCalculator* mMovingAvgPlayerPositionCalc;
     //irr::core::vector3df mCurrentAvgPlayerPosition;
@@ -775,8 +777,6 @@ public:
 
     irr::core::vector3df GetRandomMGunShootTargetLocation();
 
-    void ResetMyPhysics(irr::core::vector3df newResetCraftLocation);
-
 private:
     InfrastructureBase* mInfra;
 
@@ -821,7 +821,7 @@ private:
 
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
 
-    void CheckForChargingStation();
+    void CheckForChargingStation(irr::f32 deltaTime);
     void CheckForTriggerCraftRegion();
     void CalcPlayerCraftLeaningAngle();
 
@@ -914,23 +914,13 @@ private:
     irr::u8 mCurrentRiccosSound = 0;
     void PlayMGunShootsAtUsSound();
 
-    void HandleFuel();
+    void HandleFuel(irr::f32 deltaTime);
     void HandleAmmo();
     void HandleShield();
 
     void UpdateInternalCoordVariables();
 
-    /* Player physics recovery detection */
-    WayPointLinkInfoStruct* lastValidclosestWayPointLink = NULL;
-    irr::core::vector3df lastValidCraftPosition;
-
-    void PhysicsIssueDetector();
-
-    irr::core::vector3df PhysicsResetFindNewDropOffLocation(WayPointLinkInfoStruct* lastValidWayPointLink, irr::core::vector3df lastValidCraftPosition);
-
 public:
-
-     irr::u16 mPhysicResetCnter = 0;
 
     HUD* mHUD = NULL;
 
