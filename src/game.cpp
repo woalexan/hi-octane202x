@@ -156,7 +156,7 @@ bool Game::InitGameStep1() {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 1;
+    nextRaceLevelNr = 3;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -748,7 +748,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     if (!this->mTimeStopped) {
         //handle main player keyboard input
-        mCurrentRace->HandleInput();
+        mCurrentRace->HandleInput(frameDeltaTime);
     }
 
     mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntHandleInput);
@@ -841,15 +841,6 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     );*/
 
           swprintf(text2, 390, L"");
-/*
-        std::vector<Player*>::iterator it;
-        irr::u16 cntIssues = 0;
-
-        for (it = this->mCurrentRace->mPlayerVec.begin(); it != this->mCurrentRace->mPlayerVec.end(); ++it) {
-            cntIssues += (*it)->mPhysicResetCnter;
-        }
-
-          swprintf(text2, 390, L"%d", cntIssues);*/
 
        /* swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
                  this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,

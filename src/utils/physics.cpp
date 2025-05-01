@@ -28,6 +28,21 @@
 
 #include "physics.h"
 
+//Returns false if any of the 3 coordinates is not a number
+//If force is valid (all numbers are numbers) then returns true
+bool Physics::ForceValid(irr::core::vector3df forceVec) {
+    if (isnan(forceVec.X) == 1)
+        return false;
+
+    if (isnan(forceVec.Y) == 1)
+        return false;
+
+    if (isnan(forceVec.Z) == 1)
+        return false;
+
+    return true;
+}
+
 ObjPhysicsDerivative Physics::evaluate( PhysicsObject* pObj, const ObjPhysicsState & initial,
         irr::f32 t, float dt, const ObjPhysicsDerivative & d ) {
 
@@ -83,14 +98,23 @@ irr::core::vector3df Physics::forceVec( PhysicsObject* pObj, const ObjPhysicsSta
     if (state.speed > 0.0f) {
         irr::core::vector3df airFrictionForce;
         airFrictionForce = - state.speed * state.speed * pObj->currAirFrictionCoeff * (state.velocity / state.speed);
-        sumForce += airFrictionForce;
+
+        //01.05.2025: prevent possible
+        //physics mess
+        if (ForceValid(airFrictionForce)) {
+            sumForce += airFrictionForce;
+        }
 
         //also add other frictions, for example friction when we collide with wall etc.
         irr::core::vector3df frictionForce(pObj->physicState.velocity);
         frictionForce.normalize();
         frictionForce *= -pObj->currFrictionSum;
 
-        sumForce += frictionForce;
+        //01.05.2025: prevent possible
+        //physics mess
+        if (ForceValid(frictionForce)) {
+            sumForce += frictionForce;
+        }
     }
 
     return sumForce;
@@ -124,7 +148,11 @@ irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState 
             (*it).DbgFTorqueStart = state.position;
             (*it).DbgFTorqueEnd = state.position + fTorque;
 
-            sumTorqueVec += fTorque;
+            //01.05.2025: prevent possible
+            //physics mess
+            if (ForceValid(fTorque)) {
+                sumTorqueVec += fTorque;
+            }
         }
     }
 
@@ -138,7 +166,13 @@ irr::core::vector3df Physics::torque(PhysicsObject* pObj, const ObjPhysicsState 
 
         //some value that allows to slow down rotational movement
         //to prevent crazy physics
-        sumTorqueVec -= state.angularVelocity * pObj->mRotationalFrictionVal;
+        irr::core::vector3df helperVec = state.angularVelocity * pObj->mRotationalFrictionVal;
+
+        //01.05.2025: prevent possible
+        //physics mess
+        if (ForceValid(helperVec)) {
+            sumTorqueVec -= state.angularVelocity * pObj->mRotationalFrictionVal;
+        }
 
    // }
 
@@ -196,6 +230,21 @@ void PhysicsObject::SetAirFriction(irr::f32 newAirFrictionValue) {
     currAirFrictionCoeff = newAirFrictionValue;
 }
 
+//Returns false if any of the 3 coordinates is not a number
+//If force is valid (all numbers are numbers) then returns true
+bool PhysicsObject::ForceValid(irr::core::vector3df forceVec) {
+    if (isnan(forceVec.X) == 1)
+        return false;
+
+    if (isnan(forceVec.Y) == 1)
+        return false;
+
+    if (isnan(forceVec.Z) == 1)
+        return false;
+
+    return true;
+}
+
 void PhysicsObject::AddWorldCoordForce(irr::core::vector3df startPointWorldCoord, irr::core::vector3df endPointWorldCoord,
                                        irr::u8 applyForceClassification,
                                        irr::u8 dbgForceClassification) {
@@ -205,6 +254,15 @@ void PhysicsObject::AddWorldCoordForce(irr::core::vector3df startPointWorldCoord
     newStruct.ForceEndPoint = endPointWorldCoord;
     newStruct.DbgForceType = dbgForceClassification;
     newStruct.ApplyForceType = applyForceClassification;
+
+    //if force does contains a not a number problem
+    //ignore this force, and do not add it
+    //it would only mess up the physics object state anyway :(
+    if (!ForceValid(startPointWorldCoord))
+        return;
+
+    if (!ForceValid(endPointWorldCoord))
+        return;
 
     this->currForceVectorWorldCoord.push_back(newStruct);
 }
@@ -229,6 +287,15 @@ void PhysicsObject::AddLocalCoordForce(irr::core::vector3df startPointLocalCoord
     newStruct.ForceEndPoint = pos_in_world_spaceEnd;
     newStruct.DbgForceType = dbgForceClassification;
     newStruct.ApplyForceType = applyForceClassification;
+
+    //if force does contains a not a number problem
+    //ignore this force, and do not add it
+    //it would only mess up the physics object state anyway :(
+    if (!ForceValid(pos_in_world_spaceStart))
+        return;
+
+    if (!ForceValid(pos_in_world_spaceEnd))
+        return;
 
     this->currForceVectorWorldCoord.push_back(newStruct);
 }
@@ -653,7 +720,7 @@ void Physics::HandleObjToObjCollision(PhysicsObject *currObj, irr::f32 deltaTime
                               (*it)->AddFriction(5000.0f);
                               (*it2)->AddFriction(5000.0f);
 
-                            (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
+                              (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
                                                     PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
 
                               (*it2)->AddWorldCoordForce((*it2)->physicState.position, collNormal * force2, PHYSIC_APPLYFORCE_ONLYTRANS,
@@ -1084,6 +1151,16 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
                     (*it)->previousPhysicState = (*it)->physicState;
                     this->integrate((*it), (*it)->physicState, t, dt);
+
+                    //keep the next two if checks right now, so that we know immediately
+                    //if a physics issue has happened in the future during development
+                    if (isnan((*it)->physicState.position.X) == 1) {
+                        this->mParentRace->mGame->StopTime();
+                    }
+
+                    if (isnan((*it)->physicState.orientation.X) == 1) {
+                        this->mParentRace->mGame->StopTime();
+                    }
                  }
              }
 

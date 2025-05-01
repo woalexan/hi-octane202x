@@ -123,7 +123,7 @@ public:
 
     bool ready;
 
-    void HandleInput();
+    void HandleInput(irr::f32 deltaTime);
     void HandleBasicInput();
     void HandleComputerPlayers(irr::f32 frameDeltaTime);
     void Render();

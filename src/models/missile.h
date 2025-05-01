@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -21,7 +21,7 @@ class MissileLauncher; //Forwards declaration
 #define DEF_MISSILE_SPEED 20.0f
 #define DEF_MISSILE_SMOKEDIST 1.0f
 #define DEF_MISSILE_SMOKESPRITEINITSIZE 0.2f
-#define DEF_MISSILE_SMOKESPRITELIFETIMESEC 2.0
+#define DEF_MISSILE_SMOKESPRITELIFETIMESEC 2.0f
 
 //defines within what range (distance) from the target player
 //the explosion must occur to cause damage to the target
@@ -32,6 +32,8 @@ struct MissileSpriteStruct {
     irr::core::vector3d<irr::f32> mSpritePos;
     irr::video::ITexture* mSpriteTex;
     irr::core::dimension2d<irr::u32> mSpriteTexSize;
+
+    irr::video::SColor mCurrVerticeColor;
 
     irr::scene::IBillboardSceneNode* mSceneNode;
 

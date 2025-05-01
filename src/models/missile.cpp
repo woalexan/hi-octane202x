@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -18,7 +18,7 @@ Missile::Missile(MissileLauncher* mParentLauncher, irr::core::vector3df launchLo
     mSceneNodeMissile = mParentLauncher->mSmgr->addBillboardSceneNode();
     mSceneNodeMissile->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
     mSceneNodeMissile->setMaterialTexture(0, this->mParentLauncher->mMissileTex);
-    mSceneNodeMissile->setMaterialFlag(irr::video::EMF_LIGHTING, true);
+    mSceneNodeMissile->setMaterialFlag(irr::video::EMF_LIGHTING, false);
     mSceneNodeMissile->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
     mSceneNodeMissile->setDebugDataVisible(irr::scene::EDS_BBOX);
@@ -68,8 +68,11 @@ void Missile::AddNewSmokeSprite(irr::core::vector3df newLocation) {
     newSprite->mSceneNode = mSmgr->addBillboardSceneNode();
     newSprite->mSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
     newSprite->mSceneNode->setMaterialTexture(0, this->mParentLauncher->mSmokeTex);
-    newSprite->mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, true);
+    newSprite->mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
     newSprite->mSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
+
+    //first the sprite is fully visible
+    newSprite->mCurrVerticeColor.set(255, 255, 255, 255);
 
     //newSprite->mSceneNode->setDebugDataVisible(irr::scene::EDS_BBOX);
 
@@ -80,6 +83,7 @@ void Missile::AddNewSmokeSprite(irr::core::vector3df newLocation) {
     newSprite->mCurrSpriteSize.set(DEF_MISSILE_SMOKESPRITEINITSIZE, DEF_MISSILE_SMOKESPRITEINITSIZE);
 
     newSprite->mSceneNode->setPosition(newLocation);
+    newSprite->mSceneNode->setColor(newSprite->mCurrVerticeColor);
     newSprite->mSpritePos = newLocation;
     newSprite->mSceneNode->setSize(newSprite->mCurrSpriteSize);
     newSprite->lifeTimeSecParam = DEF_MISSILE_SMOKESPRITELIFETIMESEC;
@@ -115,6 +119,10 @@ void Missile::UpdateSmokeSprites(irr::f32 DeltaTime) {
         }
    }
 
+   //01.05.2025: for the calculations below we need to take
+   //the current frame rate into consideration!
+   irr::f32 speedFactor = (DeltaTime / (irr::f32)(1.0f / 60.0f));
+
    //now update all currently existing smoke sprites of the missile
    std::vector<MissileSpriteStruct*>::iterator it;
    MissileSpriteStruct* pntr;
@@ -124,6 +132,24 @@ void Missile::UpdateSmokeSprites(irr::f32 DeltaTime) {
    for (it = mMissileSpriteVec.begin(); it != mMissileSpriteVec.end();) {
         (*it)->lifeTimeSecParam -= DeltaTime;
 
+       irr::f32 lifeTimeAlphaVal = ((DEF_MISSILE_SMOKESPRITELIFETIMESEC - (*it)->lifeTimeSecParam) / DEF_MISSILE_SMOKESPRITELIFETIMESEC);
+
+       if (lifeTimeAlphaVal > 1.0f)
+           lifeTimeAlphaVal = 1.0f;
+
+       if (lifeTimeAlphaVal < 0.0f)
+           lifeTimeAlphaVal = 0.0f;
+
+       //at the end of the lifetime fade the smoke out
+       if (lifeTimeAlphaVal > 0.5f) {
+           irr::u8 fadeVal = (irr::u8)(255.0f * (1.0f - (lifeTimeAlphaVal - 0.5f)/0.5f));
+
+           //if we want to fade out (make the billBoardSceneNode more transparent)
+           //we just need to set the Vertices colors more black
+           (*it)->mCurrVerticeColor.set(255, fadeVal, fadeVal, fadeVal);
+           (*it)->mSceneNode->setColor((*it)->mCurrVerticeColor);
+       }
+
         //lifetime of smoke sprite over?
         if ((*it)->lifeTimeSecParam < 0.0f) {
                     pntr = (*it);
@@ -132,8 +158,8 @@ void Missile::UpdateSmokeSprites(irr::f32 DeltaTime) {
                     RemoveSmokeSprite(pntr);
                 } else {
                    //lifetime not yet over
-                   (*it)->mCurrSpriteSize.Width += 0.02f;
-                   (*it)->mCurrSpriteSize.Height += 0.02f;
+                   (*it)->mCurrSpriteSize.Width += 0.02f * speedFactor;
+                   (*it)->mCurrSpriteSize.Height += 0.02f * speedFactor;
                    (*it)->mSceneNode->setSize((*it)->mCurrSpriteSize);
 
                    //let smoke sprites float upwards slowly
@@ -141,14 +167,14 @@ void Missile::UpdateSmokeSprites(irr::f32 DeltaTime) {
                    rNum = rand();
                    irr::f32 rNumFloat = 0.04f + (float(rNum) / float (RAND_MAX))  * 0.04f;
 
-                   (*it)->mSpritePos += irr::core::vector3df(0.0f, rNumFloat, 0.0f);
+                   (*it)->mSpritePos += irr::core::vector3df(0.0f, rNumFloat * speedFactor, 0.0f);
 
                    (*it)->mSceneNode->setPosition((*it)->mSpritePos);
 
                    rNum = rand();
                    rNumFloat = 0.01f + (float(rNum) / float (RAND_MAX))  * 0.01f;
 
-                   (*it)->mCurrSpriteSize = (*it)->mCurrSpriteSize * irr::core::vector2df(1.0f + rNumFloat, 1.0f + rNumFloat);
+                   (*it)->mCurrSpriteSize = (*it)->mCurrSpriteSize * irr::core::vector2df(1.0f + rNumFloat * speedFactor, 1.0f + rNumFloat * speedFactor);
 
                    (*it)->mSceneNode->setSize((*it)->mCurrSpriteSize);
 
@@ -341,7 +367,7 @@ bool MissileLauncher::LoadSprites() {
 
 //get the missile launch location in front of the current player position
 irr::core::vector3df MissileLauncher::GetMissileLaunchLocation() {
-    irr::core::vector3df Loc = mParent->phobj->physicState.position + 5.0f * mParent->craftForwardDirVec;
+    irr::core::vector3df Loc = mParent->phobj->physicState.position + 2.0f * mParent->craftForwardDirVec;
 
     //calculate current cell below bullet impact position
     int current_cell_calc_x, current_cell_calc_y;
