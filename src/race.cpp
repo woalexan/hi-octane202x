@@ -2403,6 +2403,7 @@ void Race::HandleBasicInput() {
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
     {
+      //  this->mPlayerVec.at(0)->mPlayerStats->currRocketUpgradeLevel = 3;
       //   this->mPlayerVec.at(0)->StartDbgRecording();
         /*if (testtrans < 255)
             testtrans = testtrans + 1;

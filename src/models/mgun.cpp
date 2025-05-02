@@ -13,7 +13,6 @@
 //False otherwise
 bool MachineGun::LoadSprites() {
    ITexture* newTex;
-   //newTex = mDriver->getTexture("extract/sprites/tmaps0043.png");
 
    //get pointer to preloaded texture
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(43);
@@ -23,7 +22,6 @@ bool MachineGun::LoadSprites() {
 
    animTexList.push_back(newTex);
 
-   //newTex = mDriver->getTexture("extract/sprites/tmaps0044.png");
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(44);
 
    if (newTex == NULL)
@@ -31,7 +29,6 @@ bool MachineGun::LoadSprites() {
 
    animTexList.push_back(newTex);
 
-   //newTex = mDriver->getTexture("extract/sprites/tmaps0045.png");
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(45);
 
    if (newTex == NULL)
@@ -39,7 +36,6 @@ bool MachineGun::LoadSprites() {
 
    animTexList.push_back(newTex);
 
-   //newTex = mDriver->getTexture("extract/sprites/tmaps0046.png");
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(46);
 
    if (newTex == NULL)

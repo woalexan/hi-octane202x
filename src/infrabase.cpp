@@ -30,6 +30,9 @@ bool InfrastructureBase::InitIrrlicht() {
           return false;
     }
 
+    //do not allow window resizing in windowed mode
+    mDevice->setResizable(false);
+
     //get pointer to video driver, Irrlicht scene manager
     mDriver = mDevice->getVideoDriver();
     mSmgr = mDevice->getSceneManager();
