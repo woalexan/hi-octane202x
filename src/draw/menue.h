@@ -512,7 +512,7 @@ private:
     void UpdateRaceTrackSelectionTypeWriterEffect();
 
     void InitRaceTrackSceneNodes();
-    void Update3DModels(irr::f32 frameDeltaTime);
+    void Update3DModels();
     void Set3DModelRaceTrackWheelPositionIdx(irr::u8 newPosition, irr::u8 newWheelMoveState);
     void SetRotation3DModelAroundYAxis(irr::scene::ISceneNode* sceneObj, irr::f32 rotDeg);
     void Update3DModelRaceTrackWheelPosition();

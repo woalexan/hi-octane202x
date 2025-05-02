@@ -1422,7 +1422,7 @@ void Menue::AdvanceTime(irr::f32 frameDeltaTime) {
                }
 
                //update 3D Model positions + rotations (race track + ship models)
-               Update3DModels(frameDeltaTime);
+               Update3DModels();
            }
         }
     }
@@ -1498,21 +1498,11 @@ void Menue::SetRotation3DModelAroundYAxis(irr::scene::ISceneNode* sceneObj, irr:
     sceneObj->setRotation(rot);
 }
 
-void Menue::Update3DModels(irr::f32 frameDeltaTime) {
+void Menue::Update3DModels() {
     //rotate race track and ship models around their Y-AXIS
     //objects are rotating counter clock wise around
     //Y axis
-    
-    //22.03.2025: Next line is original line before Windows Attempts
-    // where I found that at 3000 FPS in menue rendering rotation is
-    // way too slow
-    //curr3DModelRotationDeg -= 100.0f * frameDeltaTime;
-
-    //22.03.2025: 100.0f was correct value for rotation speed when running
-    //with fixed FPS of 60, but was still to fast under much more FPS
-    //therefore changed down to 35.0f
-    irr::f32 speedFactor = (frameDeltaTime / (irr::f32)(1.0f / 60.0f));
-    curr3DModelRotationDeg -= 1.5f * speedFactor;
+    curr3DModelRotationDeg -= 1.5f;
 
     if (curr3DModelRotationDeg > 360.0f)
         curr3DModelRotationDeg -= 360.0f;

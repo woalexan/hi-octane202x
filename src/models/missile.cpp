@@ -366,22 +366,50 @@ bool MissileLauncher::LoadSprites() {
 }
 
 //get the missile launch location in front of the current player position
-irr::core::vector3df MissileLauncher::GetMissileLaunchLocation() {
-    irr::core::vector3df Loc = mParent->phobj->physicState.position + 2.0f * mParent->craftForwardDirVec;
+std::vector<irr::core::vector3df> MissileLauncher::GetMissileLaunchLocation(bool fireTwoMissiles) {
+    irr::core::vector3df Loc1;
+    irr::core::vector3df Loc2;
+
+    std::vector<irr::core::vector3df> result;
+    result.clear();
+
+    if (!fireTwoMissiles) {
+        Loc1 = mParent->phobj->physicState.position + 2.0f * mParent->craftForwardDirVec;
+    }  else {
+        //we need to fire two missiles
+        //offset missile launch position to the side a bit
+        Loc1 = mParent->phobj->physicState.position + 2.0f * mParent->craftForwardDirVec + 1.0f * mParent->craftSidewaysToRightVec;
+        Loc2 = mParent->phobj->physicState.position + 2.0f * mParent->craftForwardDirVec - 1.0f * mParent->craftSidewaysToRightVec;
+    }
 
     //calculate current cell below bullet impact position
     int current_cell_calc_x, current_cell_calc_y;
 
-    current_cell_calc_y = (int)(Loc.Z / mParent->mRace->mLevelTerrain->segmentSize);
-    current_cell_calc_x = -(int)(Loc.X / mParent->mRace->mLevelTerrain->segmentSize);
+    current_cell_calc_y = (int)(Loc1.Z / mParent->mRace->mLevelTerrain->segmentSize);
+    current_cell_calc_x = -(int)(Loc1.X / mParent->mRace->mLevelTerrain->segmentSize);
 
-    MapEntry* mEntry = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
+    MapEntry* mEntry1 = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
+    MapEntry* mEntry2 = NULL;
 
-    if (mEntry != NULL) {
-        Loc.Y = mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight + 0.3f;
+    if (mEntry1 != NULL) {
+        Loc1.Y = mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry1->get_X()][mEntry1->get_Z()].currTileHeight + 0.3f;
     }
 
-    return Loc;
+    result.push_back(Loc1);
+
+    if (fireTwoMissiles) {
+        current_cell_calc_y = (int)(Loc2.Z / mParent->mRace->mLevelTerrain->segmentSize);
+        current_cell_calc_x = -(int)(Loc2.X / mParent->mRace->mLevelTerrain->segmentSize);
+
+        mEntry2 = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
+        if (mEntry2 != NULL) {
+            Loc2.Y = mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry2->get_X()][mEntry2->get_Z()].currTileHeight + 0.3f;
+        }
+
+         result.push_back(Loc2);
+    }
+
+    return result;
 }
 
 void MissileLauncher::Trigger() {
@@ -402,13 +430,24 @@ void MissileLauncher::Trigger() {
     bool targetIsLocked = false;
 
     bool skipAnimation = false;
+    bool fireTwoMissiles = false;
 
-    irr::core::vector3df shotTargetLoc;
-    irr::core::vector3df launchLoc = GetMissileLaunchLocation();
+    //the original game fires a second missile at the same time for
+    //the highest achieved upgrade level of missile launcher, but does
+    //only decrease missile count by one, level  3 is the highest level
+    if (this->mParent->mPlayerStats->currRocketUpgradeLevel >= 3) {
+        //fire a second missile
+        fireTwoMissiles = true;
+    }
+
+    irr::core::vector3df shotTargetLoc1;
+    irr::core::vector3df shotTargetLoc2;
+    std::vector<irr::core::vector3df> launchLoc = GetMissileLaunchLocation(fireTwoMissiles);
 
      if (mParent->mTargetPlayer != NULL) {
          //we have currently a player targeted, fire at the player
-         shotTargetLoc = mParent->mTargetPlayer->phobj->physicState.position;
+         shotTargetLoc1 = mParent->mTargetPlayer->phobj->physicState.position;
+         shotTargetLoc2 = mParent->mTargetPlayer->phobj->physicState.position;
 
          //is the missile locked currently at the target
          //(which means player was targeted lock enough, and is
@@ -435,7 +474,8 @@ void MissileLauncher::Trigger() {
          RayHitTriangleInfoStruct triangleHit;
          if (mParent->GetWeaponTarget(triangleHit)) {
              //we found a valid target
-             shotTargetLoc = triangleHit.hitPointOnTriangle;
+             shotTargetLoc1 = triangleHit.hitPointOnTriangle;
+             shotTargetLoc2 = triangleHit.hitPointOnTriangle;
          } else {
              //did not find a shooting location target
              //but we we want to really fire a rocket, just shoot it straight
@@ -443,22 +483,32 @@ void MissileLauncher::Trigger() {
              //key and no missile is fired!
              //just set missile target to be player craft forward direction and set distance to maximum available distance
              //forward until next terrain obstacle, this should aim approx. to the wall/columns/terrain or whatever in front of player
-             shotTargetLoc = launchLoc + this->mParent->craftForwardDirVec * this->mParent->mCraftDistanceAvailFront;
+             shotTargetLoc1 = launchLoc.at(0) + this->mParent->craftForwardDirVec * this->mParent->mCraftDistanceAvailFront;
+             if (fireTwoMissiles) {
+                shotTargetLoc2 = launchLoc.at(1) + this->mParent->craftForwardDirVec * this->mParent->mCraftDistanceAvailFront;
+             }
              //skipAnimation = true;
          }
      }
 
      //only create a new missile if we have a target to shot at
      if (!skipAnimation) {
-        Missile* newMissile = new Missile(this, launchLoc, shotTargetLoc, targetIsLocked, lockedPlayer);
+        Missile* newMissile = new Missile(this, launchLoc.at(0), shotTargetLoc1, targetIsLocked, lockedPlayer);
 
         this->mCurrentMissilesVec.push_back(newMissile);
+
+        if (fireTwoMissiles) {
+            //add a second missile
+            Missile* newMissile2 = new Missile(this, launchLoc.at(1), shotTargetLoc2, targetIsLocked, lockedPlayer);
+
+            this->mCurrentMissilesVec.push_back(newMissile2);
+        }
 
         shooting = true;
      }
 
      if (mShotSound == NULL) {
-            mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, launchLoc, false);
+            mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, launchLoc.at(0), false);
      }
 }
 

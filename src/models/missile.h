@@ -114,7 +114,7 @@ private:
 
     std::vector<Missile*> mCurrentMissilesVec;
 
-    irr::core::vector3df GetMissileLaunchLocation();
+    std::vector<irr::core::vector3df> GetMissileLaunchLocation(bool fireTwoMissiles);
 
     //Returns true in case of success
     //False otherwise
