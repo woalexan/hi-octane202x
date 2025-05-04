@@ -502,6 +502,13 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
 
+    if (mRace->mInfra->mUseXEffects) {
+        // Add this SceneNode to the shadow node list, using the chosen filtertype.
+        // It will use the default shadow mode, ESM_BOTH, which allows it to
+        // both cast and receive shadows.
+        mRace->mInfra->mEffect->addShadowToNode(Player_node, this->mRace->mInfra->mShadowMapFilterType);
+    }
+
     if (this->mRace->mGame->enableShadows) {
        // add shadow
        PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();

@@ -137,7 +137,8 @@ bool Game::InitGameStep1() {
     //targetResolution.set(1280,960);
 
     //create my infrastructure
-    mInfra = new InfrastructureBase(targetResolution, fullscreen, enableShadows);
+    //04.05.2025: Do not use XEffects right now, I have problem with too dark lightning
+    mInfra = new InfrastructureBase(targetResolution, fullscreen, false, enableShadows);
     if (!mInfra->GetInitOk())
         return false;
 
@@ -156,7 +157,7 @@ bool Game::InitGameStep1() {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 3;
+    nextRaceLevelNr = 1;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -888,7 +889,15 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     //render scene: terrain, blocks, player craft, entities...
     mCurrentRace->Render();
 
-    mInfra->mSmgr->drawAll();
+    //if we do not use XEffects, we run the normal
+    //Irrlicht drawAll command, otherwise we run XEffects update
+    if (!mInfra->mUseXEffects) {
+        mInfra->mSmgr->drawAll();
+    } else {
+        // EffectHandler->update() replaces smgr->drawAll(). It handles all
+        // of the shadow maps, render targets switching, post processing, etc.
+        mInfra->mEffect->update();
+    }
 
     mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntRender3DScene);
 

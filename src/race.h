@@ -294,6 +294,9 @@ public:
 
     irr::core::aabbox3df validPlayerLocationBBox;
 
+    //my camera
+    scene::ICameraSceneNode* mCamera;
+
 private:
     int levelNr;
     bool useAutoGenMinimap;
@@ -365,8 +368,7 @@ private:
 
     scene::IMeshSceneNode* testcube;
 
-    //my camera
-    scene::ICameraSceneNode* mCamera;
+
 
     //stores the currently active camera
     scene::ICameraSceneNode* currActiveCamera = NULL;

@@ -2999,8 +2999,12 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
 }
 
 void Race::Render() {
-    //we need to draw sky image first, the remaining scene will be drawn on top of it
-    DrawSky();
+    //if we do not use XEffects we can simply render the sky
+    //with XEffect this does not work, need a solution for this!
+    if (!mInfra->mUseXEffects) {
+        //we need to draw sky image first, the remaining scene will be drawn on top of it
+        DrawSky();
+    }
 
     //draw 3D world coordinate axis with arrows
     mDrawDebug->DrawWorldCoordinateSystemArrows();
@@ -3599,7 +3603,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
-   this->mLevelBlocks = new LevelBlocks(this->mLevelTerrain, this->mLevelRes, mInfra->mSmgr, mInfra->mDriver, mTexLoader,
+   this->mLevelBlocks = new LevelBlocks(this, this->mLevelTerrain, this->mLevelRes, mInfra->mSmgr, mInfra->mDriver, mTexLoader,
                                         DebugShowWallCollisionMesh, this->mGame->enableLightning);
 
    //create all level entities

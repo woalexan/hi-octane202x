@@ -216,6 +216,15 @@ add_executable(hi-octane202x
     src/utils/boundingbox/collision.h
     src/utils/boundingbox/collision.cpp
 
+    src/xeffects/XEffects.h
+    src/xeffects/CScreenQuad.h
+    src/xeffects/CShaderPre.h
+    src/xeffects/CShaderPre.cpp
+    src/xeffects/EffectCB.h
+    src/xeffects/EffectHandler.h
+    src/xeffects/EffectHandler.cpp
+    src/xeffects/EffectShaders.h
+
     src/infrabase.h
     src/infrabase.cpp
     src/game.h

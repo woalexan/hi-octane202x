@@ -19,7 +19,7 @@ bool InfrastructureBase::InitIrrlicht() {
 
     //we need to enable stencil buffers, otherwise volumentric shadows
     //will not work
-    mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 16, mFullscreen, mEnableShadows, false, mEventReceiver);
+    mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 32, mFullscreen, mEnableShadows, false, mEventReceiver);
     
     //22.03.2025: Direct3D does not work right now, at least at my wifes notebook, because
     //of "Could not lock DIRECT3D9 Texture." issue
@@ -44,6 +44,36 @@ bool InfrastructureBase::InitIrrlicht() {
     mGameRootDir = mDevice->getFileSystem()->getWorkingDirectory();
 
     //mDriver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 10, 30, .03f, false, true);
+
+    if (mUseXEffects) {
+        // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
+        // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
+        // (The screen buffer resolution need not be the same as the screen resolution.)
+        // The second to last parameter enables VSM filtering, see example 6 for more information.
+        // The last parameter enables soft round spot light masks on our shadow lights.
+        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true);
+
+        //Set ShadowMap filter type
+        mShadowMapFilterType = E_FILTER_TYPE::EFT_12PCF;
+        mShadowMapResolution = 4096;
+
+        // Set a global ambient color. A very dark gray.
+        mEffect->setAmbientColor(SColor(255, 255, 255, 255));
+
+        /*mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-45.0f, 20.0f, 7.6f), vector3df(-17.36f, 2.4f, 45.56f),
+                SColor(255, 255, 255, 255), 20.0f, 200.0f, 120.0f * DEGTORAD));*/
+
+        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 53.0f, 54.0f), vector3df(-27.0f, 1.0f, -6.0f),
+                SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false));
+
+        //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));
+
+        /*core::stringc shaderExt = (mDriver->getDriverType() == EDT_DIRECT3D9) ? ".hlsl" : ".glsl";
+
+        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurHP") + shaderExt);
+        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurVP") + shaderExt);
+        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BloomP") + shaderExt);*/
+    }
 
     return true;
 }
@@ -516,10 +546,11 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
-InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
+InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool useXEffects, bool enableShadows) {
     mScreenRes = resolution;
     mFullscreen = fullScreen;
     mEnableShadows = enableShadows;
+    mUseXEffects = useXEffects;
 
     if (!InitIrrlicht()) {
         return;

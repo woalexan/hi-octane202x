@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <irrlicht.h>
+#include "xeffects/XEffects.h"
 #include "input/input.h"
 #include "utils/logger.h"
 #include "resources/assets.h"
@@ -43,7 +44,7 @@ struct OriginalGameFolderInfoStruct {
 
 class InfrastructureBase {
 public:
-  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
+  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool useXEffects, bool enableShadows);
   ~InfrastructureBase();
 
   //get a random int in the range between min and max
@@ -62,8 +63,13 @@ public:
   IrrlichtDevice* mDevice;
   video::IVideoDriver* mDriver;
   scene::ISceneManager* mSmgr;
+  EffectHandler* mEffect;
   MyEventReceiver* mEventReceiver;
   IGUIEnvironment* mGuienv;
+
+  //ShadowMap settings
+  E_FILTER_TYPE mShadowMapFilterType;
+  irr::u32 mShadowMapResolution;
 
   PrepareData* mPrepareData;
   GameText* mGameTexts;
@@ -74,6 +80,8 @@ public:
   std::vector<uint8_t> mGameVersionDate;
   bool mExtendedGame = false;
 
+  bool mUseXEffects;
+
   //if specified file is not found, returns empty path
   irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName);
   bool UpdateFileListSaveFolder();
@@ -83,7 +91,6 @@ private:
 
   bool mEnableShadows;
   bool mFullscreen;
-
   bool mInitOk = false;
 
   //this paths are all absolute paths

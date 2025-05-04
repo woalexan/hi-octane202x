@@ -268,6 +268,14 @@ void LevelTerrain::FinishTerrainInitialization() {
         DynamicTerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
 
         DynamicTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
+
+        if (mRace->mInfra->mUseXEffects) {
+            // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
+            // It will use the default shadow mode, ESM_BOTH, which allows it to
+            // both cast and receive shadows.
+            this->mRace->mInfra->mEffect->addShadowToNode(StaticTerrainSceneNode, this->mRace->mInfra->mShadowMapFilterType);
+            this->mRace->mInfra->mEffect->addShadowToNode(DynamicTerrainSceneNode, this->mRace->mInfra->mShadowMapFilterType);
+        }
     }
 }
 
@@ -594,6 +602,7 @@ void LevelTerrain::CreateTerrainMesh() {
       newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[idx]);
       newBuf->getMaterial().Lighting = mEnableLightning;
       newBuf->getMaterial().Wireframe = false;
+
       //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
       newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
       meshBuffers.push_back(newBuf);
@@ -1557,6 +1566,7 @@ bool LevelTerrain::setupGeometry() {
     int Height = levelRes->Height();
 
     video::SColor cubeColour2(255,255,255,255);
+
     core::vector3df normal;
 
     for (z = 0; z < Height; z++) {
