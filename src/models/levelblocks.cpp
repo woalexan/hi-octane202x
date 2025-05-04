@@ -47,12 +47,13 @@ LevelBlocks::~LevelBlocks() {
   }
 }
 
-LevelBlocks::LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
+LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
                          TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning) {
    this->m_driver = driver;
    MyTerrain = myTerrain;
    MySmgr = mySmgr;
    mEnableLightning = enableLightning;
+   mRace = parentRace;
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -107,6 +108,14 @@ LevelBlocks::LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, scene::IS
 
    //Uncomment next line to only see wireframe of the Buildings
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+
+   if (mRace->mInfra->mUseXEffects) {
+       // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
+       // It will use the default shadow mode, ESM_BOTH, which allows it to
+       // both cast and receive shadows.
+       mRace->mInfra->mEffect->addShadowToNode(BlockCollisionSceneNode, this->mRace->mInfra->mShadowMapFilterType);
+       mRace->mInfra->mEffect->addShadowToNode(BlockWithoutCollisionSceneNode, this->mRace->mInfra->mShadowMapFilterType);
+   }
 
    std::cout << "HiOctane Blocks loaded: " <<
                    numVertices << " vertices, " <<

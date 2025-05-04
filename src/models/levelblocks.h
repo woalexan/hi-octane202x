@@ -37,7 +37,7 @@ struct ColumnsByPositionStruct {
 
 class LevelBlocks {
 public:
-    LevelBlocks(LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver,
+    LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver,
                 TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning);
     ~LevelBlocks();
 
@@ -74,6 +74,7 @@ private:
     TextureLoader* mTexSource;
     LevelTerrain* MyTerrain;
     scene::ISceneManager *MySmgr;
+    Race* mRace;
 
     //std::string m_texfile;
 
