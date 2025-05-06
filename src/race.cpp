@@ -2710,7 +2710,9 @@ void Race::HandleInput(irr::f32 deltaTime) {
      }
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
-        this->mWorldAware->WriteOneDbgPic = true;
+        //this->mWorldAware->WriteOneDbgPic = true;
+        this->mExplosionLauncher->Trigger(mPlayerVec.at(0)->phobj->physicState.position);
+
     }
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
@@ -4174,7 +4176,7 @@ void Race::UpdateCones(irr::f32 frameDeltaTime) {
                 dist = (playerPos - (*itCones)->Position).getLengthSQ();
 
                 if (dist < 2.0f) {
-                    speed = (*itPlayer)->phobj->physicState.speed * 1.0f;
+                    speed = (*itPlayer)->phobj->physicState.speed * 0.7f;
                     (*itCones)->WasHit(mPlayerVec.at(0)->craftForwardDirVec, speed);
                 }
             }

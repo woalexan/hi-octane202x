@@ -83,6 +83,8 @@ private:
 
     Race* mRace;
 
+    irr::f32 mSpeedFactor;
+
     irr::f32 mCurrentSpeed;
     irr::f32 mTargetSpeed;
 

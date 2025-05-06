@@ -243,7 +243,7 @@ bool Recovery::ControlMovement(irr::core::vector3df vecMov, irr::f32 deltaTime) 
 
     //move further in direction of this jobs target
     //make a simple cinematic movement here
-    this->mPosition += dirVec * mCurrentSpeed * deltaTime;
+    this->mPosition += dirVec * mCurrentSpeed * mSpeedFactor * 0.015f;
 
     return false;
 }
@@ -331,7 +331,7 @@ void Recovery::State_PlayerGrabbed(irr::f32 deltaTime) {
             //only allow to rotate recovery vehicle model around Y-AXIS
             //otherwise the model would look strange when it has the orientation of the
             //player model at the end
-            rotateFurther.fromAngleAxis((-absAngleError / 180.0f) * irr::core::PI, irr::core::vector3df(0.0f, 1.0f, 0.0f));
+            rotateFurther.fromAngleAxis((-absAngleError / 180.0f) * mSpeedFactor * irr::core::PI, irr::core::vector3df(0.0f, 1.0f, 0.0f));
             rotateFurther.normalize();
 
             currCraftOrientation *= rotateFurther;
@@ -413,14 +413,17 @@ void Recovery::Update(irr::f32 deltaTime) {
 
     this->worldCoordClaw = pos_in_world;
 
+    //calculate a frame rate dependent speed factor
+    mSpeedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
     if (mCurrentSpeed < mTargetSpeed) {
-        mCurrentSpeed += RECOVERY_VEHICLE_ACCELDEACCELRATE;
+        mCurrentSpeed += RECOVERY_VEHICLE_ACCELDEACCELRATE * mSpeedFactor;
 
         if (mCurrentSpeed > RECOVERY_VEHICLE_SPEED) {
             mCurrentSpeed = RECOVERY_VEHICLE_SPEED;
         }
     } else if (mCurrentSpeed > mTargetSpeed) {
-        mCurrentSpeed -= RECOVERY_VEHICLE_ACCELDEACCELRATE;
+        mCurrentSpeed -= RECOVERY_VEHICLE_ACCELDEACCELRATE * mSpeedFactor;
 
         if (mCurrentSpeed < 0.0f) {
             mCurrentSpeed = 0.0f;

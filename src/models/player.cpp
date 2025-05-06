@@ -4386,7 +4386,11 @@ void Player::JumpControlPhysicsLoop(irr::f32 deltaTime) {
             }
         }
 
-        if (mCurrJumping) {
+         if (mCurrJumping) {
+           mCurrInAirTime += deltaTime;
+         }
+
+      /*  if (mCurrJumping) {
             //slowly move craft downwards while jumping, instead of the normal
             //craft height control below, while we jump we are disconnected from the
             //race track surface
@@ -4417,7 +4421,7 @@ void Player::JumpControlPhysicsLoop(irr::f32 deltaTime) {
             //Apply force to the players model
             this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin - downwardForce, PHYSIC_APPLYFORCE_REAL,
                                             PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
-        }
+        }*/
 
         /*if (mDbgCurrRecording) {
             dbgRecordFrontHeight->push_back(frontTerrainHeight);
@@ -4453,9 +4457,42 @@ void Player::CraftHeightControl() {
     currDistCraftTerrainFront = WorldCoordCraftFrontPnt.Y - currHeightFront;
     currDistCraftTerrainBack = WorldCoordCraftBackPnt.Y - currHeightBack;
 
-    //when we jump exit, no more height control necessary
-    if (mCurrJumping)
+    //when we jump run different code then in default
+    //height control
+    if (mCurrJumping) {
+            //slowly move craft downwards while jumping, instead of the normal
+            //craft height control below, while we jump we are disconnected from the
+            //race track surface
+
+            //make the force downwards dependent on in air time
+            //that means shorter jumps are easier for the player keeping
+            //the downwards force first lower
+            //but then with increasing air time the downward force is increased
+            //so that the player does not fly to long through the air
+            //mCurrInAirTime += deltaTime;
+
+            irr::core::vector3df downwardForce(0.0f, 0.0f, 0.0f);
+
+            //14.04.2025: For the first level 6 jump and more jumps in level 8 we need a little bit of help to be able
+            //to make the jump without using the booster; otherwise we can not fly over the wall on
+            //the other side. Therefore let player model fly upwards at the beginning
+            //feels weird, but there is no other solution right now :(
+            if (mCurrInAirTime < 0.3f) {
+                downwardForce.Y = -70.0f + 140.3f * mCurrInAirTime;
+            } else if (mCurrInAirTime > 0.3f) {
+                downwardForce.Y = 0.0f + 140.0f * (mCurrInAirTime - 0.3f);
+            }
+
+            //put limit at maximum force downwards
+            if (downwardForce.Y > 100.0f)
+                downwardForce.Y = 100.0f;
+
+            //Apply force to the players model
+            this->phobj->AddLocalCoordForce(LocalCraftOrigin, LocalCraftOrigin - downwardForce, PHYSIC_APPLYFORCE_REAL,
+                                            PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
+
         return;
+    }
 
     /*DbgCurrRaceTrackHeightFront = currHeightFront;
     DbgCurrRaceTrackHeightBack = currHeightBack;

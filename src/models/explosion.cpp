@@ -278,6 +278,8 @@ void Explosion::UpdateDebris(irr::f32 DeltaTime) {
 
     int current_cell_calc_x, current_cell_calc_y;
 
+    irr::f32 speedFactor = (DeltaTime / (irr::f32)(1.0f / 60.0f));
+
     //now update all the remaining explosion objects
     for (it = this->mExplosionDebrisVec.begin(); it != this->mExplosionDebrisVec.end(); ++it) {
 
@@ -297,11 +299,12 @@ void Explosion::UpdateDebris(irr::f32 DeltaTime) {
                     }
                    }
             } else {
+
                 //debris is flying right now, update position of all existing sprites
                 idx = 0;
                 for (it2 = (*it)->mSceneNodeDebrisSprite.begin(); it2 != (*it)->mSceneNodeDebrisSprite.end(); ++it2) {
-                    (*it)->currSpritePos[idx] = (*it)->currSpritePos[idx] + (*it)->currVelocity[idx] * DeltaTime;
-                    (*it)->currVelocity[idx] = (*it)->currVelocity[idx] + this->mParentExplosionLauncher->mParentRace->mPhysics->mGravityVec * DeltaTime;
+                    (*it)->currSpritePos[idx] = (*it)->currSpritePos[idx] + (*it)->currVelocity[idx] * speedFactor * 0.015f;
+                    (*it)->currVelocity[idx] = (*it)->currVelocity[idx] + this->mParentExplosionLauncher->mParentRace->mPhysics->mGravityVec * speedFactor * 0.015f;
 
                     (*it2)->setPosition((*it)->currSpritePos[idx]);
 
