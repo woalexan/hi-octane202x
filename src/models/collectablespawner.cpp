@@ -38,13 +38,15 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
           bool allCollectiblesReachedFinalLocation = true;
           SpawnedCollectableInfoStruct* pntrInfoStruct;
 
+          irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
           //now update all the elements we spawned
           for (it = this->mSpawnedCollectablesVec.begin(); it != this->mSpawnedCollectablesVec.end(); ++it) {
               if (!(*it)->collectableReachedFinalLocation) {
                     allCollectiblesReachedFinalLocation = false;
                     //item is still moving, calculate next position
-                    (*it)->pntrCollectable->UpdatePosition((*it)->pntrCollectable->Position + (*it)->currVelocity * deltaTime);
-                    (*it)->currVelocity = (*it)->currVelocity + this->mRace->mPhysics->mGravityVec * deltaTime;
+                    (*it)->pntrCollectable->UpdatePosition((*it)->pntrCollectable->Position + (*it)->currVelocity * speedFactor * 0.015f);
+                    (*it)->currVelocity = (*it)->currVelocity + this->mRace->mPhysics->mGravityVec * speedFactor * 0.015f;
 
                     //check if sprite is currently moving towards ground, and is very close to race track ground (hits the ground)
                     //in this case stop the movement of the collectable, and fix it in position

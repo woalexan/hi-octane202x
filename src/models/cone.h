@@ -44,7 +44,7 @@ private:
     bool mReachedFinalLocation = true;
     irr::f32 mCenterHeight;
 
-    void Rotate();
+    void Rotate(irr::f32 speedfactor);
 };
 
 #endif // CONE_H

@@ -42,11 +42,11 @@ Cone::~Cone() {
     mSmgr->getMeshCache()->removeMesh(coneMesh);
 }
 
-void Cone::Rotate() {
+void Cone::Rotate(irr::f32 speedfactor) {
     irr::core::quaternion rotateFurther;
 
     //only allow to rotate cone model around X Axis
-    rotateFurther.fromAngleAxis((5.0f / 180.0f) * irr::core::PI, rotAxis);
+    rotateFurther.fromAngleAxis((15.0f / 180.0f) * speedfactor * irr::core::PI, rotAxis);
     rotateFurther.normalize();
 
     orientation *= rotateFurther;
@@ -69,11 +69,13 @@ void Cone::Update(irr::f32 deltaTime) {
     int current_cell_calc_x, current_cell_calc_y;
 
     if (!mReachedFinalLocation) {
-            //item is still moving, calculate next position
-            this->Position = this->Position + currVelocity * deltaTime;
-            this->currVelocity = this->currVelocity + this->mRace->mPhysics->mGravityVec * deltaTime;
+          irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
 
-            Rotate();
+            //item is still moving, calculate next position
+            this->Position = this->Position + currVelocity * speedFactor * 0.015f;
+            this->currVelocity = this->currVelocity + this->mRace->mPhysics->mGravityVec * speedFactor * 0.015f;
+
+            Rotate(speedFactor);
 
             //check if cone is currently moving towards ground, and is very close to race track ground (hits the ground)
             //in this case stop the movement of the cone, and fix it in position
@@ -121,7 +123,7 @@ void Cone::WasHit(irr::core::vector3df movementDirection, irr::f32 collisionSpee
     //setup initial velocity
     movementDirection.normalize();
 
-    mVelocity.set(collisionSpeed * movementDirection.X, collisionSpeed * 0.5f, collisionSpeed * movementDirection.Z);
+    mVelocity.set(collisionSpeed * movementDirection.X, collisionSpeed * 1.0f, collisionSpeed * movementDirection.Z);
     currVelocity = mVelocity;
 
     //derive rotation axis, is direction vector perpendicular to the movement

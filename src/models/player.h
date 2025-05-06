@@ -904,9 +904,9 @@ private:
     void StopPlayingLockOnSound();
 
     void WorkaroundResetCurrentPath();
-
+public:
     void WasDestroyed();
-
+private:
     void UpdateHUDState();
     void FinishedRace();
     void CpTakeOverHuman();
