@@ -145,15 +145,36 @@ void MachineGun::Trigger() {
 
         if (mParent->mTargetPlayer != NULL) {
              //we have currently a player targeted, fire at the player
-             //use a random shoot target location based on the player craft model
-             shotTargetLoc = mParent->mTargetPlayer->GetRandomMGunShootTargetLocation();
-             irr::f32 damage = DEF_MGUN_DAMAGE;
-             //mParent->mTargetPlayer->Damage(damage);
-             mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, DEF_RACE_DAMAGETYPE_MGUN, mParent);
-             mParent->mTargetPlayer->DamageGlas();
+             //06.05.2025: Until now the computer players have a target accuracy of 100% in the final
+             //race stats which is kind of unrealistic, and looks weird; Reason is that the computer players only fire
+             //when the have a target, and if there is a target the gun always hits with 100% probability right now
+             //to make everything more realistic from today on I want to introduce a random probability with which
+             //we hit an available target. The probability of hitting the target player should be increased with better
+             //target quality. If we hit the player we do the same as before, but if we do not hit we want to draw a
+             //sprite randomly somewhere around the player on the terrain
+             irr::u32 hitProbability = this->mParent->GetMGunHitProbability();
 
-             //this was a hit, add to hit statistics for accuracy
-             mParent->mPlayerStats->shootsHit++;
+             //get a random number between 0 and 100
+             irr::u32 randNum = this->mParent->mRace->mInfra->randRangeInt(0, 100);
+
+             //did we hit?
+             if (randNum < hitProbability) {
+                     //yes, we hit according to random number
+                     //use a random shoot target location based on the player craft model
+                     shotTargetLoc = mParent->mTargetPlayer->GetRandomMGunShootTargetLocation(true);
+                     irr::f32 damage = DEF_MGUN_DAMAGE;
+                     //mParent->mTargetPlayer->Damage(damage);
+                     mParent->mRace->DamagePlayer(mParent->mTargetPlayer, damage, DEF_RACE_DAMAGETYPE_MGUN, mParent);
+                     mParent->mTargetPlayer->DamageGlas();
+
+                     //this was a hit, add to hit statistics for accuracy
+                     mParent->mPlayerStats->shootsHit++;
+             } else {
+                 //we did not hit the player
+                 shotTargetLoc = mParent->mTargetPlayer->GetRandomMGunShootTargetLocation(false);
+
+                 mParent->mPlayerStats->shootsMissed++;
+             }
          } else {
              //we do not target any player right now
              //the bullet should impact the terrain
@@ -180,6 +201,7 @@ void MachineGun::Trigger() {
              } else {
                  //did not find a shooting location target
                  skipAnimation = true;
+                 mParent->mPlayerStats->shootsMissed++;
                  freeStruct->animatorActive = false;
              }
         }

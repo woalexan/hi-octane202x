@@ -2711,8 +2711,6 @@ void Race::HandleInput(irr::f32 deltaTime) {
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
         //this->mWorldAware->WriteOneDbgPic = true;
-        this->mExplosionLauncher->Trigger(mPlayerVec.at(0)->phobj->physicState.position);
-
     }
 
     if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {

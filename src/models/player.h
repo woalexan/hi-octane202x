@@ -59,6 +59,9 @@ const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX = 35.0f;
 
 const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 
+const irr::f32 DEF_PLAYER_MGUN_MINHIT_PROB = 25.0f;
+const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
+
 #define CRAFT_AIRFRICTION_NOTURBO 0.3f
 #define CRAFT_AIRFRICTION_TURBO 0.2f
 
@@ -775,7 +778,11 @@ public:
     bool ShouldGasolineBarBlink();
     bool ShouldShieldBarBlink();
 
-    irr::core::vector3df GetRandomMGunShootTargetLocation();
+    irr::core::vector3df GetRandomMGunShootTargetLocation(bool shootDoesHit);
+
+    //returns integer with value between 0 and 100
+    //percent
+    irr::u32 GetMGunHitProbability();
 
 private:
     InfrastructureBase* mInfra;
@@ -904,9 +911,9 @@ private:
     void StopPlayingLockOnSound();
 
     void WorkaroundResetCurrentPath();
-public:
+
     void WasDestroyed();
-private:
+
     void UpdateHUDState();
     void FinishedRace();
     void CpTakeOverHuman();
