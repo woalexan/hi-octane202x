@@ -62,18 +62,54 @@ void Player::CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberO
 }
 
 //delivers a random machine gun shoot location at the area of the
-//player craft model
-irr::core::vector3df Player::GetRandomMGunShootTargetLocation() {
+//player craft model if the shoot does hit the player (shootDoesHit = true)
+//in case shoot does not hit, delivers a random target location around the player
+//at the terrain
+irr::core::vector3df Player::GetRandomMGunShootTargetLocation(bool shootDoesHit) {
     irr::core::vector3df randLocation;
 
-    randLocation.set(mPlayerModelExtend.X * this->mInfra->randFloat(),
-                     mPlayerModelExtend.Y * this->mInfra->randFloat(),
-                     mPlayerModelExtend.Z * this->mInfra->randFloat());
+    if (shootDoesHit) {
+        //shoot does hit, return random location at player craft model
+        randLocation.set(mPlayerModelExtend.X * this->mInfra->randFloat(),
+                         mPlayerModelExtend.Y * this->mInfra->randFloat(),
+                         mPlayerModelExtend.Z * this->mInfra->randFloat());
 
-    randLocation -= mPlayerModelExtend * irr::core::vector3df(0.5f, 0.5f, 0.5f);
-    randLocation += this->phobj->physicState.position;
+        randLocation -= mPlayerModelExtend * irr::core::vector3df(0.5f, 0.5f, 0.5f);
+        randLocation += this->phobj->physicState.position;
+    } else {
+        //shoot does not hit, return random location around player at the terrain
+        randLocation.set(this->mInfra->randFloat(), 0.0f, this->mInfra->randFloat());
+
+        randLocation -= irr::core::vector3df(0.5f, 0.0f, 0.5f);
+        randLocation += this->phobj->physicState.position;
+
+        irr::core::vector2di outCell;
+
+        //get final Y coord from Terrain at the random location
+        randLocation.Y = this->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(randLocation. X, randLocation.Z, outCell);
+    }
 
     return randLocation;
+}
+
+//returns integer with value between 0 and 100
+//percent
+irr::u32 Player::GetMGunHitProbability() {
+    //the hit probability in percent
+    //does depend on the quality of the current
+    //target lock of the target player
+    irr::f32 probability = DEF_PLAYER_MGUN_MINHIT_PROB;
+
+    //mTargetMissleLockProgr value goes from 22 down to 0 (full lock)
+    probability += ((DEF_PLAYER_MGUN_MAXHIT_PROB - DEF_PLAYER_MGUN_MINHIT_PROB)/22.0f) * (irr::f32)(22 - mTargetMissleLockProgr);
+
+    if (probability > 100.0f)
+        probability = 100.0f;
+
+    if (probability < 0.0f)
+        probability = 0.0f;
+
+    return (irr::u32)(probability);
 }
 
 //Get current weapon shooting target for this player
