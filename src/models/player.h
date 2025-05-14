@@ -24,6 +24,7 @@
 #include "particle.h"
 #include "mgun.h"
 #include "missile.h"
+#include "cpuplayer.h"
 #include "levelterrain.h"
 #include "../utils/path.h"
 #include "../utils/bezier.h"
@@ -38,26 +39,7 @@ const irr::f32 MAX_PLAYER_SPEED = 17.0f;
 
 const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
 
-const irr::f32 CP_PLAYER_FAST_SPEED = 13.0f;
-const irr::f32 CP_PLAYER_SLOW_SPEED = 9.0f;
-
-const irr::f32 CP_PLAYER_DEACCEL_RATE_DEFAULT = 0.1f;
-const irr::f32 CP_PLAYER_ACCEL_RATE_DEFAULT = 0.07f;
-const irr::f32 CP_PLAYER_ACCELDEACCEL_RATE_CHARGING = 2.0f;
-
-//computer player stuck detection logic values
-const irr::f32 CP_PLAYER_STUCKDETECTION_MINDISTANCE_LIMIT = 2.0f;
-const irr::f32 CP_PLAYER_STUCKDETECTION_THRESHOLD_SEC = 3.0f;
-const irr::f32 CP_PLAYER_STUCKDETECTION_PERIOD_SEC = 0.5f;
-
 const irr::f32 CRAFT_JUMPDETECTION_THRES = 1.2f;
-
-const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMAX = 1500.0f;  //2000.0f
-const irr::f32 CP_PLAYER_ANGULAR_DAMPINGMIN = 50.0f;
-const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN = 2.0f;  //5.0f
-const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX = 35.0f;
-
-const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 
 const irr::f32 DEF_PLAYER_MGUN_MINHIT_PROB = 25.0f;
 const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
@@ -68,16 +50,6 @@ const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
 #define CRAFT_NOLEANING 0
 #define CRAFT_LEANINGLEFT 1
 #define CRAFT_LEANINGRIGHT 2
-
-#define CMD_NOCMD 0
-#define CMD_FLYTO_TARGETENTITY 1
-#define CMD_FLYTO_TARGETPOSITION 2
-#define CMD_FOLLOW_TARGETWAYPOINTLINK 3
-#define CMD_FOLLOW_PATH 4
-#define CMD_CHARGE_SHIELD 5
-#define CMD_CHARGE_FUEL 6
-#define CMD_CHARGE_AMMO 7
-#define CMD_PICKUP_COLLECTABLE 8
 
 #define STATE_HMAP_COLL_IDLE 0
 #define STATE_HMAP_COLL_WATCH 1
@@ -92,37 +64,16 @@ const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
 #define STATE_PLAYER_BROKEN 4
 #define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 5
 
-#define CP_MISSION_WAITFORRACESTART 0
-#define CP_MISSION_FINISHLAPS 1
-
 #define CAMERA_PLAYER_COCKPIT 0
 #define CAMERA_PLAYER_BEHINDCRAFT 1
 #define CAMERA_EXTERNALVIEW 2
-
-#define CP_PLAYER_WAS_STUCKUNDEFINED 0
-#define CP_PLAYER_WAS_STUCKLEFTSIDE 1
-#define CP_PLAYER_WAS_STUCKRIGHTSIDE 2
 
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 struct RayHitInfoStruct; //Forward declaration
 class Collectable; //Forward declaration
 class Camera; //Forward declaration
-
-typedef struct CpCommandEntry {
-    uint8_t cmdType;
-    EntityItem* targetEntity = NULL;
-    irr::core::vector3df* targetPosition = NULL;
-    WayPointLinkInfoStruct* targetWaypointLink = NULL;
-    Collectable* targetCollectible = NULL;
-
-    //if true this was a temporary dynamically
-    //created waypoint link for a specific purpose
-    //and not present in the original level data
-    //will be deleted again after command was executed
-    //by player craft
-    bool WayPointLinkTemporary = false;
-} CPCOMMANDENTRY;
+class CpuPlayer; //Forward declaration
 
 typedef struct {
     irr::u8 lapNr;
@@ -274,6 +225,8 @@ public:
            irr::u8 nrLaps, bool humanPlayer);
     ~Player();
 
+    InfrastructureBase* mInfra;
+
     HMAPCOLLSENSOR* cameraSensor;
     HMAPCOLLSENSOR* cameraSensor2;
     HMAPCOLLSENSOR* cameraSensor3;
@@ -284,6 +237,15 @@ public:
 
     void SetPlayerObject(PhysicsObject* phObjPtr);
     void DamageGlas();
+
+    //returns true if player craft of a computer
+    //player is currently stuck
+    //returns always false when called for a human
+    //player, regardless what the human player currently
+    //does
+    bool IsCurrentlyStuck();
+
+    void ExecuteCpPlayerLogic(irr::f32 deltaTime);
 
     void GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::f32 &left, irr::f32 &right);
     irr::f32 currHeightFront;
@@ -329,6 +291,8 @@ public:
     //False is for computer player
     bool mHumanPlayer;
 
+    //the following control functions are only
+    //valid to be used with a human player!
     void Forward(irr::f32 deltaTime);
     void Backward(irr::f32 deltaTime);
     void Left();
@@ -340,31 +304,14 @@ public:
     int mCurrPosCellX;
     int mCurrPosCellY;
 
-    std::vector<WayPointLinkInfoStruct*> mPathHistoryVec;
-    std::vector<WayPointLinkInfoStruct*> mCurrentPathSeg;
-    std::vector<WayPointLinkInfoStruct*> mCurrentPathSegSortedOutReverse;
+    bool mRecoveryVehicleCalled = false;
 
-    irr::u32 mCurrentPathSegNrSegments;
-    irr::u32 mCurrentPathSegCurrSegmentNr;
+    std::vector<Collectable*> mCollectablesSeenByPlayer;
 
-    WayPointLinkInfoStruct* mCpFollowThisWayPointLink;
+    std::vector<RayHitInfoStruct> PlayerSeenList;
+    std::vector<irr::f32> PlayerSeenAngleList;
 
-    irr::f32 mCpFollowedWayPointLinkCurrentSpaceRightSide;
-    irr::f32 mCpFollowedWayPointLinkCurrentSpaceLeftSide;
-
-    irr::core::vector3df debugPathPnt1;
-    irr::core::vector3df debugPathPnt2;
-    irr::core::vector3df debugPathPnt3;
-
-    irr::f32 dbgAngleError;
-    irr::f32 dbgDistError;
-
-    void CPForward(irr::f32 deltaTime);
-    void CPBackward(irr::f32 deltaTime);
-    void CPTrackMovement();
-
-    irr::u32 mCPTrackMovementNoClearClosestLinkCnter = 0;
-    irr::u32 mCPTrackMovementLostProgressCnter = 0;
+    std::vector<Player*> dbgPlayerInMyWay;
 
     //Returns true if the player actually picked the item up
     //false otherwise; For example the extra ammo item is only picked
@@ -373,26 +320,6 @@ public:
 
     void StartPlayingWarningSound();
     void StopPlayingWarningSound();
-
-    std::list<CPCOMMANDENTRY*>* cmdList;
-    void AddCommand(uint8_t cmdType, EntityItem* targetEntity);
-    void AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink);
-    void AddCommand(uint8_t cmdType);
-    void AddCommand(uint8_t cmdType, Collectable* whichCollectable);
-
-    void CheckAndRemoveNoCommand();
-    void CpHandleCharging();
-    void RemoveAllPendingCommands();
-
-    irr::s32 mDbgCpAvailWaypointNr = 0;
-    std::vector<WayPointLinkInfoStruct*> mCpAvailWayPointLinks;
-    irr::s32 mDbgCpAvailWayPointLinksNr = 0;
-
-    Collectable* mCpTargetCollectableToPickUp = NULL;
-    WayPointLinkInfoStruct* mCpWayPointLinkClosestToCollectable = NULL;
-    bool DoISeeACertainCollectable(Collectable* whichItem);
-
-    WayPointLinkInfoStruct* CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks);
 
     void Update(irr::f32 frameDeltaTime);
     void AddTextureID(irr::s32 newTexId);
@@ -464,8 +391,6 @@ public:
 
     irr::core::vector3d<irr::f32> craftForwardDirVec;
 
-    irr::f32 mCpCurrPathOffset = 0.0f;
-
     irr::f32 DbgShipUpAngle;
 
     irr::s32 currTextID;
@@ -501,17 +426,11 @@ public:
     irr::u8 mCurrentCraftOrientationAngleSamples = 0;
     void UpdateCurrentCraftOrientationAngleAvg();*/
 
-    irr::f32 mAngleError;
-
-    irr::f32 mCurrentCraftDistToWaypointLink = 0.0f;
-    irr::f32 mLastCraftDistToWaypointLink = 0.0f;
-    irr::f32 mCurrentCraftDistWaypointLinkTarget = 0.0f;
-
-    irr::f32 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
-    irr::f32 mCpCurrentAccelRate = CP_PLAYER_ACCEL_RATE_DEFAULT;
-
+    //the players physics object
     PhysicsObject* phobj;
 
+    //the players Irrlicht SceneNode for the
+    //craft model
     irr::scene::IMeshSceneNode* Player_node;
 
     //is prepared value to later find random
@@ -528,6 +447,7 @@ public:
     //player craft shadow SceneNode
     irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow;
 
+    //the players stats
     PLAYERSTATS *mPlayerStats;
 
     //copy of the player stats when player
@@ -536,8 +456,6 @@ public:
 
     irr::f32 terrainTiltCraftLeftRightDeg;
     irr::f32 terrainTiltCraftFrontBackDeg;
-
-    irr::u32 updatePathCnter = 0;
 
     //next checkpoints value we need to reach for
     //correct race progress
@@ -550,9 +468,8 @@ public:
 
     void CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints);
 
+    //the parent race for this player
     Race *mRace;
-
-    std::vector<WayPointLinkInfoStruct*> mFailedLinks;
 
     //debug height calculation variables
     LineStruct debug;
@@ -571,38 +488,15 @@ public:
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> currClosestWayPointLink;
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> lastClosestWayPointLink;
 
-
     std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> > currCloseWayPointLinks;
-
-    WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
-    WayPointLinkInfoStruct* cpLastFollowSeg = NULL;
-    irr::core::vector3df projPlayerPositionFollowSeg;
 
     void SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink);
     //irr::core::vector3df DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint);
-    void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay, bool updatePathReachedEndWayPointLink = false);
 
     irr::f32 GetHoverHeight();
     //void AlignPlayerModelToTerrainBelow();
 
-    //computer player stuff
-    irr::f32 computerPlayerTargetSpeed = 0.0f;
-    irr::f32 computerPlayerCurrentSpeed = 0.0f;
-
-    void RunComputerPlayerLogic(irr::f32 deltaTime);
-
-    irr::f32 mCpAbsCheckObstacleTimerCounter = 0.0f;
-
-    void FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand);
-    CPCOMMANDENTRY* PullNextCommandFromCmdList();
-    CPCOMMANDENTRY* CreateNoCommand();
-    void CurrentCommandFinished();
-    void CleanUpCommandList();
-
-    irr::u32 CpCurrMissionState = CP_MISSION_WAITFORRACESTART;
-
-    void CpDefineNextAction();
-    void CpAddCommandTowardsNextCheckpoint();
+    void SetupComputerPlayerForStart(irr::core::vector3df startPos);
 
     void CraftHeightControl();
     void JumpControl(irr::f32 deltaTime);
@@ -613,8 +507,6 @@ public:
     void DeactivateAttack();
 
     bool AllAnimatorsDone();
-
-    CPCOMMANDENTRY* currCommand = NULL;
 
     EntityItem* cPTargetEntity = NULL;
 
@@ -632,11 +524,7 @@ public:
 
     irr::f32 currPlayerCraftForwardLeaningAngleDeg = 0.0f;
 
-    void CPForceController(irr::f32 deltaTime);
     //void ProjectPlayerAtCurrentSegment();
-    void ReachedEndCurrentFollowingSegments();
-    void PickupCollectableDefineNextSegment(Collectable* whichCollectable);
-    void CpCheckCurrentPathForObstacles();
 
     void FinishedLap();
 
@@ -656,6 +544,7 @@ public:
     HUD* GetMyHUD();
 
     bool mBoosterActive = false;
+    bool mBoosterRechargeCurrentlyLocked = false;
     bool mLastBoosterActive = false;
     sf::Sound* TurboSound;
 
@@ -696,7 +585,6 @@ public:
     bool minCeilingFound;
 
     irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
-    irr::core::vector2df GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord);
 
     //vector with this players HUD broken glas
     //positions must be stored within the player, as each
@@ -727,34 +615,9 @@ public:
     //MovingAverageCalculator* mMovingAvgPlayerPositionCalc;
     //irr::core::vector3df mCurrentAvgPlayerPosition;
 
-    //computer player stuck detection logic
-    //just a workaround to save computer players
-    //that can not move anymore, for whatever reason
-    irr::core::vector3df mCpPlayerLastPosition;
-    irr::f32 mCpPlayerTimeNotMovedSeconds;
-    bool mCpPlayerCurrentlyStuck = false;
-    irr::u8 mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKUNDEFINED;
-
-    irr::f32 mExecuteCpStuckDetectionTimeCounter = 0.0f;
-
-    void CpStuckDetection(irr::f32 deltaTime);
-
-    bool mRecoveryVehicleCalled = false;
-
-    irr::f32 dbgStuckDet = 0.0f;
-
     void DebugSelectionBox(bool boundingBoxVisible);
-    std::vector<Player*> dbgPlayerInMyWay;
 
-    irr::f32 mDbgForceAngle;
-    irr::f32 mDbgFoceDistance;
-    irr::f32 mDbgAngleVelocityCraftX;
-    irr::f32 mDbgAngleVelocityCraftZ;
-    irr::f32 mDbgRotationalFrictionVal;
-
-    irr::f32 mTargetSpeedAdjust = 0.0f;
-
-    void TestCpForceControlLogicWithHumanPlayer();
+ //   void TestCpForceControlLogicWithHumanPlayer();
 
     //current best camera for this players external view
     Camera* externalCamera = NULL;
@@ -784,9 +647,18 @@ public:
     //percent
     irr::u32 GetMGunHitProbability();
 
-private:
-    InfrastructureBase* mInfra;
+    void LogMessage(char *msgTxt);
 
+    //returns true if player is currently in chargeing
+    //station and charges fuel, shield or ammo
+    bool IsCurrentlyCharging();
+
+    bool IsCurrentlyChargingFuel();
+    bool IsCurrentlyChargingShield();
+    bool IsCurrentlyChargingAmmo();
+
+private:
+    //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh*  PlayerMesh;
 
     //for recording HeightMap Collision data for debugging
@@ -798,16 +670,9 @@ private:
     //from which recovery vehicle are we currently grabbed?
     Recovery* mGrabedByThisRecoveryVehicle = NULL;
 
-    void LogMessage(char *msgTxt);
-
-    bool DoIWantToChargeShield();
-    bool DoIWantToChargeFuel();
-    bool DoIWantToChargeAmmo();
-
-    void CpPlayerCollectableSelectionLogic();
-    void CpPlayerHandleAttack();
-
+public:
     void SetNewState(irr::u32 newPlayerState);
+private:
     irr::u32 GetCurrentState();
 
     void GetHeightMapCollisionSensorDebugStateName(HMAPCOLLSENSOR *collSensor, char **stateName);
@@ -836,9 +701,6 @@ private:
     void UpdateHMapCollisionSensorPointData(HMAPCOLLSENSOR &sensor);
 
     void CreateHMapCollisionPointData();
-
-    irr::video::SMaterial* currDbgColor;
-    void AdvanceDbgColor();
 
     std::list<irr::f32> playerCamHeightList;
     irr::u8 playerCamHeightListElementNr = 0;
@@ -910,8 +772,6 @@ private:
     void StartPlayingLockOnSound();
     void StopPlayingLockOnSound();
 
-    void WorkaroundResetCurrentPath();
-
     void WasDestroyed();
 
     void UpdateHUDState();
@@ -927,14 +787,16 @@ private:
 
     void UpdateInternalCoordVariables();
 
+    //every player needs a CpuPlayer that is able
+    //to control the craft, at least after the race
+    //is finished for the player
+    CpuPlayer* mCpuPlayer;
+
 public:
-
+    //pointer to a connected HUD
+    //NULL if player is currently
+    //not linked to any HUD
     HUD* mHUD = NULL;
-
-    std::vector<Collectable*> mCpCollectablesSeenByPlayer;
-
-    std::vector<RayHitInfoStruct> PlayerSeenList;
-    std::vector<irr::f32> PlayerSeenAngleList;
 };
 
 #endif // PLAYER_H

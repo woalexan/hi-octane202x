@@ -422,7 +422,6 @@ void Race::CallRecoveryVehicleForHelp(Player *whichPlayer) {
     this->mPlayerWaitForRecoveryVec->push_back(whichPlayer);
 }
 
-
 //Code below was never used, not sure if it works
 //at one point in time I thought I need it, but later it turned out I do not need it right now
 //void Race::SetPlayerLocationAndAlignToTrackHeight(Player* player, irr::core::vector3df newLocation,
@@ -966,31 +965,14 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     mPlayerVec.push_back(newPlayer);
     mPlayerPhysicObjVec.push_back(newPlayerPhysicsObj);
 
-    if (!humanPlayer) {
-            //for a computer player additional add first player command
-            EntityItem* entItem = this->mPath->FindFirstWayPointAfterRaceStartPoint();
-            if (entItem != NULL) {
-               //get waypoint link for this waypoint
-                std::vector<WayPointLinkInfoStruct*> foundLinks;
+    newPlayer->currCloseWayPointLinks = mPath->PlayerFindCloseWaypointLinks(newPlayer);
+    newPlayer->SetCurrClosestWayPointLink(mPath->PlayerDeriveClosestWaypointLink(newPlayer->currCloseWayPointLinks));
 
-               foundLinks = this->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
-
-               if (foundLinks.size() > 0) {
-                   newPlayer->AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
-
-                   //we also want to preset the waypoint link follow logic offset
-                   //to prevent collision of all the player craft at the tight start situation
-                   //preset by X coordinate difference between player origin and found waypoint link start entity
-                   irr::core::vector3df startWayPoint = foundLinks.at(0)->pStartEntity->getCenter();
-
-                   irr::core::vector3df deltaVec = Startpos - startWayPoint;
-                   //deltaVec.Y = 0.0f;
-                   //deltaVec.Z = 0.0f;
-
-                   newPlayer->mCpCurrPathOffset = -deltaVec.X;
-               }
-            }
-    }
+    //setup computer players for race start
+    //Note:we can call this function also for human
+    //players, as the function will return for humans immediately
+    //again, without causing issues!
+    newPlayer->SetupComputerPlayerForStart(Startpos);
 
     //if we do not skip start set player mode
     //accordingly; this also sets the Hud view mode
@@ -2361,9 +2343,9 @@ void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
         (*itPlayer)->dbgPlayerInMyWay.clear();
 
-        if (!(*itPlayer)->mHumanPlayer) {
-           (*itPlayer)->RunComputerPlayerLogic(frameDeltaTime);
-        }
+        //function just returns internally when called for human
+        //player, so just call for every player
+        (*itPlayer)->ExecuteCpPlayerLogic(frameDeltaTime);
     }
 }
 
@@ -4224,7 +4206,7 @@ void Race::FindNextPlayerToFollowInDemoMode() {
         //is there an external camera available for this player currently,
         //and the player is not stuck (we do not want to highlight the fact
         //that we have not the best computer player controls and a stuck player :) )
-        if (((*it)->externalCamera != NULL) && (!(*it)->mCpPlayerCurrentlyStuck)) {
+        if (((*it)->externalCamera != NULL) && (!(*it)->IsCurrentlyStuck())) {
             //ok, lets follow this player now
             mFollowPlayerDemoMode = (*it);
             mFollowPlayerDemoModeTimeCounter = 0.0f;

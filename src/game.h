@@ -141,7 +141,6 @@ public:
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
 
-    bool computerPlayersAttack = true;
 
     //Returns true for success, false for error occured
     bool InitGameStep1();

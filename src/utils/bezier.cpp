@@ -173,3 +173,12 @@ irr::core::vector2df Bezier::QuadBezierPointThrough(irr::core::vector2df startPn
   irr::core::vector2df out = a * startPnt + b * cntrlNew + c * endPnt;
   return out;
 }
+
+irr::core::vector2df Bezier::GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord) {
+     irr::core::vector3df midPoint = (point2 - point1) * irr::core::vector3df(0.5f, 0.5f, 0.5f) +  point1;
+     threeDCoord = midPoint;
+
+    irr::core::vector2df result(midPoint.X, midPoint.Z);
+
+    return result;
+}

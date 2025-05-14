@@ -43,6 +43,8 @@ public:
     //the control point, and is not simply bend towards the control point
     irr::core::vector2df QuadBezierPointThrough(irr::core::vector2df startPnt, irr::core::vector2df endPnt, irr::core::vector2df cntrlPoint, irr::f32 t);
 
+    irr::core::vector2df GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord);
+
 private:
     //pointer to the levelTerrain object
     //we need this to be able to derive the height of the tiles

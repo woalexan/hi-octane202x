@@ -188,6 +188,8 @@ add_executable(hi-octane202x
     src/models/camera.cpp
     src/models/collectablespawner.h
     src/models/collectablespawner.cpp
+    src/models/cpuplayer.h
+    src/models/cpuplayer.cpp
 
     src/utils/crc32.h
     src/utils/crc32.cpp
