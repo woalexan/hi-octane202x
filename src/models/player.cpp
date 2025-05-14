@@ -180,10 +180,6 @@ Player::~Player() {
     delete mFinalPlayerStats;
     mFinalPlayerStats = NULL;
 
-    //delete/clean all stuff
-    //linked to player commands
-    CleanUpCommandList();
-
     //Remove my Scenenode from
     //Scenemanager
     if (this->Player_node != NULL) {
@@ -236,6 +232,9 @@ Player::~Player() {
 
     CleanUpBrokenGlas();
     delete this->brokenGlasVec;
+
+    //delete my cpu player
+    delete mCpuPlayer;
 
     delete mMovingAvgPlayerLeaningAngleLeftRightCalc;
     //delete mMovingAvgPlayerPositionCalc;
@@ -344,24 +343,12 @@ void Player::CpTakeOverHuman() {
     //reconfigure physics model, so that computer player is able
     //to drive the craft
     this->mRace->SetupPhysicsObjectParameters(*this->phobj, false);
-    this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 
     //stop being a human player
     mHumanPlayer = false;
 
-    mCpCurrPathOffset = 0.0f;
-
-    //"jump start" computer player speed, so that craft does not immediately
-    //stop when computer player takes over
-    computerPlayerCurrentSpeed = this->phobj->physicState.speed;
-
-    if (computerPlayerCurrentSpeed < CP_PLAYER_SLOW_SPEED) {
-        computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-    }
-
     LogMessage((char*)"Control handed over to computer");
-
-    WorkaroundResetCurrentPath();
+    mCpuPlayer->CpTakeOverHuman();
 }
 
 void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
@@ -386,31 +373,6 @@ void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
    mGrabedByThisRecoveryVehicle = whichRecoveryVehicle;
 }
 
-//after a computer player is freed from the recovery vehicle, our under
-//some error cases where we could lose our current path progress we need
-//to try to restart with a new clean path/path status, this is done by this routine
-void Player::WorkaroundResetCurrentPath() {
-
-    LogMessage((char*)"WorkaroundResetCurrentPath was called");
-
-    //which waypoint link is the closest one to us right now?
-   std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> closeWaypointLinks =
-           this->mRace->mPath->PlayerFindCloseWaypointLinks(this);
-
-   std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> closestLink =
-           this->mRace->mPath->PlayerDeriveClosestWaypointLink(closeWaypointLinks);
-
-   if (closestLink.first == NULL) {
-       //workaround, just do nothing! TODO: Maybe improve later
-       LogMessage((char*)"WorkaroundResetCurrentPath: no closest link found");
-   } else {
-       //setup new path for the race
-       AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, closestLink.first);
-   }
-
-  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-}
-
 void Player::FreedFromRecoveryVehicleAgain() {
    if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_GRABEDBYRECOVERYVEHICLE) {
        mGrabedByThisRecoveryVehicle = NULL;
@@ -427,49 +389,19 @@ void Player::FreedFromRecoveryVehicleAgain() {
        //as long as the player has not finished the race yet
        SetNewState(STATE_PLAYER_RACING);
 
-       //if we are a computer player, and we got stuck and the stuck
-       //detection save us, make sure that this will not happen anymore, by changing
-       //current path offset
+       //if this is a computer player, also inform
+       //this cpu player about the fact that we were freed
+       //from the recovery vehicle again
        if (!mHumanPlayer) {
-           if (mCpPlayerCurrentlyStuck) {
-               if (mCpPlayerStuckAtSide == CP_PLAYER_WAS_STUCKLEFTSIDE) {
-                     //move current path offset a little bit to the right
-                     mCpCurrPathOffset += 0.5f;
-               } else if (mCpPlayerStuckAtSide == CP_PLAYER_WAS_STUCKRIGHTSIDE) {
-                     //move current path offset a little bit to the left
-                     mCpCurrPathOffset -= 0.5f;
-               }
-
-               mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKUNDEFINED;
-           }
+          mCpuPlayer->FreedFromRecoveryVehicleAgain();
        }
 
        mRecoveryVehicleCalled = false;
-       mCpPlayerCurrentlyStuck = false;
-
-       //additional logic for computer player
-       if (!mHumanPlayer) {
-         //renew the current path for computer
-         //player
-         WorkaroundResetCurrentPath();
-       }
    }
 }
 
 irr::u32 Player::GetCurrentState() {
     return this->mPlayerStats->mPlayerCurrentState;
-}
-
-void Player::AdvanceDbgColor() {
-    if (currDbgColor == this->mRace->mDrawDebug->red)  {
-        currDbgColor = this->mRace->mDrawDebug->cyan;
-    } else if (currDbgColor == this->mRace->mDrawDebug->cyan)  {
-        currDbgColor = this->mRace->mDrawDebug->pink;
-    } else if (currDbgColor == this->mRace->mDrawDebug->pink)  {
-        currDbgColor = this->mRace->mDrawDebug->green;
-    } else if (currDbgColor == this->mRace->mDrawDebug->green)  {
-        currDbgColor = this->mRace->mDrawDebug->red;
-    }
 }
 
 Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::core::vector3d<irr::f32> NewPosition,
@@ -509,12 +441,8 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     mRace = race;
 
-    mPathHistoryVec.clear();
-
-    currDbgColor = this->mRace->mDrawDebug->red;
-
-    //create the player command list
-    cmdList = new std::list<CPCOMMANDENTRY*>();
+    //create my cpuPlayer
+    mCpuPlayer = new CpuPlayer(this);
 
     //definition of dirt texture elements
     dirtTexIdsVec = new std::vector<irr::s32>{0, 1, 2, 60, 61, 62, 63, 64, 65, 66, 67, 79};
@@ -635,161 +563,6 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     this->Player_node->setPosition(pos_in_worldspace_originPos);
 }*/
 
-void Player::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
-    if (cmdType != CMD_FLYTO_TARGETENTITY || targetEntity == NULL)
-        return;
-
-    CheckAndRemoveNoCommand();
-
-    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
-    newCmd->cmdType = CMD_FLYTO_TARGETENTITY;
-    newCmd->targetEntity = targetEntity;
-
-    //create a new temporary waypoint link from computer player crafts current
-    //position towards the entity we want to fly to
-    WayPointLinkInfoStruct* newStruct = new WayPointLinkInfoStruct();
-
-    LineStruct* newLineStr = new LineStruct();
-    newLineStr->A = this->phobj->physicState.position;
-
-    irr::core::vector3df posEntity = targetEntity->getCenter();
-    //our universe is flipped for X axis
-    newLineStr->B = posEntity;
-
-    //set white as default color
-    newLineStr->color = this->mRace->mDrawDebug->white;
-    newLineStr->name = new char[10];
-    strcpy(newLineStr->name, "");
-
-    newStruct->pLineStruct = newLineStr;
-    irr::core::vector3df vec3D = (newLineStr->B - newLineStr->A);
-
-    this->mRace->dbgCoord = newStruct->pLineStruct->B;
-
-    //precalculate and store length as we will need this very often
-    //during the game loop for race position update
-    newStruct->length3D = vec3D.getLength();
-    vec3D.normalize();
-
-    newStruct->LinkDirectionVec = vec3D;
-    newStruct->LinkDirectionVec.normalize();
-
-    //precalculate a direction vector which stands at a 90 degree
-    //angle at the original waypoint direction vector, and always points
-    //to the right direction when looking into race direction
-    //this direction vector is later used during the game to offset the player
-    //path sideways
-    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*this->mRace->yAxisDirVector).normalize();
-
-    //also store this temporary waypointlink struct info
-    //in the command, so that we can cleanup after this command was
-    //executed
-    newCmd->targetWaypointLink = newStruct;
-
-    //mark waypoint link as temporary created, so that
-    //we delete it again after command was fully executed
-    newCmd->WayPointLinkTemporary = true;
-
-    newStruct->pEndEntity = targetEntity;
-
-    //add the new command to the end of the command list
-    this->cmdList->push_back(newCmd);
-}
-
-void Player::AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink) {
-    if (cmdType != CMD_FOLLOW_TARGETWAYPOINTLINK || targetWayPointLink == NULL)
-        return;
-
-    CheckAndRemoveNoCommand();
-
-    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
-    newCmd->cmdType = CMD_FOLLOW_TARGETWAYPOINTLINK;
-    newCmd->targetWaypointLink = targetWayPointLink;
-
-    //add the new command to the end of the command list
-    this->cmdList->push_back(newCmd);
-}
-
-void Player::AddCommand(uint8_t cmdType) {
-    CheckAndRemoveNoCommand();
-
-    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
-    newCmd->cmdType = cmdType;
-
-    //add the new command to the end of the command list
-    this->cmdList->push_back(newCmd);
-}
-
-void Player::AddCommand(uint8_t cmdType, Collectable* whichCollectable) {
-    CheckAndRemoveNoCommand();
-
-    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
-    newCmd->cmdType = cmdType;
-    newCmd->targetCollectible = whichCollectable;
-
-    //add the new command to the end of the command list
-    this->cmdList->push_back(newCmd);
-}
-
-void Player::CheckAndRemoveNoCommand() {
-    if (currCommand == NULL)
-        return;
-
-    if (currCommand->cmdType == CMD_NOCMD) {
-        CPCOMMANDENTRY* oldCmd = currCommand;
-
-        //if we set currCommand to NULL then the program
-        //will pull the next available command in
-        //RunComputerPlayerLogic
-        currCommand = NULL;
-
-        //delete old command struct
-        delete oldCmd;
-    }
-}
-
-void Player::RemoveAllPendingCommands() {
-    std::list<CPCOMMANDENTRY*>::iterator it;
-    CPCOMMANDENTRY* pntrCmd;
-
-    if (this->cmdList->size() > 0) {
-       for (it = this->cmdList->begin(); it != cmdList->end(); ) {
-           pntrCmd = (*it);
-
-           it = this->cmdList->erase(it);
-
-           //free command struct itself
-           //as well
-           if (pntrCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
-               //we have to do maybe more cleanup
-               if (pntrCmd->targetWaypointLink != NULL) {
-                   //if temporary waypoint link (created for a specific purpose,
-                   //not part of level file), clean up again
-                   if (pntrCmd->WayPointLinkTemporary) {
-                       //clean up waypoint link structure again
-                       //we need to clean up the LineStruct inside
-                       LineStruct* pntrLineStruct = pntrCmd->targetWaypointLink->pLineStruct;
-
-                       delete[] pntrLineStruct->name;
-                       delete pntrLineStruct;
-
-                       LineStruct* pntrLineExtStruct = pntrCmd->targetWaypointLink->pLineStructExtended;
-
-                       delete[] pntrLineExtStruct->name;
-                       delete pntrLineExtStruct;
-
-                       delete pntrCmd->targetWaypointLink;
-                   }
-               }
-           }
-
-           delete pntrCmd;
-       }
-    }
-
-    currCommand = NULL;
-}
-
 void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
     if (newClosestWayPointLink.first != NULL) {
         this->currClosestWayPointLink = newClosestWayPointLink;
@@ -798,6 +571,12 @@ void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr:
         //also remember this choice in case we do not find the correct link at any moment later
         this->lastClosestWayPointLink.first = newClosestWayPointLink.first;
         this->lastClosestWayPointLink.second = newClosestWayPointLink.second;
+
+        //Update a copy of this value/variable in the cpuPlayer class
+        //Do this also for human players, we will need this information
+        //always up to date when the computer player takes over the craft at the
+        //end of the race from the human player!
+        mCpuPlayer->SetCurrClosestWayPointLink(newClosestWayPointLink);
     }
 }
 
@@ -860,6 +639,13 @@ void Player::CreateHMapCollisionPointData() {
     mHMapCollPntData.back->localPnt1.set(0.0f, 0.0f, 0.5f * hlpVec.Z);
     mHMapCollPntData.back->localPnt2.set(0.0f, 0.0f, 0.5f * hlpVec.Z + this->mRace->mLevelTerrain->segmentSize);
     strcpy(mHMapCollPntData.back->sensorName, "Back");
+}
+
+void Player::ExecuteCpPlayerLogic(irr::f32 deltaTime) {
+    if (mHumanPlayer)
+        return;
+
+    mCpuPlayer->RunPlayerLogic(deltaTime);
 }
 
 void Player::GetHeightMapCollisionSensorDebugInfo(wchar_t* outputText, int maxCharNr) {
@@ -1236,27 +1022,6 @@ void Player::Forward(irr::f32 deltaTime) {
         }
 }
 
-void Player::CPForward(irr::f32 deltaTime) {
-    //if player can not move right now simply
-    //exit
-    if (!this->mPlayerStats->mPlayerCanMove)
-        return;
-
-    //29.04.2025: for throttleVal calculation we need to take into accont
-    //the current frame rate! otherwise the throttle change speed
-    //depends heavily on the frame rate of the computer!
-    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
-
-        //to accelerate player add force in craft forward direction
-        this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, -50.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
-
-        if (mPlayerStats->throttleVal < mPlayerStats->throttleMax) {
-            //+1.0f is for constant 60FPS
-            mPlayerStats->throttleVal += 1.0f * speedFactor;
-        }
-}
-
 void Player::Backward(irr::f32 deltaTime) {
     //if player can not move right now simply
     //exit
@@ -1278,38 +1043,6 @@ void Player::Backward(irr::f32 deltaTime) {
             mPlayerStats->throttleVal -= 1.0f * speedFactor;
         }
     } else {
-            //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
-            this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
-                                    PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
-
-            if (mPlayerStats->throttleVal > 0) {
-                //-1.0f is for constant 60FPS
-                mPlayerStats->throttleVal -= 1.0f * speedFactor;
-            }
-    }
-}
-
-void Player::CPBackward(irr::f32 deltaTime) {
-    //29.04.2025: for throttleVal calculation we need to take into accont
-    //the current frame rate! otherwise the throttle change speed
-    //depends heavily on the frame rate of the computer!
-    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
-
-    if (!DEF_PLAYERCANGOBACKWARDS) {
-        //we can not go backwards in Hioctane
-        //we can only add friction to brake
-        this->phobj->AddFriction(1000.0f);
-
-        if (mPlayerStats->throttleVal > 0) {
-            //-1.0f is for constant 60FPS
-            mPlayerStats->throttleVal -= 1.0f * speedFactor;
-        }
-    } else {
-        //if player can not move right now simply
-        //exit
-        if (!this->mPlayerStats->mPlayerCanMove)
-            return;
-
             //go solution during debugging, for example testing collisions, it helps to be able to accelerate backwards
             this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(0.0f, 0.0f, 50.0f), PHYSIC_APPLYFORCE_REAL,
                                     PHYSIC_DBG_FORCETYPE_ACCELBRAKE);
@@ -1368,101 +1101,19 @@ void Player::NoTurningKeyPressed() {
     currentSideForce = 0.0f;
 }
 
-void Player::CpStuckDetection(irr::f32 deltaTime) {
-    //for a human player simply return
+//returns true if player craft of a computer
+//player is currently stuck
+//returns always false when called for a human
+//player, regardless what the human player currently
+//does
+bool Player::IsCurrentlyStuck() {
     if (mHumanPlayer)
-        return;
+        return false;
 
-    //we can not execute stuck detection every frame, as the computer
-    //player does not move a meaningful way distance in one frame
-    //we want to check for a longer period of time
-    mExecuteCpStuckDetectionTimeCounter += deltaTime;
-
-    if (mExecuteCpStuckDetectionTimeCounter > CP_PLAYER_STUCKDETECTION_PERIOD_SEC) {
-           irr::f32 addTime = mExecuteCpStuckDetectionTimeCounter;
-           mExecuteCpStuckDetectionTimeCounter = 0.0f;
-
-            //if computer player is charging currently at a station
-            //somewhere its position is also not changing, we do not want to
-            //detect this as stuck
-            if ((this->mCurrChargingFuel) || (this->mCurrChargingAmmo) || (this->mCurrChargingShield)) {
-                mCpPlayerTimeNotMovedSeconds = 0.0f;
-                mCpPlayerLastPosition = this->phobj->physicState.position;
-                return;
-            }
-
-            //if computer player has finished race already also
-            //it is not stuck, or if its fuel is empty
-            //to refuel fuel there is another logic in place, we do not
-            //want to interrupt here
-            //in both cases the player is not allowed to move
-            if (!this->mPlayerStats->mPlayerCanMove){
-               mCpPlayerTimeNotMovedSeconds = 0.0f;
-               mCpPlayerLastPosition = this->phobj->physicState.position;
-               return;
-           }
-
-            //if we have already called a recovery vehicle also leave
-            if (mRecoveryVehicleCalled || mCpPlayerCurrentlyStuck) {
-                mCpPlayerTimeNotMovedSeconds = 0.0f;
-                mCpPlayerLastPosition = this->phobj->physicState.position;
-                return;
-           }
-
-            //next line only for debugging
-            //dbgStuckDet = (this->phobj->physicState.position - mCpPlayerLastPosition).getLengthSQ();
-
-            //check if we have not moved since last frame
-            if ((this->phobj->physicState.position - mCpPlayerLastPosition).getLengthSQ() < CP_PLAYER_STUCKDETECTION_MINDISTANCE_LIMIT) {
-                this->mCpPlayerTimeNotMovedSeconds += addTime;
-
-                //stuck for a long enough time?
-                if (this->mCpPlayerTimeNotMovedSeconds > CP_PLAYER_STUCKDETECTION_THRESHOLD_SEC) {
-                    //we seem to be stuck
-                    //for a workaround call the Recovery vehicle to
-                    //put us back properly at the next waypoint link at the track
-
-                    //for this we want to know at which side we are most likely stuck with
-                    //the terrain
-                    //take the side where we have the least amount of free space to move around
-                    bool spaceTightRightSide = (mCraftDistanceAvailRight < 1.5f);
-                    bool spaceTightLeftSide = (mCraftDistanceAvailLeft < 1.5f);
-
-                    mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKUNDEFINED;
-
-                    if (spaceTightLeftSide && !spaceTightRightSide) {
-                        mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKLEFTSIDE;
-                    }
-
-                    if (!spaceTightLeftSide && spaceTightRightSide) {
-                        mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKRIGHTSIDE;
-                    }
-
-                    if (spaceTightLeftSide && spaceTightRightSide) {
-                        if (mCraftDistanceAvailLeft < mCraftDistanceAvailRight) {
-                            mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKLEFTSIDE;
-                        } else {
-                            mCpPlayerStuckAtSide = CP_PLAYER_WAS_STUCKRIGHTSIDE;
-                        }
-                    }
-
-                    LogMessage((char*)"I am stuck, I call recovery vehicle for help");
-                    this->mRace->CallRecoveryVehicleForHelp(this);
-                    mRecoveryVehicleCalled = true;
-                    mCpPlayerCurrentlyStuck = true;
-
-                    mCpPlayerTimeNotMovedSeconds = 0.0f;
-                }
-            } else {
-                //we have move enough, reset time counter again
-                this->mCpPlayerTimeNotMovedSeconds = 0.0f;
-            }
-
-               dbgStuckDet = this->mCpPlayerTimeNotMovedSeconds;
-             mCpPlayerLastPosition = this->phobj->physicState.position;
-    }
+    return mCpuPlayer->IsCurrentlyStuck();
 }
 
+/*
 void Player::TestCpForceControlLogicWithHumanPlayer() {
     if (!mHumanPlayer)
         return;
@@ -1508,7 +1159,7 @@ void Player::TestCpForceControlLogicWithHumanPlayer() {
 
          dbgDistError = distError;
     }
-}
+}*/
 /*
 void Player::UpdateCurrentCraftOrientationAngleAvg() {
     if (mCurrentCraftOrientationAngleSamples > 10) {
@@ -1529,776 +1180,22 @@ void Player::UpdateCurrentCraftOrientationAngleAvg() {
     mCurrentCraftOrientationAngleAvg = (avgVal / (irr::f32)(mCurrentCraftOrientationAngleSamples));
 }*/
 
-void Player::CPForceController(irr::f32 deltaTime) {
-
-    mLastCraftDistToWaypointLink = mCurrentCraftDistToWaypointLink;
-
-    //fuel empty?
-    if (this->mPlayerStats->gasolineVal <= 0.0f) {
-        this->mPlayerStats->gasolineVal = 0.0f;
-        computerPlayerTargetSpeed = 0.0f;
-        SetNewState(STATE_PLAYER_EMPTYFUEL);
-    }
-
-    //29.04.2025: for state change we need to take into accont
-    //the current frame rate! otherwise the state changes
-    //depend heavily on the frame rate of the computer!
-    //all values below were defined at constant 60FPS at
-    //my development computer
-    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
-
-    if ((computerPlayerTargetSpeed + mTargetSpeedAdjust) > computerPlayerCurrentSpeed) {
-        computerPlayerCurrentSpeed += mCpCurrentAccelRate * speedFactor;
-    } else if (computerPlayerCurrentSpeed > (computerPlayerTargetSpeed - mTargetSpeedAdjust)) {
-        computerPlayerCurrentSpeed -= mCpCurrentDeaccelRate * speedFactor;
-    }
-
-    //is there a craft very close in front of us, then go slower
-    if (this->mCraftDistanceAvailFront < 5.0f) {
-        mTargetSpeedAdjust -= 0.2f * speedFactor;
-
-        if (mTargetSpeedAdjust < 0.0f) {
-            mTargetSpeedAdjust = 0.0f;
-        }
-    } else {
-        if (mTargetSpeedAdjust < 0.0f) {
-            mTargetSpeedAdjust += 0.2f * speedFactor;
-
-            if (mTargetSpeedAdjust > 0.0f)
-            {
-                mTargetSpeedAdjust = 0.0f;
-            }
-        }
-    }
-
-    //control computer player speed
-    if (this->phobj->physicState.speed < (computerPlayerCurrentSpeed * 0.9f))
-    {
-        //go faster
-        this->CPForward(deltaTime);
-    } else if (this->phobj->physicState.speed > (computerPlayerCurrentSpeed * 1.1f)) {
-        //go slower
-       this->CPBackward(deltaTime);
-    }
-
-    if (!this->mPlayerStats->mPlayerCanMove)
-        return;
-
-    if (this->cPCurrentFollowSeg != NULL) {
-        //we need to project current computer player craft
-        //position onto the current segment we follow
-        //this recalculates the current projPlayerPositionClosestWayPointLink member
-        //variable for the further calculation steps below
-        CPTrackMovement();
-
-        //sometimes we loose our way inside ProjectPlayerAtCurrentSegments,
-        //if so just exit, next time we should have a new way again
-        if (this->cPCurrentFollowSeg == NULL) {
-           this->computerPlayerTargetSpeed = 0.0f;
-            LogMessage((char*)"CPForceController: lost our segment to follow in ProjectPlayerAtCurrentSegments");
-            return;
-        }
-
-        irr::core::vector3df dirVecToLink = (this->projPlayerPositionFollowSeg - this->phobj->physicState.position);
-        dirVecToLink.Y = 0.0f;
-
-        irr::core::vector3df currDirVecCraftSide = craftSidewaysToRightVec;
-        irr::core::vector3df currDirVecLink = dirVecToLink;
-        currDirVecLink.normalize();
-
-        currDirVecCraftSide.Y = 0.0f;
-        currDirVecCraftSide.normalize();
-
-        irr::f32 dotProd = currDirVecCraftSide.dotProduct(currDirVecLink);
-
-        //define distance to current waypoint in a way, that if craft is left
-        //of current waypoint link the distance is negative, and if the craft is right
-        //of the current waypoint link the distance is positive
-        if (dotProd < 0.0f) {
-            mCurrentCraftDistToWaypointLink = dirVecToLink.getLength();
-        } else {
-            mCurrentCraftDistToWaypointLink = -dirVecToLink.getLength();
-        }
-
-        mCurrentCraftOrientationAngle =
-                this->mRace->GetAbsOrientationAngleFromDirectionVec(craftForwardDirVec);
-
-        //UpdateCurrentCraftOrientationAngleAvg();
-
-         irr::f32 angleDotProduct = this->cPCurrentFollowSeg->LinkDirectionVec.dotProduct(craftForwardDirVec);
-
-        irr::f32 angleRad = acosf(angleDotProduct);
-        mAngleError = (angleRad / irr::core::PI) * 180.0f;
-
-        if (craftSidewaysToRightVec.dotProduct(this->cPCurrentFollowSeg->LinkDirectionVec) > 0.0f) {
-            mAngleError = -mAngleError;
-        }
-
-        irr::f32 currDistanceChangeRate = mCurrentCraftDistToWaypointLink - mLastCraftDistToWaypointLink;
-
-        /***************************************/
-        /*  Control Craft absolute angle start */
-        /***************************************/
-
-        irr::f32 corrForceOrientationAngle = 500.0f;
-        irr::f32 corrDampingOrientationAngle = 50.0f;
-
-        irr::f32 angleVelocityCraftX = this->phobj->GetVelocityLocalCoordPoint(LocalCraftForceCntrlPnt).X * corrDampingOrientationAngle;
-
-        irr::f32 corrForceAngle = mAngleError * corrForceOrientationAngle - angleVelocityCraftX;
-
-        //we need to limit max force, if force is too high just
-        //set it zero, so that not bad physical things will happen!
-        if (fabs(corrForceAngle) > 500.0f) {
-            corrForceAngle = sgn(corrForceAngle) * 500.0f;
-        }
-
-        //depending on the angle error also dynamically set physics model angular damping
-        //I saw no other solution, because if I statically set the angular damping in the physics
-        //model so low, that I can also get through tight turns then the models start to "oscillate"
-        //And if I increase the angular damping to a high static value the player models are more
-        //stable, but I can not make a tight turn. By adjusting the angular damping of the computer
-        //players physics model depending on the actual angle error I can achieve both goals at
-        //the same time
-        irr::f32 absAngleError = fabs(mAngleError);
-
-        //below a preset minimum absolute angle error I apply constant max angular damping factor
-        //between a min and max angle error I interpolate the damping between max and min value (linear interpolation)
-        //above a preset maximum absolute angle error I keep applying the defined minimum anglular damping in the physics model
-        if (absAngleError < CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN) {
-            this->phobj->mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX;
-        } else if (absAngleError > CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX) {
-            this->phobj->mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMIN;
-        } else {
-            //interpolate between max and min value depending on the angle error
-            mDbgRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX -
-                    ((CP_PLAYER_ANGULAR_DAMPINGMAX - CP_PLAYER_ANGULAR_DAMPINGMIN) / (CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX - CP_PLAYER_ANGULAR_DAMPING_ANGLEMIN)) * absAngleError;
-
-             this->phobj->mRotationalFrictionVal = mDbgRotationalFrictionVal;
-        }
-
-         mDbgForceAngle = corrForceAngle;
-         mDbgAngleVelocityCraftZ = this->phobj->GetVelocityLocalCoordPoint(LocalCraftForceCntrlPnt).Z;
-         mDbgAngleVelocityCraftX = angleVelocityCraftX;
-
-         this->phobj->AddLocalCoordForce(LocalCraftForceCntrlPnt, irr::core::vector3df(corrForceAngle, 0.0f, 0.0f),
-                                              PHYSIC_APPLYFORCE_ONLYROT);
-
-        /****************************************************/
-        /*  Control Craft distance to current waypoint link */
-        /****************************************************/
-
-        irr::f32 corrForceDist = 100.0f;
-        irr::f32 corrDampingDist = 2000.0f;
-
-        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
-
-         dbgDistError = distError;
-
-         //best line until 30.12.2024
-        irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
-
-        if (corrForceDistance > 100.0f) {
-            corrForceDistance = 100.0f;
-        } else if (corrForceDistance < -100.0f) {
-            corrForceDistance = -100.0f;
-        }
-
-        mDbgFoceDistance = corrForceDistance;
-
-        this->phobj->AddLocalCoordForce(LocalCraftOrigin, irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
-                                            PHYSIC_APPLYFORCE_ONLYTRANS);
-    } else {
-        //no segment to follow, stop craft
-        this->computerPlayerTargetSpeed = 0.0f;
-        LogMessage((char*)"CPForceController: No segement to follow, stop craft");
-    }
+//returns true if player is currently in chargeing
+//station and charges fuel, shield or ammo
+bool Player::IsCurrentlyCharging() {
+    return (mCurrChargingFuel || mCurrChargingAmmo || mCurrChargingShield);
 }
 
-void Player::CpCheckCurrentPathForObstacles() {
-    bool updatePath = false;
-
-    //Note 18.01.2025: This function causes me more problems right now as it solves
-    //I am not sure if I will use it at the end. I will leave the computer players like the
-    //are right now, because I am already working on this stuff for at least several months
-    //I am getting really bored now by it
-    return;
-
-        irr::f32 missingSpace;
-
-        //first update depending on the waypoint link we follow right now, and the players
-        //current progress on this waypoint link in terms of location between start and end entity
-        //how much free (movement) space we have to the right and left side of the freely moveable area
-        //on the race track right now
-        if (currClosestWayPointLink.first == NULL)
-            return;
-
-        irr::f32 progress = (currClosestWayPointLink.second - currClosestWayPointLink.first->pLineStruct->A).getLength() /
-                currClosestWayPointLink.first->length3D;
-
-        if (progress < 0.0f)
-            progress = 0.0f;
-
-        if (progress > 1.0f)
-            progress = 1.0f;
-
-        this->mCpFollowedWayPointLinkCurrentSpaceLeftSide = currClosestWayPointLink.first->minOffsetShiftStart +
-                (currClosestWayPointLink.first->minOffsetShiftEnd - currClosestWayPointLink.first->minOffsetShiftStart) * progress;
-
-        this->mCpFollowedWayPointLinkCurrentSpaceRightSide = currClosestWayPointLink.first->maxOffsetShiftStart +
-                (currClosestWayPointLink.first->maxOffsetShiftEnd - currClosestWayPointLink.first->maxOffsetShiftStart) * progress;
-
-        //are we too close to the race track edge / available space runs out?
-        /*if (this->mCraftDistanceAvailLeft < 1.0f) {
-            //go more right
-            //missingSpace = (1.5f - this->mCraftDistanceAvailLeft);
-            missingSpace = 0.5f;
-
-            if (mCpCurrPathOffset < (mCpFollowedWayPointLinkCurrentSpaceRightSide - 0.5f - missingSpace)) {
-               // if (!(mCpCurrPathOffset + missingSpace > (0.5f))) {
-                    mCpCurrPathOffset += missingSpace;
-                    updatePath = true;
-                }
-            //}
-        }
-
-        if (this->mCraftDistanceAvailRight < 1.0f) {
-            //go more left
-            //missingSpace = (1.5f - this->mCraftDistanceAvailRight);
-             missingSpace = 0.5f;
-            if (mCpCurrPathOffset > (mCpFollowedWayPointLinkCurrentSpaceLeftSide + 0.5f + missingSpace)) {
-            //     if (!(mCpCurrPathOffset - missingSpace < (-0.5f))) {
-                   mCpCurrPathOffset -= missingSpace;
-                   updatePath = true;
-                 }
-           // }
-        }*/
-
-        //are we too close to the race track edge / available space runs out?
-        if (-mCpFollowedWayPointLinkCurrentSpaceLeftSide + mCpCurrPathOffset < 1.0f) {
-            //go more right
-            //missingSpace = (1.5f - this->mCraftDistanceAvailLeft);
-            missingSpace = 0.25f;
-
-            if (mCpCurrPathOffset < (mCpFollowedWayPointLinkCurrentSpaceRightSide - 0.5f - missingSpace)) {
-               // if (!(mCpCurrPathOffset + missingSpace > (0.5f))) {
-                    mCpCurrPathOffset += missingSpace;
-                    updatePath = true;
-                }
-            //}
-        }
-
-        if (mCpFollowedWayPointLinkCurrentSpaceRightSide - mCpCurrPathOffset < 1.0f) {
-            //go more left
-            //missingSpace = (1.5f - this->mCraftDistanceAvailRight);
-             missingSpace = 0.25f;
-            if (mCpCurrPathOffset > (mCpFollowedWayPointLinkCurrentSpaceLeftSide + 0.5f + missingSpace)) {
-            //     if (!(mCpCurrPathOffset - missingSpace < (-0.5f))) {
-                   mCpCurrPathOffset -= missingSpace;
-                   updatePath = true;
-                 }
-           // }
-        }
-
-        //only check possible collision with players we do actually see in front of us
-        //otherwise we would report an possible collision with our path, when the other
-        //player comes close to our current path behind us
-        //and we do not want to detect this
-        std::vector<Player*> playerISee;
-        std::vector<RayHitInfoStruct>::iterator it;
-
-        playerISee.clear();
-        for (it = this->PlayerSeenList.begin(); it != this->PlayerSeenList.end(); ++it) {
-            if ((*it).HitType == RAY_HIT_PLAYER) {
-                playerISee.push_back((*it).HitPlayerPntr);
-            }
-        }
-        if (playerISee.size() > 0) {
-            if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(
-                        this->mCurrentPathSeg, playerISee, dbgPlayerInMyWay)) {
-            } else {
-                //we have to react, and find another path
-                //without any obstacle
-                updatePath = true;
-                updatePathCnter++;
-            }
-        }
-
-    if (updatePath) {
-         FollowPathDefineNextSegment(this->mCpFollowThisWayPointLink, mCpCurrPathOffset);
-         /*if (mHUD != NULL) {
-           this->mHUD->ShowBannerText((char*)"OBSTACLE", 4.0f);
-         }*/
-
-         //next line is only for debugging purposes
-         //this->mRace->mGame->StopTime();
-    }
+bool Player::IsCurrentlyChargingFuel() {
+    return mCurrChargingFuel;
 }
 
-void Player::CPTrackMovement() {
-    std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
-    irr::core::vector3df dA;
-    irr::core::vector3df dB;
-
-    irr::f32 projecteddA;
-    irr::f32 projecteddB;
-    irr::f32 projectedPl;
-    irr::f32 distance;
-    irr::f32 minDistance;
-    bool firstElement = true;
-    irr::core::vector3df projPlayerPosition;
-    WayPointLinkInfoStruct* closestLink = NULL;
-    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = NULL;
-    irr::f32 minStartEndPointDistance;
-    bool firstElementStartEndPoint = true;
-
-    irr::f32 startPointDistHlper;
-    irr::f32 endPointDistHlper;
-    irr::core::vector3d<irr::f32> posH;
-
-    mFailedLinks.clear();
-
-    irr::core::vector3df distVec;
-    irr::core::vector3df dirVec2D;
-
-    //iterate through all player follow way segments
-    for(WayPointLink_iterator = mCurrentPathSeg.begin(); WayPointLink_iterator != mCurrentPathSeg.end(); ++WayPointLink_iterator) {
-
-        //for the workaround later (in case first waypoint link search does not work) also find in parallel the waypoint link that
-        //has a start or end-point closest to the current player location
-        posH = (*WayPointLink_iterator)->pLineStruct->A;
-
-        distVec = phobj->physicState.position - posH;
-        distVec.Y = 0.0f;
-
-        startPointDistHlper = distVec.getLengthSQ();
-
-        posH = (*WayPointLink_iterator)->pLineStruct->B;
-        distVec = phobj->physicState.position - posH;
-        distVec.Y = 0.0f;
-
-        endPointDistHlper = distVec.getLengthSQ();
-
-        if (endPointDistHlper < startPointDistHlper) {
-             startPointDistHlper = endPointDistHlper;
-         }
-
-        if (firstElementStartEndPoint) {
-           LinkWithClosestStartEndPoint = (*WayPointLink_iterator);
-           minStartEndPointDistance = startPointDistHlper;
-           firstElementStartEndPoint = false;
-        } else {
-            if (startPointDistHlper < minStartEndPointDistance) {
-                //we have a new closest start/end point
-                LinkWithClosestStartEndPoint = (*WayPointLink_iterator);
-                minStartEndPointDistance = startPointDistHlper;
-            }
-        }
-
-        //we want to find the waypoint link (line) to which the player is currently closest too (which the player currently tries to follow)
-        //we also want to only find the line which is sideways of the player
-        //first check if player is parallel to current line, or if the line is far away
-        dA = phobj->physicState.position - (*WayPointLink_iterator)->pLineStructExtended->A;
-        dA.Y = 0.0f;
-
-        dB = phobj->physicState.position - (*WayPointLink_iterator)->pLineStructExtended->B;
-        dB.Y = 0.0f;
-
-        dirVec2D = (*WayPointLink_iterator)->LinkDirectionVec;
-
-        projecteddA = dA.dotProduct(dirVec2D);
-        projecteddB = dB.dotProduct(dirVec2D);
-
-        //if craft position is parallel (sideways) to current waypoint link the two projection
-        //results need to have opposite sign; otherwise we are not sideways of this line, and need to ignore
-        //this path segment
-        if (sgn(projecteddA) != sgn(projecteddB)) {
-            //this waypoint is interesting for further analysis
-            //calculate distance from player position to this line, where connecting line meets path segment
-            //in a 90° angle
-            projectedPl =  dA.dotProduct(dirVec2D);
-
-            /*
-            (*WayPointLink_iterator)->pLineStruct->debugLine = new irr::core::line3df((*WayPointLink_iterator)->pLineStruct->A +
-                                                                                      projectedPl * (*WayPointLink_iterator)->LinkDirectionVec,
-                                                                                      player->phobj->physicState.position);*/
-
-            projPlayerPosition = (*WayPointLink_iterator)->pLineStructExtended->A +
-                    irr::core::vector3df(projectedPl, projectedPl, projectedPl) * (dirVec2D);
-
-            distance = (projPlayerPosition - phobj->physicState.position).getLength();
-
-            //(*WayPointLink_iterator)->pLineStruct->color = mDrawDebug->pink;
-
-            //prevent picking far away waypoint links
-            //accidently (this happens especially when we are between
-            //the end of the current waypoint link and the start
-            //of the next one)
-            if (distance < 10.0f) {
-                if (firstElement) {
-                    minDistance = distance;
-                    closestLink = (*WayPointLink_iterator);
-                    projPlayerPositionFollowSeg = projPlayerPosition;
-                    firstElement = false;
-                   // mLastPathSegElementFollowing = closestLink;
-                } else {
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestLink = (*WayPointLink_iterator);
-                        projPlayerPositionFollowSeg = projPlayerPosition;
-                     //   mLastPathSegElementFollowing = closestLink;
-                     }
-                  }
-          }
-        } else {
-            mFailedLinks.push_back(*WayPointLink_iterator);
-        }
-    }
-
-    //did we still not find the closest link? try some workaround
-    if (closestLink == NULL) {
-        mCPTrackMovementNoClearClosestLinkCnter++;
-       // closestLink = mLastPathSegElementFollowing;
-
-       // LogMessage((char*)"CPTrackMovement: Reuse last followed Element!");
-
-       //workaround, take the waypoint with either the closest
-       //start or end entity
-       if (LinkWithClosestStartEndPoint != NULL) {
-         closestLink = LinkWithClosestStartEndPoint;
-         LogMessage((char*)"CPTrackMovement: Workaround closest StartEndPoint");
-       }
-    }
-
-    /*if ((closestLink != NULL) && (whichPlayer == player)) {
-        closestLink->pLineStruct->color = mDrawDebug->green;
-    }*/
-
-/*    if ((LinkWithClosestStartEndPoint != NULL) && (whichPlayer == player)) {
-       LinkWithClosestStartEndPoint->pLineStruct->color = mDrawDebug->red;
-    }*/
-
-    cPCurrentFollowSeg = closestLink;
-
-   if (cPCurrentFollowSeg == NULL) {
-         WorkaroundResetCurrentPath();
-
-         return;
-   }
-
-   //at which number of segment are we currently?
-   mCurrentPathSegCurrSegmentNr = 0;
-
-   bool foundCurrentProgress = false;
-
-   for(WayPointLink_iterator = mCurrentPathSeg.begin(); WayPointLink_iterator != mCurrentPathSeg.end(); ++WayPointLink_iterator) {
-       if ((*WayPointLink_iterator) == cPCurrentFollowSeg) {
-           foundCurrentProgress = true;
-           break;
-       }
-
-       mCurrentPathSegCurrSegmentNr++;
-   }
-
-   //in some cases we could loose our way through the current
-   //segment path
-   if (!foundCurrentProgress) {
-       mCPTrackMovementLostProgressCnter++;
-
-       //to fix this situation, completely renew the current overall path
-       //WorkaroundResetCurrentPath();
-       return;
-   } else {
-           //have we reached the end of the following path we follow?
-           //if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments -1)) {
-           if (mCurrentPathSegCurrSegmentNr >= (mCurrentPathSegNrSegments - 2)) {
-              ReachedEndCurrentFollowingSegments();
-           }
-   }
+bool Player::IsCurrentlyChargingShield() {
+    return mCurrChargingShield;
 }
 
-WayPointLinkInfoStruct* Player::CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks) {
-    std::vector<WayPointLinkInfoStruct*>::iterator it;
-    WayPointLinkInfoStruct* linkForFuel = NULL;
-    WayPointLinkInfoStruct* linkForShield = NULL;
-    WayPointLinkInfoStruct* linkForAmmo = NULL;
-    std::vector<WayPointLinkInfoStruct*> linksNothingSpecial;
-
-    linksNothingSpecial.clear();
-
-    EntityItem* ent;
-
-    for (it = availLinks.begin(); it != availLinks.end(); ++it) {
-        //what kind of waypoint is this?
-        ent = (*it)->pStartEntity;
-
-        switch (ent->getEntityType()) {
-            case Entity::EntityType::WaypointFuel: {
-                linkForFuel = (*it);
-                break;
-            }
-
-            case Entity::EntityType::WaypointAmmo: {
-                linkForAmmo = (*it);
-                break;
-            }
-
-            case Entity::EntityType::WaypointShield: {
-                linkForShield = (*it);
-                break;
-            }
-
-            //need to go slower
-            case Entity::EntityType::WaypointSlow: {
-                linksNothingSpecial.push_back(*it);
-                break;
-            }
-
-            //need to go faster
-            case Entity::EntityType::WaypointFast: {
-                linksNothingSpecial.push_back(*it);
-                break;
-            }
-
-            case Entity::EntityType::WaypointSpecial1:
-            case Entity::EntityType::WaypointSpecial2:
-            case Entity::EntityType::WaypointSpecial3:
-            case Entity::EntityType::WaypointShortcut: {
-                linksNothingSpecial.push_back(*it);
-                break;
-            }
-
-        }
-    }
-
-    //now handle stuff in terms of priority, most important stuff first
-
-    //do we have link to shield?
-    if (linkForShield != NULL) {
-        //do we need shield? nothing more important!
-        if (DoIWantToChargeShield()) {
-            //with the current command implementation I have an issue:
-            //if for example the computer player craft sees an Collectable it
-            //wants to pickup up, (so there is a command for that active), and
-            //then the player ship runs out of shield/ammo/fuel it adds
-            //a second command for that below, this section command for charging will not
-            //get pulled in the command processing routine, because this source code
-            //will only see the older Collectable collection command; so charging does not
-            //work properly. I should improve this whole concept in future. As a workaround now
-            //I will just delete all active commands when we want to charge something. This will
-            //remove possible pending collectable commands; Additional I have prevented somewhere else
-            //that collectables are commanded to be picked up as soon as a charging command was added to the list
-            RemoveAllPendingCommands();
-
-            LogMessage((char*)"Command to charge Shield");
-
-            //I need shield  
-            AddCommand(CMD_CHARGE_SHIELD);
-
-            //we want to accel/deaccelerate computer player craft
-            //now much quicker, so that if we reach the charging area
-            //finally we stop fast enough and do not overshoot the
-            //charging area itself
-            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
-            return (linkForShield);
-        }
-    }
-
-    //do we have link to fuel?
-    if (linkForFuel != NULL) {
-        //do we need fuel?
-        if (DoIWantToChargeFuel()) {
-            //please see important comment in shield section above
-            //why we do this
-            RemoveAllPendingCommands();
-
-            //I need fuel
-            AddCommand(CMD_CHARGE_FUEL);
-
-            LogMessage((char*)"Command to charge Fuel");
-
-            //we want to accel/deaccelerate computer player craft
-            //now much quicker, so that if we reach the charging area
-            //finally we stop fast enough and do not overshoot the
-            //charging area itself
-            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
-            return (linkForFuel);
-        }
-    }
-
-    //do we have link to ammo?
-    if (linkForAmmo != NULL) {
-        //do we need ammo?
-        if (DoIWantToChargeAmmo()) {
-            //please see important comment in shield section above
-            //why we do this
-            RemoveAllPendingCommands();
-
-            //I need ammo
-            AddCommand(CMD_CHARGE_AMMO);
-
-            LogMessage((char*)"Command to charge Ammo");
-
-            //we want to accel/deaccelerate computer player craft
-            //now much quicker, so that if we reach the charging area
-            //finally we stop fast enough and do not overshoot the
-            //charging area itself
-            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
-            return (linkForAmmo);
-        }
-    }
-
-    //if there is only one waypoint link available
-    //just return this one
-    int nrWays = (int)(linksNothingSpecial.size());
-    if (nrWays > 0) {
-
-        //choose available path random
-        int rNum;
-        rNum = mInfra->randRangeInt(0, nrWays - 1);
-
-        //LogMessage((char*)"Entered a new (unspecial) Waypoint-Link");
-
-        return linksNothingSpecial.at(rNum);
-    }
-
-    //if we do not want to charge anything (we are full),
-    //and the only available way is through a charger,
-    //at the end select the way through the charger!
-
-    //we still have no way to go
-    if (linkForFuel) {
-      LogMessage((char*)"Only available WayPointLink goes through fuel charger");
-      return (linkForFuel);
-    }
-
-    if (linkForAmmo) {
-      LogMessage((char*)"Only available WayPointLink goes through ammo charger");
-      return (linkForAmmo);
-    }
-
-    if (linkForShield) {
-      LogMessage((char*)"Only available WayPointLink goes through shield charger");
-      return (linkForShield);
-    }
-
-    return NULL;
-}
-
-bool Player::DoIWantToChargeShield() {
-     if (this->mPlayerStats->shieldVal < (0.4 * this->mPlayerStats->shieldMax))
-         return true;
-
-     return false;
-}
-
-bool Player::DoIWantToChargeFuel() {
-    if (this->mPlayerStats->gasolineVal < (0.5 * this->mPlayerStats->gasolineMax))
-       return true;
-
-    return false;
-}
-
-bool Player::DoIWantToChargeAmmo() {
-    if (this->mPlayerStats->ammoVal < (0.3 * this->mPlayerStats->ammoMax))
-        return true;
-
-    return false;
-}
-
-void Player::ReachedEndCurrentFollowingSegments() {
-  //  if (this->currClosestWayPointLink.first != NULL) {
-
-        //which waypoint options do we have at the end of
-        //our closest waypoint link?
-        irr::core::vector3df endPointLink;
-
-        //endPointLink = this->currClosestWayPointLink.first->pEndEntity->get_Pos();
-        endPointLink = this->mCpFollowThisWayPointLink->pEndEntity->getCenter();
-
-        std::vector<EntityItem*> availWaypoints =
-              this->mRace->mPath->FindAllWayPointsInArea(endPointLink, 2.0f);
-
-        mDbgCpAvailWaypointNr = (irr::s32)(availWaypoints.size());
-
-        if (mDbgCpAvailWaypointNr > 0) {
-             std::vector<EntityItem*>::iterator it;
-             mCpAvailWayPointLinks.clear();
-
-              std::vector<WayPointLinkInfoStruct*> fndLinks;
-              std::vector<WayPointLinkInfoStruct*>::iterator it2;
-
-             for (it = availWaypoints.begin(); it != availWaypoints.end(); ++it) {
-                 //if ((*it) != this->currClosestWayPointLink.first->pEndEntity) {
-                     //important: we need to exclude the waypoint link from the search we
-                     //came from! otherwise we can loop around to the link we came from (mCpFollowThisWayPointLink)
-                     fndLinks = this->mRace->mPath->FindWaypointLinksForWayPoint((*it), true, false,
-                                this->mCpFollowThisWayPointLink);
-
-                     if (fndLinks.size() > 0) {
-                         for (it2 = fndLinks.begin(); it2 != fndLinks.end(); ++it2) {
-                            mCpAvailWayPointLinks.push_back(*it2);
-                         }
-                     }
-                // }
-             }
-
-             mDbgCpAvailWayPointLinksNr = (irr::s32)(mCpAvailWayPointLinks.size());
-        }
-
-        //do we currently want to pickup a collectible, this has priority
-        if (this->mCpTargetCollectableToPickUp != NULL) {
-            //is the waypoint link next to the collectible one of the waypoint links in front
-            //of me, if so select this one and add a new path to the collectible
-            if (this->mCpWayPointLinkClosestToCollectable != NULL) {
-               std::vector<WayPointLinkInfoStruct*>::iterator it3;
-               for (it3 = mCpAvailWayPointLinks.begin(); it3 != mCpAvailWayPointLinks.end(); ++it3) {
-                   if ((*it3) == mCpWayPointLinkClosestToCollectable) {
-                       //yes, we found it
-                       //define path through it
-                       PickupCollectableDefineNextSegment(mCpTargetCollectableToPickUp);
-                       this->mCpFollowThisWayPointLink = (*it3);
-                       /*if (mHUD != NULL) {
-                         this->mHUD->ShowBannerText((char*)"COLLECT", 4.0f);
-                       }*/
-
-                       Entity::EntityType entType = (*it3)->pStartEntity->getEntityType();
-
-                       //we need to go slower?
-                       if (entType == Entity::EntityType::WaypointSlow) {
-                           this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-                       } else if (entType == Entity::EntityType::WaypointFast) {
-                           this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
-                       }
-
-                       return;
-                   }
-               }
-            }
-        }
-
-        WayPointLinkInfoStruct* nextLink = NULL;
-
-        //ask computer player logic what to do
-        nextLink = CpPlayerWayPointLinkSelectionLogic(mCpAvailWayPointLinks);
-        this->mCpFollowThisWayPointLink = nextLink;
-
-        if (nextLink != NULL) {
-            Entity::EntityType entType = nextLink->pStartEntity->getEntityType();
-
-            //we need to go slower?
-            if (entType == Entity::EntityType::WaypointSlow) {
-                this->computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-            } else if (entType == Entity::EntityType::WaypointFast) {
-                this->computerPlayerTargetSpeed = CP_PLAYER_FAST_SPEED;
-            }
-
-            FollowPathDefineNextSegment(nextLink, mCpCurrPathOffset, true);
-           /* if (mHUD != NULL) {
-               this->mHUD->ShowBannerText((char*)"REACHED END", 4.0f);
-             }*/
-      }
-  //  }
+bool Player::IsCurrentlyChargingAmmo() {
+    return mCurrChargingAmmo;
 }
 
 void Player::LogMessage(char *msgTxt) {
@@ -2330,6 +1227,7 @@ void Player::StartDbgRecording() {
 
     mDbgCurrRecording = true;
 }
+
 void Player::EndDbgRecording() {
     if (!mDbgCurrRecording)
         return;
@@ -2749,6 +1647,16 @@ void Player::MaxTurboReached() {
     }
 }
 
+//10.05.2025: Original Game observation
+//Depending on the booster upgrade level the booster "charging" time to go from
+//no booster value up to max booster level changes
+//see ca. time measurement results from the original game below:
+// no upgrade:   3.25 seconds
+// 1st upgrade:  2.65 seconds
+// 2nd upgrade:  2 seconds
+// 3rd upgrade:  1.6 seconds
+//to "discharge" booster from max value down to zero again takes always
+//approx. 8.3 seconds;
 void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
     mBoosterActive = down;
 
@@ -2756,6 +1664,16 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
     //new activation of booster
     if (!mPlayerStats->mPlayerCanMove) {
         mBoosterActive = false;
+    }
+
+    //as long as booster "charge" value is not zero again after
+    //it was charged once, a new charging/start of booster is prevented
+    if (mBoosterRechargeCurrentlyLocked) {
+       if (!(this->mPlayerStats->boosterVal > 0.0f)) {
+         mBoosterRechargeCurrentlyLocked = false;
+        } else {
+            mBoosterActive = false;
+        }
     }
 
     //in case max turbo/booster state was reached
@@ -2777,40 +1695,67 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
     //computer FPS rate!
     irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
 
-        if (mBoosterActive) {
-
+    if (mBoosterActive) {
            if (mLastBoosterActive != mBoosterActive) {
                 //booster was activated!
                 //keep a pointer to the sound source for the Turbo,
                 //because maybe we need to interrupt the turbo sound if space key is released
                 //by the player
-                TurboSound = mRace->mSoundEngine->PlaySound(SRES_GAME_TURBO, false);
+                TurboSound = mRace->mSoundEngine->PlaySound(SRES_GAME_TURBO, true);
 
                 this->mPlayerStats->boosterVal = 0;
            }
 
-           this->mPlayerStats->boosterVal += 1.0 * speedFactor;
+           switch (mPlayerStats->currBoosterUpgradeLevel) {
+               case 0: {
+                    //no booster upgrade
+                    this->mPlayerStats->boosterVal += 0.535f * speedFactor;
+                    break;
+               }
+               case 1: {
+                    //1st upgrade level
+                    this->mPlayerStats->boosterVal += 0.658f * speedFactor;
+                    break;
+               }
+               case 2: {
+                    //2nd upgrade level
+                    this->mPlayerStats->boosterVal += 0.866f * speedFactor;
+                    break;
+               }
+               case 3: {
+                    //3rd upgrade level
+                    this->mPlayerStats->boosterVal += 1.083f * speedFactor;
+                    break;
+               }
+           }
 
            if (this->mPlayerStats->boosterVal >= this->mPlayerStats->boosterMax) {
                //we reached max turbo level
                //make sure turbo sound is stopped
-               TurboSound->stop();
+               //TurboSound->stop();
+               if (TurboSound != NULL) {
+                   mRace->mSoundEngine->StopLoopingSound(TurboSound);
+                   TurboSound = NULL;
+               }
 
                MaxTurboReached();
            }
-
         } else {
 
               if (mLastBoosterActive != mBoosterActive) {
+                    //space key was released
+                    //make sure turbo sound is stopped
+                    //TurboSound->stop();
+                    if (TurboSound != NULL) {
+                        mRace->mSoundEngine->StopLoopingSound(TurboSound);
+                        TurboSound = NULL;
+                    }
 
-                //space key was released
-                //make sure turbo sound is stopped
-                TurboSound->stop();
+                    //if space key is released the booster sound is played as well
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_BOOSTER, false);
 
-                //if space key is released the booster sound is played as well
-                mRace->mSoundEngine->PlaySound(SRES_GAME_BOOSTER, false);
-
-                mBoosterActive = false;
+                    mBoosterActive = false;
+                    mBoosterRechargeCurrentlyLocked = true;
               }
 
               if (this->mPlayerStats->boosterVal > 0.0f)  {
@@ -2913,458 +1858,6 @@ bool Player::ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::
     return false;
 }
 
-bool Player::DoISeeACertainCollectable(Collectable* whichItem) {
-    std::vector<Collectable*>::iterator it;
-
-    for (it = this->mCpCollectablesSeenByPlayer.begin(); it != this->mCpCollectablesSeenByPlayer.end(); ++it) {
-        if ((*it) == whichItem)
-            return true;
-    }
-
-    return false;
-}
-
-void Player::CpPlayerCollectableSelectionLogic() {
-    //does this player want to pickup a collectable right now?
-    if (mCpTargetCollectableToPickUp != NULL) {
-        //verify that the player still sees the collectable in his view region, if not remove
-        //current command again, and return to normal path
-        if (!DoISeeACertainCollectable(mCpTargetCollectableToPickUp)) {
-            //I do not see it anymore
-            //change back to normal race path
-
-            LogMessage((char*)"The collectable I wanted to pickup is not visible anymore, continue race");
-
-            mCpTargetCollectableToPickUp = NULL;
-            mCpWayPointLinkClosestToCollectable = NULL;
-
-            //only remove current computer player command to pickup the collectable
-            //if we really wanted to pickup this collectable in the first place
-            //otherwise we get wrong player behavior afterwards
-            if ((currCommand->cmdType == CMD_PICKUP_COLLECTABLE) &&
-                    (currCommand->targetCollectible == mCpTargetCollectableToPickUp)) {
-
-                this->CurrentCommandFinished();
-            }
-
-            AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, mCpFollowThisWayPointLink);
-        }
-
-        //continue to pickup current targeted collectable item
-        return;
-    }
-
-    //player has no collectable target currently
-    //and no other special command as well
-    //do we see something we want to have?
-    if (currCommand != NULL) {
-        if ((currCommand->cmdType == CMD_NOCMD) || (currCommand->cmdType == CMD_FOLLOW_TARGETWAYPOINTLINK)) {
-            std::vector<Collectable*>::iterator it;
-            Collectable* wantPickup = NULL;
-
-            for (it = this->mCpCollectablesSeenByPlayer.begin(); (it != this->mCpCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
-                if ((*it)->GetIfVisible()) {
-                    switch ((*it)->GetCollectableType()) {
-                        case Entity::EntityType::ExtraShield: {
-                            break;
-                        }
-
-                        case Entity::EntityType::ShieldFull: {
-                            break;
-                        }
-
-                        case Entity::EntityType::DoubleShield: {
-                            break;
-                        }
-
-                        case Entity::EntityType::ExtraAmmo: {
-                            break;
-                        }
-
-                        case Entity::EntityType::AmmoFull: {
-                            break;
-                        }
-
-                        case Entity::EntityType::DoubleAmmo: {
-                            break;
-                        }
-
-                        case Entity::EntityType::ExtraFuel: {
-                            break;
-                        }
-
-                        case Entity::EntityType::FuelFull: {
-                            break;
-                        }
-
-                        case Entity::EntityType::DoubleFuel: {
-                            break;
-                        }
-
-                        case Entity::EntityType::MinigunUpgrade: {
-                            //we only want to pick this up if minigun is not
-                            //already at highest level
-                            if (this->mPlayerStats->currMinigunUpgradeLevel < 3) {
-                                wantPickup = (*it);
-                            }
-
-                            break;
-                        }
-
-                        case Entity::EntityType::MissileUpgrade: {
-                            //we only want to pick this up if missile is not
-                            //already at highest level
-                            if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
-                                wantPickup = (*it);
-                            }
-                            break;
-                        }
-
-                        case Entity::EntityType::BoosterUpgrade: {
-                            //we only want to pick this up if booster is not
-                            //already at highest level
-                            if (this->mPlayerStats->currBoosterUpgradeLevel < 3) {
-                                wantPickup = (*it);
-                            }
-                            break;
-                        }
-
-                        case Entity::EntityType::UnknownShieldItem: {
-                            break;
-                        }
-
-                        case Entity::EntityType::UnknownItem: {
-                            break;
-                        }
-
-                    }
-                }
-            }
-
-            if (wantPickup != NULL) {
-                LogMessage((char*)"AddCommand: Pick colletable up");
-
-                //we found something we want to have
-                AddCommand(CMD_PICKUP_COLLECTABLE, wantPickup);
-            }
-        }
-    }
-
-    //we do not want to pickup anything
-}
-
-irr::core::vector2df Player::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
-    threeDCoord = this->phobj->physicState.position;
-
-    irr::core::vector2df result(this->phobj->physicState.position.X, this->phobj->physicState.position.Z);
-
-    return result;
-}
-
-irr::core::vector2df Player::GetBezierCurvePlaningCoordMidPoint(irr::core::vector3df point1, irr::core::vector3df point2, irr::core::vector3df &threeDCoord) {
-     irr::core::vector3df midPoint = (point2 - point1) * irr::core::vector3df(0.5f, 0.5f, 0.5f) +  point1;
-     threeDCoord = midPoint;
-
-    irr::core::vector2df result(midPoint.X, midPoint.Z);
-
-    return result;
-}
-
-void Player::PickupCollectableDefineNextSegment(Collectable* whichCollectable) {
-    //create bezier curve
-    //start point is the current end point of the path
-    //control point is the start point of the link
-    //in the path with the specified number
-    //end point is the end point of the link in the
-    //path with the defined number
-    irr::core::vector3df link1Start3D;
-    irr::core::vector3df link1End3D;
-
-    //current player position, is start point for bezier curve 1
-    irr::core::vector2df bezierPnt1 = this->GetMyBezierCurvePlaningCoord(debugPathPnt1);
-
-    //collectable => is the control point for bezier curve 1
-    irr::core::vector2df bezierCntrlPnt1 = whichCollectable->GetMyBezierCurvePlaningCoord(debugPathPnt2);
-
-    //end point for next link is needed to calculate midpoint
-    //irr::core::vector2df link1End = nextLink->pEndEntity->GetMyBezierCurvePlaningCoord(link1End3D);
-
-    //take endpoint of link closest to collectable, is the bezier curve 1 end point
-    irr::core::vector2df bezierPnt2 =  mCpWayPointLinkClosestToCollectable->pEndEntity->GetMyBezierCurvePlaningCoord(debugPathPnt3);
-
-    std::vector<WayPointLinkInfoStruct*> newPoints;
-    newPoints.clear();
-
-    this->AdvanceDbgColor();
-
-    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
-                                                                    CP_BEZIER_RESOLUTION, currDbgColor);
-
-    std::vector<WayPointLinkInfoStruct*>::iterator it;
-
-    mCurrentPathSeg.clear();
-
-    //add new waypoints to the existing ones
-    for (it = newPoints.begin(); it != newPoints.end(); ++it) {
-        mCurrentPathSeg.push_back(*it);
-    }
-
-    mCurrentPathSegNrSegments = (irr::u32)(mCurrentPathSeg.size());
-
-    CPTrackMovement();
-
-    //this->mRace->mGame->StopTime();
-}
-
-void Player::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay,
-                                         bool updatePathReachedEndWayPointLink) {
-
-    bool freeWayFound = false;
-    irr::f32 currOffset = startOffsetWay;
-
-    std::vector<WayPointLinkInfoStruct*> newPoints;
-    newPoints.clear();
-
-    this->AdvanceDbgColor();
-
-    irr::f32 freeSpaceLeftOfPath;
-    irr::f32 freeSpaceRightOfPath;
-
-    if (updatePathReachedEndWayPointLink) {
-        //in which direction should we shift the new way to clear target?
-        //in which direction do we have more free space available?
-        freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShiftStart;
-        freeSpaceRightOfPath = nextLink->maxOffsetShiftStart - currOffset;
-
-        //limit amount of space available, so that we do not completely
-        //change the path if there is a wide open area in front of us
-        if (freeSpaceRightOfPath > 10.0f)
-            freeSpaceRightOfPath = 10.0f;
-
-        if (freeSpaceLeftOfPath > 10.0f)
-            freeSpaceLeftOfPath = 10.0f;
-
-        //do we need to change offset, because in front of us there is not enough
-        //space available?
-        if (freeSpaceLeftOfPath < 1.0f) {
-        //if (freeSpaceLeftOfPath < 2.0f) {
-            //currOffset = nextLink->minOffsetShift * 0.35f;
-            currOffset = currOffset + 0.35f * freeSpaceRightOfPath;
-        }
-
-        if (freeSpaceRightOfPath < 1.0f) {
-        //if (freeSpaceRightOfPath < 2.0f) {
-            //currOffset = nextLink->maxOffsetShift * 0.35f;
-             currOffset = currOffset - 0.35f * freeSpaceLeftOfPath;
-        }
-    }
-
-    //looking from the existing level design of things
-    //the safe range (without collision with terrains and getting stuck)
-    //seems to be arround -1.0 to 1.0f for currOffset
-    if (currOffset > 1.0f) {
-        currOffset = 1.0f;
-    }
-
-    if (currOffset < -1.0f) {
-        currOffset = -1.0f;
-    }
-
-    //freeSpaceLeftOfPath = currOffset - nextLink->minOffsetShiftStart;
-    //freeSpaceRightOfPath = nextLink->maxOffsetShiftStart - currOffset;
-
-    freeSpaceLeftOfPath = currOffset - this->mCpFollowedWayPointLinkCurrentSpaceLeftSide;
-    freeSpaceRightOfPath = nextLink->maxOffsetShiftStart - currOffset;
-
-    bool goleft = false;
-    bool leftFailed = false;
-    bool rightFailed = false;
-    bool lastCalc = false;
-
-    if (freeSpaceLeftOfPath > freeSpaceRightOfPath) {
-        //go left
-        goleft = true;
-    }
-
-    irr::s32 iterationCnt = 0;
-    irr::s32 maxIterations = 20;
-
-    //for bezier curve sanity check we also need the 2D waypoint link race direction
-    irr::core::vector2df raceDirection = this->mRace->mPath->WayPointLinkGetRaceDirection2D(nextLink);
-
-    while (!freeWayFound && !lastCalc && (iterationCnt < maxIterations)) {
-            iterationCnt++;
-
-            //create bezier curve
-            //start point is the current end point of the path
-            //control point is the start point of the link
-            //in the path with the specified number
-            //end point is the end point of the link in the
-            //path with the defined number
-            irr::core::vector3df link1Start3D;
-            irr::core::vector3df link1End3D;
-
-            if ((rightFailed && leftFailed) || (iterationCnt >= maxIterations)) {
-                lastCalc = true;
-            }
-
-            //current player position, is start point for bezier curve 1
-            irr::core::vector2df bezierPnt1 = this->GetMyBezierCurvePlaningCoord(debugPathPnt1);
-
-            //next link start point => is the control point for bezier curve 1
-            irr::core::vector2df bezierCntrlPnt1 = nextLink->pStartEntity->GetMyBezierCurvePlaningCoord(link1Start3D);
-            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(bezierCntrlPnt1, link1Start3D, nextLink, currOffset);
-
-            debugPathPnt2 = link1Start3D;
-
-            //end point for next link is needed to calculate midpoint
-            irr::core::vector2df link1End = nextLink->pEndEntity->GetMyBezierCurvePlaningCoord(link1End3D);
-            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(link1End, link1End3D, nextLink, currOffset);
-
-            //calculate midpoint for next link, is the bezier curve 1 end point
-            irr::core::vector2df bezierPnt2 = this->GetBezierCurvePlaningCoordMidPoint(link1Start3D, link1End3D, debugPathPnt3);
-
-            if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierCntrlPnt1, bezierPnt2, raceDirection)) {
-                 newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, bezierPnt2, bezierCntrlPnt1,
-                                                                                 CP_BEZIER_RESOLUTION, currDbgColor);
-             } else {
-                //default does not work, could be that next link is the link at which we are currently located
-                //try different order
-                if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierPnt2, link1End, raceDirection)) {
-                    //other order works
-                    newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, link1End, bezierPnt2,
-                                                                                    CP_BEZIER_RESOLUTION, currDbgColor);
-
-                    debugPathPnt2 = debugPathPnt3;
-                    debugPathPnt3 = link1End3D;
-                } else {
-                    //also does not work
-                    //try different order
-                    //here we need the midpoint of the next waypoint link in front of us
-                    if (nextLink->pntrPathNextLink != NULL) {
-                            WayPointLinkInfoStruct* pntrLinkAfterwards = nextLink->pntrPathNextLink;
-                            irr::core::vector3df linkAfterwardsStart3D;
-                            irr::core::vector2df bezierPntNextLinkStart =
-                                    pntrLinkAfterwards->pStartEntity->GetMyBezierCurvePlaningCoord(linkAfterwardsStart3D);
-                            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(bezierPntNextLinkStart, linkAfterwardsStart3D, pntrLinkAfterwards, currOffset);
-
-                            debugPathPnt2 = linkAfterwardsStart3D;
-
-                            irr::core::vector3df linkAfterwardsEnd3D;
-
-                            //end point for link afterwards is needed to calculate midpoint
-                            irr::core::vector2df bezierPntNextLinkEnd = pntrLinkAfterwards->pEndEntity->GetMyBezierCurvePlaningCoord(linkAfterwardsEnd3D);
-                            this->mRace->mPath->OffsetWayPointLinkCoordByOffset(bezierPntNextLinkEnd, linkAfterwardsEnd3D, pntrLinkAfterwards, currOffset);
-
-                            //calculate midpoint for link afterwards, is the bezier curve 1 end point
-                            irr::core::vector2df curveEndPoint =
-                                    this->GetBezierCurvePlaningCoordMidPoint(linkAfterwardsStart3D, linkAfterwardsEnd3D, debugPathPnt3);
-
-                            if (this->mRace->mPath->SaniCheckBezierInputPoints(bezierPnt1,bezierPntNextLinkStart, curveEndPoint, raceDirection)) {
-                                //other order works
-                                newPoints = mRace->testBezier->QuadBezierCurveGetSegments( bezierPnt1, curveEndPoint, bezierPntNextLinkStart,
-                                                                                                CP_BEZIER_RESOLUTION, currDbgColor);
-                               // this->mRace->mGame->StopTime();
-                            } else {
-                                //also this does not work
-                                //just give up
-                            }
-                    }
-                }
-            }
-
-            //now check if the new "way" is free from other players
-
-                //only check possible collision with players we do actually see in front of us
-                //otherwise we would report an possible collision with our path, when the other
-                //player comes close to our current path behind us
-                //and we do not want to detect this
-                std::vector<Player*> playerISee;
-                std::vector<RayHitInfoStruct>::iterator it;
-
-                playerISee.clear();
-                for (it = this->PlayerSeenList.begin(); it != this->PlayerSeenList.end(); ++it) {
-                    if ((*it).HitType == RAY_HIT_PLAYER) {
-                        playerISee.push_back((*it).HitPlayerPntr);
-                    }
-                }
-                if (playerISee.size() > 0) {
-
-                        if (!this->mRace->mPath->DoesPathComeTooCloseToAnyOtherPlayer(newPoints, playerISee, dbgPlayerInMyWay)) {
-                                freeWayFound = true;
-                        } else {
-                                //no free way found
-                                updatePathCnter++;
-
-                                if (goleft) {
-                                    currOffset -= 0.75f;
-                                    //if (currOffset < (nextLink->minOffsetShiftStart + 1.0f)) {
-                                    if (currOffset < (this->mCpFollowedWayPointLinkCurrentSpaceLeftSide + 1.0f)) {
-                                        leftFailed = true;
-                                        goleft = false;
-                                    }
-
-                                } else {
-                                    //go right
-                                    currOffset += 0.75f;
-
-                                  //  if (currOffset > (nextLink->maxOffsetShiftStart - 1.0f)) {
-                                     if (currOffset > (this->mCpFollowedWayPointLinkCurrentSpaceRightSide - 1.0f)) {
-                                        rightFailed = true;
-                                        goleft = true;
-                                    }
-                                }
-                        }
-            } else freeWayFound = true;
-
-
-            if ((leftFailed && rightFailed) || (iterationCnt >= (maxIterations - 1))) {
-               // currOffset = 0.0f;
-               // this->mRace->mGame->StopTime();
-            }
-    }
-
-    std::vector<WayPointLinkInfoStruct*>::iterator it;
-
-    mCurrentPathSeg.clear();
-    irr::f32 angleDotProduct;
-    irr::f32 angle;
-    irr::f32 angleRad;
-
-    //add new waypoints to the existing ones
-    for (it = newPoints.begin(); it != newPoints.end(); ++it) {
-        //final additional check:
-        //sort all segments out that are looking in the opposite direction
-        //as the player craft is currently oriented
-        //to make sure we do not reverse direction accidently suddently
-        angleDotProduct = (*it)->LinkDirectionVec.dotProduct(craftForwardDirVec);
-
-        angleRad = acosf(angleDotProduct);
-        angle = (angleRad / irr::core::PI) * 180.0f;
-
-       if (craftSidewaysToRightVec.dotProduct((*it)->LinkDirectionVec) > 0.0f) {
-           angle = -angle;
-       }
-
-        //if not in opposite direction add new segment path
-        if (fabs(angle) < 90.0f) {
-            mCurrentPathSeg.push_back(*it);
-            mPathHistoryVec.push_back(*it);
-        } else {
-            mCurrentPathSegSortedOutReverse.push_back(*it);
-        }
-    }
-
-    //update current player offset path value
-    mCpCurrPathOffset = currOffset;
-
-    mCurrentPathSegNrSegments = (irr::u32)(mCurrentPathSeg.size());
-
-    CPTrackMovement();
-
-    //this->mRace->mGame->StopTime();
-}
-
 /*irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {
     if (currentWayPointLine->pntrPathNextLink != NULL) {
         //we have the next path link as well, we should be able to find out in which direction
@@ -3404,250 +1897,12 @@ void Player::RemovePlayerPermanentGreenBigText() {
     }
 }
 
-void Player::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand) {
-    //if we run this method for human player
-    //just exit
+irr::core::vector2df Player::GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord) {
+    threeDCoord = this->phobj->physicState.position;
 
-    if (mHumanPlayer)
-        return;
+    irr::core::vector2df result(this->phobj->physicState.position.X, this->phobj->physicState.position.Z);
 
-    //is there really a target entity and waypoint link information?
-     if ((currCommand->targetWaypointLink != NULL) && (currCommand->targetEntity != NULL)) {
-        //yes, there is
-
-        cPCurrentFollowSeg = currCommand->targetWaypointLink;
-
-        irr::core::vector3df entPos = currCommand->targetEntity->getCenter();
-
-        //have we reached the target yet?
-        irr::f32 distToTarget = (this->phobj->physicState.position -
-                                 entPos).getLength();
-
-        if (distToTarget < 2.0f) {
-            //we reached the target
-            //this->mHUD->ShowBannerText((char*)"TARGET REACHED", 4.0f);
-
-            //mark current command as finished, pull the next one
-            CurrentCommandFinished();
-
-            cPCurrentFollowSeg = NULL;
-
-            return;
-        }
-    }
-}
-
-CPCOMMANDENTRY* Player::CreateNoCommand() {
-    CPCOMMANDENTRY* newcmd = new CPCOMMANDENTRY();
-    newcmd->cmdType = CMD_NOCMD;
-    newcmd->targetEntity = NULL;
-    newcmd->targetPosition = NULL;
-    newcmd->targetWaypointLink = NULL;
-
-    return newcmd;
-}
-
-CPCOMMANDENTRY* Player::PullNextCommandFromCmdList() {
-    if (this->cmdList->size() <= 0) {
-        //there is no other command in the queue
-
-        //create a new command
-        CpDefineNextAction();
-
-        //if still no command available, create no command "cmd"
-        if (this->cmdList->size() <= 0) {
-            //create an empty command
-            return CreateNoCommand();
-        }
-    }
-
-    CPCOMMANDENTRY* cmd = (CPCOMMANDENTRY*)(this->cmdList->front());
-
-    return cmd;
-}
-
-//Function to free all currently pending
-//commands, and command list
-void Player::CleanUpCommandList() {
-    std::list<CPCOMMANDENTRY*>::iterator it;
-    CPCOMMANDENTRY* pntrCmd;
-
-    if (this->cmdList->size() > 0) {
-       for (it = this->cmdList->begin(); it != cmdList->end(); ) {
-           pntrCmd = (*it);
-
-           it = this->cmdList->erase(it);
-
-           //free command struct itself
-           //as well
-           if (pntrCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
-               //we have to do maybe more cleanup
-               if (pntrCmd->targetWaypointLink != NULL) {
-                   //if temporary waypoint link (created for a specific purpose,
-                   //not part of level file), clean up again
-                   if (pntrCmd->WayPointLinkTemporary) {
-                       //clean up waypoint link structure again
-                       //we need to clean up the LineStruct inside
-                       LineStruct* pntrLineStruct = pntrCmd->targetWaypointLink->pLineStruct;
-
-                       delete[] pntrLineStruct->name;
-                       delete pntrLineStruct;
-
-                       LineStruct* pntrLineExtStruct = pntrCmd->targetWaypointLink->pLineStructExtended;
-
-                       delete[] pntrLineExtStruct->name;
-                       delete pntrLineExtStruct;
-
-                       delete pntrCmd->targetWaypointLink;
-                   }
-               }
-           }
-
-           delete pntrCmd;
-       }
-    }
-
-    //free cmdList object
-    delete cmdList;
-    cmdList = NULL;
-}
-
-void Player::CurrentCommandFinished() {
-    CPCOMMANDENTRY* oldCmd = currCommand;
-    this->cmdList->pop_front();
-
-    //if we set currCommand to NULL then the program
-    //will pull the next available command in
-    //RunComputerPlayerLogic
-    currCommand = NULL;
-
-    //19.04.2025: Note: I had a very rare segmentation fault today
-    //in the next line, because it seeems currCommand was initially NULL
-    //at the top, which caused an access to a NULL in the line below
-    //if this occurs again in future, should I adding an exit here if
-    //oldCmd == NULL?
-
-    if (oldCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
-        //we have to do maybe more cleanup
-        if (oldCmd->targetWaypointLink != NULL) {
-            //if temporary waypoint link (created for a specific purpose,
-            //not part of level file), clean up again
-            if (oldCmd->WayPointLinkTemporary) {
-                //clean up waypoint link structure again
-                //we need to clean up the LineStruct inside
-                LineStruct* pntrLineStruct = oldCmd->targetWaypointLink->pLineStruct;
-
-                delete[] pntrLineStruct->name;
-                delete pntrLineStruct;
-
-                LineStruct* pntrLineExtStruct = oldCmd->targetWaypointLink->pLineStructExtended;
-
-                delete[] pntrLineExtStruct->name;
-                delete pntrLineExtStruct;
-
-                delete oldCmd->targetWaypointLink;
-            }
-        }
-    }
-
-    //delete old command struct
-    delete oldCmd;
-}
-
-void Player::RunComputerPlayerLogic(irr::f32 deltaTime) {
-    this->CpCurrMissionState = CP_MISSION_FINISHLAPS;
-
-    if (currCommand == NULL) {
-        currCommand = PullNextCommandFromCmdList();
-    }
-
-    switch (currCommand->cmdType) {
-        case CMD_NOCMD: {
-           /* if (mHUD != NULL) {
-              this->mHUD->ShowBannerText((char*)"NO CMD", 4.0f);
-            }*/
-            break;
-        }
-
-        case CMD_FLYTO_TARGETENTITY: {
-                FlyTowardsEntityRunComputerPlayerLogic(currCommand);
-            break;
-        }
-
-        case CMD_FLYTO_TARGETPOSITION: {
-            break;
-        }
-
-        case CMD_CHARGE_FUEL:
-        case CMD_CHARGE_AMMO:
-        case CMD_CHARGE_SHIELD: {
-            CpHandleCharging();
-            break;
-        }
-
-        case CMD_PICKUP_COLLECTABLE: {
-            this->mCpTargetCollectableToPickUp = currCommand->targetCollectible;
-
-            if (mCpWayPointLinkClosestToCollectable == NULL) {
-                //figure out which target link is closest to this collectable
-                std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> wayPointLinkCloseToCollectable =
-                        this->mRace->mPath->FindClosestWayPointLinkToCollectible(mCpTargetCollectableToPickUp);
-
-                if (wayPointLinkCloseToCollectable.first != NULL) {
-                   mCpWayPointLinkClosestToCollectable = wayPointLinkCloseToCollectable.first;
-                }
-            }
-
-            break;
-        }
-
-        case CMD_FOLLOW_TARGETWAYPOINTLINK: {
-            mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
-            //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
-            FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
-            /*if (mHUD != NULL) {
-              this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
-            }*/
-            computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-
-            CurrentCommandFinished();
-            break;
-        }
-
-    }
-
-    //If true enables computer player stuck detection
-    //turn off for testing computer player movement
-    //performance and stabilitiy testing to keep computer
-    //players stuck; Set true for final release to handle
-    //random cases where computer players really get stuck, so that
-    //races can for sure finish
-    if (this->mRace->CpEnableStuckDetection) {
-        CpStuckDetection(deltaTime);
-    }
-
-    CpPlayerCollectableSelectionLogic();
-
-    //check for obstacles only every 100 ms
-    mCpAbsCheckObstacleTimerCounter += deltaTime;
-
-    if (mCpAbsCheckObstacleTimerCounter >= 0.1f) {
-        mCpAbsCheckObstacleTimerCounter -= 0.1f;
-
-        CpCheckCurrentPathForObstacles();
-    }
-
-    //if computer players attack, run the routine below
-    if (this->mRace->mGame->computerPlayersAttack) {
-        CpPlayerHandleAttack();
-    }
-
-    //for all computer players in this race we need to call the
-    //CPForceController which has the job to control the crafts movement
-    //so that the computer is following the currenty definded target path
-    CPForceController(deltaTime);
-
-    return;
+    return result;
 }
 
 void Player::HideCraft() {
@@ -3721,190 +1976,6 @@ void Player::ChangeViewMode() {
         HideCraft();
 
         mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
-    }
-}
-
-void Player::CpHandleCharging() {
-   //what charging do we need to do?
-   switch(currCommand->cmdType) {
-        case CMD_CHARGE_AMMO: {
-          if (mCurrChargingAmmo) {
-              if (this->mPlayerStats->ammoVal >= (0.95 * this->mPlayerStats->ammoMax)) {
-                  //charging finished
-                  LogMessage((char*)"Ammo charging finished");
-
-                  mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
-                  CurrentCommandFinished();
-
-                  //old lines before WorkaroundResetCurrentPath
-                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-                  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-              } else {
-                  //lets stop computer player until
-                  //charging is finished
-                  computerPlayerTargetSpeed = 0.0f;
-              }
-
-              break;
-          }
-       }
-
-       case CMD_CHARGE_SHIELD: {
-         if (mCurrChargingShield) {
-             if (this->mPlayerStats->shieldVal >= (0.95 * this->mPlayerStats->shieldMax)) {
-                 //charging finished
-                 LogMessage((char*)"Shield charging finished");
-
-                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
-                 CurrentCommandFinished();
-
-                 //old lines before WorkaroundResetCurrentPath
-                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-             } else {
-                 //lets stop computer player until
-                 //charging is finished
-                 computerPlayerTargetSpeed = 0.0f;
-             }
-
-             break;
-         }
-      }
-
-       case CMD_CHARGE_FUEL: {
-         if (mCurrChargingFuel) {
-             if (this->mPlayerStats->gasolineVal >= (0.95 * this->mPlayerStats->gasolineMax)) {
-                 //charging finished
-                 LogMessage((char*)"Fuel charging finished");
-
-                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
-
-                 CurrentCommandFinished();
-
-               //  this->mRace->mGame->StopTime();
-
-                 //old lines before WorkaroundResetCurrentPath
-                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-             } else {
-                 //lets stop computer player until
-                 //charging is finished
-                 computerPlayerTargetSpeed = 0.0f;
-             }
-
-             break;
-         }
-        }
-   }
-}
-
-void Player::CpAddCommandTowardsNextCheckpoint() {
-    //which waypoint is currently close to the player
-    /*WayPointLinkInfoStruct* closest = this->mRace->PlayerFindClosestWaypointLink(this);
-
-    std::vector<WayPointLinkInfoStruct*> foundLinks;
-
-    foundLinks = this->mRace->FindWaypointLinksForWayPoint(cPCurrentFollowSeg->pStartEntity);
-    std::vector<WayPointLinkInfoStruct*>::iterator it;
-
-    if (foundLinks.size() > 0) {
-        for (it = foundLinks.begin(); it < foundLinks.end(); ++it) {
-
-        if (cPCurrentFollowSeg->pEndEntity == (*it)->pStartEntity) {
-            AddCommand(CMD_FLYTO_TARGETENTITY, (*it)->pStartEntity);
-            break;
-        }
-      }
-    }*/
-
-    //what waypoint entities do I see currently?
-    std::vector<EntityItem*> wayPointAroundMeVec =
-            this->mRace->mPath->FindAllWayPointsInArea(this->phobj->physicState.position, 10.0f);
-
-    //if there is no waypoint, I do not know what to do, exit
-    if (wayPointAroundMeVec.size() <= 0) {
-        return;
-    }
-
-    std::vector<EntityItem*>::iterator it;
-    std::vector<WayPointLinkInfoStruct*> structPntrVec;
-    std::vector<WayPointLinkInfoStruct*> overallWaypointLinkList;
-
-    std::vector<WayPointLinkInfoStruct*>::iterator it2;
-
-    vector< pair <irr::f32, WayPointLinkInfoStruct*> > availWayPointLinksWithDistanceVecPair;
-    availWayPointLinksWithDistanceVecPair.clear();
-    overallWaypointLinkList.clear();
-
-    for (it = wayPointAroundMeVec.begin(); it != wayPointAroundMeVec.end(); ++it) {
-        structPntrVec = mRace->mPath->FindWaypointLinksForWayPoint((*it), true, true, NULL);
-
-        for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
-            overallWaypointLinkList.push_back(*it2);
-        }
-    }
-
-    //irr::core::vector3df dirVecStart;
-    //irr::core::vector3df dirVecEnd;
-
-    //irr::f32 dotProdStart;
-    //irr::f32 dotProdEnd;
-
-    //now we have a vector all close waypoint links available
-    for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
-
-      /*  dirVecStart = (this->phobj->physicState.position - (*it2)->pStartEntity->get_Pos()).normalize();
-        dirVecEnd = (this->phobj->physicState.position - (*it2)->pEndEntity->get_Pos()).normalize();
-
-        dotProdStart = this->craftForwardDirVec.dotProduct(dirVecStart);
-        dotProdEnd = this->craftForwardDirVec.dotProduct(dirVecEnd);
-
-        if ((dotProdStart > 0.0f) && (dotProdEnd > 0.0f)) {*/
-            availWayPointLinksWithDistanceVecPair.push_back(
-                    //for each option calculate the distance until we hit the next checkpoint
-                    make_pair( this->mRace->mPath->CalculateDistanceFromWaypointLinkToNextCheckpoint(*it2), (*it2)));
-        //}
-    }
-
-    //sort vector pairs in descending value for remaining distance to next checkpoint
-   std::sort(availWayPointLinksWithDistanceVecPair.rbegin(), availWayPointLinksWithDistanceVecPair.rend());
-
-   //start with the last element in sorted vector (which is the waypoint link with the
-   //least remaining distance to next checkpoint
-   auto it4 = availWayPointLinksWithDistanceVecPair.rbegin();
-
-   WayPointLinkInfoStruct* currLink;
-
-   //take the waypoint link with the shortest distance
-   currLink = (*it4).second;
-
-   //are we closer to the start or end of this waypoint link?
-   irr::f32 distStart = (this->phobj->physicState.position - currLink->pStartEntity->getCenter()).getLength();
-   irr::f32 distEnd = (this->phobj->physicState.position - currLink->pEndEntity->getCenter()).getLength();
-
-   if (distStart < distEnd) {
-            //we are closer to the start point of this waypoint link
-            //next command is to go to the end of this waypoint link
-            AddCommand(CMD_FLYTO_TARGETENTITY, currLink->pEndEntity);
-            return;
-        } else {
-            //we are closer to the end point of this waypoint link
-            //next command is to go to the start to the following waypoint link
-            AddCommand(CMD_FLYTO_TARGETENTITY, currLink->pntrPathNextLink->pStartEntity);
-            return;
-          }
-}
-
-void Player::CpDefineNextAction() {
-    //depending on the current computer player logic
-    //mission state, define the next players action
-    switch (CpCurrMissionState) {
-        case CP_MISSION_FINISHLAPS: {
-            //This Mission means we are happy with fuel, shield, etc..
-            //we simply want to finish laps as fast as possible
-            //CpAddCommandTowardsNextCheckpoint();
-            break;
-        }
     }
 }
 
@@ -4678,8 +2749,7 @@ void Player::WasDestroyed() {
     this->mCurrentViewMode = CAMERA_EXTERNALVIEW;
 
     if (!mHumanPlayer) {
-        computerPlayerCurrentSpeed = 0.0f;
-        computerPlayerTargetSpeed = 0.0f;
+       mCpuPlayer->WasDestroyed();
     }
 
     //increase my death count
@@ -4748,12 +2818,32 @@ void Player::SetupForStart() {
     this->SetNewState(STATE_PLAYER_BEFORESTART);
 }
 
+void Player::SetupComputerPlayerForStart(irr::core::vector3df startPos) {
+    //make sure we only execute this command for non human
+    //players!
+    if (!mHumanPlayer) {
+        mCpuPlayer->SetupForRaceStart(startPos);
+    }
+}
+
 void Player::SetupToSkipStart() {
     this->SetNewState(STATE_PLAYER_RACING);
+
+    //if this is a computer player, set its first target
+    //speed
+    if (!mHumanPlayer) {
+        mCpuPlayer->StartSignalShowsGreen();
+    }
 }
 
 void Player::SetupForFirstWayToFinishLine() {
     this->SetNewState(STATE_PLAYER_ONFIRSTWAYTOFINISHLINE);
+
+    //if this is a computer player, set its first target
+    //speed
+    if (!mHumanPlayer) {
+        mCpuPlayer->StartSignalShowsGreen();
+    }
 }
 
 void Player::SetMyHUD(HUD* pntrHUD) {
@@ -5602,50 +3692,6 @@ void Player::CleanUpBrokenGlas() {
     }
 }
 
-void Player::CpPlayerHandleAttack() {
-    //if I do not see any other player, simply return
-    if (this->PlayerSeenList.size() < 1)
-        return;
-
-    //if we have no target player, just return
-    if (mTargetPlayer == NULL)
-        return;
-
-    //if the target player has already finished the race also
-    //do not shot at him
-    if (mTargetPlayer->mPlayerStats->mHasFinishedRace)
-        return;
-
-    //if the first player has not crossed the finished line
-    //the first time we also do not want to allow shooting
-    if (!mRace->RaceAllowsPlayersToAttack())
-        return;
-
-    //if we have a (red) perfect lock on another player, we have enough ammo
-    //and the target is far enough away fire missile
-    if (this->mPlayerStats->ammoVal > 0.0f) {
-        if (this->mTargetMissleLock) {
-            irr::core::vector3df distVec = this->mTargetPlayer->phobj->physicState.position -
-                    this->phobj->physicState.position;
-
-            if (distVec.getLength() > 15.0f) {
-                this->mMissileLauncher->Trigger();
-
-                //fire one missile is enough
-                //just exit
-                return;
-            }
-        }
-    }
-
-    //machine gun currently cool enough
-    //if so, do we have a target right now?
-    if (!this->mMGun->CoolDownNeeded()) {
-            //yes, fire
-            this->mMGun->Trigger();
-    }
-}
-
 void Player::HandleFuel(irr::f32 deltaTime) {
     //remove some gasoline if we are moving fast enough
     //TODO: check with actual game how gasoline burning works exactly
@@ -5661,13 +3707,15 @@ void Player::HandleFuel(irr::f32 deltaTime) {
         mPlayerStats->gasolineVal -= 0.012f * speedFactor;
 
         if (mPlayerStats->gasolineVal <= 0.0f) {
+            mPlayerStats->gasolineVal = 0.0f;
             if (!mEmptyFuelWarningAlreadyShown) {
                 if (mHUD != NULL) {
                     this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
                 }
                 mEmptyFuelWarningAlreadyShown = true;
 
-                if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) {
+                if ((this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) ||
+                (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
                     //change player state to empty fuel state
                     SetNewState(STATE_PLAYER_EMPTYFUEL);
 

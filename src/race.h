@@ -246,14 +246,6 @@ public:
     //irr::core::vector3df dbgMiniMapPnt3;
     //irr::core::vector3df dbgMiniMapPnt4;
 
-    //If true enables computer player stuck detection
-    //turn off for testing computer player movement
-    //performance and stabilitiy testing to keep computer
-    //players stuck; Set true for final release to handle
-    //random cases where computer players really get stuck, so that
-    //races can for sure finish
-    bool CpEnableStuckDetection = true;
-
     //function for debugging
     void DebugSelectPlayer(int whichPlayerNr);
 

@@ -1023,7 +1023,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //now analyze which entities (more precise collectables) the
     //computer player is able to see in the view field
-    whichPlayer->mCpCollectablesSeenByPlayer.clear();
+    whichPlayer->mCollectablesSeenByPlayer.clear();
 
     if (!whichPlayer->mHumanPlayer) {
         std::vector<Collectable*> CollToVerify;
@@ -1071,7 +1071,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
                         cellPos.Y = (int)((*itCollect)->Position.Z);
 
                         if (currCell == cellPos) {
-                           whichPlayer->mCpCollectablesSeenByPlayer.push_back(*itCollect);
+                           whichPlayer->mCollectablesSeenByPlayer.push_back(*itCollect);
                     }
                }
             }
