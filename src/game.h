@@ -126,15 +126,15 @@ private:
     irr::core::vector2di raceLoadingScrDrawPos;
     irr::core::dimension2d<irr::u32> raceLoadingScrSize;
 
-    //if true skips main menue, and jumps directly to
-    //defined race for game mechanics debugging
-    bool mDebugRace = false;
-    bool mDebugDemoMode = false;
-
     int nextRaceLevelNr = 1;
 
 public:
     irr::video::ITexture* backgnd;
+
+    //if true skips main menue, and jumps directly to
+    //defined race for game mechanics debugging
+    bool mDebugRace = false;
+    bool mDebugDemoMode = false;
 
     bool enableLightning = false;
     bool enableShadows = false;

@@ -262,15 +262,21 @@ bool SoundEngine::GetIsSoundActive() {
 
 //Localized sound source
 sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, irr::core::vector3df sourceLocation, bool looping) {
-    return PlaySound(soundResId, true, sourceLocation, looping);
+    return PlaySound(soundResId, true, sourceLocation, 1.0f, looping);
 }
 
-//non Localized sound source
+//non Localized sound source with default pitch
 sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool looping) {
-    return PlaySound(soundResId, false, *mNonLocalizedSoundPos, looping);
+    return PlaySound(soundResId, false, *mNonLocalizedSoundPos, 1.0f, looping);
 }
 
-sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, bool looping) {
+//non Localized sound source with pitch control
+sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, irr::f32 playPitch, bool looping) {
+    return PlaySound(soundResId, false, *mNonLocalizedSoundPos, playPitch, looping);
+}
+
+sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation,
+                     irr::f32 playPitch, bool looping) {
     //if we should not play sounds exit
     if (!mPlaySound)
         return NULL;
@@ -285,6 +291,7 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
                 //we found a free sound source to play buffer
                 sndPntr->setBuffer(*pntr->pntrSoundBuf);
                 sndPntr->setLoop(looping);
+                sndPntr->setPitch(playPitch);
                 sndPntr->setPosition(sourceLocation.X, sourceLocation.Y, sourceLocation.Z);
 
                 //if this is a non localized sound source also set sound attenuation
@@ -308,7 +315,7 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
     return NULL;
 }
 
-void SoundEngine::StopLoopingSound(sf::Sound *pntrSound) {
+void SoundEngine::StopLoopingSound(sf::Sound* pntrSound) {
     if (pntrSound != NULL) {
         if (pntrSound->getStatus() == pntrSound->Playing) {
             pntrSound->stop();
