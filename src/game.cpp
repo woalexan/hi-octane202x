@@ -169,7 +169,7 @@ void Game::SetupDebugGame() {
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     //add computer players?
-    mGameAssets->SetComputerPlayersEnabled(true);
+    mGameAssets->SetComputerPlayersEnabled(false);
 
     mGameState = DEF_GAMESTATE_INITRACE;
 }

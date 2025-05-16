@@ -1701,7 +1701,36 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
                 //keep a pointer to the sound source for the Turbo,
                 //because maybe we need to interrupt the turbo sound if space key is released
                 //by the player
-                TurboSound = mRace->mSoundEngine->PlaySound(SRES_GAME_TURBO, true);
+
+                //the sound file for the developing turbo is not long enough
+                //for the overall duration at lower booster upgrade levels
+                //I am not sure what exactly the game does for solution, but what I
+                //decided to do here right now, is to change the sound pitch (and
+                //therefore the playback speed) of the turbo sound, so that the sound
+                //is hopefully exactly over when the booster bar is fully charged
+                //of course as a negative sideeffect this also changes the sound frequencies
+                //of the booster playback sound
+                irr::f32 soundPitch = 0.73f; //default pitch no booster upgrade
+
+                switch (mPlayerStats->currBoosterUpgradeLevel) {
+                   case 1: {
+                        //1st upgrade level
+                        soundPitch = 0.8f;
+                        break;
+                   }
+                   case 2: {
+                        //2nd upgrade level
+                        soundPitch = 0.88f;
+                        break;
+                   }
+                   case 3: {
+                        //3rd upgrade level
+                        soundPitch = 1.0f;
+                        break;
+                   }
+               }
+
+                TurboSound = mRace->mSoundEngine->PlaySound(SRES_GAME_TURBO, soundPitch, false);
 
                 this->mPlayerStats->boosterVal = 0;
            }
@@ -1734,7 +1763,7 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
                //make sure turbo sound is stopped
                //TurboSound->stop();
                if (TurboSound != NULL) {
-                   mRace->mSoundEngine->StopLoopingSound(TurboSound);
+                   TurboSound->stop();
                    TurboSound = NULL;
                }
 
@@ -1747,7 +1776,7 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
                     //make sure turbo sound is stopped
                     //TurboSound->stop();
                     if (TurboSound != NULL) {
-                        mRace->mSoundEngine->StopLoopingSound(TurboSound);
+                        TurboSound->stop();
                         TurboSound = NULL;
                     }
 
@@ -2891,13 +2920,24 @@ void Player::CheckForTriggerCraftRegion() {
 
     mCurrentCraftTriggerRegion = NULL;
 
+    //16.05.2025: There is a (hidden) shortcut in level 2 that is opened by "driving" into the
+    //level wall. Problem is if we use the ships (origin middle) position to calculate the cell for craft trigger (which I did at the beginning),
+    //this point does not reach into the trigger area of the shortcut (because the heightmap collision detection and prevention
+    //prevents this middle coordinate to penetrate deep enough into the wall), and like this the way only opens when trying a lot of times,
+    //and with a lot of luck. It works but not acceptable.
+    //To make it work much better I decided to instead use a craft coordinate much further in the front of the craft, so that it can
+    //penetrate deep enough, and cause the craft trigger to fire much much easier. I decided to reuse a height map collision "sensor"
+    //coordinate for this trigger as well.
+    int mTrigCurrPosCellX = -(int)(this->mHMapCollPntData.front->wCoordPnt2.X / mRace->mLevelTerrain->segmentSize);
+    int mTrigCurrPosCellY = (int)(this->mHMapCollPntData.front->wCoordPnt2.Z / mRace->mLevelTerrain->segmentSize);
+
     //check for each trigger region in level
     for (itRegion = this->mRace->mTriggerRegionVec.begin(); itRegion != this->mRace->mTriggerRegionVec.end(); ++itRegion) {
         //only check for regions which are a playercraft trigger region
         if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
             //is the player inside this area?
-            if (this->mRace->mLevelTerrain->CheckPosInsideRegion(mCurrPosCellX,
-                    mCurrPosCellY, (*itRegion))) {
+            if (this->mRace->mLevelTerrain->CheckPosInsideRegion(mTrigCurrPosCellX,
+                    mTrigCurrPosCellY, (*itRegion))) {
 
                 //assume craft can only be in one region at a certain time
                 //craft trigger regions should not overlap!

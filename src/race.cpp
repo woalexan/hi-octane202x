@@ -3294,7 +3294,9 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
                currPlayerFollow->HideCraft();
            }
 
-            currPlayerFollow->DebugSelectionBox(true);
+           //only show player debugging boxes when we actually debug
+           //the game
+            currPlayerFollow->DebugSelectionBox(mGame->mDebugRace || mGame->mDebugDemoMode);
       // }
 
        Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);   

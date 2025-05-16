@@ -21,7 +21,8 @@ Missile::Missile(MissileLauncher* mParentLauncher, irr::core::vector3df launchLo
     mSceneNodeMissile->setMaterialFlag(irr::video::EMF_LIGHTING, false);
     mSceneNodeMissile->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
-    mSceneNodeMissile->setDebugDataVisible(irr::scene::EDS_BBOX);
+    //mSceneNodeMissile->setDebugDataVisible(irr::scene::EDS_BBOX);
+    mSceneNodeMissile->setDebugDataVisible(irr::scene::EDS_OFF);
 
     //I want a random number between 0.8f and 1.2f
     //int rNum = rand();

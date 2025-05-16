@@ -120,7 +120,11 @@ public:
   //play sound without localized sound source
   sf::Sound* PlaySound(uint8_t soundResId, bool looping = false);
 
-  void StopLoopingSound(sf::Sound *pntrSound);
+  //non Localized sound source with pitch control, we need this to control
+  //speed of booster sound playback
+  sf::Sound* PlaySound(uint8_t soundResId, irr::f32 playPitch, bool looping = false);
+
+  void StopLoopingSound(sf::Sound* pntrSound);
   bool IsAnySoundPlaying();
   void StopAllSounds();
 
@@ -159,7 +163,7 @@ private:
   bool mSoundResourcesLoadOk = false;
   bool mPlaySound = true;
 
-  sf::Sound* PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, bool looping = false);
+  sf::Sound* PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, irr::f32 playPitch, bool looping = false);
 
   bool LoadSoundResource(char* fileName, uint8_t soundResId);
   void DeleteSoundResource(uint8_t soundResId);
