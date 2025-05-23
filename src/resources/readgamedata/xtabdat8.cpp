@@ -58,7 +58,11 @@ int ExtractImages (char* datfname, char* tabfname, unsigned char* palette, char*
 
 int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int verbose)
 {
-    if (verbose) printf("Reading TAB file ...");
+    char hlpstr[500];
+    std::string msg("");
+
+    if (verbose) 
+        logging::Info("Reading TAB file ...");
     //Opening TAB file
     TABFILE tabf;
     {
@@ -67,16 +71,28 @@ int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int
           switch (retcode)
           {
           case 1:
-             if (verbose) printf("\nError - Cannot open TAB file: %s\n",tabfname);
+              if (verbose) {
+                  snprintf(hlpstr, 500, "Error - Cannot open TAB file: %s", tabfname);
+                  msg.clear();
+                  msg.append(hlpstr);
+                  logging::Error(msg);
+              }
              return 11;
           default:
-             if (verbose) printf("\nError - Loading TAB file %s returned fail code %d\n",tabfname,retcode);
+              if (verbose) { 
+                  snprintf(hlpstr, 500, "Error - Loading TAB file %s returned fail code %d", tabfname, retcode); 
+                  msg.clear();
+                  msg.append(hlpstr);
+                  logging::Error(msg);
+              }
              return 19;
           }
     }
-    if (verbose) printf("Done.\n");
+    if (verbose) 
+        logging::Info("Done.");
 
-    if (verbose) printf("Reading DAT file ...");
+    if (verbose) 
+        logging::Info("Reading DAT file ...");
     //Opening DAT file
     DATFILE datf;
     {
@@ -85,46 +101,72 @@ int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int
           switch (retcode)
           {
           case 1:
-             if (verbose) printf("\nError - Cannot open DAT file: %s\n",datfname);
+              if (verbose) { 
+                  snprintf(hlpstr, 500, "Error - Cannot open DAT file: %s", datfname); 
+                  msg.clear();
+                  msg.append(hlpstr);
+                  logging::Error(msg);
+              }
              return 21;
           default:
-             if (verbose) printf("\nError - Loading DAT file %s returned fail code %d\n",datfname,retcode);
+              if (verbose) { 
+                  snprintf(hlpstr, 500, "Error - Loading DAT file %s returned fail code %d", datfname, retcode); 
+                  msg.clear();
+                  msg.append(hlpstr);
+                  logging::Error(msg);
+              }
              return 29;
           }
     }
-    if (verbose) printf("Done.\n");
+    if (verbose) logging::Info("Done.");
 
     if (verbose)
     {
-        printf("\n");
-        printf ("The TAB file informs of %lu pictures.\n", tabf.count);
+        logging::Info("");
+        snprintf (hlpstr, 500, "The TAB file informs of %lu pictures.", tabf.count);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Info(msg);
         if (tabf.filelength!=(unsigned long)((tabf.count+1)*6))
         {
-            printf("Warning - the TAB file contains incomplete entry at end.\n");
-            printf(" The truncated entry will be skipped.\n");
+            logging::Error("Warning - the TAB file contains incomplete entry at end.");
+            logging::Error(" The truncated entry will be skipped.");
         }
         if (datf.count==-1)
         {
-            printf ("The DAT file informs of 4bpp content.\n");
-            printf ("Warning - this is 8bpp extractor!\n");
+            logging::Error("The DAT file informs of 4bpp content.");
+            logging::Error("Warning - this is 8bpp extractor!");
         }
-        else
-            printf ("The DAT file informs of %ld pictures with 8bpp.\n", datf.count);
+        else {
+            snprintf(hlpstr, 500, "The DAT file informs of %ld pictures with 8bpp.", datf.count);
+            msg.clear();
+            msg.append(hlpstr);
+            logging::Info(msg);
+        }
     }
     
-    if (verbose) printf("Decoding images ...");
+    if (verbose) logging::Info("Decoding images ...");
     unsigned long readcount=2;
     read_dattab_images(images,&readcount,&tabf,&datf,verbose);
-    if (verbose) printf("Done.\n");
+    if (verbose) logging::Info("Done.");
 
     if (verbose)
     {
-        printf("Processed %lu of %zu bytes of DAT file.\n",readcount,datf.filelength);
+        snprintf(hlpstr, 500, "Processed %lu of %zu bytes of DAT file.",readcount,datf.filelength);
+        msg.clear();
+        msg.append(hlpstr);
+    
         int32_t unused= (int32_t)(datf.filelength)-(int32_t)(readcount);
-        if (unused>=0)
-            printf("Bytes skipped: %" PRIu32 "\n", unused);
-          else  
-            printf("Bytes overlapping: %" PRId32 "\n", unused);
+        if (unused >= 0) {
+            snprintf(hlpstr, 500, "Bytes skipped: %" PRIu32 "\n", unused);
+            msg.append(hlpstr);
+        }
+        else {
+            snprintf(hlpstr, 500, "Bytes overlapping: %" PRId32 "\n", unused);
+            msg.append(hlpstr);
+        }
+
+        logging::Info(msg);
     }
     free_tabfile_data(&tabf);
     free_datfile_data(&datf);
@@ -263,11 +305,19 @@ void free_datfile_data(DATFILE* datf)
 
 int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,DATFILE* datf,int verbose)
 {
+    char hlpstr[500];
+    std::string msg("");
+
     images->count=tabf->count;
     images->items=static_cast<IMAGEITEM*>(malloc(sizeof(IMAGEITEM)*(images->count)));
     if (!images->items)
     {
-        if (verbose) printf(" Error - cannot allocate %lu bytes of memory.\n",(unsigned long)(sizeof(IMAGEITEM)*images->count));
+        if (verbose) {
+            snprintf(hlpstr, 500, "Error - cannot allocate %lu bytes of memory.", (unsigned long)(sizeof(IMAGEITEM) * images->count)); 
+            msg.clear();
+            msg.append(hlpstr);
+            logging::Error(msg);
+        }
         return 1;
     }
     //Looping through images
@@ -282,16 +332,25 @@ int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,
         item->height=0;
         item->data=NULL;
         item->alpha=NULL;
-       	if (verbose) printf("\rPreparing picture%6lu from %06lx, %ux%u...",picnum,tabitem->offset,tabitem->width,tabitem->height);
+        if (verbose) { 
+            snprintf(hlpstr, 500, "Preparing picture%6lu from %06lx, %ux%u...", picnum, tabitem->offset, tabitem->width, tabitem->height); 
+            msg.clear();
+            msg.append(hlpstr);
+            logging::Info(msg);
+        }
         if (tabitem->offset >= datf->filelength)
             {
-            if (verbose) printf(" Skipped - Picture offset out of DAT filesize.\n");
+            if (verbose) { 
+                logging::Error(" Skipped - Picture offset out of DAT filesize.");
+            }
             skipnum++;
             continue;
             }
         if ((tabitem->width*tabitem->height) < 1)
             {
-            if (verbose) printf(" Skipped - Picture dimensions are invalid.\n");
+            if (verbose) { 
+                logging::Error(" Skipped - Picture dimensions are invalid."); 
+            }
             skipnum++;
             continue;
             }
@@ -301,16 +360,25 @@ int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,
         *readcount+=readedsize;
         if ((retcode&XTABDAT8_COLOUR_LEAK))
         {  
-            if (verbose) printf (" Error - colour leak out of picture size.\n");
+            if (verbose) { 
+                logging::Error(" Error - colour leak out of picture size.");
+            }
             errnum++;
         }
         else if ((retcode&XTABDAT8_ENDOFBUFFER))
         {  
-            if (verbose) printf (" Error - end of DAT buffer, picture truncated.\n");
+            if (verbose) { 
+                logging::Error(" Error - end of DAT buffer, picture truncated."); 
+            }
             errnum++;
         }
     }
-    if (verbose) printf("\rImages decoded, %lu skipped, %lu errors.\n",skipnum,errnum);
+    if (verbose) { 
+        snprintf(hlpstr, 500, "Images decoded, %lu skipped, %lu errors.", skipnum, errnum);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Info(msg);
+    }
     return errnum;
 }
 

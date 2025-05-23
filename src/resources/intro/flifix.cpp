@@ -74,7 +74,7 @@ FILE *openDestinationFLIFile(char *FName)
 
 void closeFLIFiles(FILE *animFile,FILE *destFile,int options)
 {
-  //printf("-------- Analyst complete - all frames has been processed ---------\n");
+  logging::Info("-------- Analyst complete - all frames has been processed ---------");
   fclose(animFile);
   fclose(destFile);
   /*if (!(options & poNeverWaitForKey))
@@ -198,7 +198,7 @@ long insertFrameToTable(ulong *framePosTable,unsigned int frameCount,ulong *foun
 
 void findLostFrames(ulong *framePosTable,FILE *animFile,unsigned int frameCount,ulong *foundedFrames,ulong fullFrameSize,int options)
 {
-  printf("    Some frames are missing. Parsing whole source file...\n");
+  logging::Info("    Some frames are missing. Parsing whole source file...");
   //Preparing buffers
   ulong bufSize=sizeof(FLIFrameHeader)+sizeof(FLIChunkHeader);
   void *buf=allocateMem(bufSize+1,errFrameHdr|errOnlyParsing,0,options);
@@ -207,6 +207,9 @@ void findLostFrames(ulong *framePosTable,FILE *animFile,unsigned int frameCount,
   FLIChunkHeader *chunkHdr=(FLIChunkHeader *)&(((char *)buf)[sizeof_FLIFrameHeader]);
   //Searching offsets for frames
   ulong offset;
+  char hlpstr[500];
+  std::string msg("");
+
   for (offset=0;offset<=(filesize(animFile)-bufSize);offset++)
     {
     //Reading headers
@@ -221,19 +224,35 @@ void findLostFrames(ulong *framePosTable,FILE *animFile,unsigned int frameCount,
       {
       if ((frameHdr->chunks==0) || ((frameHdr->chunks>0) && validChunk(chunkHdr,fullFrameSize+sizeof_FLIChunkHeader)) )
         {
-        if (options & poDisplayAllInfo)
-          printf("    ->Founded valid frame at %9lu, ",offset);
+          if (options & poDisplayAllInfo) {
+              snprintf(hlpstr, 500, "    ->Founded valid frame at %9lu, ", offset);
+              msg.clear();
+              msg.append(hlpstr);
+          }
         long insResult=insertFrameToTable(framePosTable,frameCount,foundedFrames,offset);
         if (options & poDisplayAllInfo)
           {
-          if (insResult>0)  printf("added to frame table as frame %li.\n",insResult);
-          if (insResult==0) printf("already is in frame table.\n");
-          if (insResult<0)  printf("cannot add, frame table full.\n");
+            if (insResult > 0) {
+                snprintf(hlpstr, 500, "added to frame table as frame %li.", insResult);
+                msg.append(hlpstr);
+            }
+            if (insResult == 0) {
+                msg.append("already is in frame table.");
+            }
+            if (insResult < 0) {
+                msg.append("cannot add, frame table full.");
+            }
+
+            logging::Info(msg);
           };
         };
       };//end if (StrictValidFrame(...
     };//end for (ulong Offset...
-  printf("    After searching, we have %lu frames (the file informed of %u frames)\n",*foundedFrames,frameCount+1);
+  snprintf(hlpstr, 500, "    After searching, we have %lu frames (the file informed of %u frames)",*foundedFrames,frameCount+1);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
   free(buf);
 }
 
@@ -337,9 +356,9 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
 //  Needs frames count not increased by 1, just from header (FrameCount).
 //  Assumes that current position in file is just after the header
 {
-  printf("Creating Frame-Position Table...\n");
+  logging::Info("Creating Frame-Position Table...");
   if (options & poFixFramePositions)
-    printf("*Frames position fixing active.\n");
+    logging::Info("*Frames position fixing active.");
   //we need to remember where we're searching
   ulong offset=ftell(animFile);
   //and what we've already found
@@ -352,12 +371,19 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
   //Frame header
   FLIFrameHeader *animFrameHdr=(FLIFrameHeader *)allocateMem(sizeof(FLIFrameHeader)+1,errCritical|errFrameHdr,1,options);
   //Now let's browse through frames
+  char hlpstr[500];
+  std::string msg("");
+
   while (offset<(ulong)(filesize(animFile)))
     {
     //Alternate frame start offset
     ulong fixedOffset=0;
-	if (options & poDisplayAllInfo)
-	  printf("  Searching for frames at%7lu...\n",offset);
+    if (options & poDisplayAllInfo) {
+        snprintf(hlpstr, 500, "  Searching for frames at%7lu...", offset);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Info(msg);
+    }
     //Additional variable to check if we're overwriting last entry.
     //We need it because FramePosTable[lastFrame] must always be defined
     ulong lastFrame;
@@ -366,14 +392,19 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
     if (options & poFixFramePositions) fixedOffset=findBestPosition(framePosTable,animFile,lastFrame,foundedFrames,offset,parseOptions,
                                                                     globOptions);
     //Now we should choose one of them, or just increase "offset" and search for next
-	if (options & poDisplayAllInfo)
-	  printf("  Possible frame%5lu, ",(ulong)foundedFrames+1);
+    if (options & poDisplayAllInfo) {
+        snprintf(hlpstr, 500, "  Possible frame%5lu, ", (ulong)foundedFrames + 1);
+        msg.clear();
+        msg.append(hlpstr);
+    }
     switch (chooseBestFrame(animFile,fullFrameSize+2*MaxPalSize+sizeof_FLIFrameHeader+3*sizeof_FLIChunkHeader,offset,fixedOffset,parseOptions))
     {
       case cbfOldOffset:
       {
-        if (options & poDisplayAllInfo)
-            printf("found at expected offset%7lu, ",offset);
+          if (options & poDisplayAllInfo) {
+              snprintf(hlpstr, 500, "found at expected offset%7lu, ", offset);
+              msg.append(hlpstr);
+          }
         loadFrameHeader(animFile,animFrameHdr,offset,0,0,parseOptions);
         insResult=insertFrameToTable(framePosTable,*frameCount,&foundedFrames,offset);
         offset+=animFrameHdr->size;
@@ -381,8 +412,10 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
       }
       case cbfFixedOffset:
       {
-        if (options & poDisplayAllInfo)
-            printf("found at adjusted offset%7lu, ",fixedOffset);
+          if (options & poDisplayAllInfo) {
+              snprintf(hlpstr, 500, "found at adjusted offset%7lu, ", fixedOffset);
+              msg.append(hlpstr);
+          }
         loadFrameHeader(animFile,animFrameHdr,fixedOffset,0,0,parseOptions);
         insResult=insertFrameToTable(framePosTable,*frameCount,&foundedFrames,fixedOffset);
         offset=fixedOffset+animFrameHdr->size;
@@ -390,8 +423,10 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
       }
       case cbfNothing:
       {
-        if (options & poDisplayAllInfo)
-        printf("not founded near offset %7lu, ",offset);
+          if (options & poDisplayAllInfo) {
+              snprintf(hlpstr, 500, "not founded near offset %7lu, ", offset);
+              msg.append(hlpstr);
+          }
         offset+=DeltaRange;
         insResult=-255;
         break;
@@ -401,13 +436,25 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
     }
     if (options & poDisplayAllInfo)
       {
-      if (insResult==-255) printf("skipped.\n");
+        if (insResult == -255) { 
+            msg.append("skipped.");
+            logging::Info(msg);
+        }
        else
-      if (insResult>0)  printf("added to frame table.\n");
+            if (insResult > 0) { 
+                msg.append("added to frame table.");
+                logging::Info(msg);
+            }
        else
-      if (insResult==0) printf("already in frame table.\n");
+                if (insResult == 0) {
+                    msg.append("already in frame table.");
+                    logging::Info(msg);
+                }
        else
-      if (insResult<0)  printf("cannot add, frame table full.\n");
+                    if (insResult < 0) { 
+                        msg.append("cannot add, frame table full.");
+                        logging::Info(msg);
+                }
       };
     };
   if (foundedFrames<(*frameCount)+1)
@@ -420,20 +467,26 @@ void fillFramePosTable(ulong *framePosTable,FILE *animFile,ulong *frameCount,ulo
     };
   if (foundedFrames<(*frameCount)+1)
     {
-    printf("-->Only %lu frames out of %lu founded. Frames count FIXED.\n",foundedFrames,(ulong)((*frameCount)+1));
+      snprintf(hlpstr, 500, "-->Only %lu frames out of %lu founded. Frames count FIXED.",foundedFrames,(ulong)((*frameCount)+1));
+      msg.clear();
+      msg.append(hlpstr);
+      logging::Info(msg);
     }
    else
-    printf("  All frames listed in table.\n");
+    logging::Info("  All frames listed in table.");
   framePosTable[(*frameCount)+2]=filesize(animFile);
   free(animFrameHdr);
 }
 
 void parseFileToSetOptions(ulong *framePosTable,FILE *animFile,ulong frameCount,int *options)
 {
-  printf("Parsing file to set optimal options...\n");
+  logging::Info("Parsing file to set optimal options...");
   int parseOptions=((*options) & (0xffff - poDisplayAllInfo)) | poIgnoreExceptions;
   int firstFrameHasPalette=0;
   int expandPalette=1;
+  char hlpstr[500];
+  std::string msg("");
+
   //Allocating memory from chunk frame and header
   FLIFrameHeader *frameHdr=(FLIFrameHeader *)malloc(sizeof(FLIFrameHeader)+1);
   FLIChunkHeader *animChunkHdr=(FLIChunkHeader *)malloc(sizeof(FLIChunkHeader)+1);
@@ -490,8 +543,12 @@ void parseFileToSetOptions(ulong *framePosTable,FILE *animFile,ulong frameCount,
         {
         if (!palShallBeMultiplied(chunkData,dataSize))
           {
-          if (expandPalette)
-              printf("Resigned of multiplying pal*4 after chunk %lu from frame %lu\n",k+1,i+1);
+            if (expandPalette) {
+                snprintf(hlpstr, 500, "Resigned of multiplying pal*4 after chunk %lu from frame %lu", k + 1, i + 1);
+                msg.clear();
+                msg.append(hlpstr);
+                logging::Info(msg);
+            }
           expandPalette=0;
           }
         }
@@ -502,12 +559,12 @@ void parseFileToSetOptions(ulong *framePosTable,FILE *animFile,ulong frameCount,
   //Now we can set right options
   if (!firstFrameHasPalette)
     {
-    printf("*Patette reconstruction from .PAL file activated.\n");
+    logging::Info("*Patette reconstruction from .PAL file activated.");
     (*options)|=poRecostructPatette;
     };
   if ((firstFrameHasPalette)&&(expandPalette))
     {
-    printf("*Palette type indicator correction activated.\n");
+    logging::Info("*Palette type indicator correction activated.");
     (*options)|=poExpandPatette;
     };
 
@@ -526,6 +583,8 @@ ulong processChunk(FILE *animFile,FILE *destFile,ulong chunkPos,ulong maxSize,ul
   ulong increment=sizeof_FLIChunkHeader;
   ulong destLastChunkStart=ftell(destFile);
   int shallRemoveChunk=0;
+  char hlpstr[500];
+  std::string msg("");
 
   //Adjusting chunk offset
   //!!!!adjustChunkOffset(AnimFile,,,Options);
@@ -553,8 +612,11 @@ ulong processChunk(FILE *animFile,FILE *destFile,ulong chunkPos,ulong maxSize,ul
       dataSize=0;
   if (dataSize>MAX_CHUNK_CUT_SIZE)
   {
-      printf("-->Chunk no %lu too large - CUTTED, FILE WILL BE INVALID\n",chunkNum);
-      printf("            (YOU SHOULD SET PARAMETERS TO ALLOW FIXATIONS)\n");
+      snprintf(hlpstr, 500, "-->Chunk no %lu too large - CUTTED, FILE WILL BE INVALID",chunkNum);
+      msg.clear();
+      msg.append(hlpstr);
+      logging::Info(msg);
+      logging::Info("            (YOU SHOULD SET PARAMETERS TO ALLOW FIXATIONS)");
       dataSize=MAX_CHUNK_CUT_SIZE;
   }
   void *chunkData=allocateMem(dataSize+2,errCritical|errChunkData,0,options);
@@ -568,7 +630,10 @@ if ( (options & poRemoveBadChunks) &&
     {
     increment=0;
 //    if ((Options & poDisplayAllInfo))
-      printf("-->Chunk no %lu looks suspicious - REMOVED\n",chunkNum);
+      snprintf(hlpstr, 500, "-->Chunk no %lu looks suspicious - REMOVED",chunkNum);
+      msg.clear();
+      msg.append(hlpstr);
+      logging::Info(msg);
     }
    else
     {

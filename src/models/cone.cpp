@@ -83,8 +83,8 @@ void Cone::Update(irr::f32 deltaTime) {
             if (currVelocity.Y < 0.0f) {
                 //yes, cone is falling down, now we need to calculate high about terrain tile below
                 //calculate current cell below cone
-                current_cell_calc_y = (Position.Z / mRace->mLevelTerrain->segmentSize);
-                current_cell_calc_x = -(Position.X / mRace->mLevelTerrain->segmentSize);
+                current_cell_calc_y = (int)(Position.Z / mRace->mLevelTerrain->segmentSize);
+                current_cell_calc_x = -(int)(Position.X / mRace->mLevelTerrain->segmentSize);
 
                 MapEntry* mEntry = mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 

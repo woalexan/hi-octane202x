@@ -7,7 +7,7 @@
  https://irrlicht.sourceforge.io/forum/viewtopic.php?t=43565
  https://irrlicht.sourceforge.io/forum//viewtopic.php?p=246138#246138
 
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code of function createEntity, later modified by me)
  
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -117,66 +117,109 @@ void Race::CleanupAllSceneNodes() {
 }
 
 void Race::IrrlichtStats(char* text) {
-      cout << "----- " << std::string(text) << "----- " << std::endl << std::flush;
-      cout << "Mesh count loaded: " << mInfra->mSmgr->getMeshCache()->getMeshCount() << std::endl << std::flush;
-      cout << "Textures loaded: " << mInfra->mSmgr->getVideoDriver()->getTextureCount() << std::endl << std::flush;
-      core::array<scene::ISceneNode*> outNodes;
+    //cout << "----- " << std::string(text) << "----- " << std::endl << std::flush;
+    //cout << "Mesh count loaded: " << mInfra->mSmgr->getMeshCache()->getMeshCount() << std::endl << std::flush;
+    //cout << "Textures loaded: " << mInfra->mSmgr->getVideoDriver()->getTextureCount() << std::endl << std::flush;
 
-      //get list of all existing sceneNodes
-      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
+    std::string msg("");
+    char hlpstr[500];
 
-      cout << "Scenenode count (all): " << outNodes.size() << std::endl << std::flush;
-      outNodes.clear();
+    msg.clear();
+    msg.append("----- ");
+    msg.append(std::string(text));
+    msg.append("----- ");
+    logging::Info(msg);
 
-      //get list of all existing Billboard sceneNodes
-      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_BILLBOARD, outNodes, 0);
+    msg.clear();
+    msg.append("Mesh count loaded: ");
+    snprintf(hlpstr, 500, "%lu", mInfra->mSmgr->getMeshCache()->getMeshCount());
+    msg.append(hlpstr);
+    logging::Info(msg);
 
-      cout << "Scenenode count (Billboard): " << outNodes.size() << std::endl << std::flush;
+    msg.clear();
+    msg.append("Textures loaded: ");
+    snprintf(hlpstr, 500, "%lu", mInfra->mSmgr->getVideoDriver()->getTextureCount());
+    msg.append(hlpstr);
+    logging::Info(msg);
 
-      //get list of all existing Mesh sceneNodes
-      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_MESH, outNodes, 0);
+    core::array<scene::ISceneNode*> outNodes;
 
-      cout << "Scenenode count (Mesh): " << outNodes.size() << std::endl << std::flush;
+    //get list of all existing sceneNodes
+    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
 
-      outNodes.clear();
+    msg.clear();
+    msg.append("Scenenode count (all): ");
+    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    msg.append(hlpstr);
+    logging::Info(msg);
 
-      //get list of all existing light sceneNodes
-      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_LIGHT, outNodes, 0);
+    outNodes.clear();
 
-      cout << "Scenenode count (light): " << outNodes.size() << std::endl << std::flush;
+    //get list of all existing Billboard sceneNodes
+    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_BILLBOARD, outNodes, 0);
 
-      outNodes.clear();
+    msg.clear();
+    msg.append("Scenenode count (Billboard): ");
+    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    msg.append(hlpstr);
+    logging::Info(msg);
 
-      //get list of all existing camera sceneNodes
-      mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_CAMERA, outNodes, 0);
+    //get list of all existing Mesh sceneNodes
+    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_MESH, outNodes, 0);
 
-      cout << "Scenenode count (camera): " << outNodes.size() << std::endl << std::flush;
+    msg.clear();
+    msg.append("Scenenode count (Mesh): ");
+    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    msg.append(hlpstr);
+    logging::Info(msg);
 
-      outNodes.clear();
+    outNodes.clear();
 
-      irr::s32 texCnt;
-      texCnt =  mInfra->mSmgr->getVideoDriver()->getTextureCount();
+    //get list of all existing light sceneNodes
+    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_LIGHT, outNodes, 0);
 
-      return;
+    msg.clear();
+    msg.append("Scenenode count (light): ");
+    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    msg.append(hlpstr);
+    logging::Info(msg);
+    
+    outNodes.clear();
 
-      //now we have our output filename
-       char finalpath[50];
+    //get list of all existing camera sceneNodes
+    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_CAMERA, outNodes, 0);
 
-      strcpy(finalpath, text);
-      strcat(finalpath, ".txt");
+    msg.clear();
+    msg.append("Scenenode count (camera): ");
+    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    msg.append(hlpstr);
+    logging::Info(msg);
 
-      FILE* oFile = fopen(finalpath, "w");
-      if (oFile == NULL) {
-         return;
-      }
+    outNodes.clear();
 
-      for (int i = 0; i < texCnt; i++) {
-        //cout << std::string(this->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str()) << std::endl << std::flush;
-         fprintf(oFile, "%s\n", mInfra->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str());
-      }
+    irr::s32 texCnt;
+    texCnt =  mInfra->mSmgr->getVideoDriver()->getTextureCount();
 
-      //close file
-      fclose(oFile);
+    return;
+
+    //now we have our output filename
+    char finalpath[50];
+
+    strcpy(finalpath, text);
+    strcat(finalpath, ".txt");
+
+    FILE* oFile = fopen(finalpath, "w");
+    if (oFile == NULL) {
+       return;
+    }
+
+    for (int i = 0; i < texCnt; i++) {
+       //cout << std::string(this->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str()) << std::endl << std::flush;
+       fprintf(oFile, "%s\n", mInfra->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str());
+    }
+
+    //close file
+    fclose(oFile);
 }
 
 Race::~Race() {
@@ -1892,7 +1935,7 @@ void Race::Init() {
     DeliverMusicFileName(levelNr, musicFileName);
 
     if (!mMusicPlayer->loadGameMusicFile(musicFileName)) {
-        cout << "Music load failed" << endl;
+        logging::Error("Music load failed");
         return;
     } else {
              //start music playing
@@ -3527,7 +3570,7 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
 
 bool Race::LoadLevel(int loadLevelNr) {
     if ((loadLevelNr < 1) || (loadLevelNr > 9)) {
-        cout << "Level number only possible from 1 up to 9!" << endl << std::flush;
+        logging::Error("Level number only possible from 1 up to 9!");
         return false;
     }
 
@@ -3566,7 +3609,7 @@ bool Race::LoadLevel(int loadLevelNr) {
 
    //was loading level data succesful? if not interrupt
    if (!this->mLevelRes->get_Ready()) {
-       cout << "Race::LoadLevel failed, exiting" << endl << std::flush;
+       logging::Error("Race::LoadLevel failed, exiting");
        return false;
    }
 

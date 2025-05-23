@@ -26,8 +26,8 @@ bool InfrastructureBase::InitIrrlicht() {
     //mDevice = createDevice(video::EDT_DIRECT3D9, mScreenRes, 16, mFullscreen, mEnableShadows, false, mEventReceiver);
 
     if (mDevice == 0) {
-          cout << "Failed Irrlicht device creation!" << endl;
-          return false;
+        logging::Error("Failed Irrlicht device creation!");
+        return false;
     }
 
     //do not allow window resizing in windowed mode
@@ -138,8 +138,8 @@ bool InfrastructureBase::DetermineOriginalGameVersion() {
 
     ifile.open(gameExeFile.c_str(), std::ifstream::binary);
        if(!ifile) {
-         std::cout << "Could not open hioctane.exe file!" << endl;
-         return false;
+           logging::Error("Could not open hioctane.exe file!");
+           return false;
        }
 
      // get its size:
@@ -152,7 +152,14 @@ bool InfrastructureBase::DetermineOriginalGameVersion() {
      ifile.read(reinterpret_cast<char*>(fileData->data()), fileData->size());
 
      if (!ifile) {
-         std::cout << "hioctane.exe file read error: only " << ifile.gcount() << " bytes could be read!" << endl;
+         size_t fileReadsizet = ifile.gcount();
+         char hlpstr[500];
+         std::string msg("hioctane.exe file read error: only ");
+         snprintf(hlpstr, 500, "%zu", fileReadsizet);
+         msg.append(hlpstr);
+         msg.append(" bytes could be read!");
+         logging::Error(msg);
+
          delete fileData;
          return false;
      }
@@ -214,7 +221,7 @@ bool InfrastructureBase::DetermineOriginalGameVersion() {
      }
 
     if (!foundStart || !foundEnd) {
-        std::cout << "hioctane.exe version date not found!" << endl;
+        logging::Error("hioctane.exe version date not found!");
         delete fileData;
         return false;
     }
@@ -258,11 +265,13 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     //folder not found?
     if (origGameRootDirPath.empty()) {
-        cout << "I was not able to locate the original game files" << std::endl;
+        logging::Error("I was not able to locate the original game files");
         return false;
     }
 
-    cout << "Original Game located in " << origGameRootDirPath.c_str() << std::endl;
+    std::string msg("Original Game located in ");
+    msg.append(origGameRootDirPath.c_str());
+    logging::Info(msg);
 
     this->mOriginalGame = new OriginalGameFolderInfoStruct();
 
@@ -270,7 +279,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     this->mOriginalGame->rootFolder = CreateFileList(origGameRootDirPath);
 
     if (this->mOriginalGame->rootFolder == NULL) {
-        cout << "I was not able to create the file list for the original games root directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games root directory");
         return false;
     }
 
@@ -282,14 +291,14 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path dataFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("data"));
 
     if (dataFolderPath.empty()) {
-        cout << "I was not able to locate the original game data folder" << std::endl;
+        logging::Error("I was not able to locate the original game data folder");
         return false;
     }
 
     this->mOriginalGame->dataFolder = CreateFileList(dataFolderPath);
 
     if (this->mOriginalGame->dataFolder == NULL) {
-        cout << "I was not able to create the file list for the original games data directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games data directory");
         return false;
     }
 
@@ -300,14 +309,14 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path execFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("exec"));
 
     if (execFolderPath.empty()) {
-        cout << "I was not able to locate the original game exec folder" << std::endl;
+        logging::Error("I was not able to locate the original game exec folder");
         return false;
     }
 
     this->mOriginalGame->execFolder = CreateFileList(execFolderPath);
 
     if (this->mOriginalGame->execFolder == NULL) {
-        cout << "I was not able to create the file list for the original games exec directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games exec directory");
         return false;
     }
 
@@ -318,14 +327,14 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path mapsFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("maps"));
 
     if (mapsFolderPath.empty()) {
-        cout << "I was not able to locate the original game maps folder" << std::endl;
+        logging::Error("I was not able to locate the original game maps folder");
         return false;
     }
 
     this->mOriginalGame->mapsFolder = CreateFileList(mapsFolderPath);
 
     if (this->mOriginalGame->mapsFolder == NULL) {
-        cout << "I was not able to create the file list for the original games maps directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games maps directory");
         return false;
     }
 
@@ -336,7 +345,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path objectsFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("objects"));
 
     if (objectsFolderPath.empty()) {
-        cout << "I was not able to locate the original game objects folder" << std::endl;
+        logging::Error("I was not able to locate the original game objects folder");
         return false;
     }
 
@@ -344,7 +353,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::IFileList* helperList = CreateFileList(objectsFolderPath);
 
     if (helperList == NULL) {
-        cout << "I was not able to create the file list for the original games objects directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games objects directory");
         return false;
     }
 
@@ -353,14 +362,14 @@ bool InfrastructureBase::LocateOriginalGame() {
     helperList->drop();
 
     if (objectsFolderDataPath.empty()) {
-        cout << "I was not able to locate the data directory inside the original games objects folder" << std::endl;
+        logging::Error("I was not able to locate the data directory inside the original games objects folder");
         return false;
     }
 
     this->mOriginalGame->objectsFolder = CreateFileList(objectsFolderDataPath);
 
     if (this->mOriginalGame->objectsFolder == NULL) {
-        cout << "I was not able to create the file list for the original games objects/data directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games objects/data directory");
         return false;
     }
 
@@ -371,7 +380,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path hioctaneCdFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("HIOCTANE.CD"));
 
     if (hioctaneCdFolderPath.empty()) {
-        cout << "No HIOCTANE.CD folder found => create it" << std::endl;
+        logging::Info("No HIOCTANE.CD folder found => create it");
         try {
             char newDir[100];
             strcpy(newDir, mOriginalGame->rootFolder->getPath().c_str());
@@ -384,7 +393,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
             hioctaneCdFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("HIOCTANE.CD"));
         } catch(...) {
-            cout << "Failed to create HIOCTANE.CD folder" << std::endl;
+            logging::Error("Failed to create HIOCTANE.CD folder");
             return false;
         }
     }
@@ -393,7 +402,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     helperList = CreateFileList(hioctaneCdFolderPath);
 
     if (helperList == NULL) {
-        cout << "I was not able to create the file list for the original games HIOCTANE.CD directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games HIOCTANE.CD directory");
         return false;
     }
 
@@ -402,7 +411,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     helperList->drop();
 
     if (saveFolderDataPath.empty()) {
-        cout << "I did not find a save directory inside the original games HIOCTANE.CD folder => create it" << std::endl;
+        logging::Info("I did not find a save directory inside the original games HIOCTANE.CD folder => create it");
         try {
             char newDir[100];
             strcpy(newDir, hioctaneCdFolderPath.c_str());
@@ -414,14 +423,14 @@ bool InfrastructureBase::LocateOriginalGame() {
             helperList = CreateFileList(hioctaneCdFolderPath);
 
             if (helperList == NULL) {
-                cout << "I was not able to create the file list for the original games HIOCTANE.CD directory" << std::endl;
+                logging::Error("I was not able to create the file list for the original games HIOCTANE.CD directory");
                 return false;
             }
 
             saveFolderDataPath = LocateFileInFileList(helperList, irr::core::string<fschar_t>("SAVE"));
             helperList->drop();
         }  catch (...) {
-            cout << "Failed to create save folder" << std::endl;
+            logging::Error("Failed to create save folder");
             return false;
         }
     }
@@ -429,7 +438,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     this->mOriginalGame->saveFolder = CreateFileList(saveFolderDataPath);
 
     if (this->mOriginalGame->saveFolder == NULL) {
-        cout << "I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory");
         return false;
     }
 
@@ -440,14 +449,14 @@ bool InfrastructureBase::LocateOriginalGame() {
     irr::io::path soundFolderPath = LocateFileInFileList(mOriginalGame->rootFolder, irr::core::string<fschar_t>("sound"));
 
     if (soundFolderPath.empty()) {
-        cout << "I was not able to locate the original game sound folder" << std::endl;
+        logging::Error("I was not able to locate the original game sound folder");
         return false;
     }
 
     this->mOriginalGame->soundFolder = CreateFileList(soundFolderPath);
 
     if (this->mOriginalGame->soundFolder == NULL) {
-        cout << "I was not able to create the file list for the original games sound directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games sound directory");
         return false;
     }
 
@@ -468,7 +477,9 @@ bool InfrastructureBase::InitGameResourcesInitialStep() {
         mPrepareData = new PrepareData(this);
     }
     catch (const std::string &msg) {
-        cout << "Initial part of game assets preparation operation failed!\n" << msg << endl;
+        std::string msgExt("Initial part of game assets preparation operation failed: ");
+        msgExt.append(msg);
+        logging::Error(msgExt);
         return false;
     }
 
@@ -479,7 +490,7 @@ bool InfrastructureBase::InitGameResourcesInitialStep() {
     mGameTexts = new GameText(mDevice, mDriver);
 
     if (!mGameTexts->GameTextInitializedOk) {
-        cout << "First Game font init operation failed!" << endl;
+        logging::Error("First Game font init operation failed!");
         return false;
     }
 
@@ -509,7 +520,9 @@ bool InfrastructureBase::GetInitOk() {
 bool InfrastructureBase::ProcessGameVersionDate() {
     std::string versionStr(this->mGameVersionDate.begin(), this->mGameVersionDate.end());
 
-    std::cout << "Original game version date = " << versionStr << std::endl;
+    std::string msg("Original game version date = ");
+    msg.append(versionStr);
+    logging::Info(msg);
 
     if (versionStr.compare("Jun 10 1995 17:45:48") == 0) {
         //this version date belongs to the non extended
@@ -525,7 +538,7 @@ bool InfrastructureBase::ProcessGameVersionDate() {
         return true;
     }
 
-    std::cout << "Unknown game version date!" << std::endl;
+    logging::Error("Unknown game version date!");
 
     return false;
 }
@@ -539,7 +552,7 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     this->mOriginalGame->saveFolder = CreateFileList(saveFolderDataPath);
 
     if (this->mOriginalGame->saveFolder == NULL) {
-        cout << "I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory" << std::endl;
+        logging::Error("I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory");
         return false;
     }
 
@@ -572,9 +585,9 @@ InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScr
         return;
 
     if (this->mExtendedGame) {
-        std::cout << "This game is the extended version" << std::endl;
+        logging::Info("This game is the extended version");
     } else {
-        std::cout << "This game is the non-extended version" << std::endl;
+        logging::Info("This game is the non-extended version");
     }
 
     //log window left upper corner 100, 380
@@ -592,7 +605,7 @@ InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScr
     if (!InitGameResourcesInitialStep())
         return;
 
-    mLogger->AddLogMessage((char*)"Initial Game Resources initialized");
+    logging::Info("Initial Game Resources initialized");
 
     mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,200));
 

@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++, and extended with some new code)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++, and extended with some new code)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -27,10 +27,10 @@ LevelFile::LevelFile(std::string filename) {
 
    ifile.open(filename, std::ifstream::binary);
       if(ifile) {
-         std::cout <<"Level file found and openend succesfully" << endl;
+         logging::Info("Level file found and openend succesfully");
       } else {
-        std::cout << "Could not open Level file" << endl;
-        return;
+          logging::Error("Could not open Level file");
+          return;
       }
 
     // get its size:
@@ -48,10 +48,26 @@ LevelFile::LevelFile(std::string filename) {
     this->m_bytes.resize(fileSize);
     ifile.read(reinterpret_cast<char*>(this->m_bytes.data()), this->m_bytes.size());
 
-    if (ifile)
-        std::cout << "Leveldata read succesfully (" << fileSize << " bytes)" << endl;
+    char hlpstr[500];
+    std::string msg("");
+
+    if (ifile) {
+        msg.clear();
+        msg.append("Leveldata read succesfully (");
+        size_t fileSizet = fileSize;
+        snprintf(hlpstr, 500, "%zu", fileSizet);
+        msg.append(hlpstr);
+        msg.append(" bytes)");
+        logging::Info(msg);
+    }
     else {
-        std::cout << "Leveldata file read error: only " << ifile.gcount() << " bytes could be read!" << endl;
+        size_t fileReadsizet = ifile.gcount();
+        msg.clear();
+        msg.append("Leveldata file read error: only ");
+        snprintf(hlpstr, 500, "%zu", fileReadsizet);
+        msg.append(hlpstr);
+        msg.append(" bytes could be read!");
+        logging::Error(msg);
         return;
     }
 
@@ -73,7 +89,10 @@ LevelFile::LevelFile(std::string filename) {
       default: mapname.append("unknown/Custom"); break;
     }
 
-    std::cout << "found map = " << mapname << endl;
+    msg.clear();
+    msg.append("found map = ");
+    msg.append(mapname);
+    logging::Info(msg);
 
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMap() && loadEntitiesTable() &&
             loadMapRegions() && loadUnknownTableOffset358222(); /*&& loadUnknownTableOffset0() &&

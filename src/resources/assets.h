@@ -17,6 +17,7 @@
 #include <string>
 #include "../race.h"
 #include "../infrabase.h"
+#include "../utils/logging.h"
 
 //if we ever want to implement the other languages
 //stored in the game these are the values assigned to the current

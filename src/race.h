@@ -7,7 +7,7 @@
  https://irrlicht.sourceforge.io/forum/viewtopic.php?t=43565
  https://irrlicht.sourceforge.io/forum//viewtopic.php?p=246138#246138
 
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code of function createEntity, later modified by me)
  
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.

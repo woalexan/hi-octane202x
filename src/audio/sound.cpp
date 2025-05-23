@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -404,7 +404,14 @@ bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
     //existing yet
     if (SearchSndRes(soundResId) != NULL) {
         //is already existing, output error
-        std::cout << "LoadSoundResouce: Sound resource with Id " << soundResId << " already existing. Error!" << std::endl;
+        char strhlp[10];
+        snprintf(strhlp, 10, "%u", soundResId);
+        //std::cout << "LoadSoundResouce: Sound resource with Id " << soundResId << " already existing. Error!" << std::endl;
+        std::string errMsg("LoadSoundResouce: Sound resource with Id ");
+        errMsg.append(strhlp);
+        errMsg.append(" already existing!");
+        logging::Error(errMsg);
+            
         return false;
     }
 
@@ -417,17 +424,26 @@ bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
 
     if ((newRes != NULL) && (newBuf != NULL)) {
         if (!newRes->pntrSoundBuf->loadFromFile(fileNameStr)) {
-                std::cout << "LoadSoundResouce: Could not load sound resource file " << fileName << std::endl;
-                return false;
+            std::string errMsg("LoadSoundResouce: Could not load sound resource file ");
+            errMsg.append(fileName);
+            logging::Error(errMsg);
+            //std::cout << "LoadSoundResouce: Could not load sound resource file " << fileName << std::endl;
+            return false;
         }
     } else {
-        std::cout << "LoadSoundResouce: Could not load sound resource file " << fileName << std::endl;
+        std::string errMsg("LoadSoundResouce: Could not load sound resource file ");
+        errMsg.append(fileName);
+        logging::Error(errMsg);
+        //std::cout << "LoadSoundResouce: Could not load sound resource file " << fileName << std::endl;
         return false;
     }
 
     //add new resource to vector
     this->SoundResVec->push_back(newRes);
-    std::cout << "LoadSoundResouce: Succesfully loaded sound resource file " << fileName << std::endl;
+    std::string infoMsg("LoadSoundResouce: Succesfully loaded sound resource file ");
+    infoMsg.append(fileName);
+    logging::Info(infoMsg);
+    //std::cout << "LoadSoundResouce: Succesfully loaded sound resource file " << fileName << std::endl;
 
     return true;
 }
@@ -437,7 +453,14 @@ void SoundEngine::DeleteSoundResource(uint8_t soundResId) {
    SoundResEntry* pntr;
 
    if (this->SoundResVec->size() < 1) {
-       std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
+       std::string errMsg("DeleteSoundResource: Specified sound resource ID (");
+       char strhlp[10];
+       snprintf(strhlp, 10, "%u", soundResId);
+       errMsg.append(strhlp);
+       errMsg.append(") for deletion does not exist!");
+       logging::Error(errMsg);
+
+       //std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
        return;
    }
 
@@ -463,7 +486,13 @@ void SoundEngine::DeleteSoundResource(uint8_t soundResId) {
    }
 
    if (!found) {
-       std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
+       //std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
+       std::string errMsg("DeleteSoundResource: Specified sound resource ID (");
+       char strhlp[10];
+       snprintf(strhlp, 10, "%u", soundResId);
+       errMsg.append(strhlp);
+       errMsg.append(") for deletion does not exist!");
+       logging::Error(errMsg);
    }
 }
 

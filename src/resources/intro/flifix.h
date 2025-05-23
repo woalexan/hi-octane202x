@@ -17,6 +17,7 @@
 #include "prgtools.h"
 #include "flifile.h"
 #include <errno.h>
+#include "../../utils/logging.h"
 
 //I had to create the function prototypes here
 FILE *openSourceFLIFile(char *FName);

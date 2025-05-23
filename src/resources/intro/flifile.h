@@ -16,6 +16,9 @@ anymore. Otherwise I would not have been able to compile it, or use it in my pro
 #include "prgtools.h"
 #include "stdint.h"
 
+//18.05.2025: Added for better integrated game logging
+#include "../../utils/logging.h"
+
 enum ChunkType
   {
     FLI_COLOR256=   4,

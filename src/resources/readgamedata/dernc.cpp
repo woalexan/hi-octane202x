@@ -34,6 +34,8 @@ int main_unpack (char* iname, char* oname)
     unsigned char *packed, *unpacked;
     char buffer[4];
     long leeway;
+    char hlpstr[500];
+    std::string msg("");
     
     ifp = fopen(iname, "rb");
     if (!ifp)
@@ -76,7 +78,11 @@ int main_unpack (char* iname, char* oname)
 	free (packed);
 	if (ulen == -1) // File wasn't RNC to start with
 	    return 0;
-    printf("Error: %s\n", rnc_error (ulen));
+
+    msg.clear();
+    snprintf(hlpstr, 500, "Error: %s", rnc_error (ulen));
+    msg.append(hlpstr);
+    logging::Error(msg);
 	return 1;
     }
 
@@ -92,7 +98,10 @@ int main_unpack (char* iname, char* oname)
     ulen = rnc_unpack (packed, unpacked, 0, &leeway);
     if (ulen < 0)
     {
-    printf("%s\n", rnc_error (ulen));
+        msg.clear();
+    snprintf(hlpstr, 500, "%s", rnc_error (ulen));
+    msg.append(hlpstr);
+    logging::Error(msg);
 	return 1;
     }
 

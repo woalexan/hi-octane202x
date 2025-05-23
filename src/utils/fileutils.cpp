@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -15,26 +15,6 @@
 #include <filesystem>
 #endif
 
-/*int copy_file(char* iname, char* oname)
-{
-    char *sysbuf;
-
-    sysbuf = static_cast<char*>(malloc (strlen (iname)+strlen(oname)+6));
-    if (!sysbuf)
-    {
-    fprintf (stderr, "Out of memory.\n");
-    return 1;
-    }
-
-    strcpy (sysbuf, "cp ");
-    strcat (sysbuf, iname);
-    strcat (sysbuf, " ");
-    strcat (sysbuf, oname);
-    system (sysbuf);
-    free (sysbuf);
-    return 0;
-}*/
-
 //source code example taken from https://markaicode.com/how-to-copy-file-contents-in-c/
 int copy_file(char* srcFileName, char* destFileName) {
     FILE* sourceFile;
@@ -44,13 +24,23 @@ int copy_file(char* srcFileName, char* destFileName) {
 
     sourceFile = fopen(srcFileName, "rb");
     if (sourceFile == NULL) {
-        printf("Error opening source file!\n");
+        char strhlp[500];
+        std::string msg("Error opening source file: ");
+        snprintf(strhlp, 500, "%s", srcFileName);
+        msg.append(strhlp);
+        logging::Error(msg);
+
         return 1;
     }
 
     destFile = fopen(destFileName, "wb");
     if (destFile == NULL) {
-        printf("Error creating destination file!\n");
+        char strhlp[500];
+        std::string msg("Error creating destination file: ");
+        snprintf(strhlp, 500, "%s", destFileName);
+        msg.append(strhlp);
+        logging::Error(msg);
+
         fclose(sourceFile);
         return 1;
     }

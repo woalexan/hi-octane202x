@@ -15,6 +15,7 @@ anymore. Otherwise I would not have been able to compile it, or use it in my pro
 #include <stdio.h>
 #include <stdlib.h>
 #include "flifile.h"
+#include <string>
 
 //SaveBlockToFile("!debug.dta",ChunkPacketHdr,DataSize-ChunkPos);
 //printf("Saved. Press N key \n");getch();
@@ -43,17 +44,48 @@ const char *getChunkTypeStr(unsigned int iType)
 
 void displayMainHeaderInfo(FLIMainHeader *animHeader,ulong hStart, ulong fSize)
 {
-  printf("-------Main header starts on byte %lu ---------\n",hStart);
+  /*printf("-------Main header starts on byte %lu ---------\n", hStart);
   printf("Filesize from header: %7lu    Real filesize:%lu\n",animHeader->size,fSize);
   printf("Magic number: %15u    Shall be:%u or %u\n",animHeader->magic,(int)(0x0af11),(int)(0x0af12));
   printf("Frames count: %15u    Value should be positive & big\n",animHeader->frames);
   printf("Width: %22u    Value should be positive & <1000\n",animHeader->width);
-  printf("Height: %21u    Value should be positive & <800\n",animHeader->height);
+  printf("Height: %21u    Value should be positive & <800\n",animHeader->height);*/
+
+  char hlpstr[500];
+  snprintf(hlpstr, 500, "-------Main header starts on byte %lu ---------", hStart);
+  std::string msg("");
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Filesize from header: %7lu    Real filesize:%lu", animHeader->size, fSize);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Magic number: %15u    Shall be:%u or %u", animHeader->magic, (int)(0x0af11), (int)(0x0af12));
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Frames count: %15u    Value should be positive & big", animHeader->frames);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Width: %22u    Value should be positive & <1000", animHeader->width);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Height: %21u    Value should be positive & <800", animHeader->height);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
 }
 
 void displayAddHeaderInfo(FLIAddHeader *animAddHeader,ulong hEnd)
 {
-  printf("------- Main Header - Additional informations ---------\n");
+  /*printf("------- Main Header - Additional informations ---------\n");
   printf("Color depth: %16u    Should be set to:8\n",animAddHeader->depth);
   printf("Flags: %22u    Usually: 3\n",animAddHeader->flags);
   printf("Frame speed: %16u    In sec/1024;usually between <4,350>\n",animAddHeader->speed);
@@ -64,39 +96,195 @@ void displayAddHeaderInfo(FLIAddHeader *animAddHeader,ulong hEnd)
   printf("Serial number: %14lu    No estimations\n",animAddHeader->changerserial);
   printf("X-Aspect ratio: %13u    Can be 0;no estimations\n",animAddHeader->Xaspec);
   printf("Y-Aspect ratio: %13u    Can be 0;no estimations\n",animAddHeader->Yaspec);
-  printf("Reserved(1st):");
+  printf("Reserved(1st):");*/
+
+  char hlpstr[500];
+  snprintf(hlpstr, 500, "------- Main Header - Additional informations ---------");
+  std::string msg("");
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Color depth: %16u    Should be set to:8", animAddHeader->depth);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Flags: %22u    Usually: 3", animAddHeader->flags);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Frame speed: %16u    In sec/1024;usually between <4,350>", animAddHeader->speed);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Unknown value: %14lu    Usually 0;no estimations", animAddHeader->next);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Date/Time of creation:%7lu    No estimations", animAddHeader->frit);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Creator: %20lu    No estimations", animAddHeader->creator);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Date/Time of last change:%4lu    No estimations", animAddHeader->lastchange);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Serial number: %14lu    No estimations", animAddHeader->changerserial);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "X-Aspect ratio: %13u    Can be 0;no estimations", animAddHeader->Xaspec);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Y-Aspect ratio: %13u    Can be 0;no estimations", animAddHeader->Yaspec);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  msg.clear();
+  msg.append("Reserved(1st):");
   ulong n;
-  for (n=0;n<(sizeof(animAddHeader->reserved1)/sizeof(animAddHeader->reserved1[0]));n++)
-     printf("%u ",animAddHeader->reserved1[n]);
-     printf("(no estims)\n");
-  printf("Offset of frame 1: %10lu    (no estimations)\n",animAddHeader->frame1);
-  printf("Offset of frame 2: %10lu    (no estimations)\n",animAddHeader->frame2);
-  printf("Reserved(2nd):");
-  for (n=0;n<(sizeof(animAddHeader->reserved2)/sizeof(animAddHeader->reserved2[0]));n++)
-     printf("%u ",animAddHeader->reserved2[n]);
-     printf("(no estims)\n");
-  printf("-------Main header ends on byte %lu ---------\n",hEnd);
+  for (n = 0;n < (sizeof(animAddHeader->reserved1) / sizeof(animAddHeader->reserved1[0]));n++) {
+      //printf("%u ", animAddHeader->reserved1[n]);
+      snprintf(hlpstr, 500, "%u ", animAddHeader->reserved1[n]);
+      msg.append(hlpstr);
+  }
+
+  //printf("(no estims)\n");
+  msg.append("(no estims)");
+  logging::Info(msg);
+
+  //printf("Offset of frame 1: %10lu    (no estimations)\n",animAddHeader->frame1);
+  //printf("Offset of frame 2: %10lu    (no estimations)\n",animAddHeader->frame2);
+
+  snprintf(hlpstr, 500, "Offset of frame 1: %10lu    (no estimations)", animAddHeader->frame1);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  snprintf(hlpstr, 500, "Offset of frame 2: %10lu    (no estimations)", animAddHeader->frame2);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
+
+  //printf("Reserved(2nd):");
+  msg.clear();
+  msg.append("Reserved(2nd):");
+  for (n = 0;n < (sizeof(animAddHeader->reserved2) / sizeof(animAddHeader->reserved2[0]));n++) {
+      //printf("%u ", animAddHeader->reserved2[n]);
+      snprintf(hlpstr, 500, "%u ", animAddHeader->reserved2[n]);
+      msg.append(hlpstr);
+  }
+  
+  //printf("(no estims)\n");
+  msg.append("(no estims)");
+  logging::Info(msg);
+
+  //printf("-------Main header ends on byte %lu ---------\n",hEnd);
+  snprintf(hlpstr, 500, "-------Main header ends on byte %lu ---------", hEnd);
+  msg.clear();
+  msg.append(hlpstr);
+  logging::Info(msg);
 }
 
 void displayFrameInfo(FLIFrameHeader *currFrameHdr,ulong frameNumber,ulong totalFrames,ulong hStart,ulong hEnd)
 {
-  printf("  -------Frame no %lu of %lu header starts on byte %lu ---------\n",frameNumber,totalFrames,hStart);
-  printf("  Bytes in frame: %11lu    Shall be <framesize+palsize\n",currFrameHdr->size);
-  printf("  Magic: %20u    Always %u\n",currFrameHdr->magic,0xf1fa);
-  printf("  Chunks in frame:%11u    No estimations\n",currFrameHdr->chunks);
-  printf("  Expand:");
-  ulong n;
-  for (n=0;n<(sizeof(currFrameHdr->expand)/sizeof(currFrameHdr->expand[0]));n++)
-     printf("%u ",currFrameHdr->expand[n]);
-     printf("  (no estims)\n");
-  printf("  -------Frame %lu header ends on byte %lu ---------\n",frameNumber,hEnd);
+    char hlpstr[500];
+    /*printf("  -------Frame no %lu of %lu header starts on byte %lu ---------\n", frameNumber, totalFrames, hStart);
+    printf("  Bytes in frame: %11lu    Shall be <framesize+palsize\n",currFrameHdr->size);
+    printf("  Magic: %20u    Always %u\n",currFrameHdr->magic,0xf1fa);
+    printf("  Chunks in frame:%11u    No estimations\n",currFrameHdr->chunks);
+    printf("  Expand:");*/
+
+    snprintf(hlpstr, 500, "  -------Frame no %lu of %lu header starts on byte %lu ---------", frameNumber, totalFrames, hStart);
+    std::string msg("");
+    msg.append(hlpstr);
+    logging::Info(msg);
+
+    snprintf(hlpstr, 500, "  Bytes in frame: %11lu    Shall be <framesize+palsize", currFrameHdr->size);
+    msg.clear();
+    msg.append(hlpstr);
+    logging::Info(msg);
+
+    snprintf(hlpstr, 500, "  Magic: %20u    Always %u", currFrameHdr->magic, 0xf1fa);
+    msg.clear();
+    msg.append(hlpstr);
+    logging::Info(msg);
+
+    snprintf(hlpstr, 500, "  Chunks in frame:%11u    No estimations", currFrameHdr->chunks);
+    msg.clear();
+    msg.append(hlpstr);
+    logging::Info(msg);
+
+    msg.clear();
+    msg.append("  Expand:");
+    ulong n;
+    for (n = 0;n < (sizeof(currFrameHdr->expand) / sizeof(currFrameHdr->expand[0]));n++) {
+        //printf("%u ", currFrameHdr->expand[n]);
+        snprintf(hlpstr, 500, "%u ", currFrameHdr->expand[n]);
+        msg.append(hlpstr);
+    }
+    //printf("  (no estims)\n");
+    msg.append("  (no estims)");
+    logging::Info(msg);
+
+    //printf("  -------Frame %lu header ends on byte %lu ---------\n",frameNumber,hEnd);
+    snprintf(hlpstr, 500, "  -------Frame %lu header ends on byte %lu ---------", frameNumber, hEnd);
+    msg.clear();
+    msg.append(hlpstr);
+    logging::Info(msg);
 }
 
 void displayChunkInfo(FLIChunkHeader *currChunkHdr,ulong chunkNumber,ulong hStart)
 {
-  printf("    ==>Chunk no %lu, starts on byte %lu\n",chunkNumber,hStart);
-  printf("    Bytes in chunk:%10lu    ( <%lu )\n",currChunkHdr->size,(unsigned long)(MaxAnimWidth*MaxAnimHeight));
-  printf("    Type of chunk:%11u  %s\n",currChunkHdr->type,getChunkTypeStr(currChunkHdr->type));
+    char hlpstr1[30];
+    
+    //printf("    ==>Chunk no %lu, starts on byte %lu\n", chunkNumber, hStart);
+    std::string msg("    ==>Chunk no ");
+    snprintf(hlpstr1, 30, "%lu", chunkNumber);
+    msg.append(hlpstr1);
+    msg.append(", starts on byte ");
+    snprintf(hlpstr1, 30,  "%lu", hStart);
+    msg.append(hlpstr1);
+
+    logging::Info(msg);
+
+    //printf("    Bytes in chunk:%10lu    ( <%lu )\n", currChunkHdr->size, (unsigned long)(MaxAnimWidth * MaxAnimHeight));
+
+    msg.clear();
+    msg.append("    Bytes in chunk:");
+    snprintf(hlpstr1, 30, "%10lu", currChunkHdr->size);
+    msg.append(hlpstr1);
+    msg.append("    ( <");
+    snprintf(hlpstr1, 30, "%lu", (unsigned long)(MaxAnimWidth * MaxAnimHeight));
+    msg.append(hlpstr1);
+    msg.append(" )");
+
+    logging::Info(msg);
+
+    //printf("    Type of chunk:%11u  %s\n",currChunkHdr->type,getChunkTypeStr(currChunkHdr->type));
+
+    msg.clear();
+    msg.append("    Type of chunk:");
+    snprintf(hlpstr1, 30, "%11u", currChunkHdr->type);
+    msg.append(hlpstr1);
+    msg.append("  ");
+    msg.append(getChunkTypeStr(currChunkHdr->type));
+
+    logging::Info(msg);
 }
 
 /*
@@ -176,7 +364,8 @@ void loadMainHeader(FLIMainHeader *animHeader,FLIAddHeader *animAddHeader,FILE *
     {
         setFLIAddHdrDefaults(animAddHeader);
 //      if ((Options & poDisplayAllInfo))
-        printf("-->Additional header doesn't exist - FIXED\n");
+        //printf("-->Additional header doesn't exist - FIXED\n");
+        logging::Info("-->Additional header doesn't exist - FIXED");
     };
 }
 
@@ -187,7 +376,14 @@ void loadFrameHeader(FILE *animFile,FLIFrameHeader *animFrameHdr,ulong startOffs
   loadDataFromFile(animFile,animFrameHdr,sizeof_FLIFrameHeader,errFrameHdr|errCritical,options);
   if (options & poDisplayAllInfo) displayFrameInfo(animFrameHdr,currFrame,totalFrames,startOffset,ftell(animFile)-1);
    else
-    if (!(options & poIgnoreExceptions)) printf("  Restoring frame no %8lu\n",currFrame);
+      if (!(options & poIgnoreExceptions)) { 
+          //printf("  Restoring frame no %8lu\n", currFrame); 
+          std::string msg("  Restoring frame no ");
+          char hlpstr[20];
+          snprintf(hlpstr, 20, "%8lu", currFrame);
+          msg.append(hlpstr);
+          logging::Info(msg);
+      }
 }
 
 void loadChunkHeader(FILE *animFile,FLIChunkHeader *animChunkHdr,ulong startOffset,ulong chunkNumber,int options)
@@ -446,8 +642,10 @@ void fixFrameHeader(FLIFrameHeader *animFrameHdr,ulong framePos,ulong frameEnd,i
     animFrameHdr->chunks=0;
     animFrameHdr->size=sizeof_FLIFrameHeader;
     };
-  if ((nFixes>0)&&(options & poDisplayAllInfo))
-    printf("-->Frame header info incorrect - FIXED\n");
+  if ((nFixes > 0) && (options & poDisplayAllInfo)) {
+      //printf("-->Frame header info incorrect - FIXED\n");
+      logging::Info("-->Frame header info incorrect - FIXED");
+  }
 }
 
 void fixChunkHeader(FLIChunkHeader *animChunkHdr,ulong maxSize,ulong chunkNum,int isLastFrame,int options)
@@ -481,10 +679,24 @@ void fixChunkHeader(FLIChunkHeader *animChunkHdr,ulong maxSize,ulong chunkNum,in
     };
   if ((nFixes>0)&&(options & poDisplayAllInfo))
   {
-      if (isLastFrame)
-        printf("-->Chunk no %lu header info for last frame incorrect - FIXED\n",chunkNum);
-      else
-        printf("-->Chunk no %lu header info incorrect - FIXED\n",chunkNum);
+      if (isLastFrame) {
+          //printf("-->Chunk no %lu header info for last frame incorrect - FIXED\n", chunkNum);
+          std::string msg("-->Chunk no ");
+          char hlpstr[20];
+          snprintf(hlpstr, 20, "%lu", chunkNum);
+          msg.append(hlpstr);
+          msg.append(" header info for last frame incorrect - FIXED");
+          logging::Info(msg);
+      }
+      else {
+          //printf("-->Chunk no %lu header info incorrect - FIXED\n", chunkNum);
+          std::string msg("-->Chunk no ");
+          char hlpstr[20];
+          snprintf(hlpstr, 20, "%lu", chunkNum);
+          msg.append(hlpstr);
+          msg.append(" header info incorrect - FIXED");
+          logging::Info(msg);
+      }
   }
 }
 

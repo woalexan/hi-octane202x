@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++, and extended with some new code)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++, and extended with some new code)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -48,7 +48,7 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
        uint16_t element = -cid - 1;
        if (element > columnDefinitions.size()-1) {
         //error this should never happen
-         std::cout <<"Column ID outside allowed size found!!! This should not happen" << std::endl;
+           logging::Error("Column ID outside allowed size found!!! This should not happen");
        } else {
        this->m_Column = columnDefinitions.at(element);
        cid = m_Column->get_FloorTextureID();

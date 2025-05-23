@@ -2439,6 +2439,7 @@ void PrepareData::PrepareIntro() {
 
     char outFrameFileName[50];
     char fname[20];
+    std::string msg("");
 
     for (long i = 0; i < header.frames; ++i) {
     if (!decoder.readFrame(frame)) {
@@ -2450,6 +2451,12 @@ void PrepareData::PrepareIntro() {
        strcpy(outFrameFileName, "extract/intro/frame");
        sprintf (fname, "%0*lu.png", 4, i);
        strcat(outFrameFileName, fname);
+
+       msg.clear();
+       msg.append("Upscaling frame ");
+       msg.append(std::to_string(i));
+       msg.append("...");
+       logging::Info(msg);
 
        //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
        ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2);

@@ -6,7 +6,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did translation to C++, I later added the normals calculation
+ Copyright (C) 2024-2025 Wolf Alexander       (I did translation to C++, I later added the normals calculation
                                           and texture support as well.)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
  
@@ -161,16 +161,21 @@ void ObjectDatFile::DebugWriteTriangleCsvFile(char* debugOutPutFileName, int tri
 }
 
 bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
+    char hlpstr[500];
+    std::string msg("");
 
     if (!ConversionSuccesful) {
-        printf("\nError - ObjectDatFile: BitConverterToInt16 failed unit test on this computer!\n");
+        logging::Error("ObjectDatFile: BitConverterToInt16 failed unit test on this computer!");
         return false;
     }
 
       //make sure file exists
       if (FileExists(filename) != 1) {
           //file does not exist, or item is actually no file
-          printf("\nError - The following file does not exist: %s\n",filename);
+          snprintf(hlpstr, 500, "The following file does not exist: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
@@ -199,7 +204,10 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
           } while (counter < size);
           fclose(iFile);
       } else {
-          printf("\nError - The following file can not be opened: %s\n",filename);
+          snprintf(hlpstr, 500, "The following file can not be opened: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
@@ -224,7 +232,10 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
              headerValid = false;
 
       if (!headerValid) {
-          printf("\nError - The header in the following file is invalid: %s\n",filename);
+          snprintf(hlpstr, 500, "The header in the following file is invalid: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
@@ -239,35 +250,50 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       //one of the 4 zeros after the header is missing, exit
       if (!headerValid)
       {
-          printf("\nError - One of the 4 Zeros after the header was not found: %s\n",filename);
+          snprintf(hlpstr, 500, "One of the 4 Zeros after the header was not found: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       //get numBytesTriDef
       int numBytesTriDef = (unsigned char)(ByteArray[headerLen + 4]) | ((unsigned char)(ByteArray[headerLen + 5]) << 8);
       if (numBytesTriDef == 0) {
-          printf("\nError - File contains zero triangles: %s\n",filename);
+          snprintf(hlpstr, 500, "File contains zero triangles: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       // 2 zerobytes (or 2 more bytes of numBytesTriDef maybe)
       if ((ByteArray[headerLen + 6] != 0) || (ByteArray[headerLen + 7] != 0))
       {
-          printf("\nError - File does not contain 2 zerobytes at location headerLen + 6 and headerLen + 7: %s\n",filename);
+          snprintf(hlpstr, 500, "File does not contain 2 zerobytes at location headerLen + 6 and headerLen + 7: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       int numBytesVertexData = (unsigned char)(ByteArray[headerLen + 8]) | ((unsigned char)(ByteArray[headerLen + 9]) << 8);
 
       if (numBytesVertexData == 0) {
-          printf("\nError - File contains zero VertexData: %s\n",filename);
+          snprintf(hlpstr, 500, "File contains zero VertexData: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       // 2 zerobytes (or 2 more bytes of numBytesVertexData maybe)
       if ((ByteArray[headerLen + 10] != 0) || (ByteArray[headerLen + 11] != 0))
       {
-        printf("\nError - File does not contain 2 zerobytes at location headerLen + 10 and headerLen + 11: %s\n",filename);
+        snprintf(hlpstr, 500, "File does not contain 2 zerobytes at location headerLen + 10 and headerLen + 11: %s",filename);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Error(msg);
         return false;
       }
 
@@ -275,20 +301,29 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       int num3 = (unsigned char)(ByteArray[headerLen + 12]) | ((unsigned char)(ByteArray[headerLen + 13]) << 8);
 
       if (num3 == 0) {
-          printf("\nError - Invalid num3 value found: %s\n",filename);
+          snprintf(hlpstr, 500, "Invalid num3 value found: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
         }
 
       // 2 zerobytes (or 2 more bytes of num 3 maybe)
       if ((ByteArray[headerLen + 14] != 0) || (ByteArray[headerLen + 15] != 0))
       {
-        printf("\nError - File does not contain 2 zerobytes at location headerLen + 14 and headerLen + 15: %s\n",filename);
+        snprintf(hlpstr, 500, "File does not contain 2 zerobytes at location headerLen + 14 and headerLen + 15: %s",filename);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Error(msg);
         return false;
       }
 
       //2 constants (05 and 01, same in all object files)
       if (ByteArray[headerLen + 16] != 5 && ByteArray[headerLen + 16] != 7) {
-          printf("\nError - Constant 1 is %u, not 5 or 7 in file: %s\n",ByteArray[headerLen + 16], filename);
+          snprintf(hlpstr, 500, "Constant 1 is %u, not 5 or 7 in file: %s",ByteArray[headerLen + 16], filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
@@ -297,32 +332,47 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
 
       //3 constants (01 and 04 and 20, same in all object files)
       if (ByteArray[headerLen + 17] != 1 && ByteArray[headerLen + 17] != 4 && ByteArray[headerLen + 17] != 20) {
-          printf("\nError - Constant 2 is %u, not 1, 4 or 20 in file: %s\n",ByteArray[headerLen + 17], filename);
+          snprintf(hlpstr, 500, "Constant 2 is %u, not 1, 4 or 20 in file: %s",ByteArray[headerLen + 17], filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       //numTriangles
       int numTriangles = (unsigned char)(ByteArray[headerLen + 18]) | ((unsigned char)(ByteArray[headerLen + 19]) << 8);
       if (numTriangles == 0) {
-          printf("\nError - Invalid numTriangles found: %s\n",filename);
+          snprintf(hlpstr, 500, "Invalid numTriangles found: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       //numVertices
       int numVertices = (unsigned char)(ByteArray[headerLen + 20]) | ((unsigned char)(ByteArray[headerLen + 21]) << 8);
       if (numVertices == 0) {
-          printf("\nError - Invalid numVertices found: %s\n",filename);
+          snprintf(hlpstr, 500, "Invalid numVertices found: %s",filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       //2 constants (4F and 00, same in all object files)
       if (ByteArray[headerLen + 22] != 0x4f) {
-          printf("\nError - Constant 3 is %u, not 0x4F in file: %s\n",ByteArray[headerLen + 22], filename);
+          snprintf(hlpstr, 500, "Constant 3 is %u, not 0x4F in file: %s",ByteArray[headerLen + 22], filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
       if (ByteArray[headerLen + 23] != 0) {
-          printf("\nError - Constant 4 is %u, not 0 in file: %s\n",ByteArray[headerLen + 23], filename);
+          snprintf(hlpstr, 500, "Constant 4 is %u, not 0 in file: %s",ByteArray[headerLen + 23], filename);
+          msg.clear();
+          msg.append(hlpstr);
+          logging::Error(msg);
           return false;
       }
 
@@ -359,7 +409,10 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
 
           if (type != 5 && type != 4)
           {
-              printf("\nError - Triangle #%d has unknown type %u in file: %s\n", i+1, type, filename);
+              snprintf(hlpstr, 500, "Triangle #%d has unknown type %u in file: %s", i+1, type, filename);
+              msg.clear();
+              msg.append(hlpstr);
+              logging::Error(msg);
               return false;
           }
 
@@ -392,6 +445,7 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
 
               //we do not have a valid pointer, quit with error!
               if (pntrItem == NULL) {
+                  logging::Error("No valid pointer, quit!");
                   return false;
               }
 
@@ -579,7 +633,7 @@ bool ObjectDatFile::CreateMtlFile(char* outFilename) {
 
 bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname) {
     if (!ConversionSuccesful) {
-        printf("\nError - ObjectDatFile: BitConverterToInt16 failed unit test on this computer!\n");
+        logging::Error("ObjectDatFile: BitConverterToInt16 failed unit test on this computer!");
         return false;
     }
 

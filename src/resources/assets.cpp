@@ -532,7 +532,7 @@ bool Assets::FindGameConfigFile() {
             mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>("config.dat"));
 
     if (configFilePath.empty()) {
-        cout << "I did not find an existing config.dat file => create default config" << std::endl;
+        logging::Info("I did not find an existing config.dat file => create default config");
         return false;
     }
 
@@ -546,8 +546,8 @@ bool Assets::FindGameConfigFile() {
 
     if (((!mInfra->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_DEFAULT_GAME))
          || ((mInfra->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_EXTENDED_GAME))) {
-            cout << "Existing config.dat file filesize does not fit to expected size => recreate it" << std::endl;
-            return false;
+        logging::Warning("Existing config.dat file filesize does not fit to expected size => recreate it");
+        return false;
     }
 
     //we found a valid config.dat file

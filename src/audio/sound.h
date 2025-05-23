@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -15,6 +15,8 @@
 #include <cstdint>
 #include "../models/player.h"
 #include "../infrabase.h"
+#include "../utils/logging.h"
+#include <cstdio>
 
 //File name definition
 #define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"
