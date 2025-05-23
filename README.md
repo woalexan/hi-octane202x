@@ -25,22 +25,29 @@ make
 A successful build will place the `hi-octane202x` binary in the build directory.
 
 #### Run
-After copying the game data files into `build/originalgame`, you can run the game by invoking `./hi-octane202x` in the build directory. I was only able to test two different original versions of the game, and I am almost sure there are other versions out there which will at the beginning not work without further modifications.
+After copying the game data files into `build/originalgame`, you can run the game by invoking `./hi-octane202x` in the build directory. I was only able to test two different original versions of the game, and I am almost sure there are other versions out there which will at the beginning not work without further modifications. If this is the case please let me know, so that I can try to hopefully fix the issue.
+
+#### Data extraction
+During the first start of the game the original games data is extracted into subfolder `build/extract`, and then loaded from there. If for any reason an error occured during first data extraction, and you want to try again, or you want to reextract the data again, you only need to erase the subfolder `build/extract`, and restart the game. Every time the game is started it checks if this subfolder is still present. If this is not the case then all the data is extracted again.
+
+Please do not delete the original games folder, even after data extraction it is still needed afterwards during each start of the project.
 
 #### Environment
-I develop and test the source code using Linux and OpenGL. This means this combination will work most likely. I also did some test runs using a Windows Notebook using Visual Studio Community and MSVC compiler, which also worked at this point in time. But because I can only do these tests from time to time compilation and running this program under Windows will be more prone to problems. Thank you for your understanding if something does not work one day.
+I develop and test the source code using Linux and OpenGL. This means this combination will work most likely. I also did some test runs using a Windows Notebook using Visual Studio Community and MSVC compiler, which also worked at this point in time. But because I can only do these tests from time to time compilation and running this program under Windows will be more prone to problems, and will most likely not work all the time. Thank you for your understanding if something does not work one day. This project is only a hobby for me, and sometimes my energy and time is very limited.
 
 The one time I tried to run the project using Direct3D failed. I hope one day I can fix this issue, but because OpenGL is working also under Windows this is not so important for me.
 
 ![level5explosion](screenshots/level5-explosion.png)
 
 #### Acknowledgements
-I would never have been able to start this project without the great work, effort and help from many people before me. A big thank you!
-Many parts of the original game file formats were reverse engineered in the great "HiOctaneTools" project which can be also found on GitHub. 
+I would never have been able to start this project without the great work, effort and help from many people before me. A big thank you to everybody that made this
+project possible! Many parts of the original game file formats were reverse engineered in the great "HiOctaneTools" project which can be also found on GitHub. My first steps were directly based on the original C# source code of this project, and I started to develop everything else based on this some years ago.
 
 Another valuable source of information was the DOS Game Modding Wiki. Especially regarding information about the sound, video and music files of
 the game. This project is based on the Irrlicht Engine for output window creation and graphics. For sound and music I started to use the great SFML library.
 Playing the original game music files was a pretty challenging task, and it took me a lot of investigations and attempts to make it work. At the end I succeded by combining source code of multiple great open source software projects and the libADLMIDI library. This software also takes care of OPL chip emulation that is necessary to play the original games music.
+
+Last but not least I want to thank my wife, my two children, and my family for letting me spend many many hours working on this project.
 
 ![craftselection](screenshots/craftselection.png)
 
@@ -65,7 +72,3 @@ Unfortunetly the current state of the game is far from perfect or finished. It c
 - If possible add a level editor one day. The "HiOctaneTools" project already started working into this direction
 
 ![level5afterrace](screenshots/level5-afterrace.png)
-
-
-
-
