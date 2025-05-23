@@ -34,74 +34,80 @@ long filesize(FILE *fp)
 
 void showError(int ErrNum, const char ErrText[])
 {
-  printf("  !!! There was an error during program execution !!!\n");
+  std::string msg("");
+  msg.append("  !!! There was an error during program execution !!!\n");
  if (ErrNum==errImpossible)
   {
-  printf("\n    IMPOSSIBLE EVENT HAS HAPPEN.\n  PROGRAM IS BADLY MODIFIED OR YOUR COMPUTER IS UNSTABLE.\n");
+  msg.append("IMPOSSIBLE EVENT HAS HAPPEN.\n  PROGRAM IS BADLY MODIFIED OR YOUR COMPUTER IS UNSTABLE.\n");
   }
  else
   {
-  printf("    When ");
+  msg.append("    When ");
   if (ErrNum & errFileRead)
-    printf("reading from a file");
+    msg.append("reading from a file");
    else
   if (ErrNum & errFileWrite)
-    printf("writing to a file");
+    msg.append("writing to a file");
    else
   if (ErrNum & errFileOpen)
-    printf("opening a file");
+    msg.append("opening a file");
    else
   if (ErrNum & errMemAlloc)
-    printf("allocating memory required");
+    msg.append("allocating memory required");
    else
-    printf("processings");
+    msg.append("processings");
+
   if (ErrNum & 0x0ff0)
     {
-    printf(" the element: ");
+    msg.append(" the element: ");
     if (ErrNum & errMainHdr)
-      printf("Main FLI header");
+      msg.append("Main FLI header");
      else
     if (ErrNum & errFrameHdr)
-      printf("a frame header");
+      msg.append("a frame header");
      else
     if (ErrNum & errChunkHdr)
-      printf("a Chunk (part of frame) header");
+      msg.append("a Chunk (part of frame) header");
      else
     if (ErrNum & errChunkData)
-      printf("a Chunk (part of frame) data");
+      msg.append("a Chunk (part of frame) data");
      else
     if (ErrNum & errAddHdr)
-      printf("Main FLI header additional segments");
+      msg.append("Main FLI header additional segments");
      else
     if (ErrNum & errFramePosTbl)
-      printf("a Frame Position Table");
+      msg.append("a Frame Position Table");
      else
     if (ErrNum & errPlainData)
-      printf("a plain data");
+      msg.append("a plain data");
      else
-      printf("unknown");
+      msg.append("unknown");
     };
-  printf(",\n    the exception has occured:\n");
-  printf("    %s\n",ErrText);
+  msg.append(",\n    the exception has occured:\n");
+  char hlpstr[500];
+  snprintf(hlpstr, 500, "    %s\n",ErrText);
+  msg.append(hlpstr);
   if (ErrNum & errDataNotExist)
-    printf("    The expected data couldn't be found.\n");
+    msg.append("    The expected data couldn't be found.\n");
   if (ErrNum & errCannotComplete)
-    printf("    The operation couldn't be completed.\n");
+    msg.append("    The operation couldn't be completed.\n");
   if (ErrNum & errOnlyParsing)
-    printf("    This happen on parsing only, not on final processing.\n    Parsing cancelled.\n");
+    msg.append("    This happen on parsing only, not on final processing.\n    Parsing cancelled.\n");
   }; //end if (ErrNum==errImposs...
 
 if (ErrNum & errCritical)
   {
-   printf("   With this error, program is unable to continue.\n");
-   printf("   Program will now exit. Bye.\n");
+   msg.append("   With this error, program is unable to continue.\n");
+   msg.append("   Program will now exit. Bye.\n");
+   logging::Error(msg);
    //printf(" (Press any key to quit)\n");
    //getch();
    exit(EXIT_FAILURE);
   }
   else
   {
-   printf("   Program will now try to continue, but some data may be invalid.\n\n");
+   msg.append("   Program will now try to continue, but some data may be invalid.\n\n");
+   logging::Error(msg);
   };
 }
 
@@ -116,7 +122,7 @@ void loadPalette(const char *pal_file_name,void *palette_buffer,size_t BufSize,i
     if ((ReadOK!=BufSize) && !(Options & poIgnoreExceptions))
         showError(errFileRead,"I couldn't read enought bytes of palette file to reconstruct chunk.");
     if (Options & poDisplayAllInfo)
-        printf("    ==>Palette chunk constructed.\n");
+        logging::Info("    ==>Palette chunk constructed.");
     fclose(palfp);
 }
 
@@ -147,7 +153,7 @@ int loadDataFromFile(FILE *File,void *Buf,size_t BytesToRead,int ErrNum,int Opti
     char *ErrMsg=(char *)malloc(256);
     if (ErrMsg!=NULL)
       {
-      sprintf(ErrMsg,"Couldn't read more than %zu bytes, %zu needed. EOF or read error.",ReadOK,BytesToRead);
+      snprintf(ErrMsg,256, "Couldn't read more than %zu bytes, %zu needed. EOF or read error.",ReadOK,BytesToRead);
       showError(errFileRead|ErrNum,ErrMsg);
       free(ErrMsg);
       }
@@ -162,19 +168,25 @@ int loadDataFromFile(FILE *File,void *Buf,size_t BytesToRead,int ErrNum,int Opti
 
 void *allocateMem(ulong buffer_size,int ErrNum,int mem_clear,int Options)
 {
-//    printf("!AllocateMem starting, %d\n",buffer_size);
+    char hlpstr[500];
+    std::string msg("");
+
+    snprintf(hlpstr, 500, "!AllocateMem starting, %d\n",buffer_size);
+    msg.append(hlpstr);
+    logging::Info(msg);
+
     char *Data=(char*)malloc(buffer_size);
 //    printf("!AllocateMem done\n");
     if ((Data==NULL) && !(Options & poIgnoreExceptions))
     {
-//        printf("!AllocateMem error occured\n");
+        logging::Error("!AllocateMem error occured");
         char *ErrMsg=(char *)malloc(128);
         if (ErrMsg!=NULL)
         {
           if (buffer_size<8192)
-            sprintf(ErrMsg,"Cannot allocate %lu bytes. Whole memory has been allocated before.",buffer_size);
+            snprintf(ErrMsg, 128, "Cannot allocate %lu bytes. Whole memory has been allocated before.",buffer_size);
           else
-            sprintf(ErrMsg,"Cannot allocate %lu bytes. Maybe U should modify FLI file to have less frames.",buffer_size);
+            snprintf(ErrMsg, 128, "Cannot allocate %lu bytes. Maybe U should modify FLI file to have less frames.",buffer_size);
         showError(errMemAlloc|ErrNum,ErrMsg);
         free(ErrMsg);
         }

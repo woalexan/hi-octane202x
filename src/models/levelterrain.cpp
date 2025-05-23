@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -224,22 +224,63 @@ void LevelTerrain::FinishTerrainInitialization() {
     findTerrainOptimization();
 
     if (setupGeometry()) {
-         std::cout << "HiOctane Terrain '" << mName << "' loaded: " <<
+         /*std::cout << "HiOctane Terrain '" << mName << "' loaded: " <<
                     numVertices << " vertices, " <<
                     numNormals << " normals, " <<
                     numUVs << " UVs, " <<
                     mTexSource->NumLevelTextures << " textures, " <<
-                    numIndices << " indices" << endl << std::flush;
+                    numIndices << " indices" << endl << std::flush;*/
+
+         std::string infoMsg("HiOctane Terrain '");
+         infoMsg.append(mName);
+         infoMsg.append("' loaded: ");
+         char hlpstr[20];
+
+         //add number vertices
+         sprintf(hlpstr, "%ud", numVertices);
+         infoMsg.append(hlpstr);
+         infoMsg.append(" vertices, ");
+
+         //add number normals
+         sprintf(hlpstr, "%ud", numNormals);
+         infoMsg.append(hlpstr);
+         infoMsg.append(" normals, ");
+
+         //add number UVs
+         sprintf(hlpstr, "%ud", numUVs);
+         infoMsg.append(hlpstr);
+         infoMsg.append(" UVs, ");
+
+         //add number textures
+         sprintf(hlpstr, "%d", mTexSource->NumLevelTextures);
+         infoMsg.append(hlpstr);
+         infoMsg.append(" textures, ");
+
+         //add number indices
+         sprintf(hlpstr, "%ud", numIndices);
+         infoMsg.append(hlpstr);
+         infoMsg.append(" indices");
+
+         logging::Info(infoMsg);
 
           if (numVertices > 80000) {
-                 std::cout << "More than 80000 vertices for Level Mesh! Drawing whole level not possible anymore. Need to exit application!" << endl << std::flush;
-                 Terrain_ready = false;
+               logging::Error("More than 80000 vertices for Level Mesh! Drawing whole level not possible anymore. Need to exit race!");
+               Terrain_ready = false;
           }
 
-         std::cout << "HiOctane Terrain '" << mName << "' loaded ok"  << endl << std::flush;
+         //std::cout << "HiOctane Terrain '" << mName << "' loaded ok"  << endl << std::flush;
+         infoMsg.clear();
+         infoMsg.append("HiOctane Terrain '");
+         infoMsg.append(mName);
+         infoMsg.append("' loaded ok");
+         logging::Info(infoMsg);
 
     } else {
-        std::cout << "failed setting up game model '" << mName << "'" << endl << std::flush;
+        //std::cout << "failed setting up game model '" << mName << "'" << endl << std::flush;
+        std::string errMsg("Failed setting up Terrain '");
+        errMsg.append(mName);
+        errMsg.append("'");
+        logging::Error(errMsg);
         Terrain_ready = false;
     }
 

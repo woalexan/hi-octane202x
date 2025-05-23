@@ -15,6 +15,7 @@
 #include "draw/hud.h"
 #include "draw/introplayer.h"
 #include "infrabase.h"
+#include "utils/logging.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_EXTRACTDATA 1

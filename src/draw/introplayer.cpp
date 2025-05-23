@@ -151,7 +151,8 @@ bool IntroPlayer::Init() {
         newTex = mInfra->mDriver->getTexture(frameFileName);
         if (newTex == NULL) {
             //there was a texture loading error
-            std::cout << "Intro image loading error" << std::endl;
+            //std::cout << "Intro image loading error" << std::endl;
+            logging::Error("Intro image loading error");
 
             return false;
         }
@@ -202,7 +203,8 @@ bool IntroPlayer::Init() {
 
     //load the intro music
     if (!mMusicPlayer->loadGameMusicFile((char*)"extract/music/TINTRO2.XMI")) {
-         std::cout << "Music load failed" << std::endl;
+         //std::cout << "Music load failed" << std::endl;
+         logging::Error("Music load failed");
          return false;
     }
 

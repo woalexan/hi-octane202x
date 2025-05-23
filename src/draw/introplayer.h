@@ -15,6 +15,7 @@
 #include "../audio/music.h"
 #include "../audio/sound.h"
 #include "../infrabase.h"
+#include "../utils/logging.h"
 
 //this struct holds the information for a sound trigger event
 //used during the games intro playing

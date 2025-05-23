@@ -1239,9 +1239,9 @@ void Player::EndDbgRecording() {
 
     outputFile = fopen((char*)("collexport.txt"), "w");
 
-    int maxIdx = dbgRecordFrontHeight->size();
+    size_t maxIdx = dbgRecordFrontHeight->size();
 
-    for (int currIdx = 0; currIdx < maxIdx; currIdx++) {
+    for (size_t currIdx = 0; currIdx < maxIdx; currIdx++) {
 
         fprintf(outputFile, "%lf;%lf;%u;%u\n",
                 dbgRecordFrontHeight->at(currIdx),
@@ -2391,7 +2391,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     if (nextLeaningAngleUpdate < 0.0f) {
         //update avg leaning angle every 16 ms
-        nextLeaningAngleUpdate = 0.016;
+        nextLeaningAngleUpdate = 0.016f;
 
         if (!isnan(currPlayerCraftLeaningAngleDeg)) {
                 //update average value for craft leaning angle left/right

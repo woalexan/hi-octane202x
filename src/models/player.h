@@ -25,10 +25,8 @@
 #include "mgun.h"
 #include "missile.h"
 #include "cpuplayer.h"
-#include "levelterrain.h"
 #include "../utils/path.h"
 #include "../utils/bezier.h"
-#include "../draw/hud.h"
 #include "../models/camera.h"
 #include "../utils/movingavg.h"
 

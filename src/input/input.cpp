@@ -15,6 +15,7 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "input.h"
+#include "../utils/logging.h"
 
 // This is the one method that we have to implement
 bool MyEventReceiver::OnEvent(const SEvent& event)
@@ -31,6 +32,34 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
                 KeyIsLockedCurr[event.KeyInput.Key] = false;
             }
         }
+    }
+
+    //we want to process Irrlicht logging events in our own
+    //logger class
+    if (event.EventType == irr::EET_LOG_TEXT_EVENT) {
+        switch (event.LogEvent.Level) {
+                case irr::ELOG_LEVEL::ELL_ERROR: {
+                    logging::Error(event.LogEvent.Text);
+                    break;
+                }
+                case irr::ELOG_LEVEL::ELL_WARNING: {
+                    logging::Warning(event.LogEvent.Text);
+                    break;
+                }
+
+                case irr::ELOG_LEVEL::ELL_DEBUG: {
+                    logging::Debug(event.LogEvent.Text);
+                    break;
+                }
+
+                case irr::ELOG_LEVEL::ELL_INFORMATION:
+                default: {
+                    logging::Message("", logging::NORMAL, event.LogEvent.Text);
+                    break;
+                }
+        }
+
+        return true;
     }
 
     return false;

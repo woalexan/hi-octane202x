@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -9,6 +9,7 @@
 
 #include "music.h"
 #include "../utils/fileutils.h"
+#include "../utils/logging.h"
 #include <cstdlib>
 #include <iostream>
 
@@ -31,7 +32,7 @@ bool MyMusicStream::prepareInstrumentFile() {
 
      if (inputDatFile.empty()) {
          //input file not found!
-          std::cout << "Music: Could not locate the original games sound data file sample.opl" << std::endl;
+          logging::Error("Music: Could not locate the original games sound data file sample.opl");
           delete testAILBank;
           delete  AILBank;
           return false;
@@ -41,7 +42,7 @@ bool MyMusicStream::prepareInstrumentFile() {
 
      if (AILBank->loadFile(inputFileName, *testAILBank) != FfmtErrCode::ERR_OK) {
          //there was an error loading the file
-         std::cout << "Music: Failed loading originalgame/sound/sample.opl instrument file" << std::endl;
+         logging::Error("Music: Failed loading originalgame/sound/sample.opl instrument file");
          delete testAILBank;
          delete  AILBank;
          return false;
@@ -54,7 +55,10 @@ bool MyMusicStream::prepareInstrumentFile() {
      std::string outputFileName((char*)(MUSIC_INSTRFILE_PATH));
      if (wOPLBank->saveFile(outputFileName, *testAILBank) != FfmtErrCode::ERR_OK) {
          //there was an error writing the new file
-         std::cout << "Music: Failed writing " << outputFileName << " wOPLinstrument file" << std::endl;
+         std::string errMsg("Music: Failed writing ");
+         errMsg.append(outputFileName);
+         errMsg.append(" wOPLinstrument file");
+         logging::Error(errMsg);
          delete wOPLBank;
          delete testAILBank;
          delete  AILBank;
@@ -90,26 +94,40 @@ bool MyMusicStream::VerifyInstrumentFile() {
         }
         catch (const std::string &e) {
             //problem creating sub dir
-            std::cout << "Music: Problem creating missing Subdir for WOPL instrument file (" << e << ")" << std::endl;
+            //std::cout << "Music: Problem creating missing Subdir for WOPL instrument file (" << e << ")" << std::endl;
+            std::string errMsg("Music: Problem creating missing Subdir for WOPL instrument file (");
+            errMsg.append(e);
+            errMsg.append(")");
+            logging::Error(errMsg);
+
             return false;
         }
 
-        std::cout << "Music: Create " << std::string(MUSIC_INSTRFILE_PATH) << " wOPL instrument file" << std::endl;
+        //std::cout << "Music: Create " << std::string(MUSIC_INSTRFILE_PATH) << " wOPL instrument file" << std::endl;
+        std::string infoMsg("Music: Create ");
+        infoMsg.append(std::string(MUSIC_INSTRFILE_PATH));
+        infoMsg.append(" wOPL instrument file");
+        logging::Info(infoMsg);
+
         if (!prepareInstrumentFile()) {
-            std::cout << "Music: File creation failed" << std::endl;
+            logging::Error("Music: File creation failed");
             return false;
         }
 
         fileExists = FileExists((char*)(MUSIC_INSTRFILE_PATH));
         if (fileExists == 1) {
-            std::cout << "Music: File creation succeded" << std::endl;
+            logging::Info("Music: File creation succeded");
             return true;
         }
 
-        std::cout << "Music: File creation failed" << std::endl;
+        logging::Error("Music: File creation failed");
         return false;
     } else if (fileExists == 1) {
-        std::cout << "Music: Instrument file " << std::string(MUSIC_INSTRFILE_PATH) << " found" << std::endl;
+        //std::cout << "Music: Instrument file " << std::string(MUSIC_INSTRFILE_PATH) << " found" << std::endl;
+        std::string infoMsg("Music: Instrument file ");
+        infoMsg.append(std::string(MUSIC_INSTRFILE_PATH));
+        infoMsg.append(" found");
+        logging::Info(infoMsg);
         //file exists already
         return true;
     }
@@ -161,7 +179,10 @@ MyMusicStream::MyMusicStream(InfrastructureBase* infraPnter, unsigned int sample
 
     if (!midi_player)
     {
-        fprintf(stderr, "Couldn't initialize ADLMIDI: %s\n", adl_errorString());
+        std::string errMsg("Couldn't initialize ADLMIDI: ");
+        errMsg.append(adl_errorString());
+        //fprintf(stderr, "Couldn't initialize ADLMIDI: %s\n", adl_errorString());
+        logging::Error(errMsg);
         mInitOk = false;
         return;
     }
@@ -208,7 +229,13 @@ bool MyMusicStream::loadGameMusicFile(char* fileName) {
     /* Open the MIDI (or MUS, IMF or CMF) file to play */
     if (adl_openFile(midi_player, fileName) < 0)
         {
-            fprintf(stderr, "Couldn't open music file: %s\n", adl_errorInfo(midi_player));
+            std::string errMsg("Couldn't open music file ");
+            errMsg.append(fileName);
+            errMsg.append(" :");
+            errMsg.append(adl_errorInfo(midi_player));
+            logging::Error(errMsg);
+
+            //fprintf(stderr, "Couldn't open music file: %s\n", adl_errorInfo(midi_player));
 
             this->mMusicLoaded = false;
             return false;
@@ -303,7 +330,8 @@ bool MyMusicStream::onGetData(Chunk& data)
 }
 
 void MyMusicStream::onSeek(sf::Time timeOffset) {
-      std::cout << "MyMusicStream::onSeek Please implement me!" << std::endl;
+      //std::cout << "MyMusicStream::onSeek Please implement me!" << std::endl;
+      logging::Info("MyMusicStream::onSeek Please implement me!");
 }
 
 

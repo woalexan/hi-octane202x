@@ -10,6 +10,8 @@
 #include <string.h>
 #include <cstring>
 #include <cstdint>
+#include <string>
+#include "../../utils/logging.h"
 
 //source code taken from http://syndicate.lubiki.pl/downloads/bullfrog_utils_tabdat.zip
 //for readme file please see bullfrog_utils_tabdat-readme.txt

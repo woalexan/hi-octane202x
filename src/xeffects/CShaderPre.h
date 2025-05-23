@@ -1,7 +1,11 @@
+/* Note Wolf Alexander: The source code below is not 100% the original code anymore,
+ * as I modified the logging, so that messages to the user go through the projects logging subsystem */
+
 #ifndef H_C_SHADER_PP
 #define H_C_SHADER_PP
 
 #include <irrlicht.h>
+#include "../utils/logging.h"
 
 class CShaderPreprocessor
 {

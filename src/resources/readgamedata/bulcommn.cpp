@@ -123,13 +123,19 @@ void write_bmp_idx (char *fname, uint16_t width, uint16_t height,
 		unsigned char *pal, char *data,
         int16_t red, int16_t green, int16_t blue, int16_t mult)
 {
+    char hlpstr[500];
+    std::string msg("");
+
     uint16_t i, j;
     FILE *out;
     
     out = fopen (fname, "wb");
     if (!out)
     {
-	    printf ("\nCan't open file %s. Aborting.\n", fname);
+	    snprintf (hlpstr, 500, "\nCan't open file %s. Aborting.", fname);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Error(msg);
 	    exit (1);
     }
     
@@ -173,11 +179,16 @@ void write_bmp_24b (char *fname, uint16_t width, uint16_t height, char *data)
 {
     uint16_t i;
     FILE *out;
+    char hlpstr[500];
+    std::string msg("");
     
     out = fopen (fname, "wb");
     if (!out)
     {
-	    printf ("\nCan't open file %s. Aborting.\n", fname);
+	    snprintf (hlpstr, 500, "\nCan't open file %s. Aborting.", fname);
+        msg.clear();
+        msg.append(hlpstr);
+        logging::Error(msg);
 	    exit (1);
     }
     

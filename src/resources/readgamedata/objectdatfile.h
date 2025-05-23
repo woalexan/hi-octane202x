@@ -6,7 +6,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did translation to C++, I later added the normals calculation
+ Copyright (C) 2024-2025 Wolf Alexander       (I did translation to C++, I later added the normals calculation
                                           and texture support as well.)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
  
@@ -27,6 +27,7 @@
 #include <sstream>
 #include "irrlicht.h"
 #include "../../definitions.h"
+#include "../../utils/logging.h"
 
 #define OBJDATHEADER "BULLFROG OBJECT DATA"
 #define OBJDATHEADERLENGTH 58

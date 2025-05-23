@@ -15,6 +15,7 @@
 #define __PrgTools_H
 
 #include <stdio.h>
+#include "../../utils/logging.h"
 
 typedef unsigned long ulong;
 typedef unsigned int uint;

@@ -32,7 +32,7 @@ bool Game::InitSFMLAudio() {
     //init music
     gameMusicPlayer = new MyMusicStream(mInfra, audioSampleRate);
     if (!gameMusicPlayer->getInitOk()) {
-        cout << "Music init failed!" << endl;
+        logging::Error("Music init failed!");
         return false;
     }
 
@@ -52,7 +52,7 @@ bool Game::LoadGameData() {
     gameSoundEngine->LoadSoundResources();
 
     if (!gameSoundEngine->getSoundResourcesLoadOk()) {
-        cout << "Sound resource init failed!" << endl;
+        logging::Error("Sound resource init failed!"); 
         return false;
     }
 
@@ -60,14 +60,14 @@ bool Game::LoadGameData() {
     mInfra->mGameTexts->LoadFontsStep2();
 
     if (!mInfra->mGameTexts->GameTextInitializedOk) {
-        cout << "Second game font init operation failed!" << endl;
+        logging::Error("Second game font init operation failed!");
         return false;
     }
 
     //create the game menue
     MainMenue = new Menue(mInfra, gameSoundEngine, this, mGameAssets);
     if (!MainMenue->MenueInitializationSuccess) {
-        cout << "Game menue init operation failed!" << endl;
+        logging::Error("Game menue init operation failed!");
         return false;
     }
 
@@ -91,7 +91,7 @@ bool Game::InitGameStep2() {
     if (!InitSFMLAudio())
         return false;
 
-    mInfra->mLogger->AddLogMessage((char*)"Audio init ok");
+    logging::Info("Audio init ok");
 
     if (DebugShowVariableBoxes) {
             //only for debugging
@@ -457,7 +457,7 @@ void Game::HandleMenueActions() {
     //start a demo?
     if (pendingAction == MainMenue->ActStartDemo) {
         //pick a random level number for the demo
-        nextRaceLevelNr = this->mInfra->randRangeInt(1, mGameAssets->mRaceTrackVec->size());
+        nextRaceLevelNr = this->mInfra->randRangeInt(1, (int)(mGameAssets->mRaceTrackVec->size()));
 
         mGameState = DEF_GAMESTATE_INITDEMO;
     }
@@ -593,9 +593,11 @@ void Game::GameLoopExtractData() {
         }
     }
      catch (const std::string &msg) {
-            cout << "Step 2 of game assets preparation operation failed!\n" << msg << endl;
-            mGameState = DEF_GAMESTATE_ERROR;
-            return;
+         std::string msgExt("Step 2 of game assets preparation operation failed: ");
+         msgExt.append(msg);
+         logging::Error(msgExt);
+         mGameState = DEF_GAMESTATE_ERROR;
+         return;
     }
 
     mInfra->mDriver->beginScene(true,true,
@@ -610,7 +612,7 @@ void Game::GameLoopExtractData() {
 void Game::GameLoopTitleScreenLoadData() {
     //we need to load additional images
     if (!LoadAdditionalGameImages()) {
-        std::cout << "Loading of game tile and race loading images failed" << std::endl;
+        logging::Error("Loading of game tile and race loading images failed");
         mGameState = DEF_GAMESTATE_ERROR;
         return;
     }
@@ -1162,7 +1164,7 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
 
     if (!mCurrentRace->ready) {
         //there was a problem with Race initialization
-        cout << "Race creation failed!" << endl;
+        logging::Error("Race creation failed!");
         return false;
     }
 

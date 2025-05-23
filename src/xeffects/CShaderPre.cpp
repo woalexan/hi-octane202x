@@ -1,3 +1,6 @@
+/* Note Wolf Alexander: The source code below is not 100% the original code anymore,
+ * as I modified the logging, so that messages to the user go through the projects logging subsystem */
+
 #include "CShaderPre.h"
 #include <iostream>
 #include <string>
@@ -69,7 +72,7 @@ core::array<SDefineExp> grabDefineExpressions(core::stringc &shaderProgram)
 
 		if(FindHelper == -1 || FindHelper2 == -1)
 		{
-			std::cerr << "Shader preprocessor encountered invalid if statement." << std::endl;
+			logging::Error("Shader preprocessor encountered invalid if statement.");
 			return DefineArray;
 		}
 
@@ -96,13 +99,13 @@ core::array<SDefineExp> grabDefineExpressions(core::stringc &shaderProgram)
 
 			if(FindHelper == -1 || FindHelper >= (s32)(shaderProgram.size() - 3))
 			{
-				std::cerr << "Shader preprocessor encountered unmatched if statement." << std::endl;
+				logging::Error("Shader preprocessor encountered unmatched if statement.");
 				return DefineArray;
 			}
 
 			if(IfEndScope < 0)
 			{
-				std::cerr << "Shader preprocessor encountered unmatched endif statement." << std::endl;
+				logging::Error("Shader preprocessor encountered unmatched endif statement.");
 				return DefineArray;
 			}
 			
@@ -128,7 +131,7 @@ core::array<SDefineExp> grabDefineExpressions(core::stringc &shaderProgram)
 				{
 					if(DExp.ElsePos != -1)
 					{
-						std::cerr << "Shader preprocessor encountered duplicate else statements per if statement." << std::endl;
+						logging::Error("Shader preprocessor encountered duplicate else statements per if statement.");
 						return DefineArray;
 					}
 
