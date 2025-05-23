@@ -16,6 +16,7 @@
 #include "../models/player.h"
 #include "../infrabase.h"
 #include "../utils/logging.h"
+#include <cstdio>
 
 //File name definition
 #define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"

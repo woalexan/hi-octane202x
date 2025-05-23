@@ -405,7 +405,7 @@ bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
     if (SearchSndRes(soundResId) != NULL) {
         //is already existing, output error
         char strhlp[10];
-        snprintf(strhlp, "%u", soundResId);
+        snprintf(strhlp, 10, "%u", soundResId);
         //std::cout << "LoadSoundResouce: Sound resource with Id " << soundResId << " already existing. Error!" << std::endl;
         std::string errMsg("LoadSoundResouce: Sound resource with Id ");
         errMsg.append(strhlp);
@@ -455,7 +455,7 @@ void SoundEngine::DeleteSoundResource(uint8_t soundResId) {
    if (this->SoundResVec->size() < 1) {
        std::string errMsg("DeleteSoundResource: Specified sound resource ID (");
        char strhlp[10];
-       snprintf(strhlp, "%u", soundResId);
+       snprintf(strhlp, 10, "%u", soundResId);
        errMsg.append(strhlp);
        errMsg.append(") for deletion does not exist!");
        logging::Error(errMsg);
@@ -489,7 +489,7 @@ void SoundEngine::DeleteSoundResource(uint8_t soundResId) {
        //std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
        std::string errMsg("DeleteSoundResource: Specified sound resource ID (");
        char strhlp[10];
-       snprintf(strhlp, "%u", soundResId);
+       snprintf(strhlp, 10, "%u", soundResId);
        errMsg.append(strhlp);
        errMsg.append(") for deletion does not exist!");
        logging::Error(errMsg);
