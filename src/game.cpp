@@ -169,7 +169,7 @@ void Game::SetupDebugGame() {
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     //add computer players?
-    mGameAssets->SetComputerPlayersEnabled(false);
+    mGameAssets->SetComputerPlayersEnabled(true);
 
     mGameState = DEF_GAMESTATE_INITRACE;
 }
@@ -787,9 +787,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                              this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
 
 
-            /*swprintf(text2, 390, L"nCurrSeg = %d\nSegments = %d\n",
-                           this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                           this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
+        /*    swprintf(text2, 390, L"currCharger = %d\currPos = %d\n",
+                           this->mCurrentRace->currCharger,
+                           this->mCurrentRace->currPos);*/
 
            /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
                            this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
@@ -800,6 +800,8 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
             /*swprintf(text2, 390, L"nCollectable = %d\n",
                            this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());*/
 
+              /*   swprintf(text2, 390, L"DistSQ = %lf\n",
+                                this->mCurrentRace->mPlayerVec.at(1)->mCpuPlayer->dbgDistVec);*/
 
            /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
                            this->mCurrentRace->player2->mAngleError,

@@ -36,14 +36,22 @@ namespace Entity {
               MorphSource1, MorphSource2, MorphOnce, MorphPermanent,
               TriggerCraft, TriggerTimed, TriggerRocket,
               DamageCraft,
-              Explosion, ExplosionParticles, Camera
+              Explosion, ExplosionParticles, Camera,
+              //the InternalTemporaryWaypoint type is not stored inside the
+              //game level files, it is only used for computer player routing/control
+              InternalTemporaryWaypoint
         };
 }
 
 class EntityItem : public TableItem {
 public:
+    //constructor for entity items stored inside game level files
     EntityItem(int id, int offset, std::vector<unsigned char> bytes);
     virtual ~EntityItem();
+
+    //special constructor only used for creation
+    //of InternalTemporaryWaypoint entity items
+    EntityItem(irr::core::vector3df position);
 
     int16_t getNextID();
     void setNextID(int16_t newNextID);

@@ -27,8 +27,17 @@ EntityItem* Path::FindNearestWayPointToLocation(irr::core::vector3df location) {
    if (mRace->ENTWaypoints_List->size() <= 0)
        return NULL;
 
+   //we need to ignore the Y-coordinate, we also want to find
+   //waypoints that are slightly different in terrain elevation!
+   location.Y = 0.0f;
+
    for (it = mRace->ENTWaypoints_List->begin(); it != mRace->ENTWaypoints_List->end(); ++it) {
        wPos = (*it)->getCenter();
+
+       //we need to ignore the Y-coordinate, we also want to find
+       //waypoints that are slightly different in terrain elevation!
+       wPos.Y = 0.0f;
+
        currDist = (wPos - location).getLengthSQ();
        if (firstElement) {
            firstElement = false;
@@ -105,8 +114,17 @@ std::vector<EntityItem*> Path::FindAllWayPointsInArea(irr::core::vector3df locat
     if (mRace->ENTWaypoints_List->size() <= 0)
         return result;
 
+    //we need to ignore the Y-coordinate, we also want to find
+    //waypoints that are slightly different in terrain elevation!
+    location.Y = 0.0f;
+
     for (it = mRace->ENTWaypoints_List->begin(); it != mRace->ENTWaypoints_List->end(); ++it) {
         wPos = (*it)->getCenter();
+
+        //we need to ignore the Y-coordinate, we also want to find
+        //waypoints that are slightly different in terrain elevation!
+        wPos.Y = 0.0f;
+
         currDist = (wPos - location).getLength();
         if (currDist < radius) {
             result.push_back(*it);
@@ -771,3 +789,75 @@ std::vector<WayPointLinkInfoStruct*> Path::FindPathToNextCheckPoint(Player *whic
     return result;
 }
 
+//returns a vector containing all charging stations
+//which a certain defined waypoint link intersects
+std::vector<ChargingStation*> Path::WhichChargingStationsDoesAWayPointLinkIntersect(WayPointLinkInfoStruct* whichLink) {
+    std::vector<ChargingStation*> result;
+
+    result.clear();
+    if (whichLink == NULL)
+        return result;
+
+    std::vector<ChargingStation*>::iterator it;
+    irr::core::line3df line3D;
+
+    //create a 3D line along the specified waypoint link
+    line3D.start = whichLink->pLineStruct->A;
+    line3D.end = whichLink->pLineStruct->B;
+
+    for (it = this->mRace->mChargingStationVec->begin(); it != this->mRace->mChargingStationVec->end(); ++it) {
+        //get bounding box of region mesh that was prepared before
+        irr::core::aabbox3d bbox = (*it)->mSceneNode->getTransformedBoundingBox();
+
+        //does this link intersect the charging region bounding box?
+        if (bbox.intersectsWithLine(line3D)) {
+           //yes, we found a charging station
+           //add it to result vector
+           result.push_back(*it);
+        }
+    }
+
+    return result;
+}
+
+//Returns NULL if within the next 5 waypoint links the specified
+//charger type was not found, but with proper level design this
+//should never happen
+ChargingStation* Path::GetChargingStationAhead(WayPointLinkInfoStruct* startAtWhichLink, irr::u8 chargerTypeToFind) {
+    if (startAtWhichLink == NULL)
+        return NULL;
+
+    WayPointLinkInfoStruct* currLink = startAtWhichLink;
+    bool chargerFound = false;
+    irr::u8 iteration = 0;
+    std::vector<ChargingStation*> intersectedChargingStations;
+    std::vector<ChargingStation*>::iterator it2;
+
+    ChargingStation* foundCharger = NULL;
+
+    do {
+        iteration++;
+        if (currLink != NULL) {
+            //does this link intersect any of the charger regions?
+            //if yes, is this the type of charger we expect to find?
+            intersectedChargingStations = WhichChargingStationsDoesAWayPointLinkIntersect(currLink);
+
+            if (intersectedChargingStations.size() > 0) {
+                //is it the type of charger we expected?
+                for (it2 = intersectedChargingStations.begin(); it2 != intersectedChargingStations.end(); ++it2) {
+                    if ((*it2)->GetChargingStationType() == chargerTypeToFind) {
+                        //yes, we have a match
+                        foundCharger = (*it2);
+                        chargerFound = true;
+                        break;
+                    }
+                }
+            }
+
+            //we did not find the match yet, continue with next waypointlink
+            currLink = currLink->pntrPathNextLink;
+        }
+    } while ((!chargerFound) && (iteration < 5));
+
+    return foundCharger;
+}

@@ -2367,9 +2367,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     /************ Update player camera stuff end ************/
 
     //check if this player is located at a charging station (gasoline, ammo or shield)
-
-    //Very important TODO: right now the charging speed will most likely dependent
-    //on the current FPS frame rate, this needs to be fixed!
     CheckForChargingStation(frameDeltaTime);
 
     //execute code for fuel consumption, create low fuel

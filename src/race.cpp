@@ -61,6 +61,14 @@ Race::Race(InfrastructureBase* infra,  Game* mParentGame, MyMusicStream* gameMus
     recoveryVec = new std::vector<Recovery*>;
     recoveryVec->clear();
 
+    //my vector of extended region data
+    mExtRegionVec = new std::vector<ExtendedRegionInfoStruct*>;
+    mExtRegionVec->clear();
+
+    //my vector of charging stations
+    mChargingStationVec = new std::vector<ChargingStation*>;
+    mChargingStationVec->clear();
+
     mCollectableSpawnerVec.clear();
 
     //my vector of player that need help
@@ -290,6 +298,7 @@ Race::~Race() {
     CleanUpTimers();
     CleanUpCameras();
     CleanUpExplosionEntities();
+    CleanupChargingStations();
 
     //free lowlevel level data
     delete mLevelBlocks;
@@ -666,6 +675,22 @@ void Race::CleanUpCameras() {
             it = mCameraVec.erase(it);
 
             //delete the camera as well
+            delete pntr;
+        }
+    }
+}
+
+void Race::CleanupChargingStations() {
+    std::vector<ChargingStation*>::iterator it;
+    ChargingStation* pntr;
+
+    if (mChargingStationVec->size() > 0) {
+        for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ) {
+            pntr = (*it);
+
+            it = mChargingStationVec->erase(it);
+
+            //delete the charging station itself
             delete pntr;
         }
     }
@@ -3162,18 +3187,13 @@ void Race::Render() {
       }*/
 
      /* if (currPlayerFollow != NULL) {
-
-            if (currPlayerFollow->mCurrentPathSeg.size() > 0) {
-              std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
-
-             for (itPathEl = currPlayerFollow->mCurrentPathSeg.begin(); itPathEl != currPlayerFollow->mCurrentPathSeg.end(); ++itPathEl) {
-                   mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, mDrawDebug->blue); //(*itPathEl)->pLineStruct->color);
-              }
-
-             //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
+          if (!currPlayerFollow->mHumanPlayer) {
+              currPlayerFollow->mCpuPlayer->DebugDraw();
           }
-      }*/
+      }
 
+        mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
+*/
 
       /*if (currPlayerFollow != NULL) {
 
@@ -3304,6 +3324,13 @@ void Race::Render() {
         if (DebugShowTriggerRegions) {
             IndicateTriggerRegions();
         }
+
+      /*  if (mChargingStationVec->size() > 0) {
+            std::vector<ChargingStation*>::iterator it;
+            for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
+                (*it)->DebugDraw();
+            }
+        }*/
 }
 
 void Race::DebugShowAllObstaclePlayers() {
@@ -3670,6 +3697,9 @@ bool Race::LoadLevel(int loadLevelNr) {
   //create final overall triangle selectors for collision
   //with physics
   createFinalCollisionData();
+
+  //create existing charging stations
+  CreateChargingStations();
 
   //create a bounding box for valid player
   //location testing
@@ -4116,6 +4146,25 @@ void Race::createFinalCollisionData() {
    triangleSelectorDynamicTerrain = mInfra->mSmgr->createOctreeTriangleSelector(
                this->mLevelTerrain->myDynamicTerrainMesh, this->mLevelTerrain->DynamicTerrainSceneNode, 128);
   this->mLevelTerrain->DynamicTerrainSceneNode->setTriangleSelector(triangleSelectorDynamicTerrain);
+}
+
+//Creates the charging stations
+void Race::CreateChargingStations() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+
+    //iterate through all existing map regions, and create a charging station object
+    //for each fuel, ammo or shield charging region
+    for (it = this->mLevelRes->mMapRegionVec->begin(); it != this->mLevelRes->mMapRegionVec->end(); ++it) {
+        if (((*it)->regionType == LEVELFILE_REGION_CHARGER_SHIELD) ||
+            ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) ||
+            ((*it)->regionType == LEVELFILE_REGION_CHARGER_AMMO)) {
+             //we need to create a new charging station
+             ChargingStation* newChargingStation = new ChargingStation(mInfra->mSmgr, this, (*it), wayPointLinkVec);
+
+             //add to my vector of charging stations
+             mChargingStationVec->push_back(newChargingStation);
+        }
+    }
 }
 
 void Race::CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f32> playerBox) {
