@@ -36,6 +36,7 @@
 #include "models/timer.h"
 #include "models/expentity.h"
 #include "models/camera.h"
+#include "models/chargingstation.h"
 #include "models/collectablespawner.h"
 #include "infrabase.h"
 
@@ -112,6 +113,8 @@ class Camera; //Forward declaration
 class CollectableSpawner; //Forward declaration
 class SoundEngine; //Forward declaration
 class InfrastructureBase; //Forward declaration
+struct ExtendedRegionInfoStruct; //Forward declaration
+class ChargingStation; //Forward declaration
 
 class Race {
 public:
@@ -285,6 +288,11 @@ public:
     irr::u8 mPlayersInTrouble;
 
     irr::core::aabbox3df validPlayerLocationBBox;
+
+    std::vector<ExtendedRegionInfoStruct*>* mExtRegionVec;
+
+    //a vector of my existing charging stations
+    std::vector<ChargingStation*>* mChargingStationVec;
 
 private:
     int levelNr;
@@ -524,6 +532,7 @@ private:
     void CleanUpExplosionEntities();
     void CleanUpCameras();
     void CleanUpCollectableSpawners();
+    void CleanupChargingStations();
 
     void DebugDrawWayPointLinks(bool drawFreeMovementSpace = false);
 
@@ -542,6 +551,8 @@ private:
     void UpdateType2Collectables(irr::f32 frameDeltaTime);
 
     std::vector<Collectable*> mType2CollectableForCleanupLater;
+
+    void CreateChargingStations();
 };
 
 #endif // RACE_H

@@ -193,7 +193,15 @@ public:
     std::vector<irr::s32> roadTexIdsVecExtendedForWorldAware = {
         43, 47, 51, 120, 121,             123, 134, 135, 146, 147, 153 };
 
+    //texture IDs we can use the detect charging areas
+    std::vector<irr::s32> chargerTexIdsVec = {43, 47, 51, 31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
+                                            77, 78, 79, 81, 82, 86, 116, 117, 118, 119,
+                                           122, 124, 125, 126, 127, 128, 129, 130, 131, 132, 136, 137, 138, 139, 140,
+                                           141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
+                                           96, 4};
+
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
+    bool IsChargingStationTexture(irr::s32 texture);
 
 private:
     bool setupGeometry();

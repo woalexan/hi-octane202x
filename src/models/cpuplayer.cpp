@@ -139,8 +139,6 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newStruct->pLineStruct = newLineStr;
     irr::core::vector3df vec3D = (newLineStr->B - newLineStr->A);
 
-    mParentPlayer->mRace->dbgCoord = newStruct->pLineStruct->B;
-
     //precalculate and store length as we will need this very often
     //during the game loop for race position update
     newStruct->length3D = vec3D.getLength();
@@ -193,6 +191,114 @@ void CpuPlayer::AddCommand(uint8_t cmdType) {
 
     //add the new command to the end of the command list
     this->cmdList->push_back(newCmd);
+}
+
+void CpuPlayer::AddCommand(uint8_t cmdType, ChargingStation* whichChargingStation, ChargerStoppingRegionStruct* whichStall) {
+    if (cmdType != CMD_GOTO_CHARGINGSTATION)
+        return;
+
+    if ((whichChargingStation == NULL) || (whichStall == NULL))
+        return;
+
+    CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
+    newCmd->cmdType = cmdType;
+    newCmd->targetChargingStation = whichChargingStation;
+
+    mReachedChargingStation = false;
+    mReachedChargingStall = false;
+    mSetupPathToChargingStation = false;
+
+    //add the new command to the end of the command list
+    this->cmdList->push_back(newCmd);
+}
+
+void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingStation, ChargerStoppingRegionStruct* whichStall) {
+    if ((whichChargingStation == NULL) || (whichStall == NULL))
+        return;
+
+        //create a new temporary waypoint link from computer player crafts current
+        //position towards the charging station we want to fly to
+        WayPointLinkInfoStruct* newStruct = new WayPointLinkInfoStruct();
+
+        LineStruct* newLineStr = new LineStruct();
+        //newLineStr->A = whichChargingStation->enterEntityItem->getCenter();
+        //newLineStr->B = whichStall->entityItem->getCenter();
+
+        newLineStr->A = whichStall->entityItem->getCenter();
+        newLineStr->B = whichChargingStation->helperEntityItem->getCenter();
+
+        //set white as default color
+        newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+        newLineStr->name = new char[10];
+        strcpy(newLineStr->name, "");
+
+        newStruct->pLineStruct = newLineStr;
+        irr::core::vector3df vec3D = (newLineStr->B - newLineStr->A);
+
+        //precalculate and store length as we will need this very often
+        //during the game loop for race position update
+        newStruct->length3D = vec3D.getLength();
+        vec3D.normalize();
+
+        newStruct->LinkDirectionVec = vec3D;
+        newStruct->LinkDirectionVec.normalize();
+
+        //Idea: extend the lines a little bit further outwards at
+        //both ends, so that when we project the players position on
+        //the different segments later we always find a valid segment
+        LineStruct *lineExt = new LineStruct;
+
+        lineExt->A = newLineStr->A - newStruct->LinkDirectionVec * 0.5f;
+        lineExt->B = newLineStr->B + newStruct->LinkDirectionVec * 0.5f;
+
+        lineExt->name = new char[100];
+        sprintf(lineExt->name, "");
+
+        //set white as default color
+        lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+
+        newStruct->pLineStructExtended = lineExt;
+
+        //newStruct->pStartEntity = whichChargingStation->enterEntityItem;
+        newStruct->pStartEntity = whichStall->entityItem;
+
+        newStruct->minOffsetShiftEnd = -10.0f;
+        newStruct->maxOffsetShiftEnd = 10.0f;
+        newStruct->minOffsetShiftStart = -10.0f;
+        newStruct->maxOffsetShiftStart = 10.0f;
+
+       // mParentPlayer->mRace->dbgCoord = newStruct->pLineStruct->B;
+
+        //precalculate a direction vector which stands at a 90 degree
+        //angle at the original waypoint direction vector, and always points
+        //to the right direction when looking into race direction
+        //this direction vector is later used during the game to offset the player
+        //path sideways
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+        //newStruct->pEndEntity = whichStall->entityItem;
+
+        newStruct->pEndEntity = whichChargingStation->helperEntityItem;
+
+        mLocationChargingStall = whichStall->entityItem->getCenter();
+
+        CheckAndRemoveNoCommand();
+
+        CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
+        newCmd->cmdType = CMD_GOTO_CHARGINGSTATION;
+
+        //also store this temporary waypointlink struct info
+        //in the command, so that we can cleanup after this command was
+        //executed
+        newCmd->targetWaypointLink = newStruct;
+
+        //mark waypoint link as temporary created, so that
+        //we delete it again after command was fully executed
+        newCmd->WayPointLinkTemporary = true;
+
+        //add the new command to the end of the command list
+        this->cmdList->push_back(newCmd);
+
+        mSetupPathToChargingStall = false;
 }
 
 void CpuPlayer::AddCommand(uint8_t cmdType, Collectable* whichCollectable) {
@@ -286,6 +392,16 @@ bool CpuPlayer::DoIWantToChargeAmmo() {
     return false;
 }
 
+void CpuPlayer::DebugDraw() {
+  if (mCurrentPathSeg.size() > 0) {
+       std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+       for (itPathEl = mCurrentPathSeg.begin(); itPathEl != mCurrentPathSeg.end(); ++itPathEl) {
+             mParentPlayer->mRace->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+        }
+  }
+}
+
 WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks) {
     std::vector<WayPointLinkInfoStruct*>::iterator it;
     WayPointLinkInfoStruct* linkForFuel = NULL;
@@ -346,30 +462,46 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
     if (linkForShield != NULL) {
         //do we need shield? nothing more important!
         if (DoIWantToChargeShield()) {
-            //with the current command implementation I have an issue:
-            //if for example the computer player craft sees an Collectable it
-            //wants to pickup up, (so there is a command for that active), and
-            //then the player ship runs out of shield/ammo/fuel it adds
-            //a second command for that below, this section command for charging will not
-            //get pulled in the command processing routine, because this source code
-            //will only see the older Collectable collection command; so charging does not
-            //work properly. I should improve this whole concept in future. As a workaround now
-            //I will just delete all active commands when we want to charge something. This will
-            //remove possible pending collectable commands; Additional I have prevented somewhere else
-            //that collectables are commanded to be picked up as soon as a charging command was added to the list
-            RemoveAllPendingCommands();
+            //get exact region info for charger
+            ChargingStation* chargingStation =
+                    this->mParentPlayer->mRace->mPath->GetChargingStationAhead(linkForShield, LEVELFILE_REGION_CHARGER_SHIELD);
 
-            mParentPlayer->LogMessage((char*)"Command to charge Shield");
+            //make sure pointer is unequal to NULL!
+            if (chargingStation != NULL) {
 
-            //I need shield
-            AddCommand(CMD_CHARGE_SHIELD);
+                    //request charging at charging station
+                    //if request is granted we receive return value true, false otherwise
+                    if (chargingStation->RequestCharging(this->mParentPlayer, mAssignedChargingStall)) {
+                            //with the current command implementation I have an issue:
+                            //if for example the computer player craft sees an Collectable it
+                            //wants to pickup up, (so there is a command for that active), and
+                            //then the player ship runs out of shield/ammo/fuel it adds
+                            //a second command for that below, this section command for charging will not
+                            //get pulled in the command processing routine, because this source code
+                            //will only see the older Collectable collection command; so charging does not
+                            //work properly. I should improve this whole concept in future. As a workaround now
+                            //I will just delete all active commands when we want to charge something. This will
+                            //remove possible pending collectable commands; Additional I have prevented somewhere else
+                            //that collectables are commanded to be picked up as soon as a charging command was added to the list
+                            RemoveAllPendingCommands();
 
-            //we want to accel/deaccelerate computer player craft
-            //now much quicker, so that if we reach the charging area
-            //finally we stop fast enough and do not overshoot the
-            //charging area itself
-            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
-            return (linkForShield);
+                            mParentPlayer->LogMessage((char*)"Command to charge Shield");
+
+                            //I need shield
+                            AddCommand(CMD_GOTO_CHARGINGSTATION, chargingStation, mAssignedChargingStall);
+                            mAssignedChargingStation = chargingStation;
+
+                            //we want to accel/deaccelerate computer player craft
+                            //now much quicker, so that if we reach the charging area
+                            //finally we stop fast enough and do not overshoot the
+                            //charging area itself
+                            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
+                            return (linkForShield);
+                    } else {
+                        //request for charging was not granted
+                         mParentPlayer->LogMessage((char*)"Shield charging station did not grant charging request");
+                    }
+            }
         }
     }
 
@@ -377,21 +509,38 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
     if (linkForFuel != NULL) {
         //do we need fuel?
         if (DoIWantToChargeFuel()) {
-            //please see important comment in shield section above
-            //why we do this
-            RemoveAllPendingCommands();
+            //get exact region info for charger
+            ChargingStation* chargingStation =
+                    this->mParentPlayer->mRace->mPath->GetChargingStationAhead(linkForFuel, LEVELFILE_REGION_CHARGER_FUEL);
 
-            //I need fuel
-            AddCommand(CMD_CHARGE_FUEL);
+            //make sure pointer is unequal to NULL!
+            if (chargingStation != NULL) {
 
-            mParentPlayer->LogMessage((char*)"Command to charge Fuel");
+                    //request charging at charging station
+                    //if request is granted we receive return value true, false otherwise
+                    if (chargingStation->RequestCharging(this->mParentPlayer, mAssignedChargingStall)) {
 
-            //we want to accel/deaccelerate computer player craft
-            //now much quicker, so that if we reach the charging area
-            //finally we stop fast enough and do not overshoot the
-            //charging area itself
-            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
-            return (linkForFuel);
+                            //please see important comment in shield section above
+                            //why we do this
+                            RemoveAllPendingCommands();
+
+                            //I need fuel
+                            AddCommand(CMD_GOTO_CHARGINGSTATION, chargingStation, mAssignedChargingStall);
+                            mAssignedChargingStation = chargingStation;
+
+                            mParentPlayer->LogMessage((char*)"Command to charge Fuel");
+
+                            //we want to accel/deaccelerate computer player craft
+                            //now much quicker, so that if we reach the charging area
+                            //finally we stop fast enough and do not overshoot the
+                            //charging area itself
+                            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
+                            return (linkForFuel);
+                    } else {
+                        //request for charging was not granted
+                         mParentPlayer->LogMessage((char*)"Fuel charging station did not grant charging request");
+                    }
+            }
         }
     }
 
@@ -399,21 +548,38 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
     if (linkForAmmo != NULL) {
         //do we need ammo?
         if (DoIWantToChargeAmmo()) {
-            //please see important comment in shield section above
-            //why we do this
-            RemoveAllPendingCommands();
+            //get exact region info for charger
+            ChargingStation* chargingStation =
+                    this->mParentPlayer->mRace->mPath->GetChargingStationAhead(linkForAmmo, LEVELFILE_REGION_CHARGER_AMMO);
 
-            //I need ammo
-            AddCommand(CMD_CHARGE_AMMO);
+            //make sure pointer is unequal to NULL!
+            if (chargingStation != NULL) {
 
-            mParentPlayer->LogMessage((char*)"Command to charge Ammo");
+                    //request charging at charging station
+                    //if request is granted we receive return value true, false otherwise
+                    if (chargingStation->RequestCharging(this->mParentPlayer, mAssignedChargingStall)) {
 
-            //we want to accel/deaccelerate computer player craft
-            //now much quicker, so that if we reach the charging area
-            //finally we stop fast enough and do not overshoot the
-            //charging area itself
-            mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
-            return (linkForAmmo);
+                        //please see important comment in shield section above
+                        //why we do this
+                        RemoveAllPendingCommands();
+
+                        //I need ammo
+                        AddCommand(CMD_GOTO_CHARGINGSTATION, chargingStation, mAssignedChargingStall);
+                        mAssignedChargingStation = chargingStation;
+
+                        mParentPlayer->LogMessage((char*)"Command to charge Ammo");
+
+                        //we want to accel/deaccelerate computer player craft
+                        //now much quicker, so that if we reach the charging area
+                        //finally we stop fast enough and do not overshoot the
+                        //charging area itself
+                        mCpCurrentDeaccelRate = CP_PLAYER_ACCELDEACCEL_RATE_CHARGING;
+                        return (linkForAmmo);
+                   } else {
+                        //request for charging was not granted
+                         mParentPlayer->LogMessage((char*)"Ammo charging station did not grant charging request");
+                    }
+            }
         }
     }
 
@@ -1766,7 +1932,135 @@ void CpuPlayer::CpDefineNextAction() {
     }
 }
 
-void CpuPlayer::CpHandleCharging() {
+/* Cp HandleCharging that was working before 29.05.2025 without ChargingStation Class */
+
+//void CpuPlayer::CpHandleCharging() {
+//   //what charging do we need to do?
+//   switch(currCommand->cmdType) {
+//        case CMD_CHARGE_AMMO: {
+//          if (mParentPlayer->IsCurrentlyChargingAmmo()) {
+//              if (mParentPlayer->mPlayerStats->ammoVal >= (0.95 * mParentPlayer->mPlayerStats->ammoMax)) {
+//                  //charging finished
+//                  mParentPlayer->LogMessage((char*)"Ammo charging finished");
+
+//                  mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
+//                  CurrentCommandFinished();
+
+//                  //old lines before WorkaroundResetCurrentPath
+//                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+//                  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+//              } else {
+//                  //lets stop computer player until
+//                  //charging is finished
+//                  computerPlayerTargetSpeed = 0.0f;
+//              }
+
+//              break;
+//          }
+//       }
+
+//       case CMD_CHARGE_SHIELD: {
+//         if (mParentPlayer->IsCurrentlyChargingShield()) {
+//             if (mParentPlayer->mPlayerStats->shieldVal >= (0.95 * mParentPlayer->mPlayerStats->shieldMax)) {
+//                 //charging finished
+//                 mParentPlayer->LogMessage((char*)"Shield charging finished");
+
+//                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
+//                 CurrentCommandFinished();
+
+//                 //old lines before WorkaroundResetCurrentPath
+//                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+//                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+//             } else {
+//                 //lets stop computer player until
+//                 //charging is finished
+//                 computerPlayerTargetSpeed = 0.0f;
+//             }
+
+//             break;
+//         }
+//      }
+
+//       case CMD_CHARGE_FUEL: {
+//         if (mParentPlayer->IsCurrentlyChargingFuel()) {
+//             if (mParentPlayer->mPlayerStats->gasolineVal >= (0.95 * mParentPlayer->mPlayerStats->gasolineMax)) {
+//                 //charging finished
+//                 mParentPlayer->LogMessage((char*)"Fuel charging finished");
+
+//                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
+
+//                 CurrentCommandFinished();
+
+//               //  this->mRace->mGame->StopTime();
+
+//                 //old lines before WorkaroundResetCurrentPath
+//                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+//                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+//             } else {
+//                 //lets stop computer player until
+//                 //charging is finished
+//                 computerPlayerTargetSpeed = 0.0f;
+//             }
+
+//             break;
+//         }
+//        }
+//   }
+//}
+
+void CpuPlayer::CpWaitForChargingStallReached() {
+    //have we reached the stall?
+    irr::core::vector3df distVec = mLocationChargingStall - this->mParentPlayer->phobj->physicState.position;
+
+    //need to ignore the Y-axis, we only want to be aligned in X and Z-axis
+    //otherwise for example at the fuel charger at the ramp in level 2 we can
+    //never have a match of the position as the craft are far above the fuel
+    //charger stalls
+    distVec.Y = 0.0f;
+
+    irr::f32 distSq = distVec.getLengthSQ();
+
+    dbgDistVec = distSq;
+
+    if (distSq < 1.0f) {
+        irr::f32 dist = distVec.getLength();
+        if (dist < 0.5f) {
+             mParentPlayer->LogMessage((char*)"Reached the assigned charging stall, stop");
+
+             mReachedChargingStall = true;
+
+             //we reached the assigned stall
+             //lets stop computer player until
+             //charging is finished
+             computerPlayerTargetSpeed = 0.0f;
+
+             CurrentCommandFinished();
+
+             switch (mAssignedChargingStation->GetChargingStationType()) {
+                 case LEVELFILE_REGION_CHARGER_SHIELD: {
+                       AddCommand(CMD_CHARGE_SHIELD);
+                       break;
+                 }
+
+                 case LEVELFILE_REGION_CHARGER_FUEL: {
+                       AddCommand(CMD_CHARGE_FUEL);
+                       break;
+                 }
+
+                 case LEVELFILE_REGION_CHARGER_AMMO: {
+                       AddCommand(CMD_CHARGE_AMMO);
+                       break;
+                 }
+
+                 default: {
+                     break;
+                 }
+             }
+      }
+  }
+}
+
+void CpuPlayer::CpWaitForChargingFinished() {
    //what charging do we need to do?
    switch(currCommand->cmdType) {
         case CMD_CHARGE_AMMO: {
@@ -1778,65 +2072,63 @@ void CpuPlayer::CpHandleCharging() {
                   mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
                   CurrentCommandFinished();
 
+                  //report charging finished to charging station
+                  //so that my reserved stall is free again
+                  mAssignedChargingStation->ChargingFinished(mParentPlayer);
+
                   //old lines before WorkaroundResetCurrentPath
                   AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
                   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-              } else {
-                  //lets stop computer player until
-                  //charging is finished
-                  computerPlayerTargetSpeed = 0.0f;
               }
-
-              break;
           }
+
+           break;
        }
 
-       case CMD_CHARGE_SHIELD: {
-         if (mParentPlayer->IsCurrentlyChargingShield()) {
-             if (mParentPlayer->mPlayerStats->shieldVal >= (0.95 * mParentPlayer->mPlayerStats->shieldMax)) {
-                 //charging finished
-                 mParentPlayer->LogMessage((char*)"Shield charging finished");
+   case CMD_CHARGE_SHIELD: {
+     if (mParentPlayer->IsCurrentlyChargingShield()) {
+         if (mParentPlayer->mPlayerStats->shieldVal >= (0.95 * mParentPlayer->mPlayerStats->shieldMax)) {
+             //charging finished
+             mParentPlayer->LogMessage((char*)"Shield charging finished");
 
-                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
-                 CurrentCommandFinished();
+             mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
+             CurrentCommandFinished();
 
-                 //old lines before WorkaroundResetCurrentPath
-                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-             } else {
-                 //lets stop computer player until
-                 //charging is finished
-                 computerPlayerTargetSpeed = 0.0f;
-             }
+             //report charging finished to charging station
+             //so that my reserved stall is free again
+             mAssignedChargingStation->ChargingFinished(mParentPlayer);
 
-             break;
+             //old lines before WorkaroundResetCurrentPath
+             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
          }
-      }
+     }
 
-       case CMD_CHARGE_FUEL: {
-         if (mParentPlayer->IsCurrentlyChargingFuel()) {
-             if (mParentPlayer->mPlayerStats->gasolineVal >= (0.95 * mParentPlayer->mPlayerStats->gasolineMax)) {
-                 //charging finished
-                 mParentPlayer->LogMessage((char*)"Fuel charging finished");
+      break;
+  }
 
-                 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
 
-                 CurrentCommandFinished();
+   case CMD_CHARGE_FUEL: {
+     if (mParentPlayer->IsCurrentlyChargingFuel()) {
+         if (mParentPlayer->mPlayerStats->gasolineVal >= (0.95 * mParentPlayer->mPlayerStats->gasolineMax)) {
+             //charging finished
+             mParentPlayer->LogMessage((char*)"Fuel charging finished");
 
-               //  this->mRace->mGame->StopTime();
+             mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
+             CurrentCommandFinished();
 
-                 //old lines before WorkaroundResetCurrentPath
-                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
-                 computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
-             } else {
-                 //lets stop computer player until
-                 //charging is finished
-                 computerPlayerTargetSpeed = 0.0f;
-             }
+             //report charging finished to charging station
+             //so that my reserved stall is free again
+             mAssignedChargingStation->ChargingFinished(mParentPlayer);
 
-             break;
+             //old lines before WorkaroundResetCurrentPath
+             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
          }
-        }
+     }
+
+      break;
+   }
    }
 }
 
@@ -1923,8 +2215,9 @@ CPCOMMANDENTRY* CpuPlayer::CreateNoCommand() {
     CPCOMMANDENTRY* newcmd = new CPCOMMANDENTRY();
     newcmd->cmdType = CMD_NOCMD;
     newcmd->targetEntity = NULL;
-    newcmd->targetPosition = NULL;
+    newcmd->targetPosition.set(0.0f, 0.0f, 0.0f);
     newcmd->targetWaypointLink = NULL;
+    newcmd->targetChargingStation = NULL;
 
     return newcmd;
 }
@@ -2058,10 +2351,12 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
             break;
         }
 
+        //currently at the charging stall, and waiting until charging
+        //is finished
         case CMD_CHARGE_FUEL:
         case CMD_CHARGE_AMMO:
         case CMD_CHARGE_SHIELD: {
-            CpHandleCharging();
+            CpWaitForChargingFinished();
             break;
         }
 
@@ -2080,6 +2375,58 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
 
             break;
         }
+
+        //wait until player comes much closer to the selected
+        //charging station
+        case CMD_GOTO_CHARGINGSTATION: {
+            if (!mSetupPathToChargingStation) {
+
+                //are we close to the charging station we targeted?
+                if (currCommand->targetChargingStation->ReachedEntryOfChargingStation(this->currClosestWayPointLink.first)) {
+                    //this->mParentPlayer->mRace->mGame->StopTime();
+
+                    CurrentCommandFinished();
+
+                    //reprogram computer player path to the reserved
+                    //charging station stall
+                    CpCommandPlayerToChargingStall(mAssignedChargingStation, mAssignedChargingStall);
+
+                    mSetupPathToChargingStation = true;
+                }
+            } else {
+                if (!mSetupPathToChargingStall) {
+                    mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
+                    mCpCurrPathOffset = 0.0f;
+
+                    FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
+
+                    computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+
+                    mSetupPathToChargingStall = true;
+                } else {
+                    //wait until we reach the stall location
+                    CpWaitForChargingStallReached();
+                }
+            }
+
+//           if (!mSetupPathToChargingStation) {
+//                mSetupPathToChargingStation = true;
+//                mReachedChargingStall = false;
+
+//                mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
+//                //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
+//                FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
+//                /*if (mHUD != NULL) {
+//                  this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
+//                }*/
+//                computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+//           } else {
+//                 //wait until we reach our charging stand
+//                 CpWaitForChargingStallReached(currCommand->targetChargingStation);
+//            }
+            break;
+        }
+
 
         case CMD_FOLLOW_TARGETWAYPOINTLINK: {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;

@@ -142,7 +142,6 @@ public:
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
 
-
     //Returns true for success, false for error occured
     bool InitGameStep1();
     bool InitGameStep2();

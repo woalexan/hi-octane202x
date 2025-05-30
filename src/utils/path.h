@@ -14,6 +14,7 @@
 #include "../resources/entityitem.h"
 #include "../models/collectable.h"
 #include "../race.h"
+#include "../models/chargingstation.h"
 
 struct CheckPointInfoStruct {
     //pntr to checkpoint Irrlicht sceneNode
@@ -110,6 +111,7 @@ class DrawDebug;  //Forward declaration
 class Player;     //Forward declaration
 class EntityItem; //Forward declaration
 class Collectable; //Forward declaration
+class ChargingStation; //Forward declaration
 
 class Path {
 public:
@@ -169,6 +171,15 @@ public:
     //is used within Recovery vehicle to be able to execute a workaround in case we do not know the location
     //anymore where to put a player back after its physics reset
     std::vector<WayPointLinkInfoStruct*> DeliverAllWayPointLinksThatLeadIntoPlayersNextExpectedCheckpoint(Player* player);
+
+    //Returns NULL if within the next 5 waypoint links the specified
+    //charger type was not found, but with proper level design this
+    //should never happen
+    ChargingStation* GetChargingStationAhead(WayPointLinkInfoStruct* startAtWhichLink, irr::u8 chargerTypeToFind);
+
+    //returns a vector containing all charging stations
+    //which a certain defined waypoint link intersects
+    std::vector<ChargingStation*> WhichChargingStationsDoesAWayPointLinkIntersect(WayPointLinkInfoStruct* whichLink);
 
 private:
     Race* mRace;

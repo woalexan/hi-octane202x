@@ -14,6 +14,7 @@
 #include <iostream>
 #include "../utils/path.h"
 #include "../utils/bezier.h"
+#include "chargingstation.h"
 
 #define CMD_NOCMD 0
 #define CMD_FLYTO_TARGETENTITY 1
@@ -24,6 +25,7 @@
 #define CMD_CHARGE_FUEL 6
 #define CMD_CHARGE_AMMO 7
 #define CMD_PICKUP_COLLECTABLE 8
+#define CMD_GOTO_CHARGINGSTATION 9
 
 #define CP_MISSION_WAITFORRACESTART 0
 #define CP_MISSION_FINISHLAPS 1
@@ -55,13 +57,16 @@ struct RayHitInfoStruct; //Forward declaration
 struct WayPointLinkInfoStruct; //Forward declaration
 struct RayHitTriangleInfoStruct; //Forward declaration
 class Collectable; //Forward declaration
+class ChargingStation; //Forward declaration
+struct ChargerStoppingRegionStruct; //Forward declaration
 
 typedef struct CpCommandEntry {
     uint8_t cmdType;
     EntityItem* targetEntity = NULL;
-    irr::core::vector3df* targetPosition = NULL;
+    irr::core::vector3df targetPosition;
     WayPointLinkInfoStruct* targetWaypointLink = NULL;
     Collectable* targetCollectible = NULL;
+    ChargingStation* targetChargingStation = NULL;
 
     //if true this was a temporary dynamically
     //created waypoint link for a specific purpose
@@ -120,6 +125,12 @@ public:
     irr::f32 mCpFollowedWayPointLinkCurrentSpaceRightSide;
     irr::f32 mCpFollowedWayPointLinkCurrentSpaceLeftSide;
 
+    irr::f32 dbgDistVec = 0.0f;
+
+    void DebugDraw();
+
+     irr::core::vector3df mLocationChargingStall;
+
 private:
     Player* mParentPlayer;
 
@@ -139,16 +150,18 @@ private:
     irr::f32 mCpCurrentAccelRate = CP_PLAYER_ACCEL_RATE_DEFAULT;
 
     std::list<CPCOMMANDENTRY*>* cmdList;
+    void AddCommand(uint8_t cmdType, irr::core::vector3df targetPosition);
     void AddCommand(uint8_t cmdType, EntityItem* targetEntity);
     void AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink);
     void AddCommand(uint8_t cmdType);
     void AddCommand(uint8_t cmdType, Collectable* whichCollectable);
+    void AddCommand(uint8_t cmdType, ChargingStation* whichChargingStation, ChargerStoppingRegionStruct* whichStall);
 
     void CurrentCommandFinished();
     void CleanUpCommandList();
 
     void CheckAndRemoveNoCommand();
-    void CpHandleCharging();
+    void CpWaitForChargingFinished();
     void RemoveAllPendingCommands();
 
     CPCOMMANDENTRY* PullNextCommandFromCmdList();
@@ -161,6 +174,17 @@ private:
     bool DoIWantToChargeShield();
     bool DoIWantToChargeFuel();
     bool DoIWantToChargeAmmo();
+
+    ChargerStoppingRegionStruct* mAssignedChargingStall = NULL;
+    ChargingStation* mAssignedChargingStation = NULL;
+
+    bool mReachedChargingStation = false;
+    bool mReachedChargingStall = false;
+    bool mSetupPathToChargingStation = false;
+    bool mSetupPathToChargingStall = false;
+
+    void CpWaitForChargingStallReached();
+    void CpCommandPlayerToChargingStall(ChargingStation* whichChargingStation, ChargerStoppingRegionStruct* whichStall);
 
     void FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand);
     WayPointLinkInfoStruct* CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks);

@@ -79,6 +79,15 @@ EntityItem::EntityItem(int id, int offset, std::vector<uint8_t> bytes) {
 EntityItem::~EntityItem() {
 }
 
+//special constructor only used for creation
+//of InternalTemporaryWaypoint entity items
+EntityItem::EntityItem(irr::core::vector3df position) {
+    setCenter(position);
+
+    //this entity type is always internalTemporaryWaypoint!
+    this->mEntityType = Entity::EntityType::InternalTemporaryWaypoint;
+}
+
 void EntityItem::setCenter(irr::core::vector3df newCenter) {
     mCenter = newCenter;
 

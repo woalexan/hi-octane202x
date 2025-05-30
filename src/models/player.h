@@ -374,8 +374,6 @@ public:
     irr::core::vector3d<irr::f32> WorldCoordCraftLeftPnt;
     irr::core::vector3d<irr::f32> WorldCoordCraftRightPnt;
 
-    irr::core::vector3d<irr::f32> WorldCoordCraftFrontPnt2;
-
     //world coordinate position on the craft where smoke pours out if
     //player is damaged
     irr::core::vector3d<irr::f32> WorldCoordCraftSmokePnt;
@@ -668,9 +666,8 @@ private:
     //from which recovery vehicle are we currently grabbed?
     Recovery* mGrabedByThisRecoveryVehicle = NULL;
 
-public:
     void SetNewState(irr::u32 newPlayerState);
-private:
+
     irr::u32 GetCurrentState();
 
     void GetHeightMapCollisionSensorDebugStateName(HMAPCOLLSENSOR *collSensor, char **stateName);
