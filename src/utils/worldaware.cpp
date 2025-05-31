@@ -1152,6 +1152,12 @@ void WorldAwareness::SetPixelDynamicWorldMap(int playerNr, irr::f32 x1, irr::f32
     if (x >= sizeX) return;
     if (y >= sizeY) return;
 
+    if (x < 0)
+        return;
+
+    if (y < 0)
+        return;
+
     mDynamicWorldMap->at(sizeX * y + x) = playerNr;
 }
 

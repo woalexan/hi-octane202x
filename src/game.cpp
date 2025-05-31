@@ -157,7 +157,7 @@ bool Game::InitGameStep1() {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 1;
+    nextRaceLevelNr = 6;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -169,7 +169,7 @@ void Game::SetupDebugGame() {
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     //add computer players?
-    mGameAssets->SetComputerPlayersEnabled(true);
+    mGameAssets->SetComputerPlayersEnabled(false);
 
     mGameState = DEF_GAMESTATE_INITRACE;
 }
@@ -790,6 +790,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         /*    swprintf(text2, 390, L"currCharger = %d\currPos = %d\n",
                            this->mCurrentRace->currCharger,
                            this->mCurrentRace->currPos);*/
+
+       /* swprintf(text2, 390, L"next Checkpoint = %d\n",
+                                 this->mCurrentRace->mPlayerVec.at(0)->nextCheckPointValue);*/
 
            /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
                            this->mCurrentRace->player2->mDbgCpAvailWaypointNr,

@@ -163,7 +163,7 @@ bool ChargingStation::IdentifyUsableArea() {
     irr::u16 tileCntCharging = 0;
     irr::u16 tileCnt = 0;
     irr::f32 percentCharging;
-    //bool noColumnThere;
+    bool noColumnThere;
     MapEntry* mapEntry;
 
     if (this->mWidthInZDir) {
@@ -182,9 +182,19 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                //noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == NULL);
 
-                if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+                //it is also ok to have a column there, as long as the lowest column block
+                //is not existing (means we have a tunnel)
+                if (!noColumnThere) {
+                    //this is how we can check if there is a block or not
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                        //no lowest block, is a tunnel => is ok again
+                        noColumnThere = true;
+                    }
+                }
+
+                if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                     tileCntCharging++;
                 }
             }
@@ -215,9 +225,19 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                //noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == NULL);
 
-                if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+                //it is also ok to have a column there, as long as the lowest column block
+                //is not existing (means we have a tunnel)
+                if (!noColumnThere) {
+                    //this is how we can check if there is a block or not
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                        //no lowest block, is a tunnel => is ok again
+                        noColumnThere = true;
+                    }
+                }
+
+                if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                     tileCntCharging++;
                 }
             }
@@ -251,9 +271,19 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                //noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == NULL);
 
-                if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+                //it is also ok to have a column there, as long as the lowest column block
+                //is not existing (means we have a tunnel)
+                if (!noColumnThere) {
+                    //this is how we can check if there is a block or not
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                        //no lowest block, is a tunnel => is ok again
+                        noColumnThere = true;
+                    }
+                }
+
+                if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                     tileCntCharging++;
                 }
             }
@@ -284,9 +314,19 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                //noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == NULL);
 
-                if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+                //it is also ok to have a column there, as long as the lowest column block
+                //is not existing (means we have a tunnel)
+                if (!noColumnThere) {
+                    //this is how we can check if there is a block or not
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                        //no lowest block, is a tunnel => is ok again
+                        noColumnThere = true;
+                    }
+                }
+
+                if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                     tileCntCharging++;
                 }
             }
@@ -325,9 +365,19 @@ bool ChargingStation::IdentifyUsableArea() {
            texture = mapEntry->m_TextureId;
 
            //we also want to exclude cells where there is a column
-           //noColumnThere = (mapEntry->get_Column() == NULL);
+           noColumnThere = (mapEntry->get_Column() == NULL);
 
-           if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+           //it is also ok to have a column there, as long as the lowest column block
+           //is not existing (means we have a tunnel)
+           if (!noColumnThere) {
+               //this is how we can check if there is a block or not
+               if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                   //no lowest block, is a tunnel => is ok again
+                   noColumnThere = true;
+               }
+           }
+
+           if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                tileCntCharging++;
            }
        }
@@ -358,9 +408,19 @@ bool ChargingStation::IdentifyUsableArea() {
             texture = mapEntry->m_TextureId;
 
             //we also want to exclude cells where there is a column
-            //noColumnThere = (mapEntry->get_Column() == NULL);
+            noColumnThere = (mapEntry->get_Column() == NULL);
 
-            if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+            //it is also ok to have a column there, as long as the lowest column block
+            //is not existing (means we have a tunnel)
+            if (!noColumnThere) {
+                //this is how we can check if there is a block or not
+                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    //no lowest block, is a tunnel => is ok again
+                    noColumnThere = true;
+                }
+            }
+
+            if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                 tileCntCharging++;
             }
         }
@@ -394,9 +454,19 @@ bool ChargingStation::IdentifyUsableArea() {
             texture = mapEntry->m_TextureId;
 
             //we also want to exclude cells where there is a column
-            //noColumnThere = (mapEntry->get_Column() == NULL);
+            noColumnThere = (mapEntry->get_Column() == NULL);
 
-            if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+            //it is also ok to have a column there, as long as the lowest column block
+            //is not existing (means we have a tunnel)
+            if (!noColumnThere) {
+                //this is how we can check if there is a block or not
+                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    //no lowest block, is a tunnel => is ok again
+                    noColumnThere = true;
+                }
+            }
+
+            if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                 tileCntCharging++;
             }
         }
@@ -427,9 +497,19 @@ bool ChargingStation::IdentifyUsableArea() {
             texture = mapEntry->m_TextureId;
 
             //we also want to exclude cells where there is a column
-            //noColumnThere = (mapEntry->get_Column() == NULL);
+            noColumnThere = (mapEntry->get_Column() == NULL);
 
-            if (this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
+            //it is also ok to have a column there, as long as the lowest column block
+            //is not existing (means we have a tunnel)
+            if (!noColumnThere) {
+                //this is how we can check if there is a block or not
+                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    //no lowest block, is a tunnel => is ok again
+                    noColumnThere = true;
+                }
+            }
+
+            if (noColumnThere && this->mRace->mLevelTerrain->IsChargingStationTexture(texture)) {
                 tileCntCharging++;
             }
         }
@@ -493,9 +573,12 @@ void ChargingStation::createChargingStands() {
     }
 
     //identify "really" usable area for charging
-    //TBD: read return boolean value, and react in case of
-    //fail
-    IdentifyUsableArea();
+    if (!IdentifyUsableArea()) {
+        return;
+    }
+
+    //uncomment next line only for debugging
+    //mRace->mLevelTerrain->DebugOutputFoundChargingTextures();
 
     if (absDotProductinX > absDotProductinZ) {
         //it seems craft go through us in X direction

@@ -131,6 +131,8 @@ public:
 
      irr::core::vector3df mLocationChargingStall;
 
+     irr::f32 mLocalOffset = 0.0f;
+
 private:
     Player* mParentPlayer;
 
@@ -244,6 +246,9 @@ private:
 
     void CpDefineNextAction();
     void CpAddCommandTowardsNextCheckpoint();
+    void CpHandleSeperation(irr::f32 deltaTime);
+
+    bool mHandleSeperation = true;
 
     Collectable* mCpTargetCollectableToPickUp = NULL;
     WayPointLinkInfoStruct* mCpWayPointLinkClosestToCollectable = NULL;
@@ -254,8 +259,6 @@ private:
 
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;
     irr::f32 mCurrentCraftDistToWaypointLink = 0.0f;
-
-    irr::f32 mCurrentCraftDistWaypointLinkTarget = 0.0f;
 
     irr::core::vector3df projPlayerPositionFollowSeg;
 
