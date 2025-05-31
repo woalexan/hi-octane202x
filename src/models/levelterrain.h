@@ -194,7 +194,7 @@ public:
         43, 47, 51, 120, 121,             123, 134, 135, 146, 147, 153 };
 
     //texture IDs we can use the detect charging areas
-    std::vector<irr::s32> chargerTexIdsVec = {43, 47, 51, 31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
+    std::vector<irr::s32> chargerTexIdsVec = {0, 2, 43, 47, 51, 31, 60, 61, 62, 63, 64, 65, 67, 69, 76,
                                             77, 78, 79, 81, 82, 86, 116, 117, 118, 119,
                                            122, 124, 125, 126, 127, 128, 129, 130, 131, 132, 136, 137, 138, 139, 140,
                                            141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
@@ -202,6 +202,8 @@ public:
 
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
     bool IsChargingStationTexture(irr::s32 texture);
+
+    void DebugOutputFoundChargingTextures();
 
 private:
     bool setupGeometry();
@@ -213,6 +215,9 @@ private:
     std::vector<vector2d<irr::f32>> MakeUVs(int textureId, int texMod);
 
     void CreateTerrainMesh();
+
+    //only used for debugging
+    std::vector<irr::s32> mDbgChargerTexFound;
 
     irr::video::IVideoDriver *m_driver;
     scene::ISceneManager *m_smgr;

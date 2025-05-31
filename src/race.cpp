@@ -3325,7 +3325,7 @@ void Race::Render() {
             IndicateTriggerRegions();
         }
 
-      /*  if (mChargingStationVec->size() > 0) {
+     /*   if (mChargingStationVec->size() > 0) {
             std::vector<ChargingStation*>::iterator it;
             for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
                 (*it)->DebugDraw();
@@ -4880,7 +4880,17 @@ void Race::createEntity(EntityItem *p_entity,
         }
 
         case Entity::EntityType::Checkpoint:     {
-            AddCheckPoint(entity);
+            //30.05.2025: It seems in Level 7 the map
+            //designer made a mistake, and added a second
+            //checkpoint with value 4, but with DX = 0 and DY = 0
+            //This additional (faulty) checkpoint prevents my
+            //lap counting from working properly
+            //to fix this here make sure that if DX = 0 and DY = 0
+            //we do not add this fault checkpoint
+            if ((entity.getOffsetX() != 0.0f) || (entity.getOffsetY() != 0.0f))
+              {
+                AddCheckPoint(entity);
+               }
             break;
         }
 

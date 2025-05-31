@@ -922,7 +922,7 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
         irr::f32 corrForceDist = 100.0f;
         irr::f32 corrDampingDist = 2000.0f;
 
-        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
+        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mLocalOffset);
 
         dbgDistError = distError;
 
@@ -2076,6 +2076,9 @@ void CpuPlayer::CpWaitForChargingFinished() {
                   //so that my reserved stall is free again
                   mAssignedChargingStation->ChargingFinished(mParentPlayer);
 
+                  //reenable seperation handling
+                  mHandleSeperation = true;
+
                   //old lines before WorkaroundResetCurrentPath
                   AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
                   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
@@ -2097,6 +2100,9 @@ void CpuPlayer::CpWaitForChargingFinished() {
              //report charging finished to charging station
              //so that my reserved stall is free again
              mAssignedChargingStation->ChargingFinished(mParentPlayer);
+
+             //reenable seperation handling
+             mHandleSeperation = true;
 
              //old lines before WorkaroundResetCurrentPath
              AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
@@ -2120,6 +2126,9 @@ void CpuPlayer::CpWaitForChargingFinished() {
              //report charging finished to charging station
              //so that my reserved stall is free again
              mAssignedChargingStation->ChargingFinished(mParentPlayer);
+
+             //reenable seperation handling
+             mHandleSeperation = true;
 
              //old lines before WorkaroundResetCurrentPath
              AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
@@ -2327,6 +2336,24 @@ void CpuPlayer::CpPlayerHandleAttack() {
     }
 }
 
+void CpuPlayer::CpHandleSeperation() {
+    if (mParentPlayer->mCraftDistanceAvailRight < 0.75f) {  //1.0f
+        if (mParentPlayer->mCraftDistanceAvailLeft > 2.0f) { //2.0f
+            if (mLocalOffset > -0.75f) {
+                mLocalOffset -= 0.1f;
+            }
+        }
+    }
+
+    if (mParentPlayer->mCraftDistanceAvailLeft < 0.75f) {  //1.0f
+        if (mParentPlayer->mCraftDistanceAvailRight > 2.0f) { //2.0f
+           if (mLocalOffset < 0.75f) {
+            mLocalOffset += 0.1f;
+           }
+        }
+    }
+}
+
 void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
     this->CpCurrMissionState = CP_MISSION_FINISHLAPS;
 
@@ -2390,6 +2417,12 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
                     //reprogram computer player path to the reserved
                     //charging station stall
                     CpCommandPlayerToChargingStall(mAssignedChargingStation, mAssignedChargingStall);
+
+                    //we need to switch seperation handling off here
+                    //otherwise we craft can not hit the designated stalls
+                    //we also need to set the local offset to 0.0f
+                    mHandleSeperation = false;
+                    mLocalOffset = 0.0f;
 
                     mSetupPathToChargingStation = true;
                 }
@@ -2467,6 +2500,14 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
     //if computer players attack, run the routine below
     if (computerPlayersAttack) {
         CpPlayerHandleAttack();
+    }
+
+    //mHandleSeperation allows to switch control of seperation
+    //off. We especially want to turn it off inside charging stations
+    //because otherwise the craft will not be able to reach the defined
+    //stall positions
+    if (mHandleSeperation) {
+        CpHandleSeperation();
     }
 
     //for all computer players in this race we need to call the
