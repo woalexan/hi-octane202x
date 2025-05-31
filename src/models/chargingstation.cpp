@@ -578,7 +578,7 @@ void ChargingStation::createChargingStands() {
     }
 
     //uncomment next line only for debugging
-    mRace->mLevelTerrain->DebugOutputFoundChargingTextures();
+    //mRace->mLevelTerrain->DebugOutputFoundChargingTextures();
 
     if (absDotProductinX > absDotProductinZ) {
         //it seems craft go through us in X direction

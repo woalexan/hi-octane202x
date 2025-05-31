@@ -2336,11 +2336,16 @@ void CpuPlayer::CpPlayerHandleAttack() {
     }
 }
 
-void CpuPlayer::CpHandleSeperation() {
+void CpuPlayer::CpHandleSeperation(irr::f32 deltaTime) {
+    if (deltaTime > 0.02f)
+        deltaTime = 0.02f;
+
+    irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
+
     if (mParentPlayer->mCraftDistanceAvailRight < 0.75f) {  //1.0f
         if (mParentPlayer->mCraftDistanceAvailLeft > 2.0f) { //2.0f
             if (mLocalOffset > -0.75f) {
-                mLocalOffset -= 0.1f;
+                mLocalOffset -= 0.1f * speedFactor;
             }
         }
     }
@@ -2348,7 +2353,7 @@ void CpuPlayer::CpHandleSeperation() {
     if (mParentPlayer->mCraftDistanceAvailLeft < 0.75f) {  //1.0f
         if (mParentPlayer->mCraftDistanceAvailRight > 2.0f) { //2.0f
            if (mLocalOffset < 0.75f) {
-            mLocalOffset += 0.1f;
+            mLocalOffset += 0.1f * speedFactor;
            }
         }
     }
@@ -2507,7 +2512,7 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
     //because otherwise the craft will not be able to reach the defined
     //stall positions
     if (mHandleSeperation) {
-        CpHandleSeperation();
+        CpHandleSeperation(deltaTime);
     }
 
     //for all computer players in this race we need to call the

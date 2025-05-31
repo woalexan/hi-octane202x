@@ -203,7 +203,7 @@ public:
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
     bool IsChargingStationTexture(irr::s32 texture);
 
-    void DebugOutputFoundChargingTextures();
+    //void DebugOutputFoundChargingTextures();
 
 private:
     bool setupGeometry();
@@ -217,7 +217,7 @@ private:
     void CreateTerrainMesh();
 
     //only used for debugging
-    std::vector<irr::s32> mDbgChargerTexFound;
+    //std::vector<irr::s32> mDbgChargerTexFound;
 
     irr::video::IVideoDriver *m_driver;
     scene::ISceneManager *m_smgr;

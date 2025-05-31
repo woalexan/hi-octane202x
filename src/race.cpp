@@ -3325,7 +3325,7 @@ void Race::Render() {
             IndicateTriggerRegions();
         }
 
-     /*   if (mChargingStationVec->size() > 0) {
+       /* if (mChargingStationVec->size() > 0) {
             std::vector<ChargingStation*>::iterator it;
             for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
                 (*it)->DebugDraw();

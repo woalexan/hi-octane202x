@@ -327,7 +327,7 @@ LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager
    this->mRace = mRaceParent;
    mEnableLightning = enableLightning;
 
-   mDbgChargerTexFound.clear();
+   //mDbgChargerTexFound.clear();
 
    strcpy(mName, name);
 
@@ -446,14 +446,14 @@ bool LevelTerrain::IsRoadTexture(irr::s32 texture, bool addExtendedTextures) {
 }
 
 bool LevelTerrain::IsChargingStationTexture(irr::s32 texture) {
-    bool found;
-    std::vector<irr::s32>::iterator it2;
+    //bool found;
+    //std::vector<irr::s32>::iterator it2;
 
     for (std::vector<irr::s32>::iterator itTex = chargerTexIdsVec.begin(); itTex != chargerTexIdsVec.end(); ++itTex) {
         if ((*itTex) == texture) {
 
             //texture found, exit
-            found = false;
+       /*     found = false;
             for (it2 = mDbgChargerTexFound.begin(); it2 != mDbgChargerTexFound.end(); ++it2) {
                 if ((*it2) == (*itTex)) {
                     found = true;
@@ -463,7 +463,7 @@ bool LevelTerrain::IsChargingStationTexture(irr::s32 texture) {
 
             if (!found) {
                 mDbgChargerTexFound.push_back(*itTex);
-            }
+            }*/
             return true;
         }
     }
@@ -471,7 +471,7 @@ bool LevelTerrain::IsChargingStationTexture(irr::s32 texture) {
     return false;
 }
 
-void LevelTerrain::DebugOutputFoundChargingTextures() {
+/*void LevelTerrain::DebugOutputFoundChargingTextures() {
     std::vector<irr::s32>::iterator it;
     char strhlp[500];
     std::string msg("");
@@ -485,7 +485,7 @@ void LevelTerrain::DebugOutputFoundChargingTextures() {
 
         logging::Info(msg);
     }
-}
+}*/
 
 irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP) {
     //iterate through all level tiles

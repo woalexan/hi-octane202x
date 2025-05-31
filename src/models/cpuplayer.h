@@ -246,7 +246,7 @@ private:
 
     void CpDefineNextAction();
     void CpAddCommandTowardsNextCheckpoint();
-    void CpHandleSeperation();
+    void CpHandleSeperation(irr::f32 deltaTime);
 
     bool mHandleSeperation = true;
 
