@@ -80,6 +80,72 @@ bool Path::SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::
    return true;
 }
 
+//Runs a plausi check to see if two 3D coordinates for waypoint planing in front of the player (which position and
+//and forward direction is also taken into account) make sense according to their order, or if the two waypoint
+//locations actually needs to be swapped
+//returns true if order is correct, returns false if order is not correct
+bool Path::SaniCheck3DPointOrder(irr::core::vector3df point1, irr::core::vector3df point2, Player* player) {
+    irr::core::vector3df playerPos = player->phobj->physicState.position;
+
+    irr::core::vector3df dirPlayerP2 = (point2 - playerPos);
+    dirPlayerP2.Y = 0.0f;
+    dirPlayerP2.normalize();
+
+    irr::core::vector3df dirP1ToP2 = (point2 - point1);
+    dirP1ToP2.Y = 0.0f;
+    dirP1ToP2.normalize();
+
+    irr::f32 dotProduct = dirPlayerP2.dotProduct(dirP1ToP2);
+
+    //if the dot Product is negative (means the two direction vectors
+    //are opposite sign), then we know position of point1 and point2 is swapped
+    //in this case the Sani check fails, and this two points should be swapped
+    if (dotProduct < 0.0f)
+        return false;
+
+    //point order makes sense, "sani check" passes
+    return true;
+}
+
+//Helper function which takes a WayPointLink, and returns StartEntity pointer in case it is also in
+//front of current player location, or if not returns the endEntity pointer
+//If advanceForOneEntity parameter is true, the function does not return the first match for entity, but instead returns
+//the next one on the path
+EntityItem* Path::GetWayPointLinkEntityItemInFrontOfPlayer(WayPointLinkInfoStruct* whichWayPointLink, bool advanceForOneEntity, Player* whichPlayer) {
+    irr::core::vector3df toPointA = (whichWayPointLink->pLineStruct->A - whichPlayer->phobj->physicState.position);
+    toPointA.Y = 0.0f;
+    toPointA.normalize();
+
+    irr::core::vector3df playerFwdDir = whichPlayer->craftForwardDirVec;
+    playerFwdDir.Y = 0.0f;
+    playerFwdDir.normalize();
+
+    irr::f32 dotProd = toPointA.dotProduct(playerFwdDir);
+
+    if (dotProd > 0.0f) {
+        //starting point seems to be in front of player, return this entity
+        if (!advanceForOneEntity) {
+            return whichWayPointLink->pStartEntity;
+        } else {
+            //we want to advance one entity
+            return whichWayPointLink->pEndEntity;
+        }
+    }
+
+    //waypoint A is behind the player
+    //return end entity
+    if (!advanceForOneEntity) {
+        return whichWayPointLink->pEndEntity;
+    }
+
+    //we want to return the next entity on the path
+    //hopefully there is one :(
+    //lets return the endpoint of the next one,
+    //as the startpoint of the next one does not really help,
+    //as it is at the same location as the endpoint of the inital entity
+    return whichWayPointLink->pntrPathNextLink->pEndEntity;
+}
+
 irr::core::vector2df Path::WayPointLinkGetRaceDirection2D(WayPointLinkInfoStruct* whichWayPointLink) {
   irr::core::vector2df result;
 

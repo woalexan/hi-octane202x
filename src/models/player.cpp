@@ -441,6 +441,9 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     mRace = race;
 
+    //mPlayerStats->ammoVal = 0.0f;
+    //mPlayerStats->shieldVal = 10.0f;
+
     //create my cpuPlayer
     mCpuPlayer = new CpuPlayer(this);
 

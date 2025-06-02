@@ -26,6 +26,7 @@
 #define CMD_CHARGE_AMMO 7
 #define CMD_PICKUP_COLLECTABLE 8
 #define CMD_GOTO_CHARGINGSTATION 9
+#define CMD_EXIT_CHARGINGSTATION 10
 
 #define CP_MISSION_WAITFORRACESTART 0
 #define CP_MISSION_FINISHLAPS 1
@@ -184,9 +185,11 @@ private:
     bool mReachedChargingStall = false;
     bool mSetupPathToChargingStation = false;
     bool mSetupPathToChargingStall = false;
+    bool mSetupPathToExitChargingStation = false;
 
     void CpWaitForChargingStallReached();
     void CpCommandPlayerToChargingStall(ChargingStation* whichChargingStation, ChargerStoppingRegionStruct* whichStall);
+    void CpCommandPlayerToExitChargingStall(ChargingStation* whichChargingStation);
 
     void FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currCommand);
     WayPointLinkInfoStruct* CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks);

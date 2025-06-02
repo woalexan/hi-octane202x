@@ -49,6 +49,8 @@ ChargingStation::ChargingStation(irr::scene::ISceneManager* smgr, Race* race, Ma
         createChargingStands();
     }
 
+    DetectExitWayPointLink();
+
     //create a temporary entityItem for entering
     //the charging station for computer players
     this->enterEntityItem = new EntityItem(this->enterEntityItemLocation);
@@ -676,12 +678,16 @@ void ChargingStation::createChargingStands() {
                 middleCoordinate.X = (-usableTileXmin * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                 enterEntityItemLocation.X = (-usableTileXmax * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
 
-                helperEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                //best before 01.06.2025
+                //helperEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                helperEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
             } else {
                 middleCoordinate.X = (-usableTileXmax * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                 enterEntityItemLocation.X = (-usableTileXmin * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
 
-                helperEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                //best before 01.06.2025
+                //helperEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                helperEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
             }
         } else {
                middleCoordinate.X = (corner4.X - corner2.X) * 0.5f + corner2.X;
@@ -693,12 +699,16 @@ void ChargingStation::createChargingStands() {
                     middleCoordinate.Z = usableTileYmax * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                     enterEntityItemLocation.Z =  usableTileYmin * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
 
-                    helperEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                    //best before 01.06.2025
+                    //helperEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                    helperEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
                } else {
                    middleCoordinate.Z = usableTileYmin * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                    enterEntityItemLocation.Z = usableTileYmax * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
 
-                   helperEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                   //best before 01.06.2025
+                   //helperEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
+                   helperEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
                }     
         }
 
@@ -707,19 +717,19 @@ void ChargingStation::createChargingStands() {
         //calculate starting pos for first stall based
         //on middle location
         if (mWidthInZDir) {
-            startingCorner.X = middleCoordinate.X;
-
             if (signInX > 0.0f) {
+                   startingCorner.X = middleCoordinate.X - length * 0.5f + DEF_CHARGING_STATION_STAND_MINSIDELEN * nrStallsLength * 0.5f;
                    startingCorner.Z = middleCoordinate.Z + DEF_CHARGING_STATION_STAND_MINSIDELEN * wFactor;
             } else {
+                   startingCorner.X = middleCoordinate.X + length * 0.5f - DEF_CHARGING_STATION_STAND_MINSIDELEN * nrStallsLength * 0.5f;
                    startingCorner.Z = middleCoordinate.Z - DEF_CHARGING_STATION_STAND_MINSIDELEN * wFactor;
             }
         } else {
-               startingCorner.Z = middleCoordinate.Z;
-
                if (signInZ > 0.0f) {
-                    startingCorner.X = middleCoordinate.X - DEF_CHARGING_STATION_STAND_MINSIDELEN * wFactor;
+                   startingCorner.Z = middleCoordinate.Z - length * 0.5f + DEF_CHARGING_STATION_STAND_MINSIDELEN * nrStallsLength * 0.5f;
+                   startingCorner.X = middleCoordinate.X - DEF_CHARGING_STATION_STAND_MINSIDELEN * wFactor;
                } else {
+                   startingCorner.Z = middleCoordinate.Z + length * 0.5f - DEF_CHARGING_STATION_STAND_MINSIDELEN * nrStallsLength * 0.5f;
                    startingCorner.X = middleCoordinate.X + DEF_CHARGING_STATION_STAND_MINSIDELEN * wFactor;
                }
         }
@@ -825,6 +835,58 @@ bool ChargingStation::ReachedEntryOfChargingStation(WayPointLinkInfoStruct* curr
     return false;
 }
 
+bool ChargingStation::PassedExitOfChargingStation(WayPointLinkInfoStruct* currWayPointLink) {
+    if (exitWayPointLink->pntrPathNextLink == NULL)
+        return false;
+
+    if (currWayPointLink == exitWayPointLink->pntrPathNextLink)
+        return true;
+
+    return false;
+}
+
+void ChargingStation::DetectExitWayPointLink() {
+    //we just can take any of the intersecting way point links we found,
+    //and follow its links, until the last one that we found in the vector
+    //of intersecting way points; thats the one which exits the charging station
+    WayPointLinkInfoStruct* currLink;
+    WayPointLinkInfoStruct* linkBefore;
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    exitWayPointLink = NULL;
+
+    if (mIntersectingWayPointLinksVec.size() < 1)
+        return;
+
+    linkBefore = mIntersectingWayPointLinksVec.at(0);
+    currLink = linkBefore->pntrPathNextLink;
+
+    bool exit = false;
+    bool linkFound;
+
+    do {
+        //is this new link still in the list of intersecting way points?
+        linkFound = false;
+        for (it = mIntersectingWayPointLinksVec.begin(); it != mIntersectingWayPointLinksVec.end(); ++it) {
+              if ((*it) == currLink) {
+                  //found
+                  linkFound = true;
+                  break;
+              }
+        }
+
+        if (!linkFound) {
+           exitWayPointLink = linkBefore;
+           exit = true;
+        }
+
+        if (!exit) {
+            linkBefore = currLink;
+            currLink = currLink->pntrPathNextLink;
+        }
+    } while (!exit);
+}
+
 //If there is no free stall right now for
 //service returns NULL
 ChargerStoppingRegionStruct* ChargingStation::GetNextFreeStall() {
@@ -860,15 +922,19 @@ void ChargingStation::DebugDraw() {
     //draw region for charging station
     mRace->mDrawDebug->Draw3DRectangle(corner1, corner2, corner3, corner4, mRace->mDrawDebug->pink);
 
-    /*mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, middlePos, mRace->mDrawDebug->blue);
-    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, startPos, mRace->mDrawDebug->red);*/
+    //mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterEntityItemLocation, mRace->mDrawDebug->blue);
+    //mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, helperEntityItemLocation, mRace->mDrawDebug->red);
 
     //draw the waypoint links that intersect me
-   /* std::vector<WayPointLinkInfoStruct*>::iterator it2;
+    std::vector<WayPointLinkInfoStruct*>::iterator it2;
 
     for (it2 = this->mIntersectingWayPointLinksVec.begin(); it2 != this->mIntersectingWayPointLinksVec.end(); ++it2) {
-       mRace->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mDrawDebug->cyan);
-    }*/
+       if ((*it2) == exitWayPointLink) {
+            mRace->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mDrawDebug->red);
+       } else {
+            mRace->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mDrawDebug->cyan);
+       }
+    }
 
     //draw all charging stalls
     for (it = this->mStandVec.begin(); it != this->mStandVec.end(); ++it) {

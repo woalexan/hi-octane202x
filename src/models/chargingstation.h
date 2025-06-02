@@ -80,11 +80,14 @@ public:
     //is returned in variable reservedStall
     bool RequestCharging(Player *whichPlayer, ChargerStoppingRegionStruct *& reservedStall);
     bool ReachedEntryOfChargingStation(WayPointLinkInfoStruct* currWayPointLink);
+    bool PassedExitOfChargingStation(WayPointLinkInfoStruct* currWayPointLink);
 
     void ChargingFinished(Player *whichPlayer);
 
     EntityItem* enterEntityItem = NULL;
     EntityItem* helperEntityItem = NULL;
+
+    WayPointLinkInfoStruct* exitWayPointLink = NULL;
 
 private:
     irr::scene::ISceneManager* mSmgr;
@@ -116,6 +119,8 @@ private:
     //create my available stands that allows
     //player crafts to "stand" during charging
     void createChargingStands();
+
+    void DetectExitWayPointLink();
 
     //to store number of available stalls
     irr::u8 nrStallsWidth = 0;

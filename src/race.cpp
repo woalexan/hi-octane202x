@@ -3190,10 +3190,10 @@ void Race::Render() {
           if (!currPlayerFollow->mHumanPlayer) {
               currPlayerFollow->mCpuPlayer->DebugDraw();
           }
-      }
+      }*/
 
-        mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
-*/
+      //  mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
+
 
       /*if (currPlayerFollow != NULL) {
 
@@ -3325,7 +3325,7 @@ void Race::Render() {
             IndicateTriggerRegions();
         }
 
-       /* if (mChargingStationVec->size() > 0) {
+      /*  if (mChargingStationVec->size() > 0) {
             std::vector<ChargingStation*>::iterator it;
             for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
                 (*it)->DebugDraw();

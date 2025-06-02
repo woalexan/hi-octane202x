@@ -163,6 +163,18 @@ public:
     bool SaniCheckBezierInputPoints(irr::core::vector2df startPnt, irr::core::vector2df cntrlPnt,
                                     irr::core::vector2df endPnt, irr::core::vector2df raceDirection);
 
+    //Runs a plausi check to see if two 3D coordinates for waypoint planing in front of the player (which position and
+    //and forward direction is also taken into account) make sense according to their order, or if the two waypoint
+    //locations actually needs to be swapped
+    //returns true if order is correct, returns false if order is not correct
+    bool SaniCheck3DPointOrder(irr::core::vector3df point1, irr::core::vector3df point2, Player* player);
+
+    //Helper function which takes a WayPointLink, and returns StartEntity pointer in case it is also in
+    //front of current player location, or if not returns the endEntity pointer
+    //If advanceForOneEntity parameter is true, the function does not return the first match for entity, but instead returns
+    //the next one on the path
+    EntityItem* GetWayPointLinkEntityItemInFrontOfPlayer(WayPointLinkInfoStruct* whichWayPointLink, bool advanceForOneEntity, Player* whichPlayer);
+
     irr::core::vector2df WayPointLinkGetRaceDirection2D(WayPointLinkInfoStruct* whichWayPointLink);
 
     std::vector<WayPointLinkInfoStruct*> DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(
