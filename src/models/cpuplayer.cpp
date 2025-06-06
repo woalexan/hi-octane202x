@@ -225,7 +225,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         //newLineStr->B = whichStall->entityItem->getCenter();
 
         newLineStr->A = whichStall->entityItem->getCenter();
-        newLineStr->B = whichChargingStation->helperEntityItem->getCenter();
+        newLineStr->B = whichChargingStation->enterHelperEntityItem->getCenter();
 
         //set white as default color
         newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
@@ -277,7 +277,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
         //newStruct->pEndEntity = whichStall->entityItem;
 
-        newStruct->pEndEntity = whichChargingStation->helperEntityItem;
+        newStruct->pEndEntity = whichChargingStation->enterHelperEntityItem;
 
         mLocationChargingStall = whichStall->entityItem->getCenter();
 
@@ -325,7 +325,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
 
         LineStruct* newLineStr = new LineStruct();
 
-        newLineStr->A = whichChargingStation->helperEntityItem->getCenter();
+        newLineStr->A = whichChargingStation->exitEntityItem->getCenter();
         newLineStr->B = nextEntityInFrontOfPlayer->getCenter();
 
         //if we have bad luck it can happen that we select the proper nextEntityInFrontOfPlayer, but
@@ -378,7 +378,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         newStruct->pLineStructExtended = lineExt;
 
         //newStruct->pStartEntity = whichChargingStation->enterEntityItem;
-        newStruct->pStartEntity = whichChargingStation->helperEntityItem;
+        newStruct->pStartEntity = whichChargingStation->exitEntityItem;
         newStruct->pEndEntity = nextEntityInFrontOfPlayer;
 
         newStruct->minOffsetShiftEnd = -10.0f;

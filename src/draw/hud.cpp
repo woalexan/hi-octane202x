@@ -1149,6 +1149,7 @@ void HUD::SetMonitorWhichPlayer(Player* newPlayer) {
     //reset banner logic variables
     //current banner text state is now 0 (means nothing is shown at all)
     currentBannerTextState = 0;
+    currShownBannerMsg = NULL;
 
     bannerDoesCurrentlyOpen = false;
     bannerDoesCurrentlyClose = false;

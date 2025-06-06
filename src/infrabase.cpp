@@ -60,10 +60,7 @@ bool InfrastructureBase::InitIrrlicht() {
         // Set a global ambient color. A very dark gray.
         mEffect->setAmbientColor(SColor(255, 255, 255, 255));
 
-        /*mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-45.0f, 20.0f, 7.6f), vector3df(-17.36f, 2.4f, 45.56f),
-                SColor(255, 255, 255, 255), 20.0f, 200.0f, 120.0f * DEGTORAD));*/
-
-        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 53.0f, 54.0f), vector3df(-27.0f, 1.0f, -6.0f),
+        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 120.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
                 SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false));
 
         //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));

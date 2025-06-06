@@ -46,17 +46,24 @@ ChargingStation::ChargingStation(irr::scene::ISceneManager* smgr, Race* race, Ma
     //we need at least one intersecting waypoint link, so that
     //we know the directon of the craft traveling through
     if (mIntersectingWayPointLinksVec.size() > 0) {
+        DetermineOrientation();
+
+        DetectExitWayPointLink();
+
         createChargingStands();
     }
-
-    DetectExitWayPointLink();
 
     //create a temporary entityItem for entering
     //the charging station for computer players
     this->enterEntityItem = new EntityItem(this->enterEntityItemLocation);
 
-    //additional helper entityItem for path to stall creation
-    this->helperEntityItem = new EntityItem(this->helperEntityItemLocation);
+    //additional helper entityItem for entering the charging station
+    //for computer players
+    this->enterHelperEntityItem = new EntityItem(this->enterHelperEntityItemLocation);
+
+    //create a temporary entityItem for exiting
+    //the charging station for computer players
+    this->exitEntityItem = new EntityItem(this->exitEntityItemLocation);
 }
 
 irr::u8 ChargingStation::GetChargingStationType() {
@@ -533,22 +540,20 @@ bool ChargingStation::IdentifyUsableArea() {
     return true;
 }
 
-//create my available stands that allows
-//player crafts to "stand" during charging
-void ChargingStation::createChargingStands() {
+void ChargingStation::DetermineOrientation() {
     //in which coordinate direction will the craft
     //fly through us, we can derive this information
     //from a waypoint link that goes through us
     irr::f32 dotProductinX = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->xAxisDirVector);
     irr::f32 dotProductinZ = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->zAxisDirVector);
 
-    irr::f32 signInX = -1.0f;
+    signInX = -1.0f;
 
     if (dotProductinX >= 0.0f) {
         signInX = 1.0f;
     }
 
-    irr::f32 signInZ = -1.0f;
+    signInZ = -1.0f;
 
     if (dotProductinZ >= 0.0f) {
         signInZ = 1.0f;
@@ -557,13 +562,6 @@ void ChargingStation::createChargingStands() {
     irr::f32 absDotProductinX = fabs(dotProductinX);
     irr::f32 absDotProductinZ = fabs(dotProductinZ);
 
-    //define the width of the charging station as the width
-    //perpendicular to the direction the craft will fly through
-    //the charging station
-    //define the length of the charging station as the length
-    //in direction of the Waypoint link
-    irr::f32 width;
-    irr::f32 length;
     mWidthInZDir = false;
 
     irr::f32 segSize = mRace->mLevelTerrain->segmentSize;
@@ -596,6 +594,12 @@ void ChargingStation::createChargingStands() {
         width = (usableTileXmax - usableTileXmin) * segSize;
         length = (usableTileYmax - usableTileYmin) * segSize;
     }
+}
+
+//create my available stands that allows
+//player crafts to "stand" during charging
+void ChargingStation::createChargingStands() {
+    irr::f32 segSize = mRace->mLevelTerrain->segmentSize;
 
     //here we need to round down to nearest integer (or lets simply truncate!)
     nrStallsWidth = (irr::u8)(width / DEF_CHARGING_STATION_STAND_MINSIDELEN);
@@ -665,50 +669,146 @@ void ChargingStation::createChargingStands() {
 
         irr::core::vector3df middleCoordinate(0.0f, midPointHeight, 0.0f);
         enterEntityItemLocation.Y = midPointHeight;
-        helperEntityItemLocation.Y = midPointHeight;
+        exitEntityItemLocation.Y = midPointHeight;
+        enterHelperEntityItemLocation.Y = midPointHeight;
 
         //calculate middle pos
         if (mWidthInZDir) {
             middleCoordinate.Z = (corner2.Z - corner4.Z) * 0.5f + corner4.Z;
             enterEntityItemLocation.Z = middleCoordinate.Z;
+            enterHelperEntityItemLocation.Z = middleCoordinate.Z;
 
-            helperEntityItemLocation.Z = middleCoordinate.Z;
+            if ((mExitRotation == ROT_EXIT_0DEG) || (mExitRotation == ROT_EXIT_180DEG)) {
+                exitEntityItemLocation.Z = middleCoordinate.Z;
+            } else if ((mExitRotation == ROT_EXIT_90DEG) || (mExitRotation == ROT_EXIT_270DEG)) {
+                exitEntityItemLocation.X = (corner4.X - corner1.X) * 0.5f + corner1.X;
+            }
 
             if (signInX > 0.0f) {
                 middleCoordinate.X = (-usableTileXmin * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                 enterEntityItemLocation.X = (-usableTileXmax * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
+                enterHelperEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
 
-                //best before 01.06.2025
-                //helperEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
-                helperEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                switch (mExitRotation) {
+
+                    case ROT_EXIT_90DEG: {
+                        exitEntityItemLocation.Z = (usableTileYmin * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                        break;
+                    }
+
+                    case ROT_EXIT_180DEG: {
+                       exitEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                       break;
+                    }
+
+                    case ROT_EXIT_270DEG: {
+                        exitEntityItemLocation.Z = (usableTileYmax * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                        break;
+                    }
+
+                    case ROT_EXIT_0DEG:
+                    default:
+                    {
+                       exitEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                       break;
+                    }
+                }
             } else {
                 middleCoordinate.X = (-usableTileXmax * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                 enterEntityItemLocation.X = (-usableTileXmin * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
+                enterHelperEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
 
-                //best before 01.06.2025
-                //helperEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
-                helperEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                switch (mExitRotation) {
+
+                    case ROT_EXIT_90DEG: {
+                        exitEntityItemLocation.Z = (usableTileYmax * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                        break;
+                    }
+
+                    case ROT_EXIT_180DEG: {
+                        exitEntityItemLocation.X = (-usableTileXmin * segSize) + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                        break;
+                    }
+
+                    case ROT_EXIT_270DEG: {
+                        exitEntityItemLocation.Z = (usableTileYmin * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                        break;
+                    }
+
+                    case ROT_EXIT_0DEG:
+                    default:
+                      {
+                        exitEntityItemLocation.X = (-usableTileXmax * segSize) - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                        break;
+                      }
+                 }
             }
         } else {
                middleCoordinate.X = (corner4.X - corner2.X) * 0.5f + corner2.X;
                enterEntityItemLocation.X = middleCoordinate.X;
+               enterHelperEntityItemLocation.X = middleCoordinate.X;
 
-               helperEntityItemLocation.X = middleCoordinate.X;
+               if ((mExitRotation == ROT_EXIT_0DEG) || (mExitRotation == ROT_EXIT_180DEG)) {
+                    exitEntityItemLocation.X = middleCoordinate.X;
+               }  else if ((mExitRotation == ROT_EXIT_90DEG) || (mExitRotation == ROT_EXIT_270DEG)) {
+                    exitEntityItemLocation.Z = (corner3.Z - corner4.Z) * 0.5f + corner4.Z;
+               }
 
                if (signInZ > 0.0f) {
                     middleCoordinate.Z = usableTileYmax * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                     enterEntityItemLocation.Z =  usableTileYmin * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
+                    enterHelperEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
 
-                    //best before 01.06.2025
-                    //helperEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
-                    helperEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                    switch (mExitRotation) {
+                        case ROT_EXIT_90DEG: {
+                                exitEntityItemLocation.X = -usableTileXmin * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                                break;
+                        }
+
+                        case ROT_EXIT_180DEG: {
+                            exitEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                            break;
+                        }
+
+                        case ROT_EXIT_270DEG: {
+                                exitEntityItemLocation.X = -usableTileXmax * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                                break;
+                        }
+
+                        case ROT_EXIT_0DEG:
+                        default: {
+                            exitEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                            break;
+                        }
+                    }
                } else {
                    middleCoordinate.Z = usableTileYmin * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
                    enterEntityItemLocation.Z = usableTileYmax * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 0.5f;
+                   enterHelperEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
 
-                   //best before 01.06.2025
-                   //helperEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 4.0f;
-                   helperEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                   switch (mExitRotation) {
+
+                       case ROT_EXIT_90DEG: {
+                         exitEntityItemLocation.X = -usableTileXmax * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                         break;
+                       }
+
+                       case ROT_EXIT_180DEG: {
+                         exitEntityItemLocation.Z = usableTileYmax * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                         break;
+                       }
+
+                       case ROT_EXIT_270DEG: {
+                         exitEntityItemLocation.X = -usableTileXmin * segSize + DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                         break;
+                       }
+
+                       case ROT_EXIT_0DEG:
+                       default: {
+                            exitEntityItemLocation.Z = usableTileYmin * segSize - DEF_CHARGING_STATION_STAND_MINSIDELEN * 1.0f;
+                            break;
+                        }
+                   }
                }     
         }
 
@@ -885,6 +985,93 @@ void ChargingStation::DetectExitWayPointLink() {
             currLink = currLink->pntrPathNextLink;
         }
     } while (!exit);
+
+    //if we did not find the exitLink yet exit
+    if (exitWayPointLink == NULL)
+        return;
+
+    //what is the orientation of the exit link?
+    irr::f32 dotProductinX = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->xAxisDirVector);
+    irr::f32 dotProductinZ = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->zAxisDirVector);
+
+    irr::f32 exitSignInX = -1.0f;
+
+    if (dotProductinX >= 0.0f) {
+        exitSignInX = 1.0f;
+    }
+
+    irr::f32 exitSignInZ = -1.0f;
+
+    if (dotProductinZ >= 0.0f) {
+        exitSignInZ = 1.0f;
+    }
+
+    irr::f32 absDotProductinX = fabs(dotProductinX);
+    irr::f32 absDotProductinZ = fabs(dotProductinZ);
+
+    bool exitWidthInZDir = false;
+
+    if (absDotProductinX > absDotProductinZ) {
+        //it seems craft go through us in X direction
+        //therefore width is in Z direction
+        exitWidthInZDir = true;
+    }
+
+    irr::f32 exitOrient;
+
+    //determine if the "exit" direction of the
+    //charging station is "rotated" from the usually expected
+    //orientation opposite of the entry side
+    if (exitWidthInZDir) {
+        if (exitSignInX > 0.0f) {
+             exitOrient = 270.0f;
+        } else {
+            exitOrient = 90.0f;
+        }
+    } else {
+           if (exitSignInZ > 0.0f) {
+               exitOrient = 180.0f;
+           } else {
+               exitOrient = 0.0f;
+         }
+    }
+
+    irr::f32 expExitOrient;
+
+    if (mWidthInZDir) {
+        if (signInX > 0.0f) {
+             expExitOrient = 270.0f;
+        } else {
+            expExitOrient = 90.0f;
+        }
+    } else {
+           if (signInZ > 0.0f) {
+               expExitOrient = 180.0f;
+           } else {
+               expExitOrient = 0.0f;
+         }
+    }
+
+    irr::f32 deltaOrient = exitOrient - expExitOrient;
+
+    if ((deltaOrient > -5.0f) && (deltaOrient < 5.0f)) {
+        mExitRotation = ROT_EXIT_0DEG;
+        return;
+    }
+
+    if ((deltaOrient > 85.0f) && (deltaOrient < 95.0f)) {
+        mExitRotation = ROT_EXIT_90DEG;
+        return;
+    }
+
+    if ((deltaOrient > 175.0f) && (deltaOrient < 185.0f)) {
+        mExitRotation = ROT_EXIT_180DEG;
+        return;
+    }
+
+    if ((deltaOrient > 265.0f) && (deltaOrient < 275.0f)) {
+        mExitRotation = ROT_EXIT_270DEG;
+    }
 }
 
 //If there is no free stall right now for
@@ -922,8 +1109,14 @@ void ChargingStation::DebugDraw() {
     //draw region for charging station
     mRace->mDrawDebug->Draw3DRectangle(corner1, corner2, corner3, corner4, mRace->mDrawDebug->pink);
 
-    //mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterEntityItemLocation, mRace->mDrawDebug->blue);
-    //mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, helperEntityItemLocation, mRace->mDrawDebug->red);
+    //helper positions/entity locations for entering of computer players into
+    //charging station
+    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterEntityItemLocation, mRace->mDrawDebug->blue);
+    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterHelperEntityItemLocation, mRace->mDrawDebug->cyan);
+
+    //helper position/entity location for exiting of computer players from
+    //charging station
+    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, exitEntityItemLocation, mRace->mDrawDebug->red);
 
     //draw the waypoint links that intersect me
     std::vector<WayPointLinkInfoStruct*>::iterator it2;
@@ -1014,8 +1207,15 @@ ChargingStation::~ChargingStation() {
         enterEntityItem = NULL;
     }
 
-    if (this->helperEntityItem != NULL) {
-        delete helperEntityItem;
-        helperEntityItem = NULL;
+    if (this->enterHelperEntityItem != NULL) {
+        delete enterHelperEntityItem;
+        enterHelperEntityItem = NULL;
+    }
+
+    //delete the temporary entityItem for exiting
+    //the charging station for computer players
+    if (this->exitEntityItem != NULL) {
+        delete exitEntityItem;
+        exitEntityItem = NULL;
     }
 }
