@@ -15,6 +15,15 @@
 #include "../models/player.h"
 #include "../utils/path.h"
 
+//defines a rotation in clockwise direction
+//for the exit of the charging station
+//as far as I am aware will only be used one single time in
+//level 6 of the original game (for the annyoing weirdly placed ammo charger :( )
+#define ROT_EXIT_0DEG 0
+#define ROT_EXIT_90DEG 1
+#define ROT_EXIT_180DEG 2
+#define ROT_EXIT_270DEG 3
+
 //defines the minimum side len that is necessary for every
 //charging station stand, is used to decide how many stands are
 //possible during creation of a charging station
@@ -80,11 +89,16 @@ public:
     //is returned in variable reservedStall
     bool RequestCharging(Player *whichPlayer, ChargerStoppingRegionStruct *& reservedStall);
     bool ReachedEntryOfChargingStation(WayPointLinkInfoStruct* currWayPointLink);
+    bool PassedExitOfChargingStation(WayPointLinkInfoStruct* currWayPointLink);
 
     void ChargingFinished(Player *whichPlayer);
 
     EntityItem* enterEntityItem = NULL;
-    EntityItem* helperEntityItem = NULL;
+    EntityItem* enterHelperEntityItem = NULL;
+
+    EntityItem* exitEntityItem = NULL;
+
+    WayPointLinkInfoStruct* exitWayPointLink = NULL;
 
 private:
     irr::scene::ISceneManager* mSmgr;
@@ -117,6 +131,10 @@ private:
     //player crafts to "stand" during charging
     void createChargingStands();
 
+    void DetermineOrientation();
+
+    void DetectExitWayPointLink();
+
     //to store number of available stalls
     irr::u8 nrStallsWidth = 0;
     irr::u8 nrStallsLength = 0;
@@ -128,7 +146,12 @@ private:
     //computer players
     irr::core::vector3df enterEntityItemLocation;
 
-    irr::core::vector3df helperEntityItemLocation;
+    irr::core::vector3df enterHelperEntityItemLocation;
+
+    //internal coordinate necessary to create temporary
+    //entityItem for exiting the charging station for
+    //computer players
+    irr::core::vector3df exitEntityItemLocation;
 
     //Some predefined charging stations in the maps extend outside
     //of the usable race track, this would lead to stalls that are not
@@ -140,6 +163,14 @@ private:
     irr::u16 usableTileYmin;
     irr::u16 usableTileYmax;
 
+    //define the width of the charging station as the width
+    //perpendicular to the direction the craft will fly through
+    //the charging station
+    //define the length of the charging station as the length
+    //in direction of the Waypoint link
+    irr::f32 width;
+    irr::f32 length;
+
     //returns true if usable area was succesfully found
     //returns false in case of error
     bool IdentifyUsableArea();
@@ -150,9 +181,16 @@ private:
     //direction
     bool mWidthInZDir = false;
 
+    //also used to determine the orientation of this
+    //charging station
+    irr::f32 signInX;
+    irr::f32 signInZ;
+
     //If there is no free stall right now for
     //service returns NULL
     ChargerStoppingRegionStruct* GetNextFreeStall();
+
+    irr::u8 mExitRotation = ROT_EXIT_0DEG;
 };
 
 #endif // CHARGINGSTATION_H

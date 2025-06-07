@@ -147,6 +147,27 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newStruct->LinkDirectionVec = vec3D;
     newStruct->LinkDirectionVec.normalize();
 
+    //Idea: extend the lines a little bit further outwards at
+    //both ends, so that when we project the players position on
+    //the different segments later we always find a valid segment
+    LineStruct *lineExt = new LineStruct;
+
+    lineExt->A = newLineStr->A - newStruct->LinkDirectionVec * 0.5f;
+    lineExt->B = newLineStr->B + newStruct->LinkDirectionVec * 0.5f;
+
+    lineExt->name = new char[100];
+    sprintf(lineExt->name, "");
+
+    //set white as default color
+    lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+
+    newStruct->pLineStructExtended = lineExt;
+
+    newStruct->minOffsetShiftEnd = -10.0f;
+    newStruct->maxOffsetShiftEnd = 10.0f;
+    newStruct->minOffsetShiftStart = -10.0f;
+    newStruct->maxOffsetShiftStart = 10.0f;
+
     //precalculate a direction vector which stands at a 90 degree
     //angle at the original waypoint direction vector, and always points
     //to the right direction when looking into race direction
@@ -225,7 +246,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         //newLineStr->B = whichStall->entityItem->getCenter();
 
         newLineStr->A = whichStall->entityItem->getCenter();
-        newLineStr->B = whichChargingStation->helperEntityItem->getCenter();
+        newLineStr->B = whichChargingStation->enterHelperEntityItem->getCenter();
 
         //set white as default color
         newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
@@ -277,7 +298,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
         //newStruct->pEndEntity = whichStall->entityItem;
 
-        newStruct->pEndEntity = whichChargingStation->helperEntityItem;
+        newStruct->pEndEntity = whichChargingStation->enterHelperEntityItem;
 
         mLocationChargingStall = whichStall->entityItem->getCenter();
 
@@ -299,6 +320,120 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         this->cmdList->push_back(newCmd);
 
         mSetupPathToChargingStall = false;
+}
+
+void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargingStation) {
+    if (whichChargingStation == NULL)
+        return;
+
+        //create a new temporary waypoint link from computer player crafts current
+        //position via charging station exit point and via exitWayPointLink
+
+        //if we have no exitWayPointLink in this charging station, we can not exit
+        //in this case, just return
+        if (whichChargingStation->exitWayPointLink == NULL)
+            return;
+
+        //do we use start or exit entity of the exitWayPointLink to exit the charging
+        //station? this depends on if startEntity is still in front of the player or not
+        //do not advance entity in this first case
+        EntityItem* nextEntityInFrontOfPlayer =
+                this->mParentPlayer->mRace->mPath->GetWayPointLinkEntityItemInFrontOfPlayer(whichChargingStation->exitWayPointLink, false, this->mParentPlayer);
+
+        //construct the "exit" route by combining current player location, then charging station exit point, and
+        //the next entity of exitWayPointLink of charging station in front of player
+        WayPointLinkInfoStruct* newStruct = new WayPointLinkInfoStruct();
+
+        LineStruct* newLineStr = new LineStruct();
+
+        newLineStr->A = whichChargingStation->exitEntityItem->getCenter();
+        newLineStr->B = nextEntityInFrontOfPlayer->getCenter();
+
+        //if we have bad luck it can happen that we select the proper nextEntityInFrontOfPlayer, but
+        //this entity is placed between the player and the chargerStation helperEntityItem,
+        //in which case the computer player control setup would fail
+        //in this case lets take the next entity on the path out of the charging station,
+        //by advancing entities by one (see function parameter below which is set to true);
+        bool swap3DPointOrder =
+                !this->mParentPlayer->mRace->mPath->SaniCheck3DPointOrder(newLineStr->A, newLineStr->B, this->mParentPlayer);
+
+        if (swap3DPointOrder) {
+            //we need to take the next waypoint entity on the exit path
+            nextEntityInFrontOfPlayer =
+                            this->mParentPlayer->mRace->mPath->GetWayPointLinkEntityItemInFrontOfPlayer(whichChargingStation->exitWayPointLink, true, this->mParentPlayer);
+
+            //update value for B with advanced entity
+            newLineStr->B = nextEntityInFrontOfPlayer->getCenter();
+        }
+
+        //set white as default color
+        newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+        newLineStr->name = new char[10];
+        strcpy(newLineStr->name, "");
+
+        newStruct->pLineStruct = newLineStr;
+        irr::core::vector3df vec3D = (newLineStr->B - newLineStr->A);
+
+        //precalculate and store length as we will need this very often
+        //during the game loop for race position update
+        newStruct->length3D = vec3D.getLength();
+        vec3D.normalize();
+
+        newStruct->LinkDirectionVec = vec3D;
+        newStruct->LinkDirectionVec.normalize();
+
+        //Idea: extend the lines a little bit further outwards at
+        //both ends, so that when we project the players position on
+        //the different segments later we always find a valid segment
+        LineStruct *lineExt = new LineStruct;
+
+        lineExt->A = newLineStr->A - newStruct->LinkDirectionVec * 0.5f;
+        lineExt->B = newLineStr->B + newStruct->LinkDirectionVec * 0.5f;
+
+        lineExt->name = new char[100];
+        sprintf(lineExt->name, "");
+
+        //set white as default color
+        lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+
+        newStruct->pLineStructExtended = lineExt;
+
+        //newStruct->pStartEntity = whichChargingStation->enterEntityItem;
+        newStruct->pStartEntity = whichChargingStation->exitEntityItem;
+        newStruct->pEndEntity = nextEntityInFrontOfPlayer;
+
+        newStruct->minOffsetShiftEnd = -10.0f;
+        newStruct->maxOffsetShiftEnd = 10.0f;
+        newStruct->minOffsetShiftStart = -10.0f;
+        newStruct->maxOffsetShiftStart = 10.0f;
+
+       // mParentPlayer->mRace->dbgCoord = newStruct->pLineStruct->B;
+
+        //precalculate a direction vector which stands at a 90 degree
+        //angle at the original waypoint direction vector, and always points
+        //to the right direction when looking into race direction
+        //this direction vector is later used during the game to offset the player
+        //path sideways
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+
+        CheckAndRemoveNoCommand();
+
+        CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
+        newCmd->cmdType = CMD_EXIT_CHARGINGSTATION;
+
+        //also store this temporary waypointlink struct info
+        //in the command, so that we can cleanup after this command was
+        //executed
+        newCmd->targetWaypointLink = newStruct;
+
+        //mark waypoint link as temporary created, so that
+        //we delete it again after command was fully executed
+        newCmd->WayPointLinkTemporary = true;
+
+        //add the new command to the end of the command list
+        this->cmdList->push_back(newCmd);
+
+        mSetupPathToExitChargingStation = false;
 }
 
 void CpuPlayer::AddCommand(uint8_t cmdType, Collectable* whichCollectable) {
@@ -393,6 +528,11 @@ bool CpuPlayer::DoIWantToChargeAmmo() {
 }
 
 void CpuPlayer::DebugDraw() {
+
+ /* mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt1, this->mParentPlayer->mRace->mDrawDebug->green);
+  mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt2, this->mParentPlayer->mRace->mDrawDebug->red);
+  mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt3, this->mParentPlayer->mRace->mDrawDebug->blue);*/
+
   if (mCurrentPathSeg.size() > 0) {
        std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
@@ -827,6 +967,8 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
         if (this->cPCurrentFollowSeg == NULL) {
            this->computerPlayerTargetSpeed = 0.0f;
             mParentPlayer->LogMessage((char*)"CPForceController: lost our segment to follow in ProjectPlayerAtCurrentSegments");
+
+            //this->mParentPlayer->mRace->mGame->StopTime();
             return;
         }
 
@@ -926,23 +1068,26 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
 
         dbgDistError = distError;
 
-         //best line until 30.12.2024
+        //best line until 30.12.2024
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
         if (corrForceDistance > 100.0f) {
-            corrForceDistance = 100.0f;
-        } else if (corrForceDistance < -100.0f) {
-            corrForceDistance = -100.0f;
-        }
+             corrForceDistance = 100.0f;
+         } else if (corrForceDistance < -100.0f) {
+             corrForceDistance = -100.0f;
+           }
 
         mDbgFoceDistance = corrForceDistance;
 
         mParentPlayer->phobj->AddLocalCoordForce(mParentPlayer->LocalCraftOrigin, irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
-                                            PHYSIC_APPLYFORCE_ONLYTRANS);
+                                   PHYSIC_APPLYFORCE_ONLYTRANS);
+
     } else {
         //no segment to follow, stop craft
         this->computerPlayerTargetSpeed = 0.0f;
         mParentPlayer->LogMessage((char*)"CPForceController: No segement to follow, stop craft");
+
+        //this->mParentPlayer->mRace->mGame->StopTime();
     }
 }
 
@@ -1131,6 +1276,7 @@ void CpuPlayer::CPTrackMovement() {
        if (LinkWithClosestStartEndPoint != NULL) {
          closestLink = LinkWithClosestStartEndPoint;
          mParentPlayer->LogMessage((char*)"CPTrackMovement: Workaround closest StartEndPoint");
+         //this->mParentPlayer->mRace->mGame->StopTime();
        }
     }
 
@@ -1145,6 +1291,9 @@ void CpuPlayer::CPTrackMovement() {
     cPCurrentFollowSeg = closestLink;
 
    if (cPCurrentFollowSeg == NULL) {
+         mParentPlayer->LogMessage((char*)"CPTrackMovement: cPCurrentFollowSeg is NULL, Workaround");
+         //this->mParentPlayer->mRace->mGame->StopTime();
+
          WorkaroundResetCurrentPath();
 
          return;
@@ -1452,6 +1601,28 @@ void CpuPlayer::WorkaroundResetCurrentPath() {
 
   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 }
+
+/*  was just an attempt at 06.06.2025, commented out right now again
+//after a computer player is freed from the recovery vehicle, our under
+//some error cases where we could lose our current path progress we need
+//to try to restart with a new clean path/path status, this is done by this routine
+void CpuPlayer::WorkaroundResetCurrentPath() {
+
+    mParentPlayer->LogMessage((char*)"WorkaroundResetCurrentPath was called");
+
+    //which waypoint is closest to me?
+    EntityItem* closestWayPoint = this->mParentPlayer->mRace->mPath->FindNearestWayPointToPlayer(this->mParentPlayer);
+
+   if (closestWayPoint == NULL) {
+       //workaround, just do nothing! TODO: Maybe improve later
+       mParentPlayer->LogMessage((char*)"WorkaroundResetCurrentPath: no closest waypoint found!");
+   } else {
+       //setup new path for the race
+       AddCommand(CMD_FLYTO_TARGETENTITY, closestWayPoint);
+   }
+
+  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+}*/
 
 void CpuPlayer::CpCheckCurrentPathForObstacles() {
     bool updatePath = false;
@@ -2077,10 +2248,15 @@ void CpuPlayer::CpWaitForChargingFinished() {
                   mAssignedChargingStation->ChargingFinished(mParentPlayer);
 
                   //reenable seperation handling
-                  mHandleSeperation = true;
+                  //mHandleSeperation = true;
 
                   //old lines before WorkaroundResetCurrentPath
-                  AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+                  //next line commented out and replaced at 01.06.2025
+                  //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+                  //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mAssignedChargingStation->exitWayPointLink);
+
+                  CpCommandPlayerToExitChargingStall(mAssignedChargingStation);
+
                   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
               }
           }
@@ -2102,10 +2278,14 @@ void CpuPlayer::CpWaitForChargingFinished() {
              mAssignedChargingStation->ChargingFinished(mParentPlayer);
 
              //reenable seperation handling
-             mHandleSeperation = true;
+             //mHandleSeperation = true;
 
-             //old lines before WorkaroundResetCurrentPath
-             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             //next line commented out and replaced at 01.06.2025
+             //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mAssignedChargingStation->exitWayPointLink);
+
+             CpCommandPlayerToExitChargingStall(mAssignedChargingStation);
+
              computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
          }
      }
@@ -2128,10 +2308,14 @@ void CpuPlayer::CpWaitForChargingFinished() {
              mAssignedChargingStation->ChargingFinished(mParentPlayer);
 
              //reenable seperation handling
-             mHandleSeperation = true;
+             //mHandleSeperation = true;
 
-             //old lines before WorkaroundResetCurrentPath
-             AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             //next line commented out and replaced at 01.06.2025
+             //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+             //AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mAssignedChargingStation->exitWayPointLink);
+
+             CpCommandPlayerToExitChargingStall(mAssignedChargingStation);
+
              computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
          }
      }
@@ -2164,10 +2348,36 @@ void CpuPlayer::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currComma
             //we reached the target
             //this->mHUD->ShowBannerText((char*)"TARGET REACHED", 4.0f);
 
+            mParentPlayer->LogMessage((char*)"FlyTowardsEntityRunComputerPlayerLogic: Target reached");
+
+            EntityItem* pntrItem = currCommand->targetEntity;
+
             //mark current command as finished, pull the next one
             CurrentCommandFinished();
 
             cPCurrentFollowSeg = NULL;
+
+            //continue path via next waypoint-links
+            //too which waypoint link does this entity item belong too
+            std::vector<WayPointLinkInfoStruct*> whichLinksStart =
+                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, true, false, NULL);
+
+            if (whichLinksStart.size() > 0) {
+                AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, whichLinksStart.at(0));
+
+                return;
+            }
+
+            std::vector<WayPointLinkInfoStruct*> whichLinksEnd =
+                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, false, true, NULL);
+
+            if (whichLinksEnd.size() > 0) {
+                if (whichLinksEnd.at(0)->pntrPathNextLink != NULL) {
+                    AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, whichLinksEnd.at(0)->pntrPathNextLink);
+                }
+
+                return;
+            }
 
             return;
         }
@@ -2337,6 +2547,9 @@ void CpuPlayer::CpPlayerHandleAttack() {
 }
 
 void CpuPlayer::CpHandleSeperation(irr::f32 deltaTime) {
+
+    return ;
+
     if (deltaTime > 0.02f)
         deltaTime = 0.02f;
 
@@ -2465,6 +2678,36 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
             break;
         }
 
+        case CMD_EXIT_CHARGINGSTATION: {
+                if (!mSetupPathToExitChargingStation) {
+
+                    mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
+                    mCpCurrPathOffset = 0.0f;
+
+                    FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
+
+                    computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+
+                    mSetupPathToExitChargingStation = true;
+
+                    mParentPlayer->LogMessage((char*)"Charging Station exit path setup done");
+                    //this->mParentPlayer->mRace->mGame->StopTime();
+                } else {
+                   //did we already exit the charging station
+                   if (mAssignedChargingStation->PassedExitOfChargingStation(this->currClosestWayPointLink.first)) {
+                       mParentPlayer->LogMessage((char*)"Passed exit of assigned charging station");
+
+                       CurrentCommandFinished();
+
+                       //reenable seperation handling
+                       mHandleSeperation = true;
+
+                       AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, this->mCpFollowThisWayPointLink);
+                   }
+                }
+
+               break;
+            }
 
         case CMD_FOLLOW_TARGETWAYPOINTLINK: {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;

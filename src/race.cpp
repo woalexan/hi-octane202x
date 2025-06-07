@@ -3186,14 +3186,14 @@ void Race::Render() {
           }
       }*/
 
-     /* if (currPlayerFollow != NULL) {
+    /*  if (currPlayerFollow != NULL) {
           if (!currPlayerFollow->mHumanPlayer) {
               currPlayerFollow->mCpuPlayer->DebugDraw();
           }
-      }
+      }*/
 
-        mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
-*/
+      //  mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
+
 
       /*if (currPlayerFollow != NULL) {
 
@@ -3249,10 +3249,10 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
-        if (currPlayerFollow != NULL) {
+       /* if (currPlayerFollow != NULL) {
 
 
-            /*if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
+            if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
                                        mDrawDebug->cyan);
 
@@ -3261,16 +3261,16 @@ void Race::Render() {
 
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.second,
                                        mDrawDebug->blue);
-
-                if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
+         */
+               /* if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
                     irr::core::vector3df incY2(0.0f, 0.15f, 0.0f);
 
                     mDrawDebug->Draw3DLine(
                                 currPlayerFollow->cPCurrentFollowSeg->pLineStruct->A + incY2,
                                 currPlayerFollow->cPCurrentFollowSeg->pLineStruct->B + incY2,
                                 this->mDrawDebug->orange);
-                }
-            }*/
+                }*/
+           // }
 
             /*if (currPlayerFollow->mFailedLinks.size() > 0) {
                 std::vector<WayPointLinkInfoStruct*>::iterator it3;
@@ -3287,7 +3287,7 @@ void Race::Render() {
                                        mDrawDebug->orange);
             }*/
 
-        }
+        //}
 
         //DebugShowAllObstaclePlayers();
 

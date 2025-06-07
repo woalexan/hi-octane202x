@@ -169,7 +169,7 @@ void Game::SetupDebugGame() {
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     //add computer players?
-    mGameAssets->SetComputerPlayersEnabled(false);
+    mGameAssets->SetComputerPlayersEnabled(true);
 
     mGameState = DEF_GAMESTATE_INITRACE;
 }
@@ -786,6 +786,11 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                              this->mCurrentRace->player2->mCurrentWaypointLinkAngle,
                              this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
 
+         /* swprintf(text2, 390, L"currDist = %lf\ncurrAngle = %lf\ncurrDist = %lf\ncurrAngle = %lf\n",
+                       this->mCurrentRace->mPlayerVec.at(0)->mCurrentCraftDistToWaypointLink,
+                        this->mCurrentRace->mPlayerVec.at(0)->mAngleError,
+                       this->mCurrentRace->mPlayerVec.at(1)->mCpuPlayer->mCurrentCraftDistToWaypointLink,
+                       this->mCurrentRace->mPlayerVec.at(1)->mCpuPlayer->mAngleError);*/
 
         /*    swprintf(text2, 390, L"currCharger = %d\currPos = %d\n",
                            this->mCurrentRace->currCharger,

@@ -441,6 +441,9 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     mRace = race;
 
+    //mPlayerStats->ammoVal = 0.0f;
+    //mPlayerStats->shieldVal = 10.0f;
+
     //create my cpuPlayer
     mCpuPlayer = new CpuPlayer(this);
 
@@ -1113,7 +1116,7 @@ bool Player::IsCurrentlyStuck() {
     return mCpuPlayer->IsCurrentlyStuck();
 }
 
-/*
+
 void Player::TestCpForceControlLogicWithHumanPlayer() {
     if (!mHumanPlayer)
         return;
@@ -1155,11 +1158,15 @@ void Player::TestCpForceControlLogicWithHumanPlayer() {
             mAngleError = -mAngleError;
         }
 
-        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mCurrentCraftDistWaypointLinkTarget);
+        //lets just pretend we always want to follow the line
+        //exactly, without any offset
+        irr::f32 mLocalOffset = 0.0f;
 
-         dbgDistError = distError;
+        irr::f32 distError = (mCurrentCraftDistToWaypointLink - mLocalOffset);
+
+       // dbgDistError = distError;
     }
-}*/
+}
 /*
 void Player::UpdateCurrentCraftOrientationAngleAvg() {
     if (mCurrentCraftOrientationAngleSamples > 10) {
@@ -2380,6 +2387,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //create low shield warnings
     HandleShield();
 
+    //next line is only for debugging
     //TestCpForceControlLogicWithHumanPlayer();
 
     CalcPlayerCraftLeaningAngle();
