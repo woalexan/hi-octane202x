@@ -30,7 +30,7 @@ public:
     void LoadSpriteTextures(char* filePath);
 
 private:
-    irr::video::IVideoDriver *m_driver;
+    irr::video::IVideoDriver *m_driver = nullptr;
 };
 
 #endif // TEXTURE_H

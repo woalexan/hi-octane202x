@@ -36,8 +36,8 @@ Collectable::Collectable(Race* race, Entity::EntityType type, vector3d<irr::f32>
                          irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver) {
 
     //for the second type of collectable (spawned temporary collectable)
-    //there is no entity Item object in the background, is always null
-    this->mEntityItem = NULL;
+    //there is no entity Item object in the background, is always nullptr
+    this->mEntityItem = nullptr;
 
     //the type of collectable is stored for this second type
     //in a different member variable directly in this object
@@ -129,7 +129,7 @@ void Collectable::SetVisible(bool visible) {
 //of collectable possible
 Entity::EntityType Collectable::GetCollectableType() {
     //type 1 collectable (from map file)?
-    if (mEntityItem != NULL) {
+    if (mEntityItem != nullptr) {
         //type 1, information is stored within a EntityItem object
         //from the level/map file
         return (mEntityItem->getEntityType());
@@ -145,7 +145,7 @@ Entity::EntityType Collectable::GetCollectableType() {
 void Collectable::UpdateType2Collectable(irr::f32 deltaTime) {
     //if this is a type 1 collectable, and this function was
     //accidently called, just exit
-    if (this->mEntityItem != NULL)
+    if (this->mEntityItem != nullptr)
         return;
 
     //reduce remaining lifetime with deltaTime
@@ -183,7 +183,7 @@ void Collectable::PickedUp() {
     this->billSceneNode->setVisible(false);
 
    //if type 2 collectible, delete this collectible
-   if (this->mEntityItem == NULL) {
+   if (this->mEntityItem == nullptr) {
         this->remainingLifeTime = -1.0f;
    }
 }

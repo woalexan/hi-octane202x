@@ -217,7 +217,7 @@ void Race::IrrlichtStats(char* text) {
     strcat(finalpath, ".txt");
 
     FILE* oFile = fopen(finalpath, "w");
-    if (oFile == NULL) {
+    if (oFile == nullptr) {
        return;
     }
 
@@ -240,7 +240,7 @@ Race::~Race() {
     std::vector<Player*>::iterator it;
 
     for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
-        (*it)->SetMyHUD(NULL);
+        (*it)->SetMyHUD(nullptr);
     }
 
     //now we can free the HUD
@@ -348,7 +348,7 @@ void Race::CleanUpEntities() {
    }
 
    delete ENTWallsegmentsLine_List;
-   ENTWallsegmentsLine_List = NULL;
+   ENTWallsegmentsLine_List = nullptr;
 
    if (ENTWaypoints_List->size() > 0) {
        std::vector<EntityItem*>::iterator it;
@@ -362,7 +362,7 @@ void Race::CleanUpEntities() {
    }
 
    delete ENTWaypoints_List;
-   ENTWaypoints_List = NULL;
+   ENTWaypoints_List = nullptr;
 
    if (ENTWallsegments_List->size() > 0) {
        std::list<EntityItem*>::iterator it;
@@ -376,7 +376,7 @@ void Race::CleanUpEntities() {
    }
 
    delete ENTWallsegments_List;
-   ENTWallsegments_List = NULL;
+   ENTWallsegments_List = nullptr;
 
    if (ENTTriggers_List->size() > 0) {
        std::list<EntityItem*>::iterator it;
@@ -390,7 +390,7 @@ void Race::CleanUpEntities() {
    }
 
    delete ENTTriggers_List;
-   ENTTriggers_List = NULL;
+   ENTTriggers_List = nullptr;
 
    if (ENTCollectablesVec->size() > 0) {
        std::vector<Collectable*>::iterator it;
@@ -407,7 +407,7 @@ void Race::CleanUpEntities() {
    }
 
    delete ENTCollectablesVec;
-   ENTCollectablesVec = NULL;
+   ENTCollectablesVec = nullptr;
 
    //delete remaining type2 collectable items
    //which were dynamically spawned before
@@ -443,7 +443,7 @@ void Race::CleanUpSteamFountains() {
 
     //delete also the vector itself
     delete steamFountainVec;
-    steamFountainVec = NULL;
+    steamFountainVec = nullptr;
 }
 
 void Race::CleanUpRecoveryVehicles() {
@@ -463,11 +463,11 @@ void Race::CleanUpRecoveryVehicles() {
 
     //delete also the vector itself
     delete recoveryVec;
-    recoveryVec = NULL;
+    recoveryVec = nullptr;
 
     //clean up also waiting list for recovery
     delete mPlayerWaitForRecoveryVec;
-    mPlayerWaitForRecoveryVec = NULL;
+    mPlayerWaitForRecoveryVec = nullptr;
 }
 
 void Race::CallRecoveryVehicleForHelp(Player *whichPlayer) {
@@ -590,7 +590,7 @@ void Race::UpdateRecoveryVehicles(irr::f32 deltaTime) {
 }
 
 //returns an available recovery vehicle for physics reset
-//if no recovery vehicle is available returns NULL
+//if no recovery vehicle is available returns nullptr
 Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffPointAfterReset) {
     std::vector<Recovery*>::iterator itRec;
     irr::f32 distance;
@@ -609,7 +609,7 @@ Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffP
 
     //if there is at least one recovery vehicle available sort them by descending distance,
     //and select one for this player physics recovery, otherwise do nothing
-    //and return NULL
+    //and return nullptr
     if (vecAvailRecoveryVehicles.size() > 0) {
             //sort vector pairs in descending value of distance
            std::sort(vecAvailRecoveryVehicles.rbegin(), vecAvailRecoveryVehicles.rend());
@@ -624,8 +624,8 @@ Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffP
         }
 
     //currently no recovery vehicles available
-    //return NULL
-    return (NULL);
+    //return nullptr
+    return (nullptr);
 }
 
 void Race::CleanUpCones() {
@@ -645,7 +645,7 @@ void Race::CleanUpCones() {
 
     //delete also the vector itself
     delete coneVec;
-    coneVec = NULL;
+    coneVec = nullptr;
 }
 
 void Race::CleanUpTimers() {
@@ -763,11 +763,11 @@ void Race::End() {
 
 //attacker is the enemy player that does damage the player targetToHit
 //for damage that an entity does cause (for example steamFountain) attacker is set
-//to NULL
+//to nullptr
 void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker) {
     bool targetDied;
 
-    if (targetToHit != NULL) {
+    if (targetToHit != nullptr) {
         targetDied = targetToHit->Damage(damageVal, damageType);
 
         //if the attacked/damaged player died let the player ship explode
@@ -775,7 +775,7 @@ void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageT
         //spawn entities in the level from the target
         if (targetDied) {
 
-            if (attacker != NULL) {
+            if (attacker != nullptr) {
                 //increase kill count of attacker
                 attacker->mPlayerStats->currKillCount++;
 
@@ -1013,7 +1013,7 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     //setup player physic properties
     //give the computer player slightly different values
     //for optimization
-    if (newPlayerPhysicsObj != NULL) {
+    if (newPlayerPhysicsObj != nullptr) {
         SetupPhysicsObjectParameters(*newPlayerPhysicsObj, humanPlayer);
 
         newPlayerPhysicsObj->physicState.position = Startpos;
@@ -1221,7 +1221,7 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
     //start at current waypoint link closest to current player
     //then follow this link forward until we hit the next checkpoint
     //create sum of all distances
-    if (whichPlayer->currClosestWayPointLink.first != NULL) {
+    if (whichPlayer->currClosestWayPointLink.first != nullptr) {
         //we have currently a closest waypoint link for this player
         currLink = whichPlayer->currClosestWayPointLink.first;
 
@@ -1244,7 +1244,7 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
         //in, and we are distance wise before the expected waypoint?
         //if we are progress wise already after the checkpoint location, continue search for next
         //checkpoint
-        if ((currLink->pntrCheckPoint != NULL) && (len < currLink->distanceStartLinkToCheckpoint)) {
+        if ((currLink->pntrCheckPoint != nullptr) && (len < currLink->distanceStartLinkToCheckpoint)) {
             //yes, exit here
             whichPlayer->remainingDistanceToNextCheckPoint = sumDistance;
 
@@ -1265,8 +1265,8 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
 
         //now follow the waypoint l whichPlayer->mLeave = 1;inks forward until we hit the next (but different) checkpoint
         while (cont) {  //follow one link after another until we hit the next checkpoint
-            if (currLink != NULL) {
-                if (currLink->pntrCheckPoint == NULL) {
+            if (currLink != nullptr) {
+                if (currLink->pntrCheckPoint == nullptr) {
                     //The next line is for debugging
                     //currLink->pLineStruct->color = mDrawDebug->blue;
 
@@ -1297,24 +1297,24 @@ void Race::UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer) {
 void Race::removePlayerTest() {
 //    HUD* plHUD;
 //    //get possible pointer from player than an HUD
-//    //if no HUD connection is there we will get NULL
+//    //if no HUD connection is there we will get nullptr
 //    plHUD = player2->GetMyHUD();
 
 //    //player has an HUD attached
-//    if (plHUD != NULL) {
+//    if (plHUD != nullptr) {
 //        //tell HUD to stop monitoring player we want to remove
-//        plHUD->SetMonitorWhichPlayer(NULL);
+//        plHUD->SetMonitorWhichPlayer(nullptr);
 
 //        //remove HUD pnter also from player object
 //        //we want to remove
-//        player2->SetMyHUD(NULL);
+//        player2->SetMyHUD(nullptr);
 //    }
 
 //    //remove Player2 from physics
 //    mPhysics->RemoveObject(player2->Player_node);
 
 //    //reset pointer in player to physics-object
-//    player2->SetPlayerObject(NULL);
+//    player2->SetPlayerObject(nullptr);
 
 //    //remove Scenenode from Irrlicht SceneManager
 //    player2->Player_node->remove();
@@ -1341,7 +1341,7 @@ void Race::CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr) {
 }
 
 void Race::PlayerHasFinishedLastLapOfRace(Player *whichPlayer) {
-    if (whichPlayer != NULL) {
+    if (whichPlayer != nullptr) {
         this->playerRaceFinishedVec.push_back(whichPlayer);
     }
 }
@@ -2307,8 +2307,8 @@ void Race::ProcessPendingTriggers() {
                 //temporary collectables (for example spawned by the collectablespawner then a player craft is destroyed)
                 //For this type of collectable there is no entityItem object in the background, as there is no map file entry
                 //behind this collectable; This type of collectable has also no trigger, and therefore we need to skip collectables
-                //here which have an entityItem of NULL!
-                if ((*itCollect)->mEntityItem != NULL) {
+                //here which have an entityItem of nullptr!
+                if ((*itCollect)->mEntityItem != nullptr) {
                     //need to check this collectable, is normal (type 1), has an
                     //EntityItem in the background, and a trigger
                     if ((*itCollect)->mEntityItem->getGroup() == (*it)) {
@@ -2531,7 +2531,7 @@ void Race::HandleBasicInput() {
 
         if (playerCamera) {
            //hide the camera of the selected player
-           if (currPlayerFollow != NULL) {
+           if (currPlayerFollow != nullptr) {
                currPlayerFollow->HideCraft();
            }
         }
@@ -2556,7 +2556,7 @@ void Race::HandleBasicInput() {
     }
 
     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
-        if (this->currPlayerFollow != NULL)
+        if (this->currPlayerFollow != nullptr)
         {
             this->currPlayerFollow->ChangeViewMode();
         }
@@ -2747,7 +2747,7 @@ void Race::HandleInput(irr::f32 deltaTime) {
      }
 
      if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
-         if (currPlayerFollow != NULL) {
+         if (currPlayerFollow != nullptr) {
             this->SpawnCollectiblesForPlayer(currPlayerFollow);
          }
      }
@@ -2862,7 +2862,7 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
 }
 
 void Race::DrawSky() {
-    if (mSkyImage != NULL) {
+    if (mSkyImage != nullptr) {
         //we also need current player absolute orientation in degree
         irr::f32 orientationAngle = currPlayerFollow->mCurrentCraftOrientationAngle;
 
@@ -3072,7 +3072,7 @@ void Race::Render() {
         DebugDrawWayPointLinks(DebugShowFreeMovementSpace);
      }
 
-   /* if ((currPlayerFollow != NULL) && (currPlayerFollow->currClosestWayPointLink.first != NULL)) {
+   /* if ((currPlayerFollow != nullptr) && (currPlayerFollow->currClosestWayPointLink.first != nullptr)) {
         mDrawDebug->Draw3DLine(
                     currPlayerFollow->currClosestWayPointLink.second, currPlayerFollow->currClosestWayPointLink.second
                     + currPlayerFollow->currClosestWayPointLink.first->offsetDirVec * currPlayerFollow->mCpFollowedWayPointLinkCurrentSpaceRightSide,
@@ -3173,7 +3173,7 @@ void Race::Render() {
                                    this->mDrawDebug->green);*/
 
       /*
-      if (currPlayerFollow != NULL) {
+      if (currPlayerFollow != nullptr) {
 
             if (currPlayerFollow->mPathHistoryVec.size() > 0) {
               std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
@@ -3186,7 +3186,7 @@ void Race::Render() {
           }
       }*/
 
-    /*  if (currPlayerFollow != NULL) {
+    /*  if (currPlayerFollow != nullptr) {
           if (!currPlayerFollow->mHumanPlayer) {
               currPlayerFollow->mCpuPlayer->DebugDraw();
           }
@@ -3195,7 +3195,7 @@ void Race::Render() {
       //  mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
 
 
-      /*if (currPlayerFollow != NULL) {
+      /*if (currPlayerFollow != nullptr) {
 
               if (this->currPlayerFollow->mCpAvailWayPointLinks.size() > 0) {
                   std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
@@ -3217,16 +3217,16 @@ void Race::Render() {
           }
       }*/
 
-       /* if (currPlayerFollow != NULL) {
+       /* if (currPlayerFollow != nullptr) {
 
-              if (currPlayerFollow->mCpTargetCollectableToPickUp != NULL) {
+              if (currPlayerFollow->mCpTargetCollectableToPickUp != nullptr) {
                    irr::core::vector3df fixedPos = currPlayerFollow->mCpTargetCollectableToPickUp->Position;
                    fixedPos.X = -fixedPos.X;
                    mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos,
                                           this->mDrawDebug->pink);
               }
 
-              if (currPlayerFollow->mCpWayPointLinkClosestToCollectable != NULL) {
+              if (currPlayerFollow->mCpWayPointLinkClosestToCollectable != nullptr) {
                   mDrawDebug->Draw3DLine(currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->A,
                                          currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->B,
                                          this->mDrawDebug->cyan);
@@ -3249,10 +3249,10 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
-       /* if (currPlayerFollow != NULL) {
+       /* if (currPlayerFollow != nullptr) {
 
 
-            if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
+            if (currPlayerFollow->currClosestWayPointLink.first != nullptr) {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
                                        mDrawDebug->cyan);
 
@@ -3262,7 +3262,7 @@ void Race::Render() {
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.second,
                                        mDrawDebug->blue);
          */
-               /* if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
+               /* if (currPlayerFollow->cPCurrentFollowSeg != nullptr) {
                     irr::core::vector3df incY2(0.0f, 0.15f, 0.0f);
 
                     mDrawDebug->Draw3DLine(
@@ -3282,7 +3282,7 @@ void Race::Render() {
             }*/
 
 
-           /* if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
+           /* if (currPlayerFollow->cPCurrentFollowSeg != nullptr) {
                 mDrawDebug->Draw3DLine(currPlayerFollow->cPCurrentFollowSeg->pLineStruct->A, currPlayerFollow->cPCurrentFollowSeg->pLineStruct->B,
                                        mDrawDebug->orange);
             }*/
@@ -3291,7 +3291,7 @@ void Race::Render() {
 
         //DebugShowAllObstaclePlayers();
 
-      /*  if (currPlayerFollow != NULL) {
+      /*  if (currPlayerFollow != nullptr) {
             mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, currPlayerFollow->phobj->physicState.position,
                                    this->mDrawDebug->orange);
         }*/
@@ -3347,7 +3347,7 @@ void Race::DebugShowAllObstaclePlayers() {
 //function for debugging
 void Race::DebugSelectPlayer(int whichPlayerNr) {
     if (whichPlayerNr < this->mPlayerVec.size()) {
-       if (currPlayerFollow != NULL) {
+       if (currPlayerFollow != nullptr) {
             currPlayerFollow->DebugSelectionBox(false);
 
             //unhide player model
@@ -3452,7 +3452,7 @@ void Race::IndicateTriggerRegions() {
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
-    if ((mDrawDebug != NULL) && (this->mLevelTerrain != NULL)) {
+    if ((mDrawDebug != nullptr) && (this->mLevelTerrain != nullptr)) {
         if (x < 0) {
             x = 0;
         }
@@ -3521,7 +3521,7 @@ bool Race::LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core
     //load sky image
     mSkyImage = driver->getTexture(filename);
 
-    if (mSkyImage == NULL) {
+    if (mSkyImage == nullptr) {
         //there was a texture loading error
         //just return with false
         return false;
@@ -3543,18 +3543,18 @@ bool Race::LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core
 }
 
 void Race::CleanUpSky() {
-    if (mSkyImage != NULL) {
+    if (mSkyImage != nullptr) {
         //free this texture
         mInfra->mDriver->removeTexture(mSkyImage);
-        mSkyImage = NULL;
+        mSkyImage = nullptr;
     }
 }
 
 void Race::CleanMiniMap() {
-    if (baseMiniMap != NULL) {
+    if (baseMiniMap != nullptr) {
         //free this texture
         mInfra->mDriver->removeTexture(baseMiniMap);
-        baseMiniMap = NULL;
+        baseMiniMap = nullptr;
     }
 
     //also clean up all minimap marker colors
@@ -3924,7 +3924,7 @@ irr::f32 Race::GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVe
 void Race::CheckPointPostProcessing() {
     std::vector<CheckPointInfoStruct*>::iterator it;
     irr::core::line3df line3D;
-    WayPointLinkInfoStruct *fndLink = NULL;
+    WayPointLinkInfoStruct *fndLink = nullptr;
     std::vector<WayPointLinkInfoStruct*>::iterator it1;
     std::vector<WayPointLinkInfoStruct*>::iterator it2;
 
@@ -3953,7 +3953,7 @@ void Race::CheckPointPostProcessing() {
         //in default travel direction
         irr::core::aabbox3d bbox = (*it)->SceneNode->getTransformedBoundingBox();
 
-        fndLink = NULL;
+        fndLink = nullptr;
         irr::core::line3df linepiece;
         irr::core::vector3df vecPiece;
         int pieceFound;
@@ -4000,14 +4000,14 @@ void Race::CheckPointPostProcessing() {
                 }
 
                 //just set fndLink first time
-               // if (fndLink == NULL) {
+               // if (fndLink == nullptr) {
                     fndLink = (*it2);
                     //break;
                 //}
             }
         }
 
-        if (fndLink != NULL) {
+        if (fndLink != nullptr) {
               //calculate and set direction vector for checkpoint
               (*it)->RaceDirectionVec = (fndLink->pLineStruct->B - fndLink->pLineStruct->A).normalize();
         }
@@ -4022,11 +4022,11 @@ void Race::CheckPointPostProcessing() {
     //area in level 1 where this occurs) which are not one after another, but as in this case parallel independent
     //ways/paths for the player
     for (it1 = this->wayPointLinkVec->begin(); it1 != this->wayPointLinkVec->end(); ++it1) {
-           if (((*it1)->pntrCheckPoint != NULL) && ((*it1)->pntrPathNextLink != NULL)) {
+           if (((*it1)->pntrCheckPoint != nullptr) && ((*it1)->pntrPathNextLink != nullptr)) {
               if ((*it1)->pntrCheckPoint == (*it1)->pntrPathNextLink->pntrCheckPoint) {
                   //we have found this situation
                   //prefer to delete link to checkpoint in the waypoint link that follows after the checkpoint
-                  (*it1)->pntrPathNextLink->pntrCheckPoint = NULL;
+                  (*it1)->pntrPathNextLink->pntrCheckPoint = nullptr;
                   (*it1)->pntrPathNextLink->distanceStartLinkToCheckpoint = 0.0f;
               }
         }
@@ -4269,7 +4269,7 @@ void Race::UpdateExternalCameras() {
     //first iterate through all players, and try to assign an
     //external camera for each player
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
-         (*itPlayer)->externalCamera = NULL;
+         (*itPlayer)->externalCamera = nullptr;
 
          for (itCamera = mCameraVec.begin(); itCamera != mCameraVec.end(); ++itCamera) {
              if ((*itCamera)->CanIObserveLocation((*itPlayer)->phobj->physicState.position)) {
@@ -4284,7 +4284,7 @@ void Race::UpdateExternalCameras() {
                  //if we are not able to observe this player, but this player is our focus right
                  //now, remove our focus as well
                  if ((*itCamera)->mFocusAtPlayer == (*itPlayer)) {
-                     (*itCamera)->SetTargetPlayer(NULL);
+                     (*itCamera)->SetTargetPlayer(nullptr);
                  }
              }
          }
@@ -4294,13 +4294,13 @@ void Race::UpdateExternalCameras() {
 void Race::FindNextPlayerToFollowInDemoMode() {
     std::vector<Player*>::iterator it;
 
-    mFollowPlayerDemoMode = NULL;
+    mFollowPlayerDemoMode = nullptr;
 
     for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
         //is there an external camera available for this player currently,
         //and the player is not stuck (we do not want to highlight the fact
         //that we have not the best computer player controls and a stuck player :) )
-        if (((*it)->externalCamera != NULL) && (!(*it)->IsCurrentlyStuck())) {
+        if (((*it)->externalCamera != nullptr) && (!(*it)->IsCurrentlyStuck())) {
             //ok, lets follow this player now
             mFollowPlayerDemoMode = (*it);
             mFollowPlayerDemoModeTimeCounter = 0.0f;
@@ -4311,11 +4311,11 @@ void Race::FindNextPlayerToFollowInDemoMode() {
 }
 
 void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
-    irr::scene::ICameraSceneNode* activeCam = NULL;
+    irr::scene::ICameraSceneNode* activeCam = nullptr;
 
     //do we need to find a new player to follow
     //with an external camera?
-    if (mFollowPlayerDemoMode == NULL) {
+    if (mFollowPlayerDemoMode == nullptr) {
         FindNextPlayerToFollowInDemoMode();
     } else {
         //we currently follow a player
@@ -4332,8 +4332,8 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
     if (playerCamera) {
         //get active camera of player we currently follow
         //in demo mode
-        if (this->mFollowPlayerDemoMode != NULL) {
-           if (mFollowPlayerDemoMode->externalCamera != NULL) {
+        if (this->mFollowPlayerDemoMode != nullptr) {
+           if (mFollowPlayerDemoMode->externalCamera != nullptr) {
                 mFollowPlayerDemoMode->UnhideCraft();
 
                 //update external camera focus
@@ -4361,7 +4361,7 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
         activeCam = mCamera;
     }
 
-    if (activeCam == NULL)
+    if (activeCam == nullptr)
         return;
 
     //has the active camera changed?
@@ -4375,13 +4375,13 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
 }
 
 void Race::ManagePlayerCamera() {
-    irr::scene::ICameraSceneNode* activeCam = NULL;
+    irr::scene::ICameraSceneNode* activeCam = nullptr;
     bool hidePlayerModel;
 
     if (playerCamera) {
         //get active camera of currently selected
         //player, and check if it has changed
-        if (this->currPlayerFollow != NULL) {
+        if (this->currPlayerFollow != nullptr) {
             activeCam = this->currPlayerFollow->DeliverActiveCamera();
 
             //do we need to hide the player model?
@@ -4399,7 +4399,7 @@ void Race::ManagePlayerCamera() {
         activeCam = mCamera;
     }
 
-    if (activeCam == NULL)
+    if (activeCam == nullptr)
         return;
 
     //has the active camera changed?
@@ -4427,7 +4427,7 @@ void Race::UpdateSoundListener() {
     //tell soundEngine where the current sound listener
     //is positioned (listener is the location of the
     //currently selected camera)
-    if (currActiveCamera != NULL) {
+    if (currActiveCamera != nullptr) {
         irr::core::vector3df target = currActiveCamera->getTarget();
         irr::core::vector3df camPos = currActiveCamera->getAbsolutePosition();
 
@@ -4442,7 +4442,7 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
 
     //if we have a next element to link the two waypoints
     //add link to the waypoint link list here
-    if (next != NULL) {
+    if (next != nullptr) {
         WayPointLinkInfoStruct* newStruct = new WayPointLinkInfoStruct();
 
         //store start and end waypoint entity object
@@ -4631,13 +4631,13 @@ void Race::createEntity(EntityItem *p_entity,
 
     //make local variable which points on pointer
     EntityItem entity = *p_entity;
-    EntityItem *next = NULL;
+    EntityItem *next = nullptr;
 
 //    if (!GroupedEntities.ContainsKey(entity.Group)) GroupedEntities.Add(entity.Group, new List<EntityItem>());
 //    GroupedEntities[entity.Group].Add(entity);
 
     float boxSize = 0;
-    collectable = NULL;
+    collectable = nullptr;
 
     int next_ID = entity.getNextID();
     bool exists;
@@ -4666,7 +4666,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::WallSegment: {
 
-            if (next != NULL) {
+            if (next != nullptr) {
                 LineStruct *line = new LineStruct;
                 line->A = entity.getCenter();
                 line->B = next->getCenter();
@@ -5067,7 +5067,7 @@ irr::u16 Race::GetCollectableSpriteNumber(Entity::EntityType mEntityType) {
 }
 
 void Race::SpawnCollectiblesForPlayer(Player* player) {
-   if (player == NULL)
+   if (player == nullptr)
        return;
 
    //spawn collectibles at the current player location
@@ -5125,7 +5125,7 @@ void Race::UpdateType2Collectables(irr::f32 frameDeltaTime) {
 
     for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ) {
         //is this a type2 collectable
-        if ((*it)->mEntityItem == NULL) {
+        if ((*it)->mEntityItem == nullptr) {
             //yes, it is, update it
             //this make sure that their lifetime is reduces, and after
             //their lifetime is over, the disappear and are deleted

@@ -19,7 +19,7 @@
 #include "../models/player.h"
 
 struct LogEntryStruct {
-    wchar_t* logText;
+    wchar_t* logText = nullptr;
     irr::u32 logTextLen;
 };
 
@@ -38,8 +38,8 @@ public:
 private:
     irr::core::rect<irr::s32> mCurrentLogTextOutputWindowPos;
 
-    irr::gui::IGUIEnvironment* mGuiEnv;
-    irr::gui::IGUIStaticText* logTextOutputWindow;
+    irr::gui::IGUIEnvironment* mGuiEnv = nullptr;
+    irr::gui::IGUIStaticText* logTextOutputWindow = nullptr;
 
     std::vector<LogEntryStruct*> mCurrentLogEntries;
 

@@ -43,7 +43,7 @@ FILE *openSourceFLIFile(char *FName)
     filep=fopen(FName,"rb");
     if (!filep) {
       showError(errFileOpen+errCritical,strerror(errno));
-      return NULL;
+      return nullptr;
     }
 
     return filep;
@@ -55,7 +55,7 @@ FILE *openDestinationFLIFile(char *FName)
     filep=fopen(FName,"wb");
     if (!filep) {
       showError(errFileOpen+errCritical,strerror(errno));
-      return NULL;
+      return nullptr;
     }
 
     return filep;
@@ -202,7 +202,7 @@ void findLostFrames(ulong *framePosTable,FILE *animFile,unsigned int frameCount,
   //Preparing buffers
   ulong bufSize=sizeof(FLIFrameHeader)+sizeof(FLIChunkHeader);
   void *buf=allocateMem(bufSize+1,errFrameHdr|errOnlyParsing,0,options);
-  if (buf==NULL) return;
+  if (buf==nullptr) return;
   FLIFrameHeader *frameHdr=(FLIFrameHeader *)&(((char *)buf)[0]);
   FLIChunkHeader *chunkHdr=(FLIChunkHeader *)&(((char *)buf)[sizeof_FLIFrameHeader]);
   //Searching offsets for frames
@@ -490,7 +490,7 @@ void parseFileToSetOptions(ulong *framePosTable,FILE *animFile,ulong frameCount,
   //Allocating memory from chunk frame and header
   FLIFrameHeader *frameHdr=(FLIFrameHeader *)malloc(sizeof(FLIFrameHeader)+1);
   FLIChunkHeader *animChunkHdr=(FLIChunkHeader *)malloc(sizeof(FLIChunkHeader)+1);
-  if ((frameHdr==NULL)||(animChunkHdr==NULL))
+  if ((frameHdr==nullptr)||(animChunkHdr==nullptr))
     {
     showError(errMemAlloc,"Cannot allocate memory for parsing (to auto-configure). Options set do defaults.");
     free(animChunkHdr);
@@ -520,7 +520,7 @@ void parseFileToSetOptions(ulong *framePosTable,FILE *animFile,ulong frameCount,
       //Creating a buffer to read chunk content
       ulong dataSize=animChunkHdr->size-sizeof_FLIChunkHeader;
       void *chunkData=malloc(dataSize+2);
-      if (chunkData==NULL)
+      if (chunkData==nullptr)
         {
         showError(errChunkHdr|errMemAlloc,"Cannot allocate memory for chunk data when parsing. Options set to defaults - detection failed.");
         free(animChunkHdr);
@@ -762,7 +762,7 @@ int main(int argc, char *argv[])
   //Welcome message
   sayHello();
   //Analyst of input parameters
-  char *srcFName=NULL;
+  char *srcFName=nullptr;
   char *destFName=DefDestFName;
   int num;
   if (argc>1)
@@ -790,12 +790,12 @@ int main(int argc, char *argv[])
           }
       }
       else
-      if (srcFName==NULL)
+      if (srcFName==nullptr)
           srcFName=param;
       else
           destFName=param;
   }
-  if (srcFName==NULL)
+  if (srcFName==nullptr)
       { showUsage("U did not specified source FLI filename.");return 1; }
 
   //Opening the files

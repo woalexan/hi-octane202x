@@ -217,7 +217,7 @@ LevelFile::~LevelFile() {
 
          MapEntry *entry = this->pMap[x][y];
          delete entry;
-         this->pMap[x][y] = NULL;
+         this->pMap[x][y] = nullptr;
      }
     }
 }
@@ -397,7 +397,7 @@ bool LevelFile::loadMap() {
 
          MapEntry *entry = new MapEntry(x, y, i, dataslice, ColumnDefinitions);
 
-         if (entry->get_Column() != NULL) {
+         if (entry->get_Column() != nullptr) {
               NewStruct.Vector3 = irr::core::vector3d<float>((irr::f32)(x), 0.0f, (irr::f32)(y));
               NewStruct.Columns = entry->get_Column();
 
@@ -745,7 +745,7 @@ void LevelFile::DetectAdditionalRegionsTextureId() {
 //returns true if we find the defined texture at least once at this block of any of the faces
 //if not returns false
 bool LevelFile::CanIFindDefinedTextureAtBlock(BlockDefinition* blockPntr, int textureIdSymbol) {
-    if (blockPntr != NULL) {
+    if (blockPntr != nullptr) {
         //check all textures of all faces of this block if the are the same as the
         //defined texture ID
         if (blockPntr->get_N() == (uint8_t)(textureIdSymbol))
@@ -775,7 +775,7 @@ bool LevelFile::CanIFindColumnWithDefinedTextureOnItAtLocation(int posX, int pos
     //is there even a column at this location
     MapEntry* entry = this->pMap[posX][posY];
 
-    if (entry->get_Column() != NULL) {
+    if (entry->get_Column() != nullptr) {
         //there is a column
         ColumnDefinition* columnPntr = entry->get_Column();
         BlockDefinition* blockPntr;
@@ -818,7 +818,7 @@ bool LevelFile::CanIFindColumnWithDefinedTextureOnItAtLocation(int posX, int pos
          for (it = blockIDs.begin(); it != blockIDs.end(); ++it) {
              //find block with this block ID
              std::vector<BlockDefinition*>::iterator itBlock;
-             blockPntr = NULL;
+             blockPntr = nullptr;
 
              for (itBlock = this->BlockDefinitions.begin(); itBlock != this->BlockDefinitions.end(); ++itBlock) {
                  if ((*itBlock)->get_ID() == (*it)) {
@@ -1118,7 +1118,7 @@ bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
 
     //now we have our output filename
     FILE* oFile = fopen(finalpath, "w");
-    if (oFile == NULL) {
+    if (oFile == nullptr) {
        return false;
     }
 
@@ -1151,10 +1151,10 @@ bool LevelFile::SaveUnknownTableOffset247264() {
     char* ByteArray;
     ByteArray = new char[this->unknownTable247264Data.size()];
 
-    FILE* oFile = NULL;
+    FILE* oFile = nullptr;
 
     oFile = fopen(this->m_Filename.c_str(), "r+b");
-    if (oFile == NULL) {
+    if (oFile == nullptr) {
        return false;
     }
 
@@ -1181,10 +1181,10 @@ bool LevelFile::SaveUnknownTableOffset358222() {
     char* ByteArray;
     ByteArray = new char[this->unknownTable358222Data.size()];
 
-    FILE* oFile = NULL;
+    FILE* oFile = nullptr;
 
     oFile = fopen(this->m_Filename.c_str(), "r+b");
-    if (oFile == NULL) {
+    if (oFile == nullptr) {
        return false;
     }
 
@@ -1534,7 +1534,7 @@ bool LevelFile::saveMap() {
      for (int x = 0; x < Width(); x++)  {
         mapEntry = this->pMap[x][y];
 
-        if (mapEntry != NULL) {
+        if (mapEntry != nullptr) {
             //first prepare updated/new data
             mapEntry->WriteChanges();
 

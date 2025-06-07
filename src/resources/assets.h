@@ -98,7 +98,7 @@ struct RaceTrackInfoStruct {
 
     //the mesh for the race track
     //at track selection page in menue
-    irr::scene::IMesh* MeshTrack;
+    irr::scene::IMesh* MeshTrack = nullptr;
 };
 
 struct CraftInfoStruct {
@@ -167,7 +167,7 @@ struct HighScoreEntryStruct {
 
 struct PointTableEntryStruct {
     //the name of the player for this entry
-    char* namePlayer;
+    char* namePlayer = nullptr;
 
     //the point value for this entry
     irr::u16 pointVal;
@@ -176,7 +176,7 @@ struct PointTableEntryStruct {
 struct ChampionshipSaveGameInfoStruct {
     bool saveGameAvail;
 
-    char* championshipName;
+    char* championshipName = nullptr;
 };
 
 class Assets {
@@ -184,13 +184,13 @@ public:
     Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile);
     ~Assets();
 
-    std::vector<RaceTrackInfoStruct*> *mRaceTrackVec;
-    std::vector<CraftInfoStruct*> *mCraftVec;
+    std::vector<RaceTrackInfoStruct*> *mRaceTrackVec = nullptr;
+    std::vector<CraftInfoStruct*> *mCraftVec = nullptr;
     std::vector<char*> mCraftColorSchemeNames;
     std::vector<irr::u8> mCraftColorSchemeConfigDatFileValue;
 
-    std::vector<PilotInfoStruct*> *mPilotVec;
-    PilotInfoStruct* humanPilot;
+    std::vector<PilotInfoStruct*> *mPilotVec = nullptr;
+    PilotInfoStruct* humanPilot = nullptr;
 
     //overloaded function to be called from outside, always works with config.dat
     void SetNewMainPlayerName(char* newName);
@@ -269,7 +269,7 @@ public:
     char* GetDriverAssessementString(irr::u8 assessementLevel);
     irr::u8 GetNumberDriverAssessementStrings();
 
-    //returns NULL in case of an unexpected error
+    //returns nullptr in case of an unexpected error
     std::vector<HighScoreEntryStruct*>* GetHighScoreTable();
 
     /**************************************
@@ -333,7 +333,7 @@ public:
     void CleanUpChampionshipSaveGameInfo();
 
 private:
-    InfrastructureBase* mInfra;
+    InfrastructureBase* mInfra = nullptr;
 
     void SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr, char** bufPntr);
     void SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme, char** bufPntr);
@@ -372,10 +372,10 @@ private:
     void InitCpPilots();
     void AddPilot(char* pilotName, bool humanPlayer, char* defaultCraftName);
 
-    char* currentConfigFileDataByteArray = NULL;
+    char* currentConfigFileDataByteArray = nullptr;
     size_t currentConfigFileDataByteArrayLen = 0;
 
-    std::vector<char*>* driverAssessementStrings;
+    std::vector<char*>* driverAssessementStrings = nullptr;
     void InitDriverAssessementStrings();
     void CleanUpDriverAssessementStrings();
     void AddDriverAssessementString(const char* newString);
@@ -386,7 +386,7 @@ private:
     //located, the absolute path to this file is stored
     //in member variable mAbsPathConfigFile
     bool FindGameConfigFile();
-    char* mAbsPathConfigFile = NULL;
+    char* mAbsPathConfigFile = nullptr;
 
     //Routines handling the default games config.dat file
     //is also used for reading and saving championship game save files
@@ -423,7 +423,7 @@ private:
     irr::u8 ConvertVolumeProjectToHioctane(irr::f32 newVolumeProject);
     irr::f32 ConvertVolumeHioctaneToProject(irr::u8 volumeHioctane);
 
-    std::vector<HighScoreEntryStruct*>* highScoreTableVec;
+    std::vector<HighScoreEntryStruct*>* highScoreTableVec = nullptr;
 
     //game player names are limited to max
     //8 characters in Hi-Octane!
@@ -520,7 +520,7 @@ private:
      * Championship save game stuff                 *
      * **********************************************/
 
-    char* currentChampionshipSaveGameDataByteArray = NULL;
+    char* currentChampionshipSaveGameDataByteArray = nullptr;
     size_t currentChampionshipSaveGameDataByteArrayLen = 0;
 
     std::vector<irr::u16> mCurrChampionshipOverallPointVec;

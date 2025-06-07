@@ -37,7 +37,7 @@ struct ColumnsByPositionStruct;
 //for later modification of SMeshBuffers
 struct ColumnVerticeInfo {
    //pointer to the vertex
-   video::S3DVertex *vert;
+   video::S3DVertex *vert = nullptr;
 
    //stores the vertex index for all the Meshbuffers where this
    //vertex is part of
@@ -90,14 +90,14 @@ public:
     bool column_ready;
 
     //all stuff for morphing
-    Column* MorphSource = NULL;
+    Column* MorphSource = nullptr;
 
     void ApplyMorph(float progress);
 
 private:
     bool setupGeometry();
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
-    std::vector<vector2d<irr::f32>> MakeUVs(int textureId, int texMod);
+    std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
     void AddNewColumnVertice(vector3d<irr::f32> position, vector2d<irr::f32> uv, vector3d<irr::f32> normal);
     irr::f32 GetCurrentHeightTile(int x, int z);
@@ -105,19 +105,19 @@ private:
 
     void UpdateVertices();
 
-    LevelBlocks* MyLevelBlocks;
-    LevelTerrain* MyTerrain;
+    LevelBlocks* MyLevelBlocks = nullptr;
+    LevelTerrain* MyTerrain = nullptr;
 
     float segmentSize;
 
 //protected:
 public:
     vector3d<irr::f32> Position;
-    ColumnDefinition* Definition;
+    ColumnDefinition* Definition = nullptr;
 
-    ColumnSideGeometryInfo* GeometryInfoList;
+    ColumnSideGeometryInfo* GeometryInfoList = nullptr;
 
-    LevelFile* levelRes;
+    LevelFile* levelRes = nullptr;
 };
 
 #endif // COLUMN_H

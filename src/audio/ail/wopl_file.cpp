@@ -24,7 +24,7 @@
 
 /* Note Wolf Alexander: The source code below is not 100% the original code from the
  * initial author anymore, as I had to make changes to it to be able to compile it
- * on my system. */
+ * on my system. 07.06.2025: I also replaced some NULL with nullptr */
 
 #include "wopl_file.h"
 #include <string.h>
@@ -83,7 +83,7 @@ WOPLFile *WOPL_Init(uint16_t melodic_banks, uint16_t percussive_banks)
 {
     WOPLFile *file = (WOPLFile*)calloc(1, sizeof(WOPLFile));
     if(!file)
-        return NULL;
+        return nullptr;
 
     file->banks_count_melodic = (melodic_banks != 0) ? melodic_banks : 1;
     file->banks_melodic = (WOPLBank*)calloc(file->banks_count_melodic, sizeof(WOPLBank));
@@ -205,7 +205,7 @@ static void WOPL_writeInstrument(WOPLInstrument *ins, uint8_t *cursor, uint16_t 
 
 WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
 {
-    WOPLFile *outFile = NULL;
+    WOPLFile *outFile = nullptr;
     uint16_t i = 0, j = 0, k = 0;
     uint16_t version = 0;
     uint16_t count_melodic_banks     = 1;
@@ -229,19 +229,19 @@ WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
     if(!cursor)
     {
         SET_ERROR(WOPL_ERR_NULL_POINTER);
-        return NULL;
+        return nullptr;
     }
 
     {/* Magic number */
         if(length < 11)
         {
             SET_ERROR(WOPL_ERR_UNEXPECTED_ENDING);
-            return NULL;
+            return nullptr;
         }
         if(memcmp(cursor, wopl3_magic, 11) != 0)
         {
             SET_ERROR(WOPL_ERR_BAD_MAGIC);
-            return NULL;
+            return nullptr;
         }
         GO_FORWARD(11);
     }
@@ -250,13 +250,13 @@ WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
         if(length < 2)
         {
             SET_ERROR(WOPL_ERR_UNEXPECTED_ENDING);
-            return NULL;
+            return nullptr;
         }
         version = toUint16LE(cursor);
         if(version  > wopl_latest_version)
         {
             SET_ERROR(WOPL_ERR_NEWER_VERSION);
-            return NULL;
+            return nullptr;
         }
         GO_FORWARD(2);
     }
@@ -266,7 +266,7 @@ WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
         if(length < 6)
         {
             SET_ERROR(WOPL_ERR_UNEXPECTED_ENDING);
-            return NULL;
+            return nullptr;
         }
         memcpy(head, cursor, 6);
         count_melodic_banks = toUint16BE(head);
@@ -277,7 +277,7 @@ WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
         if(!outFile)
         {
             SET_ERROR(WOPL_ERR_OUT_OF_MEMORY);
-            return NULL;
+            return nullptr;
         }
 
         outFile->version        = version;
@@ -299,7 +299,7 @@ WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
                 if(length < 34)
                 {
                     SET_ERROR(WOPL_ERR_UNEXPECTED_ENDING);
-                    return NULL;
+                    return nullptr;
                 }
                 strncpy(bankslots[i][j].bank_name, (const char*)cursor, 32);
                 bankslots[i][j].bank_name[32] = '\0';
@@ -321,7 +321,7 @@ WOPLFile *WOPL_LoadBankFromMem(void *mem, size_t length, int *error)
             if(length < (insSize * 128) * (size_t)bankslots_sizes[i])
             {
                 SET_ERROR(WOPL_ERR_UNEXPECTED_ENDING);
-                return NULL;
+                return nullptr;
             }
 
             for(j = 0; j < bankslots_sizes[i]; j++)

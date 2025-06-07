@@ -47,15 +47,15 @@ typedef struct {
 class ObjectDatFile {
 
 private:
-    std::vector<ObjTriangle*> *ObjFileTriangleVector;
-    std::vector<ObjVertex*> *ObjFileVertexVector;
-    std::vector<float> *uvCoordVec;
-    std::vector<ObjVertex*> *ObjFileNormalsVector;
+    std::vector<ObjTriangle*> *ObjFileTriangleVector = nullptr;
+    std::vector<ObjVertex*> *ObjFileVertexVector = nullptr;
+    std::vector<float> *uvCoordVec = nullptr;
+    std::vector<ObjVertex*> *ObjFileNormalsVector = nullptr;
 
-    TABFILE* mAtlasTextureInfo;
+    TABFILE* mAtlasTextureInfo = nullptr;
     unsigned int mTexAtlasWidth;
     unsigned int mTexAtlasHeight;
-    FILE* debugTriangleOutputFile = NULL;
+    FILE* debugTriangleOutputFile = nullptr;
     bool debugFileOutputFailed = false;
 
     int BitConverterToInt16(unsigned char* data, int index);

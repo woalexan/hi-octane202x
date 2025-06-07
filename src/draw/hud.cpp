@@ -39,7 +39,7 @@ void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
 
     if (altPanelTexNr < 0) {
         //no alternative image specified
-        newPart->altTexture = NULL;
+        newPart->altTexture = nullptr;
     } else {
         //alternative image specified
         char altFileName[50];
@@ -405,7 +405,7 @@ void HUD::CleanUpBannerMessage(BannerTextMessageStruct* msgToDeletePntr) {
                 //now the struct itself
                 delete mPntr;
 
-                mPntr = NULL;
+                mPntr = nullptr;
         } else ++it;
      }
   }
@@ -429,7 +429,7 @@ void HUD::RemoveAllPermanentBannerMessagesMsgVec() {
                 //now the struct itself
                 delete mPntr;
 
-                mPntr = NULL;
+                mPntr = nullptr;
         } else ++it;
      }
   }
@@ -453,7 +453,7 @@ void HUD::CleanUpAllBannerMessages() {
                 //now the struct itself
                 delete mPntr;
 
-                mPntr = NULL;
+                mPntr = nullptr;
         }
      }
 }
@@ -494,15 +494,15 @@ bool HUD::SelectNextBannerMessage() {
 }
 
 void HUD::CancelAllPermanentBannerTextMsg() {
-    if (currShownBannerMsg != NULL) {
+    if (currShownBannerMsg != nullptr) {
         if (currShownBannerMsg->permanentMsg) {
             //remove and clean up current message
             CleanUpBannerMessage(currShownBannerMsg);
 
-            //reset currently shown message pointer back to NULL
+            //reset currently shown message pointer back to nullptr
             //important, so that we do not crash during the next
             //banner text render operation
-            currShownBannerMsg = NULL;
+            currShownBannerMsg = nullptr;
 
             RemoveAllPermanentBannerMessagesMsgVec();
         }
@@ -515,7 +515,7 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
     bool newMsgSel = false;
 
     //is there a new message to be shown?
-    if (currShownBannerMsg == NULL) {
+    if (currShownBannerMsg == nullptr) {
        //verify if there is a new message to show
        newMsgSel = SelectNextBannerMessage();
 
@@ -526,7 +526,7 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
        }
     }
 
-    if (newMsgSel || ((currentBannerTextState == 0) && (currShownBannerMsg != NULL))) {
+    if (newMsgSel || ((currentBannerTextState == 0) && (currShownBannerMsg != nullptr))) {
         //we have a new message, depending on the current text banner state we have
         //to react correctly for correct rendering/animation of banner etc.
 
@@ -565,7 +565,7 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
         timerNextBannerState -= deltaTime;
 
         //is banner text currently shown?
-        if ((currentBannerTextState == 7) && (currShownBannerMsg != NULL)) {
+        if ((currentBannerTextState == 7) && (currShownBannerMsg != nullptr)) {
 
             currShownBannerMsg->textAlreadyShownSec += deltaTime;
 
@@ -593,10 +593,10 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
                 //remove and clean up current message
                 CleanUpBannerMessage(currShownBannerMsg);
 
-                //reset currently shown message pointer back to NULL
+                //reset currently shown message pointer back to nullptr
                 //important, so that we do not crash during the next
                 //banner text render operation
-                currShownBannerMsg = NULL;
+                currShownBannerMsg = nullptr;
              }
            }
         }
@@ -817,7 +817,7 @@ void HUD::DrawGasolineBar() {
 }
 
 void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
-    if (monitorWhichPlayer != NULL) {
+    if (monitorWhichPlayer != nullptr) {
 
         //in case a hud bar is empty of a low warning
         //is present the bar does blink in the original
@@ -1047,7 +1047,7 @@ void HUD::RenderBigGreenText(irr::f32 deltaTime) {
                 //we don't need our allocated text array anymore
                 //get rid of it, because otherwise we have a memory leak :(
                 delete[] currentBigGreenText;
-                currentBigGreenText = NULL;
+                currentBigGreenText = nullptr;
 
                 return;
             }
@@ -1088,7 +1088,7 @@ void HUD::RemovePermanentGreenBigText() {
         //we don't need our allocated text array anymore
         //get rid of it, because otherwise we have a memory leak :(
         delete[] currentBigGreenText;
-        currentBigGreenText = NULL;
+        currentBigGreenText = nullptr;
     }
 }
 
@@ -1123,7 +1123,7 @@ void HUD::DrawHUD1(irr::f32 deltaTime) {
 }
 
 void HUD::DrawHUD1PlayerBrokenPlayer(irr::f32 deltaTime) {
-    if (monitorWhichPlayer != NULL) {
+    if (monitorWhichPlayer != nullptr) {
         DrawFinishedPlayerList();
         RenderBigGreenText(deltaTime);
     }
@@ -1132,9 +1132,9 @@ void HUD::DrawHUD1PlayerBrokenPlayer(irr::f32 deltaTime) {
 void HUD::SetMonitorWhichPlayer(Player* newPlayer) {
     //if we change to another player, make sure warning sound of
     //old player is stopped
-    if (monitorWhichPlayer != NULL) {
+    if (monitorWhichPlayer != nullptr) {
         monitorWhichPlayer->StopPlayingWarningSound();
-        monitorWhichPlayer->SetMyHUD(NULL);
+        monitorWhichPlayer->SetMyHUD(nullptr);
     }
 
     //also make sure that any visible permanent
@@ -1149,7 +1149,7 @@ void HUD::SetMonitorWhichPlayer(Player* newPlayer) {
     //reset banner logic variables
     //current banner text state is now 0 (means nothing is shown at all)
     currentBannerTextState = 0;
-    currShownBannerMsg = NULL;
+    currShownBannerMsg = nullptr;
 
     bannerDoesCurrentlyOpen = false;
     bannerDoesCurrentlyClose = false;
@@ -1180,7 +1180,7 @@ void HUD::InitHudBannerText() {
     //Left boundary block symbol
     HudDisplayPart* leftBoundarySymbState1 = new HudDisplayPart();
     leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
-    leftBoundarySymbState1->altTexture = NULL;
+    leftBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
     leftBoundarySymbState1->drawScrPosition.set(243, posY);
@@ -1188,7 +1188,7 @@ void HUD::InitHudBannerText() {
     //Right boundary block symbol
     HudDisplayPart* rightBoundarySymbState1 = new HudDisplayPart();
     rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
-    rightBoundarySymbState1->altTexture = NULL;
+    rightBoundarySymbState1->altTexture = nullptr;
    // myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
     rightBoundarySymbState1->drawScrPosition.set(348, posY);
@@ -1204,7 +1204,7 @@ void HUD::InitHudBannerText() {
     for (int idx = 0; idx < 3; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
         middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
-        middleWhiteSymbState1Symb->altTexture = NULL;
+        middleWhiteSymbState1Symb->altTexture = nullptr;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
         middleWhiteSymbState1Symb->drawScrPosition.set(posX, posY);
@@ -1229,7 +1229,7 @@ void HUD::InitHudBannerText() {
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
     leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
-    leftBoundarySymbState1->altTexture = NULL;
+    leftBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
     leftBoundarySymbState1->drawScrPosition.set(210, posY);
@@ -1237,7 +1237,7 @@ void HUD::InitHudBannerText() {
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
     rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
-    rightBoundarySymbState1->altTexture = NULL;
+    rightBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
     rightBoundarySymbState1->drawScrPosition.set(380, posY);
@@ -1252,7 +1252,7 @@ void HUD::InitHudBannerText() {
     for (int idx = 0; idx < 5; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
         middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
-        middleWhiteSymbState1Symb->altTexture = NULL;
+        middleWhiteSymbState1Symb->altTexture = nullptr;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
         middleWhiteSymbState1Symb->drawScrPosition.set(posX, posY);
@@ -1277,7 +1277,7 @@ void HUD::InitHudBannerText() {
    //Left boundary block symbol
    leftBoundarySymbState1 = new HudDisplayPart();
    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
-   leftBoundarySymbState1->altTexture = NULL;
+   leftBoundarySymbState1->altTexture = nullptr;
    //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
    leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
    leftBoundarySymbState1->drawScrPosition.set(180, posY);
@@ -1285,7 +1285,7 @@ void HUD::InitHudBannerText() {
    //Right boundary block symbol
    rightBoundarySymbState1 = new HudDisplayPart();
    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
-   rightBoundarySymbState1->altTexture = NULL;
+   rightBoundarySymbState1->altTexture = nullptr;
    //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
    rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
    rightBoundarySymbState1->drawScrPosition.set(410, posY);
@@ -1300,7 +1300,7 @@ void HUD::InitHudBannerText() {
    for (int idx = 0; idx < 8; idx++) {
        middleWhiteSymbState1Symb = new HudDisplayPart();
        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
-       middleWhiteSymbState1Symb->altTexture = NULL;
+       middleWhiteSymbState1Symb->altTexture = nullptr;
      //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
        middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
        middleWhiteSymbState1Symb->drawScrPosition.set(posX, posY);
@@ -1325,7 +1325,7 @@ void HUD::InitHudBannerText() {
   //Left boundary block symbol
   leftBoundarySymbState1 = new HudDisplayPart();
   leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
-  leftBoundarySymbState1->altTexture = NULL;
+  leftBoundarySymbState1->altTexture = nullptr;
   //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
   leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
   leftBoundarySymbState1->drawScrPosition.set(151, posY);
@@ -1333,7 +1333,7 @@ void HUD::InitHudBannerText() {
   //Right boundary block symbol
   rightBoundarySymbState1 = new HudDisplayPart();
   rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
-  rightBoundarySymbState1->altTexture = NULL;
+  rightBoundarySymbState1->altTexture = nullptr;
   //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
   rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
   rightBoundarySymbState1->drawScrPosition.set(441, posY);
@@ -1348,7 +1348,7 @@ void HUD::InitHudBannerText() {
   for (int idx = 0; idx < 10; idx++) {
       middleWhiteSymbState1Symb = new HudDisplayPart();
       middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
-      middleWhiteSymbState1Symb->altTexture = NULL;
+      middleWhiteSymbState1Symb->altTexture = nullptr;
     //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
       middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
       middleWhiteSymbState1Symb->drawScrPosition.set(posX, posY);
@@ -1373,7 +1373,7 @@ void HUD::InitHudBannerText() {
  //Left boundary block symbol
  leftBoundarySymbState1 = new HudDisplayPart();
  leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
- leftBoundarySymbState1->altTexture = NULL;
+ leftBoundarySymbState1->altTexture = nullptr;
  //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
  leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
  leftBoundarySymbState1->drawScrPosition.set(120, posY);
@@ -1381,7 +1381,7 @@ void HUD::InitHudBannerText() {
  //Right boundary block symbol
  rightBoundarySymbState1 = new HudDisplayPart();
  rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
- rightBoundarySymbState1->altTexture = NULL;
+ rightBoundarySymbState1->altTexture = nullptr;
  //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
  rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
  rightBoundarySymbState1->drawScrPosition.set(470, posY);
@@ -1396,7 +1396,7 @@ void HUD::InitHudBannerText() {
  for (int idx = 0; idx < 13; idx++) {
      middleWhiteSymbState1Symb = new HudDisplayPart();
      middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
-     middleWhiteSymbState1Symb->altTexture = NULL;
+     middleWhiteSymbState1Symb->altTexture = nullptr;
    //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
      middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
      middleWhiteSymbState1Symb->drawScrPosition.set(posX, posY);
@@ -1421,7 +1421,7 @@ void HUD::InitHudBannerText() {
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
     leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
-    leftBoundarySymbState1->altTexture = NULL;
+    leftBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
     leftBoundarySymbState1->drawScrPosition.set(91, posY);
@@ -1429,7 +1429,7 @@ void HUD::InitHudBannerText() {
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
     rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
-    rightBoundarySymbState1->altTexture = NULL;
+    rightBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
     rightBoundarySymbState1->drawScrPosition.set(501, posY);
@@ -1444,7 +1444,7 @@ void HUD::InitHudBannerText() {
     for (int idx = 0; idx < 15; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
         middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
-        middleWhiteSymbState1Symb->altTexture = NULL;
+        middleWhiteSymbState1Symb->altTexture = nullptr;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
         middleWhiteSymbState1Symb->drawScrPosition.set(posX, posY);
@@ -1469,7 +1469,7 @@ void HUD::InitHudBannerText() {
        //Left boundary block symbol
        leftBoundarySymbState1 = new HudDisplayPart();
        leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
-       leftBoundarySymbState1->altTexture = NULL;
+       leftBoundarySymbState1->altTexture = nullptr;
        //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
        leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
        leftBoundarySymbState1->drawScrPosition.set(91, posY);
@@ -1477,7 +1477,7 @@ void HUD::InitHudBannerText() {
        //Right boundary block symbol
        rightBoundarySymbState1 = new HudDisplayPart();
        rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
-       rightBoundarySymbState1->altTexture = NULL;
+       rightBoundarySymbState1->altTexture = nullptr;
        //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
        rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
        rightBoundarySymbState1->drawScrPosition.set(501, posY);
@@ -1535,12 +1535,12 @@ void HUD::RenderTextBannerGraphics() {
         }
 
         default: {
-            elementsToDraw = NULL;
+            elementsToDraw = nullptr;
             break;
         }
     }
 
-        if (elementsToDraw != NULL) {
+        if (elementsToDraw != nullptr) {
             //draw currently visible banner state
             for (unsigned long i = 0; i < elementsToDraw->size(); i++) {
                 mInfra->mDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
@@ -1887,7 +1887,7 @@ core::position2d<s32> HUD::getScreenCoordinatesFrom3DPosition(
 
 void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
       //does player target currently other opponent?
-      if (monitorWhichPlayer->mTargetPlayer != NULL) {
+      if (monitorWhichPlayer->mTargetPlayer != nullptr) {
           //yes, player has currently a target
           //we need to draw target symbol
 
@@ -2001,14 +2001,14 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
 
           //draw a small health bar below the target symbol
-          mInfra->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, NULL);
+          mInfra->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
      }
 }
 
 HUD::HUD(InfrastructureBase* infra) {
     mInfra = infra;
 
-    monitorWhichPlayer = NULL;
+    monitorWhichPlayer = nullptr;
 
     //create this colors as the are used all the time
     //to save cpu cycles
@@ -2048,12 +2048,12 @@ void HUD::CleanUpHudDisplayPartVector(std::vector<HudDisplayPart*> &pntrVector) 
            pntr = (*itHudDisplayPart);
            itHudDisplayPart = pntrVector.erase(itHudDisplayPart);
 
-           if (pntr->texture != NULL) {
+           if (pntr->texture != nullptr) {
                //remove underlying texture
                mInfra->mDriver->removeTexture(pntr->texture);
            }
 
-           if (pntr->altTexture != NULL) {
+           if (pntr->altTexture != nullptr) {
                //remove underlying texture
                mInfra->mDriver->removeTexture(pntr->altTexture);
            }
@@ -2065,78 +2065,78 @@ void HUD::CleanUpHudDisplayPartVector(std::vector<HudDisplayPart*> &pntrVector) 
 HUD::~HUD() {
     //clean up HUD stuff
     CleanUpHudDisplayPartVector(*shieldBar);
-    shieldBar = NULL;
+    shieldBar = nullptr;
 
     CleanUpHudDisplayPartVector(*ammoBar);
-    ammoBar = NULL;
+    ammoBar = nullptr;
 
     CleanUpHudDisplayPartVector(*gasolineBar);
-    gasolineBar = NULL;
+    gasolineBar = nullptr;
 
     CleanUpHudDisplayPartVector(*throttleBar);
-    throttleBar = NULL;
+    throttleBar = nullptr;
 
     CleanUpHudDisplayPartVector(*speedBar);
-    speedBar = NULL;
+    speedBar = nullptr;
 
     CleanUpHudDisplayPartVector(*currRacePlayerPosition);
-    currRacePlayerPosition = NULL;
+    currRacePlayerPosition = nullptr;
 
     CleanUpHudDisplayPartVector(*numberPlayers);
-    numberPlayers = NULL;
+    numberPlayers = nullptr;
 
     CleanUpHudDisplayPartVector(*mgHeatBar);
-    mgHeatBar = NULL;
+    mgHeatBar = nullptr;
 
     CleanUpHudDisplayPartVector(*upgradeBar);
-    upgradeBar = NULL;
+    upgradeBar = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState1);
-    bannerTextState1 = NULL;
+    bannerTextState1 = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState2);
-    bannerTextState2 = NULL;
+    bannerTextState2 = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState3);
-    bannerTextState3 = NULL;
+    bannerTextState3 = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState4);
-    bannerTextState4 = NULL;
+    bannerTextState4 = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState5);
-    bannerTextState5 = NULL;
+    bannerTextState5 = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState6);
-    bannerTextState6 = NULL;
+    bannerTextState6 = nullptr;
 
     CleanUpHudDisplayPartVector(*bannerTextState7);
-    bannerTextState7 = NULL;
+    bannerTextState7 = nullptr;
 
     CleanUpHudDisplayPartVector(*startSignal);
-    startSignal = NULL;
+    startSignal = nullptr;
 
-    if (brokenGlas->texture != NULL) {
+    if (brokenGlas->texture != nullptr) {
         //remove underlying texture
         mInfra->mDriver->removeTexture(brokenGlas->texture);
     }
 
-    if (brokenGlas->altTexture != NULL) {
+    if (brokenGlas->altTexture != nullptr) {
         //remove underlying texture
         mInfra->mDriver->removeTexture(brokenGlas->altTexture);
     }
 
     delete brokenGlas;
-    brokenGlas = NULL;
+    brokenGlas = nullptr;
 
     CleanUpAllBannerMessages();
     delete this->bannerMessageVec;
-    this->bannerMessageVec = NULL;
+    this->bannerMessageVec = nullptr;
 
     //if there is currently a big green HUD text
     //shown deallocate it
-    if (currentBigGreenText != NULL) {
+    if (currentBigGreenText != nullptr) {
         delete[] currentBigGreenText;
-        currentBigGreenText = NULL;
+        currentBigGreenText = nullptr;
     }
 
     delete mColorSolid;

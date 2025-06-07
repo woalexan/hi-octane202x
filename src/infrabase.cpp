@@ -78,7 +78,7 @@ bool InfrastructureBase::InitIrrlicht() {
 irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPath) {
     //set current working directory
     if (!mDevice->getFileSystem()->changeWorkingDirectoryTo(whichAbsPath)) {
-        return NULL;
+        return nullptr;
     }
 
     //create list of files in the current working directory
@@ -86,7 +86,7 @@ irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPat
 
     //restore original working dir for this project
     if (!mDevice->getFileSystem()->changeWorkingDirectoryTo(mGameRootDir)) {
-        return NULL;
+        return nullptr;
     }
 
     return fileList;
@@ -250,7 +250,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     //first find folder for original game files (original game root dir)
     irr::io::IFileList* fList = CreateFileList(mGameRootDir);
 
-    if (fList == NULL) {
+    if (fList == nullptr) {
         return false;
     }
 
@@ -275,7 +275,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     //make file list for original games root folder
     this->mOriginalGame->rootFolder = CreateFileList(origGameRootDirPath);
 
-    if (this->mOriginalGame->rootFolder == NULL) {
+    if (this->mOriginalGame->rootFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games root directory");
         return false;
     }
@@ -294,7 +294,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     this->mOriginalGame->dataFolder = CreateFileList(dataFolderPath);
 
-    if (this->mOriginalGame->dataFolder == NULL) {
+    if (this->mOriginalGame->dataFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games data directory");
         return false;
     }
@@ -312,7 +312,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     this->mOriginalGame->execFolder = CreateFileList(execFolderPath);
 
-    if (this->mOriginalGame->execFolder == NULL) {
+    if (this->mOriginalGame->execFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games exec directory");
         return false;
     }
@@ -330,7 +330,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     this->mOriginalGame->mapsFolder = CreateFileList(mapsFolderPath);
 
-    if (this->mOriginalGame->mapsFolder == NULL) {
+    if (this->mOriginalGame->mapsFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games maps directory");
         return false;
     }
@@ -349,7 +349,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     //under objects subdir there is another folder "data", for whatever reason
     irr::io::IFileList* helperList = CreateFileList(objectsFolderPath);
 
-    if (helperList == NULL) {
+    if (helperList == nullptr) {
         logging::Error("I was not able to create the file list for the original games objects directory");
         return false;
     }
@@ -365,7 +365,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     this->mOriginalGame->objectsFolder = CreateFileList(objectsFolderDataPath);
 
-    if (this->mOriginalGame->objectsFolder == NULL) {
+    if (this->mOriginalGame->objectsFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games objects/data directory");
         return false;
     }
@@ -398,7 +398,7 @@ bool InfrastructureBase::LocateOriginalGame() {
     //under HIOCTANE.CD subdir there is another folder "save"
     helperList = CreateFileList(hioctaneCdFolderPath);
 
-    if (helperList == NULL) {
+    if (helperList == nullptr) {
         logging::Error("I was not able to create the file list for the original games HIOCTANE.CD directory");
         return false;
     }
@@ -419,7 +419,7 @@ bool InfrastructureBase::LocateOriginalGame() {
             //under HIOCTANE.CD subdir there is another folder "save"
             helperList = CreateFileList(hioctaneCdFolderPath);
 
-            if (helperList == NULL) {
+            if (helperList == nullptr) {
                 logging::Error("I was not able to create the file list for the original games HIOCTANE.CD directory");
                 return false;
             }
@@ -434,7 +434,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     this->mOriginalGame->saveFolder = CreateFileList(saveFolderDataPath);
 
-    if (this->mOriginalGame->saveFolder == NULL) {
+    if (this->mOriginalGame->saveFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory");
         return false;
     }
@@ -452,7 +452,7 @@ bool InfrastructureBase::LocateOriginalGame() {
 
     this->mOriginalGame->soundFolder = CreateFileList(soundFolderPath);
 
-    if (this->mOriginalGame->soundFolder == NULL) {
+    if (this->mOriginalGame->soundFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games sound directory");
         return false;
     }
@@ -541,14 +541,14 @@ bool InfrastructureBase::ProcessGameVersionDate() {
 }
 
 bool InfrastructureBase::UpdateFileListSaveFolder() {
-    if (this->mOriginalGame->saveFolder != NULL) {
+    if (this->mOriginalGame->saveFolder != nullptr) {
         this->mOriginalGame->saveFolder->drop();
     }
 
     //recreate the file list
     this->mOriginalGame->saveFolder = CreateFileList(saveFolderDataPath);
 
-    if (this->mOriginalGame->saveFolder == NULL) {
+    if (this->mOriginalGame->saveFolder == nullptr) {
         logging::Error("I was not able to create the file list for the original games HIOCTANE.CD/SAVE directory");
         return false;
     }
@@ -616,43 +616,43 @@ InfrastructureBase::~InfrastructureBase() {
     delete mTimeProfiler;
 
     //cleanup the original game folder information
-    if (mOriginalGame != NULL) {
-        if (mOriginalGame->dataFolder != NULL) {
+    if (mOriginalGame != nullptr) {
+        if (mOriginalGame->dataFolder != nullptr) {
             mOriginalGame->dataFolder->drop();
-            mOriginalGame->dataFolder = NULL;
+            mOriginalGame->dataFolder = nullptr;
         }
 
-        if (mOriginalGame->execFolder != NULL) {
+        if (mOriginalGame->execFolder != nullptr) {
             mOriginalGame->execFolder->drop();
-            mOriginalGame->execFolder = NULL;
+            mOriginalGame->execFolder = nullptr;
         }
 
-        if (mOriginalGame->mapsFolder != NULL) {
+        if (mOriginalGame->mapsFolder != nullptr) {
             mOriginalGame->mapsFolder->drop();
-            mOriginalGame->mapsFolder = NULL;
+            mOriginalGame->mapsFolder = nullptr;
         }
 
-        if (mOriginalGame->rootFolder != NULL) {
+        if (mOriginalGame->rootFolder != nullptr) {
             mOriginalGame->rootFolder->drop();
-            mOriginalGame->rootFolder = NULL;
+            mOriginalGame->rootFolder = nullptr;
         }
 
-        if (mOriginalGame->saveFolder != NULL) {
+        if (mOriginalGame->saveFolder != nullptr) {
             mOriginalGame->saveFolder->drop();
-            mOriginalGame->saveFolder = NULL;
+            mOriginalGame->saveFolder = nullptr;
         }
 
-        if (mOriginalGame->soundFolder != NULL) {
+        if (mOriginalGame->soundFolder != nullptr) {
             mOriginalGame->soundFolder->drop();
-            mOriginalGame->soundFolder = NULL;
+            mOriginalGame->soundFolder = nullptr;
         }
 
-        if (mOriginalGame->objectsFolder != NULL) {
+        if (mOriginalGame->objectsFolder != nullptr) {
             mOriginalGame->objectsFolder->drop();
-            mOriginalGame->objectsFolder = NULL;
+            mOriginalGame->objectsFolder = nullptr;
         }
 
         delete mOriginalGame;
-        mOriginalGame = NULL;
+        mOriginalGame = nullptr;
     }
 }

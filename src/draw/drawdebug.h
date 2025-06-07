@@ -26,26 +26,26 @@ public:
                          irr::video::SMaterial* color);
 
     //colors for drawing debug arrows, lines etc
-    irr::video::SMaterial *red;
-    irr::video::SMaterial *green;
-    irr::video::SMaterial *blue;
-    irr::video::SMaterial *white;
-    irr::video::SMaterial *pink;
-    irr::video::SMaterial *brown;
-    irr::video::SMaterial *cyan;
-    irr::video::SMaterial *orange;
+    irr::video::SMaterial *red = nullptr;
+    irr::video::SMaterial *green = nullptr;
+    irr::video::SMaterial *blue = nullptr;
+    irr::video::SMaterial *white = nullptr;
+    irr::video::SMaterial *pink = nullptr;
+    irr::video::SMaterial *brown = nullptr;
+    irr::video::SMaterial *cyan = nullptr;
+    irr::video::SMaterial *orange = nullptr;
 
-    irr::core::vector3df *origin;
+    irr::core::vector3df *origin = nullptr;
 
 private:
-    irr::video::IVideoDriver* myDriver;
+    irr::video::IVideoDriver* myDriver = nullptr;
 
     irr::core::vector3df GetOrthogonalVector(irr::core::vector3df inVec);
 
     //coordinates for drawing 3D world coordinate system with arrows
-    irr::core::vector3df *XAxis;
-    irr::core::vector3df *YAxis;
-    irr::core::vector3df *ZAxis;
+    irr::core::vector3df *XAxis = nullptr;
+    irr::core::vector3df *YAxis = nullptr;
+    irr::core::vector3df *ZAxis = nullptr;
 };
 
 #endif // DRAWDEBUG_H

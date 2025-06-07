@@ -38,8 +38,8 @@
 
 struct HudDisplayPart{
      irr::core::vector2d<irr::s32> drawScrPosition;
-     irr::video::ITexture* texture;
-     irr::video::ITexture* altTexture;
+     irr::video::ITexture* texture = nullptr;
+     irr::video::ITexture* altTexture = nullptr;
      irr::core::dimension2d<irr::s32> sizeTex;
      irr::core::rect<irr::s32> sourceRect;
 };
@@ -47,7 +47,7 @@ struct HudDisplayPart{
 class Player; //Forward declaration
 
 struct BannerTextMessageStruct {
-    char* text;
+    char* text = nullptr;
     bool isWarning;
     bool permanentMsg;
     irr::core::vector2di textPosition;
@@ -60,7 +60,7 @@ class HUD {
 private:
     irr::u8 mHudState = DEF_HUD_STATE_NOTDRAWN;
 
-    InfrastructureBase* mInfra;
+    InfrastructureBase* mInfra = nullptr;
 
     //a negative altPanelTexNr input value means no alternative texture (image) is used
     void Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
@@ -85,30 +85,30 @@ private:
     // Variables start for Race HUD
     //******************************
 
-    Player* monitorWhichPlayer;
+    Player* monitorWhichPlayer = nullptr;
 
-    std::vector<HudDisplayPart*>* shieldBar;
-    std::vector<HudDisplayPart*>* ammoBar;
-    std::vector<HudDisplayPart*>* gasolineBar;
-    std::vector<HudDisplayPart*>* throttleBar;
-    std::vector<HudDisplayPart*>* speedBar;
-    std::vector<HudDisplayPart*>* currRacePlayerPosition;
-    std::vector<HudDisplayPart*>* numberPlayers;
-    std::vector<HudDisplayPart*>* mgHeatBar;
+    std::vector<HudDisplayPart*>* shieldBar = nullptr;
+    std::vector<HudDisplayPart*>* ammoBar = nullptr;
+    std::vector<HudDisplayPart*>* gasolineBar = nullptr;
+    std::vector<HudDisplayPart*>* throttleBar = nullptr;
+    std::vector<HudDisplayPart*>* speedBar = nullptr;
+    std::vector<HudDisplayPart*>* currRacePlayerPosition = nullptr;
+    std::vector<HudDisplayPart*>* numberPlayers = nullptr;
+    std::vector<HudDisplayPart*>* mgHeatBar = nullptr;
 
-    std::vector<HudDisplayPart*>* upgradeBar;
+    std::vector<HudDisplayPart*>* upgradeBar = nullptr;
 
-    std::vector<HudDisplayPart*>* startSignal;
+    std::vector<HudDisplayPart*>* startSignal = nullptr;
 
     //internal variables for text banner on lower part of screen
     //shows information during gameplay
-    std::vector<HudDisplayPart*>* bannerTextState1;
-    std::vector<HudDisplayPart*>* bannerTextState2;
-    std::vector<HudDisplayPart*>* bannerTextState3;
-    std::vector<HudDisplayPart*>* bannerTextState4;
-    std::vector<HudDisplayPart*>* bannerTextState5;
-    std::vector<HudDisplayPart*>* bannerTextState6;
-    std::vector<HudDisplayPart*>* bannerTextState7;
+    std::vector<HudDisplayPart*>* bannerTextState1 = nullptr;
+    std::vector<HudDisplayPart*>* bannerTextState2 = nullptr;
+    std::vector<HudDisplayPart*>* bannerTextState3 = nullptr;
+    std::vector<HudDisplayPart*>* bannerTextState4 = nullptr;
+    std::vector<HudDisplayPart*>* bannerTextState5 = nullptr;
+    std::vector<HudDisplayPart*>* bannerTextState6 = nullptr;
+    std::vector<HudDisplayPart*>* bannerTextState7 = nullptr;
 
     //************** Text Banner start ******//
     int currentBannerTextState; //0 means no banner visible, 1 means step 1 of deployment
@@ -119,10 +119,10 @@ private:
     bool bannerDoesCurrentlyClose;
     bool mCurrentMessageWarningActive = false;
 
-    std::vector<BannerTextMessageStruct*>* bannerMessageVec;
+    std::vector<BannerTextMessageStruct*>* bannerMessageVec = nullptr;
 
-    //preset with NULL, important!
-    BannerTextMessageStruct* currShownBannerMsg = NULL;
+    //preset with nullptr, important!
+    BannerTextMessageStruct* currShownBannerMsg = nullptr;
 
     void BannerTextLogic(irr::f32 deltaTime);
     void CleanUpBannerMessage(BannerTextMessageStruct* msgToDeletePntr);
@@ -138,8 +138,8 @@ private:
 
     //************** Big green text start ******//
 
-    //preset with NULL, important!
-    char* currentBigGreenText = NULL;
+    //preset with nullptr, important!
+    char* currentBigGreenText = nullptr;
 
     irr::f32 currentBigGreenTextStillShownSec;
     bool blinkBigGreenText;
@@ -158,11 +158,11 @@ private:
     //* Player target resources          *
     //************************************
 
-    HudDisplayPart *targetSymbol;
-    HudDisplayPart *targetArrowLeft;
-    HudDisplayPart *targetArrowAbove;
-    HudDisplayPart *targetArrowBelow;
-    HudDisplayPart *targetArrowRight;
+    HudDisplayPart *targetSymbol = nullptr;
+    HudDisplayPart *targetArrowLeft = nullptr;
+    HudDisplayPart *targetArrowAbove = nullptr;
+    HudDisplayPart *targetArrowBelow = nullptr;
+    HudDisplayPart *targetArrowRight = nullptr;
     void InitTargetStuff();
     void RenderTargetSymbol(irr::f32 deltaTime);
     irr::core::position2d<irr::s32> getScreenCoordinatesFrom3DPosition(
@@ -203,10 +203,10 @@ private:
     irr::f32 blinkBarTimer = 0.0f;
     bool mDrawBarsTransparent = false;
 
-    irr::video::SColor* mColorSolid;
-    irr::video::SColor* mColorTransparent;
+    irr::video::SColor* mColorSolid = nullptr;
+    irr::video::SColor* mColorTransparent = nullptr;
 
-    irr::video::SColor* mColorTargetSymbolHealthBar;
+    irr::video::SColor* mColorTargetSymbolHealthBar = nullptr;
 
 public:
     HUD(InfrastructureBase* infra);
@@ -245,7 +245,7 @@ public:
     //* Broken glas resource             *
     //************************************
 
-    HudDisplayPart* brokenGlas;
+    HudDisplayPart* brokenGlas = nullptr;
 };
 
 #endif // HUD_H

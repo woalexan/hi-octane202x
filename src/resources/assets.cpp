@@ -208,7 +208,7 @@ Assets::~Assets() {
     //free abs path member variables
     //to config file
     free(mAbsPathConfigFile);
-    mAbsPathConfigFile = NULL;
+    mAbsPathConfigFile = nullptr;
 }
 
 //Helper function which compares our internal config data
@@ -221,7 +221,7 @@ void Assets::UpdateGameConfigFileExitGame() {
     if (!mCurrentConfigFileRead || !mUpdateGameConfigFile)
         return;
 
-    char* compDataArrStr = NULL;
+    char* compDataArrStr = nullptr;
     size_t compDataLength;
 
     //reread current file contents in config.dat for
@@ -526,7 +526,7 @@ bool Assets::FindGameConfigFile() {
     //we just need to check now if the config.dat file is already there as well
     //or if not
 
-    mAbsPathConfigFile = NULL;
+    mAbsPathConfigFile = nullptr;
 
     irr::io::path configFilePath =
             mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>("config.dat"));
@@ -581,7 +581,7 @@ bool Assets::ReadGameConfigFile(char* filename, char** targetBuf, size_t &outBuf
   //remember amount of data for the next write
   outBufSize = size;
 
-  if (iFile != NULL)
+  if (iFile != nullptr)
   {
       do {
           (*targetBuf)[counter] = fgetc(iFile);
@@ -590,7 +590,7 @@ bool Assets::ReadGameConfigFile(char* filename, char** targetBuf, size_t &outBuf
       fclose(iFile);
   } else {
       delete[] *targetBuf;
-      *targetBuf = NULL;
+      *targetBuf = nullptr;
 
       return false;
   }
@@ -774,7 +774,7 @@ char* Assets::GetNewMainPlayerName() {
 }
 
 std::string Assets::GetCraftModelName(char* craftName, irr::u8 selectedCraftColorScheme) {
-    CraftInfoStruct* craft = NULL;
+    CraftInfoStruct* craft = nullptr;
     std::vector<CraftInfoStruct*>::iterator itCraft;
     std::string resultStr("");
 
@@ -787,7 +787,7 @@ std::string Assets::GetCraftModelName(char* craftName, irr::u8 selectedCraftColo
         }
     }
 
-    if (craft != NULL) {
+    if (craft != nullptr) {
         char* meshFileName = craft->meshFileName;
 
         for (irr::u16 idx = 0; meshFileName[idx] != 0; idx++) {
@@ -1005,12 +1005,12 @@ char* Assets::GetCurrentChampionshipName() {
     return this->currChampionshipName;
 }
 
-//returns NULL in case of an unexpected error
+//returns nullptr in case of an unexpected error
 std::vector<HighScoreEntryStruct*>* Assets::GetHighScoreTable() {
     //if we did not read config file before
     //we must return with problem
     if (!this->mCurrentConfigFileRead) {
-       return NULL;
+       return nullptr;
     }
 
     return this->highScoreTableVec;
@@ -1027,7 +1027,7 @@ bool Assets::WriteGameConfigFile(char* filename, char** sourceBuf, size_t inBufS
 
   size_t counter = 0;
 
-  if (oFile != NULL)
+  if (oFile != nullptr)
   {
       do {
           fputc((*sourceBuf)[counter], oFile);
@@ -1949,7 +1949,7 @@ std::vector<PointTableEntryStruct*>* Assets::GetLastRacePointsTable(std::vector<
 void Assets::NewChampionship() {
     //if there was already a championship data array created before
     //free its memory! otherwise we have a memory leak
-    if (currentChampionshipSaveGameDataByteArray != NULL) {
+    if (currentChampionshipSaveGameDataByteArray != nullptr) {
         delete[] currentChampionshipSaveGameDataByteArray;
     }
 
@@ -2082,7 +2082,7 @@ bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** champion
     if (foundFilePath.empty())
         return false;
 
-    char* helperSaveGameDataByteArray = NULL;
+    char* helperSaveGameDataByteArray = nullptr;
     size_t helperSaveGameDataByteArrayLen = 0;
 
     //file exists, read the savegame file
@@ -2101,7 +2101,7 @@ bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** champion
     //cleanup the temporary buffer
     delete[] helperSaveGameDataByteArray;
 
-    helperSaveGameDataByteArray = NULL;
+    helperSaveGameDataByteArray = nullptr;
 
     //there was a savegame we successfully read
     return true;
@@ -2140,14 +2140,14 @@ void Assets::SearchChampionshipSaveGames() {
 }
 
 void Assets::QuitCurrentChampionship() {
-    if (currentChampionshipSaveGameDataByteArray == NULL)
+    if (currentChampionshipSaveGameDataByteArray == nullptr)
         return;
 
     //simply free dynamic allocated memory
     //for championship savegame data
     delete[] currentChampionshipSaveGameDataByteArray;
 
-    currentChampionshipSaveGameDataByteArray = NULL;
+    currentChampionshipSaveGameDataByteArray = nullptr;
     currentChampionshipSaveGameDataByteArrayLen = 0;
 
     //set current selected level back to
@@ -2182,10 +2182,10 @@ bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
         return false;
 
     //delete the data of a possible already loaded save game
-    if (currentChampionshipSaveGameDataByteArray != NULL) {
+    if (currentChampionshipSaveGameDataByteArray != nullptr) {
         delete[] currentChampionshipSaveGameDataByteArray;
 
-        currentChampionshipSaveGameDataByteArray = NULL;
+        currentChampionshipSaveGameDataByteArray = nullptr;
     }
 
     //read the raw data of the championship save game file
@@ -2241,7 +2241,7 @@ bool Assets::SaveChampionshipSaveGame(irr::u8 whichSlotNr) {
         return false;
 
     //if there is no data to be save exit
-    if (currentChampionshipSaveGameDataByteArray == NULL)
+    if (currentChampionshipSaveGameDataByteArray == nullptr)
         return false;
 
     //build save game file name for
@@ -2422,7 +2422,7 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     memset(*targetBuf, 0, size);
 
     //now set the default settings
-    highScoreTableVec = NULL;
+    highScoreTableVec = nullptr;
 
     //create an empty highscore table
     CreateEmptyHighScoreTable(targetBuf);

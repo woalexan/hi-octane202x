@@ -42,15 +42,15 @@ public:
     bool mIsReset = true;
 
     protected:
-     irr::scene::ISceneManager* mSmgr;
+     irr::scene::ISceneManager* mSmgr = nullptr;
      bool mVisible = false;
      bool mLastVisible = false;
 
      irr::core::vector3d<irr::f32> mParticlePos;
-     irr::video::ITexture* mSpriteTex;
+     irr::video::ITexture* mSpriteTex = nullptr;
      irr::core::dimension2d<irr::u32> mSpriteTexSize;
 
-     irr::scene::IBillboardSceneNode* mSceneNode;
+     irr::scene::IBillboardSceneNode* mSceneNode = nullptr;
      irr::video::SColor mCurrVerticeColor;
 
      //initial sprite size after creation
@@ -109,20 +109,20 @@ public:
     //enabled
     void Trigger();
 
-    EntityItem* mEntityItem;
+    EntityItem* mEntityItem = nullptr;
 
 private:
     irr::core::vector3d<irr::f32> mPosition;
     bool mVisible;
     bool mActivated = false;
 
-    Race* mParentRace;
+    Race* mParentRace = nullptr;
 
-    irr::video::ITexture* mSteamTex;
+    irr::video::ITexture* mSteamTex = nullptr;
     irr::core::dimension2d<irr::u32> mSteamTexSize;
 
-    irr::scene::ISceneManager* mSmgr;
-    irr::video::IVideoDriver* mDriver;
+    irr::scene::ISceneManager* mSmgr = nullptr;
+    irr::video::IVideoDriver* mDriver = nullptr;
 
     irr::u32 mNrMaxParticles;
     irr::u32 mCurrNrParticels = 0;
@@ -130,7 +130,7 @@ private:
     irr::f32 absTimeSinceLastActivation;
     irr::f32 absTimeSinceLastUpdate = 0.0f;
 
-    std::vector<SteamParticle*>* mCurrSpriteVec;
+    std::vector<SteamParticle*>* mCurrSpriteVec = nullptr;
 
     void CreateParticle() {
 
@@ -168,13 +168,13 @@ private:
     bool mVisible;
     bool mActivated = false;
 
-    Player* mParentPlayer;
+    Player* mParentPlayer = nullptr;
 
-    irr::video::ITexture* mSmokeTex;
+    irr::video::ITexture* mSmokeTex = nullptr;
     irr::core::dimension2d<irr::u32> mSmokeTexSize;
 
-    irr::scene::ISceneManager* mSmgr;
-    irr::video::IVideoDriver* mDriver;
+    irr::scene::ISceneManager* mSmgr = nullptr;
+    irr::video::IVideoDriver* mDriver = nullptr;
 
     irr::u32 mNrMaxParticles;
     irr::u32 mCurrNrParticels = 0;
@@ -182,7 +182,7 @@ private:
     irr::f32 absTimeSinceLastActivation;
     irr::f32 absTimeSinceLastUpdate = 0.0f;
 
-    std::vector<SmokeParticle*>* mCurrSpriteVec;
+    std::vector<SmokeParticle*>* mCurrSpriteVec = nullptr;
 
     void CreateParticle() {
     }
@@ -219,13 +219,13 @@ private:
     bool mVisible;
     bool mActivated = false;
 
-    Player* mParentPlayer;
+    Player* mParentPlayer = nullptr;
 
-    irr::video::ITexture* mDustTex;
+    irr::video::ITexture* mDustTex = nullptr;
     irr::core::dimension2d<irr::u32> mDustTexSize;
 
-    irr::scene::ISceneManager* mSmgr;
-    irr::video::IVideoDriver* mDriver;
+    irr::scene::ISceneManager* mSmgr = nullptr;
+    irr::video::IVideoDriver* mDriver = nullptr;
 
     irr::u32 mNrMaxParticles;
     irr::u32 mCurrNrParticels = 0;
@@ -233,7 +233,7 @@ private:
     irr::f32 absTimeSinceLastActivation;
     irr::f32 absTimeSinceLastUpdate = 0.0f;
 
-    std::vector<DustParticle*>* mCurrSpriteVec;
+    std::vector<DustParticle*>* mCurrSpriteVec = nullptr;
 
     void SetupVelocityParticle(DustParticle* particlePntr);
 };

@@ -12,25 +12,25 @@
 
 LevelBlocks::~LevelBlocks() {
   //remove existing SceneNodes
-  if (BlockCollisionSceneNode != NULL) {
+  if (BlockCollisionSceneNode != nullptr) {
       BlockCollisionSceneNode->remove();
-      BlockCollisionSceneNode = NULL;
+      BlockCollisionSceneNode = nullptr;
   }
 
-  if (BlockWithoutCollisionSceneNode != NULL) {
+  if (BlockWithoutCollisionSceneNode != nullptr) {
       BlockWithoutCollisionSceneNode->remove();
-      BlockWithoutCollisionSceneNode = NULL;
+      BlockWithoutCollisionSceneNode = nullptr;
   }
 
   //free existing meshes
-  if (blockMeshForCollision != NULL) {
+  if (blockMeshForCollision != nullptr) {
     this->MySmgr->getMeshCache()->removeMesh(blockMeshForCollision);
-    blockMeshForCollision = NULL;
+    blockMeshForCollision = nullptr;
   }
 
-  if (blockMeshWithoutCollision != NULL) {
+  if (blockMeshWithoutCollision != nullptr) {
     this->MySmgr->getMeshCache()->removeMesh(blockMeshWithoutCollision);
-    blockMeshWithoutCollision = NULL;
+    blockMeshWithoutCollision = nullptr;
   }
 
   if (this->ColumnsByPosition.size() > 0) {
@@ -62,7 +62,7 @@ LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* l
 
    //create all buildings (column objects) out of the raw low level level data
    for(std::vector<ColumnsStruct>::iterator loopi = levelRes->Columns.begin(); loopi != levelRes->Columns.end(); ++loopi) {
-       addColumn((*loopi).Columns, (*loopi).Vector3, levelRes, driver, textureSource);
+       addColumn((*loopi).Columns, (*loopi).Vector3, levelRes);
    }
 
    segmentSize = DEF_SEGMENTSIZE;
@@ -155,7 +155,7 @@ LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* l
    logging::Info(infoMsg);
 }
 
-void LevelBlocks::addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes, irr::video::IVideoDriver *driver, TextureLoader* texureSource) {
+void LevelBlocks::addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
     Column *column = new Column(MyTerrain, this, definition, pos, levelRes);
 
     ColumnsByPositionStruct NewVar;
@@ -166,7 +166,7 @@ void LevelBlocks::addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos
 }
 
 //if column with key is found, returns true; false otherwise
-//if column found returns pointer to column, NULL otherwise
+//if column found returns pointer to column, nullptr otherwise
 bool LevelBlocks::searchColumnWithPosition(int posKey, Column* &columnFnd) {
     bool notFound = true;
 
@@ -194,7 +194,7 @@ void LevelBlocks::SetColumnVerticeSMeshBufferVerticePositionsDirty() {
 std::vector<Column*> LevelBlocks::ColumnsInRange(int sx, int sz, float w, float h)
 {
     std::vector<Column*> columns;
-    Column *fnd; //(MyTerrain, this, NULL, irr::core::vector3d<float>(0.0f, 0.0f, 0.0f), NULL);
+    Column *fnd; //(MyTerrain, this, nullptr, irr::core::vector3d<float>(0.0f, 0.0f, 0.0f), nullptr);
 
     for(int z = 0; z < h; z++)
     {
@@ -432,9 +432,9 @@ bool LevelBlocks::GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::
     irr::u8 firstCollDetBlock = 0;
     irr::u8 nrBlocks = 0;
 
-    if (pntr != NULL) {
+    if (pntr != nullptr) {
         ColumnDefinition* colDef = pntr->get_Column();
-        if (colDef != NULL) {
+        if (colDef != nullptr) {
             //mInCollisionMesh has a "thermometer code" inside
             //for all the blocks beginning at the terrain level
             //in upwards direction where no collision detection can take place

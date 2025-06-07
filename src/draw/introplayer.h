@@ -39,7 +39,7 @@ typedef struct IntroSoundTriggerStruct {
     irr::f32 endLoopingAbsTime;
 
     //needed for looping sounds
-    sf::Sound* soundBufPntr = NULL;
+    sf::Sound* soundBufPntr = nullptr;
 } IntroSoundTriggerStruct;
 
 class SoundEngine; //Forward declaration
@@ -65,12 +65,12 @@ class IntroPlayer {
     bool mInitOk = false;
 
     //we need a music player for the game intro music
-    MyMusicStream* mMusicPlayer;
-    SoundEngine* mSoundEngine;
-    InfrastructureBase* mInfra;
+    MyMusicStream* mMusicPlayer = nullptr;
+    SoundEngine* mSoundEngine = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     //stuff for game intro playing
-    std::vector<irr::video::ITexture*>* introTextures;
+    std::vector<irr::video::ITexture*>* introTextures = nullptr;
     irr::u32 currIntroFrame;
     irr::u32 numIntroFrame;
     irr::core::vector2di introFrameScrDrawPos;
@@ -83,7 +83,7 @@ class IntroPlayer {
     irr::f32 introAbsTimeSound;
 
     //sound stuff for intro playing
-    std::vector<IntroSoundTriggerStruct*>* introSoundEventVec;
+    std::vector<IntroSoundTriggerStruct*>* introSoundEventVec = nullptr;
     irr::u8 currIdxSoundEventVec;
     irr::u8 numSoundEvents;
 

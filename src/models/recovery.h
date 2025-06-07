@@ -63,7 +63,7 @@ private:
     //in the current map
     irr::core::vector3df mStartingPosition;
 
-    Player *repairTarget;
+    Player *repairTarget = nullptr;
 
     //my own current state (regarding state of current recovery mission)
     irr::u32 mCurrentState;
@@ -73,15 +73,15 @@ private:
 
     irr::f32 mDistanceStartBraking;
 
-    irr::scene::IAnimatedMesh*  RecoveryMesh;
-    irr::scene::IMeshSceneNode* Recovery_node;
+    irr::scene::IAnimatedMesh*  RecoveryMesh = nullptr;
+    irr::scene::IMeshSceneNode* Recovery_node = nullptr;
 
     //recovery vehicle shadow SceneNode
-    irr::scene::IShadowVolumeSceneNode* NodeShadow;
+    irr::scene::IShadowVolumeSceneNode* NodeShadow = nullptr;
 
-    irr::scene::ISceneManager* mSmgr;
+    irr::scene::ISceneManager* mSmgr = nullptr;
 
-    Race* mRace;
+    Race* mRace = nullptr;
 
     irr::f32 mSpeedFactor;
 

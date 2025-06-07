@@ -46,7 +46,7 @@ private:
     uint8_t currWritePosition;
     float currSum;
 
-    std::vector<float> *measDurations;
+    std::vector<float> *measDurations = nullptr;
 
     bool firstSample;
 };
@@ -67,37 +67,37 @@ public:
 
     void UpdateWindow();
 
-    TimeProfilerResultObj* tIntOverallGameLoop;
-    TimeProfilerResultObj* tIntHandleInput;
-    TimeProfilerResultObj* tIntHandleComputerPlayers;
-    TimeProfilerResultObj* tIntRender3DScene;
-    TimeProfilerResultObj* tIntRender2D;
+    TimeProfilerResultObj* tIntOverallGameLoop = nullptr;
+    TimeProfilerResultObj* tIntHandleInput = nullptr;
+    TimeProfilerResultObj* tIntHandleComputerPlayers = nullptr;
+    TimeProfilerResultObj* tIntRender3DScene = nullptr;
+    TimeProfilerResultObj* tIntRender2D = nullptr;
 
     //measured time intervals inside race class (Advance time)
-    TimeProfilerResultObj* tIntMorphing;
-    TimeProfilerResultObj* tIntWorldAware;
-    TimeProfilerResultObj* tIntUpdatePlayers;
-    TimeProfilerResultObj* tIntAdvancePhysics;
-    TimeProfilerResultObj* tIntAfterPhysicsUpdate;
-    TimeProfilerResultObj* tIntPlayerMonitoring;
-    TimeProfilerResultObj* tIntUpdateParticleSystems;
-    TimeProfilerResultObj* tIntUpdateCones;
-    TimeProfilerResultObj* tIntProcessTriggers;
+    TimeProfilerResultObj* tIntMorphing = nullptr;
+    TimeProfilerResultObj* tIntWorldAware = nullptr;
+    TimeProfilerResultObj* tIntUpdatePlayers = nullptr;
+    TimeProfilerResultObj* tIntAdvancePhysics = nullptr;
+    TimeProfilerResultObj* tIntAfterPhysicsUpdate = nullptr;
+    TimeProfilerResultObj* tIntPlayerMonitoring = nullptr;
+    TimeProfilerResultObj* tIntUpdateParticleSystems = nullptr;
+    TimeProfilerResultObj* tIntUpdateCones = nullptr;
+    TimeProfilerResultObj* tIntProcessTriggers = nullptr;
 
 private:
     float lastTimeStampMs;
-    std::vector<TimeProfilerResultObj*>* mTimeProfileResVec;
+    std::vector<TimeProfilerResultObj*>* mTimeProfileResVec = nullptr;
 
-    sf::Clock *mClock;
+    sf::Clock *mClock = nullptr;
 
     irr::core::rect<irr::s32> mCurrenttProfileOutputWindowPos;
 
-    irr::gui::IGUIEnvironment* mGuiEnv;
-    irr::gui::IGUIStaticText* tProfileOutputWindow;
+    irr::gui::IGUIEnvironment* mGuiEnv = nullptr;
+    irr::gui::IGUIStaticText* tProfileOutputWindow = nullptr;
     irr::u32 mNumberOftProfilerResultsShown;
 
     bool mWindowHidden;
-    wchar_t* mText;
+    wchar_t* mText = nullptr;
 };
 
 #endif // TPROFILE_H

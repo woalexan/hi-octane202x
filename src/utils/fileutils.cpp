@@ -23,7 +23,7 @@ int copy_file(char* srcFileName, char* destFileName) {
     size_t bytesRead;
 
     sourceFile = fopen(srcFileName, "rb");
-    if (sourceFile == NULL) {
+    if (sourceFile == nullptr) {
         char strhlp[500];
         std::string msg("Error opening source file: ");
         snprintf(strhlp, 500, "%s", srcFileName);
@@ -34,7 +34,7 @@ int copy_file(char* srcFileName, char* destFileName) {
     }
 
     destFile = fopen(destFileName, "wb");
-    if (destFile == NULL) {
+    if (destFile == nullptr) {
         char strhlp[500];
         std::string msg("Error creating destination file: ");
         snprintf(strhlp, 500, "%s", destFileName);

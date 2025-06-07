@@ -87,7 +87,7 @@ void TimeProfiler::StartOfGameLoop() {
 }
 
 void TimeProfiler::Profile(TimeProfilerResultObj* resultObj) {
-    if (resultObj != NULL) {
+    if (resultObj != nullptr) {
         resultObj->AddMeasInterval(
                     mClock->getElapsedTime().asMilliseconds() - this->lastTimeStampMs);
     }
@@ -143,7 +143,7 @@ TimeProfiler::TimeProfiler(irr::gui::IGUIEnvironment* guienvPntr, irr::core::rec
 
     //create the log window
     this->tProfileOutputWindow = mGuiEnv->addStaticText(L"",
-           mCurrenttProfileOutputWindowPos, false, true, NULL, -1, true);
+           mCurrenttProfileOutputWindowPos, false, true, nullptr, -1, true);
 
     //we need to deactivate word wrap because if we do not
     //there seems to be an Irrlicht bug or problem

@@ -32,31 +32,31 @@ typedef struct {
     uint32_t offset;
     uint8_t width;
     uint8_t height;
-       } TABFILE_ITEM;
+} TABFILE_ITEM;
 
 typedef struct {
     long count;
     unsigned long filelength;
     TABFILE_ITEM* items;
-       } TABFILE;
+} TABFILE;
 
 typedef struct {
     int16_t count;
     size_t filelength;
     unsigned char* data;
-       } DATFILE;
+} DATFILE;
 
 typedef struct {
     uint16_t width;
     uint16_t height;
     unsigned char* data;
     unsigned char* alpha;
-       } IMAGEITEM;
+} IMAGEITEM;
 
 typedef struct {
     long count;
     IMAGEITEM* items;
-       } IMAGELIST;
+} IMAGELIST;
 
 // Routines
 

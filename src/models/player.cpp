@@ -22,7 +22,7 @@ void Player::DamageGlas() {
 
     //with 10% probability damage glas of player HUD
     if (rFloat < 0.1f) {
-       if (mHUD != NULL) {
+       if (mHUD != nullptr) {
         AddGlasBreak();
        }
     }
@@ -175,42 +175,42 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
 Player::~Player() {
     //free memory of all player stats
     delete mPlayerStats;
-    mPlayerStats = NULL;
+    mPlayerStats = nullptr;
 
     delete mFinalPlayerStats;
-    mFinalPlayerStats = NULL;
+    mFinalPlayerStats = nullptr;
 
     //Remove my Scenenode from
     //Scenemanager
-    if (this->Player_node != NULL) {
+    if (this->Player_node != nullptr) {
         Player_node->remove();
-        Player_node = NULL;
+        Player_node = nullptr;
     }
 
     //Remove my player Mesh
-    if (this->PlayerMesh != NULL) {
+    if (this->PlayerMesh != nullptr) {
        mInfra->mSmgr->getMeshCache()->removeMesh(this->PlayerMesh);
-       this->PlayerMesh = NULL;
+       this->PlayerMesh = nullptr;
     }
 
     //free my SmokeTrail particle system
     delete mSmokeTrail;
-    mSmokeTrail = NULL;
+    mSmokeTrail = nullptr;
 
     //free my Dust cloud emitter particles system
     delete mDustBelowCraft;
-    mDustBelowCraft = NULL;
+    mDustBelowCraft = nullptr;
 
     //free my machinegun
     delete mMGun;
-    mMGun = NULL;
+    mMGun = nullptr;
 
     //free my missile launcher
     delete mMissileLauncher;
-    mMissileLauncher = NULL;
+    mMissileLauncher = nullptr;
 
     delete dirtTexIdsVec;
-    dirtTexIdsVec = NULL;
+    dirtTexIdsVec = nullptr;
 
     //free the height map collision stuff
     delete this->mHMapCollPntData.front;
@@ -375,7 +375,7 @@ void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
 
 void Player::FreedFromRecoveryVehicleAgain() {
    if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_GRABEDBYRECOVERYVEHICLE) {
-       mGrabedByThisRecoveryVehicle = NULL;
+       mGrabedByThisRecoveryVehicle = nullptr;
 
        LogMessage((char*)"I was dropped of by recovery vehicle again");
 
@@ -493,10 +493,10 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
 
     //create my internal camera SceneNode for 1st person
-    mIntCamera = mInfra->mSmgr->addCameraSceneNode(NULL, NewPosition);
+    mIntCamera = mInfra->mSmgr->addCameraSceneNode(nullptr, NewPosition);
 
     //create my internal camera SceneNode for 3rd person
-    mThirdPersonCamera = mInfra->mSmgr->addCameraSceneNode(NULL, NewPosition);
+    mThirdPersonCamera = mInfra->mSmgr->addCameraSceneNode(nullptr, NewPosition);
 
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
 
@@ -567,7 +567,7 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 }*/
 
 void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
-    if (newClosestWayPointLink.first != NULL) {
+    if (newClosestWayPointLink.first != nullptr) {
         this->currClosestWayPointLink = newClosestWayPointLink;
         this->projPlayerPositionClosestWayPointLink = newClosestWayPointLink.second;
 
@@ -778,7 +778,7 @@ void Player::GetHeightMapCollisionSensorDebugStateName(HMAPCOLLSENSOR *collSenso
 
     strcpy(*stateName, "");
 
-    if (collSensor != NULL) {
+    if (collSensor != nullptr) {
         if (collSensor->currState == STATE_HMAP_COLL_IDLE) {
             strcpy(*stateName, "IDLE");
         } else if (collSensor->currState == STATE_HMAP_COLL_WATCH) {
@@ -798,7 +798,7 @@ void Player::GetHeightMapCollisionSensorDebugInfoEntryText(
 
     wcscpy(outputText, L"");
 
-    if (collSensor != NULL) {
+    if (collSensor != nullptr) {
         char *stateName;
 
         //only create debug text if state is not idle
@@ -1121,7 +1121,7 @@ void Player::TestCpForceControlLogicWithHumanPlayer() {
     if (!mHumanPlayer)
         return;
 
-    if (this->currClosestWayPointLink.first != NULL) {
+    if (this->currClosestWayPointLink.first != nullptr) {
 
         irr::core::vector3df dirVecToLink = (this->currClosestWayPointLink.second - this->phobj->physicState.position);
         dirVecToLink.Y = 0.0f;
@@ -1528,10 +1528,10 @@ bool Player::HeightMapCollision(HMAPCOLLSENSOR &collSensor) {
 
 void Player::StoreHeightMapCollisionDbgRecordingDataForFrame() {
     //if currently no recording is done just return
-    if (this->hMapCollDebugWhichSensor == NULL)
+    if (this->hMapCollDebugWhichSensor == nullptr)
         return;
 
-    if (this->hMapCollDebugRecordingData == NULL)
+    if (this->hMapCollDebugRecordingData == nullptr)
         return;
 
     HMAPCOLLSENSOR* newDataPoint = new HMAPCOLLSENSOR();
@@ -1544,11 +1544,11 @@ void Player::StoreHeightMapCollisionDbgRecordingDataForFrame() {
 
 void Player::StartRecordingHeightMapCollisionDbgData(HMAPCOLLSENSOR *whichCollSensor) {
     //if we record already just return
-    if (this->hMapCollDebugWhichSensor != NULL)
+    if (this->hMapCollDebugWhichSensor != nullptr)
         return;
 
     //if no valid sensor is specified also return
-    if (whichCollSensor == NULL)
+    if (whichCollSensor == nullptr)
         return;
 
     //create new recording data vector
@@ -1559,7 +1559,7 @@ void Player::StartRecordingHeightMapCollisionDbgData(HMAPCOLLSENSOR *whichCollSe
 
 void Player::StopRecordingHeightMapCollisionDbgData(char* outputDbgFileName) {
     //if we do not record right now just return
-    if (this->hMapCollDebugWhichSensor == NULL)
+    if (this->hMapCollDebugWhichSensor == nullptr)
         return;
 
     std::vector<HMAPCOLLSENSOR*>::iterator it;
@@ -1599,23 +1599,23 @@ void Player::StopRecordingHeightMapCollisionDbgData(char* outputDbgFileName) {
     }
 
     delete this->hMapCollDebugRecordingData;
-    this->hMapCollDebugRecordingData = NULL;
+    this->hMapCollDebugRecordingData = nullptr;
 
-    hMapCollDebugWhichSensor = NULL;
+    hMapCollDebugWhichSensor = nullptr;
 }
 
 void Player::Collided() {
     if (mHumanPlayer) {
-           if (CollisionSound == NULL) {
+           if (CollisionSound == nullptr) {
               CollisionSound = mRace->mSoundEngine->PlaySound(SRES_GAME_COLLISION, this->phobj->physicState.position, false);
            }
     }
 }
 
 void Player::AfterPhysicsUpdate() {
-    if (CollisionSound != NULL) {
+    if (CollisionSound != nullptr) {
         if (CollisionSound->getStatus() == CollisionSound->Stopped) {
-            CollisionSound = NULL;
+            CollisionSound = nullptr;
         }
     }
 
@@ -1769,9 +1769,9 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
                //we reached max turbo level
                //make sure turbo sound is stopped
                //TurboSound->stop();
-               if (TurboSound != NULL) {
+               if (TurboSound != nullptr) {
                    TurboSound->stop();
-                   TurboSound = NULL;
+                   TurboSound = nullptr;
                }
 
                MaxTurboReached();
@@ -1782,9 +1782,9 @@ void Player::IsSpaceDown(bool down, irr::f32 deltaTime) {
                     //space key was released
                     //make sure turbo sound is stopped
                     //TurboSound->stop();
-                    if (TurboSound != NULL) {
+                    if (TurboSound != nullptr) {
                         TurboSound->stop();
-                        TurboSound = NULL;
+                        TurboSound = nullptr;
                     }
 
                     //if space key is released the booster sound is played as well
@@ -1895,7 +1895,7 @@ bool Player::ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::
 }
 
 /*irr::core::vector3df Player::DeriveCurrentDirectionVector(WayPointLinkInfoStruct *currentWayPointLine, irr::f32 progressCurrWayPoint) {
-    if (currentWayPointLine->pntrPathNextLink != NULL) {
+    if (currentWayPointLine->pntrPathNextLink != nullptr) {
         //we have the next path link as well, we should be able to find out in which direction
         //we will have to go next
         irr::core::vector3df calcDirVec;
@@ -1922,13 +1922,13 @@ bool Player::ProjectOnWayPoint(WayPointLinkInfoStruct* projOnWayPointLink, irr::
 //if blinking is true text will blink (for example used for final lap text), If false
 //text does not blink (as used when player died and waits for repair craft)
 void Player::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking) {
-    if (mHUD != NULL) {
+    if (mHUD != nullptr) {
         this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec, blinking);
     }
 }
 
 void Player::RemovePlayerPermanentGreenBigText() {
-    if (mHUD != NULL) {
+    if (mHUD != nullptr) {
         this->mHUD->RemovePermanentGreenBigText();
     }
 }
@@ -1965,7 +1965,7 @@ bool Player::DoWeNeedHidePlayerModel() {
 irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
     //are we on external view, and we have an external camera available?
     if (mCurrentViewMode == CAMERA_EXTERNALVIEW) {
-        if (externalCamera != NULL) {
+        if (externalCamera != nullptr) {
             //return my external camera
             //lets update this external camera, so that it
             //does focus at us
@@ -1995,8 +1995,8 @@ irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
          return mThirdPersonCamera;
     }
 
-    //no valid view option, return NULL
-    return NULL;
+    //no valid view option, return nullptr
+    return nullptr;
 }
 
 void Player::ChangeViewMode() {
@@ -2365,7 +2365,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //we are attached to recovery vehicle, because here physics
     //model is not active and otherwise we get weird behavior
     //when craft is freed again
-    if (this->mGrabedByThisRecoveryVehicle == NULL) {
+    if (this->mGrabedByThisRecoveryVehicle == nullptr) {
         CraftHeightControl();
     }
 
@@ -2459,7 +2459,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //do we have currently a missile lock at another player
     //if so set flag for warning sound in the other player
-    if ((mTargetPlayer != NULL) && (mTargetMissleLock)) {
+    if ((mTargetPlayer != nullptr) && (mTargetMissleLock)) {
         mTargetPlayer->mOtherPlayerHasMissleLockAtMe = true;
     }
 }
@@ -2508,7 +2508,7 @@ void Player::JumpControlPhysicsLoop(irr::f32 deltaTime) {
                   mCurrInAirTime = 0.0f;
 
                   //message for debugging
-                  /*if (mHUD !=NULL) {
+                  /*if (mHUD !=nullptr) {
                          this->mHUD->ShowGreenBigText((char*)("JUMP"), 0.5f, false);
                   }*/
             }
@@ -2521,7 +2521,7 @@ void Player::JumpControlPhysicsLoop(irr::f32 deltaTime) {
                 this->mCurrJumping = false;
 
                 //message for debugging
-                /*if (mHUD !=NULL) {
+                /*if (mHUD !=nullptr) {
                     this->mHUD->ShowGreenBigText((char*)("JUMP END"), 0.1f, false);
                 }*/
             }
@@ -2802,7 +2802,7 @@ void Player::WasDestroyed() {
 }
 
 void Player::UpdateHUDState() {
-    if (mHUD == NULL)
+    if (mHUD == nullptr)
         return;
 
     irr::u32 state = this->GetCurrentState();
@@ -2923,7 +2923,7 @@ void Player::CheckForTriggerCraftRegion() {
 
     std::vector<MapTileRegionStruct*>::iterator itRegion;
 
-    mCurrentCraftTriggerRegion = NULL;
+    mCurrentCraftTriggerRegion = nullptr;
 
     //16.05.2025: There is a (hidden) shortcut in level 2 that is opened by "driving" into the
     //level wall. Problem is if we use the ships (origin middle) position to calculate the cell for craft trigger (which I did at the beginning),
@@ -2955,7 +2955,7 @@ void Player::CheckForTriggerCraftRegion() {
     //did we enter a new trigger region?
     //if so we need to trigger the trigger event and tell the race
     //about it
-    if (mCurrentCraftTriggerRegion != NULL) {
+    if (mCurrentCraftTriggerRegion != nullptr) {
         if (mCurrentCraftTriggerRegion != mLastCraftTriggerRegion) {
             //yes, we hit a new trigger region
 
@@ -3029,7 +3029,7 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
 
             RepairGlasBreaks();
 
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 if (mPlayerStats->shieldVal >= mPlayerStats->shieldMax) {
                     mPlayerStats->shieldVal = mPlayerStats->shieldMax;
                     if (!this->mBlockAdditionalShieldFullMsg) {
@@ -3053,7 +3053,7 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
             //full does take approx. 4 seconds in the original game
             //value below is for constant 60 FPS, scale with FPS!
             this->mPlayerStats->ammoVal += 0.02f * speedFactor;
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 if (mPlayerStats->ammoVal >= mPlayerStats->ammoMax) {
                     mPlayerStats->ammoVal = mPlayerStats->ammoMax;
                     if (!mBlockAdditionalAmmoFullMsg) {
@@ -3080,7 +3080,7 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
             //frame rate independent correct charging speed
             this->mPlayerStats->gasolineVal += 0.15f * speedFactor;
 
-             if (mHUD != NULL) {
+             if (mHUD != nullptr) {
                 if (mPlayerStats->gasolineVal >= mPlayerStats->gasolineMax) {
                     mPlayerStats->gasolineVal = mPlayerStats->gasolineMax;
                     if (!mBlockAdditionalFuelFullMsg) {
@@ -3097,14 +3097,14 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
         if (mCurrChargingFuel) {
             //charging fuel started
              if (atCharger) {
-               if (mHUD != NULL) {
+               if (mHUD != nullptr) {
                 //make this a permanent message by specification of showDurationSec = -1.0f
                 this->mHUD->ShowBannerText((char*)"FUEL RECHARGING", -1.0f);
                }
              }
 
         } else {
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->CancelAllPermanentBannerTextMsg();
             }
             mBlockAdditionalFuelFullMsg = false;
@@ -3115,14 +3115,14 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
         if (mCurrChargingAmmo) {
             //charging Ammo started
              if (atCharger) {
-               if (mHUD != NULL) {
+               if (mHUD != nullptr) {
                 //make this a permanent message by specification of showDurationSec = -1.0f
                 this->mHUD->ShowBannerText((char*)"AMMO RECHARGING", -1.0f);
                }
              }
 
         } else {
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->CancelAllPermanentBannerTextMsg();
             }
             mBlockAdditionalAmmoFullMsg = false;
@@ -3133,14 +3133,14 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
         if (mCurrChargingShield) {
             //charging shield started
              if (atCharger) {
-               if (mHUD != NULL) {
+               if (mHUD != nullptr) {
                 //make this a permanent message by specification of showDurationSec = -1.0f
                 this->mHUD->ShowBannerText((char*)"SHIELD RECHARGING", -1.0f);
                }
              }
 
         } else {
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->CancelAllPermanentBannerTextMsg();
             }
             mBlockAdditionalShieldFullMsg = false;
@@ -3169,7 +3169,7 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
                //stop playing sound from looping sound source
                if (this->mHumanPlayer) {
                    this->mRace->mSoundEngine->StopLoopingSound(mChargingSoundSource);
-                   mChargingSoundSource = NULL;
+                   mChargingSoundSource = nullptr;
                }
        }
 
@@ -3178,7 +3178,7 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
 
 void Player::StartPlayingWarningSound() {
    //already warning playing?
-   if (mWarningSoundSource == NULL) {
+   if (mWarningSoundSource == nullptr) {
        //no, start playing new warning
        //we need to keep a pntr to the looping sound source to be able to stop it
        //later again!
@@ -3188,16 +3188,16 @@ void Player::StartPlayingWarningSound() {
 
 void Player::StopPlayingWarningSound() {
    //warning really playing?
-   if (mWarningSoundSource != NULL) {
+   if (mWarningSoundSource != nullptr) {
        //yes, stop it
        this->mRace->mSoundEngine->StopLoopingSound(mWarningSoundSource);
-       mWarningSoundSource = NULL;
+       mWarningSoundSource = nullptr;
    }
 }
 
 void Player::StartPlayingLockOnSound() {
    //already lockon sound playing?
-   if (mLockOnSoundSource == NULL) {
+   if (mLockOnSoundSource == nullptr) {
        //no, start playing new lockon sound
        //we need to keep a pntr to the looping sound source to be able to stop it
        //later again!
@@ -3207,10 +3207,10 @@ void Player::StartPlayingLockOnSound() {
 
 void Player::StopPlayingLockOnSound() {
    //lock on sound really playing?
-   if (mLockOnSoundSource != NULL) {
+   if (mLockOnSoundSource != nullptr) {
        //yes, stop it
          this->mRace->mSoundEngine->StopLoopingSound(mLockOnSoundSource);
-         mLockOnSoundSource = NULL;
+         mLockOnSoundSource = nullptr;
    }
 }
 
@@ -3318,7 +3318,7 @@ void Player::GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::
                 pos_in_worldspace_backPos.Z,
                 outCellBack);
 
-    //currTileBelowPlayer = NULL;
+    //currTileBelowPlayer = nullptr;
 
     //calculate current cell below player
     //int current_cell_calc_x, current_cell_calc_y;
@@ -3366,7 +3366,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
                 return false;
             }
 
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"EXTRA FUEL", 4.0f);
             }
 
@@ -3380,7 +3380,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             break;
 
         case Entity::EntityType::FuelFull:
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"FUEL FULL", 4.0f);
             }
 
@@ -3392,7 +3392,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             break;
 
         case Entity::EntityType::DoubleFuel:
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE FUEL", 4.0f);
             }
 
@@ -3419,7 +3419,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
                 return false;
             }
 
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"EXTRA AMMO", 4.0f);
             }
 
@@ -3432,7 +3432,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             break;
 
         case Entity::EntityType::AmmoFull:
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"AMMO FULL", 4.0f);
             }
 
@@ -3444,7 +3444,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             break;
 
         case Entity::EntityType::DoubleAmmo:
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE AMMO", 4.0f);
             }
 
@@ -3465,7 +3465,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
                 return false;
             }
 
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"EXTRA SHIELD", 4.0f);
             }
 
@@ -3476,7 +3476,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             break;
 
         case Entity::EntityType::ShieldFull:
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"SHIELD FULL", 4.0f);
             }
 
@@ -3489,7 +3489,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             break;
 
         case Entity::EntityType::DoubleShield:
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE SHIELD", 4.0f);
             }
 
@@ -3508,7 +3508,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mPlayerStats->currBoosterUpgradeLevel++;
 
                 //upgrade players booster
-                if (mHUD != NULL) {
+                if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"BOOSTER UPGRADED", 4.0f);
                 }
             } else {
@@ -3523,7 +3523,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
             if (this->mPlayerStats->currRocketUpgradeLevel < 3) {
                 this->mPlayerStats->currRocketUpgradeLevel++;
 
-                if (mHUD != NULL) {
+                if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"MISSILE UPGRADED", 4.0f);
                 }
             } else {
@@ -3539,7 +3539,7 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
                 this->mPlayerStats->currMinigunUpgradeLevel++;
 
                 //upgrade players mini-gun
-                if (mHUD != NULL) {
+                if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"MINIGUN UPGRADED", 4.0f);
                 }
             } else {
@@ -3579,10 +3579,10 @@ bool Player::CollectedCollectable(Collectable* whichCollectable) {
 //    if (!this->mHumanPlayer) {
 //        if (this->mCpTargetCollectableToPickUp == whichCollectable) {
 //            //yes, correct item picked up
-//            //set back to NULL, so that player can lookup
+//            //set back to nullptr, so that player can lookup
 //            //next item he wants to collect
-//            mCpTargetCollectableToPickUp = NULL;
-//            this->mCpWayPointLinkClosestToCollectable = NULL;
+//            mCpTargetCollectableToPickUp = nullptr;
+//            this->mCpWayPointLinkClosestToCollectable = nullptr;
 
 //            CurrentCommandFinished();
 //        }
@@ -3647,9 +3647,9 @@ void Player::FinishedLap() {
 
     //do we need to show HUD Message for "final lap"
     if (mPlayerStats->currLapNumber == mPlayerStats->raceNumberLaps) {
-        if (this->mRace->currPlayerFollow != NULL) {
+        if (this->mRace->currPlayerFollow != nullptr) {
             if (this->mRace->currPlayerFollow == this) {
-                if (mHUD != NULL) {
+                if (mHUD != nullptr) {
                     mHUD->ShowGreenBigText((char*)"FINAL LAP", 4.0f, true);
                 }
 
@@ -3722,12 +3722,12 @@ void Player::CleanUpBrokenGlas() {
 
             it = brokenGlasVec->erase(it);
 
-            if (pntr->texture != NULL) {
+            if (pntr->texture != nullptr) {
                 //remove underlying texture
                 mInfra->mDriver->removeTexture(pntr->texture);
             }
 
-            if (pntr->altTexture != NULL) {
+            if (pntr->altTexture != nullptr) {
                 //remove underlying texture
                 mInfra->mDriver->removeTexture(pntr->altTexture);
             }
@@ -3754,7 +3754,7 @@ void Player::HandleFuel(irr::f32 deltaTime) {
         if (mPlayerStats->gasolineVal <= 0.0f) {
             mPlayerStats->gasolineVal = 0.0f;
             if (!mEmptyFuelWarningAlreadyShown) {
-                if (mHUD != NULL) {
+                if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
                 }
                 mEmptyFuelWarningAlreadyShown = true;
@@ -3772,7 +3772,7 @@ void Player::HandleFuel(irr::f32 deltaTime) {
             }
         } else if (mPlayerStats->gasolineVal <= 25.0f) {
             if (!mLowFuelWarningAlreadyShown) {
-                if (mHUD != NULL) {
+                if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
                 }
                 mLowFuelWarningAlreadyShown = true;
@@ -3826,14 +3826,14 @@ void Player::HandleAmmo() {
     //less are left available
     if (mPlayerStats->ammoVal <= 0.9f) {
         if (!mEmptyAmmoWarningAlreadyShown) {
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
             }
             mEmptyAmmoWarningAlreadyShown = true;
         }
     } else if (mPlayerStats->ammoVal < 2.5f) {
         if (!mLowAmmoWarningAlreadyShown) {
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
             }
             mLowAmmoWarningAlreadyShown = true;
@@ -3854,7 +3854,7 @@ void Player::HandleShield() {
     //are remaining
     if (mPlayerStats->shieldVal < (mPlayerStats->shieldMax * 0.5f)) {
         if (!mLowShieldWarningAlreadyShown) {
-            if (mHUD != NULL) {
+            if (mHUD != nullptr) {
                 this->mHUD->ShowBannerText((char*)"SHIELD LOW", 4.0f, true);
             }
             mLowShieldWarningAlreadyShown = true;

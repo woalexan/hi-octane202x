@@ -29,12 +29,12 @@ private:
     irr::core::quaternion orientation;
     irr::core::vector3d<irr::f32> rotAxis;
 
-    irr::scene::IAnimatedMesh*  coneMesh;
-    irr::scene::IMeshSceneNode* cone_node;
+    irr::scene::IAnimatedMesh*  coneMesh = nullptr;
+    irr::scene::IMeshSceneNode* cone_node = nullptr;
 
-    irr::scene::ISceneManager* mSmgr;
+    irr::scene::ISceneManager* mSmgr = nullptr;
 
-    Race *mRace;
+    Race *mRace = nullptr;
 
     irr::core::vector3df currVelocity;
     irr::core::vector3df mVelocity;

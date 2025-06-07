@@ -30,7 +30,7 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 
    GeometryInfoList = new ColumnSideGeometryInfo();
 
-   if (levelResLevel != NULL && Def != NULL) {
+   if (levelResLevel != nullptr && Def != nullptr) {
     if (setupGeometry()) {
         /*std::cout << "HiOctane Column loaded: " <<
                    positionVboData.size() << " vertices, " <<
@@ -47,7 +47,7 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 }
 
 Column::~Column() {
-  if (this->GeometryInfoList != NULL) {
+  if (this->GeometryInfoList != nullptr) {
       if (this->GeometryInfoList->vertices.size() > 0) {
         std::vector<ColumnVerticeInfo>::iterator itVert;
         ColumnVerticeInfo* vertInfoPntr;
@@ -74,16 +74,16 @@ Column::~Column() {
             }
 
             //free existing vertex
-            if (vertInfoPntr->vert != NULL) {
+            if (vertInfoPntr->vert != nullptr) {
                 delete vertInfoPntr->vert;
-                vertInfoPntr->vert = NULL;
+                vertInfoPntr->vert = nullptr;
             }
         }
     }
 
    //free the geometry info list
    delete GeometryInfoList;
-   GeometryInfoList = NULL;
+   GeometryInfoList = nullptr;
  }
 }
 
@@ -136,7 +136,7 @@ void Column::ApplyMorph(float progress) {
     //similar in the HioctaneTools source code
     //but seems to be not needed, therefore
     //I commented it out
-    /*if (MorphSource == NULL) {
+    /*if (MorphSource == nullptr) {
         UpdateGeometry();
         return;
     }*/
@@ -272,7 +272,7 @@ std::vector<vector2d<irr::f32>> Column::ApplyTexMod(vector2d<irr::f32> uvA, vect
    return uvs;
 }
 
-std::vector<vector2d<irr::f32>> Column::MakeUVs(int textureId, int texMod) {
+std::vector<vector2d<irr::f32>> Column::MakeUVs(int texMod) {
     vector2d<irr::f32> uvA;
     vector2d<irr::f32> uvB;
     vector2d<irr::f32> uvC;
@@ -372,22 +372,22 @@ bool Column::setupGeometry() {
         vector3d<irr::f32> *H = new vector3d<irr::f32>(0.0f, d + h, segmentSize);
 
         // texture atlas UVs
-        newuvsS = MakeUVs(blockDef->get_S(), blockDef->SMod());
+        newuvsS = MakeUVs(blockDef->SMod());
         textIDInfoS = blockDef->get_S();
 
-        newuvsW = MakeUVs(blockDef->get_W(), blockDef->WMod());
+        newuvsW = MakeUVs(blockDef->WMod());
         textIDInfoW = blockDef->get_W();
 
-        newuvsN = MakeUVs(blockDef->get_N(), blockDef->NMod());
+        newuvsN = MakeUVs(blockDef->NMod());
         textIDInfoN = blockDef->get_N();
 
-        newuvsE = MakeUVs(blockDef->get_E(), blockDef->EMod());
+        newuvsE = MakeUVs(blockDef->EMod());
         textIDInfoE = blockDef->get_E();
 
-        newuvsT = MakeUVs(blockDef->get_T(), blockDef->TMod());
+        newuvsT = MakeUVs(blockDef->TMod());
         textIDInfoT = blockDef->get_T();
 
-        newuvsB = MakeUVs(blockDef->get_B(), blockDef->BMod());
+        newuvsB = MakeUVs(blockDef->BMod());
         textIDInfoB = blockDef->get_B();
 
         // normals

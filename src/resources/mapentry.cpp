@@ -20,7 +20,7 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
 
     this->m_Offset = offset;
     this->m_Bytes = bytes;
-    this->m_Column = NULL;
+    this->m_Column = nullptr;
 
     //for debugging of level saving, comment out later
     this->m_wBytes.resize(this->m_Bytes.size());
@@ -106,7 +106,7 @@ bool MapEntry::WriteChanges() {
     ConvertAndWriteFloatToByteArray(this->m_Height, this->m_wBytes, 2);
 
     //is this a column at this location
-    if (this->get_Column() != NULL) {
+    if (this->get_Column() != nullptr) {
         //we have to calculate and store the data in a different way
         //calculate back the column id
         uint16_t element = this->get_Column()->get_ID();

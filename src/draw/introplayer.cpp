@@ -149,7 +149,7 @@ bool IntroPlayer::Init() {
 
         //load this image (texture)
         newTex = mInfra->mDriver->getTexture(frameFileName);
-        if (newTex == NULL) {
+        if (newTex == nullptr) {
             //there was a texture loading error
             //std::cout << "Intro image loading error" << std::endl;
             logging::Error("Intro image loading error");

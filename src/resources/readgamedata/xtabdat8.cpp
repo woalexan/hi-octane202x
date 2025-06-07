@@ -193,7 +193,7 @@ void DebugWriteTabFileContentsCsvTable(char* tabFileName, TABFILE* tabf) {
         strcat(finalpath, "-tab.txt");
     } else {
         //remove everything after last dot including the dot
-        //just do this by writing NULL char to dot position
+        //just do this by writing termination char to dot position
         finalpath[dotPos] = 0;
 
         strcat(finalpath, "-tab.txt");
@@ -201,7 +201,7 @@ void DebugWriteTabFileContentsCsvTable(char* tabFileName, TABFILE* tabf) {
 
     //now we have our output filename
     FILE* oFile = fopen(finalpath, "w");
-    if (oFile == NULL) {
+    if (oFile == nullptr) {
        return;
     }
 
@@ -266,7 +266,7 @@ int read_tabfile_data(TABFILE* tabf,const char* srcfname, bool skipFirstEntry)
 void free_tabfile_data(TABFILE* tabf)
 {
     free(tabf->items);
-    tabf->items=NULL;
+    tabf->items=nullptr;
     tabf->filelength=0;
     tabf->count=0;
 }
@@ -298,7 +298,7 @@ int read_datfile_data(DATFILE* datf, char* srcfname)
 void free_datfile_data(DATFILE* datf)
 {
     free(datf->data);
-    datf->data=NULL;
+    datf->data=nullptr;
     datf->filelength=0;
     datf->count=0;
 }
@@ -330,8 +330,8 @@ int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,
         IMAGEITEM *item=&(images->items[picnum]);
         item->width=0;
         item->height=0;
-        item->data=NULL;
-        item->alpha=NULL;
+        item->data=nullptr;
+        item->alpha=nullptr;
         if (verbose) { 
             snprintf(hlpstr, 500, "Preparing picture%6lu from %06lx, %ux%u...", picnum, tabitem->offset, tabitem->width, tabitem->height); 
             msg.clear();
@@ -392,7 +392,7 @@ void free_dattab_images(IMAGELIST* images)
         free(item->alpha);
     }
     free(images->items);
-    images->items=NULL;
+    images->items=nullptr;
     images->count=0;
 }
 
@@ -405,7 +405,7 @@ int read_dat_image_idx(IMAGEITEM* image,unsigned long* readedsize,DATFILE* datf,
         uint32_t imgsize=width*height;
         image->data=static_cast<unsigned char*>(malloc(imgsize));
         image->alpha=static_cast<unsigned char*>(malloc(imgsize));
-        if ((image->data==NULL)||(image->alpha==NULL))
+        if ((image->data==nullptr)||(image->alpha==nullptr))
             return XTABDAT8_NOMEMORY;
         uint32_t i;
         for (i=0;i<imgsize;i++)

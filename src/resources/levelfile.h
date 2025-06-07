@@ -67,7 +67,7 @@ struct MapTileRegionStruct {
 
 struct ColumnsStruct {
       irr::core::vector3d<float> Vector3;
-      ColumnDefinition *Columns;
+      ColumnDefinition *Columns = nullptr;
 };
 
 class LevelFile {
@@ -165,7 +165,7 @@ public:
 
     //holds location info about the charging locations
     //and the map start region/location
-    std::vector<MapTileRegionStruct*> *mMapRegionVec;
+    std::vector<MapTileRegionStruct*> *mMapRegionVec = nullptr;
 
     //Helper function, Returns true if a certain tile has the specified textureId
     //Returns false otherwise, or if the specified location on the tile map is invalid

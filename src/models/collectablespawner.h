@@ -24,7 +24,7 @@ class Race; //Forward declaration
 //that is emitted from a spawnPoint
 struct SpawnedCollectableInfoStruct {
     //pointer to the spawned new collectable object
-    Collectable* pntrCollectable;
+    Collectable* pntrCollectable = nullptr;
 
     irr::core::vector3df currVelocity;
     irr::core::vector3df spawnPoint;
@@ -51,12 +51,12 @@ public:
 
 private:
     irr::core::vector3df mPosition;
-    irr::scene::ISceneManager* mSmgr;
-    irr::video::IVideoDriver* mDriver;
+    irr::scene::ISceneManager* mSmgr = nullptr;
+    irr::video::IVideoDriver* mDriver = nullptr;
 
     std::vector<SpawnedCollectableInfoStruct*> mSpawnedCollectablesVec;
 
-    Race *mRace;
+    Race *mRace = nullptr;
     irr::u8 mState = DEF_COLLECTABLE_SPAWNER_STATE_INITIAL;
 
     void AddCollectibleToRaceVector(Collectable* collectibleToAdd);

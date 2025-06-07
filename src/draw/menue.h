@@ -42,7 +42,7 @@
 #define MENUE_POINTSTABLE 204
 
 //definition of available menue action trigger types
-#define MENUE_ACTION_NOACTION NULL
+#define MENUE_ACTION_NOACTION 0
 #define MENUE_ACTION_RACE 1
 #define MENUE_ACTION_QUITTOOS 2
 #define MENUE_ACTION_SETCOMPUTERPLAYERENA 3
@@ -103,7 +103,7 @@ const irr::f32 MENUE_USERINACTIVETIME_THRESHOLD = 30.0f;
 //graphical element (mostly logo)
 typedef struct MenueGraphicPart {
      irr::core::vector2d<irr::s32> drawScrPosition;
-     irr::video::ITexture* texture;
+     irr::video::ITexture* texture = nullptr;
      irr::core::dimension2d<irr::s32> sizeTex;
 } MenueGraphicPart;
 
@@ -138,7 +138,7 @@ class Game; //Forward declaration
 typedef struct MenueSingleEntry {
     irr::u8 entryNumber;
     irr::core::vector2d<irr::s32> drawTextScrPosition;
-    char* entryText;
+    char* entryText = nullptr;
 
     //if true this menue item can be selected by using
     //cursor key up/down; If false the item is static
@@ -149,20 +149,20 @@ typedef struct MenueSingleEntry {
     //press Return on this menue item
     //MenuePage nextMenuePage allows to change to
     //another menue page, if this is not wanted simply set
-    //this pointer to NULL
-    MenuePage* nextMenuePage = NULL;
+    //this pointer to nullptr
+    MenuePage* nextMenuePage = nullptr;
 
     //the next item describes if the menue item
     //can trigger an action (and which kind of action)
     //if the user selects the item and presses Return key
-    //if there is no action then this pointer is set to NULL
-    MenueAction* triggerAction = NULL;
+    //if there is no action then this pointer is set to nullptr
+    MenueAction* triggerAction = nullptr;
 
     //is for example used for player name entry
     //dialog
     //pointer which allows to point to a char array
     //content is used to initialize text input field
-    char* initTextPntr = NULL;
+    char* initTextPntr = nullptr;
 
     bool isTextEntryField = false;
     //current text input string
@@ -190,7 +190,7 @@ typedef struct MenuePage {
     //is used when program needs to return to menue page
     //one level above, for example when player presses ESC key
     //one level; or when text input is done in one player
-    MenuePage* parentMenuePage;
+    MenuePage* parentMenuePage = nullptr;
 } MenuePage;
 
 typedef struct {
@@ -198,7 +198,7 @@ typedef struct {
 } MenueWindowAnimationVec;
 
 struct ShipStatLabel {
-   char* text;
+   char* text = nullptr;
    irr::core::vector2di drawPositionTxt;
    bool visible = true;
 
@@ -207,27 +207,27 @@ struct ShipStatLabel {
 };
 
 struct MenueTextLabel {
-    char* text;
+    char* text = nullptr;
     irr::core::vector2di drawPositionTxt;
     bool visible = true;
-    GameTextFont* whichFont = NULL;
+    GameTextFont* whichFont = nullptr;
 };
 
 class Menue {
 
 private:
-    SoundEngine* mSoundEngine;
-    Assets* mGameAssets;
-    InfrastructureBase* mInfra;
-    Game* mGame;
+    SoundEngine* mSoundEngine = nullptr;
+    Assets* mGameAssets = nullptr;
+    InfrastructureBase* mInfra = nullptr;
+    Game* mGame = nullptr;
 
     std::vector<MenueGraphicPart*> GameLogo;
 
     //menue window graphic resources
-    irr::video::ITexture* wndCornerElementUpperLeftTex;
-    irr::video::ITexture* wndCornerElementUpperRightTex;
-    irr::video::ITexture* wndCornerElementLowerLeftTex;
-    irr::video::ITexture* wndCornerElementLowerRightTex;
+    irr::video::ITexture* wndCornerElementUpperLeftTex = nullptr;
+    irr::video::ITexture* wndCornerElementUpperRightTex = nullptr;
+    irr::video::ITexture* wndCornerElementLowerLeftTex = nullptr;
+    irr::video::ITexture* wndCornerElementLowerRightTex = nullptr;
 
     //text input field cursor variables
     //true if text cursor should be visible currently
@@ -266,82 +266,82 @@ private:
     void StopMenueSound();
 
     //Menue definitions for main top entry menue
-    MenuePage* TopMenuePage;
-    MenueSingleEntry* Race;
-    MenueSingleEntry* Options;
-    MenueSingleEntry* QuitToOS;
+    MenuePage* TopMenuePage = nullptr;
+    MenueSingleEntry* Race = nullptr;
+    MenueSingleEntry* Options = nullptr;
+    MenueSingleEntry* QuitToOS = nullptr;
 
     //Menue definitions for Race page
-    MenuePage* RaceMenuePage;
-    MenueSingleEntry* SelectChampionsship;
-    MenueSingleEntry* SelectSingleRace;
-    MenueSingleEntry* RaceMenuePageBackToMainMenue;
+    MenuePage* RaceMenuePage = nullptr;
+    MenueSingleEntry* SelectChampionsship = nullptr;
+    MenueSingleEntry* SelectSingleRace = nullptr;
+    MenueSingleEntry* RaceMenuePageBackToMainMenue = nullptr;
 
     //Menue definitions for Championship page
-    MenuePage* ChampionshipMenuePage;
-    MenueSingleEntry* ContinueChampionshipEntry;
-    MenueSingleEntry* NewChampionshipEntry;
-    MenueSingleEntry* LoadChampionshipEntry;
-    MenueSingleEntry* SaveChampionshipEntry;
-    MenueSingleEntry* QuitChampionshipEntry;
+    MenuePage* ChampionshipMenuePage = nullptr;
+    MenueSingleEntry* ContinueChampionshipEntry = nullptr;
+    MenueSingleEntry* NewChampionshipEntry = nullptr;
+    MenueSingleEntry* LoadChampionshipEntry = nullptr;
+    MenueSingleEntry* SaveChampionshipEntry = nullptr;
+    MenueSingleEntry* QuitChampionshipEntry = nullptr;
 
     //menue definitions for Championship save page
-    MenuePage* ChampionshipSaveMenuePage;
-    MenueSingleEntry* ChampionshipSaveTxtLabel;
-    MenueSingleEntry* ChampionshipSaveSlot1;
-    MenueSingleEntry* ChampionshipSaveSlot2;
-    MenueSingleEntry* ChampionshipSaveSlot3;
-    MenueSingleEntry* ChampionshipSaveSlot4;
-    MenueSingleEntry* ChampionshipSaveSlot5;
-    MenueSingleEntry* ChampionshipSaveReturnToChampionsShipMenue;
+    MenuePage* ChampionshipSaveMenuePage = nullptr;
+    MenueSingleEntry* ChampionshipSaveTxtLabel = nullptr;
+    MenueSingleEntry* ChampionshipSaveSlot1 = nullptr;
+    MenueSingleEntry* ChampionshipSaveSlot2 = nullptr;
+    MenueSingleEntry* ChampionshipSaveSlot3 = nullptr;
+    MenueSingleEntry* ChampionshipSaveSlot4 = nullptr;
+    MenueSingleEntry* ChampionshipSaveSlot5 = nullptr;
+    MenueSingleEntry* ChampionshipSaveReturnToChampionsShipMenue = nullptr;
 
     //menue definitions for Championship load page
-    MenuePage* ChampionshipLoadMenuePage;
-    MenueSingleEntry* ChampionshipLoadTxtLabel;
-    MenueSingleEntry* ChampionshipLoadSlot1;
-    MenueSingleEntry* ChampionshipLoadSlot2;
-    MenueSingleEntry* ChampionshipLoadSlot3;
-    MenueSingleEntry* ChampionshipLoadSlot4;
-    MenueSingleEntry* ChampionshipLoadSlot5;
-    MenueSingleEntry* ChampionshipLoadReturnToChampionsShipMenue;
+    MenuePage* ChampionshipLoadMenuePage = nullptr;
+    MenueSingleEntry* ChampionshipLoadTxtLabel = nullptr;
+    MenueSingleEntry* ChampionshipLoadSlot1 = nullptr;
+    MenueSingleEntry* ChampionshipLoadSlot2 = nullptr;
+    MenueSingleEntry* ChampionshipLoadSlot3 = nullptr;
+    MenueSingleEntry* ChampionshipLoadSlot4 = nullptr;
+    MenueSingleEntry* ChampionshipLoadSlot5 = nullptr;
+    MenueSingleEntry* ChampionshipLoadReturnToChampionsShipMenue = nullptr;
 
     //Menue definitions for option menue
-    MenuePage* OptionMenuePage;
-    MenueSingleEntry* ChangeName;
-    MenueSingleEntry* DetailOptions;
-    MenueSingleEntry* SoundOptions;
-    MenueSingleEntry* ReinitializeJoystick;
-    MenueSingleEntry* ComputerPlayersCheckBox;
-    MenueSingleEntry* DifficultyLevel;
-    MenueSingleEntry* OptionMenuePageBackToMainMenue;
+    MenuePage* OptionMenuePage = nullptr;
+    MenueSingleEntry* ChangeName = nullptr;
+    MenueSingleEntry* DetailOptions = nullptr;
+    MenueSingleEntry* SoundOptions = nullptr;
+    MenueSingleEntry* ReinitializeJoystick = nullptr;
+    MenueSingleEntry* ComputerPlayersCheckBox = nullptr;
+    MenueSingleEntry* DifficultyLevel = nullptr;
+    MenueSingleEntry* OptionMenuePageBackToMainMenue = nullptr;
 
     //Menue definitions for Name change dialog/menue
-    MenuePage* ChangeNamePage;
-    MenueSingleEntry* EnterNameLabel;
-    MenueSingleEntry* PlayerNameEnterField;
+    MenuePage* ChangeNamePage = nullptr;
+    MenueSingleEntry* EnterNameLabel = nullptr;
+    MenueSingleEntry* PlayerNameEnterField = nullptr;
 
     //Menue definitions for video details
-    MenuePage* VideoDetailsPage;
-    MenueSingleEntry* EnableVSync;
-    MenueSingleEntry* VideoPageBackToOptionsMenue;
+    MenuePage* VideoDetailsPage = nullptr;
+    MenueSingleEntry* EnableVSync = nullptr;
+    MenueSingleEntry* VideoPageBackToOptionsMenue = nullptr;
 
     //Menue definitions for sound options
-    MenuePage* SoundOptionsPage;
-    MenueSingleEntry* MusicVolumeSlider;
-    MenueSingleEntry* EffectsVolumeSlider;
-    MenueSingleEntry* SoundOptionsBackToOptionsMenue;
+    MenuePage* SoundOptionsPage = nullptr;
+    MenueSingleEntry* MusicVolumeSlider = nullptr;
+    MenueSingleEntry* EffectsVolumeSlider = nullptr;
+    MenueSingleEntry* SoundOptionsBackToOptionsMenue = nullptr;
 
     //Race track selection menue page
-    MenuePage* RaceTrackSelectionPage;
-    MenueSingleEntry* RaceTrackNameTitle;
+    MenuePage* RaceTrackSelectionPage = nullptr;
+    MenueSingleEntry* RaceTrackNameTitle = nullptr;
 
     //Ship selection menue page
-    MenuePage* ShipSelectionPage;
-    MenueSingleEntry* ShipNameTitle;
+    MenuePage* ShipSelectionPage = nullptr;
+    MenueSingleEntry* ShipNameTitle = nullptr;
 
-    MenuePage* currSelMenuePage = NULL;
-    MenueSingleEntry* currSelMenueSingleEntry = NULL;
-    MenueAction* currActionToExecute = NULL;
+    MenuePage* currSelMenuePage = nullptr;
+    MenueSingleEntry* currSelMenueSingleEntry = nullptr;
+    MenueAction* currActionToExecute = nullptr;
 
     irr::u32 MaxMenueEntryNumber(MenuePage* inputPage);
     void SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nextSelEntryNr);
@@ -385,20 +385,20 @@ private:
 
     //vector which holds a list of preprogrammed window states for
     //a window animation that will start next
-    MenueWindowAnimationVec* windowMenueAnimationStartGame; //only active right at game start
-                                                            //before main menue opens first time
+    MenueWindowAnimationVec* windowMenueAnimationStartGame  = nullptr; //only active right at game start
+                                                                       //before main menue opens first time
 
-    MenueWindowAnimationVec* windowMenueAnimationBeforeTrackSelection; //is shown during transition from
-                                                                       //main menue to race track selection
+    MenueWindowAnimationVec* windowMenueAnimationBeforeTrackSelection = nullptr; //is shown during transition from
+                                                                                 //main menue to race track selection
 
-    MenueWindowAnimationVec* windowMenueAnimationQuitTrackSelection; //is shown during transition from
-                                                                     //race track selection to main menue
+    MenueWindowAnimationVec* windowMenueAnimationQuitTrackSelection  = nullptr;  //is shown during transition from
+                                                                                 //race track selection to main menue
 
-    MenueWindowAnimationVec* windowMenueAnimationBetweenRaceAndShipSelection; //is shown during transition from
-                                                                              //race track selection to ship selection
+    MenueWindowAnimationVec* windowMenueAnimationBetweenRaceAndShipSelection = nullptr; //is shown during transition from
+                                                                                        //race track selection to ship selection
 
     //pointer to a currently active/selected window animation sequence
-    MenueWindowAnimationVec* currSelWindowAnimation;
+    MenueWindowAnimationVec* currSelWindowAnimation = nullptr;
 
     //This function defines the proper
     //coordinates for menue window animation coordinates
@@ -414,7 +414,7 @@ private:
     irr::f32 absoluteTime;
 
     //Irrlicht SceneManagers for race track and ship selection page
-    irr::scene::ISceneManager* smgrMenue;
+    irr::scene::ISceneManager* smgrMenue = nullptr;
 
     //stores the number of race tracks we have available
     //and we get from assets class for selection
@@ -422,7 +422,7 @@ private:
     std::vector<irr::scene::IMeshSceneNode*> ModelTrackSceneNodeVec;
 
     //camera used for the race track/ship selection 3D rendering
-    scene::ICameraSceneNode* MenueCamera;
+    scene::ICameraSceneNode* MenueCamera = nullptr;
 
     //stores the number of crafts we have available
     //and we get from assets class for selection
@@ -461,11 +461,11 @@ private:
     //variable to remembar from which menue item we initially
     //called the race track selection menue so that when the player
     //interrupts we can return to the correct caller menue
-    MenueSingleEntry* RaceTrackSelectionCallerMenueEntry;
+    MenueSingleEntry* RaceTrackSelectionCallerMenueEntry = nullptr;
 
-    MenueTextLabel* SelRaceTrackNrLapsLabel;
-    MenueTextLabel* SelRaceTrackBestLapLabel;
-    MenueTextLabel* SelRaceTrackBestRaceLabel;
+    MenueTextLabel* SelRaceTrackNrLapsLabel = nullptr;
+    MenueTextLabel* SelRaceTrackBestLapLabel = nullptr;
+    MenueTextLabel* SelRaceTrackBestRaceLabel = nullptr;
 
     //0 = wheel not moving
     //1 = wheel moving clock wise
@@ -479,28 +479,28 @@ private:
     irr::u8 currSelShipStatWeight;
     irr::u8 currSelShipStatFirePower;
 
-    ShipStatLabel* ShipStatSpeedLabel;
-    ShipStatLabel* ShipStatArmourLabel;
-    ShipStatLabel* ShipStatWeightLabel;
-    ShipStatLabel* ShipStatFirePowerLabel;
+    ShipStatLabel* ShipStatSpeedLabel = nullptr;
+    ShipStatLabel* ShipStatArmourLabel = nullptr;
+    ShipStatLabel* ShipStatWeightLabel = nullptr;
+    ShipStatLabel* ShipStatFirePowerLabel = nullptr;
 
     //create a dummy menue page for
     //high score table page
-    MenuePage* gameHighscoreMenuePage;
-    MenuePage* raceStatsMenuePage;
-    MenuePage* pointsTablePage;
+    MenuePage* gameHighscoreMenuePage = nullptr;
+    MenuePage* raceStatsMenuePage = nullptr;
+    MenuePage* pointsTablePage = nullptr;
 
     //dummy menue entry which is not visible
     //for gameHiscoreMenuePage
-    MenueSingleEntry* gameHiscoreMenueDummyEntry;
+    MenueSingleEntry* gameHiscoreMenueDummyEntry = nullptr;
 
     //dummy menue entry which is not visible
     //for raceStatsMenuePage
-    MenueSingleEntry* raceStatsMenueDummyEntry;
+    MenueSingleEntry* raceStatsMenueDummyEntry = nullptr;
 
     //dummy menue entry which is not visible
     //for pointsTablePage
-    MenueSingleEntry* pointsTableMenueDummyEntry;
+    MenueSingleEntry* pointsTableMenueDummyEntry = nullptr;
 
     void CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord);
     void InitStatLabels();
@@ -531,13 +531,13 @@ private:
                                irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks);
 
     //stuff for the highscore page
-    std::vector<MenueTextLabel*>* highScorePageTextVec;
+    std::vector<MenueTextLabel*>* highScorePageTextVec = nullptr;
 
     //stuff for the race stat page
-    std::vector<MenueTextLabel*>* raceStatsPageTextVec;
+    std::vector<MenueTextLabel*>* raceStatsPageTextVec = nullptr;
 
     //stuff for the point table page
-    std::vector<MenueTextLabel*>* pointsTablePageTextVec;
+    std::vector<MenueTextLabel*>* pointsTablePageTextVec = nullptr;
 
     void RenderStatTextPage(irr::f32 frameDeltaTime);
     void CleanupHighScorepage();
@@ -547,7 +547,7 @@ private:
     irr::f32 mMenueUserInactiveTimer;
 
     void UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, std::vector<ChampionshipSaveGameInfoStruct*>::iterator it);
-    char* mNewChampionshipNameInputText;
+    char* mNewChampionshipNameInputText = nullptr;
 
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
@@ -561,29 +561,29 @@ public:
     //page in Championship mode or not
     bool mChampionshipMode = false;
 
-    MenueAction* ActRace;
-    MenueAction* ActQuitToOS;
+    MenueAction* ActRace = nullptr;
+    MenueAction* ActQuitToOS = nullptr;
 
-    MenueAction* ActSetComputerPlayerEnable;
-    MenueAction* ActSetDifficultyLevel;
+    MenueAction* ActSetComputerPlayerEnable = nullptr;
+    MenueAction* ActSetDifficultyLevel = nullptr;
 
-    MenueAction* ActSetPlayerName;
-    MenueAction* ActSetMusicVolume;
-    MenueAction* ActSetSoundVolume;
+    MenueAction* ActSetPlayerName = nullptr;
+    MenueAction* ActSetMusicVolume = nullptr;
+    MenueAction* ActSetSoundVolume = nullptr;
 
     //special menue actions
-    MenueAction* ActCloseRaceStatPage;
-    MenueAction* ActStartDemo;
-    MenueAction* ActShowHighScorePage;
-    MenueAction* ActClosePointsTablePage;
+    MenueAction* ActCloseRaceStatPage = nullptr;
+    MenueAction* ActStartDemo = nullptr;
+    MenueAction* ActShowHighScorePage = nullptr;
+    MenueAction* ActClosePointsTablePage = nullptr;
 
     //championship menue actions
-    MenueAction* ActContinueChampionship;
-    MenueAction* ActLoadChampionshipSlot;
-    MenueAction* ActSaveChampionshipSlot;
-    MenueAction* ActFinalizeChampionshipSaveSlot;
-    MenueAction* ActQuitChampionship;
-    MenueAction* ActEnterChampionshipMenue;
+    MenueAction* ActContinueChampionship = nullptr;
+    MenueAction* ActLoadChampionshipSlot = nullptr;
+    MenueAction* ActSaveChampionshipSlot = nullptr;
+    MenueAction* ActFinalizeChampionshipSaveSlot = nullptr;
+    MenueAction* ActQuitChampionship = nullptr;
+    MenueAction* ActEnterChampionshipMenue = nullptr;
 
     void Render(irr::f32 frameDeltaTime);
     void HandleUserInactiveTimer(irr::f32 frameDeltaTime);

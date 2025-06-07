@@ -33,8 +33,8 @@
 //exploding fire ball
 struct ExplosionDetonationStruct {
     irr::core::vector3d<irr::f32> currDetonationPos;
-    irr::scene::IBillboardSceneNode* mSceneNodeDetonation;
-    irr::scene::ISceneNodeAnimator *animator;
+    irr::scene::IBillboardSceneNode* mSceneNodeDetonation = nullptr;
+    irr::scene::ISceneNodeAnimator *animator = nullptr;
 
     irr::f32 detonationDelay;
 
@@ -93,9 +93,9 @@ class Explosion {
             //objects
             std::vector<ExplosionFlyingDebrisStruct*> mExplosionDebrisVec;
 
-            ExplosionLauncher* mParentExplosionLauncher;
+            ExplosionLauncher* mParentExplosionLauncher = nullptr;
 
-            sf::Sound* mExplodeSound = NULL;
+            sf::Sound* mExplodeSound = nullptr;
             bool exploded = false;
             bool exploding = false;
 

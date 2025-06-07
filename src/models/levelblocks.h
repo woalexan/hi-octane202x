@@ -33,7 +33,7 @@ class Column;       //Forward declaration
 
 struct ColumnsByPositionStruct {
       int pos;
-      Column *pColumn;
+      Column *pColumn = nullptr;
 };
 
 class LevelBlocks {
@@ -55,31 +55,31 @@ public:
     bool Blocks_ready;
 
     //Mesh with blocks that should all be part of craft collision detection
-    SMesh *blockMeshForCollision;
+    SMesh *blockMeshForCollision = nullptr;
 
     //Mesh with blocks that should not be part of craft collision detection
     //(for example used for blocks/cubes that are above the player craft in a ceiling
     //as the craft tends to get stuck below/in them in case we would do
     //collision detection between craft and this blocks
-    SMesh *blockMeshWithoutCollision;
+    SMesh *blockMeshWithoutCollision = nullptr;
 
-    IMeshSceneNode *BlockCollisionSceneNode;
-    IMeshSceneNode *BlockWithoutCollisionSceneNode;
+    IMeshSceneNode *BlockCollisionSceneNode = nullptr;
+    IMeshSceneNode *BlockWithoutCollisionSceneNode = nullptr;
 
     std::vector<ColumnsByPositionStruct> ColumnsByPosition;
 
     void SwitchViewMode();
 
 private:   
-    irr::video::IVideoDriver *m_driver;
-    TextureLoader* mTexSource;
-    LevelTerrain* MyTerrain;
-    scene::ISceneManager *MySmgr;
-    Race* mRace;
+    irr::video::IVideoDriver *m_driver = nullptr;
+    TextureLoader* mTexSource = nullptr;
+    LevelTerrain* MyTerrain = nullptr;
+    scene::ISceneManager *MySmgr = nullptr;
+    Race* mRace = nullptr;
 
     //std::string m_texfile;
 
-    void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes, irr::video::IVideoDriver *driver, TextureLoader* texureSource);
+    void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
     bool searchColumnWithPosition(int posKey, Column* &columnFnd);
 
     irr::s32 myCurrentViewMode = LEVELBLOCKS_VIEW_DEFAULT;
@@ -93,7 +93,7 @@ private:
 
 //protected:
 public:
-     LevelFile* levelRes;
+     LevelFile* levelRes = nullptr;
 
      float segmentSize;
 };

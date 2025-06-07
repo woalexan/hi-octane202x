@@ -24,7 +24,7 @@ Camera::Camera(Race* race, EntityItem *entityItem, irr::scene::ISceneManager* sm
     mValue = mEntityItem->getValue();
 
     //create my new camera SceneNode
-    mCamSceneNode = mSmgr->addCameraSceneNode(NULL, mPosition);
+    mCamSceneNode = mSmgr->addCameraSceneNode(nullptr, mPosition);
 }
 
 void Camera::SetActive(bool newState) {
@@ -51,7 +51,7 @@ void Camera::Update() {
     if (!mActive)
         return;
 
-    if (mFocusAtPlayer != NULL) {
+    if (mFocusAtPlayer != nullptr) {
         mLookAt = mFocusAtPlayer->phobj->physicState.position;
 
         this->mCamSceneNode->setTarget(mLookAt);
