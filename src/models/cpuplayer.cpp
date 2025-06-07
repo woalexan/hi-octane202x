@@ -147,6 +147,27 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newStruct->LinkDirectionVec = vec3D;
     newStruct->LinkDirectionVec.normalize();
 
+    //Idea: extend the lines a little bit further outwards at
+    //both ends, so that when we project the players position on
+    //the different segments later we always find a valid segment
+    LineStruct *lineExt = new LineStruct;
+
+    lineExt->A = newLineStr->A - newStruct->LinkDirectionVec * 0.5f;
+    lineExt->B = newLineStr->B + newStruct->LinkDirectionVec * 0.5f;
+
+    lineExt->name = new char[100];
+    sprintf(lineExt->name, "");
+
+    //set white as default color
+    lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+
+    newStruct->pLineStructExtended = lineExt;
+
+    newStruct->minOffsetShiftEnd = -10.0f;
+    newStruct->maxOffsetShiftEnd = 10.0f;
+    newStruct->minOffsetShiftStart = -10.0f;
+    newStruct->maxOffsetShiftStart = 10.0f;
+
     //precalculate a direction vector which stands at a 90 degree
     //angle at the original waypoint direction vector, and always points
     //to the right direction when looking into race direction
@@ -508,9 +529,9 @@ bool CpuPlayer::DoIWantToChargeAmmo() {
 
 void CpuPlayer::DebugDraw() {
 
-  /*mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt1, this->mParentPlayer->mRace->mDrawDebug->green);
+ /* mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt1, this->mParentPlayer->mRace->mDrawDebug->green);
   mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt2, this->mParentPlayer->mRace->mDrawDebug->red);
-  mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt3, this->mParentPlayer->mRace->mDrawDebug->blue);
+  mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt3, this->mParentPlayer->mRace->mDrawDebug->blue);*/
 
   if (mCurrentPathSeg.size() > 0) {
        std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
@@ -518,7 +539,7 @@ void CpuPlayer::DebugDraw() {
        for (itPathEl = mCurrentPathSeg.begin(); itPathEl != mCurrentPathSeg.end(); ++itPathEl) {
              mParentPlayer->mRace->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
         }
-  }*/
+  }
 }
 
 WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks) {
@@ -946,6 +967,8 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
         if (this->cPCurrentFollowSeg == NULL) {
            this->computerPlayerTargetSpeed = 0.0f;
             mParentPlayer->LogMessage((char*)"CPForceController: lost our segment to follow in ProjectPlayerAtCurrentSegments");
+
+            //this->mParentPlayer->mRace->mGame->StopTime();
             return;
         }
 
@@ -1045,23 +1068,26 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
 
         dbgDistError = distError;
 
-         //best line until 30.12.2024
+        //best line until 30.12.2024
         irr::f32 corrForceDistance = distError * corrForceDist + currDistanceChangeRate * corrDampingDist;
 
         if (corrForceDistance > 100.0f) {
-            corrForceDistance = 100.0f;
-        } else if (corrForceDistance < -100.0f) {
-            corrForceDistance = -100.0f;
-        }
+             corrForceDistance = 100.0f;
+         } else if (corrForceDistance < -100.0f) {
+             corrForceDistance = -100.0f;
+           }
 
         mDbgFoceDistance = corrForceDistance;
 
         mParentPlayer->phobj->AddLocalCoordForce(mParentPlayer->LocalCraftOrigin, irr::core::vector3df(corrForceDistance, 0.0f, 0.0f),
-                                            PHYSIC_APPLYFORCE_ONLYTRANS);
+                                   PHYSIC_APPLYFORCE_ONLYTRANS);
+
     } else {
         //no segment to follow, stop craft
         this->computerPlayerTargetSpeed = 0.0f;
         mParentPlayer->LogMessage((char*)"CPForceController: No segement to follow, stop craft");
+
+        //this->mParentPlayer->mRace->mGame->StopTime();
     }
 }
 
@@ -1250,6 +1276,7 @@ void CpuPlayer::CPTrackMovement() {
        if (LinkWithClosestStartEndPoint != NULL) {
          closestLink = LinkWithClosestStartEndPoint;
          mParentPlayer->LogMessage((char*)"CPTrackMovement: Workaround closest StartEndPoint");
+         //this->mParentPlayer->mRace->mGame->StopTime();
        }
     }
 
@@ -1264,6 +1291,9 @@ void CpuPlayer::CPTrackMovement() {
     cPCurrentFollowSeg = closestLink;
 
    if (cPCurrentFollowSeg == NULL) {
+         mParentPlayer->LogMessage((char*)"CPTrackMovement: cPCurrentFollowSeg is NULL, Workaround");
+         //this->mParentPlayer->mRace->mGame->StopTime();
+
          WorkaroundResetCurrentPath();
 
          return;
@@ -1571,6 +1601,28 @@ void CpuPlayer::WorkaroundResetCurrentPath() {
 
   computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
 }
+
+/*  was just an attempt at 06.06.2025, commented out right now again
+//after a computer player is freed from the recovery vehicle, our under
+//some error cases where we could lose our current path progress we need
+//to try to restart with a new clean path/path status, this is done by this routine
+void CpuPlayer::WorkaroundResetCurrentPath() {
+
+    mParentPlayer->LogMessage((char*)"WorkaroundResetCurrentPath was called");
+
+    //which waypoint is closest to me?
+    EntityItem* closestWayPoint = this->mParentPlayer->mRace->mPath->FindNearestWayPointToPlayer(this->mParentPlayer);
+
+   if (closestWayPoint == NULL) {
+       //workaround, just do nothing! TODO: Maybe improve later
+       mParentPlayer->LogMessage((char*)"WorkaroundResetCurrentPath: no closest waypoint found!");
+   } else {
+       //setup new path for the race
+       AddCommand(CMD_FLYTO_TARGETENTITY, closestWayPoint);
+   }
+
+  computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
+}*/
 
 void CpuPlayer::CpCheckCurrentPathForObstacles() {
     bool updatePath = false;
@@ -2296,10 +2348,36 @@ void CpuPlayer::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currComma
             //we reached the target
             //this->mHUD->ShowBannerText((char*)"TARGET REACHED", 4.0f);
 
+            mParentPlayer->LogMessage((char*)"FlyTowardsEntityRunComputerPlayerLogic: Target reached");
+
+            EntityItem* pntrItem = currCommand->targetEntity;
+
             //mark current command as finished, pull the next one
             CurrentCommandFinished();
 
             cPCurrentFollowSeg = NULL;
+
+            //continue path via next waypoint-links
+            //too which waypoint link does this entity item belong too
+            std::vector<WayPointLinkInfoStruct*> whichLinksStart =
+                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, true, false, NULL);
+
+            if (whichLinksStart.size() > 0) {
+                AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, whichLinksStart.at(0));
+
+                return;
+            }
+
+            std::vector<WayPointLinkInfoStruct*> whichLinksEnd =
+                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, false, true, NULL);
+
+            if (whichLinksEnd.size() > 0) {
+                if (whichLinksEnd.at(0)->pntrPathNextLink != NULL) {
+                    AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, whichLinksEnd.at(0)->pntrPathNextLink);
+                }
+
+                return;
+            }
 
             return;
         }

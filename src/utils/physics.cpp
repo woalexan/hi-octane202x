@@ -1151,16 +1151,6 @@ void Physics::AdvancePhysicsTime(const irr::f32 frameDeltaTime) {
 
                     (*it)->previousPhysicState = (*it)->physicState;
                     this->integrate((*it), (*it)->physicState, t, dt);
-
-                    //keep the next two if checks right now, so that we know immediately
-                    //if a physics issue has happened in the future during development
-                    if (isnan((*it)->physicState.position.X) == 1) {
-                        this->mParentRace->mGame->StopTime();
-                    }
-
-                    if (isnan((*it)->physicState.orientation.X) == 1) {
-                        this->mParentRace->mGame->StopTime();
-                    }
                  }
              }
 

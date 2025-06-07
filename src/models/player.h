@@ -387,6 +387,10 @@ public:
 
     irr::core::vector3d<irr::f32> craftForwardDirVec;
 
+    //only for debugging
+    irr::f32 mCurrentCraftDistToWaypointLink;
+    irr::f32 mAngleError;
+
     irr::f32 DbgShipUpAngle;
 
     irr::s32 currTextID;
@@ -613,7 +617,7 @@ public:
 
     void DebugSelectionBox(bool boundingBoxVisible);
 
- //   void TestCpForceControlLogicWithHumanPlayer();
+    void TestCpForceControlLogicWithHumanPlayer();
 
     //current best camera for this players external view
     Camera* externalCamera = NULL;

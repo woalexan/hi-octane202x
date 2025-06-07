@@ -3186,7 +3186,7 @@ void Race::Render() {
           }
       }*/
 
-     /* if (currPlayerFollow != NULL) {
+    /*  if (currPlayerFollow != NULL) {
           if (!currPlayerFollow->mHumanPlayer) {
               currPlayerFollow->mCpuPlayer->DebugDraw();
           }
@@ -3249,7 +3249,7 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
-        if (currPlayerFollow != NULL) {
+       /* if (currPlayerFollow != NULL) {
 
 
             if (currPlayerFollow->currClosestWayPointLink.first != NULL) {
@@ -3261,7 +3261,7 @@ void Race::Render() {
 
                 mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.second,
                                        mDrawDebug->blue);
-
+         */
                /* if (currPlayerFollow->cPCurrentFollowSeg != NULL) {
                     irr::core::vector3df incY2(0.0f, 0.15f, 0.0f);
 
@@ -3270,7 +3270,7 @@ void Race::Render() {
                                 currPlayerFollow->cPCurrentFollowSeg->pLineStruct->B + incY2,
                                 this->mDrawDebug->orange);
                 }*/
-            }
+           // }
 
             /*if (currPlayerFollow->mFailedLinks.size() > 0) {
                 std::vector<WayPointLinkInfoStruct*>::iterator it3;
@@ -3287,7 +3287,7 @@ void Race::Render() {
                                        mDrawDebug->orange);
             }*/
 
-        }
+        //}
 
         //DebugShowAllObstaclePlayers();
 
@@ -3325,12 +3325,12 @@ void Race::Render() {
             IndicateTriggerRegions();
         }
 
-        if (mChargingStationVec->size() > 0) {
+       /* if (mChargingStationVec->size() > 0) {
             std::vector<ChargingStation*>::iterator it;
             for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
                 (*it)->DebugDraw();
             }
-        }
+        }*/
 }
 
 void Race::DebugShowAllObstaclePlayers() {
