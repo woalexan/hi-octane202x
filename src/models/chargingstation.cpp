@@ -82,7 +82,7 @@ void ChargingStation::createRegionMeshData() {
     irr::f32 segSize = mRace->mLevelTerrain->segmentSize;
 
     irr::f32 midPointHeight =
-            -mRace->mLevelTerrain->GetHeightInterpolated(mRegionStruct->regionCenterTileCoord.X, mRegionStruct->regionCenterTileCoord.Y);
+            -mRace->mLevelTerrain->GetHeightInterpolated((irr::f32)(mRegionStruct->regionCenterTileCoord.X), (irr::f32)(mRegionStruct->regionCenterTileCoord.Y));
 
     //our X Irrlicht coordinate system is swapped in sign
     irr::core::vector3df corner1(-(mRegionStruct->tileXmin * segSize),  midPointHeight, mRegionStruct->tileYmin * segSize);
@@ -651,7 +651,7 @@ void ChargingStation::createChargingStands() {
     //move Y-coord slightly upwards, so that 3D lines are always better
     //visible when using drawDebug
     irr::f32 midPointHeight =
-            -mRace->mLevelTerrain->GetHeightInterpolated(mRegionStruct->regionCenterTileCoord.X, mRegionStruct->regionCenterTileCoord.Y) + 0.1f;
+            -mRace->mLevelTerrain->GetHeightInterpolated((irr::f32)(mRegionStruct->regionCenterTileCoord.X), (irr::f32)(mRegionStruct->regionCenterTileCoord.Y)) + 0.1f;
 
     //our X Irrlicht coordinate system is swapped in sign
     corner1.set(-(usableTileXmin * segSize),            midPointHeight,     usableTileYmin * segSize);
@@ -1085,7 +1085,7 @@ ChargerStoppingRegionStruct* ChargingStation::GetNextFreeStall() {
     //in case the charging area is currently completely empty we will come up
     //with the first charger at the far end of the charging area anyway,
     //so also in the empty case everything works out fine
-    irr::u8 nrStalls = this->mStandVec.size();
+    irr::u8 nrStalls = (irr::u8)(this->mStandVec.size());
     ChargerStoppingRegionStruct* pntrStall = nullptr;
 
     if (nrStalls > 0) {

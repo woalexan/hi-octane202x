@@ -37,25 +37,25 @@ typedef struct {
 typedef struct {
     long count;
     unsigned long filelength;
-    TABFILE_ITEM* items = nullptr;
+    TABFILE_ITEM* items;
 } TABFILE;
 
 typedef struct {
     int16_t count;
     size_t filelength;
-    unsigned char* data = nullptr;
+    unsigned char* data;
 } DATFILE;
 
 typedef struct {
     uint16_t width;
     uint16_t height;
-    unsigned char* data = nullptr;
-    unsigned char* alpha = nullptr;
+    unsigned char* data;
+    unsigned char* alpha;
 } IMAGEITEM;
 
 typedef struct {
     long count;
-    IMAGEITEM* items = nullptr;
+    IMAGEITEM* items;
 } IMAGELIST;
 
 // Routines

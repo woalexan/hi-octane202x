@@ -197,14 +197,14 @@ typedef struct HMapCollSensor {
 } HMAPCOLLSENSOR;
 
 typedef struct {
-    HMAPCOLLSENSOR* front = nullptr;
-    HMAPCOLLSENSOR* frontRight45deg = nullptr;
-    HMAPCOLLSENSOR* frontLeft45deg = nullptr;
-    HMAPCOLLSENSOR* right = nullptr;
-    HMAPCOLLSENSOR* left = nullptr;
-    HMAPCOLLSENSOR* backRight45deg = nullptr;
-    HMAPCOLLSENSOR* backLeft45deg = nullptr;
-    HMAPCOLLSENSOR* back = nullptr;
+    HMAPCOLLSENSOR* front;
+    HMAPCOLLSENSOR* frontRight45deg;
+    HMAPCOLLSENSOR* frontLeft45deg;
+    HMAPCOLLSENSOR* right;
+    HMAPCOLLSENSOR* left;
+    HMAPCOLLSENSOR* backRight45deg;
+    HMAPCOLLSENSOR* backLeft45deg;
+    HMAPCOLLSENSOR* back;
 } HMAPCOLLSTRUCT;
 
 class HUD; //Forward declaration
