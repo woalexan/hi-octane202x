@@ -33,13 +33,13 @@ class Logger; //Forward declaration
 class PrepareData; //Forward declaration
 
 struct OriginalGameFolderInfoStruct {
-    irr::io::IFileList* rootFolder;
-    irr::io::IFileList* dataFolder;
-    irr::io::IFileList* execFolder;
-    irr::io::IFileList* saveFolder;
-    irr::io::IFileList* mapsFolder;
-    irr::io::IFileList* objectsFolder;
-    irr::io::IFileList* soundFolder;
+    irr::io::IFileList* rootFolder = nullptr;
+    irr::io::IFileList* dataFolder = nullptr;
+    irr::io::IFileList* execFolder = nullptr;
+    irr::io::IFileList* saveFolder = nullptr;
+    irr::io::IFileList* mapsFolder = nullptr;
+    irr::io::IFileList* objectsFolder = nullptr;
+    irr::io::IFileList* soundFolder = nullptr;
 };
 
 class InfrastructureBase {
@@ -54,28 +54,28 @@ public:
   float randFloat();
 
   dimension2d<u32> mScreenRes;
-  Logger* mLogger;
+  Logger* mLogger = nullptr;
 
   bool GetInitOk();
 
   //have all pointers as public
   //so that we can access them easily everywhere
-  IrrlichtDevice* mDevice;
-  video::IVideoDriver* mDriver;
-  scene::ISceneManager* mSmgr;
-  EffectHandler* mEffect;
-  MyEventReceiver* mEventReceiver;
-  IGUIEnvironment* mGuienv;
+  IrrlichtDevice* mDevice = nullptr;
+  video::IVideoDriver* mDriver = nullptr;
+  scene::ISceneManager* mSmgr = nullptr;
+  EffectHandler* mEffect = nullptr;
+  MyEventReceiver* mEventReceiver = nullptr;
+  IGUIEnvironment* mGuienv = nullptr;
 
   //ShadowMap settings
   E_FILTER_TYPE mShadowMapFilterType;
   irr::u32 mShadowMapResolution;
 
-  PrepareData* mPrepareData;
-  GameText* mGameTexts;
-  TimeProfiler* mTimeProfiler;
+  PrepareData* mPrepareData = nullptr;
+  GameText* mGameTexts = nullptr;
+  TimeProfiler* mTimeProfiler = nullptr;
 
-  OriginalGameFolderInfoStruct* mOriginalGame;
+  OriginalGameFolderInfoStruct* mOriginalGame = nullptr;
 
   std::vector<uint8_t> mGameVersionDate;
   bool mExtendedGame = false;

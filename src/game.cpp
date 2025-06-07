@@ -96,13 +96,13 @@ bool Game::InitGameStep2() {
     if (DebugShowVariableBoxes) {
             //only for debugging
             dbgTimeProfiler = mInfra->mGuienv->addStaticText(L"Location",
-                   rect<s32>(100,150,300,200), false, true, NULL, -1, true);
+                   rect<s32>(100,150,300,200), false, true, nullptr, -1, true);
 
             dbgText = mInfra->mGuienv->addStaticText(L"",
-                   rect<s32>(100,250,300,350), false, true, NULL, -1, true);
+                   rect<s32>(100,250,300,350), false, true, nullptr, -1, true);
 
             /*dbgText2 = guienv->addStaticText(L"",
-                   rect<s32>(350,200,450,300), false, true, NULL, -1, true);*/
+                   rect<s32>(350,200,450,300), false, true, nullptr, -1, true);*/
     }
 
     if (enableLightning) {
@@ -324,7 +324,7 @@ void Game::HandleMenueActions() {
              //do not forget to also cleanup last
              //racestat struct memory!
              mCurrentRace->CleanupRaceStatistics(lastRaceStat);
-             lastRaceStat = NULL;
+             lastRaceStat = nullptr;
 
              mGameState = DEF_GAMESTATE_MENUE;
 
@@ -353,21 +353,21 @@ void Game::HandleMenueActions() {
         MainMenue->CleanupPointsTablePage();
 
         //if we showed the user currently the first race
-        //point table, variable lastRacePointTable is not yet NULL
+        //point table, variable lastRacePointTable is not yet nullptr
         //in this case, we free this memory, and the continue to show the
         //overall championship point table
-        //if lastRacePointTable is already NULL we returned from showing
+        //if lastRacePointTable is already nullptr we returned from showing
         //the overall championship point table; In this case we cleanup the
         //lastOverallChampionshipPointTable table, and then we return to the
         //current championship menue
-        if (lastRacePointTable != NULL) {
+        if (lastRacePointTable != nullptr) {
           //we just showed the race point results
           //start to show the overall championship point table
 
           //also cleanup the variable lastRacePointTable
           CleanUpPointTable(*lastRacePointTable);
 
-          lastRacePointTable = NULL;
+          lastRacePointTable = nullptr;
 
           //now show the overall championship point table
           //Parameter needs to be set to true, so that the header text is correct!
@@ -377,7 +377,7 @@ void Game::HandleMenueActions() {
             //clean this table up
             CleanUpPointTable(*lastOverallChampionshipPointTable);
 
-            lastOverallChampionshipPointTable = NULL;
+            lastOverallChampionshipPointTable = nullptr;
 
             AdvanceChampionship();
         }
@@ -487,7 +487,7 @@ bool Game::LoadAdditionalGameImages() {
      //load gameTitle
      gameTitle = mInfra->mDriver->getTexture("extract/images/title.png");
 
-     if (gameTitle == NULL) {
+     if (gameTitle == nullptr) {
          //there was a texture loading error
          //just return with false
          return false;
@@ -502,7 +502,7 @@ bool Game::LoadAdditionalGameImages() {
      //load race loading screen
      raceLoadingScr = mInfra->mDriver->getTexture("extract/images/onet0-1.png");
 
-     if (raceLoadingScr == NULL) {
+     if (raceLoadingScr == nullptr) {
          //there was a texture loading error
          //just return with false
          return false;
@@ -525,7 +525,7 @@ bool Game::LoadBackgroundImage() {
     //first load background image for menue
     backgnd = mInfra->mDriver->getTexture("extract/images/oscr0-1.png");
 
-    if (backgnd == NULL) {
+    if (backgnd == nullptr) {
         //there was a texture loading error
         //just return with false
         return false;
@@ -931,7 +931,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     if (mCurrentRace->exitRace) {
         mCurrentRace->End();
 
-        this->lastRaceStat = NULL;
+        this->lastRaceStat = nullptr;
 
         //was the race finished, that means all players went through the finish
         //line and finished the last lap?
@@ -942,7 +942,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
         //clean up current race data
         delete mCurrentRace;
-        mCurrentRace = NULL;
+        mCurrentRace = nullptr;
 
         //if we were in game debugging mode simply skip
         //main menue, and exit game immediately
@@ -951,7 +951,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         } else {
             mGameState = DEF_GAMESTATE_MENUE;
 
-            if (this->lastRaceStat != NULL) {
+            if (this->lastRaceStat != nullptr) {
                 //Show race statistics
                 MainMenue->ShowRaceStats(lastRaceStat);
             } else {
@@ -1014,7 +1014,7 @@ void Game::GameLoopIntro(irr::f32 frameDeltaTime) {
     //we want to play the intro
     //first time we need to initially the
     //intro player
-    if (gameIntroPlayer == NULL) {
+    if (gameIntroPlayer == nullptr) {
         gameIntroPlayer = new IntroPlayer(mInfra, gameSoundEngine, gameMusicPlayer);
         if (!gameIntroPlayer->Init()) {
             //init of intro failed => skip intro
@@ -1144,7 +1144,7 @@ void Game::CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo) {
 }
 
 bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace) {
-    if (mCurrentRace != NULL)
+    if (mCurrentRace != nullptr)
         return false;
 
     //create a new Race
@@ -1182,7 +1182,7 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
 }
 
 void Game::CleanUpRace() {
-    if (mCurrentRace == NULL)
+    if (mCurrentRace == nullptr)
         return;
 }
 
@@ -1191,18 +1191,18 @@ Game::Game() {
 
 Game::~Game() {
     //cleanup background images
-    if (backgnd != NULL) {
+    if (backgnd != nullptr) {
         backgnd->drop();
-        backgnd = NULL;
+        backgnd = nullptr;
     }
 
-    if (gameTitle != NULL) {
+    if (gameTitle != nullptr) {
         gameTitle->drop();
-        gameTitle = NULL;
+        gameTitle = nullptr;
     }
 
-    if (raceLoadingScr != NULL) {
+    if (raceLoadingScr != nullptr) {
         raceLoadingScr->drop();
-        raceLoadingScr = NULL;
+        raceLoadingScr = nullptr;
     }
 }

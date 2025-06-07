@@ -77,12 +77,12 @@ public:
     bool GameDataAvailable();
 
 private:
-    InfrastructureBase* mInfra = NULL;
+    InfrastructureBase* mInfra = nullptr;
 
     irr::u8 mCurrentStep = PREP_DATA_INITSTATE;
 
     //contains the ingame palette information
-    unsigned char *palette;
+    unsigned char *palette = nullptr;
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
     std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
@@ -113,7 +113,7 @@ private:
     //Tabfile information for model texture atlas file
     //this information is needed to be able to export
     //the objects in wavefront object file
-    TABFILE *modelsTabFileInfo = NULL;
+    TABFILE *modelsTabFileInfo = nullptr;
     irr::core::dimension2d<irr::f32> modelTexAtlasSize;
 
     void Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName);

@@ -31,7 +31,7 @@ class Race; //Forward declaration
 // EntityItem object created from the map file; In this case the type of entity Item is stored inside the mEntityItem object
 //
 // Type 2: Collectables that are temporarily spawned when a player craft breaks down; during the craft explosion additional
-// collectables are spawned; For this second type of collectables the EntityItem* pointer variable "mEntityItem" is always NULL, and
+// collectables are spawned; For this second type of collectables the EntityItem* pointer variable "mEntityItem" is always nullptr, and
 // the is no EntityItem object behind the collectable; This should also reflect the fact that this second type of temporary collectables
 // are not stored in a map file, and can also not be save in a map file. To know which type of collectable it is in this case,
 // there is an additioanl member variable
@@ -53,9 +53,9 @@ public:
     irr::core::dimension2d<irr::u32> texturesize;
     vector3d<irr::f32> m_Size;
 
-    irr::video::ITexture* collectable_tex;
+    irr::video::ITexture* collectable_tex = nullptr;
 
-    irr::scene::IBillboardSceneNode *billSceneNode;
+    irr::scene::IBillboardSceneNode *billSceneNode = nullptr;
     irr::core::aabbox3df boundingBox;
 
     bool GetIfVisible();
@@ -64,10 +64,10 @@ public:
 
     irr::f32 GetCollectableCenterHeight();
 
-    EntityItem* mEntityItem = NULL;
+    EntityItem* mEntityItem = nullptr;
 
     //for the second type of (temporary spawned) collectable, the item type is not stored
-    //in a EntityItem (is NULL in this case), but instead in the member variable mEntityType below
+    //in a EntityItem (is nullptr in this case), but instead in the member variable mEntityType below
     Entity::EntityType mEntityType = Entity::EntityType::Unknown;
 
     irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
@@ -95,7 +95,7 @@ public:
     bool GetType2CollectableCleanUpNecessary();
 
 private:
-    Race* mRace;
+    Race* mRace = nullptr;
 
     bool mEnableLightning;
 
@@ -107,8 +107,8 @@ private:
     irr::f32 remainingLifeTime = DEF_TYPE2_COLLECTABLE_LIFETIME;
 
 protected:
-    irr::video::IVideoDriver* m_driver;
-    irr::scene::ISceneManager *m_smgr;
+    irr::video::IVideoDriver* m_driver = nullptr;
+    irr::scene::ISceneManager *m_smgr = nullptr;
 
     //default is non visible after
     //start of game, and before entity group

@@ -29,9 +29,9 @@ class ExplosionLauncher {
         void Trigger(irr::core::vector3df targetLocation);
         void Update(irr::f32 DeltaTime);
 
-        Race* mParentRace;
-        irr::scene::ISceneManager *mSmgr;
-        irr::video::IVideoDriver *mDriver;
+        Race* mParentRace = nullptr;
+        irr::scene::ISceneManager *mSmgr = nullptr;
+        irr::video::IVideoDriver *mDriver = nullptr;
 
         irr::core::array<irr::video::ITexture*> animTexList;
 
@@ -46,14 +46,7 @@ class ExplosionLauncher {
         irr::f32 timeAccu = 0.0f;
         irr::f32 coolOffTime = 0.0f;
 
-        //irr::core::vector3d<irr::f32> Position;
-
-        //irr::scene::IAnimatedMesh*  RecoveryMesh;
-        //irr::scene::IMeshSceneNode* Recovery_node;
-
-        //irr::core::vector3df GetBulletImpactPoint();
-
-        sf::Sound* mExplosionSound = NULL;
+        sf::Sound* mExplosionSound = nullptr;
 };
 
 #endif // EXPLAUNCHER_H

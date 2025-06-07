@@ -522,7 +522,7 @@ void PrepareData::ExtractNamed3DModel(const char* name, int n_models) {
 void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName) {
     logging::Detail(std::string("Extracting 3D model \"") + objName + "\": " + srcFilename + " -> " + destFilename);
 
-    if (this->modelsTabFileInfo == NULL) {
+    if (this->modelsTabFileInfo == nullptr) {
         throw std::string("Error: Model texture atlas not loaded");
     }
 
@@ -989,7 +989,7 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
 
         irr::core::dimension2d<irr::u32> srcDim(srcImg->getDimension().Width, srcImg->getDimension().Height);
 
-        if (srcImg == NULL)
+        if (srcImg == nullptr)
             throw std::string("Error opening source image file: ") + finalpathSrc;
 
         //copy source image into new destination image
@@ -1529,7 +1529,7 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
     irr::u16 sizex;
     irr::u16 sizey;
 
-    if (iFile != NULL)
+    if (iFile != nullptr)
     {
         //read picture information
         fread(&unknown, sizeof(unknown), 1, iFile);
@@ -1550,7 +1550,7 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
 
     char* ByteArray;
     ByteArray = new char[size];
-    if (iFile != NULL)
+    if (iFile != nullptr)
     {
         do {
             ByteArray[counter] = fgetc(iFile);
@@ -1873,7 +1873,7 @@ void PrepareData::ExtractTmaps() {
     //now seperate data into different new created file
     size_t counter = 0;
     unsigned long ofilenr = 0;
-    FILE* oFile = NULL;
+    FILE* oFile = nullptr;
 
     while (counter < ByteArray.size()) {
         if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
@@ -1888,17 +1888,17 @@ void PrepareData::ExtractTmaps() {
             strcat(finalpath, fname);
             ofilenr++;
 
-            if (oFile != NULL) {
+            if (oFile != nullptr) {
                 //close last file
                 fclose(oFile);
             }
 
             oFile = fopen(finalpath, "wb");
-            if (oFile == NULL) {
+            if (oFile == nullptr) {
                 throw std::string("Cannot open file for writing: ") + finalpath;
             }
         }
-        if (oFile != NULL) {
+        if (oFile != nullptr) {
             fwrite(&ByteArray[counter], 1, 1, oFile);
         }
         counter++;
@@ -1977,7 +1977,7 @@ void PrepareData::ExtractSounds() {
     //first seperate data in multiple export files, new file always starts with "RNC" magic characters
     size_t counter = 0;
     unsigned long ofilenr = 0;
-    FILE* oFile = NULL;
+    FILE* oFile = nullptr;
 
     while (counter < ByteArray.size()) {
         if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
@@ -1991,13 +1991,13 @@ void PrepareData::ExtractSounds() {
             strcat(finalpath, fname);
             ofilenr++;
 
-            if (oFile != NULL) {
+            if (oFile != nullptr) {
                 //close previous file
                 fclose(oFile);
             }
 
             oFile = fopen(finalpath, "wb");
-            if (oFile == NULL) {
+            if (oFile == nullptr) {
                 throw std::string("Cannot open file for writing: ") + finalpath;
             }
         }
@@ -2140,9 +2140,9 @@ void PrepareData::ReadSoundFileEntries(const char* filename, std::vector<SOUNDFI
 
     SOUNDFILEENTRY *newItem;
 
-    if (iFile == NULL)
+    if (iFile == nullptr)
     {
-        entries = NULL;
+        entries = nullptr;
         throw std::string("Error - Cannot open file for reading: ") + filename;
     }
     do {
@@ -2162,7 +2162,7 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
     std::vector<unsigned char> ByteArray = loadRawFile(filename);
 
     //first seperate data in multiple export files, new file always starts with "RIFF" magic characters
-    FILE* oFile = NULL;
+    FILE* oFile = nullptr;
     size_t counter = 0;
 
     std::vector<SOUNDFILEENTRY>::iterator it;
@@ -2184,7 +2184,7 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
                 strcat(finalpath, (*it).soundFilename);
 
                 oFile = fopen(finalpath, "wb");
-                if (oFile == NULL) {
+                if (oFile == nullptr) {
                     throw std::string("Error - Cannot open file for writting: ") + finalpath;
                 }
 
@@ -2207,7 +2207,7 @@ void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
     //now extract all the available song files
     std::vector<SOUNDFILEENTRY>::iterator it2;
 
-    FILE *oFile = NULL;
+    FILE *oFile = nullptr;
     unsigned long dataCnt;
 
      for(it2 = VecTuneInformation.begin(); it2 != VecTuneInformation.end(); ++it2) {
@@ -2217,7 +2217,7 @@ void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
          strcat(finalpath, (*it2).soundFilename);
 
          oFile = fopen(finalpath, "wb");
-         if (oFile == NULL) {
+         if (oFile == nullptr) {
              throw std::string("Error - Cannot open file for writting: ") + finalpath;
          }
 
@@ -2229,7 +2229,7 @@ void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
 
          unsigned char *buffer = static_cast<unsigned char*>(malloc(dataCnt));
 
-         if (buffer == NULL) {
+         if (buffer == nullptr) {
              throw std::string("Error - cannot allocate ") + std::to_string(dataCnt) + " bytes of memory.";
          }
 
@@ -2313,7 +2313,7 @@ void PrepareData::ExtractMusic() {
     //now read N times the following struct with tune offset information
     for (unsigned int cnt = 0; cnt < N; cnt++) {
          newTableEntry = (MUSICTABLEENTRY*)malloc(sizeof(MUSICTABLEENTRY));
-         if (newTableEntry == NULL) {
+         if (newTableEntry == nullptr) {
              fclose(iFile);
              throw std::string("ExtractMusic - Out of Memory");
          }
@@ -2336,7 +2336,7 @@ void PrepareData::ExtractMusic() {
     for(it = VecMusicTableEntries.begin(); it != VecMusicTableEntries.end(); ++it) {
         newTuneInformation = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
 
-        if (newTuneInformation == NULL) {
+        if (newTuneInformation == nullptr) {
             fclose(iFile);
             throw std::string("ExtractMusic - Out of Memory");
         }
@@ -2352,7 +2352,7 @@ void PrepareData::ExtractMusic() {
 
         while (targetLenTuneSum > 0) {
             newTuneInformation = (SOUNDFILEENTRY*)malloc(sizeof(SOUNDFILEENTRY));
-            if (newTuneInformation == NULL) {
+            if (newTuneInformation == nullptr) {
                 fclose(iFile);
                 throw std::string("ExtractMusic - Out of Memory");
             }
@@ -2405,11 +2405,11 @@ void PrepareData::PrepareIntro() {
 
     //Opening the files
     animFile = openSourceFLIFile(srcFName);
-    if (animFile == NULL)
+    if (animFile == nullptr)
         throw std::string("Error opening file: ") + srcFName;
 
     destFile = openDestinationFLIFile(destFName);
-    if (destFile == NULL) {
+    if (destFile == nullptr) {
         fclose(animFile);
         throw std::string("Error opening file: ") + destFName;
     }
@@ -2554,7 +2554,7 @@ void UnpackDataFile(const char* packfile, const char* unpackfile) {
 
 std::vector<unsigned char> loadRawFile(const char *filename) {
     FILE* iFile = fopen(filename, "rb");
-    if (iFile == NULL)
+    if (iFile == nullptr)
     {
         throw std::string("Cannot open file: ") + filename;
     }

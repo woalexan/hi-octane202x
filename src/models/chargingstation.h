@@ -45,9 +45,9 @@ struct ChargerStoppingRegionStruct {
     //create a dynamical (temporary) entityitem
     //for this stall, so that we can route computer
     //players to it
-    EntityItem* entityItem = NULL;
+    EntityItem* entityItem = nullptr;
 
-    Player* reservedForPlayerPntr = NULL;
+    Player* reservedForPlayerPntr = nullptr;
 
     //only used for debugging drawing the stalls
     irr::core::vector3df dbgDrawVertex1;
@@ -68,7 +68,7 @@ public:
     //that spans this region, could be used
     //for different things later
     //pntr to charger region Irrlicht sceneNode
-    irr::scene::IMeshSceneNode* mSceneNode = NULL;
+    irr::scene::IMeshSceneNode* mSceneNode = nullptr;
 
     irr::u8 GetChargingStationType();
     std::vector<irr::core::vector3df> GetStallLocations();
@@ -93,21 +93,21 @@ public:
 
     void ChargingFinished(Player *whichPlayer);
 
-    EntityItem* enterEntityItem = NULL;
-    EntityItem* enterHelperEntityItem = NULL;
+    EntityItem* enterEntityItem = nullptr;
+    EntityItem* enterHelperEntityItem = nullptr;
 
-    EntityItem* exitEntityItem = NULL;
+    EntityItem* exitEntityItem = nullptr;
 
-    WayPointLinkInfoStruct* exitWayPointLink = NULL;
+    WayPointLinkInfoStruct* exitWayPointLink = nullptr;
 
 private:
-    irr::scene::ISceneManager* mSmgr;
+    irr::scene::ISceneManager* mSmgr = nullptr;
 
-    Race *mRace;
+    Race *mRace = nullptr;
 
     //the map region data struct that is behind
     //this charging station
-    MapTileRegionStruct* mRegionStruct;
+    MapTileRegionStruct* mRegionStruct = nullptr;
 
     //we want to keep a list of all WayPointLinks that
     //intersect with this charging station
@@ -120,7 +120,7 @@ private:
     std::vector<ChargerStoppingRegionStruct*> mStandVec;
 
     //pntr to charger region Irrlich Mesh
-    irr::scene::SMesh* mMesh = NULL;
+    irr::scene::SMesh* mMesh = nullptr;
 
     //creates a Mesh/Box around defined charger map region
     //could be used later for different things, to control
@@ -187,7 +187,7 @@ private:
     irr::f32 signInZ;
 
     //If there is no free stall right now for
-    //service returns NULL
+    //service returns nullptr
     ChargerStoppingRegionStruct* GetNextFreeStall();
 
     irr::u8 mExitRotation = ROT_EXIT_0DEG;

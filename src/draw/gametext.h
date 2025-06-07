@@ -18,7 +18,7 @@
 
 typedef struct GameTextCharacterInfo {
       //contains the raw texture for the character
-     irr::video::ITexture* texture;
+     irr::video::ITexture* texture = nullptr;
 
      //size in pixels of the raw texture for character
      irr::core::dimension2d<irr::s32> sizeRawTex;
@@ -39,12 +39,12 @@ typedef struct GameTextFont {
 class GameText {
 
 private:
-    irr::video::IVideoDriver* myDriver;
-    irr::IrrlichtDevice* myDevice;
+    irr::video::IVideoDriver* myDriver = nullptr;
+    irr::IrrlichtDevice* myDevice = nullptr;
 
     void LoadInitialFont();
 
-    GameTextFont* LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = NULL);
+    GameTextFont* LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = nullptr);
     irr::core::rect<irr::s32> FindCharArea(GameTextCharacterInfo *character, bool &succesFlag);
     bool AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor);
     void FreeTextFont(GameTextFont &pntrFont);
@@ -97,26 +97,26 @@ public:
     irr::u32 GetWidthPixelsGameNumberText(char* numberText, GameTextFont *whichFont);
 
     //main use is in Hud banner text at the lower part of the screen
-    GameTextFont* HudWhiteTextBannerFont = NULL;
+    GameTextFont* HudWhiteTextBannerFont = nullptr;
 
     //is the white smaller text font that is used in the menue for example
     //to give additional information about number of laps etc...
-    GameTextFont* GameMenueWhiteTextSmallSVGA = NULL;
+    GameTextFont* GameMenueWhiteTextSmallSVGA = nullptr;
 
     //is the green smaller text font that is used in the menue for example
     //to give additional information about number of laps etc...
     //is actually derived from loaded font GameMenueWhiteTextSmallSVGA, by just swapping color of
     //pixels from white to color "green"
-    GameTextFont* GameMenueUnselectedTextSmallSVGA = NULL;
+    GameTextFont* GameMenueUnselectedTextSmallSVGA = nullptr;
 
     //main use is in the main menue of the page for entries that are not selected
     //is actually derived from loaded font HudWhiteTextBannerFont, by just swapping color of
     //pixels from white to color "green"
-    GameTextFont* GameMenueUnselectedEntryFont = NULL;
+    GameTextFont* GameMenueUnselectedEntryFont = nullptr;
 
     //main use is text that is temporarily seen in the middle
     //of the Hud (for example Superman etc..)
-    GameTextFont* HudBigGreenText = NULL;
+    GameTextFont* HudBigGreenText = nullptr;
 
     //main use is to display the lap time number text in Hud (there is a red and grey variant of the characters)
     //important note: this font only contains numbers from 0 up to 9, "." and "/" character!
@@ -124,21 +124,21 @@ public:
     //printing, which will draw the graphics symbol with the two red arrows that is used next to the current lap numbers
     //to print numbers text using this font we also have to use DrawGameNumberText routine instead
     //of method DrawGameText!
-    GameTextFont* HudLaptimeNumberRed = NULL;
-    GameTextFont* HudLaptimeNumberGrey = NULL;
+    GameTextFont* HudLaptimeNumberRed = nullptr;
+    GameTextFont* HudLaptimeNumberGrey = nullptr;
 
     //main use is to diplay the kill count in the Hud with the bigger red number letters
     //there is also a special character ">" that will draw the red skull used next to the current player kill count
-    GameTextFont* HudKillCounterNumberRed = NULL;
+    GameTextFont* HudKillCounterNumberRed = nullptr;
 
     //the following two (very small fonts) are used
     //to describe target (opponents) names next
     //to the HUD target symbol
     //only characters from A up to Z are available!
-    GameTextFont* HudTargetNameGreen = NULL;
-    GameTextFont* HudTargetNameRed = NULL;
+    GameTextFont* HudTargetNameGreen = nullptr;
+    GameTextFont* HudTargetNameRed = nullptr;
 
-    GameTextFont* ThinWhiteText = NULL;
+    GameTextFont* ThinWhiteText = nullptr;
 
     bool GameTextInitializedOk = false;
 };

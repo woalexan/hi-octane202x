@@ -191,7 +191,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == nullptr);
 
                 //it is also ok to have a column there, as long as the lowest column block
                 //is not existing (means we have a tunnel)
@@ -234,7 +234,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == nullptr);
 
                 //it is also ok to have a column there, as long as the lowest column block
                 //is not existing (means we have a tunnel)
@@ -280,7 +280,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == nullptr);
 
                 //it is also ok to have a column there, as long as the lowest column block
                 //is not existing (means we have a tunnel)
@@ -323,7 +323,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 texture = mapEntry->m_TextureId;
 
                 //we also want to exclude cells where there is a column
-                noColumnThere = (mapEntry->get_Column() == NULL);
+                noColumnThere = (mapEntry->get_Column() == nullptr);
 
                 //it is also ok to have a column there, as long as the lowest column block
                 //is not existing (means we have a tunnel)
@@ -374,7 +374,7 @@ bool ChargingStation::IdentifyUsableArea() {
            texture = mapEntry->m_TextureId;
 
            //we also want to exclude cells where there is a column
-           noColumnThere = (mapEntry->get_Column() == NULL);
+           noColumnThere = (mapEntry->get_Column() == nullptr);
 
            //it is also ok to have a column there, as long as the lowest column block
            //is not existing (means we have a tunnel)
@@ -417,7 +417,7 @@ bool ChargingStation::IdentifyUsableArea() {
             texture = mapEntry->m_TextureId;
 
             //we also want to exclude cells where there is a column
-            noColumnThere = (mapEntry->get_Column() == NULL);
+            noColumnThere = (mapEntry->get_Column() == nullptr);
 
             //it is also ok to have a column there, as long as the lowest column block
             //is not existing (means we have a tunnel)
@@ -463,7 +463,7 @@ bool ChargingStation::IdentifyUsableArea() {
             texture = mapEntry->m_TextureId;
 
             //we also want to exclude cells where there is a column
-            noColumnThere = (mapEntry->get_Column() == NULL);
+            noColumnThere = (mapEntry->get_Column() == nullptr);
 
             //it is also ok to have a column there, as long as the lowest column block
             //is not existing (means we have a tunnel)
@@ -506,7 +506,7 @@ bool ChargingStation::IdentifyUsableArea() {
             texture = mapEntry->m_TextureId;
 
             //we also want to exclude cells where there is a column
-            noColumnThere = (mapEntry->get_Column() == NULL);
+            noColumnThere = (mapEntry->get_Column() == nullptr);
 
             //it is also ok to have a column there, as long as the lowest column block
             //is not existing (means we have a tunnel)
@@ -859,7 +859,7 @@ void ChargingStation::createChargingStands() {
 
             //create the new stall
             ChargerStoppingRegionStruct* newStall = new ChargerStoppingRegionStruct();
-            newStall->reservedForPlayerPntr = NULL;
+            newStall->reservedForPlayerPntr = nullptr;
 
             //create an temporary (not stored in game level file) internal entity
             //item for this stall, so that computer player control functions
@@ -899,7 +899,7 @@ void ChargingStation::createChargingStands() {
 //if success is granted, pointer to stall that was reserved for this player
 //is returned in variable reservedStall
 bool ChargingStation::RequestCharging(Player *whichPlayer, ChargerStoppingRegionStruct *& reservedStall) {
-    if (whichPlayer == NULL)
+    if (whichPlayer == nullptr)
         return false;
 
     //find next free (unreserved) stall for requesting
@@ -908,7 +908,7 @@ bool ChargingStation::RequestCharging(Player *whichPlayer, ChargerStoppingRegion
 
     //if currently there is no stall free for this
     //request, return request not granted
-    if (useStall == NULL)
+    if (useStall == nullptr)
         return false;
 
     //reserve stall for this player
@@ -936,7 +936,7 @@ bool ChargingStation::ReachedEntryOfChargingStation(WayPointLinkInfoStruct* curr
 }
 
 bool ChargingStation::PassedExitOfChargingStation(WayPointLinkInfoStruct* currWayPointLink) {
-    if (exitWayPointLink->pntrPathNextLink == NULL)
+    if (exitWayPointLink->pntrPathNextLink == nullptr)
         return false;
 
     if (currWayPointLink == exitWayPointLink->pntrPathNextLink)
@@ -953,7 +953,7 @@ void ChargingStation::DetectExitWayPointLink() {
     WayPointLinkInfoStruct* linkBefore;
     std::vector<WayPointLinkInfoStruct*>::iterator it;
 
-    exitWayPointLink = NULL;
+    exitWayPointLink = nullptr;
 
     if (mIntersectingWayPointLinksVec.size() < 1)
         return;
@@ -987,7 +987,7 @@ void ChargingStation::DetectExitWayPointLink() {
     } while (!exit);
 
     //if we did not find the exitLink yet exit
-    if (exitWayPointLink == NULL)
+    if (exitWayPointLink == nullptr)
         return;
 
     //what is the orientation of the exit link?
@@ -1075,7 +1075,7 @@ void ChargingStation::DetectExitWayPointLink() {
 }
 
 //If there is no free stall right now for
-//service returns NULL
+//service returns nullptr
 ChargerStoppingRegionStruct* ChargingStation::GetNextFreeStall() {
     //lets iterate the stalls in reserve, so that we assign
     //the next player that wants to charge a stall that is physically
@@ -1086,11 +1086,11 @@ ChargerStoppingRegionStruct* ChargingStation::GetNextFreeStall() {
     //with the first charger at the far end of the charging area anyway,
     //so also in the empty case everything works out fine
     irr::u8 nrStalls = this->mStandVec.size();
-    ChargerStoppingRegionStruct* pntrStall = NULL;
+    ChargerStoppingRegionStruct* pntrStall = nullptr;
 
     if (nrStalls > 0) {
         for (irr::s16 idx = (nrStalls - 1); idx >= 0; idx--) {
-            if (mStandVec.at(idx)->reservedForPlayerPntr != NULL) {
+            if (mStandVec.at(idx)->reservedForPlayerPntr != nullptr) {
                 //first stall that is reserved right now
                 break;
             }
@@ -1133,7 +1133,7 @@ void ChargingStation::DebugDraw() {
     for (it = this->mStandVec.begin(); it != this->mStandVec.end(); ++it) {
         //if stand is currently not reserved for a player draw
         //stand location in white, red otherwise
-        if ((*it)->reservedForPlayerPntr == NULL) {
+        if ((*it)->reservedForPlayerPntr == nullptr) {
             mRace->mDrawDebug->Draw3DRectangle((*it)->dbgDrawVertex1, (*it)->dbgDrawVertex2, (*it)->dbgDrawVertex3, (*it)->dbgDrawVertex4, mRace->mDrawDebug->white);
         } else {
             mRace->mDrawDebug->Draw3DRectangle((*it)->dbgDrawVertex1, (*it)->dbgDrawVertex2, (*it)->dbgDrawVertex3, (*it)->dbgDrawVertex4, mRace->mDrawDebug->red);
@@ -1142,7 +1142,7 @@ void ChargingStation::DebugDraw() {
 }
 
 void ChargingStation::ChargingFinished(Player *whichPlayer) {
-    if (whichPlayer == NULL)
+    if (whichPlayer == nullptr)
         return;
 
     //search for Player reservation in my stalls
@@ -1151,7 +1151,7 @@ void ChargingStation::ChargingFinished(Player *whichPlayer) {
     for (it = mStandVec.begin(); it != mStandVec.end(); ++it) {
         if ((*it)->reservedForPlayerPntr == whichPlayer) {
             //delete reservation
-            (*it)->reservedForPlayerPntr = NULL;
+            (*it)->reservedForPlayerPntr = nullptr;
         }
     }
 }
@@ -1191,7 +1191,7 @@ ChargingStation::~ChargingStation() {
 
             //delete the temporary/internal
             //entityItem behind it
-            if (pntr->entityItem != NULL) {
+            if (pntr->entityItem != nullptr) {
                 delete pntr->entityItem;
             }
 
@@ -1202,20 +1202,20 @@ ChargingStation::~ChargingStation() {
 
     //delete the temporary entityItem for entering
     //the charging station for computer players
-    if (this->enterEntityItem != NULL) {
+    if (this->enterEntityItem != nullptr) {
         delete enterEntityItem;
-        enterEntityItem = NULL;
+        enterEntityItem = nullptr;
     }
 
-    if (this->enterHelperEntityItem != NULL) {
+    if (this->enterHelperEntityItem != nullptr) {
         delete enterHelperEntityItem;
-        enterHelperEntityItem = NULL;
+        enterHelperEntityItem = nullptr;
     }
 
     //delete the temporary entityItem for exiting
     //the charging station for computer players
-    if (this->exitEntityItem != NULL) {
+    if (this->exitEntityItem != nullptr) {
         delete exitEntityItem;
-        exitEntityItem = NULL;
+        exitEntityItem = nullptr;
     }
 }

@@ -89,7 +89,7 @@ void Cone::Update(irr::f32 deltaTime) {
                 MapEntry* mEntry = mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
                 //is there actually an entry?
-                if (mEntry != NULL) {
+                if (mEntry != nullptr) {
                      terrainHeight = mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight;
 
                      //cone too close to terrain, stop the cone to continue further

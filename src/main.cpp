@@ -41,7 +41,7 @@ using namespace irr::scene;
 
 class Game; //Forward declaration
 
-Game* mGame;
+Game* mGame = nullptr;
 
 int main()
 {

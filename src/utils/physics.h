@@ -120,8 +120,8 @@ struct ObjectPhysicsForce {
 };
 
 struct PhyCollisionPair {
-    PhysicsObject* obj1;
-    PhysicsObject* obj2;
+    PhysicsObject* obj1 = nullptr;
+    PhysicsObject* obj2 = nullptr;
 };
 
 struct ObjPhysicsState {
@@ -206,7 +206,7 @@ public:
     //also ignored during collision detection
     bool mActive = true;
 
-    irr::scene::ISceneNode* sceneNode = NULL;
+    irr::scene::ISceneNode* sceneNode = nullptr;
 
     //current axis aligned bounding box for the physics object
     //just used in step2 of collision detection, if step1 shows possible collision
@@ -264,7 +264,7 @@ public:
     //for this the race craft is modelled as a simple sphere with radius mRadius
     float mRadius = 0.1f;
 
-    irr::core::vector3df    mModelCollCenter;           // the value we get from the model at the start of update
+    irr::core::vector3df mModelCollCenter;           // the value we get from the model at the start of update
 
 private:
 
@@ -316,10 +316,10 @@ private:
     void RemoveObjToObjCollisionPair(PhysicsObject* obj1, PhysicsObject* obj2);
 
     //level wall collision 3D line data loaded from level file;
-    std::vector<LineStruct*> *ENTWallsegmentsLine_List = NULL;
+    std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
 
-    Race *mParentRace;
-    DrawDebug* mDebugObj;
+    Race *mParentRace = nullptr;
+    DrawDebug* mDebugObj = nullptr;
 
     bool OrientedBBoxCollision(PhysicsObject* obj1, PhysicsObject* obj2,  irr::core::aabbox3df box1, irr::core::aabbox3df box2,
                                         irr::core::vector3df *collNormal, irr::f32 *depth);

@@ -147,43 +147,43 @@ public:
     void CallRecoveryVehicleForHelp(Player* whichPlayer);
 
     //returns an available recovery vehicle for physics reset
-    //if no recovery vehicle is available returns NULL
+    //if no recovery vehicle is available returns nullptr
     Recovery* FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffPointAfterReset);
 
     bool exitRace = false;
 
     //handles the height map terrain
     //of the level
-    LevelTerrain *mLevelTerrain;
+    LevelTerrain *mLevelTerrain = nullptr;
 
-    Bezier *testBezier;
+    Bezier *testBezier = nullptr;
 
-    SoundEngine* mSoundEngine;
+    SoundEngine* mSoundEngine = nullptr;
 
-    std::vector<LineStruct*> *ENTWallsegmentsLine_List;
+    std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
 
     //lets create and store a direction vector for
     //later use (calculations), so that we do not have to do this
     //over and over again
-    irr::core::vector3d<irr::f32>* xAxisDirVector;
-    irr::core::vector3d<irr::f32>* yAxisDirVector;
-    irr::core::vector3d<irr::f32>* zAxisDirVector;
+    irr::core::vector3d<irr::f32>* xAxisDirVector = nullptr;
+    irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
+    irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
 
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
     void CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<f32> playerBox);
 
     //attacker is the enemy player that does damage the player targetToHit
     //for damage that an entity does cause (for example steamFountain) attacker is set
-    //to NULL
-    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = NULL);
+    //to nullptr
+    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = nullptr);
 
-    Player* currPlayerFollow = NULL;
+    Player* currPlayerFollow = nullptr;
 
-    InfrastructureBase* mInfra;
+    InfrastructureBase* mInfra = nullptr;
 
     //handles the columns (made of blocks)
     //of the level
-    LevelBlocks *mLevelBlocks;
+    LevelBlocks *mLevelBlocks = nullptr;
 
     //void TestVoxels();
     //int getNrTrianglesCollected();
@@ -192,16 +192,16 @@ public:
     //std::vector<RayHitTriangleInfoStruct*> TestRayTrianglesSelector;
 
     //my physics
-    Physics *mPhysics;
+    Physics *mPhysics = nullptr;
 
     //my explosion launcher
-    ExplosionLauncher* mExplosionLauncher;
+    ExplosionLauncher* mExplosionLauncher = nullptr;
 
     //vector of all available explosions in
     //this map
     std::vector<ExplosionEntity*> mExplosionEntityVec;
 
-    HUD *Hud1Player;
+    HUD *Hud1Player = nullptr;
 
     bool DebugHitBreakpoint = false;
 
@@ -215,24 +215,24 @@ public:
     std::vector<Player*> playerRaceFinishedVec;
 
     //my drawDebug object
-    DrawDebug *mDrawDebug;
+    DrawDebug *mDrawDebug = nullptr;
 
     //object for pathfinding and services
-    Path* mPath;
+    Path* mPath = nullptr;
 
     irr::core::vector3df dbgCoord;
 
-    std::vector<EntityItem*> *ENTWaypoints_List;
-    std::vector<WayPointLinkInfoStruct*> *wayPointLinkVec;
+    std::vector<EntityItem*> *ENTWaypoints_List = nullptr;
+    std::vector<WayPointLinkInfoStruct*> *wayPointLinkVec = nullptr;
 
     std::vector<WayPointLinkInfoStruct*> testPathResult;
-    WayPointLinkInfoStruct* dbgFirstLink = NULL;
+    WayPointLinkInfoStruct* dbgFirstLink = nullptr;
 
     irr::core::vector3df topRaceTrackerPointerOrigin;
 
-    Game* mGame;
+    Game* mGame = nullptr;
 
-    std::vector<Collectable*> *ENTCollectablesVec;
+    std::vector<Collectable*> *ENTCollectablesVec = nullptr;
 
     //vector of players in this race
     std::vector<Player*> mPlayerVec;
@@ -273,7 +273,7 @@ public:
     bool GetWasRaceFinished();
 
     //my texture loader
-    TextureLoader *mTexLoader;
+    TextureLoader *mTexLoader = nullptr;
 
     //stores the detected minimap race track positions
     //referenced to Terrain tile coordinates from level
@@ -289,10 +289,10 @@ public:
 
     irr::core::aabbox3df validPlayerLocationBBox;
 
-    std::vector<ExtendedRegionInfoStruct*>* mExtRegionVec;
+    std::vector<ExtendedRegionInfoStruct*>* mExtRegionVec = nullptr;
 
     //a vector of my existing charging stations
-    std::vector<ChargingStation*>* mChargingStationVec;
+    std::vector<ChargingStation*>* mChargingStationVec = nullptr;
 
 private:
     int levelNr;
@@ -305,10 +305,10 @@ private:
 
     //the image for the base of the minimap
     //without the player location dots
-    irr::video::ITexture* baseMiniMap;
+    irr::video::ITexture* baseMiniMap = nullptr;
     irr::core::dimension2di miniMapSize;
     irr::core::vector2d<irr::s32> miniMapDrawLocation;
-    MyMusicStream* mMusicPlayer;
+    MyMusicStream* mMusicPlayer = nullptr;
 
     irr::u8 mRaceNumberOfLaps;
 
@@ -344,32 +344,32 @@ private:
 
     //handles the file data structure of the
     //level
-    LevelFile *mLevelRes;
+    LevelFile *mLevelRes = nullptr;
 
     //my sky image for the level background
-    irr::video::ITexture* mSkyImage = NULL;
+    irr::video::ITexture* mSkyImage = nullptr;
 
     //class for world awareness functions
     //which are needed by computer player control functions
-    WorldAwareness* mWorldAware;
+    WorldAwareness* mWorldAware = nullptr;
 
     //the main player object
 
     //Player physics object
-    PhysicsObject* playerPhysicsObj;
+    PhysicsObject* playerPhysicsObj = nullptr;
 
     //vector for player physic objects
     std::vector<PhysicsObject*> mPlayerPhysicObjVec;
 
     std::vector<Player*> playerRanking;
 
-    scene::IMeshSceneNode* testcube;
+    scene::IMeshSceneNode* testcube = nullptr;
 
     //my camera
-    scene::ICameraSceneNode* mCamera;
+    scene::ICameraSceneNode* mCamera = nullptr;
 
     //stores the currently active camera
-    scene::ICameraSceneNode* currActiveCamera = NULL;
+    scene::ICameraSceneNode* currActiveCamera = nullptr;
 
     //if all morphs should be executed
     //set to true
@@ -419,8 +419,8 @@ private:
 
     void AddWayPoint(EntityItem *entity, EntityItem *next);
 
-    std::list<EntityItem*> *ENTWallsegments_List;
-    std::list<EntityItem*> *ENTTriggers_List;
+    std::list<EntityItem*> *ENTWallsegments_List = nullptr;
+    std::list<EntityItem*> *ENTTriggers_List = nullptr;
 
     //holds a list of all available level morphs
     std::list<Morph*> Morphs;
@@ -431,23 +431,23 @@ private:
     void DebugResetColorAllWayPointLinksToWhite();
 
     //holds a generated Mesh for wall collision detection
-    irr::scene::SMesh* wallCollisionMesh;
+    irr::scene::SMesh* wallCollisionMesh = nullptr;
 
     //holds the OctreeSceneNode for the wall collision detection
     //we use this for trianglePicking later
-    irr::scene::ISceneNode *wallCollisionMeshSceneNode;
+    irr::scene::ISceneNode *wallCollisionMeshSceneNode = nullptr;
 
     //the necessary triangle selectors for craft collision detection
-    irr::scene::ITriangleSelector* triangleSelectorWallCollision = NULL;
-    irr::scene::ITriangleSelector* triangleSelectorColumnswCollision = NULL;
-    irr::scene::ITriangleSelector* triangleSelectorColumnswoCollision = NULL;
+    irr::scene::ITriangleSelector* triangleSelectorWallCollision = nullptr;
+    irr::scene::ITriangleSelector* triangleSelectorColumnswCollision = nullptr;
+    irr::scene::ITriangleSelector* triangleSelectorColumnswoCollision = nullptr;
 
     //necessary triangle selector for raycasting onto terrain
-    irr::scene::ITriangleSelector* triangleSelectorStaticTerrain = NULL;
-    irr::scene::ITriangleSelector* triangleSelectorDynamicTerrain = NULL;
+    irr::scene::ITriangleSelector* triangleSelectorStaticTerrain = nullptr;
+    irr::scene::ITriangleSelector* triangleSelectorDynamicTerrain = nullptr;
 
     void createCheckpointMeshData(CheckPointInfoStruct &newStruct);
-    std::vector<CheckPointInfoStruct*> *checkPointVec;
+    std::vector<CheckPointInfoStruct*> *checkPointVec = nullptr;
 
     void UpdatePlayerDistanceToNextCheckpoint(Player* whichPlayer);
     void UpdatePlayerRacePositionRanking();
@@ -457,19 +457,19 @@ private:
     void CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f32> playerBox);
 
     //my vector of SteamFountains
-    std::vector<SteamFountain*>* steamFountainVec;
+    std::vector<SteamFountain*>* steamFountainVec = nullptr;
 
     //my vector of recovery vehicles
-    std::vector<Recovery*>* recoveryVec;
+    std::vector<Recovery*>* recoveryVec = nullptr;
 
     //vector of players that currently need help of
     //a recovery vehicle
-    std::vector<Player*>* mPlayerWaitForRecoveryVec;
+    std::vector<Player*>* mPlayerWaitForRecoveryVec = nullptr;
 
     void UpdateRecoveryVehicles(irr::f32 deltaTime);
 
     //my vector of cones
-    std::vector<Cone*>* coneVec;
+    std::vector<Cone*>* coneVec = nullptr;
 
     std::vector<irr::video::SColor*> mMiniMapMarkerColors;
 
@@ -499,7 +499,7 @@ private:
     void SetExternalViewAtPlayer();
     void ManagePlayerCamera();
 
-    Player* mFollowPlayerDemoMode = NULL;
+    Player* mFollowPlayerDemoMode = nullptr;
     irr::f32 mFollowPlayerDemoModeTimeCounter = 0.0f;
 
     void ManageCameraDemoMode(irr::f32 deltaTime);

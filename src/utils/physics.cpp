@@ -1251,7 +1251,7 @@ void Physics::RemoveAllObjects() {
     }
 }
 
-//will return NULL if no physicsObject is found that belongs to the
+//will return nullptr if no physicsObject is found that belongs to the
 //specified sceneNode
 PhysicsObject* Physics::GetObjectPntr(irr::scene::ISceneNode* sceneNode) {
   std::vector<PhysicsObject*>::iterator it;
@@ -1263,8 +1263,8 @@ PhysicsObject* Physics::GetObjectPntr(irr::scene::ISceneNode* sceneNode) {
       }
   }
 
-  //nothing found, return NULL
-  return NULL;
+  //nothing found, return nullptr
+  return nullptr;
 }
 
 //the following function was taken from, and modified to fit my code (and Irrlicht)

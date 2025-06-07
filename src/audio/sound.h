@@ -106,7 +106,7 @@ class Player; //Forward declaration
 class InfrastructureBase; //forward declaration
 
 struct SoundResEntry {
-    sf::SoundBuffer* pntrSoundBuf;
+    sf::SoundBuffer* pntrSoundBuf = nullptr;
     uint8_t soundResId;
 };
 
@@ -160,7 +160,7 @@ public:
 
 private:
   //pointer to infrastructure
-  InfrastructureBase* mInfra;
+  InfrastructureBase* mInfra = nullptr;
 
   bool mSoundResourcesLoadOk = false;
   bool mPlaySound = true;
@@ -173,18 +173,18 @@ private:
   sf::Sound* GetFreeSoundSource();
 
   //searches for a sound buffer resource entry with a certain specified sound ID
-  //if no sound under this sound ID is found returns NULL
+  //if no sound under this sound ID is found returns nullptr
   SoundResEntry* SearchSndRes(uint8_t soundResId);
 
-  std::vector<SoundResEntry*> *SoundResVec;
-  std::vector<sf::Sound*> *SoundVec;
+  std::vector<SoundResEntry*> *SoundResVec = nullptr;
+  std::vector<sf::Sound*> *SoundVec = nullptr;
 
   uint8_t mNrSoundSources = 0;
   float mSoundVolume = 100.0f;
 
-  irr::core::vector3df* mNonLocalizedSoundPos;
+  irr::core::vector3df* mNonLocalizedSoundPos = nullptr;
 
-  sf::Sound* engineSound;
+  sf::Sound* engineSound = nullptr;
 
   std::vector<std::pair<Player*, sf::Sound*>> mEngineSoundVector;
 };

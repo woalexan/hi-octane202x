@@ -11,7 +11,7 @@ Logger::Logger(irr::gui::IGUIEnvironment* guienvPntr, irr::core::rect<irr::s32> 
 
     //create the log window
     this->logTextOutputWindow = mGuiEnv->addStaticText(L"",
-           mCurrentLogTextOutputWindowPos, false, true, NULL, -1, true);
+           mCurrentLogTextOutputWindowPos, false, true, nullptr, -1, true);
 
     //we need to deactivate word wrap because if we do not
     //there seems to be an Irrlicht bug or problem

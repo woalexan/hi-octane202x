@@ -197,14 +197,14 @@ typedef struct HMapCollSensor {
 } HMAPCOLLSENSOR;
 
 typedef struct {
-    HMAPCOLLSENSOR* front;
-    HMAPCOLLSENSOR* frontRight45deg;
-    HMAPCOLLSENSOR* frontLeft45deg;
-    HMAPCOLLSENSOR* right;
-    HMAPCOLLSENSOR* left;
-    HMAPCOLLSENSOR* backRight45deg;
-    HMAPCOLLSENSOR* backLeft45deg;
-    HMAPCOLLSENSOR* back;
+    HMAPCOLLSENSOR* front = nullptr;
+    HMAPCOLLSENSOR* frontRight45deg = nullptr;
+    HMAPCOLLSENSOR* frontLeft45deg = nullptr;
+    HMAPCOLLSENSOR* right = nullptr;
+    HMAPCOLLSENSOR* left = nullptr;
+    HMAPCOLLSENSOR* backRight45deg = nullptr;
+    HMAPCOLLSENSOR* backLeft45deg = nullptr;
+    HMAPCOLLSENSOR* back = nullptr;
 } HMAPCOLLSTRUCT;
 
 class HUD; //Forward declaration
@@ -223,15 +223,15 @@ public:
            irr::u8 nrLaps, bool humanPlayer);
     ~Player();
 
-    InfrastructureBase* mInfra;
+    InfrastructureBase* mInfra = nullptr;
 
-    HMAPCOLLSENSOR* cameraSensor;
-    HMAPCOLLSENSOR* cameraSensor2;
-    HMAPCOLLSENSOR* cameraSensor3;
-    HMAPCOLLSENSOR* cameraSensor4;
-    HMAPCOLLSENSOR* cameraSensor5;
-    HMAPCOLLSENSOR* cameraSensor6;
-    HMAPCOLLSENSOR* cameraSensor7;
+    HMAPCOLLSENSOR* cameraSensor = nullptr;
+    HMAPCOLLSENSOR* cameraSensor2 = nullptr;
+    HMAPCOLLSENSOR* cameraSensor3 = nullptr;
+    HMAPCOLLSENSOR* cameraSensor4 = nullptr;
+    HMAPCOLLSENSOR* cameraSensor5 = nullptr;
+    HMAPCOLLSENSOR* cameraSensor6 = nullptr;
+    HMAPCOLLSENSOR* cameraSensor7 = nullptr;
 
     void SetPlayerObject(PhysicsObject* phObjPtr);
     void DamageGlas();
@@ -259,7 +259,7 @@ public:
     irr::f32 mCraftDistanceAvailFront = 100.0f;
 
     irr::f32 debugMaxStep;
-    MapEntry* currTileBelowPlayer;
+    MapEntry* currTileBelowPlayer = nullptr;
 
     irr::core::vector3df dbgcollPlanePos1;
     irr::core::vector3df dbgcollPlanePos2;
@@ -275,10 +275,10 @@ public:
 
     bool mDbgCurrRecording = false;
 
-    std::vector<irr::f32> *dbgRecordFrontHeight;
-    std::vector<irr::f32> *dbgRecordBackHeight;
-    std::vector<irr::u8> *dbgRecordCurrJumping;
-    std::vector<irr::u8> *dbgRecordCurrCollision;
+    std::vector<irr::f32> *dbgRecordFrontHeight = nullptr;
+    std::vector<irr::f32> *dbgRecordBackHeight = nullptr;
+    std::vector<irr::u8> *dbgRecordCurrJumping = nullptr;
+    std::vector<irr::u8> *dbgRecordCurrCollision = nullptr;
 
     void StartDbgRecording();
     void EndDbgRecording();
@@ -401,9 +401,9 @@ public:
 
     //if we currently target another player for attacking
     //this pointer points to the other target player
-    //no target if NULL
-    Player* mTargetPlayer = NULL;
-    Player* mLastTargetPlayer = NULL;
+    //no target if nullptr
+    Player* mTargetPlayer = nullptr;
+    Player* mLastTargetPlayer = nullptr;
 
     //value from 22 downto 0 which describes how far we are
     //with the missle lock, 0 means lock achieved, 22 means
@@ -427,32 +427,32 @@ public:
     void UpdateCurrentCraftOrientationAngleAvg();*/
 
     //the players physics object
-    PhysicsObject* phobj;
+    PhysicsObject* phobj = nullptr;
 
     //the players Irrlicht SceneNode for the
     //craft model
-    irr::scene::IMeshSceneNode* Player_node;
+    irr::scene::IMeshSceneNode* Player_node = nullptr;
 
     //is prepared value to later find random
     //shooting target for mgun at player model quickly
     irr::core::vector3df mPlayerModelExtend;
 
     //my player internal camera for cockpit
-    irr::scene::ICameraSceneNode* mIntCamera;
+    irr::scene::ICameraSceneNode* mIntCamera = nullptr;
     //my 3rd person camera from behind the craft
-    irr::scene::ICameraSceneNode* mThirdPersonCamera;
+    irr::scene::ICameraSceneNode* mThirdPersonCamera = nullptr;
 
     void UpdateCameras();
 
     //player craft shadow SceneNode
-    irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow;
+    irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow = nullptr;
 
     //the players stats
-    PLAYERSTATS *mPlayerStats;
+    PLAYERSTATS *mPlayerStats = nullptr;
 
     //copy of the player stats when player
     //crosses finish line the last time
-    PLAYERSTATS *mFinalPlayerStats = NULL;
+    PLAYERSTATS *mFinalPlayerStats = nullptr;
 
     irr::f32 terrainTiltCraftLeftRightDeg;
     irr::f32 terrainTiltCraftFrontBackDeg;
@@ -469,7 +469,7 @@ public:
     void CrossedCheckPoint(irr::s32 valueCrossedCheckPoint, irr::s32 numberOfCheckpoints);
 
     //the parent race for this player
-    Race *mRace;
+    Race *mRace = nullptr;
 
     //debug height calculation variables
     LineStruct debug;
@@ -508,10 +508,10 @@ public:
 
     bool AllAnimatorsDone();
 
-    EntityItem* cPTargetEntity = NULL;
+    EntityItem* cPTargetEntity = nullptr;
 
     //the following variable is only valid (and must only be used)
-    //while currClosestWayPointLink is current != NULL
+    //while currClosestWayPointLink is current != nullptr
     irr::core::vector3df projPlayerPositionClosestWayPointLink;
 
     //the following variable is used for race position calculation
@@ -546,7 +546,7 @@ public:
     bool mBoosterActive = false;
     bool mBoosterRechargeCurrentlyLocked = false;
     bool mLastBoosterActive = false;
-    sf::Sound* TurboSound;
+    sf::Sound* TurboSound = nullptr;
 
     void IsSpaceDown(bool down, irr::f32 deltaTime);
     void MaxTurboReached();
@@ -557,10 +557,10 @@ public:
 
     void Collided();
     void AfterPhysicsUpdate();
-    sf::Sound* CollisionSound = NULL;
+    sf::Sound* CollisionSound = nullptr;
 
-    MachineGun* mMGun;
-    MissileLauncher* mMissileLauncher;
+    MachineGun* mMGun = nullptr;
+    MissileLauncher* mMissileLauncher = nullptr;
 
     //Get current weapon shooting target for this player
     //Returns true if there was a target found, False otherwise
@@ -589,7 +589,7 @@ public:
     //vector with this players HUD broken glas
     //positions must be stored within the player, as each
     //player has a different state of the glass
-    std::vector<HudDisplayPart*>* brokenGlasVec;
+    std::vector<HudDisplayPart*>* brokenGlasVec = nullptr;
 
     //true if player craft is currently jumping
     bool mCurrJumping = false;
@@ -608,7 +608,7 @@ public:
 
     irr::u8 playerAbsAngleSkytListElementNr = 0;
 
-    MovingAverageCalculator* mMovingAvgPlayerLeaningAngleLeftRightCalc;
+    MovingAverageCalculator* mMovingAvgPlayerLeaningAngleLeftRightCalc = nullptr;
     irr::f32 mCurrentAvgPlayerLeaningAngleLeftRightValue;
     irr::f32 nextLeaningAngleUpdate = -1.0f;
 
@@ -620,7 +620,7 @@ public:
     void TestCpForceControlLogicWithHumanPlayer();
 
     //current best camera for this players external view
-    Camera* externalCamera = NULL;
+    Camera* externalCamera = nullptr;
 
     irr::u8 mCurrentViewMode;
     irr::u8 mLastViewModeBeforeBrokenCraft;
@@ -659,16 +659,16 @@ public:
 
 private:
     //the mesh for the Irrlicht SceneNode model
-    irr::scene::IAnimatedMesh*  PlayerMesh;
+    irr::scene::IAnimatedMesh* PlayerMesh = nullptr;
 
     //for recording HeightMap Collision data for debugging
-    std::vector<HMAPCOLLSENSOR*>* hMapCollDebugRecordingData;
+    std::vector<HMAPCOLLSENSOR*>* hMapCollDebugRecordingData = nullptr;
 
-    //if NULL then no recording is taking place right now
-    HMAPCOLLSENSOR *hMapCollDebugWhichSensor = NULL;
+    //if nullptr then no recording is taking place right now
+    HMAPCOLLSENSOR *hMapCollDebugWhichSensor = nullptr;
 
     //from which recovery vehicle are we currently grabbed?
-    Recovery* mGrabedByThisRecoveryVehicle = NULL;
+    Recovery* mGrabedByThisRecoveryVehicle = nullptr;
 
     void SetNewState(irr::u32 newPlayerState);
 
@@ -731,20 +731,20 @@ private:
     bool mBlockAdditionalAmmoFullMsg = false;
 
     bool mPlayerCurrentlyCharging = false;
-    sf::Sound* mChargingSoundSource = NULL;
-    sf::Sound* mWarningSoundSource = NULL;
-    sf::Sound* mLockOnSoundSource = NULL;
+    sf::Sound* mChargingSoundSource = nullptr;
+    sf::Sound* mWarningSoundSource = nullptr;
+    sf::Sound* mLockOnSoundSource = nullptr;
     
     //each player has a particle system for the
     //case the craft is heavily damager
     //smoke is relased behind the craft
-    SmokeTrail* mSmokeTrail;
+    SmokeTrail* mSmokeTrail = nullptr;
 
     //each player has a particle system for the
     //case the craft is hovering above a dusty tile
     //to emit dust clouds below the craft
     //Is the original game does
-    DustBelowCraft* mDustBelowCraft;
+    DustBelowCraft* mDustBelowCraft = nullptr;
 
     void CheckDustCloudEmitter();
 
@@ -752,17 +752,17 @@ private:
     bool mLastEmitDustCloud = false;
 
     //definition of dirt texture elements vector
-    std::vector<irr::s32> *dirtTexIdsVec;
+    std::vector<irr::s32> *dirtTexIdsVec = nullptr;
 
     //is unequal to NULL if player craft is currently inside
     //a craft trigger area defined in the level during
     //the current player update
-    MapTileRegionStruct* mCurrentCraftTriggerRegion = NULL;
+    MapTileRegionStruct* mCurrentCraftTriggerRegion = nullptr;
 
     //is unequal to NULL if player craft was inside
     //a craft trigger area defined in the level during
     //the last player update
-    MapTileRegionStruct* mLastCraftTriggerRegion = NULL;
+    MapTileRegionStruct* mLastCraftTriggerRegion = nullptr;
 
     void AddGlasBreak();
     void RepairGlasBreaks();
@@ -791,13 +791,13 @@ public:
     //every player needs a CpuPlayer that is able
     //to control the craft, at least after the race
     //is finished for the player
-    CpuPlayer* mCpuPlayer;
+    CpuPlayer* mCpuPlayer = nullptr;
 
 public:
     //pointer to a connected HUD
-    //NULL if player is currently
+    //nullptr if player is currently
     //not linked to any HUD
-    HUD* mHUD = NULL;
+    HUD* mHUD = nullptr;
 };
 
 #endif // PLAYER_H

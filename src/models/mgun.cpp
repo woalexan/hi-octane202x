@@ -17,28 +17,28 @@ bool MachineGun::LoadSprites() {
    //get pointer to preloaded texture
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(43);
 
-   if (newTex == NULL)
+   if (newTex == nullptr)
        return false;
 
    animTexList.push_back(newTex);
 
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(44);
 
-   if (newTex == NULL)
+   if (newTex == nullptr)
        return false;
 
    animTexList.push_back(newTex);
 
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(45);
 
-   if (newTex == NULL)
+   if (newTex == nullptr)
        return false;
 
    animTexList.push_back(newTex);
 
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(46);
 
-   if (newTex == NULL)
+   if (newTex == nullptr)
        return false;
 
    animTexList.push_back(newTex);
@@ -54,7 +54,7 @@ bool MachineGun::AllAnimationsFinished() {
     std::vector<MachineGunBulletImpactStruct*>::iterator it;
 
     for (it = this->mBulletImpactVec.begin(); it != this->mBulletImpactVec.end(); ++it) {
-        if ((*it)->animator != NULL) {
+        if ((*it)->animator != nullptr) {
            if (!(*it)->animator->hasFinished())
                return false;
         }
@@ -63,7 +63,7 @@ bool MachineGun::AllAnimationsFinished() {
     return true;
 }
 
-//returns NULL if currently all 4 shoots are fired, and no impact
+//returns nullptr if currently all 4 shoots are fired, and no impact
 //struct (sprite scenenode and animator) is currently available
 //otherwise returns a random picked available impact struct
 //random to make sure that the impact does not occur always at the same tile
@@ -80,9 +80,9 @@ MachineGunBulletImpactStruct* MachineGun::GetCurrentlyAvailableImpactStruct() {
   }
 
   //if we currently fire all 4 machine guns at the same time
-  //return NULL
+  //return nullptr
   if (nrAvail < 1)
-      return NULL;
+      return nullptr;
 
   //now select one of the available impact structs randomly
   irr::f32 probability = 100.0f / irr::f32(nrAvail);
@@ -125,7 +125,7 @@ void MachineGun::Trigger() {
             //only play this sound for a human player, for a computer player
             //this does not make sense, and only is disturbing
             if (mParent->mHumanPlayer) {
-               if (mShotFailSound == NULL) {
+               if (mShotFailSound == nullptr) {
                     mShotFailSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED,
                                                                              mParent->phobj->physicState.position, false);
                }
@@ -136,14 +136,14 @@ void MachineGun::Trigger() {
     //can we shoot one bullet more currently, or are already
     //all 4 possible shoots at the same time fired?
 
-    //freeStruct will be returned as NULL if we can not fire another shot currently
+    //freeStruct will be returned as nullptr if we can not fire another shot currently
     MachineGunBulletImpactStruct* freeStruct = GetCurrentlyAvailableImpactStruct();
 
-    if (freeStruct != NULL) {
+    if (freeStruct != nullptr) {
         //we can shoot again
         irr::core::vector3df shotTargetLoc;
 
-        if (mParent->mTargetPlayer != NULL) {
+        if (mParent->mTargetPlayer != nullptr) {
              //we have currently a player targeted, fire at the player
              //06.05.2025: Until now the computer players have a target accuracy of 100% in the final
              //race stats which is kind of unrealistic, and looks weird; Reason is that the computer players only fire
@@ -250,7 +250,7 @@ void MachineGun::Update(irr::f32 DeltaTime) {
                         if ((*it)->animator->hasFinished()) {
                             (*it)->animSprite->removeAnimator((*it)->animator);
                             (*it)->animator->drop();
-                            (*it)->animator = NULL;
+                            (*it)->animator = nullptr;
                             (*it)->shooting = false;
                             (*it)->animSprite->setVisible(false);
                         }
@@ -259,16 +259,16 @@ void MachineGun::Update(irr::f32 DeltaTime) {
                  }
             }
 
-            if ((*it)->mShotSound != NULL) {
+            if ((*it)->mShotSound != nullptr) {
                 if ((*it)->mShotSound->getStatus() == (*it)->mShotSound->Stopped) {
-                    (*it)->mShotSound = NULL;
+                    (*it)->mShotSound = nullptr;
                 }
             }
     }
 
-    if (mShotFailSound != NULL) {
+    if (mShotFailSound != nullptr) {
             if (mShotFailSound->getStatus() == mShotFailSound->Stopped) {
-                mShotFailSound = NULL;
+                mShotFailSound = nullptr;
             }
     }
 
@@ -378,7 +378,7 @@ MachineGun::~MachineGun() {
         //remove all animators from this SceneNode
         pntr->animSprite->removeAnimators();
 
-        if (pntr->mShotSound != NULL) {
+        if (pntr->mShotSound != nullptr) {
             pntr->mShotSound->stop();
         }
 

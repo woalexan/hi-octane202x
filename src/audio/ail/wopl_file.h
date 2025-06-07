@@ -24,7 +24,7 @@
 
 /* Note Wolf Alexander: The source code below is not 100% the original code from the
  * initial author anymore, as I had to make changes to it to be able to compile it
- * on my system. */
+ * on my system. 07.06.2025: I also replaced some NULL with nullptr */
 
 #ifndef WOPL_FILE_H
 #define WOPL_FILE_H

@@ -50,7 +50,7 @@ protected:
     int m_X;
     int m_Z;
 
-    ColumnDefinition* m_Column = NULL;
+    ColumnDefinition* m_Column = nullptr;
 };
 
 #endif // MAPENTRY_H

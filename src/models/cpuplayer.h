@@ -63,11 +63,11 @@ struct ChargerStoppingRegionStruct; //Forward declaration
 
 typedef struct CpCommandEntry {
     uint8_t cmdType;
-    EntityItem* targetEntity = NULL;
+    EntityItem* targetEntity = nullptr;
     irr::core::vector3df targetPosition;
-    WayPointLinkInfoStruct* targetWaypointLink = NULL;
-    Collectable* targetCollectible = NULL;
-    ChargingStation* targetChargingStation = NULL;
+    WayPointLinkInfoStruct* targetWaypointLink = nullptr;
+    Collectable* targetCollectible = nullptr;
+    ChargingStation* targetChargingStation = nullptr;
 
     //if true this was a temporary dynamically
     //created waypoint link for a specific purpose
@@ -135,7 +135,7 @@ public:
      irr::f32 mLocalOffset = 0.0f;
 
 private:
-    Player* mParentPlayer;
+    Player* mParentPlayer = nullptr;
 
     //the next 2 values (currently closest waypoint link this player craft is
     //next too) belongs more into the player class, and I want to keep it there
@@ -146,13 +146,13 @@ private:
     //which is kept update by a mechanism in the player class itself
     std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> currClosestWayPointLink;
     //the following variable is only valid (and must only be used)
-    //while currClosestWayPointLink is current != NULL
+    //while currClosestWayPointLink is current != nullptr
     irr::core::vector3df projPlayerPositionClosestWayPointLink;
 
     irr::f32 mCpCurrentDeaccelRate = CP_PLAYER_DEACCEL_RATE_DEFAULT;
     irr::f32 mCpCurrentAccelRate = CP_PLAYER_ACCEL_RATE_DEFAULT;
 
-    std::list<CPCOMMANDENTRY*>* cmdList;
+    std::list<CPCOMMANDENTRY*>* cmdList = nullptr;
     void AddCommand(uint8_t cmdType, irr::core::vector3df targetPosition);
     void AddCommand(uint8_t cmdType, EntityItem* targetEntity);
     void AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink);
@@ -172,14 +172,14 @@ private:
 
     irr::u32 CpCurrMissionState = CP_MISSION_WAITFORRACESTART;
 
-    CPCOMMANDENTRY* currCommand = NULL;
+    CPCOMMANDENTRY* currCommand = nullptr;
 
     bool DoIWantToChargeShield();
     bool DoIWantToChargeFuel();
     bool DoIWantToChargeAmmo();
 
-    ChargerStoppingRegionStruct* mAssignedChargingStall = NULL;
-    ChargingStation* mAssignedChargingStation = NULL;
+    ChargerStoppingRegionStruct* mAssignedChargingStall = nullptr;
+    ChargingStation* mAssignedChargingStation = nullptr;
 
     bool mReachedChargingStation = false;
     bool mReachedChargingStall = false;
@@ -206,7 +206,7 @@ private:
     irr::u32 mCurrentPathSegNrSegments;
     irr::u32 mCurrentPathSegCurrSegmentNr;
 
-    WayPointLinkInfoStruct* mCpFollowThisWayPointLink;
+    WayPointLinkInfoStruct* mCpFollowThisWayPointLink = nullptr;
 
     irr::s32 mDbgCpAvailWaypointNr = 0;
     std::vector<WayPointLinkInfoStruct*> mCpAvailWayPointLinks;
@@ -220,7 +220,7 @@ private:
 
     void ReachedEndCurrentFollowingSegments();
 
-    WayPointLinkInfoStruct* cPCurrentFollowSeg = NULL;
+    WayPointLinkInfoStruct* cPCurrentFollowSeg = nullptr;
 
     std::vector<WayPointLinkInfoStruct*> mPathHistoryVec;
     std::vector<WayPointLinkInfoStruct*> mCurrentPathSeg;
@@ -253,11 +253,11 @@ private:
 
     bool mHandleSeperation = true;
 
-    Collectable* mCpTargetCollectableToPickUp = NULL;
-    WayPointLinkInfoStruct* mCpWayPointLinkClosestToCollectable = NULL;
+    Collectable* mCpTargetCollectableToPickUp = nullptr;
+    WayPointLinkInfoStruct* mCpWayPointLinkClosestToCollectable = nullptr;
     bool DoISeeACertainCollectable(Collectable* whichItem);
 
-    irr::video::SMaterial* currDbgColor;
+    irr::video::SMaterial* currDbgColor = nullptr;
     void AdvanceDbgColor();
 
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;

@@ -27,9 +27,9 @@
 
 struct LineStruct {
   //std::string name;
-  char* name;
+  char* name = nullptr;
   irr::core::vector3d<irr::f32> A, B;
-  irr::video::SMaterial *color;
+  irr::video::SMaterial *color = nullptr;
 
   //irr::core::line3df *debugLine = NULL;
 };

@@ -42,11 +42,11 @@ void CpuPlayer::StartSignalShowsGreen() {
 void CpuPlayer::SetupForRaceStart(irr::core::vector3df startPos) {
     //for a computer player additional add first player command
     EntityItem* entItem = mParentPlayer->mRace->mPath->FindFirstWayPointAfterRaceStartPoint();
-    if (entItem != NULL) {
+    if (entItem != nullptr) {
        //get waypoint link for this waypoint
         std::vector<WayPointLinkInfoStruct*> foundLinks;
 
-       foundLinks = mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(entItem, true, false, NULL);
+       foundLinks = mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(entItem, true, false, nullptr);
 
        if (foundLinks.size() > 0) {
            AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, foundLinks.at(0));
@@ -66,7 +66,7 @@ void CpuPlayer::SetupForRaceStart(irr::core::vector3df startPos) {
 }
 
 void CpuPlayer::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> newClosestWayPointLink) {
-    if (newClosestWayPointLink.first != NULL) {
+    if (newClosestWayPointLink.first != nullptr) {
         this->currClosestWayPointLink = newClosestWayPointLink;
         this->projPlayerPositionClosestWayPointLink = newClosestWayPointLink.second;
     }
@@ -111,7 +111,7 @@ void CpuPlayer::CpTakeOverHuman() {
 }
 
 void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
-    if (cmdType != CMD_FLYTO_TARGETENTITY || targetEntity == NULL)
+    if (cmdType != CMD_FLYTO_TARGETENTITY || targetEntity == nullptr)
         return;
 
     CheckAndRemoveNoCommand();
@@ -191,7 +191,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
 }
 
 void CpuPlayer::AddCommand(uint8_t cmdType, WayPointLinkInfoStruct* targetWayPointLink) {
-    if (cmdType != CMD_FOLLOW_TARGETWAYPOINTLINK || targetWayPointLink == NULL)
+    if (cmdType != CMD_FOLLOW_TARGETWAYPOINTLINK || targetWayPointLink == nullptr)
         return;
 
     CheckAndRemoveNoCommand();
@@ -218,7 +218,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, ChargingStation* whichChargingStatio
     if (cmdType != CMD_GOTO_CHARGINGSTATION)
         return;
 
-    if ((whichChargingStation == NULL) || (whichStall == NULL))
+    if ((whichChargingStation == nullptr) || (whichStall == nullptr))
         return;
 
     CPCOMMANDENTRY* newCmd = new CPCOMMANDENTRY();
@@ -234,7 +234,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, ChargingStation* whichChargingStatio
 }
 
 void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingStation, ChargerStoppingRegionStruct* whichStall) {
-    if ((whichChargingStation == NULL) || (whichStall == NULL))
+    if ((whichChargingStation == nullptr) || (whichStall == nullptr))
         return;
 
         //create a new temporary waypoint link from computer player crafts current
@@ -323,7 +323,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
 }
 
 void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargingStation) {
-    if (whichChargingStation == NULL)
+    if (whichChargingStation == nullptr)
         return;
 
         //create a new temporary waypoint link from computer player crafts current
@@ -331,7 +331,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
 
         //if we have no exitWayPointLink in this charging station, we can not exit
         //in this case, just return
-        if (whichChargingStation->exitWayPointLink == NULL)
+        if (whichChargingStation->exitWayPointLink == nullptr)
             return;
 
         //do we use start or exit entity of the exitWayPointLink to exit the charging
@@ -448,16 +448,16 @@ void CpuPlayer::AddCommand(uint8_t cmdType, Collectable* whichCollectable) {
 }
 
 void CpuPlayer::CheckAndRemoveNoCommand() {
-    if (currCommand == NULL)
+    if (currCommand == nullptr)
         return;
 
     if (currCommand->cmdType == CMD_NOCMD) {
         CPCOMMANDENTRY* oldCmd = currCommand;
 
-        //if we set currCommand to NULL then the program
+        //if we set currCommand to nullptr then the program
         //will pull the next available command in
         //RunComputerPlayerLogic
-        currCommand = NULL;
+        currCommand = nullptr;
 
         //delete old command struct
         delete oldCmd;
@@ -478,7 +478,7 @@ void CpuPlayer::RemoveAllPendingCommands() {
            //as well
            if (pntrCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
                //we have to do maybe more cleanup
-               if (pntrCmd->targetWaypointLink != NULL) {
+               if (pntrCmd->targetWaypointLink != nullptr) {
                    //if temporary waypoint link (created for a specific purpose,
                    //not part of level file), clean up again
                    if (pntrCmd->WayPointLinkTemporary) {
@@ -503,7 +503,7 @@ void CpuPlayer::RemoveAllPendingCommands() {
        }
     }
 
-    currCommand = NULL;
+    currCommand = nullptr;
 }
 
 bool CpuPlayer::DoIWantToChargeShield() {
@@ -544,9 +544,9 @@ void CpuPlayer::DebugDraw() {
 
 WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks) {
     std::vector<WayPointLinkInfoStruct*>::iterator it;
-    WayPointLinkInfoStruct* linkForFuel = NULL;
-    WayPointLinkInfoStruct* linkForShield = NULL;
-    WayPointLinkInfoStruct* linkForAmmo = NULL;
+    WayPointLinkInfoStruct* linkForFuel = nullptr;
+    WayPointLinkInfoStruct* linkForShield = nullptr;
+    WayPointLinkInfoStruct* linkForAmmo = nullptr;
     std::vector<WayPointLinkInfoStruct*> linksNothingSpecial;
 
     linksNothingSpecial.clear();
@@ -599,15 +599,15 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
     //now handle stuff in terms of priority, most important stuff first
 
     //do we have link to shield?
-    if (linkForShield != NULL) {
+    if (linkForShield != nullptr) {
         //do we need shield? nothing more important!
         if (DoIWantToChargeShield()) {
             //get exact region info for charger
             ChargingStation* chargingStation =
                     this->mParentPlayer->mRace->mPath->GetChargingStationAhead(linkForShield, LEVELFILE_REGION_CHARGER_SHIELD);
 
-            //make sure pointer is unequal to NULL!
-            if (chargingStation != NULL) {
+            //make sure pointer is unequal to nullptr!
+            if (chargingStation != nullptr) {
 
                     //request charging at charging station
                     //if request is granted we receive return value true, false otherwise
@@ -646,15 +646,15 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
     }
 
     //do we have link to fuel?
-    if (linkForFuel != NULL) {
+    if (linkForFuel != nullptr) {
         //do we need fuel?
         if (DoIWantToChargeFuel()) {
             //get exact region info for charger
             ChargingStation* chargingStation =
                     this->mParentPlayer->mRace->mPath->GetChargingStationAhead(linkForFuel, LEVELFILE_REGION_CHARGER_FUEL);
 
-            //make sure pointer is unequal to NULL!
-            if (chargingStation != NULL) {
+            //make sure pointer is unequal to nullptr!
+            if (chargingStation != nullptr) {
 
                     //request charging at charging station
                     //if request is granted we receive return value true, false otherwise
@@ -685,15 +685,15 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
     }
 
     //do we have link to ammo?
-    if (linkForAmmo != NULL) {
+    if (linkForAmmo != nullptr) {
         //do we need ammo?
         if (DoIWantToChargeAmmo()) {
             //get exact region info for charger
             ChargingStation* chargingStation =
                     this->mParentPlayer->mRace->mPath->GetChargingStationAhead(linkForAmmo, LEVELFILE_REGION_CHARGER_AMMO);
 
-            //make sure pointer is unequal to NULL!
-            if (chargingStation != NULL) {
+            //make sure pointer is unequal to nullptr!
+            if (chargingStation != nullptr) {
 
                     //request charging at charging station
                     //if request is granted we receive return value true, false otherwise
@@ -757,7 +757,7 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
       return (linkForShield);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 bool CpuPlayer::DoISeeACertainCollectable(Collectable* whichItem) {
@@ -773,7 +773,7 @@ bool CpuPlayer::DoISeeACertainCollectable(Collectable* whichItem) {
 
 void CpuPlayer::CpPlayerCollectableSelectionLogic() {
     //does this player want to pickup a collectable right now?
-    if (mCpTargetCollectableToPickUp != NULL) {
+    if (mCpTargetCollectableToPickUp != nullptr) {
         //verify that the player still sees the collectable in his view region, if not remove
         //current command again, and return to normal path
         if (!DoISeeACertainCollectable(mCpTargetCollectableToPickUp)) {
@@ -782,8 +782,8 @@ void CpuPlayer::CpPlayerCollectableSelectionLogic() {
 
             mParentPlayer->LogMessage((char*)"The collectable I wanted to pickup is not visible anymore, continue race");
 
-            mCpTargetCollectableToPickUp = NULL;
-            mCpWayPointLinkClosestToCollectable = NULL;
+            mCpTargetCollectableToPickUp = nullptr;
+            mCpWayPointLinkClosestToCollectable = nullptr;
 
             //only remove current computer player command to pickup the collectable
             //if we really wanted to pickup this collectable in the first place
@@ -804,12 +804,12 @@ void CpuPlayer::CpPlayerCollectableSelectionLogic() {
     //player has no collectable target currently
     //and no other special command as well
     //do we see something we want to have?
-    if (currCommand != NULL) {
+    if (currCommand != nullptr) {
         if ((currCommand->cmdType == CMD_NOCMD) || (currCommand->cmdType == CMD_FOLLOW_TARGETWAYPOINTLINK)) {
             std::vector<Collectable*>::iterator it;
-            Collectable* wantPickup = NULL;
+            Collectable* wantPickup = nullptr;
 
-            for (it = mParentPlayer->mCollectablesSeenByPlayer.begin(); (it != mParentPlayer->mCollectablesSeenByPlayer.end() && (wantPickup == NULL)); ++it) {
+            for (it = mParentPlayer->mCollectablesSeenByPlayer.begin(); (it != mParentPlayer->mCollectablesSeenByPlayer.end() && (wantPickup == nullptr)); ++it) {
                 if ((*it)->GetIfVisible()) {
                     switch ((*it)->GetCollectableType()) {
                         case Entity::EntityType::ExtraShield: {
@@ -888,7 +888,7 @@ void CpuPlayer::CpPlayerCollectableSelectionLogic() {
                 }
             }
 
-            if (wantPickup != NULL) {
+            if (wantPickup != nullptr) {
                 mParentPlayer->LogMessage((char*)"AddCommand: Pick colletable up");
 
                 //we found something we want to have
@@ -955,7 +955,7 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
     if (!mParentPlayer->mPlayerStats->mPlayerCanMove)
         return;
 
-    if (this->cPCurrentFollowSeg != NULL) {
+    if (this->cPCurrentFollowSeg != nullptr) {
         //we need to project current computer player craft
         //position onto the current segment we follow
         //this recalculates the current projPlayerPositionClosestWayPointLink member
@@ -964,7 +964,7 @@ void CpuPlayer::CPForceController(irr::f32 deltaTime) {
 
         //sometimes we loose our way inside ProjectPlayerAtCurrentSegments,
         //if so just exit, next time we should have a new way again
-        if (this->cPCurrentFollowSeg == NULL) {
+        if (this->cPCurrentFollowSeg == nullptr) {
            this->computerPlayerTargetSpeed = 0.0f;
             mParentPlayer->LogMessage((char*)"CPForceController: lost our segment to follow in ProjectPlayerAtCurrentSegments");
 
@@ -1156,8 +1156,8 @@ void CpuPlayer::CPTrackMovement() {
     irr::f32 minDistance;
     bool firstElement = true;
     irr::core::vector3df projPlayerPosition;
-    WayPointLinkInfoStruct* closestLink = NULL;
-    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = NULL;
+    WayPointLinkInfoStruct* closestLink = nullptr;
+    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = nullptr;
     irr::f32 minStartEndPointDistance;
     bool firstElementStartEndPoint = true;
 
@@ -1265,7 +1265,7 @@ void CpuPlayer::CPTrackMovement() {
     }
 
     //did we still not find the closest link? try some workaround
-    if (closestLink == NULL) {
+    if (closestLink == nullptr) {
         mCPTrackMovementNoClearClosestLinkCnter++;
        // closestLink = mLastPathSegElementFollowing;
 
@@ -1273,25 +1273,25 @@ void CpuPlayer::CPTrackMovement() {
 
        //workaround, take the waypoint with either the closest
        //start or end entity
-       if (LinkWithClosestStartEndPoint != NULL) {
+       if (LinkWithClosestStartEndPoint != nullptr) {
          closestLink = LinkWithClosestStartEndPoint;
          mParentPlayer->LogMessage((char*)"CPTrackMovement: Workaround closest StartEndPoint");
          //this->mParentPlayer->mRace->mGame->StopTime();
        }
     }
 
-    /*if ((closestLink != NULL) && (whichPlayer == player)) {
+    /*if ((closestLink != nullptr) && (whichPlayer == player)) {
         closestLink->pLineStruct->color = mDrawDebug->green;
     }*/
 
-/*    if ((LinkWithClosestStartEndPoint != NULL) && (whichPlayer == player)) {
+/*    if ((LinkWithClosestStartEndPoint != nullptr) && (whichPlayer == player)) {
        LinkWithClosestStartEndPoint->pLineStruct->color = mDrawDebug->red;
     }*/
 
     cPCurrentFollowSeg = closestLink;
 
-   if (cPCurrentFollowSeg == NULL) {
-         mParentPlayer->LogMessage((char*)"CPTrackMovement: cPCurrentFollowSeg is NULL, Workaround");
+   if (cPCurrentFollowSeg == nullptr) {
+         mParentPlayer->LogMessage((char*)"CPTrackMovement: cPCurrentFollowSeg is nullptr, Workaround");
          //this->mParentPlayer->mRace->mGame->StopTime();
 
          WorkaroundResetCurrentPath();
@@ -1331,7 +1331,7 @@ void CpuPlayer::CPTrackMovement() {
 }
 
 void CpuPlayer::ReachedEndCurrentFollowingSegments() {
-  //  if (this->currClosestWayPointLink.first != NULL) {
+  //  if (this->currClosestWayPointLink.first != nullptr) {
 
         //which waypoint options do we have at the end of
         //our closest waypoint link?
@@ -1371,10 +1371,10 @@ void CpuPlayer::ReachedEndCurrentFollowingSegments() {
         }
 
         //do we currently want to pickup a collectible, this has priority
-        if (this->mCpTargetCollectableToPickUp != NULL) {
+        if (this->mCpTargetCollectableToPickUp != nullptr) {
             //is the waypoint link next to the collectible one of the waypoint links in front
             //of me, if so select this one and add a new path to the collectible
-            if (this->mCpWayPointLinkClosestToCollectable != NULL) {
+            if (this->mCpWayPointLinkClosestToCollectable != nullptr) {
                std::vector<WayPointLinkInfoStruct*>::iterator it3;
                for (it3 = mCpAvailWayPointLinks.begin(); it3 != mCpAvailWayPointLinks.end(); ++it3) {
                    if ((*it3) == mCpWayPointLinkClosestToCollectable) {
@@ -1382,7 +1382,7 @@ void CpuPlayer::ReachedEndCurrentFollowingSegments() {
                        //define path through it
                        PickupCollectableDefineNextSegment(mCpTargetCollectableToPickUp);
                        this->mCpFollowThisWayPointLink = (*it3);
-                       /*if (mHUD != NULL) {
+                       /*if (mHUD != nullptr) {
                          this->mHUD->ShowBannerText((char*)"COLLECT", 4.0f);
                        }*/
 
@@ -1401,13 +1401,13 @@ void CpuPlayer::ReachedEndCurrentFollowingSegments() {
             }
         }
 
-        WayPointLinkInfoStruct* nextLink = NULL;
+        WayPointLinkInfoStruct* nextLink = nullptr;
 
         //ask computer player logic what to do
         nextLink = CpPlayerWayPointLinkSelectionLogic(mCpAvailWayPointLinks);
         this->mCpFollowThisWayPointLink = nextLink;
 
-        if (nextLink != NULL) {
+        if (nextLink != nullptr) {
             Entity::EntityType entType = nextLink->pStartEntity->getEntityType();
 
             //we need to go slower?
@@ -1418,7 +1418,7 @@ void CpuPlayer::ReachedEndCurrentFollowingSegments() {
             }
 
             FollowPathDefineNextSegment(nextLink, mCpCurrPathOffset, true);
-           /* if (mHUD != NULL) {
+           /* if (mHUD != nullptr) {
                this->mHUD->ShowBannerText((char*)"REACHED END", 4.0f);
              }*/
       }
@@ -1591,7 +1591,7 @@ void CpuPlayer::WorkaroundResetCurrentPath() {
    std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> closestLink =
            mParentPlayer->mRace->mPath->PlayerDeriveClosestWaypointLink(closeWaypointLinks);
 
-   if (closestLink.first == NULL) {
+   if (closestLink.first == nullptr) {
        //workaround, just do nothing! TODO: Maybe improve later
        mParentPlayer->LogMessage((char*)"WorkaroundResetCurrentPath: no closest link found");
    } else {
@@ -1613,7 +1613,7 @@ void CpuPlayer::WorkaroundResetCurrentPath() {
     //which waypoint is closest to me?
     EntityItem* closestWayPoint = this->mParentPlayer->mRace->mPath->FindNearestWayPointToPlayer(this->mParentPlayer);
 
-   if (closestWayPoint == NULL) {
+   if (closestWayPoint == nullptr) {
        //workaround, just do nothing! TODO: Maybe improve later
        mParentPlayer->LogMessage((char*)"WorkaroundResetCurrentPath: no closest waypoint found!");
    } else {
@@ -1639,7 +1639,7 @@ void CpuPlayer::CpCheckCurrentPathForObstacles() {
         //current progress on this waypoint link in terms of location between start and end entity
         //how much free (movement) space we have to the right and left side of the freely moveable area
         //on the race track right now
-        if (currClosestWayPointLink.first == NULL)
+        if (currClosestWayPointLink.first == nullptr)
             return;
 
         irr::f32 progress = (currClosestWayPointLink.second - currClosestWayPointLink.first->pLineStruct->A).getLength() /
@@ -1735,7 +1735,7 @@ void CpuPlayer::CpCheckCurrentPathForObstacles() {
 
     if (updatePath) {
          FollowPathDefineNextSegment(this->mCpFollowThisWayPointLink, mCpCurrPathOffset);
-         /*if (mHUD != NULL) {
+         /*if (mHUD != nullptr) {
            this->mHUD->ShowBannerText((char*)"OBSTACLE", 4.0f);
          }*/
 
@@ -1869,7 +1869,7 @@ void CpuPlayer::FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, ir
                     //also does not work
                     //try different order
                     //here we need the midpoint of the next waypoint link in front of us
-                    if (nextLink->pntrPathNextLink != NULL) {
+                    if (nextLink->pntrPathNextLink != nullptr) {
                             WayPointLinkInfoStruct* pntrLinkAfterwards = nextLink->pntrPathNextLink;
                             irr::core::vector3df linkAfterwardsStart3D;
                             irr::core::vector2df bezierPntNextLinkStart =
@@ -2032,7 +2032,7 @@ void CpuPlayer::CpAddCommandTowardsNextCheckpoint() {
     overallWaypointLinkList.clear();
 
     for (it = wayPointAroundMeVec.begin(); it != wayPointAroundMeVec.end(); ++it) {
-        structPntrVec = mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint((*it), true, true, NULL);
+        structPntrVec = mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint((*it), true, true, nullptr);
 
         for (it2 = structPntrVec.begin(); it2 != structPntrVec.end(); ++it2) {
             overallWaypointLinkList.push_back(*it2);
@@ -2333,7 +2333,7 @@ void CpuPlayer::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currComma
         return;
 
     //is there really a target entity and waypoint link information?
-     if ((currCommand->targetWaypointLink != NULL) && (currCommand->targetEntity != NULL)) {
+     if ((currCommand->targetWaypointLink != nullptr) && (currCommand->targetEntity != nullptr)) {
         //yes, there is
 
         cPCurrentFollowSeg = currCommand->targetWaypointLink;
@@ -2355,12 +2355,12 @@ void CpuPlayer::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currComma
             //mark current command as finished, pull the next one
             CurrentCommandFinished();
 
-            cPCurrentFollowSeg = NULL;
+            cPCurrentFollowSeg = nullptr;
 
             //continue path via next waypoint-links
             //too which waypoint link does this entity item belong too
             std::vector<WayPointLinkInfoStruct*> whichLinksStart =
-                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, true, false, NULL);
+                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, true, false, nullptr);
 
             if (whichLinksStart.size() > 0) {
                 AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, whichLinksStart.at(0));
@@ -2369,10 +2369,10 @@ void CpuPlayer::FlyTowardsEntityRunComputerPlayerLogic(CPCOMMANDENTRY* currComma
             }
 
             std::vector<WayPointLinkInfoStruct*> whichLinksEnd =
-                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, false, true, NULL);
+                    mParentPlayer->mRace->mPath->FindWaypointLinksForWayPoint(pntrItem, false, true, nullptr);
 
             if (whichLinksEnd.size() > 0) {
-                if (whichLinksEnd.at(0)->pntrPathNextLink != NULL) {
+                if (whichLinksEnd.at(0)->pntrPathNextLink != nullptr) {
                     AddCommand(CMD_FOLLOW_TARGETWAYPOINTLINK, whichLinksEnd.at(0)->pntrPathNextLink);
                 }
 
@@ -2400,7 +2400,7 @@ void CpuPlayer::CleanUpCommandList() {
            //as well
            if (pntrCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
                //we have to do maybe more cleanup
-               if (pntrCmd->targetWaypointLink != NULL) {
+               if (pntrCmd->targetWaypointLink != nullptr) {
                    //if temporary waypoint link (created for a specific purpose,
                    //not part of level file), clean up again
                    if (pntrCmd->WayPointLinkTemporary) {
@@ -2427,16 +2427,16 @@ void CpuPlayer::CleanUpCommandList() {
 
     //free cmdList object
     delete cmdList;
-    cmdList = NULL;
+    cmdList = nullptr;
 }
 
 CPCOMMANDENTRY* CpuPlayer::CreateNoCommand() {
     CPCOMMANDENTRY* newcmd = new CPCOMMANDENTRY();
     newcmd->cmdType = CMD_NOCMD;
-    newcmd->targetEntity = NULL;
+    newcmd->targetEntity = nullptr;
     newcmd->targetPosition.set(0.0f, 0.0f, 0.0f);
-    newcmd->targetWaypointLink = NULL;
-    newcmd->targetChargingStation = NULL;
+    newcmd->targetWaypointLink = nullptr;
+    newcmd->targetChargingStation = nullptr;
 
     return newcmd;
 }
@@ -2464,20 +2464,20 @@ void CpuPlayer::CurrentCommandFinished() {
     CPCOMMANDENTRY* oldCmd = currCommand;
     this->cmdList->pop_front();
 
-    //if we set currCommand to NULL then the program
+    //if we set currCommand to nullptr then the program
     //will pull the next available command in
     //RunComputerPlayerLogic
-    currCommand = NULL;
+    currCommand = nullptr;
 
     //19.04.2025: Note: I had a very rare segmentation fault today
-    //in the next line, because it seeems currCommand was initially NULL
-    //at the top, which caused an access to a NULL in the line below
+    //in the next line, because it seeems currCommand was initially nullptr
+    //at the top, which caused an access to a nullptr in the line below
     //if this occurs again in future, should I adding an exit here if
-    //oldCmd == NULL?
+    //oldCmd == nullptr?
 
     if (oldCmd->cmdType == CMD_FLYTO_TARGETENTITY) {
         //we have to do maybe more cleanup
-        if (oldCmd->targetWaypointLink != NULL) {
+        if (oldCmd->targetWaypointLink != nullptr) {
             //if temporary waypoint link (created for a specific purpose,
             //not part of level file), clean up again
             if (oldCmd->WayPointLinkTemporary) {
@@ -2508,7 +2508,7 @@ void CpuPlayer::CpPlayerHandleAttack() {
         return;
 
     //if we have no target player, just return
-    if (mParentPlayer->mTargetPlayer == NULL)
+    if (mParentPlayer->mTargetPlayer == nullptr)
         return;
 
     //if the target player has already finished the race also
@@ -2575,13 +2575,13 @@ void CpuPlayer::CpHandleSeperation(irr::f32 deltaTime) {
 void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
     this->CpCurrMissionState = CP_MISSION_FINISHLAPS;
 
-    if (currCommand == NULL) {
+    if (currCommand == nullptr) {
         currCommand = PullNextCommandFromCmdList();
     }
 
     switch (currCommand->cmdType) {
         case CMD_NOCMD: {
-           /* if (mHUD != NULL) {
+           /* if (mHUD != nullptr) {
               this->mHUD->ShowBannerText((char*)"NO CMD", 4.0f);
             }*/
             break;
@@ -2608,12 +2608,12 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
         case CMD_PICKUP_COLLECTABLE: {
             this->mCpTargetCollectableToPickUp = currCommand->targetCollectible;
 
-            if (mCpWayPointLinkClosestToCollectable == NULL) {
+            if (mCpWayPointLinkClosestToCollectable == nullptr) {
                 //figure out which target link is closest to this collectable
                 std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> wayPointLinkCloseToCollectable =
                         mParentPlayer->mRace->mPath->FindClosestWayPointLinkToCollectible(mCpTargetCollectableToPickUp);
 
-                if (wayPointLinkCloseToCollectable.first != NULL) {
+                if (wayPointLinkCloseToCollectable.first != nullptr) {
                    mCpWayPointLinkClosestToCollectable = wayPointLinkCloseToCollectable.first;
                 }
             }
@@ -2667,7 +2667,7 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
 //                mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
 //                //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
 //                FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
-//                /*if (mHUD != NULL) {
+//                /*if (mHUD != nullptr) {
 //                  this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
 //                }*/
 //                computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;
@@ -2713,7 +2713,7 @@ void CpuPlayer::RunPlayerLogic(irr::f32 deltaTime) {
             mCpFollowThisWayPointLink = currCommand->targetWaypointLink;
             //FollowPathDefineNextSegment(mCpLastFollowThisWayPointLink, mCpCurrPathOffset, true);
             FollowPathDefineNextSegment(currCommand->targetWaypointLink, mCpCurrPathOffset, false);
-            /*if (mHUD != NULL) {
+            /*if (mHUD != nullptr) {
               this->mHUD->ShowBannerText((char*)"FOLLOW", 4.0f);
             }*/
             computerPlayerTargetSpeed = CP_PLAYER_SLOW_SPEED;

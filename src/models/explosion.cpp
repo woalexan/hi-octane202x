@@ -320,7 +320,7 @@ void Explosion::UpdateDebris(irr::f32 DeltaTime) {
                         MapEntry* mEntry = mParentExplosionLauncher->mParentRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
                         //is there actually an entry?
-                        if (mEntry != NULL) {
+                        if (mEntry != nullptr) {
                              terrainHeight = mParentExplosionLauncher->mParentRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight;
 
                              //sprite to close to terrain, if so stop the sprite to continue further

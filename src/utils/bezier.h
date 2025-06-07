@@ -49,8 +49,8 @@ private:
     //pointer to the levelTerrain object
     //we need this to be able to derive the height of the tiles
     //of the terrain
-    LevelTerrain *mLevelTerrain;
-    DrawDebug *mDrawDebug;
+    LevelTerrain *mLevelTerrain = nullptr;
+    DrawDebug *mDrawDebug = nullptr;
 };
 
 #endif // BEZIER_H

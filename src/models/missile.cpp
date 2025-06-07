@@ -56,7 +56,7 @@ Missile::~Missile() {
         RemoveSmokeSprite(pntr);
     }
 
-    if (mSceneNodeMissile != NULL) {
+    if (mSceneNodeMissile != nullptr) {
         mSceneNodeMissile->remove();
     }
 }
@@ -195,9 +195,9 @@ void Missile::Update(irr::f32 DeltaTime) {
         //if soundEngine is active report missile only as exploded
         //after explision sound was finished playing
         if (mParentLauncher->mParent->mRace->mSoundEngine->GetIsSoundActive()) {
-            if (mExplodeSound != NULL) {
+            if (mExplodeSound != nullptr) {
                 if (mExplodeSound->getStatus() == mExplodeSound->Stopped) {
-                    mExplodeSound = NULL;
+                    mExplodeSound = nullptr;
                 }
             } else {
                 if (AreAllSmokeSpritesGone()) {
@@ -223,7 +223,7 @@ void Missile::Update(irr::f32 DeltaTime) {
 
         //if this missile is still locked to the enemy player, update our missile direction
         if (this->targetStillLocked) {
-            if (this->mLockedPlayer != NULL) {
+            if (this->mLockedPlayer != nullptr) {
                 //we have a locked enemy player
                 //first make sure that the player that shoot me still
                 //has the same player locked, if not I need to loose my lock
@@ -250,11 +250,11 @@ void Missile::Update(irr::f32 DeltaTime) {
             //simply explode, let the missile disappear
             mSceneNodeMissile->setVisible(false);
             mSceneNodeMissile->remove();
-            mSceneNodeMissile = NULL;
+            mSceneNodeMissile = nullptr;
 
             //did the missile explode close to the target player, if so deal
             //damage to the targeted enemy player
-            if (this->mLockedPlayer != NULL) {
+            if (this->mLockedPlayer != nullptr) {
                 irr::f32 maxDealDamageRange = DEF_MISSILE_DEALDAMAGE_DISTRANGE;
                 if ((currentLocation - this->mLockedPlayer->phobj->physicState.position).getLength() < maxDealDamageRange) {
                     //in the original game it needs 7 missiles at a player with initial full shield to
@@ -291,12 +291,12 @@ void Missile::Update(irr::f32 DeltaTime) {
 
         MapEntry* mEntry = mParentLauncher->mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
 
-        if (mEntry != NULL) {
+        if (mEntry != nullptr) {
             currentLocation.Y =
                     mParentLauncher->mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry->get_X()][mEntry->get_Z()].currTileHeight + 0.3f;
         }
 
-        if (mSceneNodeMissile != NULL) {
+        if (mSceneNodeMissile != nullptr) {
             mSceneNodeMissile->setPosition(currentLocation);
         }
     }
@@ -347,7 +347,7 @@ bool MissileLauncher::LoadSprites() {
     //get the pointer to the preloaded texture
     mMissileTex = this->mParent->mRace->mTexLoader->spriteTex.at(0);
 
-    if (mMissileTex == NULL)
+    if (mMissileTex == nullptr)
         return false;
 
     mMissileTexSize = mMissileTex->getSize();
@@ -358,7 +358,7 @@ bool MissileLauncher::LoadSprites() {
     //get the pointer to the preloaded texture
     mSmokeTex = this->mParent->mRace->mTexLoader->spriteTex.at(17);
 
-    if (mSmokeTex == NULL)
+    if (mSmokeTex == nullptr)
         return false;
 
     mSmokeTexSize = mSmokeTex->getSize();
@@ -390,9 +390,9 @@ std::vector<irr::core::vector3df> MissileLauncher::GetMissileLaunchLocation(bool
     current_cell_calc_x = -(int)(Loc1.X / mParent->mRace->mLevelTerrain->segmentSize);
 
     MapEntry* mEntry1 = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
-    MapEntry* mEntry2 = NULL;
+    MapEntry* mEntry2 = nullptr;
 
-    if (mEntry1 != NULL) {
+    if (mEntry1 != nullptr) {
         Loc1.Y = mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry1->get_X()][mEntry1->get_Z()].currTileHeight + 0.3f;
     }
 
@@ -403,7 +403,7 @@ std::vector<irr::core::vector3df> MissileLauncher::GetMissileLaunchLocation(bool
         current_cell_calc_x = -(int)(Loc2.X / mParent->mRace->mLevelTerrain->segmentSize);
 
         mEntry2 = mParent->mRace->mLevelTerrain->GetMapEntry(current_cell_calc_x, current_cell_calc_y);
-        if (mEntry2 != NULL) {
+        if (mEntry2 != nullptr) {
             Loc2.Y = mParent->mRace->mLevelTerrain->pTerrainTiles[mEntry2->get_X()][mEntry2->get_Z()].currTileHeight + 0.3f;
         }
 
@@ -427,7 +427,7 @@ void MissileLauncher::Trigger() {
         return;
     }
 
-    Player* lockedPlayer = NULL;
+    Player* lockedPlayer = nullptr;
     bool targetIsLocked = false;
 
     bool skipAnimation = false;
@@ -445,7 +445,7 @@ void MissileLauncher::Trigger() {
     irr::core::vector3df shotTargetLoc2;
     std::vector<irr::core::vector3df> launchLoc = GetMissileLaunchLocation(fireTwoMissiles);
 
-     if (mParent->mTargetPlayer != NULL) {
+     if (mParent->mTargetPlayer != nullptr) {
          //we have currently a player targeted, fire at the player
          shotTargetLoc1 = mParent->mTargetPlayer->phobj->physicState.position;
          shotTargetLoc2 = mParent->mTargetPlayer->phobj->physicState.position;
@@ -508,7 +508,7 @@ void MissileLauncher::Trigger() {
         shooting = true;
      }
 
-     if (mShotSound == NULL) {
+     if (mShotSound == nullptr) {
             mShotSound = mParent->mRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, launchLoc.at(0), false);
      }
 }
@@ -528,7 +528,7 @@ void MissileLauncher::Update(irr::f32 DeltaTime) {
 
                     //delete the missile object itself
                     delete mPntr;
-                    mPntr = NULL;
+                    mPntr = nullptr;
                } else ++it;
             }
    }
@@ -540,9 +540,9 @@ void MissileLauncher::Update(irr::f32 DeltaTime) {
         }
    }
 
-    if (mShotSound != NULL) {
+    if (mShotSound != nullptr) {
         if (mShotSound->getStatus() == mShotSound->Stopped) {
-            mShotSound = NULL;
+            mShotSound = nullptr;
         }
     }
 }

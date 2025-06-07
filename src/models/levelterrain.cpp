@@ -20,10 +20,10 @@ void LevelTerrain::ResetTerrainTileData() {
 
     for (int i = 0; i < levelWidth; i++) {
         for (int j = 0; j < levelHeight; j++) {
-            pTerrainTiles[i][j].vert1 = NULL;
-            pTerrainTiles[i][j].vert2 = NULL;
-            pTerrainTiles[i][j].vert3 = NULL;
-            pTerrainTiles[i][j].vert4 = NULL;
+            pTerrainTiles[i][j].vert1 = nullptr;
+            pTerrainTiles[i][j].vert2 = nullptr;
+            pTerrainTiles[i][j].vert3 = nullptr;
+            pTerrainTiles[i][j].vert4 = nullptr;
             pTerrainTiles[i][j].vert1UVcoord.set(0.0f, 0.0f);
             pTerrainTiles[i][j].vert2UVcoord.set(0.0f, 0.0f);
             pTerrainTiles[i][j].vert3UVcoord.set(0.0f, 0.0f);
@@ -351,27 +351,27 @@ LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager
 
 LevelTerrain::~LevelTerrain() {
   //remove my static SceneNode
-  if (StaticTerrainSceneNode != NULL) {
+  if (StaticTerrainSceneNode != nullptr) {
     StaticTerrainSceneNode->remove();
-    StaticTerrainSceneNode = NULL;
+    StaticTerrainSceneNode = nullptr;
   }
 
   //remove my dynamic SceneNode
-  if (DynamicTerrainSceneNode != NULL) {
+  if (DynamicTerrainSceneNode != nullptr) {
     DynamicTerrainSceneNode->remove();
-    DynamicTerrainSceneNode = NULL;
+    DynamicTerrainSceneNode = nullptr;
   }
 
   //free static terrain mesh TerrainMesh
-  if (myStaticTerrainMesh != NULL) {
+  if (myStaticTerrainMesh != nullptr) {
     this->m_smgr->getMeshCache()->removeMesh(myStaticTerrainMesh);
-    myStaticTerrainMesh = NULL;
+    myStaticTerrainMesh = nullptr;
   }
 
   //free dynamic terrain mesh TerrainMesh
-  if (myDynamicTerrainMesh != NULL) {
+  if (myDynamicTerrainMesh != nullptr) {
     this->m_smgr->getMeshCache()->removeMesh(myDynamicTerrainMesh);
-    myDynamicTerrainMesh = NULL;
+    myDynamicTerrainMesh = nullptr;
   }
 
   int levelWidth = this->levelRes->Width();
@@ -397,27 +397,27 @@ LevelTerrain::~LevelTerrain() {
           }
 
          //free created vertices
-         if (pTerrainTiles[i][j].vert1 != NULL) {
+         if (pTerrainTiles[i][j].vert1 != nullptr) {
             delete pTerrainTiles[i][j].vert1;
-            pTerrainTiles[i][j].vert1 = NULL;
+            pTerrainTiles[i][j].vert1 = nullptr;
          }
 
          //free created vertices
-         if (pTerrainTiles[i][j].vert2 != NULL) {
+         if (pTerrainTiles[i][j].vert2 != nullptr) {
             delete pTerrainTiles[i][j].vert2;
-            pTerrainTiles[i][j].vert2 = NULL;
+            pTerrainTiles[i][j].vert2 = nullptr;
          }
 
          //free created vertices
-         if (pTerrainTiles[i][j].vert3 != NULL) {
+         if (pTerrainTiles[i][j].vert3 != nullptr) {
             delete pTerrainTiles[i][j].vert3;
-            pTerrainTiles[i][j].vert3 = NULL;
+            pTerrainTiles[i][j].vert3 = nullptr;
          }
 
          //free created vertices
-         if (pTerrainTiles[i][j].vert4 != NULL) {
+         if (pTerrainTiles[i][j].vert4 != nullptr) {
             delete pTerrainTiles[i][j].vert4;
-            pTerrainTiles[i][j].vert4 = NULL;
+            pTerrainTiles[i][j].vert4 = nullptr;
          }
        }
     }
@@ -943,7 +943,7 @@ std::vector<vector2d<irr::f32>> LevelTerrain::ApplyTexMod(vector2d<irr::f32> uvA
    return uvs;
 }
 
-std::vector<vector2d<irr::f32>> LevelTerrain::MakeUVs(int textureId, int texMod) {
+std::vector<vector2d<irr::f32>> LevelTerrain::MakeUVs(int texMod) {
     vector2d<irr::f32> uvA;
     vector2d<irr::f32> uvB;
     vector2d<irr::f32> uvC;
@@ -1561,7 +1561,7 @@ bool LevelTerrain::Terrain_Optimization_isValid_Cell_coordinate(int xcoord, int 
 //to implement a way to remove unnecessary triangles from rendering (which are not used for the level itself);
 //This should help to stay below the maximum possible triangle count and should also improve rendering performance
 void LevelTerrain::findTerrainOptimization() {
-    int x, z, i = 0;
+    int x, z;
 
     int Width = levelRes->Width();
     int Height = levelRes->Height();
@@ -1718,7 +1718,7 @@ bool LevelTerrain::setupGeometry() {
 
             //texture atlas 4 UVs
             std::vector<vector2d<irr::f32>> newuvs;
-            newuvs = MakeUVs(a->m_TextureId, a->m_TextureModification);
+            newuvs = MakeUVs(a->m_TextureModification);
             //uvs.insert(uvs.end(), newuvs.begin(), newuvs.end());
 
             this->pTerrainTiles[x][z].vert1->TCoords = newuvs[0];
@@ -1916,8 +1916,8 @@ void LevelTerrain::ApplyMorph(Morph morph)
                   {
                       //create updated texture coordinates
                        uvs = sourceEnabled && !morph.Permanent ?
-                          MakeUVs(a->m_TextureId, a->m_TextureModification) :
-                          MakeUVs(e->m_TextureId, e->m_TextureModification);
+                          MakeUVs(a->m_TextureModification) :
+                          MakeUVs(e->m_TextureModification);
 
                        updatedUVS = true;
 
@@ -2095,7 +2095,7 @@ void LevelTerrain::ApplyMorph(Morph morph)
 }
 
 irr::f32 LevelTerrain::GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord) {
-    /*if (this->mRace != NULL) {
+    /*if (this->mRace != nullptr) {
         if (this->mRace->DebugHitBreakpoint) {
             this->mRace->DebugHitBreakpoint = false;
         }
@@ -2113,7 +2113,7 @@ irr::f32 LevelTerrain::GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr
 
     irr::f32 yRes;
 
-    if (pntr != NULL) {
+    if (pntr != nullptr) {
         irr::f32 slopeX = -pntr->vert2CurrPositionY + pntr->vert1CurrPositionY;
         irr::f32 slopeZ = -pntr->vert4CurrPositionY + pntr->vert1CurrPositionY;
 

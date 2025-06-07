@@ -44,20 +44,20 @@ class MyMusicStream; //forward declaration
 class Game {
 private:
     //Irrlicht related, for debugging of game
-    IGUIStaticText* dbgTimeProfiler = NULL;
-    IGUIStaticText* dbgText = NULL;
-    IGUIStaticText* dbgText2 = NULL;
+    IGUIStaticText* dbgTimeProfiler = nullptr;
+    IGUIStaticText* dbgText = nullptr;
+    IGUIStaticText* dbgText2 = nullptr;
 
-    Assets* mGameAssets = NULL;
+    Assets* mGameAssets = nullptr;
 
     //SFML related, Audio, Music
-    MyMusicStream* gameMusicPlayer = NULL;
-    SoundEngine* gameSoundEngine = NULL;
+    MyMusicStream* gameMusicPlayer = nullptr;
+    SoundEngine* gameSoundEngine = nullptr;
 
     //own game stuff
-    Menue* MainMenue = NULL;
-    IntroPlayer* gameIntroPlayer = NULL;
-    InfrastructureBase* mInfra = NULL;
+    Menue* MainMenue = nullptr;
+    IntroPlayer* gameIntroPlayer = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     //stores the current gamestate
     irr::u8 mGameState = DEF_GAMESTATE_AFTERINIT;
@@ -75,11 +75,11 @@ private:
     bool InitSFMLAudio();
 
     int lastFPS = -1;
-    MenueAction* pendingAction = NULL;
+    MenueAction* pendingAction = nullptr;
 
-    std::vector<RaceStatsEntryStruct*>* lastRaceStat = NULL;
-    std::vector<PointTableEntryStruct*>* lastRacePointTable = NULL;
-    std::vector<PointTableEntryStruct*>* lastOverallChampionshipPointTable = NULL;
+    std::vector<RaceStatsEntryStruct*>* lastRaceStat = nullptr;
+    std::vector<PointTableEntryStruct*>* lastRacePointTable = nullptr;
+    std::vector<PointTableEntryStruct*>* lastOverallChampionshipPointTable = nullptr;
 
     irr::u8 mSaveChampionShipToWhichSlot = 0;
 
@@ -93,7 +93,7 @@ private:
 
     void HandleMenueActions();
 
-    Race* mCurrentRace = NULL;
+    Race* mCurrentRace = nullptr;
     bool mTimeStopped = false;
 
     bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace);
@@ -119,18 +119,18 @@ private:
     void CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo);
 
     //special images for the game
-    irr::video::ITexture* gameTitle;
+    irr::video::ITexture* gameTitle = nullptr;
     irr::core::vector2di gameTitleDrawPos;
     irr::core::dimension2d<irr::u32> gameTitleSize;
 
-    irr::video::ITexture* raceLoadingScr;
+    irr::video::ITexture* raceLoadingScr = nullptr;
     irr::core::vector2di raceLoadingScrDrawPos;
     irr::core::dimension2d<irr::u32> raceLoadingScrSize;
 
     int nextRaceLevelNr = 1;
 
 public:
-    irr::video::ITexture* backgnd;
+    irr::video::ITexture* backgnd = nullptr;
 
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging

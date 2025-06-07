@@ -30,12 +30,12 @@ class MissileLauncher; //Forwards declaration
 
 struct MissileSpriteStruct {
     irr::core::vector3d<irr::f32> mSpritePos;
-    irr::video::ITexture* mSpriteTex;
+    irr::video::ITexture* mSpriteTex = nullptr;
     irr::core::dimension2d<irr::u32> mSpriteTexSize;
 
     irr::video::SColor mCurrVerticeColor;
 
-    irr::scene::IBillboardSceneNode* mSceneNode;
+    irr::scene::IBillboardSceneNode* mSceneNode = nullptr;
 
     //initial sprite size after creation
     irr::core::dimension2d<irr::f32> mInitSize;
@@ -50,13 +50,13 @@ struct MissileSpriteStruct {
 class Missile {
 
 private:
-    MissileLauncher* mParentLauncher;
+    MissileLauncher* mParentLauncher = nullptr;
     irr::core::vector3df launchLocation;
     irr::core::vector3df targetLocation;
     irr::core::vector3df currentLocation;
     irr::core::vector3df travelDir;
 
-    irr::scene::IBillboardSceneNode* mSceneNodeMissile;
+    irr::scene::IBillboardSceneNode* mSceneNodeMissile = nullptr;
 
     std::vector<MissileSpriteStruct*> mMissileSpriteVec;
 
@@ -67,11 +67,11 @@ private:
 
     //Contains a pointer in case this missile is still
     //locked at an enemy player
-    //NULL if there is no lock, or the lock was lost
+    //nullptr if there is no lock, or the lock was lost
     //by the player that shoot the missle initially
-    Player* mLockedPlayer;
+    Player* mLockedPlayer = nullptr;
 
-    sf::Sound* mExplodeSound = NULL;
+    sf::Sound* mExplodeSound = nullptr;
     bool exploded = false;
 
     void UpdateSmokeSprites(irr::f32 DeltaTime);
@@ -100,12 +100,12 @@ public:
     void Trigger();
     void Update(irr::f32 DeltaTime);
 
-    Player* mParent;
-    irr::scene::ISceneManager *mSmgr;
-    irr::video::IVideoDriver *mDriver;
+    Player* mParent = nullptr;
+    irr::scene::ISceneManager *mSmgr = nullptr;
+    irr::video::IVideoDriver *mDriver = nullptr;
 
-    irr::video::ITexture* mMissileTex;
-    irr::video::ITexture* mSmokeTex;
+    irr::video::ITexture* mMissileTex = nullptr;
+    irr::video::ITexture* mSmokeTex = nullptr;
 
     irr::core::dimension2d<irr::u32> mMissileTexSize;
     irr::core::dimension2d<irr::u32> mSmokeTexSize;
@@ -120,20 +120,10 @@ private:
     //False otherwise
     bool LoadSprites();
 
-    //irr::scene::IBillboardSceneNode* animSprite;
-    //irr::scene::ISceneNodeAnimator *animator;
-
     irr::f32 timeAccu = 0.0f;
     irr::f32 coolOffTime = 0.0f;
 
-    //irr::core::vector3d<irr::f32> Position;
-
-    //irr::scene::IAnimatedMesh*  RecoveryMesh;
-    //irr::scene::IMeshSceneNode* Recovery_node;
-
-    //irr::core::vector3df GetBulletImpactPoint();
-
-    sf::Sound* mShotSound = NULL;
+    sf::Sound* mShotSound = nullptr;
 };
 
 #endif // MISSILE_H

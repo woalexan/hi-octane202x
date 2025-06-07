@@ -25,7 +25,7 @@ EntityItem* Path::FindNearestWayPointToLocation(irr::core::vector3df location) {
    irr::core::vector3df wPos;
 
    if (mRace->ENTWaypoints_List->size() <= 0)
-       return NULL;
+       return nullptr;
 
    //we need to ignore the Y-coordinate, we also want to find
    //waypoints that are slightly different in terrain elevation!
@@ -221,7 +221,7 @@ std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntoPl
     std::vector<WayPointLinkInfoStruct*> result;
     result.clear();
 
-    if (player == NULL)
+    if (player == nullptr)
         return result;
 
     //which waypoint link lays below the players next
@@ -229,11 +229,11 @@ std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntoPl
     irr::s32 nextCheckPoint = player->nextCheckPointValue;
 
     std::vector<WayPointLinkInfoStruct*>::iterator it;
-    WayPointLinkInfoStruct* checkPointLink = NULL;
+    WayPointLinkInfoStruct* checkPointLink = nullptr;
 
     for (it = mRace->wayPointLinkVec->begin(); it != mRace->wayPointLinkVec->end(); ++it) {
        //there is a checkpoint at this waypoint link?
-       if ((*it)->pntrCheckPoint != NULL) {
+       if ((*it)->pntrCheckPoint != nullptr) {
            //we found it?
            if ((*it)->pntrCheckPoint->value == nextCheckPoint) {
                checkPointLink = (*it);
@@ -242,7 +242,7 @@ std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntoPl
        }
     }
 
-    if (checkPointLink == NULL)
+    if (checkPointLink == nullptr)
         return result;
 
     result = DeliverAllWayPointLinksThatLeadIntpSpecifiedToWayPointLink(checkPointLink);
@@ -251,8 +251,8 @@ std::vector<WayPointLinkInfoStruct*> Path::DeliverAllWayPointLinksThatLeadIntoPl
 }
 
 EntityItem* Path::FindNearestWayPointToPlayer(Player* whichPlayer) {
-   if (whichPlayer == NULL)
-       return NULL;
+   if (whichPlayer == nullptr)
+       return nullptr;
 
    irr::core::vector3df playerPos = whichPlayer->phobj->physicState.position;
 
@@ -337,7 +337,7 @@ std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> Path::PlayerDeriveClos
 
                                                                                                 inputWayPointLinkVector) {
 
-    WayPointLinkInfoStruct* nullLink = NULL;
+    WayPointLinkInfoStruct* nullLink = nullptr;
 
     if (inputWayPointLinkVector.size() < 1)
         return ( std::make_pair(nullLink, irr::core::vector3df(0.0f, 0.0f, 0.0f)));
@@ -487,13 +487,13 @@ std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::Pla
     std::vector< std::pair <WayPointLinkInfoStruct*, irr::core::vector3df> > vecWayPointLinkResult;
     vecWayPointLinkResult.clear();
 
-    /*if (frontLink != NULL) {
+    /*if (frontLink != nullptr) {
         AddWayPointLinkResultToVector(vecWayPointLinkResult, frontLink, projPlayerPositionFront);
     }*/
-    if (midLink != NULL) {
+    if (midLink != nullptr) {
         AddWayPointLinkResultToVector(vecWayPointLinkResult, midLink, projPlayerPositionMid);
     }
-   /* if (backLink != NULL) {
+   /* if (backLink != nullptr) {
         AddWayPointLinkResultToVector(vecWayPointLinkResult, backLink, projPlayerPositionBack);
     }*/
 
@@ -559,8 +559,8 @@ WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vec
     irr::f32 minDistance;
     bool firstElement = true;
     irr::core::vector3df projPlayerPosition;
-    WayPointLinkInfoStruct* closestLink = NULL;
-    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = NULL;
+    WayPointLinkInfoStruct* closestLink = nullptr;
+    WayPointLinkInfoStruct* LinkWithClosestStartEndPoint = nullptr;
     irr::f32 minStartEndPointDistance;
     bool firstElementStartEndPoint = true;
 
@@ -681,7 +681,7 @@ WayPointLinkInfoStruct* Path::PlayerFindClosestWaypointLinkHelper(irr::core::vec
     }
 
     //did we still not find the closest link? try some workaround
-    if (closestLink == NULL) {
+    if (closestLink == nullptr) {
        //workaround, take the waypoint with either the closest
        //start or end entity
        closestLink = LinkWithClosestStartEndPoint;
@@ -706,11 +706,11 @@ irr::f32 Path::CalculateDistanceFromWaypointLinkToNextCheckpoint(WayPointLinkInf
     sumDistance += (currLink->length3D);
 
     //now follow the waypoint links forward until we hit the next checkpoint
-    while (currLink->pntrCheckPoint == NULL) {  //follow one link after another until we hit the next checkpoint
+    while (currLink->pntrCheckPoint == nullptr) {  //follow one link after another until we hit the next checkpoint
         currLink = currLink->pntrPathNextLink;
 
-        if (currLink != NULL) {
-             if (currLink->pntrCheckPoint == NULL) {
+        if (currLink != nullptr) {
+             if (currLink->pntrCheckPoint == nullptr) {
                     //The next line is for debugging
                     //currLink->pLineStruct->color = mDrawDebug->blue;
 
@@ -810,10 +810,10 @@ std::vector<WayPointLinkInfoStruct*> Path::FindPathToNextCheckPoint(Player *whic
 
     //find the waypoint link to crosses this checkpoint
     std::vector<WayPointLinkInfoStruct*>::iterator it;
-    WayPointLinkInfoStruct* linkPntr = NULL;
+    WayPointLinkInfoStruct* linkPntr = nullptr;
 
     for (it = this->mRace->wayPointLinkVec->begin(); it != this->mRace->wayPointLinkVec->end(); ++it) {
-        if ((*it)->pntrCheckPoint != NULL) {
+        if ((*it)->pntrCheckPoint != nullptr) {
             if ((*it)->pntrCheckPoint->value == nextCheckPointValue) {
                 //we found the correct waypoint link
                 linkPntr = (*it);
@@ -825,7 +825,7 @@ std::vector<WayPointLinkInfoStruct*> Path::FindPathToNextCheckPoint(Player *whic
     //if we did not find the first waypoint link under
     //the next checkpoint for this player, then simply exit
     //with empty path
-    if (linkPntr == NULL)
+    if (linkPntr == nullptr)
         return result;
 
     //WayPointLinkInfoStruct* linkNearPlayer = this->PlayerFindClosestWaypointLink(whichPlayer);
@@ -834,18 +834,18 @@ std::vector<WayPointLinkInfoStruct*> Path::FindPathToNextCheckPoint(Player *whic
 
     WayPointLinkInfoStruct* linkNearPlayer = whichPlayer->currClosestWayPointLink.first;
 
-    if (linkNearPlayer == NULL)
+    if (linkNearPlayer == nullptr)
         return result;
 
     bool playerFound = false;
 
     //actually start with the link after the checkpoint so the craft can fly
     //a defined path through the next checkpoint
-    if (linkPntr->pntrPathNextLink != NULL) {
+    if (linkPntr->pntrPathNextLink != nullptr) {
         linkPntr = linkPntr->pntrPathNextLink;
     }
 
-    if (linkPntr->pntrPathNextLink != NULL) {
+    if (linkPntr->pntrPathNextLink != nullptr) {
         linkPntr = linkPntr->pntrPathNextLink;
     }
 
@@ -861,7 +861,7 @@ std::vector<ChargingStation*> Path::WhichChargingStationsDoesAWayPointLinkInters
     std::vector<ChargingStation*> result;
 
     result.clear();
-    if (whichLink == NULL)
+    if (whichLink == nullptr)
         return result;
 
     std::vector<ChargingStation*>::iterator it;
@@ -886,12 +886,12 @@ std::vector<ChargingStation*> Path::WhichChargingStationsDoesAWayPointLinkInters
     return result;
 }
 
-//Returns NULL if within the next 5 waypoint links the specified
+//Returns nullptr if within the next 5 waypoint links the specified
 //charger type was not found, but with proper level design this
 //should never happen
 ChargingStation* Path::GetChargingStationAhead(WayPointLinkInfoStruct* startAtWhichLink, irr::u8 chargerTypeToFind) {
-    if (startAtWhichLink == NULL)
-        return NULL;
+    if (startAtWhichLink == nullptr)
+        return nullptr;
 
     WayPointLinkInfoStruct* currLink = startAtWhichLink;
     bool chargerFound = false;
@@ -899,11 +899,11 @@ ChargingStation* Path::GetChargingStationAhead(WayPointLinkInfoStruct* startAtWh
     std::vector<ChargingStation*> intersectedChargingStations;
     std::vector<ChargingStation*>::iterator it2;
 
-    ChargingStation* foundCharger = NULL;
+    ChargingStation* foundCharger = nullptr;
 
     do {
         iteration++;
-        if (currLink != NULL) {
+        if (currLink != nullptr) {
             //does this link intersect any of the charger regions?
             //if yes, is this the type of charger we expect to find?
             intersectedChargingStations = WhichChargingStationsDoesAWayPointLinkIntersect(currLink);

@@ -19,13 +19,13 @@ public:
     Timer(EntityItem* entityItem, Race* mParentRace);
     ~Timer();
 
-    EntityItem* mEntityItem;
+    EntityItem* mEntityItem = nullptr;
 
     void Trigger();
     void Update(irr::f32 frameDeltaTime);
 
 private:
-    Race* mRace;
+    Race* mRace = nullptr;
 
     irr::f32 mRemainingDelay;
     bool mRunning = false;

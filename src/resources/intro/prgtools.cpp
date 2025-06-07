@@ -151,7 +151,7 @@ int loadDataFromFile(FILE *File,void *Buf,size_t BytesToRead,int ErrNum,int Opti
   if ((ReadOK!=BytesToRead) && !(Options & poIgnoreExceptions))
     {
     char *ErrMsg=(char *)malloc(256);
-    if (ErrMsg!=NULL)
+    if (ErrMsg!=nullptr)
       {
       snprintf(ErrMsg,256, "Couldn't read more than %zu bytes, %zu needed. EOF or read error.",ReadOK,BytesToRead);
       showError(errFileRead|ErrNum,ErrMsg);
@@ -177,11 +177,11 @@ void *allocateMem(ulong buffer_size,int ErrNum,int mem_clear,int Options)
 
     char *Data=(char*)malloc(buffer_size);
 //    printf("!AllocateMem done\n");
-    if ((Data==NULL) && !(Options & poIgnoreExceptions))
+    if ((Data==nullptr) && !(Options & poIgnoreExceptions))
     {
         logging::Error("!AllocateMem error occured");
         char *ErrMsg=(char *)malloc(128);
-        if (ErrMsg!=NULL)
+        if (ErrMsg!=nullptr)
         {
           if (buffer_size<8192)
             snprintf(ErrMsg, 128, "Cannot allocate %lu bytes. Whole memory has been allocated before.",buffer_size);
@@ -193,7 +193,7 @@ void *allocateMem(ulong buffer_size,int ErrNum,int mem_clear,int Options)
         else
         showError(errMemAlloc|ErrNum,"Cannot allocate any memory. Try reboot your machine.");
     }
-    if ((mem_clear)&&(Data!=NULL))
+    if ((mem_clear)&&(Data!=nullptr))
     {
         ulong num;
         for (num=0;num<buffer_size;num++)

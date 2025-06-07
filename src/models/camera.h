@@ -25,7 +25,7 @@ public:
     void Update();
 
     //our Camera SceneNode from Irrlicht
-    irr::scene::ICameraSceneNode* mCamSceneNode;
+    irr::scene::ICameraSceneNode* mCamSceneNode = nullptr;
 
     void SetActive(bool newState);
 
@@ -33,8 +33,8 @@ public:
     void SetTargetPlayer(Player* newCameraTargetPlayer);
 
     //target player at which we currently focus at
-    //NULL means we have no focus target right now
-    Player* mFocusAtPlayer = NULL;
+    //nullptr means we have no focus target right now
+    Player* mFocusAtPlayer = nullptr;
 
 private:
     //my camera position according to the
@@ -44,9 +44,9 @@ private:
     //the position I look at right now
     irr::core::vector3df mLookAt;
 
-    EntityItem* mEntityItem;
+    EntityItem* mEntityItem = nullptr;
     
-    irr::scene::ISceneManager* mSmgr;
+    irr::scene::ISceneManager* mSmgr = nullptr;
 
     //camera does seem to have sometimes a value, where I do not know
     //right now what it means
@@ -56,7 +56,7 @@ private:
     //1, so maybe this means the all become active at the start of the race
     int16_t mValue;
 
-    Race *mRace;
+    Race *mRace = nullptr;
 
     //if true camera is active, and looking for players
     bool mActive = false;

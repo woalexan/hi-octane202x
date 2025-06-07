@@ -8,7 +8,8 @@
 //Source code taken from https://github.com/aseprite/flic
 
 //Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions and uninitialized
-// variables under Visual Studio, I decided to modify some parts of the original code below.
+// variables under Visual Studio, I decided to modify some parts of the original code below. I also replaced
+// NULL with nullptr.
 //Therefore the source code below is not the original source code of the original author anymore.
 
 #ifndef FLIC_FLIC_H_INCLUDED
@@ -86,7 +87,7 @@ namespace flic {
   };
 
   struct Frame {
-    uint8_t* pixels;
+    uint8_t* pixels = nullptr;
     uint32_t rowstride;
     Colormap colormap;
   };
@@ -121,7 +122,7 @@ namespace flic {
     void write8(uint8_t value) override;
 
   private:
-    FILE* m_file = NULL;
+    FILE* m_file = nullptr;
     bool m_ok;
   };
 
@@ -142,7 +143,7 @@ namespace flic {
     uint16_t read16();
     uint32_t read32();
 
-    FileInterface* m_file = NULL;
+    FileInterface* m_file = nullptr;
     int m_width = 0, m_height = 0;
     int m_frameCount = 0;
     int m_offsetFrame1 = 0;
@@ -171,7 +172,7 @@ namespace flic {
     void write16(uint16_t value);
     void write32(uint32_t value);
 
-    FileInterface* m_file = NULL;
+    FileInterface* m_file = nullptr;
     int m_width = 0, m_height = 0;
     Colormap m_prevColormap;
     std::vector<uint8_t> m_prevFrameData;

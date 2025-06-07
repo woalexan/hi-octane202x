@@ -31,8 +31,8 @@ public:
 
     bool Enabled = true;
 
-    EntityItem* Source;
-    EntityItem* Target;
+    EntityItem* Source = nullptr;
+    EntityItem* Target = nullptr;
 
     bool Permanent;
     bool UVSFromSource = false;
@@ -68,7 +68,7 @@ private:
 
     int myEntityId;
 
-    Race* mRace;
+    Race* mRace = nullptr;
 };
 
 #endif // MORPH_H

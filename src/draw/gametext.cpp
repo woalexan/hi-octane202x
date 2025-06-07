@@ -322,7 +322,7 @@ bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::S
 //             character image filenames contain incrementing number at the end
 //  loadAddFileNr = allows to specify additional files for loading character images file offsets
 //                  at the end
-//In case of an unexpected error this function returns NULL
+//In case of an unexpected error this function returns nullptr
 GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr,
                                      bool addOutline, irr::video::SColor* outLineColor) {
   myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
@@ -361,10 +361,10 @@ GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, un
 
       newCharInfo->texture = myDriver->getTexture(finalpath);
 
-      if (newCharInfo->texture == NULL) {
+      if (newCharInfo->texture == nullptr) {
           //there was a texture loading error
-          //just return with NULL
-          return NULL;
+          //just return with nullptr
+          return nullptr;
       }
 
       newCharInfo->sizeRawTex = newCharInfo->texture->getSize();
@@ -375,9 +375,9 @@ GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, un
       DeriveTransparentColorForChar(*newCharInfo);
 
       //should we add an outline to the character?
-      if (addOutline && (outLineColor != NULL)) {
+      if (addOutline && (outLineColor != nullptr)) {
           if (!AddColoredOutline(*newCharInfo, outLineColor)) {
-              return NULL;
+              return nullptr;
           }
       }
 
@@ -390,8 +390,8 @@ GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, un
       myDriver->makeColorKeyTexture(newCharInfo->texture, newCharInfo->transColor);
 
       if (successFlag != true) {
-        //we had an unexpected error in FindCharArea, just return NULL and stop
-        return NULL;
+        //we had an unexpected error in FindCharArea, just return nullptr and stop
+        return nullptr;
       }
 
       //add new character to our vector of characters for this font
@@ -436,7 +436,7 @@ void GameText::FreeTextFont(GameTextFont &pntrFont) {
 //                     If specified stops text rendering after specified number of chars
 void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s16 stopAfterNrChars) {
   //only continue when fonts loaded ok
-  if (GameTextInitializedOk && (whichFont != NULL)) {
+  if (GameTextInitializedOk && (whichFont != nullptr)) {
     char* pntr = &text[0];
     irr::core::vector2di correctCharPosition = position;
     irr::s16 charCnter = stopAfterNrChars;
@@ -469,7 +469,7 @@ irr::u32 GameText::GetWidthPixelsGameText(char* text, GameTextFont *whichFont, i
     irr::s16 charCnter = stopAfterNrChars;
 
     //only continue when fonts loaded ok
-    if (GameTextInitializedOk && (whichFont != NULL)) {
+    if (GameTextInitializedOk && (whichFont != nullptr)) {
 
         char* pntr = &text[0];
 
@@ -498,7 +498,7 @@ irr::u32 GameText::GetHeightPixelsGameText(char* text, GameTextFont *whichFont, 
     irr::s16 charCnter = stopAfterNrChars;
 
     //only continue when fonts loaded ok
-    if (GameTextInitializedOk && (whichFont != NULL)) {
+    if (GameTextInitializedOk && (whichFont != nullptr)) {
 
         char* pntr = &text[0];
 
@@ -528,7 +528,7 @@ irr::u32 GameText::GetHeightPixelsGameText(char* text, GameTextFont *whichFont, 
 //  position = 2D position where text rendering should occur (leftmost character of text)
 void GameText::DrawHudSmallText(char* alphanumericalText, GameTextFont *whichHudFont, irr::core::position2di position) {
     //only continue when fonts loaded ok
-    if (GameTextInitializedOk && (whichHudFont != NULL)) {
+    if (GameTextInitializedOk && (whichHudFont != nullptr)) {
       char* pntr = &alphanumericalText[0];
       char index;
       bool skipChar;
@@ -573,7 +573,7 @@ void GameText::DrawHudSmallText(char* alphanumericalText, GameTextFont *whichHud
 //  position = 2D position where text rendering should occur (leftmost character of text)
 void GameText::DrawGameNumberText(char* numberText, GameTextFont *whichFont, irr::core::position2di position) {
   //only continue when fonts loaded ok
-  if (GameTextInitializedOk && (whichFont != NULL)) {
+  if (GameTextInitializedOk && (whichFont != nullptr)) {
     char* pntr = &numberText[0];
     char index;
     bool skipChar;
@@ -650,7 +650,7 @@ irr::u32 GameText::GetWidthPixelsGameNumberText(char* numberText, GameTextFont *
     irr::u32 width = 0;
 
     //only continue when fonts loaded ok
-    if (GameTextInitializedOk && (whichFont != NULL)) {
+    if (GameTextInitializedOk && (whichFont != nullptr)) {
         char* pntr = &numberText[0];
         char index;
         bool skipChar;
@@ -720,7 +720,7 @@ void GameText::LoadInitialFont() {
     GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/osfnt0-1-", 0, 241, addFileOffs, true, outLineColor);
 
     //was there are problem loading the text font?
-    if (GameMenueWhiteTextSmallSVGA == NULL) {
+    if (GameMenueWhiteTextSmallSVGA == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -737,7 +737,7 @@ void GameText::LoadFontsStep2() {
     HudWhiteTextBannerFont = LoadGameFont((char*)"extract/fonts/large/olfnt0-1-", 0, 241, addFileOffs, true, outLineColor);
 
     //was there are problem loading the text font?
-    if (HudWhiteTextBannerFont == NULL) {
+    if (HudWhiteTextBannerFont == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -745,7 +745,7 @@ void GameText::LoadFontsStep2() {
     HudBigGreenText = LoadGameFont((char*)"extract/fonts/largegreen/pfont0-1-", 0, 241, addFileOffs, false);
 
     //was there are problem loading the text font?
-    if (HudBigGreenText == NULL) {
+    if (HudBigGreenText == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -755,7 +755,7 @@ void GameText::LoadFontsStep2() {
     HudLaptimeNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", 138, 12, addFileOffs2, false);
 
     //was there are problem loading the text font?
-    if (HudLaptimeNumberRed == NULL) {
+    if (HudLaptimeNumberRed == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -763,7 +763,7 @@ void GameText::LoadFontsStep2() {
     HudLaptimeNumberGrey = LoadGameFont((char*)"extract/hud1player/panel0-1-", 150, 12, addFileOffs, false);
 
     //was there are problem loading the text font?
-    if (HudLaptimeNumberGrey == NULL) {
+    if (HudLaptimeNumberGrey == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -777,7 +777,7 @@ void GameText::LoadFontsStep2() {
     GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish/green-olfnt0-1-", 0, 241, addFileOffs, true, outLineColor2);
 
     //was there are problem loading the text font?
-    if (GameMenueUnselectedEntryFont == NULL) {
+    if (GameMenueUnselectedEntryFont == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -785,7 +785,7 @@ void GameText::LoadFontsStep2() {
     GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241, addFileOffs, true, outLineColor2);
 
     //was there are problem loading the text font?
-    if (GameMenueUnselectedTextSmallSVGA == NULL) {
+    if (GameMenueUnselectedTextSmallSVGA == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -793,7 +793,7 @@ void GameText::LoadFontsStep2() {
     HudTargetNameGreen = LoadGameFont((char*)"extract/hud1player/panel0-1-", 231, 26, addFileOffs, false);
 
     //was there are problem loading the text font?
-    if (HudTargetNameGreen == NULL) {
+    if (HudTargetNameGreen == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -801,7 +801,7 @@ void GameText::LoadFontsStep2() {
     HudTargetNameRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", 200, 26, addFileOffs, false);
 
     //was there are problem loading the text font?
-    if (HudTargetNameRed == NULL) {
+    if (HudTargetNameRed == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -809,7 +809,7 @@ void GameText::LoadFontsStep2() {
     ThinWhiteText = LoadGameFont((char*)"extract/fonts/thinwhite/hfont0-0-", 0, 127, addFileOffs, false);
 
     //was there are problem loading the text font?
-    if (ThinWhiteText == NULL) {
+    if (ThinWhiteText == nullptr) {
         GameTextInitializedOk = false;
     }
 
@@ -839,60 +839,60 @@ GameText::~GameText() {
     //06.04.2025: Because font loading happens now in 2 steps
     //make sure we do not try to unload font that was not
     //loaded yet, especially if we delete object again before
-    //second load step was executed. Therefore adding NULL
+    //second load step was executed. Therefore adding nullptr
     //check before attempting to free font
-    if (HudWhiteTextBannerFont != NULL) {
+    if (HudWhiteTextBannerFont != nullptr) {
         FreeTextFont(*HudWhiteTextBannerFont);
-        HudWhiteTextBannerFont = NULL;
+        HudWhiteTextBannerFont = nullptr;
     }
 
-    if (HudBigGreenText != NULL) {
+    if (HudBigGreenText != nullptr) {
         FreeTextFont(*HudBigGreenText);
-        HudBigGreenText = NULL;
+        HudBigGreenText = nullptr;
     }
 
-    if (HudLaptimeNumberRed != NULL) {
+    if (HudLaptimeNumberRed != nullptr) {
         FreeTextFont(*HudLaptimeNumberRed);
-        HudLaptimeNumberRed = NULL;
+        HudLaptimeNumberRed = nullptr;
     }
 
-    if (HudLaptimeNumberGrey != NULL) {
+    if (HudLaptimeNumberGrey != nullptr) {
         FreeTextFont(*HudLaptimeNumberGrey);
-        HudLaptimeNumberGrey = NULL;
+        HudLaptimeNumberGrey = nullptr;
     }
 
-    if (HudKillCounterNumberRed != NULL) {
+    if (HudKillCounterNumberRed != nullptr) {
         FreeTextFont(*HudKillCounterNumberRed);
-        HudKillCounterNumberRed = NULL;
+        HudKillCounterNumberRed = nullptr;
     }
 
-    if (GameMenueUnselectedEntryFont != NULL) {
+    if (GameMenueUnselectedEntryFont != nullptr) {
         FreeTextFont(*GameMenueUnselectedEntryFont);
-        GameMenueUnselectedEntryFont = NULL;
+        GameMenueUnselectedEntryFont = nullptr;
     }
 
-    if (HudTargetNameGreen != NULL) {
+    if (HudTargetNameGreen != nullptr) {
         FreeTextFont(*HudTargetNameGreen);
-        HudTargetNameGreen = NULL;
+        HudTargetNameGreen = nullptr;
     }
 
-    if (HudTargetNameRed != NULL) {
+    if (HudTargetNameRed != nullptr) {
         FreeTextFont(*HudTargetNameRed);
-        HudTargetNameRed = NULL;
+        HudTargetNameRed = nullptr;
     }
 
-    if (ThinWhiteText != NULL) {
+    if (ThinWhiteText != nullptr) {
         FreeTextFont(*ThinWhiteText);
-        ThinWhiteText = NULL;
+        ThinWhiteText = nullptr;
     }
 
-    if (GameMenueWhiteTextSmallSVGA != NULL) {
+    if (GameMenueWhiteTextSmallSVGA != nullptr) {
         FreeTextFont(*GameMenueWhiteTextSmallSVGA);
-        GameMenueWhiteTextSmallSVGA = NULL;
+        GameMenueWhiteTextSmallSVGA = nullptr;
     }
 
-    if (GameMenueUnselectedTextSmallSVGA != NULL) {
+    if (GameMenueUnselectedTextSmallSVGA != nullptr) {
         FreeTextFont(*GameMenueUnselectedTextSmallSVGA);
-        GameMenueUnselectedTextSmallSVGA = NULL;
+        GameMenueUnselectedTextSmallSVGA = nullptr;
     }
 }

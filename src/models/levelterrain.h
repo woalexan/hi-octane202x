@@ -47,10 +47,10 @@ class Morph; //Forward declaration
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
     //later during game (so that we have access to vertice data)
-    video::S3DVertex *vert1 = NULL;
-    video::S3DVertex *vert2 = NULL;
-    video::S3DVertex *vert3 = NULL;
-    video::S3DVertex *vert4 = NULL;
+    video::S3DVertex *vert1 = nullptr;
+    video::S3DVertex *vert2 = nullptr;
+    video::S3DVertex *vert3 = nullptr;
+    video::S3DVertex *vert4 = nullptr;
 
     //stores the tile vertex1 index for all the Meshbuffers where this
     //vertex is part of
@@ -135,15 +135,15 @@ public:
 
     //static terrain mesh and SceneNode that is not affected
     //by any defined level morphs
-    ISceneNode *StaticTerrainSceneNode;
-    SMesh *myStaticTerrainMesh;
+    ISceneNode *StaticTerrainSceneNode = nullptr;
+    SMesh *myStaticTerrainMesh = nullptr;
 
     //dynamic terrain mesh and SceneNode that is affected
     //by level morphs
-    ISceneNode *DynamicTerrainSceneNode;
-    SMesh *myDynamicTerrainMesh;
+    ISceneNode *DynamicTerrainSceneNode = nullptr;
+    SMesh *myDynamicTerrainMesh = nullptr;
 
-    LevelFile* levelRes;
+    LevelFile* levelRes = nullptr;
 
     irr::f32 segmentSize;
 
@@ -212,18 +212,18 @@ private:
     int TerrainOptimization_compareCells(MapEntry *MiddleCell, MapEntry *Neighborcell);
     vector3d<irr::f32> computeNormalFromMapEntries(int x, int z, float intensity);
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
-    std::vector<vector2d<irr::f32>> MakeUVs(int textureId, int texMod);
+    std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
     void CreateTerrainMesh();
 
     //only used for debugging
     //std::vector<irr::s32> mDbgChargerTexFound;
 
-    irr::video::IVideoDriver *m_driver;
-    scene::ISceneManager *m_smgr;
-    Race* mRace;
+    irr::video::IVideoDriver *m_driver = nullptr;
+    scene::ISceneManager *m_smgr = nullptr;
+    Race* mRace = nullptr;
 
-    TextureLoader* mTexSource;
+    TextureLoader* mTexSource = nullptr;
     //std::string m_texfile;
 
     bool mEnableLightning;

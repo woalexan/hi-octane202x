@@ -8,9 +8,9 @@
 //Note Wolf Alexander:  for original authors license file please see flic-LICENSE.txt
 //Source code taken from https://github.com/aseprite/flic
 
-//Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions under Visual Studio,
-//I decided to modify some parts of the original code below. Therefore the source code below is not the original
-//source code of the original author anymore.
+//Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions and uninitialized
+// variables under Visual Studio, I decided to modify some parts of the original code below.
+//Therefore the source code below is not the original source code of the original author anymore.
 
 #include "flic.h"
 #include "flic_details.h"

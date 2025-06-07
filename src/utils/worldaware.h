@@ -109,22 +109,22 @@ struct RayHitInfoStruct {
     //by the ray, or if multiple players were hit by rays, contains
     //the pointer to the player that should be selected by the players
     //target system
-    Player* HitPlayerPntr;
+    Player* HitPlayerPntr = nullptr;
 };
 
 class WorldAwareness {
 
 private:
-    Race* mRace;
+    Race* mRace = nullptr;
     //my Irrlicht video driver
-    irr::video::IVideoDriver *mDriver;
+    irr::video::IVideoDriver *mDriver = nullptr;
 
     //my Irrlicht device
-    irr::IrrlichtDevice* mDevice;
+    irr::IrrlichtDevice* mDevice = nullptr;
 
-    irr::video::IImage* staticWorld;
-    irr::video::IImage* dynamicWorld;
-    irr::video::IImage* debugWorld;
+    irr::video::IImage* staticWorld = nullptr;
+    irr::video::IImage* dynamicWorld = nullptr;
+    irr::video::IImage* debugWorld = nullptr;
 
     //irr::core::plane3d<irr::f32>* XZPlane;
 
@@ -160,8 +160,8 @@ private:
     //3D world
     uint8_t PixelScaleFactor = 5;
 
-    irr::video::SColor* colorEmptySpace;
-    irr::video::SColor* colorRed;
+    irr::video::SColor* colorEmptySpace = nullptr;
+    irr::video::SColor* colorRed = nullptr;
 
     //predefined vector with colors for max 8 players
     std::vector<irr::video::SColor*> mColorPlayerVec;
@@ -169,13 +169,13 @@ private:
     //static world map contains info about static
     //Terrain and Cubes; 0 means in the tile there is no obstacle
     //1 means there is an obstacle
-    std::vector<uint8_t>* mStaticWorldMap;
+    std::vector<uint8_t>* mStaticWorldMap = nullptr;
 
     //dynamic world map contains info about moving players
     //0 means there is no obstacle (no player)
     //if integer above 0, the number means the number of detected
     //player in this tile;
-    std::vector<uint8_t>* mDynamicWorldMap;
+    std::vector<uint8_t>* mDynamicWorldMap = nullptr;
 
     void CreateStaticWorldMap();
     void UpdateDynamicWorldMap(Player* whichPlayer);

@@ -47,14 +47,14 @@ public:
 
 private:
     //pointer to infrastructure
-    InfrastructureBase* mInfra;
+    InfrastructureBase* mInfra = nullptr;
 
     //Its kind of dirty that we used two buffers
     //but leave it like this right now
-    uint8_t *buffer; /* Audio buffer */
-    sf::Int16 *sfBuffer;
+    uint8_t *buffer = nullptr; /* Audio buffer */
+    sf::Int16 *sfBuffer = nullptr;
 
-    struct ADL_MIDIPlayer *midi_player = NULL;
+    struct ADL_MIDIPlayer *midi_player = nullptr;
     struct ADLMIDI_AudioFormat s_audioFormat;
 
     uint32_t mSampleRate;

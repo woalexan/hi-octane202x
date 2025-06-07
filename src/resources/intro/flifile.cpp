@@ -294,7 +294,7 @@ Clearing structures
 */
 void clearNBufferBytes(char *buf,ulong N)
 {
-  if (buf==NULL) return;
+  if (buf==nullptr) return;
   ulong i;
   for (i=0;i<N;i++)
     buf[i]=0;
@@ -408,7 +408,7 @@ Fixing structures
 */
 int validChunk(FLIChunkHeader *animChunkHdr,ulong maxChunkSize)
 {
-  if (animChunkHdr==NULL) return 0;
+  if (animChunkHdr==nullptr) return 0;
 
   //First, let's check chunk sizes
   if ((animChunkHdr->size)>(unsigned long)(MaxAnimWidth*MaxAnimHeight)) return 0;
@@ -474,7 +474,7 @@ int validColor(void *chunkData,ulong dataSize)
 
 int validChunkData(unsigned int type,void *chunkData,ulong dataSize)
 {
-  if (chunkData==NULL) return 0;
+  if (chunkData==nullptr) return 0;
   switch (type)
     {
     case FLI_COLOR256:return validColor(chunkData,dataSize);
@@ -491,7 +491,7 @@ int validChunkData(unsigned int type,void *chunkData,ulong dataSize)
 
 int strictValidFrame(FLIFrameHeader *animFrameHdr,ulong maxLength)
 {
-  if (animFrameHdr==NULL) return 0;
+  if (animFrameHdr==nullptr) return 0;
   if (animFrameHdr->chunks > 3) return 0;
   ulong i;
   for (i=0;i<FLIFrameExpandSize;i++)
@@ -506,7 +506,7 @@ int strictValidFrame(FLIFrameHeader *animFrameHdr,ulong maxLength)
 
 int validFrame(FLIFrameHeader *animFrameHdr,ulong maxLength)
 {
-  if (animFrameHdr == NULL) return 0;
+  if (animFrameHdr == nullptr) return 0;
   if (animFrameHdr->chunks > 64) return 0;
   if (animFrameHdr->size > 2*maxLength) return 0;
   if (animFrameHdr->size > (MaxAnimWidth*MaxAnimHeight+MaxPalSize+sizeof_FLIFrameHeader))
@@ -592,7 +592,7 @@ void fixMainHeader(FLIMainHeader *animHeaderSrc,FLIAddHeader *animAddHeaderSrc,F
 void fixFrameHeader(FLIFrameHeader *animFrameHdr,ulong framePos,ulong frameEnd,int options)
 {
   ulong nFixes=0;
-  if (animFrameHdr==NULL) return;
+  if (animFrameHdr==nullptr) return;
   if (!(options & poFixFrameHeaders)) return;
   //Size
   if ((animFrameHdr->size>1229600) || (animFrameHdr->size<sizeof_FLIFrameHeader))
@@ -651,7 +651,7 @@ void fixFrameHeader(FLIFrameHeader *animFrameHdr,ulong framePos,ulong frameEnd,i
 void fixChunkHeader(FLIChunkHeader *animChunkHdr,ulong maxSize,ulong chunkNum,int isLastFrame,int options)
 {
   ulong nFixes=0;
-  if (animChunkHdr==NULL) return;
+  if (animChunkHdr==nullptr) return;
   //Rozmiar
   if ((animChunkHdr->size > (unsigned long)(MaxAnimWidth*MaxAnimHeight)))
     {

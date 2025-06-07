@@ -798,7 +798,7 @@ RayHitInfoStruct WorldAwareness::CastRayDDA(IImage &image, irr::core::vector3df 
        vIntersection = vRayStart + vRayDir * fDistance;
        result.HitType = RAY_HIT_PLAYER;
        result.HitDistance = fDistance;
-       result.HitPlayerPntr = NULL;
+       result.HitPlayerPntr = nullptr;
 
        if ((playerVal > 0) && (playerVal <= (int)(this->mRace->mPlayerVec.size()))) {
             result.HitPlayerPntr = this->mRace->mPlayerVec.at(playerVal - 1);
@@ -971,7 +971,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //now run other player selection/targeting logic
 
-    Player* resPlayer = NULL;
+    Player* resPlayer = nullptr;
 
     //did we see any other player in or view field?
     if (PlayerSeenAngleList.size() > 0) {
@@ -1008,7 +1008,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
     }
 
     //tell player if/which player he has targeted
-    //in case there is no valid target player we set NULL
+    //in case there is no valid target player we set nullptr
     whichPlayer->SetTarget(resPlayer);
 
     if (WA_ALLOW_DEBUGGING) {

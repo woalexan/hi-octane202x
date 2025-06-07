@@ -415,7 +415,7 @@ void SmokeTrail::Update(irr::f32 frameDeltaTime) {
                     if (mCurrNrParticels < mNrMaxParticles) {
                        //old reusable particle left?
                        std::vector<SmokeParticle*>::iterator it;
-                       SmokeParticle* pntr = NULL;
+                       SmokeParticle* pntr = nullptr;
                        for (it = this->mCurrSpriteVec->begin(); it != this->mCurrSpriteVec->end(); it++) {
                            if (!((*it)->mLifeTimeSec > 0.0f)) {
                                pntr = (*it);
@@ -423,7 +423,7 @@ void SmokeTrail::Update(irr::f32 frameDeltaTime) {
                            }
                        }
 
-                      if (pntr != NULL) {
+                      if (pntr != nullptr) {
                           pntr->ResetParticle(this->mParentPlayer->WorldCoordCraftSmokePnt);
                       } else {
                            //nothing available anymore, create a new particle
@@ -581,7 +581,7 @@ void DustBelowCraft::Deactivate() {
 }
 
 void DustBelowCraft::SetupVelocityParticle(DustParticle* particlePntr) {
-    if (particlePntr == NULL)
+    if (particlePntr == nullptr)
         return;
 
     int rNum;
@@ -640,7 +640,7 @@ void DustBelowCraft::Update(irr::f32 frameDeltaTime) {
                     if (mCurrNrParticels < mNrMaxParticles) {
                        //old reusable particle left?
                        std::vector<DustParticle*>::iterator it;
-                       DustParticle* pntr = NULL;
+                       DustParticle* pntr = nullptr;
                        for (it = this->mCurrSpriteVec->begin(); it != this->mCurrSpriteVec->end(); it++) {
                            if (!((*it)->mLifeTimeSec > 0.0f)) {
                                pntr = (*it);
@@ -648,7 +648,7 @@ void DustBelowCraft::Update(irr::f32 frameDeltaTime) {
                            }
                        }
 
-                      if (pntr != NULL) {
+                      if (pntr != nullptr) {
                           pntr->mIsReset = false;
 
                           //setup new particle velocities

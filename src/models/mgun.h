@@ -31,13 +31,13 @@ class Player; //Forwards declaration
 //each struct holds the info for one of the possible
 //4 shoots at the same time
 struct MachineGunBulletImpactStruct {
-    irr::scene::IBillboardSceneNode* animSprite;
-    irr::scene::ISceneNodeAnimator *animator = NULL;
+    irr::scene::IBillboardSceneNode* animSprite = nullptr;
+    irr::scene::ISceneNodeAnimator *animator = nullptr;
 
     bool shooting = false;
     bool animatorActive = false;
 
-    sf::Sound* mShotSound = NULL;
+    sf::Sound* mShotSound = nullptr;
 };
 
 class MachineGun {
@@ -59,13 +59,13 @@ public:
     bool AllAnimationsFinished();
 
 private:
-    Player* mParent;
-    irr::scene::ISceneManager *mSmgr;
-    irr::video::IVideoDriver *mDriver;
+    Player* mParent = nullptr;
+    irr::scene::ISceneManager *mSmgr = nullptr;
+    irr::video::IVideoDriver *mDriver = nullptr;
 
     std::vector<MachineGunBulletImpactStruct*> mBulletImpactVec;
 
-    //returns NULL if currently all 4 shoots are fired, and no impact
+    //returns nullptr if currently all 4 shoots are fired, and no impact
     //struct (sprite scenenode and animator) is currently available
     //otherwise returns a random picked available impact struct
     //random to make sure that the impact does not occur always at the same tile
@@ -76,7 +76,7 @@ private:
     //False otherwise
     bool LoadSprites();
 
-    sf::Sound* mShotFailSound = NULL;
+    sf::Sound* mShotFailSound = nullptr;
 
     irr::core::array<irr::video::ITexture*> animTexList;
 

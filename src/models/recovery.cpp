@@ -75,7 +75,7 @@ irr::core::vector3df Recovery::GetCurrentPosition() {
 }
 
 bool Recovery::WayPointLinkAcceptableForDropOf(WayPointLinkInfoStruct* link) {
-    if (link == NULL)
+    if (link == nullptr)
         return false;
 
     irr::f32 minDistanceRight = link->maxOffsetShiftEnd;
@@ -111,7 +111,7 @@ void Recovery::FindPlayerDropOfPosition() {
 
     //if we do not find anything, just drop player off here again
     //Fallback, but should hopefully never happen in game later
-    if (closestWayPoint == NULL) {
+    if (closestWayPoint == nullptr) {
           this->mPlayerDropOfPosition = this->mPosition;
          mPlayerDropOfDirVecFound = false;
     } else {
@@ -119,7 +119,7 @@ void Recovery::FindPlayerDropOfPosition() {
         //we need the waypoint link to now the racing direction, because
         //we want to turn the player into race direction when we drop him off again
         std::vector<WayPointLinkInfoStruct*> wayPointLinks =
-                this->repairTarget->mRace->mPath->FindWaypointLinksForWayPoint(closestWayPoint, true, true, NULL);
+                this->repairTarget->mRace->mPath->FindWaypointLinksForWayPoint(closestWayPoint, true, true, nullptr);
 
         if (wayPointLinks.size() <= 0) {
             //we did not find anything
@@ -141,7 +141,7 @@ void Recovery::FindPlayerDropOfPosition() {
             //if the closest waypoint link does not, then this logic should pick the one before which has.
             std::vector<WayPointLinkInfoStruct*>::iterator itLink;
 
-            WayPointLinkInfoStruct* dropOfLink = NULL;
+            WayPointLinkInfoStruct* dropOfLink = nullptr;
             std::vector<WayPointLinkInfoStruct*> alternatives;
 
             for (itLink = wayPointLinks.begin(); itLink != wayPointLinks.end(); ++itLink) {
@@ -156,7 +156,7 @@ void Recovery::FindPlayerDropOfPosition() {
             //we did still not find anything?
             //try to go back one waypoint link before
             for (itLink = wayPointLinks.begin(); itLink != wayPointLinks.end(); ++itLink) {
-                if (dropOfLink != NULL)
+                if (dropOfLink != nullptr)
                     break;
 
                 alternatives =
@@ -173,7 +173,7 @@ void Recovery::FindPlayerDropOfPosition() {
                 }
             }
 
-            if (dropOfLink != NULL) {
+            if (dropOfLink != nullptr) {
                 //we did find the waypoint link, get the drop off direction vector
                 irr::core::vector3df mPlayerDropOfDirVec = dropOfLink->LinkDirectionVec.normalize();
 

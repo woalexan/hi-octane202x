@@ -45,7 +45,7 @@ bool SoundEngine::IsAnySoundPlaying() {
     std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
 
     for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
-        if ((*it).second != NULL) {
+        if ((*it).second != nullptr) {
             if ((*it).second->getStatus() == ((*it).second->Playing))
                 return true;
         }
@@ -128,7 +128,7 @@ void SoundEngine::StopEngineSoundForAllPlayers() {
     std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
 
     for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
-            if ((*it).second != NULL) {
+            if ((*it).second != nullptr) {
                 (*it).second->stop();
             }
     }
@@ -142,7 +142,7 @@ void SoundEngine::StopEngineSoundForPlayer(Player* player) {
         if ((*it).first == player) {
             //correct player found
 
-            if ((*it).second != NULL) {
+            if ((*it).second != nullptr) {
                 (*it).second->stop();
             }
 
@@ -173,10 +173,10 @@ SoundEngine::SoundEngine(InfrastructureBase* infraPnter) {
 }
 
 //searches for a sound resource entry with a certain specified sound ID
-//if no sound under this sound ID is found returns NULL
+//if no sound under this sound ID is found returns nullptr
 SoundResEntry* SoundEngine::SearchSndRes(uint8_t soundResId) {
     if (this->SoundResVec->size() < 1)
-        return NULL;
+        return nullptr;
 
     std::vector<SoundResEntry*>::iterator it;
 
@@ -188,8 +188,7 @@ SoundResEntry* SoundEngine::SearchSndRes(uint8_t soundResId) {
     }
 
     //did not find correct entry
-    //return NULL
-    return NULL;
+    return nullptr;
 }
 
 sf::Sound* SoundEngine::GetFreeSoundSource() {
@@ -223,7 +222,7 @@ sf::Sound* SoundEngine::GetFreeSoundSource() {
 
     //already too much sounds, do not do
     //anything
-    return NULL;
+    return nullptr;
 }
 
 //sets a new sound volume for all available sound
@@ -241,7 +240,7 @@ void SoundEngine::SetVolume(float soundVolume) {
         std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
 
         for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
-            if ((*it).second != NULL) {
+            if ((*it).second != nullptr) {
                 (*it).second->setVolume(soundVolume);
             }
         }
@@ -279,15 +278,15 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
                      irr::f32 playPitch, bool looping) {
     //if we should not play sounds exit
     if (!mPlaySound)
-        return NULL;
+        return nullptr;
 
     //first search resource
     SoundResEntry* pntr = SearchSndRes(soundResId);
 
-    if (pntr != NULL) {
+    if (pntr != nullptr) {
         //if found the sound resource to play
             sf::Sound* sndPntr = GetFreeSoundSource();
-            if (sndPntr != NULL) {
+            if (sndPntr != nullptr) {
                 //we found a free sound source to play buffer
                 sndPntr->setBuffer(*pntr->pntrSoundBuf);
                 sndPntr->setLoop(looping);
@@ -312,11 +311,11 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
             }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void SoundEngine::StopLoopingSound(sf::Sound* pntrSound) {
-    if (pntrSound != NULL) {
+    if (pntrSound != nullptr) {
         if (pntrSound->getStatus() == pntrSound->Playing) {
             pntrSound->stop();
         }
@@ -402,7 +401,7 @@ void SoundEngine::LoadSoundResources() {
 bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
     //first make sure the specified new sound resource ID is not
     //existing yet
-    if (SearchSndRes(soundResId) != NULL) {
+    if (SearchSndRes(soundResId) != nullptr) {
         //is already existing, output error
         char strhlp[10];
         snprintf(strhlp, 10, "%u", soundResId);
@@ -422,7 +421,7 @@ bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
     newRes->pntrSoundBuf = newBuf;
     std::string fileNameStr(fileName);
 
-    if ((newRes != NULL) && (newBuf != NULL)) {
+    if ((newRes != nullptr) && (newBuf != nullptr)) {
         if (!newRes->pntrSoundBuf->loadFromFile(fileNameStr)) {
             std::string errMsg("LoadSoundResouce: Could not load sound resource file ");
             errMsg.append(fileName);

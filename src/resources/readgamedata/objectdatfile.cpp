@@ -122,7 +122,7 @@ void ObjectDatFile::DebugWriteTriangleCsvFile(char* debugOutPutFileName, int tri
         return;
 
     //do we need to still create the debug file?
-    if (debugTriangleOutputFile == NULL) {
+    if (debugTriangleOutputFile == nullptr) {
         char finalpath[50];
 
         //long dotPos = -1;
@@ -142,7 +142,7 @@ void ObjectDatFile::DebugWriteTriangleCsvFile(char* debugOutPutFileName, int tri
          strcat(finalpath, "-tab.txt");
      } else {
          //remove everything after last dot including the dot
-         //just do this by writing NULL char to dot position
+         //just do this by writing termination char to dot position
          finalpath[dotPos] = 0;
 
          strcat(finalpath, "-tab.txt");
@@ -150,7 +150,7 @@ void ObjectDatFile::DebugWriteTriangleCsvFile(char* debugOutPutFileName, int tri
 
         //now we have our output filename
         debugTriangleOutputFile = fopen(finalpath, "w");
-        if (debugTriangleOutputFile == NULL) {
+        if (debugTriangleOutputFile == nullptr) {
             debugFileOutputFailed = true;
            return;
             }
@@ -196,7 +196,7 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       //read overall file into memory
       char* ByteArray;
       ByteArray = new char[size + 1];
-      if (iFile != NULL)
+      if (iFile != nullptr)
       {
           do {
               ByteArray[counter] = fgetc(iFile);
@@ -444,7 +444,7 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
               pntrItem = &this->mAtlasTextureInfo->items[texId];
 
               //we do not have a valid pointer, quit with error!
-              if (pntrItem == NULL) {
+              if (pntrItem == nullptr) {
                   logging::Error("No valid pointer, quit!");
                   return false;
               }
@@ -499,7 +499,7 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
               uvCoordVec->push_back(0.0f);
               uvCoordVec->push_back(0.0f);
 /*
-              if (debugTriangleOutputFile != NULL) {
+              if (debugTriangleOutputFile != nullptr) {
                  fprintf(debugTriangleOutputFile, "triangle != type 5\n");
               }*/
 
@@ -544,9 +544,9 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
              CalculateAndAddNormals(pntrVert1, pntrVert2, pntrVert3);
           }
 
-      /*if (debugTriangleOutputFile != NULL) {
+      /*if (debugTriangleOutputFile != nullptr) {
           fclose(debugTriangleOutputFile);
-          debugTriangleOutputFile = NULL;
+          debugTriangleOutputFile = nullptr;
       }*/
 
       delete[] ByteArray;
@@ -611,7 +611,7 @@ bool ObjectDatFile::CreateMtlFile(char* outFilename) {
     FILE* oFile;
 
     oFile = fopen(outFilename, "w");
-    if (oFile == NULL)
+    if (oFile == nullptr)
         return false;
 
     //create a "default" mtl file that links to our
@@ -659,7 +659,7 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
         strcat(objFilename, ".obj");
     } else {
         //remove everything after last dot including the dot
-        //just do this by writing NULL char to dot position
+        //just do this by writing termination char to dot position
         char filename_base[128];
         strcpy(filename_base, filename);
         filename_base[dotPos] = 0;
@@ -674,7 +674,7 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
     FILE *oFile;
 
     oFile = fopen(objFilename, "w");
-    if (oFile == NULL) {
+    if (oFile == nullptr) {
         return false;
     }
 

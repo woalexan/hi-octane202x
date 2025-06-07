@@ -18,17 +18,17 @@
 
 struct CheckPointInfoStruct {
     //pntr to checkpoint Irrlicht sceneNode
-    irr::scene::IMeshSceneNode* SceneNode;
+    irr::scene::IMeshSceneNode* SceneNode = nullptr;
     //pntr to checkpoint Irrlich Mesh
-    irr::scene::SMesh* Mesh;
+    irr::scene::SMesh* Mesh = nullptr;
 
     //value for checkpoint, is defined
     //within level file with increasing
     //integer values
     irr::s32 value = 0;
 
-    EntityItem* pEntity;
-    LineStruct* pLineStruct;
+    EntityItem* pEntity = nullptr;
+    LineStruct* pLineStruct = nullptr;
 
     //if we want to figure out if a player
     //craft flies in normal race direction
@@ -39,17 +39,17 @@ struct CheckPointInfoStruct {
 };
 
 struct WayPointLinkInfoStruct {
-    EntityItem* pStartEntity;
-    EntityItem* pEndEntity;
+    EntityItem* pStartEntity = nullptr;
+    EntityItem* pEndEntity = nullptr;
 
     //3D line that links two waypoints together (as defined in the map file
     //via waypoint entities)
-    LineStruct* pLineStruct;
+    LineStruct* pLineStruct = nullptr;
 
     //Idea: extend the lines a little bit further outwards at
     //both ends, so that when we project the players position on
     //the different segments later we always find a valid segment
-    LineStruct* pLineStructExtended;
+    LineStruct* pLineStructExtended = nullptr;
 
     //normalized link direction vector
     irr::core::vector3df LinkDirectionVec;
@@ -65,8 +65,8 @@ struct WayPointLinkInfoStruct {
 
     //if a checkpoint is crossing this waypoint line
     //segment add a pointer to this checkpoint here
-    //otherwise this pointer will be kept NULL
-    CheckPointInfoStruct* pntrCheckPoint = NULL;
+    //otherwise this pointer will be kept nullptr
+    CheckPointInfoStruct* pntrCheckPoint = nullptr;
 
     //if there is a checkpoint crossing this WaypointLink
     //the following variable will hold the Distance
@@ -77,8 +77,8 @@ struct WayPointLinkInfoStruct {
     //pointer to next WayPointLinkInfoStruct on the way
     //if a next element is existing
     //we can use this pointer for faster path search
-    //during the game; if not existing stays NULL
-    WayPointLinkInfoStruct *pntrPathNextLink = NULL;
+    //during the game; if not existing stays nullptr
+    WayPointLinkInfoStruct *pntrPathNextLink = nullptr;
 
     //if existing keep also direction vector of next element
     //so that we can adjust orientation of craft before we reach
@@ -184,7 +184,7 @@ public:
     //anymore where to put a player back after its physics reset
     std::vector<WayPointLinkInfoStruct*> DeliverAllWayPointLinksThatLeadIntoPlayersNextExpectedCheckpoint(Player* player);
 
-    //Returns NULL if within the next 5 waypoint links the specified
+    //Returns nullptr if within the next 5 waypoint links the specified
     //charger type was not found, but with proper level design this
     //should never happen
     ChargingStation* GetChargingStationAhead(WayPointLinkInfoStruct* startAtWhichLink, irr::u8 chargerTypeToFind);
@@ -194,8 +194,8 @@ public:
     std::vector<ChargingStation*> WhichChargingStationsDoesAWayPointLinkIntersect(WayPointLinkInfoStruct* whichLink);
 
 private:
-    Race* mRace;
-    DrawDebug* mDrawDebug;
+    Race* mRace = nullptr;
+    DrawDebug* mDrawDebug = nullptr;
 
     void AddWayPointLinkToOccurenceList(std::vector<std::pair <irr::u8, WayPointLinkInfoStruct*>> &wayPointLinkOccurenceList,
                                                 WayPointLinkInfoStruct* newWayPointLink);

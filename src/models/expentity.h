@@ -19,12 +19,12 @@ public:
     ExplosionEntity(EntityItem* entityItem, Race* mParentRace);
     ~ExplosionEntity();
 
-    EntityItem* mEntityItem;
+    EntityItem* mEntityItem = nullptr;
 
     void Trigger();
 
 private:
-    Race* mRace;
+    Race* mRace = nullptr;
     
     bool mAlreadyExploded = false;
 

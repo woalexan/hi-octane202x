@@ -5,23 +5,15 @@
 bool ExplosionLauncher::LoadSprites() {
     //get the explosion sprites
 
-    irr::video::ITexture* newTex;
-    //char fileName[50];
-    //char fname[20];
+    irr::video::ITexture* newTex = nullptr;
 
     //there are 12 explosion sprites to be loaded
     //for the explosion animation
     for (long i = 0; i < 13; i++) {
-
-        /*strcpy(fileName, "extract/sprites/tmaps");
-        sprintf (fname, "%0*lu.png", 4, i);
-        strcat(fileName, fname);*/
-
-        //newTex = mDriver->getTexture(fileName);
         //get pointer to preloaded texture
         newTex = this->mParentRace->mTexLoader->spriteTex.at(i);
 
-        if (newTex == NULL)
+        if (newTex == nullptr)
             return false;
 
         animTexList.push_back(newTex);
@@ -52,7 +44,7 @@ void ExplosionLauncher::Update(irr::f32 DeltaTime) {
 
             //delete the missile object itself
             delete mPntr;
-            mPntr = NULL;
+            mPntr = nullptr;
        } else ++it;
     }*/
    }
@@ -65,9 +57,9 @@ void ExplosionLauncher::Update(irr::f32 DeltaTime) {
     }
    }
 
-    /*if (mShotSound != NULL) {
+    /*if (mShotSound != nullptr) {
         if (mShotSound->getStatus() == mShotSound->Stopped) {
-            mShotSound = NULL;
+            mShotSound = nullptr;
         }
     }*/
 }

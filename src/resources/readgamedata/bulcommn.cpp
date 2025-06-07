@@ -258,7 +258,7 @@ long file_length_opened (FILE *fp)
 
 char *filename_from_path(char *pathname)
 {
-    char *fname = NULL;
+    char *fname = nullptr;
     if (pathname)
     {
         fname = strrchr (pathname, '/') + 1;
