@@ -20,6 +20,30 @@
 // This is the one method that we have to implement
 bool MyEventReceiver::OnEvent(const SEvent& event)
 {
+    // Remember the mouse state
+    if (event.EventType == irr::EET_MOUSE_INPUT_EVENT)
+    {
+        switch(event.MouseInput.Event)
+        {
+          case EMIE_LMOUSE_PRESSED_DOWN:
+                MouseState.LeftButtonDown = true;
+                break;
+
+          case EMIE_LMOUSE_LEFT_UP:
+                MouseState.LeftButtonDown = false;
+                break;
+
+          case EMIE_MOUSE_MOVED:
+                MouseState.Position.X = event.MouseInput.X;
+                MouseState.Position.Y = event.MouseInput.Y;
+                break;
+
+          default:
+                // We won't use the wheel
+                break;
+          }
+    }
+
     // Remember whether each key is down or up
     if (event.EventType == irr::EET_KEY_INPUT_EVENT) {
         KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
@@ -62,6 +86,20 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
         return true;
     }
 
+    //is this a GUIElement event? Is only really used
+    //in level editor, and not the game itself
+    if (event.EventType == EET_GUI_EVENT) {
+        //only call callback event handling function
+        //if it was setup before!
+       /* if (mGuiElementEventCallbackSet) {
+            //call the callback function below
+            mGuiElementCallbackPntr(event);
+        }*/
+        if (guiEventVecTargetPntr != nullptr) {
+            guiEventVecTargetPntr->push_back(event);
+        }
+    }
+
     return false;
 }
 
@@ -94,3 +132,14 @@ bool MyEventReceiver::IsKeyDownSingleEvent(EKEY_CODE keyCode) {
 
     return false;
 }
+
+void MyEventReceiver::SetGuiEventTargetVectorPointer(std::vector<SEvent>* targetPntr) {
+   this->guiEventVecTargetPntr = targetPntr;
+}
+
+/*
+// Setup a GuiElement event handling callback function
+void MyEventReceiver::SetupGuiElementEventHandlingCallback(GuiElementCallbackPntr pFunc) {
+    mGuiElementCallbackPntr = pFunc;
+    mGuiElementEventCallbackSet = true;
+}*/

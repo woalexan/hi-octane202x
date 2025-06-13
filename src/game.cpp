@@ -129,7 +129,7 @@ bool Game::InitGameStep2() {
 //creates the most basic game infrastructure, and
 //extracts basic things to be able to show a first
 //graphical screen
-bool Game::InitGameStep1() {
+bool Game::InitGameStep1(bool useXEffects) {
     dimension2d<u32> targetResolution;
 
     //set target screen resolution
@@ -137,10 +137,38 @@ bool Game::InitGameStep1() {
     //targetResolution.set(1280,960);
 
     //create my infrastructure
-    //04.05.2025: Do not use XEffects right now, I have problem with too dark lightning
-    mInfra = new InfrastructureBase(targetResolution, fullscreen, false, enableShadows);
+    mInfra = new InfrastructureBase(targetResolution, fullscreen, enableShadows);
     if (!mInfra->GetInitOk())
         return false;
+
+    mUseXEffects = useXEffects;
+
+    if (mUseXEffects) {
+        // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
+        // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
+        // (The screen buffer resolution need not be the same as the screen resolution.)
+        // The second to last parameter enables VSM filtering, see example 6 for more information.
+        // The last parameter enables soft round spot light masks on our shadow lights.
+        mEffect = new EffectHandler(mInfra->mDevice, mInfra->mDriver->getScreenSize(), false, true);
+
+        //Set ShadowMap filter type
+        mShadowMapFilterType = E_FILTER_TYPE::EFT_12PCF;
+        mShadowMapResolution = 4096;
+
+        // Set a global ambient color. A very dark gray.
+        mEffect->setAmbientColor(SColor(255, 255, 255, 255));
+
+        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 120.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
+                SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false));
+
+        //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));
+
+        /*core::stringc shaderExt = (mDriver->getDriverType() == EDT_DIRECT3D9) ? ".hlsl" : ".glsl";
+
+        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurHP") + shaderExt);
+        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurVP") + shaderExt);
+        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BloomP") + shaderExt);*/
+    }
 
     //load the background image we need
     //for data extraction screen rendering and
@@ -903,12 +931,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     //if we do not use XEffects, we run the normal
     //Irrlicht drawAll command, otherwise we run XEffects update
-    if (!mInfra->mUseXEffects) {
+    if (!mUseXEffects) {
         mInfra->mSmgr->drawAll();
     } else {
         // EffectHandler->update() replaces smgr->drawAll(). It handles all
         // of the shadow maps, render targets switching, post processing, etc.
-        mInfra->mEffect->update();
+        mEffect->update();
     }
 
     mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntRender3DScene);

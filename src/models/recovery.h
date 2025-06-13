@@ -32,6 +32,7 @@ const irr::f32 RECOVERY_VEHICLE_DROPOFTARGET_FREESPACE_REQ = 0.1f;  //1.0f
 const irr::f32 RECOVERY_VEHICLE_ACCELDEACCELRATE = 0.1f;
 
 class Player; //Forward declaration
+struct WayPointLinkInfoStruct; //Forward declaration
 
 class Recovery {
 public:
@@ -45,6 +46,8 @@ public:
     irr::core::vector3df GetCurrentPosition();
 
     void Update(irr::f32 deltaTime);
+
+    irr::scene::IMeshSceneNode* Recovery_node = nullptr;
 
 private:
     //my current position I am at
@@ -74,7 +77,6 @@ private:
     irr::f32 mDistanceStartBraking;
 
     irr::scene::IAnimatedMesh*  RecoveryMesh = nullptr;
-    irr::scene::IMeshSceneNode* Recovery_node = nullptr;
 
     //recovery vehicle shadow SceneNode
     irr::scene::IShadowVolumeSceneNode* NodeShadow = nullptr;

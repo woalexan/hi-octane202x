@@ -199,6 +199,8 @@ add_executable(hi-octane202x
     src/utils/fileutils.cpp
     src/utils/physics.h
     src/utils/physics.cpp
+    src/utils/ray.h
+    src/utils/ray.cpp
     src/utils/tprofile.h
     src/utils/tprofile.cpp
     src/utils/worldaware.h
@@ -237,8 +239,99 @@ add_executable(hi-octane202x
     src/race.cpp
     src/main.cpp)
 
+add_executable(hi-editor
+    src/resources/blockdefinition.h
+    src/resources/blockdefinition.cpp
+    src/resources/columndefinition.h
+    src/resources/columndefinition.cpp
+    src/resources/entityitem.h
+    src/resources/entityitem.cpp
+    src/resources/levelfile.h
+    src/resources/levelfile.cpp
+    src/resources/mapentry.h
+    src/resources/mapentry.cpp
+    src/resources/tableitem.h
+    src/resources/tableitem.cpp
+    src/resources/texture.h
+    src/resources/texture.cpp
+
+    src/draw/drawdebug.h
+    src/draw/drawdebug.cpp
+    src/draw/gametext.h
+    src/draw/gametext.cpp
+
+    src/models/collectable.h
+    src/models/collectable.cpp
+    src/models/column.h
+    src/models/column.cpp
+    src/models/levelblocks.h
+    src/models/levelblocks.cpp
+    src/models/levelterrain.h
+    src/models/levelterrain.cpp
+    src/models/morph.h
+    src/models/morph.cpp
+
+    src/utils/tprofile.h
+    src/utils/tprofile.cpp
+    src/utils/fileutils.h
+    src/utils/fileutils.cpp
+    src/utils/logger.h
+    src/utils/logger.cpp
+    src/utils/logging.h
+    src/utils/ray.h
+    src/utils/ray.cpp
+
+    src/input/input.h
+    src/input/input.cpp
+
+    src/resources/readgamedata/bulcommn.h
+    src/resources/readgamedata/bulcommn.cpp
+    src/resources/readgamedata/dernc.h
+    src/resources/readgamedata/dernc.cpp
+    src/resources/readgamedata/xtabdat8.h
+    src/resources/readgamedata/xtabdat8.cpp
+    src/resources/readgamedata/objectdatfile.h
+    src/resources/readgamedata/objectdatfile.cpp
+    src/resources/readgamedata/preparedata.h
+    src/resources/readgamedata/preparedata.cpp
+
+    src/resources/xbrz-1-8/xbrz_config.h
+    src/resources/xbrz-1-8/xbrz_tools.h
+    src/resources/xbrz-1-8/xbrz.h
+    src/resources/xbrz-1-8/xbrz.cpp
+
+    src/resources/intro/flifile.h
+    src/resources/intro/flifile.cpp
+    src/resources/intro/flifix.h
+    src/resources/intro/flifix.cpp
+    src/resources/intro/prgtools.h
+    src/resources/intro/prgtools.cpp
+
+    src/resources/intro/flic.h
+    src/resources/intro/flic_details.h
+    src/resources/intro/stdio.cpp
+    src/resources/intro/decoder.cpp
+    src/resources/intro/encoder.cpp
+
+    src/utils/crc32.h
+    src/utils/crc32.cpp
+
+    src/definitions.h
+    src/infrabase.h
+    src/infrabase.cpp
+
+    src/editor.h
+    src/editor.cpp
+    src/editorsession.h
+    src/editorsession.cpp
+    src/maineditor.cpp)
+
 TARGET_LINK_LIBRARIES(hi-octane202x ${IRRLICHT_LIBRARY})
+TARGET_LINK_LIBRARIES(hi-octane202x ${SFML_LIBRARIES})
 TARGET_LINK_LIBRARIES(hi-octane202x ${ADLMIDI_LIBRARY})
+
+TARGET_LINK_LIBRARIES(hi-editor ${IRRLICHT_LIBRARY})
+TARGET_LINK_LIBRARIES(hi-editor ${SFML_LIBRARIES})
 
 ###########################
 

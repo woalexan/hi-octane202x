@@ -31,6 +31,7 @@ using namespace irr::gui;
 
 class Logger; //Forward declaration
 class PrepareData; //Forward declaration
+class GameText; //Forward declaration
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -44,7 +45,7 @@ struct OriginalGameFolderInfoStruct {
 
 class InfrastructureBase {
 public:
-  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool useXEffects, bool enableShadows);
+  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
   ~InfrastructureBase();
 
   //get a random int in the range between min and max
@@ -63,13 +64,9 @@ public:
   IrrlichtDevice* mDevice = nullptr;
   video::IVideoDriver* mDriver = nullptr;
   scene::ISceneManager* mSmgr = nullptr;
-  EffectHandler* mEffect = nullptr;
+
   MyEventReceiver* mEventReceiver = nullptr;
   IGUIEnvironment* mGuienv = nullptr;
-
-  //ShadowMap settings
-  E_FILTER_TYPE mShadowMapFilterType;
-  irr::u32 mShadowMapResolution;
 
   PrepareData* mPrepareData = nullptr;
   GameText* mGameTexts = nullptr;
@@ -80,11 +77,16 @@ public:
   std::vector<uint8_t> mGameVersionDate;
   bool mExtendedGame = false;
 
-  bool mUseXEffects;
-
   //if specified file is not found, returns empty path
   irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName);
   bool UpdateFileListSaveFolder();
+
+  //lets create and store a direction vector for
+  //later use (calculations), so that we do not have to do this
+  //over and over again
+  irr::core::vector3d<irr::f32>* xAxisDirVector = nullptr;
+  irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
+  irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
 
 private:
   //Irrlicht stuff

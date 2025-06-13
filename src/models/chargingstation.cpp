@@ -544,8 +544,8 @@ void ChargingStation::DetermineOrientation() {
     //in which coordinate direction will the craft
     //fly through us, we can derive this information
     //from a waypoint link that goes through us
-    irr::f32 dotProductinX = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->xAxisDirVector);
-    irr::f32 dotProductinZ = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->zAxisDirVector);
+    irr::f32 dotProductinX = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->mInfra->xAxisDirVector);
+    irr::f32 dotProductinZ = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->mInfra->zAxisDirVector);
 
     signInX = -1.0f;
 
@@ -991,8 +991,8 @@ void ChargingStation::DetectExitWayPointLink() {
         return;
 
     //what is the orientation of the exit link?
-    irr::f32 dotProductinX = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->xAxisDirVector);
-    irr::f32 dotProductinZ = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->zAxisDirVector);
+    irr::f32 dotProductinX = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->mInfra->xAxisDirVector);
+    irr::f32 dotProductinZ = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->mInfra->zAxisDirVector);
 
     irr::f32 exitSignInX = -1.0f;
 

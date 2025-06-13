@@ -55,6 +55,13 @@ void DrawDebug::Draw3DTriangle(const irr::core::triangle3df *triangle, irr::vide
     myDriver->draw3DTriangle(*triangle, color);
 }
 
+void DrawDebug::Draw3DTriangleOutline(const irr::core::triangle3df *triangle, irr::video::SMaterial* color) {
+    myDriver->setMaterial(*color);
+    myDriver->draw3DLine(triangle->pointA, triangle->pointB);
+    myDriver->draw3DLine(triangle->pointB, triangle->pointC);
+    myDriver->draw3DLine(triangle->pointC, triangle->pointA);
+}
+
 void DrawDebug::Draw3DLine(irr::core::vector3df startPos, irr::core::vector3df endPos, irr::video::SMaterial* color) {
     myDriver->setMaterial(*color);
     myDriver->draw3DLine(startPos, endPos);

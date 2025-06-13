@@ -18,8 +18,12 @@
 #define INPUT_H
 
 #include <irrlicht.h>
+#include <vector>
 
 using namespace irr;
+
+//type for GuiElement event handling callback function
+//typedef void (*GuiElementCallbackPntr)(const SEvent& event);
 
 /*
 To receive events like mouse and keyboard input, or GUI events like "the OK
@@ -33,6 +37,13 @@ held down, and so we will remember the current state of each key.
 class MyEventReceiver : public IEventReceiver
 {
 public:
+    // We'll create a struct to record info on the mouse state
+    struct SMouseState {
+       core::position2di Position;
+       bool LeftButtonDown;
+       SMouseState() : LeftButtonDown(false) { }
+    } MouseState;
+
     // This is the one method that we have to implement
     virtual bool OnEvent(const SEvent& event);
 
@@ -44,7 +55,12 @@ public:
     // after the key was released first again
     bool IsKeyDownSingleEvent(EKEY_CODE keyCode);
 
+    // Setup a GuiElement event handling callback function
+    //void SetupGuiElementEventHandlingCallback(GuiElementCallbackPntr pFunc);
+
     MyEventReceiver();
+
+    void SetGuiEventTargetVectorPointer(std::vector<SEvent>* targetPntr);
 
 private:
     // We use this array to store the current state of each key
@@ -54,6 +70,15 @@ private:
     //for another activation, as the were already triggered and
     //need to be released first for another trigger possibility
     bool KeyIsLockedCurr[KEY_KEY_CODES_COUNT];
+
+    //bool mGuiElementEventCallbackSet = false;
+
+    //Function pointer to GUIElement event
+    //handler function
+    //GuiElementCallbackPntr mGuiElementCallbackPntr;
+
+    //pointer to a target vector of Gui Events
+    std::vector<SEvent>* guiEventVecTargetPntr = nullptr;
 };
 
 #endif // INPUT_H

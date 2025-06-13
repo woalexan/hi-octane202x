@@ -14,6 +14,7 @@
 #include "../resources/mapentry.h"
 #include <irrlicht.h>
 #include "../resources/texture.h"
+#include "../infrabase.h"
 #include "../utils/logging.h"
 #include "column.h"
 
@@ -30,6 +31,7 @@ using namespace gui;
 
 class LevelTerrain; //Forward declaration
 class Column;       //Forward declaration
+class InfrastructureBase; //Forward declaration
 
 struct ColumnsByPositionStruct {
       int pos;
@@ -38,7 +40,7 @@ struct ColumnsByPositionStruct {
 
 class LevelBlocks {
 public:
-    LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver,
+    LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
                 TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning);
     ~LevelBlocks();
 
@@ -68,19 +70,18 @@ public:
 
     std::vector<ColumnsByPositionStruct> ColumnsByPosition;
 
+    bool searchColumnWithPosition(int posKey, Column* &columnFnd);
+
     void SwitchViewMode();
 
 private:   
-    irr::video::IVideoDriver *m_driver = nullptr;
     TextureLoader* mTexSource = nullptr;
     LevelTerrain* MyTerrain = nullptr;
-    scene::ISceneManager *MySmgr = nullptr;
-    Race* mRace = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     //std::string m_texfile;
 
     void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
-    bool searchColumnWithPosition(int posKey, Column* &columnFnd);
 
     irr::s32 myCurrentViewMode = LEVELBLOCKS_VIEW_DEFAULT;
 

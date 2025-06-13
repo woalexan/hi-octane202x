@@ -19,6 +19,7 @@
 #define DEF_COLLECTABLE_SPAWNER_STATE_DONE 2
 
 class Race; //Forward declaration
+class Collectable; //Forward declaration
 
 //struct for keeping all the data of a spawned collectable entity
 //that is emitted from a spawnPoint

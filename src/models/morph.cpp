@@ -50,11 +50,11 @@ void Morph::Update(irr::f32 frameDeltaTime) {
     absTimeMorph += frameDeltaTime;
     setProgress((float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph))));
 
-    this->mRace->mLevelTerrain->ApplyMorph((*this));
+    mLevelTerrain->ApplyMorph((*this));
     MorphColumns();
 
     //mark column vertices as dirty
-    this->mRace->mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+    mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
 
     if (mMorphDirectionUp && (progress >= 0.99999f)) {
         mCurrMorphing = false;
@@ -68,7 +68,7 @@ void Morph::Update(irr::f32 frameDeltaTime) {
 }
 
 Morph::Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, int height,
-             bool permanent, Race* mParentRace) {
+             bool permanent, LevelTerrain* levelTerrain, LevelBlocks* levelblocks) {
     Source = source;
     Target = target;
     Width = width;
@@ -76,7 +76,8 @@ Morph::Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, 
     LastProgress = 0.0f;
     Permanent = permanent;
     myEntityId = myEntityID;
-    mRace = mParentRace;
+    mLevelTerrain = levelTerrain;
+    mLevelBlocks = levelblocks;
     absTimeMorph = 0.0f;
 }
 

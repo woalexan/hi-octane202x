@@ -1,0 +1,611 @@
+/*
+ Copyright (C) 2025 Wolf Alexander
+
+ This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
+
+#include "editor.h"
+
+//fully initializes the remaining editor
+//components
+//before calling this function we need to be sure that all
+//original game files were already extracted before and are
+//available
+bool Editor::InitEditorStep2() {
+    if (DebugShowVariableBoxes) {
+            //only for debugging
+            dbgTimeProfiler = mInfra->mGuienv->addStaticText(L"Location",
+                   rect<s32>(100,150,300,200), false, true, nullptr, -1, true);
+
+            dbgText = mInfra->mGuienv->addStaticText(L"",
+                   rect<s32>(100,250,300,350), false, true, nullptr, -1, true);
+
+            /*dbgText2 = guienv->addStaticText(L"",
+                   rect<s32>(350,200,450,300), false, true, nullptr, -1, true);*/
+    }
+
+    if (enableLightning) {
+        mInfra->mSmgr->addLightSceneNode(0, vector3df(0, 100, 100),
+            video::SColorf(1.0f, 1.0f, 1.0f), 1000.0f, -1);
+    }
+
+    //set a minimum amount of light everywhere, to not have black areas
+    //in the level
+    if (enableLightning) {
+       mInfra->mSmgr->setAmbientLight(video::SColorf(0.4f, 0.4f, 0.4f));
+    } else {
+        //set max brightness everywhere
+        mInfra->mSmgr->setAmbientLight(video::SColorf(1.0f, 1.0f, 1.0f));
+    }
+
+    if (enableShadows) {
+       mInfra->mSmgr->setShadowColor(video::SColor(150,0,0,0));
+    }
+
+    //setup the GuiElement event handling callback function
+    //mInfra->mEventReceiver->SetupGuiElementEventHandlingCallback(HandleGuiElementEvents);
+
+    //tell the input receiver to add its gui input events
+    //to my internal vector of elements
+    this->mInfra->mEventReceiver->SetGuiEventTargetVectorPointer(&this->mGuiEventVec);
+
+    return true;
+}
+
+//creates the most basic game infrastructure, and
+//extracts basic things to be able to show a first
+//graphical screen
+bool Editor::InitEditorStep1() {
+    dimension2d<u32> targetResolution;
+
+    //set target screen resolution
+    targetResolution.set(640,480);
+    //targetResolution.set(1280,960);
+
+    //create my infrastructure
+    mInfra = new InfrastructureBase(targetResolution, fullscreen, enableShadows);
+    if (!mInfra->GetInitOk())
+        return false;
+
+    //load the background image we need
+    //for data extraction screen rendering and
+    //main menue
+    if (!LoadBackgroundImage()) {
+        return false;
+    }
+
+    return true;
+}
+
+void Editor::RunEditor() {
+    //further game data needs to be extracted?
+    if (!mInfra->mPrepareData->GameDataAvailable()) {
+        mEditorState = DEF_EDITORSTATE_EXTRACTDATA;
+    } else {
+        if (!InitEditorStep2()) {
+            mEditorState = DEF_EDITORSTATE_ERROR;
+        } else {
+            CreateMenue();
+            mEditorState = DEF_EDITORSTATE_LOADDATA;
+        }
+    }
+
+    EditorLoop();
+}
+
+void Editor::CreateMenue() {
+    // create menu
+    gui::IGUIContextMenu* menu = mInfra->mGuienv->addMenu();
+    menu->addItem(L"File", -1, true, true);
+    menu->addItem(L"Edit", -1, true, true);
+
+    gui::IGUIContextMenu* submenu;
+    submenu = menu->getSubMenu(0);
+    submenu->addItem(L"Open level", 14);// GUI_ID_OPEN_LEVEL);
+    //submenu->addItem(L"Set Model Archive...", GUI_ID_SET_MODEL_ARCHIVE);
+    //submenu->addItem(L"Load as Octree", GUI_ID_LOAD_AS_OCTREE);
+    submenu->addSeparator();
+    submenu->addItem(L"Quit", 15); //GUI_ID_QUIT);
+}
+
+void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
+{
+    s32 id = menu->getItemCommandId(menu->getSelectedItem());
+
+    switch(id)
+    {
+     /*   case GUI_ID_OPEN_MODEL: // FilOnButtonSetScalinge -> Open Model
+            env->addFileOpenDialog(L"Please select a model file to open");
+            break;
+        case GUI_ID_SET_MODEL_ARCHIVE: // File -> Set Model Archive
+            env->addFileOpenDialog(L"Please select your game archive/directory");
+            break;
+        case GUI_ID_LOAD_AS_OCTREE: // File -> LoadAsOctree
+            Octree = !Octree;
+            menu->setItemChecked(menu->getSelectedItem(), Octree);
+            break;*/
+        case GUI_ID_QUIT: // File -> Quit
+            ExitEditor = true;
+            break;
+    }
+}
+/*
+void Editor::HandleGuiElementEvents(const SEvent& event) {
+    mGuiEventVec.push_back(event);
+}
+
+void Editor::ProcessGuiElementEvents() {
+    //take next Gui Event if there is one
+    if (mGuiEventVec.size() > 0) {
+        std::vector<SEvent>::iterator it;
+
+        it = mGuiEventVec.begin();
+
+        SEvent currEvent = (*it);
+        it = mGuiEventVec.erase(it);
+
+        switch(currEvent.GUIEvent.EventType)
+        {
+            case EGET_MENU_ITEM_SELECTED: {
+              // a menu item was clicked
+              OnMenuItemSelected( (IGUIContextMenu*)currEvent.GUIEvent.Caller );
+              break;
+            }
+
+            default: {
+                    break;
+            }
+         }
+    }
+}*/
+
+void Editor::ProcessGuiElementEvents() {
+    //take next Gui Event if there is one
+    if (mGuiEventVec.size() > 0) {
+        std::vector<SEvent>::iterator it;
+
+        it = mGuiEventVec.begin();
+
+        SEvent currEvent = (*it);
+        it = mGuiEventVec.erase(it);
+
+        switch(currEvent.GUIEvent.EventType)
+        {
+            case EGET_MENU_ITEM_SELECTED: {
+              // a menu item was clicked
+              OnMenuItemSelected( (IGUIContextMenu*)currEvent.GUIEvent.Caller );
+              break;
+            }
+
+            default: {
+                    break;
+            }
+         }
+    }
+}
+
+bool Editor::LoadAdditionalGameImages() {
+     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+
+     //load gameTitle
+     gameTitle = mInfra->mDriver->getTexture("extract/images/title.png");
+
+     if (gameTitle == nullptr) {
+         //there was a texture loading error
+         //just return with false
+         return false;
+     }
+
+     gameTitleSize = gameTitle->getSize();
+     //calculate position to draw gameTitle so that it is centered on the screen
+     //because most likely target resolution does not fit with image resolution
+     gameTitleDrawPos.X = (mInfra->mScreenRes.Width - gameTitleSize.Width) / 2;
+     gameTitleDrawPos.Y = (mInfra->mScreenRes.Height - gameTitleSize.Height) / 2;
+
+     //load race loading screen
+     raceLoadingScr = mInfra->mDriver->getTexture("extract/images/onet0-1.png");
+
+     if (raceLoadingScr == nullptr) {
+         //there was a texture loading error
+         //just return with false
+         return false;
+     }
+
+     raceLoadingScrSize = raceLoadingScr->getSize();
+     //calculate position to draw race loading screen so that it is centered on the screen
+     //because maybe target resolution does not fit with image resolution
+     raceLoadingScrDrawPos.X = (mInfra->mScreenRes.Width - raceLoadingScrSize.Width) / 2;
+     raceLoadingScrDrawPos.Y = (mInfra->mScreenRes.Height - raceLoadingScrSize.Height) / 2;
+
+     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+
+     return true;
+}
+
+bool Editor::LoadBackgroundImage() {
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+
+    //first load background image for menue
+    backgnd = mInfra->mDriver->getTexture("extract/images/oscr0-1.png");
+
+    if (backgnd == nullptr) {
+        //there was a texture loading error
+        //just return with false
+        return false;
+    }
+
+    irr::core::dimension2d<irr::u32> backgndSize;
+
+    backgndSize = backgnd->getSize();
+    if ((backgndSize.Width != mInfra->mScreenRes.Width) ||
+        (backgndSize.Height != mInfra->mScreenRes.Height)) {
+        //background texture size does not fit with selected screen resolution
+        return false;
+    }
+
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+
+    return true;
+}
+
+void Editor::RenderDataExtractionScreen() {
+    //first draw background picture
+     mInfra->mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+                         irr::core::recti(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height)
+                         , 0, irr::video::SColor(255,255,255,255), true);
+
+     char* infoText = strdup("EXTRACTING GAME DATA, PLEASE STANDBY...");
+     char* currStepText = strdup(mInfra->mPrepareData->currentStepDescription.c_str());
+
+     irr::u32 textHeight = mInfra->mGameTexts->GetHeightPixelsGameText(infoText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+     irr::u32 textWidth = mInfra->mGameTexts->GetWidthPixelsGameText(infoText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+
+     irr::core::position2di txtPos;
+     txtPos.X = mInfra->mScreenRes.Width / 2 - textWidth / 2;
+     txtPos.Y = mInfra->mScreenRes.Height / 2 - textHeight / 2;
+
+     //write info text, warning: at the data extraction stage of the game only single font GameMenueWhiteTextSmallSVGA is
+     //available!
+     mInfra->mGameTexts->DrawGameText(infoText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA, txtPos);
+
+     textHeight = mInfra->mGameTexts->GetHeightPixelsGameText(currStepText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+     textWidth = mInfra->mGameTexts->GetWidthPixelsGameText(currStepText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA);
+
+     txtPos.X = mInfra->mScreenRes.Width / 2 - textWidth / 2;
+     txtPos.Y += 25;
+
+     mInfra->mGameTexts->DrawGameText(currStepText, mInfra->mGameTexts->GameMenueWhiteTextSmallSVGA, txtPos);
+
+     free(infoText);
+     free(currStepText);
+}
+
+void Editor::EditorLoopExtractData() {
+    //execute next data extraction step
+    //returns true if data extraction process is finished
+    try {
+        if (mInfra->mPrepareData->ExecuteNextStep()) {
+            //data extraction is finished
+            //continue editor initialization
+            if (!InitEditorStep2()) {
+                mEditorState = DEF_EDITORSTATE_ERROR;
+                return;
+            }
+            mEditorState = DEF_EDITORSTATE_LOADDATA;
+            return;
+        }
+    }
+     catch (const std::string &msg) {
+         std::string msgExt("Step 2 of game assets preparation operation failed: ");
+         msgExt.append(msg);
+         logging::Error(msgExt);
+         mEditorState = DEF_EDITORSTATE_ERROR;
+         return;
+    }
+
+    mInfra->mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //update graphical image about current status
+    RenderDataExtractionScreen();
+
+    mInfra->mDriver->endScene();
+}
+/*
+void Game::GameLoopTitleScreenLoadData() {
+    //we need to load additional images
+    if (!LoadAdditionalGameImages()) {
+        logging::Error("Loading of game tile and race loading images failed");
+        mGameState = DEF_GAMESTATE_ERROR;
+        return;
+    }
+
+    mInfra->mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //first draw a black rectangle over the whole screen to make sure that the parts of the
+    //screen that are outside of the drawn image regions are black as well
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
+
+    //draw game tile screen
+    mInfra->mDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0,
+                     gameTitleSize.Width, gameTitleSize.Height)
+                     , 0, irr::video::SColor(255,255,255,255), true);
+
+    mInfra->mDriver->endScene();
+
+    //now load data
+    if (!LoadGameData()) {
+        mGameState = DEF_GAMESTATE_ERROR;
+        return;
+    } else {
+        if (!mDebugRace && !mDebugDemoMode) {
+            //was succesfull, now continue to main menue
+            mGameState = DEF_GAMESTATE_MENUE;
+            MainMenue->ShowMainMenue();
+        } else if (mDebugRace) {
+            //we want to directly create a race for debugging
+            //of game mechanics and enter it
+            SetupDebugGame();
+        } else if (mDebugDemoMode) {
+            //we want to directly create a demo for debugging
+            SetupDebugDemo();
+        }
+    }
+}
+
+void Game::GameLoopLoadRaceScreen() {
+    mInfra->mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //first draw a black rectangle over the whole screen to make sure that the parts of the
+    //screen that are outside of the drawn image regions are black as well
+    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
+
+    //draw load race screen
+    mInfra->mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
+                     , 0, irr::video::SColor(255,255,255,255), true);
+
+    //at 190, 240 write "LOADING LEVEL"
+    mInfra->mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mInfra->mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
+
+    mInfra->mDriver->endScene();
+
+    if (mGameState == DEF_GAMESTATE_INITRACE) {
+        //player wants to start the race
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
+
+        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, false, mDebugRace)) {
+             mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
+        } else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
+        }
+    } else if (mGameState == DEF_GAMESTATE_INITDEMO) {
+        //for the demo do not add a human player, but add computer players
+        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(false, true);
+
+        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, true, mDebugRace)) {
+             mGameState = DEF_GAMESTATE_RACE;
+             CleanupPilotInfo(mPilotsNextRace);
+        } else {
+            CleanupPilotInfo(mPilotsNextRace);
+
+            mGameState = DEF_GAMESTATE_MENUE;
+
+            //there was an error while creating the race
+            //Go back to top of main menue
+            MainMenue->ShowMainMenue();
+        }
+    }
+}*/
+
+
+void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
+
+    mInfra->mTimeProfiler->StartOfGameLoop();
+
+    mCurrentSession->HandleBasicInput();
+    mCurrentSession->HandleMouse();
+
+    //run GuiEvent processing
+    ProcessGuiElementEvents();
+
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntHandleInput);
+
+    //Update Time Profiler results
+    mInfra->mTimeProfiler->UpdateWindow();
+
+    if (DebugShowVariableBoxes) {
+
+            wchar_t* text2 = new wchar_t[400];
+
+            //swprintf(text2, 390, L"");
+            if (mCurrentSession->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+                swprintf(text2, 390, L"Cell X = %d Y = %d", this->mCurrentSession->mCurrSelectedItem.mCellCoordSelected.X, this->mCurrentSession->mCurrSelectedItem.mCellCoordSelected.Y);
+            } else if (mCurrentSession->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+                swprintf(text2, 390, L"Blocks %d", this->mCurrentSession->mCurrSelectedItem.mSelBlockNrStartingFromBase);
+            } else {
+               swprintf(text2, 390, L"");
+            }
+
+            dbgText->setText(text2);
+
+            delete[] text2;
+    }
+
+    mInfra->mDriver->beginScene(true,true,
+     video::SColor(255,100,101,140));
+
+    //render scene: terrain, blocks, player craft, entities...
+    mCurrentSession->Render();
+
+    mInfra->mSmgr->drawAll();
+
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntRender3DScene);
+
+    //render log window
+    mInfra->mLogger->Render();
+
+    //last draw text debug output from Irrlicht
+    mInfra->mGuienv->drawAll();
+
+    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntRender2D);
+
+    mInfra->mDriver->endScene();
+
+    //does the player want to end the race?
+    if (mCurrentSession->exitEditorSession) {
+        mCurrentSession->End();
+
+        //clean up current editor session data
+        delete mCurrentSession;
+        mCurrentSession = nullptr;
+
+        ExitEditor = true;
+
+//        //if we were in game debugging mode simply skip
+//        //main menue, and exit game immediately
+//        if (mDebugRace || mDebugDemoMode) {
+//            ExitGame = true;
+//        } else {
+//            mGameState = DEF_GAMESTATE_MENUE;
+
+//            if (this->lastRaceStat != nullptr) {
+//                //Show race statistics
+//                MainMenue->ShowRaceStats(lastRaceStat);
+//            } else {
+//                //there are no race statistics to show
+//                //simply return to the main menue
+//                MainMenue->ShowMainMenue();
+//            }
+//        }
+    }
+}
+
+void Editor::EditorLoop() {
+
+    // In order to do framerate independent movement, we have to know
+    // how long it was since the last frame
+    u32 then = mInfra->mDevice->getTimer()->getTime();
+
+    while (mInfra->mDevice->run() && (ExitEditor == false)) {
+       /*  if (device->isWindowActive())
+            {*/
+
+        //Work out a frame delta time.
+        const u32 now = mInfra->mDevice->getTimer()->getTime();
+        f32 frameDeltaTime = (f32)(now - then) / 1000.f; // Time in seconds
+        then = now;
+
+        switch (mEditorState) {
+            case DEF_EDITORSTATE_EXTRACTDATA: {
+                EditorLoopExtractData();
+                break;
+            }
+
+            case DEF_EDITORSTATE_LOADDATA: {
+                if (!CreateNewEditorSession(1)) {
+                    mEditorState = DEF_EDITORSTATE_ERROR;
+                } else {
+                    mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
+                }
+                break;
+            }
+
+          /*  //shows game title, loads game data
+            case DEF_GAMESTATE_GAMETITLE: {
+                   GameLoopTitleScreenLoadData();
+                   break;
+            }
+
+            case DEF_GAMESTATE_INITDEMO:
+            case DEF_GAMESTATE_INITRACE: {
+                   GameLoopLoadRaceScreen();
+                   break;
+            }*/
+
+            case DEF_EDITORSTATE_SESSIONACTIVE: {
+                EditorLoopSession(frameDeltaTime);
+                break;
+            }
+
+            case DEF_EDITORSTATE_ERROR: {
+                //there was an error, exit game
+                ExitEditor = true;
+                break;
+            }
+        }
+
+        int fps = mInfra->mDriver->getFPS();
+
+        if (lastFPS != fps) {
+                         core::stringw tmp(L"Hi-Editor [");
+                         tmp += mInfra->mDriver->getName();
+                         tmp += L"] Triangles drawn: ";
+                         tmp += mInfra->mDriver->getPrimitiveCountDrawn();
+                         tmp += " @ fps: ";
+                         tmp += fps;
+
+                         mInfra->mDevice->setWindowCaption(tmp.c_str());
+                         lastFPS = fps;
+                     }
+            //}
+   }
+
+   mInfra->mDriver->drop();
+
+   //cleanup the infrastructure
+   delete mInfra;
+}
+
+bool Editor::CreateNewEditorSession(int load_levelnr) {
+    if (mCurrentSession != nullptr)
+        return false;
+
+    //create a new editor session
+    mCurrentSession = new EditorSession(mInfra, this, load_levelnr);
+
+    mCurrentSession->Init();
+
+    if (!mCurrentSession->ready) {
+        //there was a problem with EditorSession initialization
+        logging::Error("EditorSession creation failed!");
+        return false;
+    }
+
+    return true;
+}
+
+Editor::Editor() {
+    mGuiEventVec.clear();
+}
+
+Editor::~Editor() {
+    //cleanup background images
+    if (backgnd != nullptr) {
+        backgnd->drop();
+        backgnd = nullptr;
+    }
+
+    if (gameTitle != nullptr) {
+        gameTitle->drop();
+        gameTitle = nullptr;
+    }
+
+    if (raceLoadingScr != nullptr) {
+        raceLoadingScr->drop();
+        raceLoadingScr = nullptr;
+    }
+}

@@ -128,7 +128,7 @@ void Cone::WasHit(irr::core::vector3df movementDirection, irr::f32 collisionSpee
 
     //derive rotation axis, is direction vector perpendicular to the movement
     //direction
-    rotAxis = this->mRace->yAxisDirVector->crossProduct(movementDirection);
+    rotAxis = this->mRace->mInfra->yAxisDirVector->crossProduct(movementDirection);
 
     mReachedFinalLocation = false;
 }

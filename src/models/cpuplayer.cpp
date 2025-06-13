@@ -173,7 +173,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     //to the right direction when looking into race direction
     //this direction vector is later used during the game to offset the player
     //path sideways
-    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mInfra->yAxisDirVector).normalize();
 
     //also store this temporary waypointlink struct info
     //in the command, so that we can cleanup after this command was
@@ -295,7 +295,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mInfra->yAxisDirVector).normalize();
         //newStruct->pEndEntity = whichStall->entityItem;
 
         newStruct->pEndEntity = whichChargingStation->enterHelperEntityItem;
@@ -414,7 +414,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mInfra->yAxisDirVector).normalize();
 
         CheckAndRemoveNoCommand();
 

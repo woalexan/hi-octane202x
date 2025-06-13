@@ -30,7 +30,11 @@ void LevelTerrain::ResetTerrainTileData() {
             pTerrainTiles[i][j].vert4UVcoord.set(0.0f, 0.0f);
             pTerrainTiles[i][j].myMeshBuffers.clear();
             pTerrainTiles[i][j].currTileHeight = 0.0f;
-            pTerrainTiles[i][j].m_draw_in_mesh = false;
+            if (mOptimizeMesh) {
+                pTerrainTiles[i][j].m_draw_in_mesh = false;
+            } else {
+                pTerrainTiles[i][j].m_draw_in_mesh = true;
+            }
             pTerrainTiles[i][j].vert1CurrNormal.set(0.0f, 1.0f, 0.0f);
             pTerrainTiles[i][j].vert2CurrNormal.set(0.0f, 1.0f, 0.0f);
             pTerrainTiles[i][j].vert3CurrNormal.set(0.0f, 1.0f, 0.0f);
@@ -220,8 +224,12 @@ void LevelTerrain::CheckPosInsideChargingRegion(int posX, int posY, bool &charge
 //dynamic parts of the terrain mesh into their own Meshbuffers and SceneNodes
 //for performance improvement reasons
 void LevelTerrain::FinishTerrainInitialization() {
-    //optimize terrain
-    findTerrainOptimization();
+    //for the game we want (need) to optimize the
+    //mesh, for the editor we do not want to do this
+    if (mOptimizeMesh) {
+        //optimize terrain
+        findTerrainOptimization();
+    }
 
     if (setupGeometry()) {
          /*std::cout << "HiOctane Terrain '" << mName << "' loaded: " <<
@@ -237,17 +245,17 @@ void LevelTerrain::FinishTerrainInitialization() {
          char hlpstr[20];
 
          //add number vertices
-         sprintf(hlpstr, "%ud", numVertices);
+         sprintf(hlpstr, "%u", numVertices);
          infoMsg.append(hlpstr);
          infoMsg.append(" vertices, ");
 
          //add number normals
-         sprintf(hlpstr, "%ud", numNormals);
+         sprintf(hlpstr, "%u", numNormals);
          infoMsg.append(hlpstr);
          infoMsg.append(" normals, ");
 
          //add number UVs
-         sprintf(hlpstr, "%ud", numUVs);
+         sprintf(hlpstr, "%u", numUVs);
          infoMsg.append(hlpstr);
          infoMsg.append(" UVs, ");
 
@@ -257,7 +265,7 @@ void LevelTerrain::FinishTerrainInitialization() {
          infoMsg.append(" textures, ");
 
          //add number indices
-         sprintf(hlpstr, "%ud", numIndices);
+         sprintf(hlpstr, "%u", numIndices);
          infoMsg.append(hlpstr);
          infoMsg.append(" indices");
 
@@ -293,7 +301,7 @@ void LevelTerrain::FinishTerrainInitialization() {
         CreateTerrainMesh();
 
         //create Static SceneNode for Terrain
-        StaticTerrainSceneNode = this->m_smgr->addMeshSceneNode(myStaticTerrainMesh, 0, IDFlag_IsPickable);
+        StaticTerrainSceneNode = this->mInfra->mSmgr->addMeshSceneNode(myStaticTerrainMesh, 0, IDFlag_IsPickable);
 
         //we need to rotate the terrain Mesh, otherwise it is upside down
         StaticTerrainSceneNode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
@@ -302,30 +310,20 @@ void LevelTerrain::FinishTerrainInitialization() {
         StaticTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
 
         //create dynamic SceneNode for Terrain
-        DynamicTerrainSceneNode = this->m_smgr->addMeshSceneNode(myDynamicTerrainMesh, 0, IDFlag_IsPickable);
+        DynamicTerrainSceneNode = this->mInfra->mSmgr->addMeshSceneNode(myDynamicTerrainMesh, 0, IDFlag_IsPickable);
 
         //we need to rotate the terrain Mesh, otherwise it is upside down
         DynamicTerrainSceneNode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
         DynamicTerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
 
         DynamicTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
-
-        if (mRace->mInfra->mUseXEffects) {
-            // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
-            // It will use the default shadow mode, ESM_BOTH, which allows it to
-            // both cast and receive shadows.
-            this->mRace->mInfra->mEffect->addShadowToNode(StaticTerrainSceneNode, this->mRace->mInfra->mShadowMapFilterType);
-            this->mRace->mInfra->mEffect->addShadowToNode(DynamicTerrainSceneNode, this->mRace->mInfra->mShadowMapFilterType);
-        }
     }
 }
 
-LevelTerrain::LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
-                           TextureLoader* textureSource, Race* mRaceParent, bool enableLightning) {
-   this->m_driver = driver;
-   this->m_smgr = mySmgr;
-   this->mRace = mRaceParent;
+LevelTerrain::LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
+   this->mInfra = infra;
    mEnableLightning = enableLightning;
+   mOptimizeMesh = optimizeMesh;
 
    //mDbgChargerTexFound.clear();
 
@@ -364,13 +362,13 @@ LevelTerrain::~LevelTerrain() {
 
   //free static terrain mesh TerrainMesh
   if (myStaticTerrainMesh != nullptr) {
-    this->m_smgr->getMeshCache()->removeMesh(myStaticTerrainMesh);
+    this->mInfra->mSmgr->getMeshCache()->removeMesh(myStaticTerrainMesh);
     myStaticTerrainMesh = nullptr;
   }
 
   //free dynamic terrain mesh TerrainMesh
   if (myDynamicTerrainMesh != nullptr) {
-    this->m_smgr->getMeshCache()->removeMesh(myDynamicTerrainMesh);
+    this->mInfra->mSmgr->getMeshCache()->removeMesh(myDynamicTerrainMesh);
     myDynamicTerrainMesh = nullptr;
   }
 
@@ -591,7 +589,7 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
 
     //create an empty image, for each Terrain tile one pixel
     irr::video::IImage* imgMiniMap =
-            m_driver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+            mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
                                   irr::core::dimension2d<irr::u32>(endW - startW, endH - startH));
 
     for (irr::u32 posx = startW; posx < endW; posx++) {
@@ -1624,7 +1622,7 @@ void LevelTerrain::findTerrainOptimization() {
         if ((this->pTerrainTiles[x][z].m_optimization_cnt <= CELL_OPTIMIZATION_THRESHOLD) && ((cell->m_TextureId == 0) || (cell->m_TextureId == 160)) ) {
            //cell can be optimized away
            this->pTerrainTiles[x][z].m_draw_in_mesh = false;
-        } else  this->pTerrainTiles[x][z].m_draw_in_mesh = true;
+        } else this->pTerrainTiles[x][z].m_draw_in_mesh = true;
       }
     }
 }

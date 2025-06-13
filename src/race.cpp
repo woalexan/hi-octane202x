@@ -41,11 +41,6 @@ Race::Race(InfrastructureBase* infra,  Game* mParentGame, MyMusicStream* gameMus
 
     //IrrlichtStats((char*)("before Race constructor"));
 
-    //create the predefined axis direction vectors
-    xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
-    yAxisDirVector = new irr::core::vector3df(0.0f, 1.0f, 0.0f);
-    zAxisDirVector = new irr::core::vector3df(0.0f, 0.0f, 1.0f);
-
     //create empty checkpoint info vector
     checkPointVec = new std::vector<CheckPointInfoStruct*>;
     checkPointVec->clear();
@@ -231,11 +226,6 @@ void Race::IrrlichtStats(char* text) {
 }
 
 Race::~Race() {
-    //delete my axis direction vectors
-    delete xAxisDirVector;
-    delete yAxisDirVector;
-    delete zAxisDirVector;
-
     //unregister existing HUD in all players
     std::vector<Player*>::iterator it;
 
@@ -252,6 +242,9 @@ Race::~Race() {
     //therefore we MUST NOT delete them here
     //again! otherwise we corrupt memory
     delete mPhysics;
+
+    //delete ray intersection object
+    delete mRay;
 
     //free all players
     Player* playerPntr;
@@ -1000,6 +993,13 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     //create the new player
     newPlayer = new Player(this, mInfra, player_model, Startpos, Startdirection,
                           this->mRaceNumberOfLaps, humanPlayer);
+
+    if (mGame->mUseXEffects) {
+        // Add this SceneNode to the shadow node list, using the chosen filtertype.
+        // It will use the default shadow mode, ESM_BOTH, which allows it to
+        // both cast and receive shadows.
+        mGame->mEffect->addShadowToNode(newPlayer->Player_node, mGame->mShadowMapFilterType);
+    }
 
     //Setup physics for new player, we handover pointer to Irrlicht
     //player node, as the node (3D model) is now fully controlled
@@ -1877,6 +1877,9 @@ void Race::Init() {
     //create the object for path finding and services
     mPath = new Path(this, mDrawDebug);
 
+    //create the object for ray intersection with the environment
+    mRay = new Ray(mDrawDebug);
+
     //create my players and setup their physics
     //Wolf 22.12.2024: commented out, since add player we have no player object
     //here anymore
@@ -1927,10 +1930,10 @@ void Race::Init() {
     this->mPhysics->AddCollisionMesh(triangleSelectorColumnswCollision);
 
     //give physics the triangle selector for weapon targeting (ray casting at terrain/blocks)
-    this->mPhysics->AddRayTargetMesh(triangleSelectorColumnswCollision);
-    this->mPhysics->AddRayTargetMesh(triangleSelectorColumnswoCollision);
-    this->mPhysics->AddRayTargetMesh(triangleSelectorStaticTerrain);
-    this->mPhysics->AddRayTargetMesh(triangleSelectorDynamicTerrain);
+    this->mRay->AddRayTargetMesh(triangleSelectorColumnswCollision);
+    this->mRay->AddRayTargetMesh(triangleSelectorColumnswoCollision);
+    this->mRay->AddRayTargetMesh(triangleSelectorStaticTerrain);
+    this->mRay->AddRayTargetMesh(triangleSelectorDynamicTerrain);
 
     //activate collisionResolution in physics
     //can be disabled for debugging purposes
@@ -3051,7 +3054,7 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
 void Race::Render() {
     //if we do not use XEffects we can simply render the sky
     //with XEffect this does not work, need a solution for this!
-    if (!mInfra->mUseXEffects) {
+    if (!mGame->mUseXEffects) {
         //we need to draw sky image first, the remaining scene will be drawn on top of it
         DrawSky();
     }
@@ -3649,16 +3652,25 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    /* Prepare level terrain                                   */
    /***********************************************************/
-   this->mLevelTerrain = new LevelTerrain(terrainname, this->mLevelRes, mInfra->mSmgr, mInfra->mDriver, mTexLoader,
-                                          this, this->mGame->enableLightning);
+   //for the game optimize the Terrain mesh!
+   this->mLevelTerrain = new LevelTerrain(this->mInfra, terrainname, this->mLevelRes, mTexLoader, true,
+                                          this->mGame->enableLightning);
 
    /***********************************************************/
    /* Create building (cube) Mesh                             */
    /***********************************************************/
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
-   this->mLevelBlocks = new LevelBlocks(this, this->mLevelTerrain, this->mLevelRes, mInfra->mSmgr, mInfra->mDriver, mTexLoader,
+   this->mLevelBlocks = new LevelBlocks(this->mInfra, this->mLevelTerrain, this->mLevelRes, mTexLoader,
                                         DebugShowWallCollisionMesh, this->mGame->enableLightning);
+
+   if (mGame->mUseXEffects) {
+       // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
+       // It will use the default shadow mode, ESM_BOTH, which allows it to
+       // both cast and receive shadows.
+       mGame->mEffect->addShadowToNode(mLevelBlocks->BlockCollisionSceneNode, mGame->mShadowMapFilterType);
+       mGame->mEffect->addShadowToNode(mLevelBlocks->BlockWithoutCollisionSceneNode, mGame->mShadowMapFilterType);
+   }
 
    //create all level entities
    //this are not only items to pickup by the player
@@ -3676,6 +3688,14 @@ bool Race::LoadLevel(int loadLevelNr) {
    if (this->mLevelTerrain->Terrain_ready == false) {
        //something went wrong with the terrain loading, exit application
        return false;
+   }
+
+   if (mGame->mUseXEffects) {
+       // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
+       // It will use the default shadow mode, ESM_BOTH, which allows it to
+       // both cast and receive shadows.
+       this->mGame->mEffect->addShadowToNode(mLevelTerrain->StaticTerrainSceneNode, this->mGame->mShadowMapFilterType);
+       this->mGame->mEffect->addShadowToNode(mLevelTerrain->DynamicTerrainSceneNode, this->mGame->mShadowMapFilterType);
    }
 
    //load sky image for selected level
@@ -3704,7 +3724,6 @@ bool Race::LoadLevel(int loadLevelNr) {
   //create a bounding box for valid player
   //location testing
   mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
-  validPlayerLocationBBox = mLevelTerrain->StaticTerrainSceneNode->getTransformedBoundingBox();
 
   return true;
 }
@@ -3894,9 +3913,9 @@ void Race::CleanUpWayPointLinks(std::vector<WayPointLinkInfoStruct*> &vec) {
 //X-Axis and increases up to 360.0f in counter-clockwise direction; At 360.0f the value
 //wraps over and starts again at 0.0f, and negative angles start again counting down from 360.0f
 irr::f32 Race::GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange) {
-   irr::f32 dotProductZAxis = dirVector.dotProduct(*this->zAxisDirVector);
+   irr::f32 dotProductZAxis = dirVector.dotProduct(*this->mInfra->zAxisDirVector);
 
-   irr::f32 hlpVal = dirVector.dotProduct(*this->xAxisDirVector);
+   irr::f32 hlpVal = dirVector.dotProduct(*this->mInfra->xAxisDirVector);
    irr::f32 angleRad = acosf(hlpVal);
 
    irr::f32 angleResult  = (angleRad / irr::core::PI) * 180.0f;
@@ -4484,7 +4503,7 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mInfra->yAxisDirVector).normalize();
 
         //Idea: extend the lines a little bit further outwards at
         //both ends, so that when we project the players position on
@@ -4812,7 +4831,7 @@ void Race::createEntity(EntityItem *p_entity,
                     // create and collect morph instances
                     Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h,
                                              entity.getEntityType() == Entity::EntityType::MorphPermanent,
-                                             this);
+                                             this->mLevelTerrain, this->mLevelBlocks);
                     std::vector<Column*>::iterator colIt;
 
                     for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
@@ -4824,7 +4843,7 @@ void Race::createEntity(EntityItem *p_entity,
                     // source
                     morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h,
                                       entity.getEntityType() == Entity::EntityType::MorphPermanent,
-                                      this);
+                                      this->mLevelTerrain, this->mLevelBlocks);
                     for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
                         morph->Columns.push_back(*colIt);
                     }
@@ -4862,6 +4881,13 @@ void Race::createEntity(EntityItem *p_entity,
         case Entity::EntityType::RecoveryTruck: {
             Recovery *recov1 =
                     new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, mInfra->mSmgr);
+
+            if (mGame->mUseXEffects) {
+                // Add this SceneNode to the shadow node list, using the chosen filtertype.
+                // It will use the default shadow mode, ESM_BOTH, which allows it to
+                // both cast and receive shadows.
+                mGame->mEffect->addShadowToNode(recov1->Recovery_node, mGame->mShadowMapFilterType);
+            }
 
             //remember all recovery vehicles in a vector for later use
             this->recoveryVec->push_back(recov1);
@@ -4924,7 +4950,12 @@ void Race::createEntity(EntityItem *p_entity,
         case Entity::EntityType::BoosterUpgrade:
         case Entity::EntityType::MissileUpgrade:
         case Entity::EntityType::MinigunUpgrade:  {
-                    collectable = new Collectable(this, p_entity, entity.getCenter(), mInfra->mSmgr, driver);
+                    //if entity type is invalid for a collectable the function below will fallback
+                    //to sprite number 42, which is a sprite I did not know the purpose of
+                    irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
+
+                    //Point to the correct (billboard) texture
+                    collectable = new Collectable(this->mInfra, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), this->mGame->enableLightning);
                     ENTCollectablesVec->push_back(collectable);
                     break;
         }

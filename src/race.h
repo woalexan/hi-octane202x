@@ -24,6 +24,7 @@
 #include "models/recovery.h"
 #include "draw/drawdebug.h"
 #include "models/player.h"
+#include "utils/ray.h"
 #include "draw/gametext.h"
 #include "input/input.h"
 #include "audio/music.h"
@@ -110,6 +111,7 @@ class Timer;   //Forward declaration
 class ExplosionEntity; //Forward declaration
 class Cone; //Forward declaration
 class Camera; //Forward declaration
+class Ray;    //Forward declaration
 class CollectableSpawner; //Forward declaration
 class SoundEngine; //Forward declaration
 class InfrastructureBase; //Forward declaration
@@ -158,16 +160,11 @@ public:
 
     Bezier *testBezier = nullptr;
 
+    Ray *mRay = nullptr;
+
     SoundEngine* mSoundEngine = nullptr;
 
     std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
-
-    //lets create and store a direction vector for
-    //later use (calculations), so that we do not have to do this
-    //over and over again
-    irr::core::vector3d<irr::f32>* xAxisDirVector = nullptr;
-    irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
-    irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
 
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
     void CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<f32> playerBox);
@@ -286,8 +283,6 @@ public:
     irr::u32 miniMapEndH;
 
     irr::u8 mPlayersInTrouble;
-
-    irr::core::aabbox3df validPlayerLocationBBox;
 
     std::vector<ExtendedRegionInfoStruct*>* mExtRegionVec = nullptr;
 

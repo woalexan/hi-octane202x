@@ -44,6 +44,7 @@ struct HudDisplayPart{
      irr::core::rect<irr::s32> sourceRect;
 };
 
+class InfrastructureBase; //Forward declaration
 class Player; //Forward declaration
 
 struct BannerTextMessageStruct {

@@ -73,6 +73,7 @@ struct ColumnSideGeometryInfo {
     std::vector<ColumnVerticeInfo> vertices;
 };
 
+class LevelTerrain;
 class LevelBlocks;
 
 class Column {

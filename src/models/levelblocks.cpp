@@ -24,12 +24,12 @@ LevelBlocks::~LevelBlocks() {
 
   //free existing meshes
   if (blockMeshForCollision != nullptr) {
-    this->MySmgr->getMeshCache()->removeMesh(blockMeshForCollision);
+    mInfra->mSmgr->getMeshCache()->removeMesh(blockMeshForCollision);
     blockMeshForCollision = nullptr;
   }
 
   if (blockMeshWithoutCollision != nullptr) {
-    this->MySmgr->getMeshCache()->removeMesh(blockMeshWithoutCollision);
+    mInfra->mSmgr->getMeshCache()->removeMesh(blockMeshWithoutCollision);
     blockMeshWithoutCollision = nullptr;
   }
 
@@ -47,13 +47,11 @@ LevelBlocks::~LevelBlocks() {
   }
 }
 
-LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver* driver,
+LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
                          TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning) {
-   this->m_driver = driver;
    MyTerrain = myTerrain;
-   MySmgr = mySmgr;
+   mInfra = infra;
    mEnableLightning = enableLightning;
-   mRace = parentRace;
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -88,8 +86,8 @@ LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* l
    blockMeshWithoutCollision->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
 
    //we need to use a addMeshSceneNode here, if we use an addOctreeSceneNode here morphing of blocks/columns does not work at all!
-   BlockCollisionSceneNode = MySmgr->addMeshSceneNode(blockMeshForCollision, 0, IDFlag_IsPickable);
-   BlockWithoutCollisionSceneNode = MySmgr->addMeshSceneNode(blockMeshWithoutCollision, 0, ID_IsNotPickable);
+   BlockCollisionSceneNode = mInfra->mSmgr->addMeshSceneNode(blockMeshForCollision, 0, IDFlag_IsPickable);
+   BlockWithoutCollisionSceneNode = mInfra->mSmgr->addMeshSceneNode(blockMeshWithoutCollision, 0, ID_IsNotPickable);
 
    BlockCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
    BlockCollisionSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
@@ -109,14 +107,6 @@ LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* l
    //Uncomment next line to only see wireframe of the Buildings
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
 
-   if (mRace->mInfra->mUseXEffects) {
-       // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
-       // It will use the default shadow mode, ESM_BOTH, which allows it to
-       // both cast and receive shadows.
-       mRace->mInfra->mEffect->addShadowToNode(BlockCollisionSceneNode, this->mRace->mInfra->mShadowMapFilterType);
-       mRace->mInfra->mEffect->addShadowToNode(BlockWithoutCollisionSceneNode, this->mRace->mInfra->mShadowMapFilterType);
-   }
-
    /*std::cout << "HiOctane Blocks loaded: " <<
                    numVertices << " vertices, " <<
                    numNormals << " normals, " <<
@@ -128,17 +118,17 @@ LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* l
    char hlpstr[20];
 
    //add number vertices
-   sprintf(hlpstr, "%ud", numVertices);
+   sprintf(hlpstr, "%u", numVertices);
    infoMsg.append(hlpstr);
    infoMsg.append(" vertices, ");
 
    //add number normals
-   sprintf(hlpstr, "%ud", numNormals);
+   sprintf(hlpstr, "%u", numNormals);
    infoMsg.append(hlpstr);
    infoMsg.append(" normals, ");
 
    //add number UVs
-   sprintf(hlpstr, "%ud", numUVs);
+   sprintf(hlpstr, "%u", numUVs);
    infoMsg.append(hlpstr);
    infoMsg.append(" UVs, ");
 
@@ -148,7 +138,7 @@ LevelBlocks::LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* l
    infoMsg.append(" textures, ");
 
    //add number indices
-   sprintf(hlpstr, "%ud", numIndices);
+   sprintf(hlpstr, "%u", numIndices);
    infoMsg.append(hlpstr);
    infoMsg.append(" indices");
 

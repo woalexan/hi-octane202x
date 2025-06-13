@@ -23,6 +23,7 @@
 #include "morph.h"
 #include "../definitions.h"
 #include "player.h"
+#include "../infrabase.h"
 
 using namespace irr;
 using namespace video;
@@ -43,6 +44,7 @@ typedef SColor colour_func(f32 x, f32 y, f32 z);
                                                           //collision with terrain tile map
 
 class Morph; //Forward declaration
+class InfrastructureBase; //Forward declaration
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -116,12 +118,9 @@ struct TerrainTileData {
     irr::f32 currTileHeight = 0.0f;
 };
 
-class Race; //Forward declaration
-
 class LevelTerrain {
 public:
-    LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
-                 Race* mRaceParent, bool enableLightning);
+    LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning);
     ~LevelTerrain();
 
     void FinishTerrainInitialization();
@@ -218,15 +217,13 @@ private:
 
     //only used for debugging
     //std::vector<irr::s32> mDbgChargerTexFound;
-
-    irr::video::IVideoDriver *m_driver = nullptr;
-    scene::ISceneManager *m_smgr = nullptr;
-    Race* mRace = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     TextureLoader* mTexSource = nullptr;
     //std::string m_texfile;
 
     bool mEnableLightning;
+    bool mOptimizeMesh;
 
     char mName[50];
 

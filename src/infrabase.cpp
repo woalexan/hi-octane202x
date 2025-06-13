@@ -45,33 +45,6 @@ bool InfrastructureBase::InitIrrlicht() {
 
     //mDriver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 10, 30, .03f, false, true);
 
-    if (mUseXEffects) {
-        // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
-        // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
-        // (The screen buffer resolution need not be the same as the screen resolution.)
-        // The second to last parameter enables VSM filtering, see example 6 for more information.
-        // The last parameter enables soft round spot light masks on our shadow lights.
-        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true);
-
-        //Set ShadowMap filter type
-        mShadowMapFilterType = E_FILTER_TYPE::EFT_12PCF;
-        mShadowMapResolution = 4096;
-
-        // Set a global ambient color. A very dark gray.
-        mEffect->setAmbientColor(SColor(255, 255, 255, 255));
-
-        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 120.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
-                SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false));
-
-        //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));
-
-        /*core::stringc shaderExt = (mDriver->getDriverType() == EDT_DIRECT3D9) ? ".hlsl" : ".glsl";
-
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurHP") + shaderExt);
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurVP") + shaderExt);
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BloomP") + shaderExt);*/
-    }
-
     return true;
 }
 
@@ -556,15 +529,19 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
-InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool useXEffects, bool enableShadows) {
+InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
     mScreenRes = resolution;
     mFullscreen = fullScreen;
     mEnableShadows = enableShadows;
-    mUseXEffects = useXEffects;
 
     if (!InitIrrlicht()) {
         return;
     }
+
+    //create the predefined axis direction vectors
+    xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
+    yAxisDirVector = new irr::core::vector3df(0.0f, 1.0f, 0.0f);
+    zAxisDirVector = new irr::core::vector3df(0.0f, 0.0f, 1.0f);
 
     //detect the original game files
     //if some directory of original game is missing
@@ -655,4 +632,9 @@ InfrastructureBase::~InfrastructureBase() {
         delete mOriginalGame;
         mOriginalGame = nullptr;
     }
+
+    //delete my axis direction vectors
+    delete xAxisDirVector;
+    delete yAxisDirVector;
+    delete zAxisDirVector;
 }

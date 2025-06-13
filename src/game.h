@@ -44,9 +44,9 @@ class MyMusicStream; //forward declaration
 class Game {
 private:
     //Irrlicht related, for debugging of game
-    IGUIStaticText* dbgTimeProfiler = nullptr;
-    IGUIStaticText* dbgText = nullptr;
-    IGUIStaticText* dbgText2 = nullptr;
+    irr::gui::IGUIStaticText* dbgTimeProfiler = nullptr;
+    irr::gui::IGUIStaticText* dbgText = nullptr;
+    irr::gui::IGUIStaticText* dbgText2 = nullptr;
 
     Assets* mGameAssets = nullptr;
 
@@ -132,6 +132,14 @@ private:
 public:
     irr::video::ITexture* backgnd = nullptr;
 
+    bool mUseXEffects;
+
+    EffectHandler* mEffect = nullptr;
+
+    //ShadowMap settings
+    E_FILTER_TYPE mShadowMapFilterType;
+    irr::u32 mShadowMapResolution;
+
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging
     bool mDebugRace = false;
@@ -143,7 +151,7 @@ public:
     bool DebugShowVariableBoxes = false;
 
     //Returns true for success, false for error occured
-    bool InitGameStep1();
+    bool InitGameStep1(bool useXEffects);
     bool InitGameStep2();
 
     void RunGame();

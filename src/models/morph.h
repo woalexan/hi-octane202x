@@ -17,16 +17,18 @@
 
 #include <irrlicht.h>
 #include "../resources/entityitem.h"
+#include "../models/levelterrain.h"
+#include "../models/levelblocks.h"
 #include <list>
-#include "../race.h"
 
 class Column; //Forward declaration
-class Race;   //Forward declaration
+class LevelTerrain; //Forward declaration
+class LevelBlocks; //Forward declaration
 
 class Morph {
 public:
     Morph(int myEntityID, EntityItem* source, EntityItem* target, int width, int height, bool permanent,
-          Race* mParentRace);
+          LevelTerrain* levelTerrain, LevelBlocks* levelblocks);
     ~Morph();
 
     bool Enabled = true;
@@ -68,7 +70,8 @@ private:
 
     int myEntityId;
 
-    Race* mRace = nullptr;
+    LevelTerrain* mLevelTerrain = nullptr;
+    LevelBlocks* mLevelBlocks = nullptr;
 };
 
 #endif // MORPH_H

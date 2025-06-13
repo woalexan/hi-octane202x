@@ -124,7 +124,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
     std::vector<RayHitTriangleInfoStruct*> allHitTriangles;
 
     //with ReturnOnlyClosestTriangles = true!
-    allHitTriangles = this->mRace->mPhysics->ReturnTrianglesHitByRay( this->mRace->mPhysics->mRayTargetSelectors,
+    allHitTriangles = this->mRace->mRay->ReturnTrianglesHitByRay( this->mRace->mRay->mRayTargetSelectors,
                                   startPnt, endPnt, true);
 
     int vecSize = (int)(allHitTriangles.size());
@@ -140,7 +140,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
 
         //cleanup triangle hit information again
         //otherwise we have a memory leak!
-        this->mRace->mPhysics->EmptyTriangleHitInfoVector(allHitTriangles);
+        this->mRace->mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 
         return true;
     }
@@ -167,7 +167,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
 
     //cleanup triangle hit information again
     //otherwise we have a memory leak!
-    this->mRace->mPhysics->EmptyTriangleHitInfoVector(allHitTriangles);
+    this->mRace->mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 
     return true;
 }
@@ -468,13 +468,6 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
-
-    if (mRace->mInfra->mUseXEffects) {
-        // Add this SceneNode to the shadow node list, using the chosen filtertype.
-        // It will use the default shadow mode, ESM_BOTH, which allows it to
-        // both cast and receive shadows.
-        mRace->mInfra->mEffect->addShadowToNode(Player_node, this->mRace->mInfra->mShadowMapFilterType);
-    }
 
     if (this->mRace->mGame->enableShadows) {
        // add shadow
@@ -1817,7 +1810,7 @@ void Player::CalcPlayerCraftLeaningAngle() {
     irr::core::vector3d<irr::f32> craftUpwardsVec =
             (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
 
-    irr::core::vector3d<irr::f32> distVec = (craftUpwardsVec - *mRace->yAxisDirVector);
+    irr::core::vector3d<irr::f32> distVec = (craftUpwardsVec - *mRace->mInfra->yAxisDirVector);
     irr::f32 distVal = distVec.dotProduct(craftSidewaysToRightVec);
 
     //calculate angle between upVec and craftUpwardsVec
@@ -1827,7 +1820,7 @@ void Player::CalcPlayerCraftLeaningAngle() {
 
     this->currPlayerCraftLeaningAngleDeg = (angleRad / irr::core::PI) * 180.0f - 90.0f + terrainTiltCraftLeftRightDeg;
 
-    irr::core::vector3df leaningDirVec = craftUpwardsVec - *mRace->yAxisDirVector;
+    irr::core::vector3df leaningDirVec = craftUpwardsVec - *mRace->mInfra->yAxisDirVector;
     irr::core::vector3df CraftRightDirVec = (WorldCoordCraftRightPnt - this->Player_node->getAbsolutePosition()).normalize();
     irr::f32 dotProductRightDir = leaningDirVec.dotProduct(CraftRightDirVec);
 
@@ -2678,7 +2671,7 @@ void Player::CraftHeightControl() {
     irr::f32 corrForceHeight = 100.0f;
     irr::f32 corrDampingHeight = 10.0f;
 
-    irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->yAxisDirVector);
+    irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->mInfra->yAxisDirVector);
 
     //original lines until 21.12.2024
     irr::f32 currVelFront =  this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y;

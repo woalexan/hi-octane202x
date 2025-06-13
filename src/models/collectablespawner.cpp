@@ -143,7 +143,9 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
         return;
 
     //create a new type 2 collectable
-    Collectable* newCollectable = new Collectable(mRace, newEntityType, mPosition, mSmgr, mDriver);
+    irr::u16 spriteNr = mRace->GetCollectableSpriteNumber(newEntityType);
+
+    Collectable* newCollectable = new Collectable(mRace->mInfra, newEntityType, mPosition, mRace->mTexLoader->spriteTex.at(spriteNr), this->mRace->mGame->enableLightning);
 
     //create a new struct with information how to spawn the collectable
     SpawnedCollectableInfoStruct* newInfoStruct = new SpawnedCollectableInfoStruct();
