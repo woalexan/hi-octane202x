@@ -16,15 +16,54 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
+#include "utils/physics.h"
+#include "utils/tprofile.h"
+#include "utils/bezier.h"
+#include "utils/logger.h"
+#include "utils/ray.h"
+#include "utils/worldaware.h"
+#include "utils/fileutils.h"
+
+#include "draw/drawdebug.h"
+#include "draw/hud.h"
+
+#include "models/mgun.h"
+#include "models/missile.h"
+#include "models/particle.h"
+#include "models/cpuplayer.h"
+#include "models/morph.h"
+#include "models/timer.h"
+#include "models/player.h"
+#include "models/collectable.h"
+#include "models/recovery.h"
+#include "models/levelterrain.h"
+#include "models/levelblocks.h"
+#include "models/camera.h"
+#include "models/chargingstation.h"
+#include "models/column.h"
+#include "models/cone.h"
+#include "models/explauncher.h"
+#include "models/explosion.h"
+#include "models/expentity.h"
+#include "models/collectablespawner.h"
+
+#include "audio/sound.h"
+#include "audio/music.h"
+
+#include "input/input.h"
+
+#include "resources/texture.h"
+#include "resources/mapentry.h"
+
+#include "game.h"
 #include "race.h"
 
-Race::Race(InfrastructureBase* infra,  Game* mParentGame, MyMusicStream* gameMusicPlayerParam,
+Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
            SoundEngine* soundEngine, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart,
            bool useAutoGenMiniMapParam) {
     this->mMusicPlayer = gameMusicPlayerParam;
     this->mSoundEngine = soundEngine;
     this->mDemoMode = demoMode;
-    this->mInfra = infra;
 
     mRaceNumberOfLaps = nrLaps;
 
@@ -37,7 +76,7 @@ Race::Race(InfrastructureBase* infra,  Game* mParentGame, MyMusicStream* gameMus
     levelNr = loadLevelNr;
     ready = false;
     useAutoGenMinimap = useAutoGenMiniMapParam;
-    mGame = mParentGame;
+    mGame = parentGame;
 
     //IrrlichtStats((char*)("before Race constructor"));
 
@@ -108,7 +147,7 @@ void Race::CleanupAllSceneNodes() {
     core::array<scene::ISceneNode*> outNodes;
 
     //get list of all existing sceneNodes
-    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
+    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
 
     //remove all existing SceneNodes, only the root sceneNode is not removed
     irr::u32 nodeCnt = outNodes.size();
@@ -135,20 +174,20 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Mesh count loaded: ");
-    snprintf(hlpstr, 500, "%lu", mInfra->mSmgr->getMeshCache()->getMeshCount());
+    snprintf(hlpstr, 500, "%lu", mGame->mSmgr->getMeshCache()->getMeshCount());
     msg.append(hlpstr);
     logging::Info(msg);
 
     msg.clear();
     msg.append("Textures loaded: ");
-    snprintf(hlpstr, 500, "%lu", mInfra->mSmgr->getVideoDriver()->getTextureCount());
+    snprintf(hlpstr, 500, "%lu", mGame->mSmgr->getVideoDriver()->getTextureCount());
     msg.append(hlpstr);
     logging::Info(msg);
 
     core::array<scene::ISceneNode*> outNodes;
 
     //get list of all existing sceneNodes
-    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
+    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
 
     msg.clear();
     msg.append("Scenenode count (all): ");
@@ -159,7 +198,7 @@ void Race::IrrlichtStats(char* text) {
     outNodes.clear();
 
     //get list of all existing Billboard sceneNodes
-    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_BILLBOARD, outNodes, 0);
+    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_BILLBOARD, outNodes, 0);
 
     msg.clear();
     msg.append("Scenenode count (Billboard): ");
@@ -168,7 +207,7 @@ void Race::IrrlichtStats(char* text) {
     logging::Info(msg);
 
     //get list of all existing Mesh sceneNodes
-    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_MESH, outNodes, 0);
+    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_MESH, outNodes, 0);
 
     msg.clear();
     msg.append("Scenenode count (Mesh): ");
@@ -179,7 +218,7 @@ void Race::IrrlichtStats(char* text) {
     outNodes.clear();
 
     //get list of all existing light sceneNodes
-    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_LIGHT, outNodes, 0);
+    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_LIGHT, outNodes, 0);
 
     msg.clear();
     msg.append("Scenenode count (light): ");
@@ -190,7 +229,7 @@ void Race::IrrlichtStats(char* text) {
     outNodes.clear();
 
     //get list of all existing camera sceneNodes
-    mInfra->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_CAMERA, outNodes, 0);
+    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_CAMERA, outNodes, 0);
 
     msg.clear();
     msg.append("Scenenode count (camera): ");
@@ -201,7 +240,7 @@ void Race::IrrlichtStats(char* text) {
     outNodes.clear();
 
     irr::s32 texCnt;
-    texCnt =  mInfra->mSmgr->getVideoDriver()->getTextureCount();
+    texCnt =  mGame->mSmgr->getVideoDriver()->getTextureCount();
 
     return;
 
@@ -218,7 +257,7 @@ void Race::IrrlichtStats(char* text) {
 
     for (int i = 0; i < texCnt; i++) {
        //cout << std::string(this->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str()) << std::endl << std::flush;
-       fprintf(oFile, "%s\n", mInfra->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str());
+       fprintf(oFile, "%s\n", mGame->mSmgr->getVideoDriver()->getTextureByIndex(i)->getName().getInternalName().c_str());
     }
 
     //close file
@@ -271,7 +310,7 @@ Race::~Race() {
     wallCollisionMeshSceneNode->remove();
 
     //free the mesh
-    mInfra->mSmgr->getMeshCache()->removeMesh(wallCollisionMesh);
+    mGame->mSmgr->getMeshCache()->removeMesh(wallCollisionMesh);
 
     delete mPath;
 
@@ -794,7 +833,7 @@ void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageT
 void Race::DeliverMusicFileName(unsigned int levelNr, char *musicFileName) {
     //which music is player in which level depends if the game is extended
     //or not
-    if (!mInfra->mExtendedGame) {
+    if (!mGame->mExtendedGame) {
             //game version without the extension
             switch (levelNr) {
                 case 1: {
@@ -991,7 +1030,7 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
 
     //create the new player
-    newPlayer = new Player(this, mInfra, player_model, Startpos, Startdirection,
+    newPlayer = new Player(this, player_model, Startpos, Startdirection,
                           this->mRaceNumberOfLaps, humanPlayer);
 
     if (mGame->mUseXEffects) {
@@ -1543,11 +1582,11 @@ void Race::InitMiniMapOriginal(irr::u32 levelNr) {
     //baseMiniMapPic->drop();
 
     //load original games mini map
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
-    baseMiniMap = mInfra->mDriver->getTexture(mapFilename);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    baseMiniMap = mGame->mDriver->getTexture(mapFilename);
 
     //for transparency
-    mInfra->mDriver->makeColorKeyTexture(baseMiniMap, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(baseMiniMap, irr::core::position2d<irr::s32>(0,0));
 
     bool successUsedArea;
     miniMapImageUsedArea = FindMiniMapImageUsedArea(baseMiniMap, successUsedArea);
@@ -1559,10 +1598,10 @@ void Race::InitMiniMapOriginal(irr::u32 levelNr) {
     miniMapSize.Width = miniMapImageUsedArea.getWidth();
     miniMapSize.Height = miniMapImageUsedArea.getHeight();
 
-    miniMapDrawLocation.X = mInfra->mScreenRes.Width - miniMapSize.Width;
-    miniMapDrawLocation.Y = mInfra->mScreenRes.Height - miniMapSize.Height;
+    miniMapDrawLocation.X = mGame->mScreenRes.Width - miniMapSize.Width;
+    miniMapDrawLocation.Y = mGame->mScreenRes.Height - miniMapSize.Height;
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     //do some precalculations so that we have to repeat them not unnecessary all the time
     //during the game
@@ -1762,9 +1801,9 @@ void Race::InitMiniMap(irr::u32 levelNr) {
        //does not exist yet, create it
 
         //create new file for writting
-        irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
+        irr::io::IWriteFile* outputPic = mGame->mDevice->getFileSystem()->createAndWriteFile(outputFilename, false);
 
-        mInfra->mDriver->writeImageToFile(baseMiniMapPic, outputPic);
+        mGame->mDriver->writeImageToFile(baseMiniMapPic, outputPic);
 
         //close output file
         outputPic->drop();
@@ -1777,11 +1816,11 @@ void Race::InitMiniMap(irr::u32 levelNr) {
     //minimap does exist already
     //just load it
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
-    baseMiniMap = mInfra->mDriver->getTexture(outputFilename);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    baseMiniMap = mGame->mDriver->getTexture(outputFilename);
 
     //for transparency
-    mInfra->mDriver->makeColorKeyTexture(baseMiniMap, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(baseMiniMap, irr::core::position2d<irr::s32>(0,0));
 
     bool successUsedArea;
     miniMapImageUsedArea = FindMiniMapImageUsedArea(baseMiniMap, successUsedArea);
@@ -1790,10 +1829,10 @@ void Race::InitMiniMap(irr::u32 levelNr) {
     miniMapSize.Width = miniMapImageUsedArea.getWidth();
     miniMapSize.Height = miniMapImageUsedArea.getHeight();
 
-    miniMapDrawLocation.X = mInfra->mScreenRes.Width - miniMapSize.Width;
-    miniMapDrawLocation.Y = mInfra->mScreenRes.Height - miniMapSize.Height;
+    miniMapDrawLocation.X = mGame->mScreenRes.Width - miniMapSize.Width;
+    miniMapDrawLocation.Y = mGame->mScreenRes.Height - miniMapSize.Height;
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     //do some precalculations so that we have to repeat them not unnecessary all the time
     //during the game
@@ -1824,13 +1863,13 @@ void Race::Init() {
 
     //create a free moving camera that the user can use to
     //investigate the level/map, not used in actual game
-    mCamera = mInfra->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
+    mCamera = mGame->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
                                             keyMap, 4, false, 0.0f);
 
     //mCamera->setFOV(PI / 2.5);
 
     //create a DrawDebug object
-    this->mDrawDebug = new DrawDebug(mInfra->mDriver);
+    this->mDrawDebug = new DrawDebug(mGame->mDriver);
 
     if (!LoadLevel(levelNr)) {
         //there was an error loading the level
@@ -1865,7 +1904,7 @@ void Race::Init() {
     /***********************************************************/
     /* Init single player HUD                                  */
     /***********************************************************/
-    Hud1Player = new HUD(mInfra);
+    Hud1Player = new HUD(mGame);
 
     //create my overall physics object
     //also handover pointer to my DrawDebug object
@@ -1939,19 +1978,19 @@ void Race::Init() {
     //can be disabled for debugging purposes
     mPhysics->collisionResolutionActive = true;
 
-    mInfra->mSmgr->setActiveCamera(mCamera);
+    mGame->mSmgr->setActiveCamera(mCamera);
 
     SetupTopRaceTrackPointerOrigin();
 
     //create the world awareness class
-    mWorldAware = new WorldAwareness(mInfra->mDevice, mInfra->mDriver, this);
+    mWorldAware = new WorldAwareness(mGame->mDevice, mGame->mDriver, this);
 
     //now use the new world aware class to further analyze all
     //waypoint links for computer player movement control later
     mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
 
     //create my ExplosionLauncher
-    mExplosionLauncher = new ExplosionLauncher(this, mInfra->mSmgr, mInfra->mDriver);
+    mExplosionLauncher = new ExplosionLauncher(this, mGame->mSmgr, mGame->mDriver);
 
     //create a new Bezier object for testing
     testBezier = new Bezier(mLevelTerrain, mDrawDebug);
@@ -2127,12 +2166,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
             UpdateTimers(frameDeltaTime);
     }
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntMorphing);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
 
     //update all cones
     UpdateCones(frameDeltaTime);
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntUpdateCones);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntUpdateCones);
 
     //update external race track cameras
     UpdateExternalCameras();
@@ -2140,7 +2179,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //process pending triggers
     ProcessPendingTriggers();
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntProcessTriggers);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntProcessTriggers);
 
     //update all players
     std::vector<Player*>::iterator itPlayer;
@@ -2161,12 +2200,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
           (*itPlayer)->Update(frameDeltaTime);
     }
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntUpdatePlayers);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntUpdatePlayers);
 
     //advance physics time and update sceneNode positions and orientations
     mPhysics->AdvancePhysicsTime(physicsFrameDeltaTime);
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntAdvancePhysics);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntAdvancePhysics);
 
     if (!mDemoMode) {
         //camera control normal race
@@ -2180,7 +2219,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
           (*itPlayer)->AfterPhysicsUpdate();
     }
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntAfterPhysicsUpdate);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntAfterPhysicsUpdate);
 
     //important, empty old triangle hit information first!
     //otherwise we have a memory leak
@@ -2214,7 +2253,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     CheckRaceFinished(frameDeltaTime);
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntPlayerMonitoring);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);
 
     //update all particle systems
     UpdateParticleSystems(frameDeltaTime);
@@ -2228,13 +2267,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update all current explosions
     mExplosionLauncher->Update(frameDeltaTime);
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntUpdateParticleSystems);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntUpdateParticleSystems);
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
         mWorldAware->Analyse(*itPlayer);
     }
 
-    mInfra->mTimeProfiler->Profile(mInfra->mTimeProfiler->tIntWorldAware);
+    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntWorldAware);
 }
 
 void Race::PlayerEnteredCraftTriggerRegion(Player* whichPlayer, MapTileRegionStruct* whichRegion) {
@@ -2426,35 +2465,35 @@ void Race::HandleBasicInput() {
     //a breakpoint via a keyboard press
     DebugHitBreakpoint = false;
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F2)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F2)) {
       this->mGame->StopTime();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F1)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F1)) {
         this->mGame->StartTime();
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F3))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F3))
     {
          this->mGame->AdvanceFrame(1);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
     {
-         if (mInfra->mLogger->IsWindowHidden()) {
-             mInfra->mLogger->ShowWindow();
+         if (mGame->mLogger->IsWindowHidden()) {
+             mGame->mLogger->ShowWindow();
          } else {
-             mInfra->mLogger->HideWindow();
+             mGame->mLogger->HideWindow();
          }
 
-         if (mInfra->mTimeProfiler->IsWindowHidden()) {
-             mInfra->mTimeProfiler->ShowWindow();
+         if (mGame->mTimeProfiler->IsWindowHidden()) {
+             mGame->mTimeProfiler->ShowWindow();
          } else {
-             mInfra->mTimeProfiler->HideWindow();
+             mGame->mTimeProfiler->HideWindow();
          }
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
     {
       //  this->mPlayerVec.at(0)->mPlayerStats->currRocketUpgradeLevel = 3;
       //   this->mPlayerVec.at(0)->StartDbgRecording();
@@ -2464,7 +2503,7 @@ void Race::HandleBasicInput() {
          testBill->setColor(irr::video::SColor(255, testtrans,testtrans,testtrans));*/
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F6))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F6))
     {
         // this->mPlayerVec.at(0)->EndDbgRecording();
         /*if (testtrans > 0)
@@ -2473,57 +2512,57 @@ void Race::HandleBasicInput() {
          testBill->setColor(irr::video::SColor(255, testtrans,testtrans,testtrans));*/
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_1))
     {
        DebugSelectPlayer(0);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_2))
     {
        DebugSelectPlayer(1);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
         DebugSelectPlayer(2);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
     {
        DebugSelectPlayer(3);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_5))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_5))
     {
        DebugSelectPlayer(4);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_6))
     {
        DebugSelectPlayer(5);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_7))
     {
        DebugSelectPlayer(6);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_8))
     {
        DebugSelectPlayer(7);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_9))
     {
        DebugSelectPlayer(8);
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_Z))
     {
          DebugHitBreakpoint = true;
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
         playerCamera = !playerCamera;
 
         //unhide all player models
@@ -2540,15 +2579,15 @@ void Race::HandleBasicInput() {
         }
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
         mLevelTerrain->SwitchViewMode();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
         mLevelBlocks->SwitchViewMode();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
         //only for debugging!
         //this->mRaceWasFinished = true;
 
@@ -2558,7 +2597,7 @@ void Race::HandleBasicInput() {
         InitiateExitRace();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
         if (this->currPlayerFollow != nullptr)
         {
             this->currPlayerFollow->ChangeViewMode();
@@ -2707,28 +2746,28 @@ void Race::HandleInput(irr::f32 deltaTime) {
      if (mPlayerVec.at(0)->mHumanPlayer) {
             bool playerNoTurningKeyPressed = true;
 
-             if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
+             if(mGame->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
                 mPlayerVec.at(0)->Forward(deltaTime);
              }
 
-             if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_DOWN))
+             if(mGame->mEventReceiver->IsKeyDown(irr::KEY_DOWN))
              {
                 mPlayerVec.at(0)->Backward(deltaTime);
              }
 
-             if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_SPACE))
+             if(mGame->mEventReceiver->IsKeyDown(irr::KEY_SPACE))
              {
                 mPlayerVec.at(0)->IsSpaceDown(true, deltaTime);
              } else {
                 mPlayerVec.at(0)->IsSpaceDown(false, deltaTime);
              }
 
-             if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_LEFT)) {
+             if(mGame->mEventReceiver->IsKeyDown(irr::KEY_LEFT)) {
                   mPlayerVec.at(0)->Left();
                   mPlayerVec.at(0)->firstNoKeyPressed = true;
                   playerNoTurningKeyPressed = false;
              }
-             if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_RIGHT)) {
+             if(mGame->mEventReceiver->IsKeyDown(irr::KEY_RIGHT)) {
                   mPlayerVec.at(0)->Right();
                   mPlayerVec.at(0)->firstNoKeyPressed = true;
                   playerNoTurningKeyPressed = false;
@@ -2740,33 +2779,33 @@ void Race::HandleInput(irr::f32 deltaTime) {
                  mPlayerVec.at(0)->NoTurningKeyPressed();
              }
 
-             if (mInfra->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
+             if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
                  mPlayerVec.at(0)->mMGun->Trigger();
              }
 
-             if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
+             if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
                  mPlayerVec.at(0)->mMissileLauncher->Trigger();
              }
      }
 
-     if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
+     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
          if (currPlayerFollow != nullptr) {
             this->SpawnCollectiblesForPlayer(currPlayerFollow);
          }
      }
 
      if (AllowStartMorphsPerKey) {
-            if(mInfra->mEventReceiver->IsKeyDown(irr::KEY_KEY_M))
+            if(mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_M))
             {
                  runMorph =true;
             }
      }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
         //this->mWorldAware->WriteOneDbgPic = true;
     }
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
         //toggle collision resolution active state
         mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
     } 
@@ -2890,7 +2929,7 @@ void Race::DrawSky() {
 
         irr::core::vector2di middlePos = (sizeMovingWindow - drawPosWorldLeftUpperCorner) / 2 + drawPosWorldLeftUpperCorner;
 
-         draw2DImage(mInfra->mDriver, mSkyImage ,locMovingWindow, drawPosWorldLeftUpperCorner, middlePos,
+         draw2DImage(mGame->mDriver, mSkyImage ,locMovingWindow, drawPosWorldLeftUpperCorner, middlePos,
               -currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue * 0.35f, irr::core::vector2df(1.0f, 1.0f),
               false, irr::video::SColor(255,255,255,255));
         }
@@ -2969,7 +3008,7 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
                        || (this->mCurrentPhase == DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE)))
         return;
 
-    mInfra->mDriver->draw2DImage(baseMiniMap, miniMapDrawLocation,
+    mGame->mDriver->draw2DImage(baseMiniMap, miniMapDrawLocation,
              miniMapImageUsedArea, 0,
              irr::video::SColor(255,255,255,255), true);
 
@@ -3002,7 +3041,7 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
                 //for blinking effect draw bigger frame block for player 1
                 //only draw it for blinking effect
                 if (miniMapBlinkActive) {
-                    mInfra->mDriver->draw2DRectangle(player1LocationFrameColor,
+                    mGame->mDriver->draw2DRectangle(player1LocationFrameColor,
                                          core::rect<s32>(playerLocation.Width - 5, playerLocation.Height -5,
                                                          playerLocation.Width + 5, playerLocation.Height + 5));
                 }
@@ -3010,7 +3049,7 @@ void Race::DrawMiniMap(irr::f32 frameDeltaTime) {
         }
 
         //draw the default marker for all available players
-        mInfra->mDriver->draw2DRectangle(*mMiniMapMarkerColors.at(playerIdx),
+        mGame->mDriver->draw2DRectangle(*mMiniMapMarkerColors.at(playerIdx),
                                  core::rect<s32>(playerLocation.Width - 3, playerLocation.Height - 3,
                                                  playerLocation.Width + 3, playerLocation.Height + 3));
 
@@ -3091,18 +3130,18 @@ void Race::Render() {
 
     if (DebugShowWallSegments) {
       //draw all wallsegments for debugging purposes
-     mInfra->mDriver->setMaterial(*mDrawDebug->red);
+     mGame->mDriver->setMaterial(*mDrawDebug->red);
      for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-          mInfra->mDriver->setMaterial(*mDrawDebug->red);
-          mInfra->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
+          mGame->mDriver->setMaterial(*mDrawDebug->red);
+          mGame->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
        }
      }
 
     if (DebugShowCheckpoints) {
       //draw all checkpoint lines for debugging purposes
-      mInfra->mDriver->setMaterial(*mDrawDebug->blue);
+      mGame->mDriver->setMaterial(*mDrawDebug->blue);
       for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
-          mInfra->mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
+          mGame->mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
       }
     }
 
@@ -3548,7 +3587,7 @@ bool Race::LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core
 void Race::CleanUpSky() {
     if (mSkyImage != nullptr) {
         //free this texture
-        mInfra->mDriver->removeTexture(mSkyImage);
+        mGame->mDriver->removeTexture(mSkyImage);
         mSkyImage = nullptr;
     }
 }
@@ -3556,7 +3595,7 @@ void Race::CleanUpSky() {
 void Race::CleanMiniMap() {
     if (baseMiniMap != nullptr) {
         //free this texture
-        mInfra->mDriver->removeTexture(baseMiniMap);
+        mGame->mDriver->removeTexture(baseMiniMap);
         baseMiniMap = nullptr;
     }
 
@@ -3632,7 +3671,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
-   mTexLoader = new TextureLoader(mInfra->mDriver, texfilename, spritefilename);
+   mTexLoader = new TextureLoader(mGame->mDriver, texfilename, spritefilename);
 
    //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
@@ -3653,7 +3692,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /* Prepare level terrain                                   */
    /***********************************************************/
    //for the game optimize the Terrain mesh!
-   this->mLevelTerrain = new LevelTerrain(this->mInfra, terrainname, this->mLevelRes, mTexLoader, true,
+   this->mLevelTerrain = new LevelTerrain(mGame, terrainname, this->mLevelRes, mTexLoader, true,
                                           this->mGame->enableLightning);
 
    /***********************************************************/
@@ -3661,7 +3700,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
-   this->mLevelBlocks = new LevelBlocks(this->mInfra, this->mLevelTerrain, this->mLevelRes, mTexLoader,
+   this->mLevelBlocks = new LevelBlocks(mGame, this->mLevelTerrain, this->mLevelRes, mTexLoader,
                                         DebugShowWallCollisionMesh, this->mGame->enableLightning);
 
    if (mGame->mUseXEffects) {
@@ -3699,7 +3738,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    }
 
    //load sky image for selected level
-   if (!LoadSkyImage(loadLevelNr, mInfra->mDriver, mInfra->mScreenRes)) {
+   if (!LoadSkyImage(loadLevelNr, mGame->mDriver, mGame->mScreenRes)) {
        //error loading sky image, do something about it!
        return false;
    }
@@ -3800,7 +3839,7 @@ void Race::createCheckpointMeshData(CheckPointInfoStruct &newStruct) {
     newStruct.Mesh = checkPointMesh;
 
     //now create a MeshSceneNode
-    newStruct.SceneNode = mInfra->mSmgr->addMeshSceneNode(checkPointMesh, 0);
+    newStruct.SceneNode = mGame->mSmgr->addMeshSceneNode(checkPointMesh, 0);
 
     //hide the collision mesh that the player does not see it
     newStruct.SceneNode->setVisible(false);
@@ -3863,7 +3902,7 @@ void Race::CleanUpAllCheckpoints() {
            pntr->SceneNode->remove();
 
            //cleanup the Mesh
-           mInfra->mSmgr->getMeshCache()->removeMesh(pntr->Mesh);
+           mGame->mSmgr->getMeshCache()->removeMesh(pntr->Mesh);
 
            //delete name inside LineStruct
            delete[] pntr->pLineStruct->name;
@@ -3913,9 +3952,9 @@ void Race::CleanUpWayPointLinks(std::vector<WayPointLinkInfoStruct*> &vec) {
 //X-Axis and increases up to 360.0f in counter-clockwise direction; At 360.0f the value
 //wraps over and starts again at 0.0f, and negative angles start again counting down from 360.0f
 irr::f32 Race::GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange) {
-   irr::f32 dotProductZAxis = dirVector.dotProduct(*this->mInfra->zAxisDirVector);
+   irr::f32 dotProductZAxis = dirVector.dotProduct(*this->mGame->zAxisDirVector);
 
-   irr::f32 hlpVal = dirVector.dotProduct(*this->mInfra->xAxisDirVector);
+   irr::f32 hlpVal = dirVector.dotProduct(*this->mGame->xAxisDirVector);
    irr::f32 angleRad = acosf(hlpVal);
 
    irr::f32 angleResult  = (angleRad / irr::core::PI) * 180.0f;
@@ -4124,7 +4163,7 @@ void Race::createWallCollisionData() {
    }
 
     //now create a OctreeSceneNode for the wall collision Mesh
-    wallCollisionMeshSceneNode = mInfra->mSmgr->addOctreeSceneNode(wallCollisionMesh, 0, IDFlag_IsPickable);
+    wallCollisionMeshSceneNode = mGame->mSmgr->addOctreeSceneNode(wallCollisionMesh, 0, IDFlag_IsPickable);
 
     //hide the collision mesh that the player does not see it
     wallCollisionMeshSceneNode->setVisible(false);
@@ -4142,27 +4181,27 @@ void Race::createWallCollisionData() {
 //physics later
 void Race::createFinalCollisionData() {
 
-   triangleSelectorWallCollision = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorWallCollision = mGame->mSmgr->createOctreeTriangleSelector(
                 wallCollisionMesh, wallCollisionMeshSceneNode, 128);
    wallCollisionMeshSceneNode->setTriangleSelector(triangleSelectorWallCollision);
 
    //only add blocks with collision detection to our column triangle selector
    //so that blocks that should not have collision detection are not part of it
-   triangleSelectorColumnswCollision = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorColumnswCollision = mGame->mSmgr->createOctreeTriangleSelector(
                 this->mLevelBlocks->blockMeshForCollision, this->mLevelBlocks->BlockCollisionSceneNode, 128);
    this->mLevelBlocks->BlockCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswCollision);
 
    //also create a triangle selector for blocks without collision detection
    //we use this for ray casting (for example to find target of machine gun)
-   triangleSelectorColumnswoCollision = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorColumnswoCollision = mGame->mSmgr->createOctreeTriangleSelector(
                 this->mLevelBlocks->blockMeshWithoutCollision, this->mLevelBlocks->BlockWithoutCollisionSceneNode, 128);
    this->mLevelBlocks->BlockWithoutCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswoCollision);
 
-   triangleSelectorStaticTerrain = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorStaticTerrain = mGame->mSmgr->createOctreeTriangleSelector(
                this->mLevelTerrain->myStaticTerrainMesh, this->mLevelTerrain->StaticTerrainSceneNode, 128);
   this->mLevelTerrain->StaticTerrainSceneNode->setTriangleSelector(triangleSelectorStaticTerrain);
 
-   triangleSelectorDynamicTerrain = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorDynamicTerrain = mGame->mSmgr->createOctreeTriangleSelector(
                this->mLevelTerrain->myDynamicTerrainMesh, this->mLevelTerrain->DynamicTerrainSceneNode, 128);
   this->mLevelTerrain->DynamicTerrainSceneNode->setTriangleSelector(triangleSelectorDynamicTerrain);
 }
@@ -4178,7 +4217,7 @@ void Race::CreateChargingStations() {
             ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) ||
             ((*it)->regionType == LEVELFILE_REGION_CHARGER_AMMO)) {
              //we need to create a new charging station
-             ChargingStation* newChargingStation = new ChargingStation(mInfra->mSmgr, this, (*it), wayPointLinkVec);
+             ChargingStation* newChargingStation = new ChargingStation(mGame->mSmgr, this, (*it), wayPointLinkVec);
 
              //add to my vector of charging stations
              mChargingStationVec->push_back(newChargingStation);
@@ -4234,7 +4273,7 @@ void Race::createLevelEntities() {
 
     //create all level entities
     for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
-        createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, mInfra->mDriver);
+        createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, mGame->mDriver);
     }
 }
 
@@ -4386,7 +4425,7 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
     //has the active camera changed?
     //if so change it for rendering
     if (activeCam != currActiveCamera) {
-        mInfra->mSmgr->setActiveCamera(activeCam);
+        mGame->mSmgr->setActiveCamera(activeCam);
         currActiveCamera = activeCam;
     }
 
@@ -4435,7 +4474,7 @@ void Race::ManagePlayerCamera() {
             }
         }
 
-        mInfra->mSmgr->setActiveCamera(activeCam);
+        mGame->mSmgr->setActiveCamera(activeCam);
         currActiveCamera = activeCam;
     }
 
@@ -4503,7 +4542,7 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mInfra->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mGame->yAxisDirVector).normalize();
 
         //Idea: extend the lines a little bit further outwards at
         //both ends, so that when we project the players position on
@@ -4538,7 +4577,7 @@ void Race::AddTimer(EntityItem *entity) {
 }
 
 void Race::AddCamera(EntityItem *entity) {
-    Camera* newCamera = new Camera(this, entity, mInfra->mSmgr);
+    Camera* newCamera = new Camera(this, entity, mGame->mSmgr);
 
     //only set cameras to active in demo mode
     newCamera->SetActive(true);
@@ -4880,7 +4919,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::RecoveryTruck: {
             Recovery *recov1 =
-                    new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, mInfra->mSmgr);
+                    new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, mGame->mSmgr);
 
             if (mGame->mUseXEffects) {
                 // Add this SceneNode to the shadow node list, using the chosen filtertype.
@@ -4897,7 +4936,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::Cone: {
             irr::core::vector3df center = entity.getCenter();
-            Cone *cone = new Cone(this, center.X, center.Y + 0.104f, center.Z, mInfra->mSmgr);
+            Cone *cone = new Cone(this, center.X, center.Y + 0.104f, center.Z, mGame->mSmgr);
 
             //remember all cones in a vector for later use
             this->coneVec->push_back(cone);
@@ -4955,7 +4994,7 @@ void Race::createEntity(EntityItem *p_entity,
                     irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
 
                     //Point to the correct (billboard) texture
-                    collectable = new Collectable(this->mInfra, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), this->mGame->enableLightning);
+                    collectable = new Collectable(this->mGame, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), this->mGame->enableLightning);
                     ENTCollectablesVec->push_back(collectable);
                     break;
         }
@@ -4979,7 +5018,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::SteamStrong: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 100);
+               SteamFountain *sf = new SteamFountain(this, p_entity, mGame->mSmgr, driver, newlocation , 100);
 
                //only for first testing
                //sf->Activate();
@@ -4995,7 +5034,7 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::SteamLight: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 50);
+               SteamFountain *sf = new SteamFountain(this, p_entity, mGame->mSmgr, driver, newlocation , 50);
 
                //only for first testing
                //sf->Activate();
@@ -5105,7 +5144,7 @@ void Race::SpawnCollectiblesForPlayer(Player* player) {
    irr::core::vector3df location = player->phobj->physicState.position;
 
    CollectableSpawner* newSpawner = new CollectableSpawner(
-               this, location, mInfra->mSmgr, mInfra->mDriver);
+               this, location, mGame->mSmgr, mGame->mDriver);
 
    newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraFuel);
    newSpawner->AddCollectableToSpawn(Entity::EntityType::ExtraShield);

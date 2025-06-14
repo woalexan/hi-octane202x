@@ -15,13 +15,8 @@
 #ifndef COLUMN_H
 #define COLUMN_H
 
-#include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
-#include "../resources/columndefinition.h"
-#include "../resources/texture.h"
-#include "../utils/logging.h"
-#include "levelterrain.h"
-#include "levelblocks.h"
+#include "irrlicht.h"
+#include <vector>
 
 using namespace irr;
 using namespace video;
@@ -29,8 +24,6 @@ using namespace core;
 using namespace scene;
 using namespace io;
 using namespace gui;
-
-struct ColumnsByPositionStruct;
 
 //struct needed for morphing, as
 //we need to keep more information
@@ -73,8 +66,17 @@ struct ColumnSideGeometryInfo {
     std::vector<ColumnVerticeInfo> vertices;
 };
 
+/************************
+ * Forward declarations *
+ ************************/
+
 class LevelTerrain;
 class LevelBlocks;
+class ColumnDefinition;
+struct ColumnSideGeometryInfo;
+struct ColumnsByPositionStruct;
+class LevelFile;
+class MapEntry;
 
 class Column {
 public:

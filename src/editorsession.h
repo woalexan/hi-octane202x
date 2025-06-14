@@ -10,19 +10,32 @@
 #ifndef EDITORSESSION_H
 #define EDITORSESSION_H
 
-#include "infrabase.h"
-#include "utils/logging.h"
-#include "input/input.h"
-#include "utils/tprofile.h"
-#include "editor.h"
+#include "irrlicht.h"
+#include <vector>
+#include <list>
+#include "definitions.h"
+#include "resources/entityitem.h"
 #include "utils/ray.h"
-#include "models/morph.h"
-#include "draw/drawdebug.h"
-#include "models/collectable.h"
 
 #define DEF_EDITOR_SELITEM_NONE 0
 #define DEF_EDITOR_SELITEM_CELL 1
 #define DEF_EDITOR_SELITEM_BLOCK 2
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class Logger;
+class Editor;
+class DrawDebug;
+class Collectable;
+class Column;
+class ColumnDefinition;
+class TextureLoader;
+class LevelBlocks;
+class LevelTerrain;
+class LevelFile;
+class Morph;
 
 struct CurrentlySelectedEditorItemInfoStruct {
     irr::u8 SelectedItemType;
@@ -61,38 +74,30 @@ struct GUI
         dropElement ( Window );
     }
 
-    IGUICheckBox* FullScreen;
+    irr::gui::IGUICheckBox* FullScreen;
 
-    IGUITable* ArchiveList;
-    IGUIButton* testButton;
+    irr::gui::IGUITable* ArchiveList;
+    irr::gui::IGUIButton* testButton;
 
-    IGUIListBox* MapList;
-    IGUITreeView* SceneTree;
-    IGUIWindow* Window;
+    irr::gui::IGUIListBox* MapList;
+    irr::gui::IGUITreeView* SceneTree;
+    irr::gui::IGUIWindow* Window;
 };
-
-class Logger; //Forward declaration
-class Editor; //Forward declaration
-class InfrastructureBase; //Forward declaration
-class DrawDebug; //Forward declaration
-class Collectable; //Forward declaration
 
 class EditorSession {
 private:
-    InfrastructureBase* mInfra = nullptr;
-
     irr::u8 mLevelNrLoaded;
 
     Editor* mParentEditor = nullptr;
 
     //my camera
-    scene::ICameraSceneNode* mCamera = nullptr;
+    irr::scene::ICameraSceneNode* mCamera = nullptr;
 
     //my drawDebug object
     DrawDebug* mDrawDebug = nullptr;
 
     //my texture loader
-    TextureLoader *mTexLoader = nullptr;
+    TextureLoader* mTexLoader = nullptr;
 
     //ray class to find intersection with Terrain Cells
     Ray* mRayTerrain = nullptr;
@@ -164,15 +169,15 @@ private:
     void DeriveSelectedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo);
     void DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo);
 
-    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, SMaterial* color);
-    void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, SMaterial* color);
+    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, irr::video::SMaterial* color);
+    void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, irr::video::SMaterial* color);
 
-    void setActiveCamera(scene::ICameraSceneNode* newActive);
+    void setActiveCamera(irr::scene::ICameraSceneNode* newActive);
 
     GUI gui;
 
 public:
-    EditorSession(InfrastructureBase* infra, Editor* parentEditor, irr::u8 loadLevelNr);
+    EditorSession(Editor* parentEditor, irr::u8 loadLevelNr);
     ~EditorSession();
 
     void Init();

@@ -11,7 +11,6 @@
 #define DRAWDEBUG_H
 
 #include <irrlicht.h>
-#include <vector>
 
 class DrawDebug {
 

@@ -8,6 +8,14 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "infrabase.h"
+#include "utils/logging.h"
+#include "utils/logger.h"
+#include <iostream>
+#include <fstream>
+#include "draw/gametext.h"
+#include "input/input.h"
+#include "utils/tprofile.h"
+#include "utils/fileutils.h"
 
 bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
@@ -15,7 +23,7 @@ bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
 
     // create event receiver
-    mEventReceiver = new MyEventReceiver();
+    mEventReceiver = new MyEventReceiver(this);
 
     //we need to enable stencil buffers, otherwise volumentric shadows
     //will not work
@@ -46,6 +54,9 @@ bool InfrastructureBase::InitIrrlicht() {
     //mDriver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 10, 30, .03f, false, true);
 
     return true;
+}
+
+void InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
 }
 
 irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPath) {
@@ -481,7 +492,7 @@ float InfrastructureBase::randFloat() {
     return r;
 }
 
-bool InfrastructureBase::GetInitOk() {
+bool InfrastructureBase::GetInfrastructureInitOk() {
     return mInitOk;
 }
 
@@ -529,7 +540,8 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
-InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
+void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
+
     mScreenRes = resolution;
     mFullscreen = fullScreen;
     mEnableShadows = enableShadows;
@@ -584,6 +596,10 @@ InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScr
     mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,200));
 
     mInitOk = true;
+}
+
+InfrastructureBase::InfrastructureBase() {
+    mInitOk = false;
 }
 
 InfrastructureBase::~InfrastructureBase() {

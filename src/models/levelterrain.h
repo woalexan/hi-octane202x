@@ -15,15 +15,10 @@
 #ifndef LEVELTERRAIN_H
 #define LEVELTERRAIN_H
 
+#include "irrlicht.h"
+#include <vector>
 #include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
-#include <irrlicht.h>
-#include "../resources/texture.h"
-#include "../utils/logging.h"
-#include "morph.h"
-#include "../definitions.h"
 #include "player.h"
-#include "../infrabase.h"
 
 using namespace irr;
 using namespace video;
@@ -43,8 +38,15 @@ typedef SColor colour_func(f32 x, f32 y, f32 z);
 #define DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES 0.9f;  //steepness threshold to trigger
                                                           //collision with terrain tile map
 
-class Morph; //Forward declaration
-class InfrastructureBase; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Morph;
+class InfrastructureBase;
+struct TerrainTileData;
+class TextureLoader;
+class MapEntry;
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -217,6 +219,7 @@ private:
 
     //only used for debugging
     //std::vector<irr::s32> mDbgChargerTexFound;
+
     InfrastructureBase* mInfra = nullptr;
 
     TextureLoader* mTexSource = nullptr;

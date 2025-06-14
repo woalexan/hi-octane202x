@@ -13,6 +13,8 @@
  */
 
 #include "bezier.h"
+#include "../models/levelterrain.h"
+#include "../draw/drawdebug.h"
 
 Bezier::Bezier(LevelTerrain* terrain, DrawDebug* pntrDrawDebug)
 {

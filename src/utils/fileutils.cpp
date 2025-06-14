@@ -8,8 +8,9 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "fileutils.h"
-
 #include <stdexcept>
+#include <sys/stat.h>
+#include "../utils/logging.h"
 
 #ifdef _MSC_VER
 #include <filesystem>

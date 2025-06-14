@@ -22,9 +22,8 @@
 #define PHYSICS_H
 
 #include <irrlicht.h>
-#include "../draw/drawdebug.h"
-#include "boundingbox/collision.h"
-#include "../models/player.h"
+#include <vector>
+#include "../definitions.h"
 
 #define PHYSICS_MAX_COLLISION_TRIANGLES 4000
 
@@ -41,8 +40,13 @@
 #define PHYSIC_APPLYFORCE_ONLYTRANS 1 //applies a force only translateral to rigid body
 #define PHYSIC_APPLYFORCE_ONLYROT 2 //applies a force only rotational to rigid body
 
-class PhysicsObject; //Forward declaration
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class PhysicsObject;
+class Race;
+class DrawDebug;
 
 //PhysicsCollisionArea taken from game HCraft (which is also based on Irrlicht), and modified by me
 //Written by Michael Zeilfelder, please check licenseHCraft.txt for the zlib-style license text.
@@ -358,8 +362,6 @@ public:
 
     void AddCollisionMesh(irr::scene::ITriangleSelector* selector_);
     bool RemoveCollisionMesh(irr::scene::ITriangleSelector* selector_);
-
-
 
     bool ForceValid(irr::core::vector3df forceVec);
 };

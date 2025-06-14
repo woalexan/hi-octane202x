@@ -10,9 +10,8 @@
 #ifndef COLLECTABLE_H
 #define COLLECTABLE_H
 
-#include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
-#include "../infrabase.h"
+#include "irrlicht.h"
+#include "../resources/entityitem.h"
 
 //preset values, also used in
 //HiOctaneTools
@@ -23,7 +22,11 @@ const irr::f32 CollectableSize_h = 0.45f;
 //disappears again, if it was not collected by any player until then
 const irr::f32 DEF_TYPE2_COLLECTABLE_LIFETIME = 30.0f;
 
-class InfrastructureBase; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class InfrastructureBase;
 
 //Note 02.02.2025: In this project there are two different types of Collectables
 // Type 1: Entities (Collectables) that are stored inside the original game map files, and always

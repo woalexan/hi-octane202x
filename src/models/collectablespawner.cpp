@@ -8,6 +8,13 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "collectablespawner.h"
+#include "../utils/physics.h"
+#include "../race.h"
+#include "../models/collectable.h"
+#include "../models/levelterrain.h"
+#include "../resources/mapentry.h"
+#include "../game.h"
+#include "../resources/texture.h"
 
 CollectableSpawner::CollectableSpawner(Race* race, irr::core::vector3df spawnLocation, irr::scene::ISceneManager* smgr,
                                        irr::video::IVideoDriver *driver) {
@@ -145,7 +152,7 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     //create a new type 2 collectable
     irr::u16 spriteNr = mRace->GetCollectableSpriteNumber(newEntityType);
 
-    Collectable* newCollectable = new Collectable(mRace->mInfra, newEntityType, mPosition, mRace->mTexLoader->spriteTex.at(spriteNr), this->mRace->mGame->enableLightning);
+    Collectable* newCollectable = new Collectable(mRace->mGame, newEntityType, mPosition, mRace->mTexLoader->spriteTex.at(spriteNr), this->mRace->mGame->enableLightning);
 
     //create a new struct with information how to spawn the collectable
     SpawnedCollectableInfoStruct* newInfoStruct = new SpawnedCollectableInfoStruct();

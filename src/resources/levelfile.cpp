@@ -13,6 +13,27 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "levelfile.h"
+#include "../utils/logging.h"
+#include <iostream>
+#include <fstream>
+#include "../utils/crc32.h"
+#include "blockdefinition.h"
+#include "columndefinition.h"
+#include "mapentry.h"
+#include "entityitem.h"
+#include <iterator>
+#include "../definitions.h"
+
+/*
+
+#include <list>
+#include <algorithm>
+
+
+
+
+
+*/
 
 LevelFile::LevelFile(std::string filename) {
    this->m_Filename = filename;

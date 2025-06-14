@@ -10,9 +10,12 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+#include "irrlicht.h"
 #include "infrabase.h"
-#include "utils/logging.h"
-#include "editorsession.h"
+#include <vector>
+
+using namespace irr;
+using namespace gui;
 
 #define DEF_EDITORSTATE_AFTERINIT 0
 #define DEF_EDITORSTATE_EXTRACTDATA 1
@@ -30,18 +33,19 @@ enum
     GUI_ID_QUIT
 };
 
-class Logger; //Forward declaration
-class InfrastructureBase; //Forward declaration
-class EditorSession; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
 
-class Editor {
+class Logger;
+class EditorSession;
+
+class Editor : public InfrastructureBase {
 private:
     //Irrlicht related, for debugging of game
     IGUIStaticText* dbgTimeProfiler = nullptr;
     IGUIStaticText* dbgText = nullptr;
     IGUIStaticText* dbgText2 = nullptr;
-    
-    InfrastructureBase* mInfra = nullptr;
 
     bool ExitEditor = false;
 
@@ -54,7 +58,7 @@ private:
     void EditorLoopSession(irr::f32 frameDeltaTime);
     
     EditorSession* mCurrentSession = nullptr;
-    
+
     void RenderDataExtractionScreen();
     bool LoadBackgroundImage();
     void EditorLoopExtractData();
@@ -68,9 +72,6 @@ private:
     void CreateMenue();
     void OnMenuItemSelected( IGUIContextMenu* menu );
 
-   /* static void HandleGuiElementEvents(const SEvent& event);*/
-    void ProcessGuiElementEvents();
-
     //special images for the game
     irr::video::ITexture* gameTitle = nullptr;
     irr::core::vector2di gameTitleDrawPos;
@@ -83,9 +84,8 @@ private:
 public:
     irr::video::ITexture* backgnd = nullptr;
 
-    //inline static std::vector<SEvent> mGuiEventVec;
-
-    std::vector<SEvent> mGuiEventVec;
+    //overwrite HandleGuiEvent method for Editor
+    virtual void HandleGuiEvent(const irr::SEvent& event);
 
     bool enableLightning = false;
     bool enableShadows = false;

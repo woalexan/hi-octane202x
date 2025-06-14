@@ -10,12 +10,8 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "draw/menue.h"
-#include "race.h"
-#include "draw/hud.h"
-#include "draw/introplayer.h"
 #include "infrabase.h"
-#include "utils/logging.h"
+#include "xeffects/XEffects.h"
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_EXTRACTDATA 1
@@ -29,19 +25,23 @@
 #define DEF_GAMESTATE_INITDEMO 9
 #define DEF_GAMESTATE_ERROR 10
 
-class Menue; //Forward declaration
-struct RaceStatsEntryStruct; //Forward declaration
-struct PointTableEntryStruct; //Forward declaration
-struct PilotInfoStruct; //Forward declaration
-struct MenueAction; //Forward declaration
-class Logger; //Forward declaration
-class SoundEngine; //Forward declaration
-class Assets; //Forward declaration
-class InfrastructureBase; //Forward declaration
-class IntroPlayer; //Forward declaration
-class MyMusicStream; //forward declaration
+/************************
+ * Forward declarations *
+ ************************/
 
-class Game {
+class Menue;
+struct RaceStatsEntryStruct;
+struct PointTableEntryStruct;
+struct PilotInfoStruct;
+struct MenueAction;
+class Logger;
+class SoundEngine;
+class Assets;
+class IntroPlayer;
+class MyMusicStream;
+class Race;
+
+class Game : public InfrastructureBase {
 private:
     //Irrlicht related, for debugging of game
     irr::gui::IGUIStaticText* dbgTimeProfiler = nullptr;
@@ -57,7 +57,6 @@ private:
     //own game stuff
     Menue* MainMenue = nullptr;
     IntroPlayer* gameIntroPlayer = nullptr;
-    InfrastructureBase* mInfra = nullptr;
 
     //stores the current gamestate
     irr::u8 mGameState = DEF_GAMESTATE_AFTERINIT;

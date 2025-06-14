@@ -10,10 +10,9 @@
 #ifndef EXPLOSION_H
 #define EXPLOSION_H
 
+#include "irrlicht.h"
+#include <vector>
 #include "../audio/sound.h"
-#include "../resources/mapentry.h"
-#include "explauncher.h"
-#include "../race.h"
 
 //defines for the animated exploding fire balls
 #define DEF_EXPLOSION_NRDETONATIONS 12
@@ -78,7 +77,11 @@ struct ExplosionFlyingDebrisStruct {
     bool detonated = false;
 };
 
-class ExplosionLauncher; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class ExplosionLauncher;
 
 class Explosion {
 

@@ -12,12 +12,7 @@
 
 #include "irrlicht.h"
 #include <vector>
-#include "../utils/fileutils.h"
-#include "../utils/crc32.h"
 #include <string>
-#include "../race.h"
-#include "../infrabase.h"
-#include "../utils/logging.h"
 
 //if we ever want to implement the other languages
 //stored in the game these are the values assigned to the current
@@ -54,9 +49,12 @@
 #define CONFIG_DAT_SIZE_DEFAULT_GAME 11449
 #define CONFIG_DAT_SIZE_EXTENDED_GAME 137833
 
+/************************
+ * Forward declarations *
+ ************************/
 
-struct RaceStatsEntryStruct; //Forward declaration
-class InfrastructureBase; //Forward declaration
+struct RaceStatsEntryStruct;
+class Game;
 
 struct RaceTrackInfoStruct {
     //number of this race track level
@@ -181,7 +179,7 @@ struct ChampionshipSaveGameInfoStruct {
 
 class Assets {
 public:
-    Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile);
+    Assets(Game* game, bool updateGameConfigFile);
     ~Assets();
 
     std::vector<RaceTrackInfoStruct*> *mRaceTrackVec = nullptr;
@@ -333,7 +331,7 @@ public:
     void CleanUpChampionshipSaveGameInfo();
 
 private:
-    InfrastructureBase* mInfra = nullptr;
+    Game* mGame = nullptr;
 
     void SetNewMainPlayerSelectedCraft(irr::u8 newSelectedCraftNr, char** bufPntr);
     void SetCurrentCraftColorScheme(irr::u8 newCraftColorScheme, char** bufPntr);

@@ -13,6 +13,10 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "mapentry.h"
+#include <stdlib.h>
+#include "../utils/crc32.h"
+#include "../utils/logging.h"
+#include "columndefinition.h"
 
 MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::vector<ColumnDefinition*> columnDefinitions) {
     this->m_X = x;

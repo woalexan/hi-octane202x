@@ -319,7 +319,6 @@ add_executable(hi-editor
     src/definitions.h
     src/infrabase.h
     src/infrabase.cpp
-
     src/editor.h
     src/editor.cpp
     src/editorsession.h

@@ -18,13 +18,9 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <cstring>
-#include <limits.h>
-
+#include "irrlicht.h"
 #include "objectdatfile.h"
+#include "../../utils/logging.h"
 
 ObjectDatFile::ObjectDatFile(TABFILE* pntrModelTextureAtlasInfo, unsigned int texAtlasWidth,
                              unsigned int texAtlasHeight) {

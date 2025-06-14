@@ -8,11 +8,12 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "collectable.h"
+#include "../infrabase.h"
 
 //this constructor is for the first type of entity/collectable (which is created based on a game map file entity item)
 Collectable::Collectable(InfrastructureBase* infra, EntityItem* entityItem, vector3d<irr::f32> pos, irr::video::ITexture* texture, bool enableLightning) {
-    this->mInfra = infra;
     this->mEntityItem = entityItem;
+    this->mInfra = infra;
 
     mEnableLightning = enableLightning;
 
@@ -34,6 +35,7 @@ Collectable::Collectable(InfrastructureBase* infra, EntityItem* entityItem, vect
 
 //this constructor is for the second type of entity/collectable (which is temporarily spawned when a player craft breaks down)
 Collectable::Collectable(InfrastructureBase* infra, Entity::EntityType type, vector3d<irr::f32> pos, irr::video::ITexture* texture, bool enableLightning) {
+    mInfra = infra;
 
     //for the second type of collectable (spawned temporary collectable)
     //there is no entity Item object in the background, is always nullptr
@@ -42,8 +44,6 @@ Collectable::Collectable(InfrastructureBase* infra, Entity::EntityType type, vec
     //the type of collectable is stored for this second type
     //in a different member variable directly in this object
     this->mEntityType = type;
-
-    this->mInfra = infra;
 
     mEnableLightning = enableLightning;
 

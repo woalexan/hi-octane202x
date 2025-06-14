@@ -8,6 +8,9 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "camera.h"
+#include "../resources/entityitem.h"
+#include "../models/player.h"
+#include "../utils/physics.h"
 
 Camera::Camera(Race* race, EntityItem *entityItem, irr::scene::ISceneManager* smgr) {
     mSmgr = smgr;

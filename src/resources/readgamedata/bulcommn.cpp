@@ -20,6 +20,8 @@
  // I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
 
 #include "bulcommn.h"
+#include "../../utils/logging.h"
+#include <string.h>
 
 void write_short_le_file (FILE *fp, uint16_t x)
 {

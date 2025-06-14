@@ -17,8 +17,7 @@
 
 #include "tableitem.h"
 #include "irrlicht.h"
-#include "../definitions.h"
-#include "../utils/crc32.h"
+#include <cstdint>
 
 using namespace irr::core;
 

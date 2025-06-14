@@ -21,13 +21,9 @@
 #ifndef BULL_OBJECTDATFILE_H
 #define BULL_OBJECTDATFILE_H
 
+#include <vector>
 #include "../../utils/fileutils.h"
 #include "xtabdat8.h"
-#include <vector>
-#include <sstream>
-#include "irrlicht.h"
-#include "../../definitions.h"
-#include "../../utils/logging.h"
 
 #define OBJDATHEADER "BULLFROG OBJECT DATA"
 #define OBJDATHEADERLENGTH 58

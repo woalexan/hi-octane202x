@@ -8,6 +8,8 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "expentity.h"
+#include "../race.h"
+#include "explauncher.h"
 
 void ExplosionEntity::Trigger() {
     if (!mAlreadyExploded) {

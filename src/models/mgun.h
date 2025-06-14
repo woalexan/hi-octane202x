@@ -11,9 +11,7 @@
 #define MGUN_H
 
 #include <irrlicht.h>
-#include "player.h"
-#include "../audio/sound.h"
-#include "../race.h"
+#include <SFML/Audio.hpp>
 
 //the machine gun damage should be choosen that a
 //craft with full ammo needs continious machine gun for
@@ -22,7 +20,11 @@
 
 const irr::f32 DEF_MGUN_REPETITION_DELAY = 0.1f;
 
-class Player; //Forwards declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Player;
 
 //the original game seems to allow to shoot maximum
 //4 machine gun bullets at the same time

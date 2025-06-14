@@ -13,18 +13,12 @@
 // Class to extract game data files
 //
 
-#include <string.h>
-#include <vector>
-#include "dernc.h"
-#include "xtabdat8.h"
-#include "stdlib.h"
 #include <irrlicht.h>
-#include "../../utils/fileutils.h"
-#include "objectdatfile.h"
-#include "../xbrz-1-8/xbrz.h"
-#include "../intro/flic.h"
 #include <cstdint>
-#include "../../infrabase.h"
+#include <string>
+#include <vector>
+#include "../intro/flic.h"
+#include "../readgamedata/xtabdat8.h"
 
 #define PREP_DATA_INITSTATE 0
 #define PREP_DATA_EXTRACTGAMESCREENS 1
@@ -40,6 +34,12 @@
 #define PREP_DATA_EXTRACTAUDIO 11
 #define PREP_DATA_EXTRACTMISC 12
 #define PREP_DATA_FINISHED 13
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class InfrastructureBase;
 
 //each SOUNDFILEENTRY has 32 bytes
 typedef struct {
@@ -58,8 +58,6 @@ typedef struct {
         uint32_t unknown;  //unknown (always 0xC0000000, or 192)
         uint32_t AllTunesLenBytes;
      } MUSICTABLEENTRY;
-
-class InfrastructureBase; //Forward declaration
 
 class PrepareData {
 

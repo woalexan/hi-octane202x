@@ -20,8 +20,7 @@
 #define RAY_H
 
 #include <irrlicht.h>
-#include "../draw/drawdebug.h"
-#include "../definitions.h"
+#include <vector>
 
 #define PHYSICS_MAX_RAYTARGET_TRIANGLES 4000
 
@@ -31,6 +30,12 @@ struct RayHitTriangleInfoStruct {
     irr::core::vector3df rayDirVec;
     irr::f32 distFromRayStartSquared = 0.0f;
 };
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class DrawDebug;
 
 class Ray {
 

@@ -17,6 +17,8 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. */
 
 #include "ray.h"
+#include "../draw/drawdebug.h"
+#include "../definitions.h"
 
 Ray::Ray(DrawDebug* drawDbg) {
     mDrawDebug = drawDbg;

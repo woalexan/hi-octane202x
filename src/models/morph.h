@@ -16,14 +16,18 @@
 #define MORPH_H
 
 #include <irrlicht.h>
-#include "../resources/entityitem.h"
-#include "../models/levelterrain.h"
-#include "../models/levelblocks.h"
-#include <list>
+#include <vector>
 
-class Column; //Forward declaration
-class LevelTerrain; //Forward declaration
-class LevelBlocks; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Column;
+class LevelTerrain;
+class LevelBlocks;
+class EntityItem;
+class LevelTerrain;
+class LevelBlocks;
 
 class Morph {
 public:

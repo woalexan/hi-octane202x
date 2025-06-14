@@ -8,10 +8,12 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "music.h"
-#include "../utils/fileutils.h"
 #include "../utils/logging.h"
-#include <cstdlib>
-#include <iostream>
+#include "irrlicht.h"
+#include "../game.h"
+#include "ail/format_wohlstand_opl3.h"
+#include "ail/format_ail2_gtl.h"
+#include "../utils/fileutils.h"
 
 bool MyMusicStream::getInitOk() {
     return mInitOk;
@@ -28,7 +30,7 @@ bool MyMusicStream::prepareInstrumentFile() {
 
      //find original instrument file
      irr::io::path inputDatFile =
-             mInfra->LocateFileInFileList(mInfra->mOriginalGame->soundFolder, irr::core::string<fschar_t>("sample.opl"));
+             mGame->LocateFileInFileList(mGame->mOriginalGame->soundFolder, irr::core::string<fschar_t>("sample.opl"));
 
      if (inputDatFile.empty()) {
          //input file not found!
@@ -154,8 +156,8 @@ void MyMusicStream::SetVolume(float newVolume) {
     }
 }
 
-MyMusicStream::MyMusicStream(InfrastructureBase* infraPnter, unsigned int sampleRate) {
-    mInfra = infraPnter;
+MyMusicStream::MyMusicStream(Game* gamePnter, unsigned int sampleRate) {
+    mGame = gamePnter;
 
     //verify and if necessary create the
     //OPL3 instrument file

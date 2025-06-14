@@ -19,6 +19,9 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "physics.h"
+#include "boundingbox/collision.h"
+#include "../draw/drawdebug.h"
+#include "../race.h"
 
 //Returns false if any of the 3 coordinates is not a number
 //If force is valid (all numbers are numbers) then returns true

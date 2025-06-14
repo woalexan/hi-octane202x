@@ -16,9 +16,7 @@
 #define BLOCKDEFINITION_H
 
 #include "tableitem.h"
-#include <vector>
 #include <cstdint>
-#include "../utils/crc32.h"
 
 class BlockDefinition : public TableItem {
 public:

@@ -11,9 +11,12 @@
 #define CONE_H
 
 #include <irrlicht.h>
-#include "../race.h"
 
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
 
 class Cone {
 public:

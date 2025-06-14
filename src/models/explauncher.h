@@ -10,13 +10,16 @@
 #ifndef EXPLAUNCHER_H
 #define EXPLAUNCHER_H
 
-#include "../audio/sound.h"
-#include "../resources/mapentry.h"
-#include "explosion.h"
+#include "irrlicht.h"
 #include <vector>
+#include "../audio/sound.h"
 
-class Race;      //Forward declaration
-class Explosion; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class Explosion;
 
 class ExplosionLauncher {
     public:

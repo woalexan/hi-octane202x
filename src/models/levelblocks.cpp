@@ -9,6 +9,13 @@
 
 #include "levelblocks.h"
 #include "../definitions.h"
+#include "../infrabase.h"
+#include "column.h"
+#include "../resources/columndefinition.h"
+#include "../resources/levelfile.h"
+#include "../resources/texture.h"
+#include "../utils/logging.h"
+#include "../resources/mapentry.h"
 
 LevelBlocks::~LevelBlocks() {
   //remove existing SceneNodes

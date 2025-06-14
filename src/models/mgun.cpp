@@ -8,11 +8,18 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "mgun.h"
+#include "../resources/texture.h"
+#include "player.h"
+#include "../utils/ray.h"
+#include "../audio/sound.h"
+#include "../utils/physics.h"
+#include "../game.h"
+#include "../race.h"
 
 //Returns true in case of success
 //False otherwise
 bool MachineGun::LoadSprites() {
-   ITexture* newTex;
+   irr::video::ITexture* newTex;
 
    //get pointer to preloaded texture
    newTex = this->mParent->mRace->mTexLoader->spriteTex.at(43);
@@ -155,7 +162,7 @@ void MachineGun::Trigger() {
              irr::u32 hitProbability = this->mParent->GetMGunHitProbability();
 
              //get a random number between 0 and 100
-             irr::u32 randNum = this->mParent->mRace->mInfra->randRangeInt(0, 100);
+             irr::u32 randNum = this->mParent->mRace->mGame->randRangeInt(0, 100);
 
              //did we hit?
              if (randNum < hitProbability) {

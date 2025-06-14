@@ -9,6 +9,7 @@
 
 #include "sound.h"
 #include <iostream>
+#include "../utils/logging.h"
 
 bool SoundEngine::getSoundResourcesLoadOk() {
     return mSoundResourcesLoadOk;
@@ -158,8 +159,8 @@ void SoundEngine::UpdateListenerLocation(irr::core::vector3df location, irr::cor
    sf::Listener::setDirection(frontDirVec.X, frontDirVec.Y, -frontDirVec.Z);
 }
 
-SoundEngine::SoundEngine(InfrastructureBase* infraPnter) {
-    mInfra = infraPnter;
+SoundEngine::SoundEngine(Game* gamePnter) {
+    mGame = gamePnter;
 
     //create new vector where we can store our soundbuffers/soundresources
     SoundResVec = new std::vector<SoundResEntry*>();

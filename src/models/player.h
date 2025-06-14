@@ -10,25 +10,14 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <irrlicht.h>
-#include "levelterrain.h"
-#include <iostream>
-#include "../definitions.h"
-#include "irrMath.h"
-#include "../utils/physics.h"
-#include "../draw/hud.h"
-#include "collectable.h"
-#include "../resources/entityitem.h"
 #include "SFML/Audio.hpp"
-#include <queue>
-#include "particle.h"
-#include "mgun.h"
-#include "missile.h"
-#include "cpuplayer.h"
+#include <list>
+#include <vector>
+#include "irrlicht.h"
 #include "../utils/path.h"
-#include "../utils/bezier.h"
-#include "../models/camera.h"
-#include "../utils/movingavg.h"
+#include "../definitions.h"
+#include "../utils/ray.h"
+#include "../utils/worldaware.h"
 
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
@@ -66,12 +55,18 @@ const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
 #define CAMERA_PLAYER_BEHINDCRAFT 1
 #define CAMERA_EXTERNALVIEW 2
 
-struct WayPointLinkInfoStruct; //Forward declaration
-struct RayHitTriangleInfoStruct; //Forward declaration
-struct RayHitInfoStruct; //Forward declaration
-class Collectable; //Forward declaration
-class Camera; //Forward declaration
-class CpuPlayer; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+struct WayPointLinkInfoStruct;
+struct MapTileRegionStruct;
+class Collectable;
+class Camera;
+class CpuPlayer;
+class MovingAverageCalculator;
+class MapEntry;
+class EntityItem;
 
 typedef struct {
     irr::u8 lapNr;
@@ -219,11 +214,9 @@ struct HudDisplayPart; //Forward declaration
 
 class Player {
 public:
-    Player(Race* race, InfrastructureBase* infra, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt,
+    Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt,
            irr::u8 nrLaps, bool humanPlayer);
     ~Player();
-
-    InfrastructureBase* mInfra = nullptr;
 
     HMAPCOLLSENSOR* cameraSensor = nullptr;
     HMAPCOLLSENSOR* cameraSensor2 = nullptr;
@@ -394,7 +387,7 @@ public:
     irr::f32 DbgShipUpAngle;
 
     irr::s32 currTextID;
-    vector<irr::s32> textureIDlist;
+    std::vector<irr::s32> textureIDlist;
 
     bool mPlayerModelSmoking = false;
     bool mLastPlayerModelSmoking = false;

@@ -19,11 +19,11 @@
 
 #include <irrlicht.h>
 #include <vector>
+#include "../infrabase.h"
 
 using namespace irr;
 
-//type for GuiElement event handling callback function
-//typedef void (*GuiElementCallbackPntr)(const SEvent& event);
+class InfrastructureBase;
 
 /*
 To receive events like mouse and keyboard input, or GUI events like "the OK
@@ -33,7 +33,6 @@ irr::IEventReceiver::OnEvent(). This method will be called by the engine once
 when an event happens. What we really want to know is whether a key is being
 held down, and so we will remember the current state of each key.
 */
-
 class MyEventReceiver : public IEventReceiver
 {
 public:
@@ -55,12 +54,7 @@ public:
     // after the key was released first again
     bool IsKeyDownSingleEvent(EKEY_CODE keyCode);
 
-    // Setup a GuiElement event handling callback function
-    //void SetupGuiElementEventHandlingCallback(GuiElementCallbackPntr pFunc);
-
-    MyEventReceiver();
-
-    void SetGuiEventTargetVectorPointer(std::vector<SEvent>* targetPntr);
+    MyEventReceiver(InfrastructureBase* infra);
 
 private:
     // We use this array to store the current state of each key
@@ -71,14 +65,8 @@ private:
     //need to be released first for another trigger possibility
     bool KeyIsLockedCurr[KEY_KEY_CODES_COUNT];
 
-    //bool mGuiElementEventCallbackSet = false;
-
-    //Function pointer to GUIElement event
-    //handler function
-    //GuiElementCallbackPntr mGuiElementCallbackPntr;
-
-    //pointer to a target vector of Gui Events
-    std::vector<SEvent>* guiEventVecTargetPntr = nullptr;
+    //pointer to my parent infrastructure object
+    InfrastructureBase* mInfra;
 };
 
 #endif // INPUT_H

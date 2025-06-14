@@ -26,6 +26,7 @@ anymore   */
 #include <string.h>
 #include "dernc.h"
 #include "../../utils/fileutils.h"
+#include "../../utils/logging.h"
 
 int main_unpack (char* iname, char* oname)
 {

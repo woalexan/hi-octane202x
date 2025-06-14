@@ -13,6 +13,12 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "levelterrain.h"
+#include "../resources/texture.h"
+#include "../infrabase.h"
+#include "../models/morph.h"
+#include "../resources/mapentry.h"
+#include "../utils/logging.h"
+#include "../resources/entityitem.h"
 
 void LevelTerrain::ResetTerrainTileData() {
     int levelWidth = this->levelRes->Width();

@@ -10,16 +10,10 @@
 #ifndef INFRABASE_H
 #define INFRABASE_H
 
-#include <iostream>
 #include <irrlicht.h>
-#include "xeffects/XEffects.h"
-#include "input/input.h"
-#include "utils/logger.h"
-#include "resources/assets.h"
-#include "resources/readgamedata/preparedata.h"
-#include "utils/tprofile.h"
-#include "utils/logging.h"
 #include <vector>
+#include <cstdint>
+#include "resources/readgamedata/preparedata.h"
 
 using namespace std;
 
@@ -29,9 +23,15 @@ using namespace irr::video;
 using namespace irr::scene;
 using namespace irr::gui;
 
-class Logger; //Forward declaration
-class PrepareData; //Forward declaration
-class GameText; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Logger;
+class PrepareData;
+class GameText;
+class MyEventReceiver;
+class TimeProfiler;
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -45,7 +45,7 @@ struct OriginalGameFolderInfoStruct {
 
 class InfrastructureBase {
 public:
-  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
+  InfrastructureBase();
   ~InfrastructureBase();
 
   //get a random int in the range between min and max
@@ -57,7 +57,8 @@ public:
   dimension2d<u32> mScreenRes;
   Logger* mLogger = nullptr;
 
-  bool GetInitOk();
+  void InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
+  bool GetInfrastructureInitOk();
 
   //have all pointers as public
   //so that we can access them easily everywhere
@@ -65,8 +66,9 @@ public:
   video::IVideoDriver* mDriver = nullptr;
   scene::ISceneManager* mSmgr = nullptr;
 
-  MyEventReceiver* mEventReceiver = nullptr;
   IGUIEnvironment* mGuienv = nullptr;
+
+  MyEventReceiver* mEventReceiver = nullptr;
 
   PrepareData* mPrepareData = nullptr;
   GameText* mGameTexts = nullptr;
@@ -87,6 +89,8 @@ public:
   irr::core::vector3d<irr::f32>* xAxisDirVector = nullptr;
   irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
   irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
+
+  virtual void HandleGuiEvent(const irr::SEvent& event);
 
 private:
   //Irrlicht stuff

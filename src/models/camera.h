@@ -11,11 +11,14 @@
 #define CAMERA_H
 
 #include <irrlicht.h>
-#include "../race.h"
-#include "../models/player.h"
 
-class Race; //Forward declaration
-class Player; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class Player;
+class EntityItem;
 
 class Camera {
 public:

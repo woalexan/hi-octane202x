@@ -10,11 +10,20 @@
 #ifndef PATH_H
 #define PATH_H
 
-#include "../draw/drawdebug.h"
-#include "../resources/entityitem.h"
-#include "../models/collectable.h"
-#include "../race.h"
-#include "../models/chargingstation.h"
+#include "irrlicht.h"
+#include <vector>
+#include "../definitions.h"
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class DrawDebug;
+class Player;
+class EntityItem;
+class Collectable;
+class ChargingStation;
 
 struct CheckPointInfoStruct {
     //pntr to checkpoint Irrlicht sceneNode
@@ -105,13 +114,6 @@ struct WayPointLinkInfoStruct {
     //at end entity
     irr::f32 minOffsetShiftEnd;
 };
-
-class Race;       //Forward declaration
-class DrawDebug;  //Forward declaration
-class Player;     //Forward declaration
-class EntityItem; //Forward declaration
-class Collectable; //Forward declaration
-class ChargingStation; //Forward declaration
 
 class Path {
 public:

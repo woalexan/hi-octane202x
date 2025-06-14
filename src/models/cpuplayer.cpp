@@ -8,6 +8,19 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "cpuplayer.h"
+#include "player.h"
+#include "../game.h"
+#include "../utils/physics.h"
+#include "../utils/bezier.h"
+#include "../utils/ray.h"
+#include "mgun.h"
+#include "missile.h"
+#include "../utils/worldaware.h"
+#include "../race.h"
+#include "chargingstation.h"
+#include "../draw/drawdebug.h"
+#include "../resources/levelfile.h"
+#include "../models/collectable.h"
 
 CpuPlayer::CpuPlayer(Player* myParentPlayer) {
    mParentPlayer = myParentPlayer;
@@ -173,7 +186,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     //to the right direction when looking into race direction
     //this direction vector is later used during the game to offset the player
     //path sideways
-    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mInfra->yAxisDirVector).normalize();
+    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mGame->yAxisDirVector).normalize();
 
     //also store this temporary waypointlink struct info
     //in the command, so that we can cleanup after this command was
@@ -295,7 +308,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mInfra->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mGame->yAxisDirVector).normalize();
         //newStruct->pEndEntity = whichStall->entityItem;
 
         newStruct->pEndEntity = whichChargingStation->enterHelperEntityItem;
@@ -414,7 +427,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mInfra->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mGame->yAxisDirVector).normalize();
 
         CheckAndRemoveNoCommand();
 
@@ -730,7 +743,7 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
 
         //choose available path random
         int rNum;
-        rNum = mParentPlayer->mInfra->randRangeInt(0, nrWays - 1);
+        rNum = mParentPlayer->mRace->mGame->randRangeInt(0, nrWays - 1);
 
         //LogMessage((char*)"Entered a new (unspecial) Waypoint-Link");
 

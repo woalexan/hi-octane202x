@@ -8,6 +8,11 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "cone.h"
+#include "../race.h"
+#include "../game.h"
+#include "../resources/mapentry.h"
+#include "../models/levelterrain.h"
+#include "../utils/physics.h"
 
 Cone::Cone(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) {
     mSmgr = smgr;
@@ -128,7 +133,7 @@ void Cone::WasHit(irr::core::vector3df movementDirection, irr::f32 collisionSpee
 
     //derive rotation axis, is direction vector perpendicular to the movement
     //direction
-    rotAxis = this->mRace->mInfra->yAxisDirVector->crossProduct(movementDirection);
+    rotAxis = this->mRace->mGame->yAxisDirVector->crossProduct(movementDirection);
 
     mReachedFinalLocation = false;
 }

@@ -8,9 +8,22 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "editorsession.h"
+#include "utils/logger.h"
+#include "utils/tprofile.h"
+#include "models/levelblocks.h"
+#include "models/levelterrain.h"
+#include "editor.h"
+#include "resources/texture.h"
+#include "models/morph.h"
+#include "utils/logging.h"
+#include "models/column.h"
+#include "models/collectable.h"
+#include "draw/drawdebug.h"
+#include "input/input.h"
+#include "resources/mapentry.h"
+#include "resources/columndefinition.h"
 
-EditorSession::EditorSession(InfrastructureBase* infra, Editor* parentEditor, irr::u8 loadLevelNr) {
-    this->mInfra = infra;
+EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mParentEditor = parentEditor;
 
     mLevelNrLoaded = loadLevelNr;
@@ -94,11 +107,11 @@ void EditorSession::Init() {
 
     //create a free moving camera that the user can use to
     //investigate the level/map, not used in actual game
-    mCamera = mInfra->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
+    mCamera = mParentEditor->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
                                             keyMap, 4, false, 0.0f);
 
     //create a DrawDebug object
-    this->mDrawDebug = new DrawDebug(mInfra->mDriver);
+    this->mDrawDebug = new DrawDebug(mParentEditor->mDriver);
 
     mRayTerrain = new Ray(mDrawDebug);
     mRayColumns = new Ray(mDrawDebug);
@@ -117,7 +130,7 @@ void EditorSession::Init() {
     /*mPlayerStartLocations =
         this->mLevelTerrain->GetPlayerRaceTrackStartLocations();*/
 
-    mInfra->mSmgr->setActiveCamera(mCamera);
+    mParentEditor->mSmgr->setActiveCamera(mCamera);
 
     //SetupTopRaceTrackPointerOrigin();
 
@@ -135,19 +148,19 @@ void EditorSession::Init() {
 //intersection from user mouse pointer to level environment
 //for object selection
 void EditorSession::createTriangleSelectors() {
-   triangleSelectorColumnswCollision = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorColumnswCollision = mParentEditor->mSmgr->createOctreeTriangleSelector(
                 this->mLevelBlocks->blockMeshForCollision, this->mLevelBlocks->BlockCollisionSceneNode, 128);
    this->mLevelBlocks->BlockCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswCollision);
 
-   triangleSelectorColumnswoCollision = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorColumnswoCollision = mParentEditor->mSmgr->createOctreeTriangleSelector(
                 this->mLevelBlocks->blockMeshWithoutCollision, this->mLevelBlocks->BlockWithoutCollisionSceneNode, 128);
    this->mLevelBlocks->BlockWithoutCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswoCollision);
 
-   triangleSelectorStaticTerrain = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorStaticTerrain = mParentEditor->mSmgr->createOctreeTriangleSelector(
                this->mLevelTerrain->myStaticTerrainMesh, this->mLevelTerrain->StaticTerrainSceneNode, 128);
   this->mLevelTerrain->StaticTerrainSceneNode->setTriangleSelector(triangleSelectorStaticTerrain);
 
-   triangleSelectorDynamicTerrain = mInfra->mSmgr->createOctreeTriangleSelector(
+   triangleSelectorDynamicTerrain = mParentEditor->mSmgr->createOctreeTriangleSelector(
                this->mLevelTerrain->myDynamicTerrainMesh, this->mLevelTerrain->DynamicTerrainSceneNode, 128);
   this->mLevelTerrain->DynamicTerrainSceneNode->setTriangleSelector(triangleSelectorDynamicTerrain);
 }
@@ -186,7 +199,7 @@ bool EditorSession::LoadLevel() {
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
-   mTexLoader = new TextureLoader(mInfra->mDriver, texfilename, spritefilename);
+   mTexLoader = new TextureLoader(mParentEditor->mDriver, texfilename, spritefilename);
 
    //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
@@ -209,14 +222,14 @@ bool EditorSession::LoadLevel() {
    //for the level editor do not optimize the Terrain mesh!
    //08.06.2025: TODO, right now still optimize, Terrain Mesh not able to handle more
    //tehn 65k Vertices because of MeshBuffer, fix later!
-   this->mLevelTerrain = new LevelTerrain(this->mInfra, terrainname, this->mLevelRes, mTexLoader, true, false);
+   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, terrainname, this->mLevelRes, mTexLoader, true, false);
 
    /***********************************************************/
    /* Create building (cube) Mesh                             */
    /***********************************************************/
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
-   this->mLevelBlocks = new LevelBlocks(this->mInfra, this->mLevelTerrain, this->mLevelRes, mTexLoader,
+   this->mLevelBlocks = new LevelBlocks(this->mParentEditor, this->mLevelTerrain, this->mLevelRes, mTexLoader,
                                         DebugShowWallCollisionMesh, false);
 
    //create all level entities
@@ -286,7 +299,7 @@ void EditorSession::createLevelEntities() {
 
     //create all level entities
     for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
-        createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, mInfra->mDriver);
+        createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, mParentEditor->mDriver);
     }
 }
 
@@ -590,7 +603,7 @@ void EditorSession::createEntity(EntityItem *p_entity,
                     irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
 
                     //Point to the correct (billboard) texture
-                    collectable = new Collectable(this->mInfra, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), false);
+                    collectable = new Collectable(this->mParentEditor, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), false);
                     ENTCollectablesVec->push_back(collectable);
                     break;
         }
@@ -788,9 +801,9 @@ void EditorSession::TestDialog() {
 
     dimension2d<u32> dim ( 300, 200 );
 
-    gui.Window = mInfra->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures" );
+    gui.Window = mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures" );
 
-    gui.testButton = mInfra->mGuienv->addButton(core::recti(50, 50, 100, 80), gui.Window, -1, L"Test");
+    gui.testButton = mParentEditor->mGuienv->addButton(core::recti(50, 50, 100, 80), gui.Window, -1, L"Test");
 
 //    // create a visible Scene Tree
 //    mInfra->mGuienv->addStaticText ( L"Textures:", rect<s32>( 10, 20, dim.Width, 30 ),false, false, gui.Window, -1, false );
@@ -835,10 +848,10 @@ void EditorSession::Render() {
 
     if (DebugShowWallSegments) {
          //draw all wallsegments for debugging purposes
-         mInfra->mDriver->setMaterial(*mDrawDebug->red);
+         mParentEditor->mDriver->setMaterial(*mDrawDebug->red);
          for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-              mInfra->mDriver->setMaterial(*mDrawDebug->red);
-              mInfra->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
+              mParentEditor->mDriver->setMaterial(*mDrawDebug->red);
+              mParentEditor->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
          }
      }
 
@@ -895,40 +908,40 @@ void EditorSession::Render() {
 
 void EditorSession::HandleBasicInput() {
 
-    if(mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
+    if(mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
     {
-         if (mInfra->mLogger->IsWindowHidden()) {
-             mInfra->mLogger->ShowWindow();
+         if (mParentEditor->mLogger->IsWindowHidden()) {
+             mParentEditor->mLogger->ShowWindow();
          } else {
-             mInfra->mLogger->HideWindow();
+             mParentEditor->mLogger->HideWindow();
          }
 
-         if (mInfra->mTimeProfiler->IsWindowHidden()) {
-             mInfra->mTimeProfiler->ShowWindow();
+         if (mParentEditor->mTimeProfiler->IsWindowHidden()) {
+             mParentEditor->mTimeProfiler->ShowWindow();
          } else {
-             mInfra->mTimeProfiler->HideWindow();
+             mParentEditor->mTimeProfiler->HideWindow();
          }
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_K)) {
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_K)) {
         TestDialog();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
         mLevelTerrain->SwitchViewMode();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
         mLevelBlocks->SwitchViewMode();
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
         this->exitEditorSession = true;
     }
 
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_SPACE)) {
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_SPACE)) {
          scene::ICameraSceneNode * camera =
-                 mInfra->mDevice->getSceneManager()->getActiveCamera();
+                 mParentEditor->mDevice->getSceneManager()->getActiveCamera();
                  if (camera)
                     {
                         camera->setInputReceiverEnabled( !camera->isInputReceiverEnabled() );
@@ -1010,10 +1023,10 @@ void EditorSession::DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hit
 }
 
 void EditorSession::HandleMouse() {
-    mCurrentMousePos = mInfra->mEventReceiver->MouseState.Position;
+    mCurrentMousePos = mParentEditor->mEventReceiver->MouseState.Position;
 
     // Create a ray through the mouse cursor.
-    core::line3df ray = mInfra->mSmgr->getSceneCollisionManager()->getRayFromScreenCoordinates(
+    core::line3df ray = mParentEditor->mSmgr->getSceneCollisionManager()->getRayFromScreenCoordinates(
                      mCurrentMousePos, mCamera);
 
     mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_NONE;

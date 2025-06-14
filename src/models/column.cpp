@@ -13,6 +13,13 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "column.h"
+#include "../utils/logging.h"
+#include "../resources/levelfile.h"
+#include "../resources/mapentry.h"
+#include "levelterrain.h"
+#include "../resources/blockdefinition.h"
+#include "../resources/columndefinition.h"
+#include "../utils/crc32.h"
 
 Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel) {
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!

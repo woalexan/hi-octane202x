@@ -16,18 +16,10 @@
 #define LEVELFILE_H
 
 #include "irrlicht.h"
-#include <string>
 #include <vector>
-#include <fstream>
-#include <iterator>
 #include <list>
-#include <algorithm>
-#include "mapentry.h"
-#include "entityitem.h"
-#include "../utils/crc32.h"
-#include "blockdefinition.h"
-#include <iostream>
-#include "../utils/logging.h"
+#include <string>
+#include <cstdint>
 
 #define LEVELFILE_WIDTH 256
 #define LEVELFILE_HEIGHT 160
@@ -42,6 +34,15 @@
 
 using namespace irr::core;
 using namespace std;
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class BlockDefinition;
+class MapEntry;
+class EntityItem;
+class ColumnDefinition;
 
 struct MapPointOfInterest {
       irr::core::vector3d<float> Position;

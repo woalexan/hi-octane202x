@@ -12,14 +12,16 @@
 
 #include <irrlicht.h>
 #include <vector>
-#include <iostream>
-#include <cstdlib>
-#include "EDebugSceneTypes.h"
-#include "player.h"
 
 const irr::f32 DEF_DUSTPARTICLELIFETIME = 2.0f;  //0.5f before debugging, reset back to this value!
 
-class Player; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Player;
+class Race;
+class EntityItem;
 
 class SpriteParticle {
 public:

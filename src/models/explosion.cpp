@@ -8,6 +8,11 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "explosion.h"
+#include "../models/explauncher.h"
+#include "../race.h"
+#include "../models/levelterrain.h"
+#include "../utils/physics.h"
+#include "../resources/mapentry.h"
 
 Explosion::Explosion(irr::core::vector3df targetLoc, ExplosionLauncher* parentExpLauncher) {
     this->targetLocation = targetLoc;

@@ -10,13 +10,8 @@
 #ifndef LEVELBLOCKS_H
 #define LEVELBLOCKS_H
 
-#include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
 #include <irrlicht.h>
-#include "../resources/texture.h"
-#include "../infrabase.h"
-#include "../utils/logging.h"
-#include "column.h"
+#include <vector>
 
 using namespace irr;
 using namespace video;
@@ -29,9 +24,16 @@ using namespace gui;
 #define LEVELBLOCKS_VIEW_DEFAULT 1
 #define LEVELBLOCKS_VIEW_DEBUGNORMALS 2
 
-class LevelTerrain; //Forward declaration
-class Column;       //Forward declaration
-class InfrastructureBase; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class LevelTerrain;
+class Column;
+class InfrastructureBase;
+class TextureLoader;
+class LevelFile;
+class ColumnDefinition;
 
 struct ColumnsByPositionStruct {
       int pos;
@@ -43,8 +45,6 @@ public:
     LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
                 TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning);
     ~LevelBlocks();
-
-    //MapEntry* GetMapEntry(int x, int y);
 
     SMesh * getBlocksMesh(int collisionSelector);
     std::vector<Column*> ColumnsInRange(int sx, int sz, float w, float h);
@@ -77,9 +77,8 @@ public:
 private:   
     TextureLoader* mTexSource = nullptr;
     LevelTerrain* MyTerrain = nullptr;
-    InfrastructureBase* mInfra = nullptr;
 
-    //std::string m_texfile;
+    InfrastructureBase* mInfra = nullptr;
 
     void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
 

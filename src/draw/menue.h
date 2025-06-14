@@ -12,15 +12,7 @@
 
 #include <irrlicht.h>
 #include <vector>
-#include "gametext.h"
-#include "../input/input.h"
-#include <string.h>
-#include "math.h"
-#include "../audio/sound.h"
-#include "../resources/assets.h"
-#include "../race.h"
-#include "../infrabase.h"
-#include "../game.h"
+#include <cstdint>
 
 //definition of available menue pages
 #define MENUE_AFTERGAMESTART 0
@@ -129,9 +121,9 @@ struct RaceStatsEntryStruct; //Forward declaration
 struct PointTableEntryStruct; //Forward declaration
 struct ChampionshipSaveGameInfoStruct; //Forward declaration
 class SoundEngine; //Forward declaration
-class InfrastructureBase; //Forward declaration
 class Assets; //Forward declaration
 class Game; //Forward declaration
+struct GameTextFont; //Forward declaration
 
 //this struct holds the information about a single
 //menue entry
@@ -218,7 +210,6 @@ class Menue {
 private:
     SoundEngine* mSoundEngine = nullptr;
     Assets* mGameAssets = nullptr;
-    InfrastructureBase* mInfra = nullptr;
     Game* mGame = nullptr;
 
     std::vector<MenueGraphicPart*> GameLogo;
@@ -422,7 +413,7 @@ private:
     std::vector<irr::scene::IMeshSceneNode*> ModelTrackSceneNodeVec;
 
     //camera used for the race track/ship selection 3D rendering
-    scene::ICameraSceneNode* MenueCamera = nullptr;
+    irr::scene::ICameraSceneNode* MenueCamera = nullptr;
 
     //stores the number of crafts we have available
     //and we get from assets class for selection
@@ -551,8 +542,8 @@ private:
 
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
-    Menue(InfrastructureBase* infra,
-           SoundEngine* soundEngine, Game* game, Assets* assets);
+    Menue(Game* game,
+           SoundEngine* soundEngine, Assets* assets);
     ~Menue();
 
     bool MenueInitializationSuccess;

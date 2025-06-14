@@ -89,15 +89,9 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
     //is this a GUIElement event? Is only really used
     //in level editor, and not the game itself
     if (event.EventType == EET_GUI_EVENT) {
-        //only call callback event handling function
-        //if it was setup before!
-       /* if (mGuiElementEventCallbackSet) {
-            //call the callback function below
-            mGuiElementCallbackPntr(event);
-        }*/
-        if (guiEventVecTargetPntr != nullptr) {
-            guiEventVecTargetPntr->push_back(event);
-        }
+         //Forward this event to my parent
+         //Infrastructure object
+         mInfra->HandleGuiEvent(event);
     }
 
     return false;
@@ -109,8 +103,10 @@ bool MyEventReceiver::IsKeyDown(EKEY_CODE keyCode) const
     return KeyIsDown[keyCode];
 }
 
-MyEventReceiver::MyEventReceiver()
+MyEventReceiver::MyEventReceiver(InfrastructureBase* infra)
 {
+    mInfra = infra;
+
     for (u32 i=0; i<KEY_KEY_CODES_COUNT; ++i) {
         KeyIsDown[i] = false;
         KeyIsLockedCurr[i] = false;
@@ -133,13 +129,3 @@ bool MyEventReceiver::IsKeyDownSingleEvent(EKEY_CODE keyCode) {
     return false;
 }
 
-void MyEventReceiver::SetGuiEventTargetVectorPointer(std::vector<SEvent>* targetPntr) {
-   this->guiEventVecTargetPntr = targetPntr;
-}
-
-/*
-// Setup a GuiElement event handling callback function
-void MyEventReceiver::SetupGuiElementEventHandlingCallback(GuiElementCallbackPntr pFunc) {
-    mGuiElementCallbackPntr = pFunc;
-    mGuiElementEventCallbackSet = true;
-}*/

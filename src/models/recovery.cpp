@@ -8,6 +8,12 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "recovery.h"
+#include "../game.h"
+#include "../race.h"
+#include "../utils/path.h"
+#include "player.h"
+#include "../utils/physics.h"
+#include "levelterrain.h"
 
 Recovery::Recovery(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneManager* smgr) {
     ready = false;

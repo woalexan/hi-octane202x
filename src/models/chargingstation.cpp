@@ -8,6 +8,15 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "chargingstation.h"
+#include "../utils/path.h"
+#include "../resources/entityitem.h"
+#include "../race.h"
+#include "../resources/levelfile.h"
+#include "../draw/drawdebug.h"
+#include "../models/levelterrain.h"
+#include "../resources/mapentry.h"
+#include "../game.h"
+#include "../resources/columndefinition.h"
 
 ChargingStation::ChargingStation(irr::scene::ISceneManager* smgr, Race* race, MapTileRegionStruct* regionStruct,
                     std::vector<WayPointLinkInfoStruct*> *allRaceWayPoints) {
@@ -544,8 +553,8 @@ void ChargingStation::DetermineOrientation() {
     //in which coordinate direction will the craft
     //fly through us, we can derive this information
     //from a waypoint link that goes through us
-    irr::f32 dotProductinX = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->mInfra->xAxisDirVector);
-    irr::f32 dotProductinZ = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->mInfra->zAxisDirVector);
+    irr::f32 dotProductinX = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->mGame->xAxisDirVector);
+    irr::f32 dotProductinZ = this->mIntersectingWayPointLinksVec.at(0)->LinkDirectionVec.dotProduct(*mRace->mGame->zAxisDirVector);
 
     signInX = -1.0f;
 
@@ -991,8 +1000,8 @@ void ChargingStation::DetectExitWayPointLink() {
         return;
 
     //what is the orientation of the exit link?
-    irr::f32 dotProductinX = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->mInfra->xAxisDirVector);
-    irr::f32 dotProductinZ = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->mInfra->zAxisDirVector);
+    irr::f32 dotProductinX = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->mGame->xAxisDirVector);
+    irr::f32 dotProductinZ = this->exitWayPointLink->LinkDirectionVec.dotProduct(*mRace->mGame->zAxisDirVector);
 
     irr::f32 exitSignInX = -1.0f;
 
