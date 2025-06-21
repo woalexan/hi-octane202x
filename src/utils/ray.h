@@ -62,7 +62,7 @@ public:
     irr::core::triangle3df mRayTargetTriangles[PHYSICS_MAX_RAYTARGET_TRIANGLES];  // triangles which are targeted currently
 
     std::vector<RayHitTriangleInfoStruct*> ReturnTrianglesHitByRay( std::vector<irr::scene::ITriangleSelector*> triangleSelectorVector,
-                     irr::core::vector3df rayStart, irr::core::vector3df rayEnd, bool ReturnOnlyClosestTriangles = false);
+                     irr::core::vector3df rayStart, irr::core::vector3df rayEnd, size_t nrClosestTriangleTargetCnt, bool ReturnOnlyClosestTriangles = false);
 
     void EmptyTriangleHitInfoVector(std::vector<RayHitTriangleInfoStruct*> &hitInfoTriangles);
 

@@ -20,28 +20,13 @@
 // This is the one method that we have to implement
 bool MyEventReceiver::OnEvent(const SEvent& event)
 {
-    // Remember the mouse state
+    //is this a mouse event? Is only really used
+    //in level editor, and not the game itself
     if (event.EventType == irr::EET_MOUSE_INPUT_EVENT)
     {
-        switch(event.MouseInput.Event)
-        {
-          case EMIE_LMOUSE_PRESSED_DOWN:
-                MouseState.LeftButtonDown = true;
-                break;
-
-          case EMIE_LMOUSE_LEFT_UP:
-                MouseState.LeftButtonDown = false;
-                break;
-
-          case EMIE_MOUSE_MOVED:
-                MouseState.Position.X = event.MouseInput.X;
-                MouseState.Position.Y = event.MouseInput.Y;
-                break;
-
-          default:
-                // We won't use the wheel
-                break;
-          }
+        //Forward this event to my parent
+        //Infrastructure object
+        mInfra->HandleMouseEvent(event);
     }
 
     // Remember whether each key is down or up

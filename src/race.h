@@ -202,9 +202,6 @@ public:
     //finished the race in the order how the have finished
     std::vector<Player*> playerRaceFinishedVec;
 
-    //my drawDebug object
-    DrawDebug *mDrawDebug = nullptr;
-
     //object for pathfinding and services
     Path* mPath = nullptr;
 

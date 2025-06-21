@@ -36,13 +36,6 @@ held down, and so we will remember the current state of each key.
 class MyEventReceiver : public IEventReceiver
 {
 public:
-    // We'll create a struct to record info on the mouse state
-    struct SMouseState {
-       core::position2di Position;
-       bool LeftButtonDown;
-       SMouseState() : LeftButtonDown(false) { }
-    } MouseState;
-
     // This is the one method that we have to implement
     virtual bool OnEvent(const SEvent& event);
 

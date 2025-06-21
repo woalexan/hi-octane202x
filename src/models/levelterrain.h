@@ -27,9 +27,10 @@ using namespace scene;
 using namespace io;
 using namespace gui;
 
-#define LEVELTERRAIN_VIEW_WIREFRAME 0
-#define LEVELTERRAIN_VIEW_DEFAULT 1
-#define LEVELTERRAIN_VIEW_DEBUGNORMALS 2
+#define LEVELTERRAIN_VIEW_OFF 0
+#define LEVELTERRAIN_VIEW_WIREFRAME 1
+#define LEVELTERRAIN_VIEW_DEFAULT 2
+#define LEVELTERRAIN_VIEW_DEBUGNORMALS 3
 
 typedef SColor colour_func(f32 x, f32 y, f32 z);
 
@@ -151,13 +152,17 @@ public:
     irr::u16 get_width();
     irr::u16 get_heigth();
 
+    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, irr::video::SMaterial* color);
+
     irr::f32 GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord);
     irr::f32 GetHeightInterpolated(irr::f32 x, irr::f32 z);
     MapEntry* GetMapEntry(int x, int y);
     irr::core::vector2di GetClosestTileGridCoordToMapPosition(irr::core::vector3df mapPosition, int &outNrVertice);
     void ForceTileGridCoordRange(irr::core::vector2di &tileGridPos);
 
-    void SwitchViewMode();
+    void SetViewMode(irr::u8 newViewMode);
+    irr::u8 GetCurrentViewMode();
+
     irr::video::IImage* CreateMiniMapInfo(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP);
     vector3d<irr::f32> computeNormalFromPositionsBuffer(irr::s32 x, irr::s32 z, irr::f32 intensity);
     void CheckPosInsideChargingRegion(int posX, int posY, bool &chargeShield, bool &chargeFuel, bool &chargeAmmo);
@@ -247,7 +252,7 @@ private:
     irr::u32 numUVs;
     irr::u32 numNormals;
 
-    irr::s32 myCurrentViewMode = LEVELTERRAIN_VIEW_DEFAULT;
+    irr::u8 mCurrentViewMode;
 };
 
 #endif // LEVELTERRAIN_H

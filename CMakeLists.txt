@@ -316,6 +316,11 @@ add_executable(hi-editor
     src/utils/crc32.h
     src/utils/crc32.cpp
 
+    src/editor/itemselector.h
+    src/editor/itemselector.cpp
+    src/editor/texturemode.h
+    src/editor/texturemode.cpp
+
     src/definitions.h
     src/infrabase.h
     src/infrabase.cpp

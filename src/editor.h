@@ -30,7 +30,23 @@ enum
     GUI_ID_DIALOG_ROOT_WINDOW  = 0x10000,
 
     GUI_ID_OPEN_LEVEL,
-    GUI_ID_QUIT
+    GUI_ID_QUIT,
+
+    GUI_ID_VIEWMODE_TERRAIN,
+    GUI_ID_VIEW_TERRAIN_OFF,
+    GUI_ID_VIEW_TERRAIN_WIREFRAME,
+    GUI_ID_VIEW_TERRAIN_DEFAULT,
+    GUI_ID_VIEW_TERRAIN_NORMALS,
+
+    GUI_ID_VIEWMODE_BLOCKS,
+    GUI_ID_VIEW_BLOCKS_OFF,
+    GUI_ID_VIEW_BLOCKS_WIREFRAME,
+    GUI_ID_VIEW_BLOCKS_DEFAULT,
+    GUI_ID_VIEW_BLOCKS_NORMALS,
+
+    GUI_ID_TESTBUTTON,
+    GUI_ID_SCROLLBAR,
+    GUI_ID_TREE
 };
 
 /************************
@@ -71,6 +87,17 @@ private:
 
     void CreateMenue();
     void OnMenuItemSelected( IGUIContextMenu* menu );
+    void OnButtonClicked(irr::s32 buttonId);
+    void OnScrollbarMoved(irr::s32 scrollBarId);
+    void OnElementFocused(irr::s32 elementId);
+    void OnElementHovered(irr::s32 elementId);
+    void OnElementLeft(irr::s32 elementId);
+    void OnComboBoxChanged( IGUIComboBox* comboBox);
+
+    void ChangeViewModeTerrain(irr::u8 newViewMode);
+    void ChangeViewModeBlocks(irr::u8 newViewMode);
+    void OnLeftMouseButtonDown();
+    void OnLeftMouseButtonUp();
 
     //special images for the game
     irr::video::ITexture* gameTitle = nullptr;
@@ -81,11 +108,23 @@ private:
     irr::core::vector2di raceLoadingScrDrawPos;
     irr::core::dimension2d<irr::u32> raceLoadingScrSize;
 
+    irr::gui::IGUIStaticText* StatusLine = nullptr;
+
 public:
     irr::video::ITexture* backgnd = nullptr;
 
+    // We'll create a struct to record info on the mouse state
+    struct SMouseState {
+       core::position2di Position;
+       bool LeftButtonDown;
+       SMouseState() : LeftButtonDown(false) { }
+    } MouseState;
+
     //overwrite HandleGuiEvent method for Editor
     virtual void HandleGuiEvent(const irr::SEvent& event);
+
+    //overwrite HandleMouseEvent method for Editor
+    virtual void HandleMouseEvent(const irr::SEvent& event);
 
     bool enableLightning = false;
     bool enableShadows = false;
@@ -95,6 +134,8 @@ public:
     //Returns true for success, false for error occured
     bool InitEditorStep1();
     bool InitEditorStep2();
+
+    void UpdateStatusbarText(const wchar_t *text);
 
     void RunEditor();
 

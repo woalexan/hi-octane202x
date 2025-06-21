@@ -97,6 +97,8 @@ public:
 
     void ApplyMorph(float progress);
 
+    irr::u16 GetNumberContainedBlocks();
+
 private:
     bool setupGeometry();
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
@@ -112,6 +114,8 @@ private:
     LevelTerrain* MyTerrain = nullptr;
 
     float segmentSize;
+
+    irr::u16 mNrBlocksInColumn = 0;
 
 //protected:
 public:

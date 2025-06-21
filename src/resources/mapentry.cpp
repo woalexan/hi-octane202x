@@ -50,12 +50,18 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
 
     if (cid < 0) { // is column of blocks?
        uint16_t element = -cid - 1;
+       //std::cout << "Element " << element << std::endl;
        if (element > columnDefinitions.size()-1) {
         //error this should never happen
            logging::Error("Column ID outside allowed size found!!! This should not happen");
        } else {
-       this->m_Column = columnDefinitions.at(element);
-       cid = m_Column->get_FloorTextureID();
+           //use the next if statement for debugging purposes, if you one want to add columns
+           //in the level with specific column definition numbers
+           //if (element == 0) {
+               this->m_Column = columnDefinitions.at(element);
+           //}
+
+           cid = columnDefinitions.at(element)->get_FloorTextureID();
        }
     }
 

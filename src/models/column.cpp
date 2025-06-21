@@ -39,12 +39,12 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 
    if (levelResLevel != nullptr && Def != nullptr) {
     if (setupGeometry()) {
-        /*std::cout << "HiOctane Column loaded: " <<
-                   positionVboData.size() << " vertices, " <<
-                   normalVboData.size() << " normals, " <<
-                   uvVboData.size() << " UVs, " <<
-                   mTexSource->NumLevelTextures << " textures, " <<
-                   indicesVboData.size() << " indices" << endl << std::flush;*/
+       // std::cout << "HiOctane Column loaded: " <<
+       //            GeometryInfoList->vertices.size() << " vertices, " << std::endl << std::flush;
+//                   GeometryInfoList->normalVboData.size() << " normals, " <<
+//                   uvVboData.size() << " UVs, " <<
+//                   mTexSource->NumLevelTextures << " textures, " <<
+//                   indicesVboData.size() << " indices" <<*/ std::endl << std::flush;
 
     } else {
        logging::Error("Failed setting up column Mesh, exit race");
@@ -355,6 +355,8 @@ bool Column::setupGeometry() {
     int textIDInfoT;
     int textIDInfoB;
 
+    mNrBlocksInColumn = 0;
+
     for (int bitNum = 0; bitNum < 8; bitNum++) { // all blocks of this column
 
         if ((Definition->get_Shape() & (1 << bitNum)) == 0) continue;
@@ -481,6 +483,8 @@ bool Column::setupGeometry() {
         delete nW;
         delete nT;
         delete nB;
+
+        mNrBlocksInColumn++;
      }
 
     Size.X = segmentSize;
@@ -488,4 +492,8 @@ bool Column::setupGeometry() {
     Size.Z = segmentSize;
 
     return true;
+}
+
+irr::u16 Column::GetNumberContainedBlocks() {
+    return (mNrBlocksInColumn);
 }

@@ -16,6 +16,7 @@
 #include "input/input.h"
 #include "utils/tprofile.h"
 #include "utils/fileutils.h"
+#include "draw/drawdebug.h"
 
 bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
@@ -48,6 +49,9 @@ bool InfrastructureBase::InitIrrlicht() {
     //get Irrlicht GUI functionality pointers
     mGuienv = mDevice->getGUIEnvironment();
 
+    //create a DrawDebug object
+    mDrawDebug = new DrawDebug(mDriver);
+
     //get game root dir, is an absolute path
     mGameRootDir = mDevice->getFileSystem()->getWorkingDirectory();
 
@@ -57,6 +61,9 @@ bool InfrastructureBase::InitIrrlicht() {
 }
 
 void InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
+}
+
+void InfrastructureBase::HandleMouseEvent(const irr::SEvent& event) {
 }
 
 irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPath) {
@@ -607,6 +614,8 @@ InfrastructureBase::~InfrastructureBase() {
     delete mGameTexts;
 
     delete mTimeProfiler;
+
+    delete mDrawDebug;
 
     //cleanup the original game folder information
     if (mOriginalGame != nullptr) {

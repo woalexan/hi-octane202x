@@ -60,7 +60,7 @@ void Ray::DrawSelectedRayTargetMeshTriangles(std::vector<RayHitTriangleInfoStruc
 
 //Returns all triangles hit by a defined ray from ray start to ray end point
 std::vector<RayHitTriangleInfoStruct*> Ray::ReturnTrianglesHitByRay(std::vector<irr::scene::ITriangleSelector*> triangleSelectorVector,
-                               irr::core::vector3df rayStart, irr::core::vector3df rayEnd, bool ReturnOnlyClosestTriangles) {
+                               irr::core::vector3df rayStart, irr::core::vector3df rayEnd, size_t nrClosestTriangleTargetCnt, bool ReturnOnlyClosestTriangles) {
 
     std::vector<RayHitTriangleInfoStruct*> mRaySelectedTriangles;
 
@@ -129,7 +129,7 @@ std::vector<RayHitTriangleInfoStruct*> Ray::ReturnTrianglesHitByRay(std::vector<
 
         //if we only should return the closest hit triangles exit here (if we found already at least one hit triangle)
         //otherwise continue finding more triangles hit by the ray further away
-        if (ReturnOnlyClosestTriangles && (mRaySelectedTriangles.size() > 0)) {
+        if (ReturnOnlyClosestTriangles && (mRaySelectedTriangles.size() >= nrClosestTriangleTargetCnt)) {
             return mRaySelectedTriangles;
         }
 

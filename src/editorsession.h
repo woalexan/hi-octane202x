@@ -17,10 +17,6 @@
 #include "resources/entityitem.h"
 #include "utils/ray.h"
 
-#define DEF_EDITOR_SELITEM_NONE 0
-#define DEF_EDITOR_SELITEM_CELL 1
-#define DEF_EDITOR_SELITEM_BLOCK 2
-
 /************************
  * Forward declarations *
  ************************/
@@ -36,29 +32,8 @@ class LevelBlocks;
 class LevelTerrain;
 class LevelFile;
 class Morph;
-
-struct CurrentlySelectedEditorItemInfoStruct {
-    irr::u8 SelectedItemType;
-
-    //All the variables below only contain valid information
-    //if SelectedItemType is != DEF_EDITOR_SELITEM_NONE
-    RayHitTriangleInfoStruct RayHitInfo;
-
-    //more detailed information in case a terrain
-    //cell is currently selected
-    irr::core::vector2di mCellCoordSelected;
-    int mCellCoordVerticeNrSelected;
-
-    //more detailed information in case a column
-    //of blocks is selected
-    Column* mColumnSelected = nullptr;
-    ColumnDefinition* mColumnDefinitionSelected = nullptr;
-
-    int mSelBlockNrStartingFromBase;
-};
-
-//! Macro for save Dropping an Element
-#define dropElement(x)	if (x) { x->remove(); x = 0; }
+class ItemSelector;
+class TextureMode;
 
 /* GUI Elements
 */
@@ -76,40 +51,43 @@ struct GUI
 
     irr::gui::IGUICheckBox* FullScreen;
 
-    irr::gui::IGUITable* ArchiveList;
+    irr::gui::IGUITable* Table;
     irr::gui::IGUIButton* testButton;
+    irr::gui::IGUIImage* texImage0;
+    irr::gui::IGUIImage* texImage1;
+    irr::gui::IGUIImage* texImage2;
+    irr::gui::IGUIImage* texImage3;
+    irr::gui::IGUIImage* texImage4;
+    irr::gui::IGUIImage* texImage5;
+    irr::gui::IGUIImage* texImage6;
+    irr::gui::IGUIImage* texImage7;
+    irr::gui::IGUIImage* texImage8;
+    irr::gui::IGUIImage* texImage9;
+    irr::gui::IGUIImage* texImage10;
 
-    irr::gui::IGUIListBox* MapList;
-    irr::gui::IGUITreeView* SceneTree;
+    irr::gui::IGUIComboBox* texCategoryList;
     irr::gui::IGUIWindow* Window;
+    irr::gui::IGUIScrollBar* Scrollbar;
 };
 
 class EditorSession {
-private:
+public:
     irr::u8 mLevelNrLoaded;
 
     Editor* mParentEditor = nullptr;
 
-    //my camera
-    irr::scene::ICameraSceneNode* mCamera = nullptr;
-
-    //my drawDebug object
-    DrawDebug* mDrawDebug = nullptr;
-
     //my texture loader
     TextureLoader* mTexLoader = nullptr;
-
-    //ray class to find intersection with Terrain Cells
-    Ray* mRayTerrain = nullptr;
-
-    //ray class to find intersection with Columns
-    Ray* mRayColumns = nullptr;
 
     EntityItem* mCurrSelEntityItem = nullptr;
 
     //handles the file data structure of the
     //level
     LevelFile *mLevelRes = nullptr;
+
+    //my camera
+    irr::scene::ICameraSceneNode* mCamera = nullptr;
+    irr::scene::ICameraSceneNode* mCamera2 = nullptr;
 
     //handles the height map terrain
     //of the level
@@ -119,6 +97,14 @@ private:
     //of the level
     LevelBlocks *mLevelBlocks = nullptr;
 
+    ItemSelector* mItemSelector = nullptr;
+
+    TextureMode* mTextureMode = nullptr;
+
+    irr::s32 GetNextFreeGuiId();
+
+private:
+
     bool LoadLevel();
     void createLevelEntities();
 
@@ -126,6 +112,9 @@ private:
     void AddWayPoint(EntityItem *entity, EntityItem *next);
 
     irr::u16 GetCollectableSpriteNumber(Entity::EntityType mEntityType);
+
+    //start at Id = 1000;
+    irr::s32 mNextFreeGuiId = 1000;
 
     std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
     std::vector<EntityItem*> *ENTWaypoints_List = nullptr;
@@ -153,25 +142,6 @@ private:
 
     bool DebugShowLowLevelTriangleSelection = true;
 
-    //the necessary triangle selectors for ray intersecting onto columns of blocks
-    irr::scene::ITriangleSelector* triangleSelectorColumnswCollision = nullptr;
-    irr::scene::ITriangleSelector* triangleSelectorColumnswoCollision = nullptr;
-
-    //necessary triangle selector for ray intersecting onto terrain
-    irr::scene::ITriangleSelector* triangleSelectorStaticTerrain = nullptr;
-    irr::scene::ITriangleSelector* triangleSelectorDynamicTerrain = nullptr;
-
-    //creates final TriangleSelectors to be able to do ray
-    //intersection from user mouse pointer to level environment
-    //for object selection
-    void createTriangleSelectors();
-
-    void DeriveSelectedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo);
-    void DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo);
-
-    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, irr::video::SMaterial* color);
-    void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, irr::video::SMaterial* color);
-
     void setActiveCamera(irr::scene::ICameraSceneNode* newActive);
 
     GUI gui;
@@ -183,19 +153,11 @@ public:
     void Init();
     void Render();
     void HandleBasicInput();
-    void HandleMouse();
     void End();
 
     void TestDialog();
 
-    CurrentlySelectedEditorItemInfoStruct mCurrSelectedItem;
-
-    irr::core::vector2di mCurrentMousePos;
-
-    RayHitTriangleInfoStruct triangleMouseHit;
-    RayHitTriangleInfoStruct secondTriangleMouseHit;
-    bool triangleHitByMouse = false;
-    bool secondTriangleHitByMouse = false;
+    irr::core::vector2d<irr::s32> mCurrentMousePos;
 
     /*bool mCellSelectedByMouse = false;
     irr::core::vector2di mCellCoordSelectedByMouse;

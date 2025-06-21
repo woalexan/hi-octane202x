@@ -24,7 +24,6 @@
 #include "utils/worldaware.h"
 #include "utils/fileutils.h"
 
-#include "draw/drawdebug.h"
 #include "draw/hud.h"
 
 #include "models/mgun.h"
@@ -46,6 +45,7 @@
 #include "models/explosion.h"
 #include "models/expentity.h"
 #include "models/collectablespawner.h"
+#include "draw/drawdebug.h"
 
 #include "audio/sound.h"
 #include "audio/music.h"
@@ -336,8 +336,6 @@ Race::~Race() {
     delete mLevelBlocks;
     delete mLevelTerrain;
     delete mLevelRes;
-
-    delete mDrawDebug;
 
     //free all loaded textures
     delete mTexLoader;
@@ -1243,7 +1241,7 @@ void Race::DebugResetColorAllWayPointLinksToWhite() {
     std::vector<WayPointLinkInfoStruct*>::iterator it;
 
     for (it = this->wayPointLinkVec->begin(); it != this->wayPointLinkVec->end(); ++it) {
-        (*it)->pLineStruct->color = mDrawDebug->white;
+        (*it)->pLineStruct->color = mGame->mDrawDebug->white;
     }
 }
 
@@ -1868,9 +1866,6 @@ void Race::Init() {
 
     //mCamera->setFOV(PI / 2.5);
 
-    //create a DrawDebug object
-    this->mDrawDebug = new DrawDebug(mGame->mDriver);
-
     if (!LoadLevel(levelNr)) {
         //there was an error loading the level
         return;
@@ -1908,16 +1903,16 @@ void Race::Init() {
 
     //create my overall physics object
     //also handover pointer to my DrawDebug object
-    this->mPhysics = new Physics(this, this->mDrawDebug);
+    this->mPhysics = new Physics(this, this->mGame->mDrawDebug);
 
     //handover pointer to wall collision line (based on level file entities) data
     this->mPhysics->SetLevelCollisionWallLineData(ENTWallsegmentsLine_List);
 
     //create the object for path finding and services
-    mPath = new Path(this, mDrawDebug);
+    mPath = new Path(this, mGame->mDrawDebug);
 
     //create the object for ray intersection with the environment
-    mRay = new Ray(mDrawDebug);
+    mRay = new Ray(mGame->mDrawDebug);
 
     //create my players and setup their physics
     //Wolf 22.12.2024: commented out, since add player we have no player object
@@ -1993,7 +1988,7 @@ void Race::Init() {
     mExplosionLauncher = new ExplosionLauncher(this, mGame->mSmgr, mGame->mDriver);
 
     //create a new Bezier object for testing
-    testBezier = new Bezier(mLevelTerrain, mDrawDebug);
+    testBezier = new Bezier(mLevelTerrain, mGame->mDrawDebug);
 
     //load the correct music file for this level
     char musicFileName[60];
@@ -2579,14 +2574,6 @@ void Race::HandleBasicInput() {
         }
     }
 
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
-        mLevelTerrain->SwitchViewMode();
-    }
-
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
-        mLevelBlocks->SwitchViewMode();
-    }
-
     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
         //only for debugging!
         //this->mRaceWasFinished = true;
@@ -2970,29 +2957,29 @@ void Race::DrawTestShape() {
               mDrawDebug->Draw3DSphere((*it));
         }*/
 
-    mDrawDebug->Draw3DLine(p1, p2, mDrawDebug->red);
-    mDrawDebug->Draw3DLine(p2, p3, mDrawDebug->red);
-    mDrawDebug->Draw3DLine(p3, p1, mDrawDebug->red);
+    mGame->mDrawDebug->Draw3DLine(p1, p2, mGame->mDrawDebug->red);
+    mGame->mDrawDebug->Draw3DLine(p2, p3, mGame->mDrawDebug->red);
+    mGame->mDrawDebug->Draw3DLine(p3, p1, mGame->mDrawDebug->red);
 
-    mDrawDebug->Draw3DLine(p1, p3, mDrawDebug->green);
-    mDrawDebug->Draw3DLine(p3, p4, mDrawDebug->green);
-    mDrawDebug->Draw3DLine(p4, p1, mDrawDebug->green);
+    mGame->mDrawDebug->Draw3DLine(p1, p3, mGame->mDrawDebug->green);
+    mGame->mDrawDebug->Draw3DLine(p3, p4, mGame->mDrawDebug->green);
+    mGame->mDrawDebug->Draw3DLine(p4, p1, mGame->mDrawDebug->green);
 
-    mDrawDebug->Draw3DLine(p1, p4, mDrawDebug->blue);
-    mDrawDebug->Draw3DLine(p4, p5, mDrawDebug->blue);
-    mDrawDebug->Draw3DLine(p5, p1, mDrawDebug->blue);
+    mGame->mDrawDebug->Draw3DLine(p1, p4, mGame->mDrawDebug->blue);
+    mGame->mDrawDebug->Draw3DLine(p4, p5, mGame->mDrawDebug->blue);
+    mGame->mDrawDebug->Draw3DLine(p5, p1, mGame->mDrawDebug->blue);
 
-    mDrawDebug->Draw3DLine(p1, p5, mDrawDebug->pink);
-    mDrawDebug->Draw3DLine(p5, p2, mDrawDebug->pink);
-    mDrawDebug->Draw3DLine(p2, p1, mDrawDebug->pink);
+    mGame->mDrawDebug->Draw3DLine(p1, p5, mGame->mDrawDebug->pink);
+    mGame->mDrawDebug->Draw3DLine(p5, p2, mGame->mDrawDebug->pink);
+    mGame->mDrawDebug->Draw3DLine(p2, p1, mGame->mDrawDebug->pink);
 
-    mDrawDebug->Draw3DLine(p2, p4, mDrawDebug->white);
-    mDrawDebug->Draw3DLine(p4, p3, mDrawDebug->white);
-    mDrawDebug->Draw3DLine(p3, p2, mDrawDebug->white);
+    mGame->mDrawDebug->Draw3DLine(p2, p4, mGame->mDrawDebug->white);
+    mGame->mDrawDebug->Draw3DLine(p4, p3, mGame->mDrawDebug->white);
+    mGame->mDrawDebug->Draw3DLine(p3, p2, mGame->mDrawDebug->white);
 
-    mDrawDebug->Draw3DLine(p2, p5, mDrawDebug->brown);
-    mDrawDebug->Draw3DLine(p5, p4, mDrawDebug->brown);
-    mDrawDebug->Draw3DLine(p4, p2, mDrawDebug->brown);
+    mGame->mDrawDebug->Draw3DLine(p2, p5, mGame->mDrawDebug->brown);
+    mGame->mDrawDebug->Draw3DLine(p5, p4, mGame->mDrawDebug->brown);
+    mGame->mDrawDebug->Draw3DLine(p4, p2, mGame->mDrawDebug->brown);
 }
 
 void Race::DrawHUD(irr::f32 frameDeltaTime) {
@@ -3065,7 +3052,7 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
         //draw lines a little bit raised from Terrain, so that the are better visible
         irr::core::vector3df incY(0.0f, 0.15f, 0.0f);
 
-        mDrawDebug->Draw3DLine(
+        mGame->mDrawDebug->Draw3DLine(
                     (*WayPointLink_iterator)->pLineStruct->A + incY,
                     (*WayPointLink_iterator)->pLineStruct->B + incY,
                     (*WayPointLink_iterator)->pLineStruct->color);
@@ -3073,19 +3060,19 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
         if (drawFreeMovementSpace) {
             //also draw min/max offset shift limit lines for graphical representation of possible computer player
             //movement area
-            mDrawDebug->Draw3DLine(
+            mGame->mDrawDebug->Draw3DLine(
                         (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
                         (*WayPointLink_iterator)->minOffsetShiftStart,
                         (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
                         (*WayPointLink_iterator)->minOffsetShiftEnd,
-                        this->mDrawDebug->blue);
+                        this->mGame->mDrawDebug->blue);
 
-            mDrawDebug->Draw3DLine(
+            mGame->mDrawDebug->Draw3DLine(
                         (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
                         (*WayPointLink_iterator)->maxOffsetShiftStart,
                         (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
                         (*WayPointLink_iterator)->maxOffsetShiftEnd,
-                        this->mDrawDebug->red);
+                        this->mGame->mDrawDebug->red);
         }
     }
 }
@@ -3099,7 +3086,7 @@ void Race::Render() {
     }
 
     //draw 3D world coordinate axis with arrows
-    mDrawDebug->DrawWorldCoordinateSystemArrows();
+    mGame->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
     //draw currently active world coordinate forces on player ship
     //playerPhysicsObj->DebugDrawCurrentWorldCoordForces(mDrawDebug, mDrawDebug->green, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
@@ -3130,16 +3117,16 @@ void Race::Render() {
 
     if (DebugShowWallSegments) {
       //draw all wallsegments for debugging purposes
-     mGame->mDriver->setMaterial(*mDrawDebug->red);
+     mGame->mDriver->setMaterial(*mGame->mDrawDebug->red);
      for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-          mGame->mDriver->setMaterial(*mDrawDebug->red);
+          mGame->mDriver->setMaterial(*mGame->mDrawDebug->red);
           mGame->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
        }
      }
 
     if (DebugShowCheckpoints) {
       //draw all checkpoint lines for debugging purposes
-      mGame->mDriver->setMaterial(*mDrawDebug->blue);
+      mGame->mDriver->setMaterial(*mGame->mDrawDebug->blue);
       for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
           mGame->mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
       }
@@ -3279,8 +3266,8 @@ void Race::Render() {
                 std::list<MapPointOfInterest>::iterator it;
 
                 for (it = this->mLevelRes->PointsOfInterest.begin(); it != this->mLevelRes->PointsOfInterest.end(); ++it) {
-                    mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
-                                           this->mDrawDebug->pink);
+                    mGame->mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
+                                           this->mGame->mDrawDebug->pink);
                 }
 
                 IndicateMapRegions();
@@ -3381,7 +3368,7 @@ void Race::DebugShowAllObstaclePlayers() {
 
     for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
         for (itPlayerObstacle = (*itPlayer)->dbgPlayerInMyWay.begin(); itPlayerObstacle != (*itPlayer)->dbgPlayerInMyWay.end(); ++itPlayerObstacle) {
-            mDrawDebug->Draw3DLine(((*itPlayer)->phobj->physicState.position), (*itPlayerObstacle)->phobj->physicState.position, mDrawDebug->orange);
+            mGame->mDrawDebug->Draw3DLine(((*itPlayer)->phobj->physicState.position), (*itPlayerObstacle)->phobj->physicState.position, mGame->mDrawDebug->orange);
         }
     }
 }
@@ -3423,7 +3410,7 @@ void Race::IndicateMapRegions() {
     irr::core::vector3df pos4;
     irr::core::vector2di cell;
 
-    irr::video::SMaterial *color = this->mDrawDebug->red;
+    irr::video::SMaterial *color = this->mGame->mDrawDebug->red;
 
     for (it = this->mLevelRes->mMapRegionVec->begin(); it != this->mLevelRes->mMapRegionVec->end(); ++it) {
        pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
@@ -3443,16 +3430,16 @@ void Race::IndicateMapRegions() {
        pos4.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
 
        if ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) {
-           color = this->mDrawDebug->blue;
+           color = this->mGame->mDrawDebug->blue;
        } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_SHIELD) {
-           color = this->mDrawDebug->green;
+           color = this->mGame->mDrawDebug->green;
        } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_AMMO) {
-           color = this->mDrawDebug->orange;
+           color = this->mGame->mDrawDebug->orange;
        } else if ((*it)->regionType == LEVELFILE_REGION_START) {
-           color = this->mDrawDebug->red;
+           color = this->mGame->mDrawDebug->red;
        }
 
-       mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
+       mGame->mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
    }
 }
 
@@ -3464,7 +3451,7 @@ void Race::IndicateTriggerRegions() {
     irr::core::vector3df pos4;
     irr::core::vector2di cell;
 
-    irr::video::SMaterial *color = this->mDrawDebug->red;
+    irr::video::SMaterial *color = this->mGame->mDrawDebug->red;
 
     for (it = this->mTriggerRegionVec.begin(); it != this->mTriggerRegionVec.end(); ++it) {
        pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
@@ -3484,17 +3471,17 @@ void Race::IndicateTriggerRegions() {
        pos4.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
 
        if ((*it)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
-           color = this->mDrawDebug->cyan;
+           color = this->mGame->mDrawDebug->cyan;
        } else if ((*it)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
-           color = this->mDrawDebug->orange;
+           color = this->mGame->mDrawDebug->orange;
        }
 
-       mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
+       mGame->mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
    }
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
-    if ((mDrawDebug != nullptr) && (this->mLevelTerrain != nullptr)) {
+    if ((mGame->mDrawDebug != nullptr) && (this->mLevelTerrain != nullptr)) {
         if (x < 0) {
             x = 0;
         }
@@ -3531,7 +3518,7 @@ void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* co
         v4.X = -v4.X;
         v4.Y = -v4.Y;
 
-        mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
+        mGame->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
     }
 }
 
@@ -4524,7 +4511,7 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
                 entity->get_ID(), next->get_ID());
 
         //set white as default color
-        line->color = mDrawDebug->white;
+        line->color = mGame->mDrawDebug->white;
 
         irr::core::vector3df vec3D = (line->B - line->A);
 
@@ -4557,7 +4544,7 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
                 entity->get_ID(), next->get_ID());
 
         //set white as default color
-        lineExt->color = mDrawDebug->white;
+        lineExt->color = mGame->mDrawDebug->white;
 
         newStruct->pLineStructExtended = lineExt;
 

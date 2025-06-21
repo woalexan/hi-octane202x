@@ -1116,25 +1116,25 @@ void ChargingStation::DebugDraw() {
     std::vector<ChargerStoppingRegionStruct*>::iterator it;
 
     //draw region for charging station
-    mRace->mDrawDebug->Draw3DRectangle(corner1, corner2, corner3, corner4, mRace->mDrawDebug->pink);
+    mRace->mGame->mDrawDebug->Draw3DRectangle(corner1, corner2, corner3, corner4, mRace->mGame->mDrawDebug->pink);
 
     //helper positions/entity locations for entering of computer players into
     //charging station
-    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterEntityItemLocation, mRace->mDrawDebug->blue);
-    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterHelperEntityItemLocation, mRace->mDrawDebug->cyan);
+    mRace->mGame->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterEntityItemLocation, mRace->mGame->mDrawDebug->blue);
+    mRace->mGame->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, enterHelperEntityItemLocation, mRace->mGame->mDrawDebug->cyan);
 
     //helper position/entity location for exiting of computer players from
     //charging station
-    mRace->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, exitEntityItemLocation, mRace->mDrawDebug->red);
+    mRace->mGame->mDrawDebug->Draw3DLine(mRace->topRaceTrackerPointerOrigin, exitEntityItemLocation, mRace->mGame->mDrawDebug->red);
 
     //draw the waypoint links that intersect me
     std::vector<WayPointLinkInfoStruct*>::iterator it2;
 
     for (it2 = this->mIntersectingWayPointLinksVec.begin(); it2 != this->mIntersectingWayPointLinksVec.end(); ++it2) {
        if ((*it2) == exitWayPointLink) {
-            mRace->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mDrawDebug->red);
+            mRace->mGame->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mGame->mDrawDebug->red);
        } else {
-            mRace->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mDrawDebug->cyan);
+            mRace->mGame->mDrawDebug->Draw3DLine((*it2)->pLineStruct->A, (*it2)->pLineStruct->B, mRace->mGame->mDrawDebug->cyan);
        }
     }
 
@@ -1143,9 +1143,9 @@ void ChargingStation::DebugDraw() {
         //if stand is currently not reserved for a player draw
         //stand location in white, red otherwise
         if ((*it)->reservedForPlayerPntr == nullptr) {
-            mRace->mDrawDebug->Draw3DRectangle((*it)->dbgDrawVertex1, (*it)->dbgDrawVertex2, (*it)->dbgDrawVertex3, (*it)->dbgDrawVertex4, mRace->mDrawDebug->white);
+            mRace->mGame->mDrawDebug->Draw3DRectangle((*it)->dbgDrawVertex1, (*it)->dbgDrawVertex2, (*it)->dbgDrawVertex3, (*it)->dbgDrawVertex4, mRace->mGame->mDrawDebug->white);
         } else {
-            mRace->mDrawDebug->Draw3DRectangle((*it)->dbgDrawVertex1, (*it)->dbgDrawVertex2, (*it)->dbgDrawVertex3, (*it)->dbgDrawVertex4, mRace->mDrawDebug->red);
+            mRace->mGame->mDrawDebug->Draw3DRectangle((*it)->dbgDrawVertex1, (*it)->dbgDrawVertex2, (*it)->dbgDrawVertex3, (*it)->dbgDrawVertex4, mRace->mGame->mDrawDebug->red);
         }
     }
 }

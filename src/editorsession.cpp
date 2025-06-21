@@ -7,6 +7,7 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
+#include "editor/texturemode.h"
 #include "editorsession.h"
 #include "utils/logger.h"
 #include "utils/tprofile.h"
@@ -22,12 +23,15 @@
 #include "input/input.h"
 #include "resources/mapentry.h"
 #include "resources/columndefinition.h"
+#include "editor/itemselector.h"
 
 EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mParentEditor = parentEditor;
 
     mLevelNrLoaded = loadLevelNr;
     ready = false;
+
+    mTextureMode = new TextureMode(this);
 
 //    //create empty checkpoint info vector
 //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
@@ -88,8 +92,17 @@ void EditorSession::UpdateMorphs(irr::f32 frameDeltaTime) {
 }
 
 EditorSession::~EditorSession() {
-    delete mRayTerrain;
-    delete mRayColumns;
+    if (mItemSelector != nullptr)
+    {
+        delete mItemSelector;
+        mItemSelector = nullptr;
+    }
+
+    if (mTextureMode != nullptr)
+    {
+        delete mTextureMode;
+        mTextureMode = nullptr;
+    }
 
     CleanUpMorphs();
 
@@ -105,17 +118,6 @@ void EditorSession::Init() {
     keyMap[2].Action=EKA_STRAFE_LEFT;    keyMap[2].KeyCode=KEY_KEY_A;
     keyMap[3].Action=EKA_STRAFE_RIGHT;   keyMap[3].KeyCode=KEY_KEY_D;
 
-    //create a free moving camera that the user can use to
-    //investigate the level/map, not used in actual game
-    mCamera = mParentEditor->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
-                                            keyMap, 4, false, 0.0f);
-
-    //create a DrawDebug object
-    this->mDrawDebug = new DrawDebug(mParentEditor->mDriver);
-
-    mRayTerrain = new Ray(mDrawDebug);
-    mRayColumns = new Ray(mDrawDebug);
-
     if (!LoadLevel()) {
         //there was an error loading the level
         return;
@@ -123,14 +125,41 @@ void EditorSession::Init() {
 
     //level was loaded ok, we can continue setup
 
+    //create a free moving camera that the user can use to
+    //investigate the level/map, not used in actual game
+    mCamera = mParentEditor->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
+                                            keyMap, 4, false, 0.0f);
+
+    mCamera->setPosition(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+
+    //create a "dummy" Scenenode that we glue to the FPS camera
+    /*const IGeometryCreator * geom = this->mParentEditor->mSmgr->getGeometryCreator();
+
+    IMesh* cubeMesh = geom->createCubeMesh(irr::core::vector3df(5.2f, 5.2f, 5.2f));
+
+    //lets create a scenenode that is "glued" to FPS camera
+    mSceneNodeGluedToFPSCamera = mParentEditor->mSmgr->addMeshSceneNode(cubeMesh, mCamera, -1, irr::core::vector3df(0.0f, 0.0f, 0.0f));
+    cubeMesh->drop();
+
+    mSceneNodeGluedToFPSCamera->setMaterialTexture(0, this->mTexLoader->levelTex.at(0));
+    mSceneNodeGluedToFPSCamera->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+    mSceneNodeGluedToFPSCamera->setVisible(true);
+    mSceneNodeGluedToFPSCamera->setDebugDataVisible(EDS_BBOX);
+    mSceneNodeGluedToFPSCamera->setAutomaticCulling(false);*/
+
+    mCamera2 = mParentEditor->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
+                                            keyMap, 4, false, 0.0f);
+
+    mCamera2->setPosition(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+
+    mParentEditor->mSmgr->setActiveCamera(mCamera);
+
     //create the object for path finding and services
     //mPath = new Path(this, mDrawDebug);
 
     //get player start locations from the level file
     /*mPlayerStartLocations =
         this->mLevelTerrain->GetPlayerRaceTrackStartLocations();*/
-
-    mParentEditor->mSmgr->setActiveCamera(mCamera);
 
     //SetupTopRaceTrackPointerOrigin();
 
@@ -142,27 +171,6 @@ void EditorSession::Init() {
     //only to test if we can save a levelfile properly!
     //std::string testsaveName("testsave.dat");
     //this->mLevelRes->Save(testsaveName);
-}
-
-//creates final TriangleSelectors to be able to do ray
-//intersection from user mouse pointer to level environment
-//for object selection
-void EditorSession::createTriangleSelectors() {
-   triangleSelectorColumnswCollision = mParentEditor->mSmgr->createOctreeTriangleSelector(
-                this->mLevelBlocks->blockMeshForCollision, this->mLevelBlocks->BlockCollisionSceneNode, 128);
-   this->mLevelBlocks->BlockCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswCollision);
-
-   triangleSelectorColumnswoCollision = mParentEditor->mSmgr->createOctreeTriangleSelector(
-                this->mLevelBlocks->blockMeshWithoutCollision, this->mLevelBlocks->BlockWithoutCollisionSceneNode, 128);
-   this->mLevelBlocks->BlockWithoutCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswoCollision);
-
-   triangleSelectorStaticTerrain = mParentEditor->mSmgr->createOctreeTriangleSelector(
-               this->mLevelTerrain->myStaticTerrainMesh, this->mLevelTerrain->StaticTerrainSceneNode, 128);
-  this->mLevelTerrain->StaticTerrainSceneNode->setTriangleSelector(triangleSelectorStaticTerrain);
-
-   triangleSelectorDynamicTerrain = mParentEditor->mSmgr->createOctreeTriangleSelector(
-               this->mLevelTerrain->myDynamicTerrainMesh, this->mLevelTerrain->DynamicTerrainSceneNode, 128);
-  this->mLevelTerrain->DynamicTerrainSceneNode->setTriangleSelector(triangleSelectorDynamicTerrain);
 }
 
 bool EditorSession::LoadLevel() {
@@ -250,17 +258,9 @@ bool EditorSession::LoadLevel() {
        return false;
    }
 
-  createTriangleSelectors();
-
-  //Add triangle selector of terrain to rayTarget mesh so that we can figure out
-  //at which terrain cells the users mouse it pointing at currently
-  mRayTerrain->AddRayTargetMesh(this->triangleSelectorStaticTerrain);
-  mRayTerrain->AddRayTargetMesh(this->triangleSelectorDynamicTerrain);
-
-  //do the same for all columns (blocks) in the level, so that the user
-  //can select columns (blocks)
-  mRayColumns->AddRayTargetMesh(this->triangleSelectorColumnswoCollision);
-  mRayColumns->AddRayTargetMesh(this->triangleSelectorColumnswCollision);
+   //create my Item selector which allows the user to
+   //select level items by moving the move cursor onto them
+   this->mItemSelector = new ItemSelector(this);
 
   // driver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 100, 250, .03f, false, true);
 
@@ -301,6 +301,13 @@ void EditorSession::createLevelEntities() {
     for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
         createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, mParentEditor->mDriver);
     }
+}
+
+irr::s32 EditorSession::GetNextFreeGuiId() {
+    irr::s32 newId = mNextFreeGuiId;
+    mNextFreeGuiId++;
+
+    return newId;
 }
 
 void EditorSession::createEntity(EntityItem *p_entity,
@@ -747,87 +754,9 @@ irr::u16 EditorSession::GetCollectableSpriteNumber(Entity::EntityType mEntityTyp
   return nrSprite;
 }
 
-void EditorSession::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, SMaterial* color) {
-    irr::core::vector3df pos1 = mLevelTerrain->pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert1->Pos;
-    pos1.X = -pos1.X;
-    pos1.Y = -pos1.Y;
 
-    irr::core::vector3df pos2 = mLevelTerrain->pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert2->Pos;
-    pos2.X = -pos2.X;
-    pos2.Y = -pos2.Y;
 
-    irr::core::vector3df pos3 = mLevelTerrain->pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert3->Pos;
-    pos3.X = -pos3.X;
-    pos3.Y = -pos3.Y;
 
-    irr::core::vector3df pos4 = mLevelTerrain->pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert4->Pos;
-    pos4.X = -pos4.X;
-    pos4.Y = -pos4.Y;
-
-    mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
-}
-
-void EditorSession::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, SMaterial* color) {
-    if (selColumnPntr == nullptr)
-        return;
-
-    int idx1 = nrBlockFromBase * 24;
-    int nrVertices = selColumnPntr->GeometryInfoList->vertices.size();
-
-    irr::core::vector3df pos1;
-    irr::core::vector3df pos2;
-    irr::core::vector3df pos3;
-    irr::core::vector3df pos4;
-
-    if ((idx1 >= 0) && (idx1 < (nrVertices - 23))) {
-        for (int idx = 0; idx < 6; idx++) {
-            irr::core::vector3df pos1 = selColumnPntr->GeometryInfoList->vertices.at(idx1 + idx * 4).currPosition;
-            irr::core::vector3df pos2 = selColumnPntr->GeometryInfoList->vertices.at(idx1 + idx * 4 + 1).currPosition;
-            irr::core::vector3df pos3 = selColumnPntr->GeometryInfoList->vertices.at(idx1 + idx * 4 + 2).currPosition;
-            irr::core::vector3df pos4 = selColumnPntr->GeometryInfoList->vertices.at(idx1 + idx * 4 + 3).currPosition;
-
-            mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
-        }
-     }
-}
-
-void EditorSession::TestDialog() {
-    gui.drop();
-
-    // set skin font
-    /*IGUIFont* font = env->getFont("fontlucida.png");
-    if (font)
-        env->getSkin()->setFont(font);*/
-
-    dimension2d<u32> dim ( 300, 200 );
-
-    gui.Window = mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures" );
-
-    gui.testButton = mParentEditor->mGuienv->addButton(core::recti(50, 50, 100, 80), gui.Window, -1, L"Test");
-
-//    // create a visible Scene Tree
-//    mInfra->mGuienv->addStaticText ( L"Textures:", rect<s32>( 10, 20, dim.Width, 30 ),false, false, gui.Window, -1, false );
-//    gui.SceneTree = mInfra->mGuienv->addTreeView(	rect<s32>( 10,  40, dim.Width - 20, dim.Height - 40 ),
-//                                        gui.Window, -1, true, true, false );
-//    gui.SceneTree->getRoot()->clearChildren();
-//    /*gui.SceneTree->addChild( mInfra->mGuienv->addStaticText(L"1", rect<s32>( 0, 0, 20, 20 )));
-//    gui.SceneTree->addChild( mInfra->mGuienv->addStaticText(L"2", rect<s32>( 0, 20, 20, 30 )));
-//    gui.SceneTree->addChild( mInfra->mGuienv->addStaticText(L"3", rect<s32>( 0, 30, 20, 40 )));*/
-
-//    for (int idx = 0; idx < 10; idx++) {
-//       gui.SceneTree->addChild( mInfra->mGuienv->addImage(mTexLoader->levelTex.at(idx), irr::core::vector2d(20, 20 + idx * 64), false, gui.SceneTree, -1));
-//    }
-
-   /* IGUIImageList* imageList = mInfra->mGuienv->createImageList( mTexLoader->levelTex.at(0),
-                                        dimension2di( 64, 64 ), true );
-
-    if ( imageList )
-        {
-            gui.SceneTree->setImageList( imageList );
-            imageList->drop ();
-        }*/
-
-}
 
 void EditorSession::Render() {
     //if we do not use XEffects we can simply render the sky
@@ -838,7 +767,7 @@ void EditorSession::Render() {
 //    }
 
     //draw 3D world coordinate axis with arrows
-    mDrawDebug->DrawWorldCoordinateSystemArrows();
+    mParentEditor->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
     if (DebugShowWaypoints) {
         //DebugDrawWayPointLinks(false);
@@ -848,28 +777,38 @@ void EditorSession::Render() {
 
     if (DebugShowWallSegments) {
          //draw all wallsegments for debugging purposes
-         mParentEditor->mDriver->setMaterial(*mDrawDebug->red);
+         mParentEditor->mDriver->setMaterial(*mParentEditor->mDrawDebug->red);
          for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-              mParentEditor->mDriver->setMaterial(*mDrawDebug->red);
+              mParentEditor->mDriver->setMaterial(*mParentEditor->mDrawDebug->red);
               mParentEditor->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
          }
      }
-
+/*
     if (DebugShowLowLevelTriangleSelection) {
         if (triangleHitByMouse) {
-             mDrawDebug->Draw3DTriangleOutline(&triangleMouseHit.hitTriangle, mDrawDebug->white);
+             mParentEditor->mDrawDebug->Draw3DTriangleOutline(&triangleMouseHit.hitTriangle, mParentEditor->mDrawDebug->white);
         }
 
         if (secondTriangleHitByMouse) {
-             mDrawDebug->Draw3DTriangleOutline(&secondTriangleMouseHit.hitTriangle, mDrawDebug->red);
+             mParentEditor->mDrawDebug->Draw3DTriangleOutline(&secondTriangleMouseHit.hitTriangle, mParentEditor->mDrawDebug->red);
         }
+    }*/
+
+    if (mItemSelector->mCurrHighlightedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+        mLevelTerrain->DrawOutlineSelectedCell(mItemSelector->mCurrHighlightedItem.mCellCoordSelected, mParentEditor->mDrawDebug->white);
+    } else if (mItemSelector->mCurrHighlightedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+        mLevelBlocks->DrawOutlineSelectedColumn(mItemSelector->mCurrHighlightedItem.mColumnSelected, mItemSelector->mCurrHighlightedItem.mSelBlockNrSkippingMissingBlocks,
+                                                mParentEditor->mDrawDebug->cyan, mParentEditor->mDrawDebug->pink, mItemSelector->mCurrHighlightedItem.mSelBlockFaceDirection);
     }
 
-    if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        DrawOutlineSelectedCell(mCurrSelectedItem.mCellCoordSelected, mDrawDebug->white);
-    } else if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        DrawOutlineSelectedColumn(mCurrSelectedItem.mColumnSelected, mCurrSelectedItem.mSelBlockNrStartingFromBase, mDrawDebug->cyan);
-    }
+    mItemSelector->DebugDraw();
+
+     //mDrawDebug->Draw3DLine(mDbgRay.start , mDbgRay.end, mDrawDebug->cyan);
+   //   mDrawDebug->Draw3DLine(*mDrawDebug->origin, dbgRayEnd, mDrawDebug->blue);
+
+        //mDrawDebug->Draw3DLine(dbgRayStart, dbgRayEnd, mDrawDebug->blue);
+
+          //mDrawDebug->Draw3DRectangle(dbgRayStart, dbgRayEnd, -dbgRayStart, -dbgRayEnd, mDrawDebug->blue);
 
     /*if (mCellSelectedByMouse) {
         DrawOutlineSelectedCell(mCellCoordSelectedByMouse, mDrawDebug->white);
@@ -907,6 +846,13 @@ void EditorSession::Render() {
 }
 
 void EditorSession::HandleBasicInput() {
+    //update current mouse Position
+    mCurrentMousePos = mParentEditor->MouseState.Position;
+
+    //update item selection
+    if (mItemSelector != nullptr) {
+        mItemSelector->Update();
+    }
 
     if(mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
     {
@@ -923,20 +869,27 @@ void EditorSession::HandleBasicInput() {
          }
     }
 
-    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_K)) {
-        TestDialog();
-    }
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
+        scene::ICameraSceneNode * camera =
+                mParentEditor->mDevice->getSceneManager()->getActiveCamera();
 
-    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
-        mLevelTerrain->SwitchViewMode();
-    }
-
-    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_B)) {
-        mLevelBlocks->SwitchViewMode();
+        if (camera == this->mCamera) {
+            mItemSelector->SetStateFrozen(true);
+            mParentEditor->mDevice->getSceneManager()->setActiveCamera(mCamera2);
+            std::cout << "now cam 2, frozen" << std::endl;
+        } else if (camera == this->mCamera2) {
+              mItemSelector->SetStateFrozen(false);
+               mParentEditor->mDevice->getSceneManager()->setActiveCamera(mCamera);
+                 std::cout << "now cam, unfrozen" << std::endl;
+        }
     }
 
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
         this->exitEditorSession = true;
+    }
+
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_S)) {
+        mParentEditor->UpdateStatusbarText(L"Testtext");
     }
 
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_SPACE)) {
@@ -947,239 +900,6 @@ void EditorSession::HandleBasicInput() {
                         camera->setInputReceiverEnabled( !camera->isInputReceiverEnabled() );
                     }
               }
-}
-
-//derives more high level information about the selected terrain cell
-void EditorSession::DeriveSelectedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo) {
-    //a terrain cell is selected currently
-    mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_CELL;
-    mCurrSelectedItem.RayHitInfo = *hitTriangleInfo;
-    mCurrSelectedItem.mColumnSelected = nullptr;
-
-    int closestVertice;
-
-    //which cell coordinate is selected
-    mCurrSelectedItem.mCellCoordSelected =
-            this->mLevelTerrain->GetClosestTileGridCoordToMapPosition(hitTriangleInfo->hitPointOnTriangle, closestVertice);
-
-    mCurrSelectedItem.mCellCoordVerticeNrSelected = closestVertice;
-}
-
-//derives more high level information about the selected block
-void EditorSession::DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo) {
-    //a block of a column is selected currently
-    mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_BLOCK;
-    mCurrSelectedItem.RayHitInfo = *hitTriangleInfo;
-
-    int closestVertice;
-
-    //if we want to find the column position closer to the middle we can use the 2 hit triangles we got, from the enter and exit point
-    //we just need to use the arithmetic middle value of enter and exit point
-    irr::core::vector3df avgPos = (hitTriangleInfo->hitPointOnTriangle + hitSecondClosestTriangleInfo->hitPointOnTriangle) / 2.0f;
-
-    //according to the coordinates of the hitpoint, in which cell coordinate are way?
-    irr::core::vector2di cellCoord =
-        this->mLevelTerrain->GetClosestTileGridCoordToMapPosition(avgPos, closestVertice);
-
-    //is at the cellCoord a column?
-    MapEntry* entry = this->mLevelTerrain->GetMapEntry(cellCoord.X, cellCoord.Y);
-
-    ColumnDefinition* columDef = entry->get_Column();
-    int nrSkippedBlocks = 0;
-
-    if (columDef != nullptr) {
-        mCurrSelectedItem.mColumnDefinitionSelected = columDef;
-
-        //which column is this?
-        //there is a "position" key we can use for search
-        int posKey =  cellCoord.X + cellCoord.Y * this->mLevelTerrain->levelRes->Width();
-        Column* columnPntr;
-
-        if (mLevelBlocks->searchColumnWithPosition(posKey, columnPntr)) {
-            //we found the column
-            mCurrSelectedItem.mColumnSelected = columnPntr;
-
-            std::vector<int>::iterator it;
-            for (it = columDef->mInCollisionMesh.begin(); it != columDef->mInCollisionMesh.end(); ++it) {
-                if ((*it) == 0) {
-                    nrSkippedBlocks++;
-                } else {
-                    break;
-                }
-            }
-        } else {
-            mCurrSelectedItem.mColumnSelected = nullptr;
-        }
-
-        irr::f32 heightOfTerrain =
-                this->mLevelTerrain->GetMapEntry(cellCoord.X,cellCoord.Y)->m_Height;
-
-        irr::f32 heightAboveTerrain = avgPos.Y - heightOfTerrain;
-
-        int nrBlocks = (int)(heightAboveTerrain / (irr::f32)(this->mLevelTerrain->segmentSize)) - nrSkippedBlocks;
-
-        mCurrSelectedItem.mSelBlockNrStartingFromBase = nrBlocks;
-    }
-}
-
-void EditorSession::HandleMouse() {
-    mCurrentMousePos = mParentEditor->mEventReceiver->MouseState.Position;
-
-    // Create a ray through the mouse cursor.
-    core::line3df ray = mParentEditor->mSmgr->getSceneCollisionManager()->getRayFromScreenCoordinates(
-                     mCurrentMousePos, mCamera);
-
-    mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_NONE;
-    mCurrSelectedItem.mColumnSelected = nullptr;
-    mCurrSelectedItem.mColumnDefinitionSelected = nullptr;
-
-    /***********************************************************************
-     * First try mouse ray intersection with Terrain to find possible      *
-     * selected Terrain cell                                               *
-     ***********************************************************************/
-
-    triangleHitByMouse = false;
-    secondTriangleHitByMouse = false;
-
-    irr::core::vector3df endPoint = ray.start + ray.getVector().normalize() * 100.0f;
-
-    //built a ray cast 3d line to find out at which 3D object the users mouse
-    //is pointing at
-    std::vector<irr::core::vector3di> voxels;
-
-    std::vector<RayHitTriangleInfoStruct*> allHitTrianglesTerrain;
-
-    //with ReturnOnlyClosestTriangles = true!
-    allHitTrianglesTerrain = mRayTerrain->ReturnTrianglesHitByRay( mRayTerrain->mRayTargetSelectors,
-                                  ray.start, endPoint, true);
-
-    int vecSize = (int)(allHitTrianglesTerrain.size());
-    std::vector<RayHitTriangleInfoStruct*>::iterator it;
-
-    irr::f32 minDistanceTerrain;
-    RayHitTriangleInfoStruct* nearestTriangleHitTerrain = nullptr;
-
-    if (vecSize > 0) {
-            //we have at least one triangle, we need to find the closest one to the user
-            bool firstElement = true;
-            irr::f32 currDist;
-
-            for (it = allHitTrianglesTerrain.begin(); it != allHitTrianglesTerrain.end(); ++it) {
-                currDist = (*it)->distFromRayStartSquared;
-                if (firstElement) {
-                    firstElement = false;
-                    minDistanceTerrain = currDist;
-                    nearestTriangleHitTerrain = (*it);
-                } else if (currDist < minDistanceTerrain) {
-                    minDistanceTerrain = currDist;
-                    nearestTriangleHitTerrain = (*it);
-                }
-            }
-    }
-
-    /***********************************************************************
-     * Second try mouse ray intersection with all columms of blocks        *
-     * that we have in the level                                           *
-     ***********************************************************************/
-
-    std::vector<RayHitTriangleInfoStruct*> allHitTrianglesColumns;
-
-    //with ReturnOnlyClosestTriangles = true!
-    allHitTrianglesColumns = mRayColumns->ReturnTrianglesHitByRay( mRayColumns->mRayTargetSelectors,
-                                  ray.start, endPoint, true);
-
-    vecSize = (int)(allHitTrianglesColumns.size());
-
-    irr::f32 minDistanceColumns;
-    RayHitTriangleInfoStruct* nearestTriangleHitColumns = nullptr;
-    RayHitTriangleInfoStruct* secondNearestTriangleHitColumns = nullptr;
-    irr::f32 secondMinDistanceColumns;
-
-    //if we hit through a cube we should have at least 2 hit triangles, one for the front where the ray enters,
-    //the other one at the opposite site where the ray exits again
-    if (vecSize > 1) {
-            //we have at least two triangles, we need to find the closest and the second closest to the user
-            bool firstElement = true;
-            irr::f32 currDist;
-
-            for (it = allHitTrianglesColumns.begin(); it != allHitTrianglesColumns.end(); ++it) {
-                currDist = (*it)->distFromRayStartSquared;
-                if (firstElement) {
-                    firstElement = false;
-                    minDistanceColumns = currDist;
-                    nearestTriangleHitColumns = (*it);
-                } else if (currDist < minDistanceColumns) {
-                    minDistanceColumns = currDist;
-                    nearestTriangleHitColumns = (*it);
-                }
-            }
-
-            //now find the seconds closest triangle
-            firstElement = true;
-
-            for (it = allHitTrianglesColumns.begin(); it != allHitTrianglesColumns.end(); ++it) {
-                //for the second element we need to skip the already found closest element
-                //so that we find the 2nd closest triangle
-                if ((*it) != nearestTriangleHitColumns) {
-                    currDist = (*it)->distFromRayStartSquared;
-                    if (firstElement) {
-                        firstElement = false;
-                        secondMinDistanceColumns = currDist;
-                        secondNearestTriangleHitColumns = (*it);
-                    } else if (currDist < secondMinDistanceColumns) {
-                        secondMinDistanceColumns = currDist;
-                        secondNearestTriangleHitColumns = (*it);
-                    }
-                }
-            }
-    }
-
-    //for acceptable cube intersection of a column we need to have at least two hit triangles!
-    bool foundCubeIntersection = ((nearestTriangleHitColumns != nullptr) && (secondNearestTriangleHitColumns != nullptr));
-
-    //find out if the closest triangle we hit is from the terrain or
-    //a column. In case we find a hit triangle for both ray intersections
-    //the triangle with the shortest distance to the players mouse pointer
-    //wins and is selected
-    RayHitTriangleInfoStruct* triangleHit = nullptr;
-
-    if ((nearestTriangleHitTerrain != nullptr) && (!foundCubeIntersection)) {
-        triangleHit = nearestTriangleHitTerrain;
-        DeriveSelectedTerrainCellInformation(nearestTriangleHitTerrain);
-    } else if ((nearestTriangleHitTerrain == nullptr) && foundCubeIntersection) {
-        triangleHit = nearestTriangleHitColumns;
-        secondTriangleHitByMouse = true;
-        secondTriangleMouseHit = *secondNearestTriangleHitColumns;
-        DeriveSelectedBlockInformation(nearestTriangleHitColumns, secondNearestTriangleHitColumns);
-
-    } else if ((nearestTriangleHitTerrain != nullptr) && (foundCubeIntersection)) {
-        if (minDistanceTerrain < minDistanceColumns) {
-            //the terrain is closer, lets select a triangle of the terrain
-            triangleHit = nearestTriangleHitTerrain;
-            DeriveSelectedTerrainCellInformation(nearestTriangleHitTerrain);
-        } else {
-            //a column is closer, lets select the column block
-            triangleHit = nearestTriangleHitColumns;
-            DeriveSelectedBlockInformation(nearestTriangleHitColumns, secondNearestTriangleHitColumns);
-            secondTriangleHitByMouse = true;
-            secondTriangleMouseHit = *secondNearestTriangleHitColumns;
-        }
-    }
-
-    //store the triangle hit also for low level ray
-    //implementation debugging in render function of level editor
-    if (triangleHit != nullptr) {
-        triangleHitByMouse = true;
-        triangleMouseHit = *triangleHit;
-    }
-
-    //cleanup triangle hit information again
-    //otherwise we have a memory leak!
-    mRayColumns->EmptyTriangleHitInfoVector(allHitTrianglesColumns);
-
-    //cleanup triangle hit information again
-    //otherwise we have a memory leak!
-    mRayTerrain->EmptyTriangleHitInfoVector(allHitTrianglesTerrain);
 }
 
 void EditorSession::End() {

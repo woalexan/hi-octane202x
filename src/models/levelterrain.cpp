@@ -19,6 +19,7 @@
 #include "../resources/mapentry.h"
 #include "../utils/logging.h"
 #include "../resources/entityitem.h"
+#include "../draw/drawdebug.h"
 
 void LevelTerrain::ResetTerrainTileData() {
     int levelWidth = this->levelRes->Width();
@@ -2139,33 +2140,81 @@ irr::u16 LevelTerrain::get_heigth()  {
     return(this->levelRes->Height());
 }
 
-void LevelTerrain::SwitchViewMode() {
-    switch (myCurrentViewMode) {
+irr::u8 LevelTerrain::GetCurrentViewMode() {
+    return mCurrentViewMode;
+}
+
+void LevelTerrain::SetViewMode(irr::u8 newViewMode) {
+    mCurrentViewMode = newViewMode;
+
+    switch (newViewMode) {
+       case LEVELTERRAIN_VIEW_OFF: {
+             StaticTerrainSceneNode->setVisible(false);
+             DynamicTerrainSceneNode->setVisible(false);
+
+             StaticTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+             DynamicTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+             break;
+       }
+
         case LEVELTERRAIN_VIEW_WIREFRAME: {
-            //change to default mode
-            StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
-            DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
-            myCurrentViewMode = LEVELTERRAIN_VIEW_DEFAULT;
+            //change to wireframe view
+            StaticTerrainSceneNode->setVisible(true);
+            DynamicTerrainSceneNode->setVisible(true);
+
+            StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
+            DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
+
+            StaticTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+            DynamicTerrainSceneNode->setDebugDataVisible(EDS_OFF);
             break;
         }
 
-    case LEVELTERRAIN_VIEW_DEFAULT: {
-        //change to full debug mode (adding also Terrain vertices normals debug view)
-        StaticTerrainSceneNode->setDebugDataVisible(EDS_FULL);
-        DynamicTerrainSceneNode->setDebugDataVisible(EDS_FULL);
-        myCurrentViewMode = LEVELTERRAIN_VIEW_DEBUGNORMALS;
-        break;
-    }
+        case LEVELTERRAIN_VIEW_DEFAULT: {
+            //change to default mode (textured)
+            StaticTerrainSceneNode->setVisible(true);
+            DynamicTerrainSceneNode->setVisible(true);
 
-    case LEVELTERRAIN_VIEW_DEBUGNORMALS: {
-        //change to wireframe mode
-        StaticTerrainSceneNode->setDebugDataVisible(EDS_OFF);
-        StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
-        DynamicTerrainSceneNode->setDebugDataVisible(EDS_OFF);
-        DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, true);
-        myCurrentViewMode = LEVELTERRAIN_VIEW_WIREFRAME;
-        break;
+            StaticTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+            DynamicTerrainSceneNode->setDebugDataVisible(EDS_OFF);
+
+            StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+            DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+            break;
+        }
+
+        case LEVELTERRAIN_VIEW_DEBUGNORMALS: {
+           //change to normals debug mode (adding also Terrain vertices normals debug view)
+           StaticTerrainSceneNode->setVisible(true);
+           DynamicTerrainSceneNode->setVisible(true);
+
+           StaticTerrainSceneNode->setDebugDataVisible(EDS_FULL);
+           DynamicTerrainSceneNode->setDebugDataVisible(EDS_FULL);
+
+           StaticTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+           DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
+           break;
+        }
     }
-  }
+}
+
+void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, SMaterial* color) {
+    irr::core::vector3df pos1 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert1->Pos;
+    pos1.X = -pos1.X;
+    pos1.Y = -pos1.Y;
+
+    irr::core::vector3df pos2 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert2->Pos;
+    pos2.X = -pos2.X;
+    pos2.Y = -pos2.Y;
+
+    irr::core::vector3df pos3 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert3->Pos;
+    pos3.X = -pos3.X;
+    pos3.Y = -pos3.Y;
+
+    irr::core::vector3df pos4 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert4->Pos;
+    pos4.X = -pos4.X;
+    pos4.Y = -pos4.Y;
+
+    this->mInfra->mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
 }
 

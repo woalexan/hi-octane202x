@@ -13,6 +13,10 @@
 #include "utils/logging.h"
 #include "utils/logger.h"
 #include "utils/tprofile.h"
+#include "editor/itemselector.h"
+#include "models/levelterrain.h"
+#include "models/levelblocks.h"
+#include "editor/texturemode.h"
 
 //fully initializes the remaining editor
 //components
@@ -60,8 +64,8 @@ bool Editor::InitEditorStep1() {
     dimension2d<u32> targetResolution;
 
     //set target screen resolution
-    targetResolution.set(640,480);
-    //targetResolution.set(1280,960);
+    //targetResolution.set(640,480);
+    targetResolution.set(1280,960);
 
     //initialize my infrastructure
     this->InfrastructureInit(targetResolution, fullscreen, enableShadows);
@@ -99,6 +103,11 @@ void Editor::CreateMenue() {
     gui::IGUIContextMenu* menu = mGuienv->addMenu();
     menu->addItem(L"File", -1, true, true);
     menu->addItem(L"Edit", -1, true, true);
+    menu->addItem(L"View", -1, true, true);
+
+    /*************************************
+     * Submenue File                     *
+     *************************************/
 
     gui::IGUIContextMenu* submenu;
     submenu = menu->getSubMenu(0);
@@ -107,6 +116,46 @@ void Editor::CreateMenue() {
     //submenu->addItem(L"Load as Octree", GUI_ID_LOAD_AS_OCTREE);
     submenu->addSeparator();
     submenu->addItem(L"Quit", GUI_ID_QUIT);
+
+    /*************************************
+     * Submenue View                     *
+     *************************************/
+
+    submenu = menu->getSubMenu(2);
+    submenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
+    submenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
+
+    submenu = menu->getSubMenu(2)->getSubMenu(0);
+    submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
+    submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
+    submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
+    submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
+
+    submenu = menu->getSubMenu(2)->getSubMenu(1);
+    submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
+    submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
+    submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
+    submenu->addItem(L"Normals", GUI_ID_VIEW_BLOCKS_NORMALS);
+
+    // add a status line help text
+    StatusLine = mGuienv->addStaticText( 0, rect<s32>( 5,  mScreenRes.Height - 30,  mScreenRes.Width - 5, mScreenRes.Height - 10),
+                                false, false, 0, -1, true);
+}
+
+void Editor::ChangeViewModeTerrain(irr::u8 newViewMode) {
+    if (mCurrentSession != nullptr) {
+        if (mCurrentSession->mLevelTerrain != nullptr) {
+           mCurrentSession->mLevelTerrain->SetViewMode(newViewMode);
+        }
+    }
+}
+
+void Editor::ChangeViewModeBlocks(irr::u8 newViewMode) {
+    if (mCurrentSession != nullptr) {
+        if (mCurrentSession->mLevelBlocks != nullptr) {
+           mCurrentSession->mLevelBlocks->SetViewMode(newViewMode);
+        }
+    }
 }
 
 void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
@@ -125,20 +174,195 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
             Octree = !Octree;
             menu->setItemChecked(menu->getSelectedItem(), Octree);
             break;*/
+
+        case GUI_ID_VIEW_TERRAIN_OFF:  {
+           ChangeViewModeTerrain(LEVELTERRAIN_VIEW_OFF);
+           break;
+        }
+
+        case GUI_ID_VIEW_TERRAIN_WIREFRAME:  {
+           ChangeViewModeTerrain(LEVELTERRAIN_VIEW_WIREFRAME);
+           break;
+        }
+
+        case GUI_ID_VIEW_TERRAIN_DEFAULT:  {
+           ChangeViewModeTerrain(LEVELTERRAIN_VIEW_DEFAULT);
+           break;
+        }
+
+        case GUI_ID_VIEW_TERRAIN_NORMALS:  {
+           ChangeViewModeTerrain(LEVELTERRAIN_VIEW_DEBUGNORMALS);
+           break;
+        }
+
+        case GUI_ID_VIEW_BLOCKS_OFF:  {
+           ChangeViewModeBlocks(LEVELBLOCKS_VIEW_OFF);
+           break;
+        }
+
+        case GUI_ID_VIEW_BLOCKS_WIREFRAME:  {
+           ChangeViewModeBlocks(LEVELBLOCKS_VIEW_WIREFRAME);
+           break;
+        }
+
+        case GUI_ID_VIEW_BLOCKS_DEFAULT:  {
+           ChangeViewModeBlocks(LEVELBLOCKS_VIEW_DEFAULT);
+           break;
+        }
+
+        case GUI_ID_VIEW_BLOCKS_NORMALS:  {
+           ChangeViewModeBlocks(LEVELBLOCKS_VIEW_DEBUGNORMALS);
+           break;
+        }
+
         case GUI_ID_QUIT: // File -> Quit
             ExitEditor = true;
             break;
     }
 }
 
+void Editor::OnButtonClicked(irr::s32 buttonId) {
+   switch (buttonId) {
+       case GUI_ID_TESTBUTTON: {
+
+           break;
+       }
+   }
+}
+
+void Editor::OnScrollbarMoved(irr::s32 scrollBarId) {
+   switch (scrollBarId) {
+     /*  case GUI_ID_SCROLLBAR: {
+           std::cout << "scrollbar" << std::endl;
+           break;
+       }*/
+   }
+}
+
+void Editor::OnElementFocused(irr::s32 elementId) {
+  std::cout << "Element Focus " << elementId << std::endl;
+}
+
+void Editor::OnElementHovered(irr::s32 elementId) {
+  std::cout << "Element Hovered " << elementId << std::endl;
+
+  //the texture selection dialog needs all hover events
+  //to be able to properly select textures
+  if (mCurrentSession != nullptr) {
+    if (mCurrentSession->mTextureMode != nullptr) {
+        mCurrentSession->mTextureMode->OnElementHovered(elementId);
+    }
+  }
+}
+
+void Editor::OnElementLeft(irr::s32 elementId) {
+  std::cout << "Element Left " << elementId << std::endl;
+
+  //the texture selection dialog needs all element left events
+  //to be able to properly select textures
+  if (mCurrentSession != nullptr) {
+    if (mCurrentSession->mTextureMode != nullptr) {
+        mCurrentSession->mTextureMode->OnElementLeft(elementId);
+    }
+  }
+}
+
+void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
+  u32 val = comboBox->getItemData ( comboBox->getSelected() );
+  std::cout << "ComboBox changed " << val << std::endl;
+  mCurrentSession->mTextureMode->TextureCategoryChanged(val);
+}
+
+void Editor::OnLeftMouseButtonDown() {
+    MouseState.LeftButtonDown = true;
+
+    //did the user select the currently highlighted
+    //object? tell itemSelector that the user has clicked
+    //with the left mouse button
+    if (mCurrentSession != nullptr) {
+      if (mCurrentSession->mItemSelector != nullptr) {
+          mCurrentSession->mItemSelector->OnLeftMouseButtonDown();
+      }
+
+      if (mCurrentSession->mTextureMode != nullptr) {
+          mCurrentSession->mTextureMode->OnLeftMouseButtonDown();
+      }
+    }
+}
+
+void Editor::OnLeftMouseButtonUp() {
+    MouseState.LeftButtonDown = false;
+}
+
+//overwrite HandleMouseEvent method for Editor
+void Editor::HandleMouseEvent(const irr::SEvent& event) {
+    switch(event.MouseInput.Event)
+    {
+      case EMIE_LMOUSE_PRESSED_DOWN:
+            OnLeftMouseButtonDown();
+            break;
+
+      case EMIE_LMOUSE_LEFT_UP:
+            OnLeftMouseButtonUp();
+            break;
+
+      case EMIE_MOUSE_MOVED:
+            MouseState.Position.X = event.MouseInput.X;
+            MouseState.Position.Y = event.MouseInput.Y;
+            break;
+
+      default:
+            // We won't use the wheel
+            break;
+      }
+}
+
 //overwrite HandleGuiEvent method for Editor
 void Editor::HandleGuiEvent(const irr::SEvent& event) {
+    irr::s32 id = event.GUIEvent.Caller->getID();
+
     switch(event.GUIEvent.EventType)
     {
         case EGET_MENU_ITEM_SELECTED: {
           // a menu item was clicked
           OnMenuItemSelected( (IGUIContextMenu*)event.GUIEvent.Caller );
           break;
+        }
+
+        case EGET_BUTTON_CLICKED: {
+            // a button was clicked
+            OnButtonClicked(id);
+            break;
+        }
+
+        case EGET_SCROLL_BAR_CHANGED: {
+            //a scrollbar was moved
+            OnScrollbarMoved(id);
+            break;
+        }
+
+        case EGET_ELEMENT_FOCUSED: {
+            //an element got the focus
+            OnElementFocused(id);
+            break;
+        }
+
+        case EGET_ELEMENT_HOVERED: {
+            //user hovered over an element
+            OnElementHovered(id);
+            break;
+        }
+
+        case EGET_ELEMENT_LEFT : {
+            //user left an element
+            OnElementLeft(id);
+            break;
+        }
+
+        case EGET_COMBO_BOX_CHANGED: {
+            //user changed a combobox selection
+            OnComboBoxChanged((IGUIComboBox*)event.GUIEvent.Caller);
+            break;
         }
 
         default: {
@@ -200,11 +424,12 @@ bool Editor::LoadBackgroundImage() {
     irr::core::dimension2d<irr::u32> backgndSize;
 
     backgndSize = backgnd->getSize();
-    if ((backgndSize.Width != mScreenRes.Width) ||
+   /* if ((backgndSize.Width != mScreenRes.Width) ||
         (backgndSize.Height != mScreenRes.Height)) {
+        logging::Error("Background image does not fit with the selected screen resolution");
         //background texture size does not fit with selected screen resolution
         return false;
-    }
+    }*/
 
     mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
@@ -371,30 +596,39 @@ void Game::GameLoopLoadRaceScreen() {
     }
 }*/
 
+void Editor::UpdateStatusbarText(const wchar_t *text) {
+    if ( StatusLine != nullptr ) {
+          StatusLine->setText (text);
+    }
+}
+
 void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->StartOfGameLoop();
 
     mCurrentSession->HandleBasicInput();
-    mCurrentSession->HandleMouse();
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
     //Update Time Profiler results
     mTimeProfiler->UpdateWindow();
 
+
+
     if (DebugShowVariableBoxes) {
 
             wchar_t* text2 = new wchar_t[400];
 
-            //swprintf(text2, 390, L"");
-            if (mCurrentSession->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-                swprintf(text2, 390, L"Cell X = %d Y = %d", this->mCurrentSession->mCurrSelectedItem.mCellCoordSelected.X, this->mCurrentSession->mCurrSelectedItem.mCellCoordSelected.Y);
-            } else if (mCurrentSession->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-                swprintf(text2, 390, L"Blocks %d", this->mCurrentSession->mCurrSelectedItem.mSelBlockNrStartingFromBase);
+            swprintf(text2, 390, L"");
+
+            /*if (mCurrentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+                swprintf(text2, 390, L"Cell X = %d Y = %d  %u", this->mCurrentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X, this->mCurrentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
+                         this->mCurrentSession->mItemSelector->columTrianglesHitCnt);
+            } else if (mCurrentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+                swprintf(text2, 390, L"Blocks %d %u", this->mCurrentSession->mItemSelector->mCurrSelectedItem.mSelBlockNrStartingFromBase, this->mCurrentSession->mItemSelector->columTrianglesHitCnt);
             } else {
-               swprintf(text2, 390, L"");
-            }
+               swprintf(text2, 390, L"%u", this->mCurrentSession->mItemSelector->columTrianglesHitCnt);
+            }*/
 
             dbgText->setText(text2);
 

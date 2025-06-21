@@ -27,7 +27,7 @@ CpuPlayer::CpuPlayer(Player* myParentPlayer) {
 
    mPathHistoryVec.clear();
 
-   currDbgColor = mParentPlayer->mRace->mDrawDebug->red;
+   currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->red;
 
    //create the player command list
    cmdList = new std::list<CPCOMMANDENTRY*>();
@@ -145,7 +145,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newLineStr->B = posEntity;
 
     //set white as default color
-    newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+    newLineStr->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
     newLineStr->name = new char[10];
     strcpy(newLineStr->name, "");
 
@@ -172,7 +172,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     sprintf(lineExt->name, "");
 
     //set white as default color
-    lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+    lineExt->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
 
     newStruct->pLineStructExtended = lineExt;
 
@@ -262,7 +262,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         newLineStr->B = whichChargingStation->enterHelperEntityItem->getCenter();
 
         //set white as default color
-        newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+        newLineStr->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
         newLineStr->name = new char[10];
         strcpy(newLineStr->name, "");
 
@@ -289,7 +289,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         sprintf(lineExt->name, "");
 
         //set white as default color
-        lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+        lineExt->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
 
         newStruct->pLineStructExtended = lineExt;
 
@@ -380,7 +380,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         }
 
         //set white as default color
-        newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+        newLineStr->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
         newLineStr->name = new char[10];
         strcpy(newLineStr->name, "");
 
@@ -407,7 +407,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         sprintf(lineExt->name, "");
 
         //set white as default color
-        lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+        lineExt->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
 
         newStruct->pLineStructExtended = lineExt;
 
@@ -550,7 +550,7 @@ void CpuPlayer::DebugDraw() {
        std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
        for (itPathEl = mCurrentPathSeg.begin(); itPathEl != mCurrentPathSeg.end(); ++itPathEl) {
-             mParentPlayer->mRace->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+             mParentPlayer->mRace->mGame->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
         }
   }
 }
@@ -1533,14 +1533,14 @@ void CpuPlayer::CpStuckDetection(irr::f32 deltaTime) {
 }
 
 void CpuPlayer::AdvanceDbgColor() {
-    if (currDbgColor == mParentPlayer->mRace->mDrawDebug->red)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->cyan;
-    } else if (currDbgColor == mParentPlayer->mRace->mDrawDebug->cyan)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->pink;
-    } else if (currDbgColor == mParentPlayer->mRace->mDrawDebug->pink)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->green;
-    } else if (currDbgColor == mParentPlayer->mRace->mDrawDebug->green)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->red;
+    if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->red)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->cyan;
+    } else if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->cyan)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->pink;
+    } else if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->pink)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->green;
+    } else if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->green)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->red;
     }
 }
 

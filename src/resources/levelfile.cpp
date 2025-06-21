@@ -24,17 +24,6 @@
 #include <iterator>
 #include "../definitions.h"
 
-/*
-
-#include <list>
-#include <algorithm>
-
-
-
-
-
-*/
-
 LevelFile::LevelFile(std::string filename) {
    this->m_Filename = filename;
    this->m_Ready = false;

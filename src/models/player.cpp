@@ -141,7 +141,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
 
     //with ReturnOnlyClosestTriangles = true!
     allHitTriangles = this->mRace->mRay->ReturnTrianglesHitByRay( this->mRace->mRay->mRayTargetSelectors,
-                                  startPnt, endPnt, true);
+                                  startPnt, endPnt, 1, true);
 
     int vecSize = (int)(allHitTriangles.size());
     std::vector<RayHitTriangleInfoStruct*>::iterator it;

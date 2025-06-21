@@ -32,6 +32,7 @@ class PrepareData;
 class GameText;
 class MyEventReceiver;
 class TimeProfiler;
+class DrawDebug;
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -70,6 +71,9 @@ public:
 
   MyEventReceiver* mEventReceiver = nullptr;
 
+  //my drawDebug object
+  DrawDebug *mDrawDebug = nullptr;
+
   PrepareData* mPrepareData = nullptr;
   GameText* mGameTexts = nullptr;
   TimeProfiler* mTimeProfiler = nullptr;
@@ -91,6 +95,7 @@ public:
   irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
 
   virtual void HandleGuiEvent(const irr::SEvent& event);
+  virtual void HandleMouseEvent(const irr::SEvent& event);
 
 private:
   //Irrlicht stuff
