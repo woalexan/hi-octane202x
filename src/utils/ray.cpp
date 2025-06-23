@@ -19,6 +19,7 @@
 #include "ray.h"
 #include "../draw/drawdebug.h"
 #include "../definitions.h"
+#include <cmath>
 
 Ray::Ray(DrawDebug* drawDbg) {
     mDrawDebug = drawDbg;

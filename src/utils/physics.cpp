@@ -22,6 +22,7 @@
 #include "boundingbox/collision.h"
 #include "../draw/drawdebug.h"
 #include "../race.h"
+#include <cmath>
 
 //Returns false if any of the 3 coordinates is not a number
 //If force is valid (all numbers are numbers) then returns true

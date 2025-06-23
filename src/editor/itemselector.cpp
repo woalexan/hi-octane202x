@@ -119,7 +119,7 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
                 mParent->mLevelTerrain->GetMapEntry(cellCoord.X,cellCoord.Y)->m_Height;*/
 
         irr::f32 heightOfTerrain =
-                -mParent->mLevelTerrain->GetHeightInterpolated(cellCoord.X,cellCoord.Y);
+                -mParent->mLevelTerrain->GetHeightInterpolated((irr::f32)(cellCoord.X),(irr::f32)(cellCoord.Y));
 
         //in which block from the base are we currently?
         int blockCntFromTerrain = 0;

@@ -520,7 +520,7 @@ void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFr
         return;
 
     int idx1 = nrBlockFromBase * 24;
-    int nrVertices = selColumnPntr->GeometryInfoList->vertices.size();
+    int nrVertices = (int)(selColumnPntr->GeometryInfoList->vertices.size());
 
     irr::core::vector3df pos1;
     irr::core::vector3df pos2;
@@ -578,7 +578,7 @@ bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlock
         return false;
 
     int idx1 = mSelBlockNrSkippingMissingBlocks * 24;
-    int nrVertices = selColumnPntr->GeometryInfoList->vertices.size();
+    int nrVertices = (int)(selColumnPntr->GeometryInfoList->vertices.size());
 
     //specified block does not exit!
     if (!((idx1 >= 0) && (idx1 < (nrVertices - 23))))

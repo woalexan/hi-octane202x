@@ -231,12 +231,12 @@ void Editor::OnButtonClicked(irr::s32 buttonId) {
 }
 
 void Editor::OnScrollbarMoved(irr::s32 scrollBarId) {
-   switch (scrollBarId) {
+   //switch (scrollBarId) {
      /*  case GUI_ID_SCROLLBAR: {
            std::cout << "scrollbar" << std::endl;
            break;
        }*/
-   }
+   //}
 }
 
 void Editor::OnElementFocused(irr::s32 elementId) {
