@@ -17,7 +17,7 @@
 
 #include "tableitem.h"
 #include <vector>
-#include "../utils/crc32.h"
+#include <cstdint>
 
 class ColumnDefinition : public TableItem {
 public:

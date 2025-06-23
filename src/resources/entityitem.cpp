@@ -13,6 +13,8 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "entityitem.h"
+#include "../utils/crc32.h"
+#include "../definitions.h"
 
 EntityItem::EntityItem(int id, int offset, std::vector<uint8_t> bytes) {
    this->m_ID = id;

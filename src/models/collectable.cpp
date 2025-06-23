@@ -8,16 +8,18 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "collectable.h"
+#include "../infrabase.h"
 
 //this constructor is for the first type of entity/collectable (which is created based on a game map file entity item)
-Collectable::Collectable(Race* race, EntityItem* entityItem,
-                          vector3d<irr::f32> pos, irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver* driver) {
-    this->m_driver = driver;
-    this->m_smgr = mSmgr;
+Collectable::Collectable(InfrastructureBase* infra, EntityItem* entityItem, vector3d<irr::f32> pos, irr::video::ITexture* texture, bool enableLightning) {
     this->mEntityItem = entityItem;
-    mRace = race;
+    this->mInfra = infra;
 
-    mEnableLightning = mRace->mGame->enableLightning;
+    mEnableLightning = enableLightning;
+
+    //Point to the correct (billboard) texture
+    collectable_tex = texture;
+    texturesize = collectable_tex->getSize();
 
     SetupSceneNode(mEntityItem->getEntityType(), pos);
 
@@ -32,8 +34,8 @@ Collectable::Collectable(Race* race, EntityItem* entityItem,
 }
 
 //this constructor is for the second type of entity/collectable (which is temporarily spawned when a player craft breaks down)
-Collectable::Collectable(Race* race, Entity::EntityType type, vector3d<irr::f32> pos,
-                         irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver) {
+Collectable::Collectable(InfrastructureBase* infra, Entity::EntityType type, vector3d<irr::f32> pos, irr::video::ITexture* texture, bool enableLightning) {
+    mInfra = infra;
 
     //for the second type of collectable (spawned temporary collectable)
     //there is no entity Item object in the background, is always nullptr
@@ -43,11 +45,11 @@ Collectable::Collectable(Race* race, Entity::EntityType type, vector3d<irr::f32>
     //in a different member variable directly in this object
     this->mEntityType = type;
 
-    this->m_driver = driver;
-    this->m_smgr = mSmgr;
-    mRace = race;
+    mEnableLightning = enableLightning;
 
-    mEnableLightning = mRace->mGame->enableLightning;
+    //Point to the correct (billboard) texture
+    collectable_tex = texture;
+    texturesize = collectable_tex->getSize();
 
     SetupSceneNode(type, pos);
 
@@ -76,15 +78,7 @@ void Collectable::SetupSceneNode(Entity::EntityType type, irr::core::vector3df p
 
     this->m_Size.set(CollectableSize_w, CollectableSize_h, irr::f32(0.01f));
 
-    //if entity type is invalid for a collectable the function below will fallback
-    //to sprite number 42, which is a sprite I did not know the purpose of
-    irr::u16 spriteNr = mRace->GetCollectableSpriteNumber(type);
-
-    //Point to the correct (billboard) texture
-    collectable_tex = mRace->mTexLoader->spriteTex.at(spriteNr);
-    texturesize = collectable_tex->getSize();
-
-    this->billSceneNode = this->m_smgr->addBillboardSceneNode();
+    this->billSceneNode = mInfra->mSmgr->addBillboardSceneNode();
     this->billSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR);
     this->billSceneNode->setMaterialTexture(0, collectable_tex);
 

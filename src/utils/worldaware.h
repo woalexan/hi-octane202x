@@ -79,13 +79,9 @@
 #ifndef WORLDAWARE_H
 #define WORLDAWARE_H
 
-#include "../race.h"
 #include "irrlicht.h"
 #include "stdint.h"
-#include "../models/player.h"
-#include "stdlib.h"
-#include "../models/column.h"
-#include "irrMath.h"
+#include <vector>
 
 #define RAY_HIT_NOTHING 0
 #define RAY_HIT_TERRAIN 1
@@ -97,8 +93,12 @@
 
 const irr::f32 WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE = 0.0f;
 
-class Race; //Forward declaration
-class Player; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class Player;
 
 struct RayHitInfoStruct {
     uint8_t HitType = RAY_HIT_NOTHING;
@@ -131,8 +131,8 @@ private:
     void CreateStaticWorld();
     void CreateDynamicWorld(Player* whichPlayer);
 
-    u32 worldSizeX;
-    u32 worldSizeY;
+    irr::u32 worldSizeX;
+    irr::u32 worldSizeY;
 
    /* irr::core::vector2d<irr::f32> Project3DPointTo2DPlane(
             irr::core::vector3d<irr::f32> Point3D, irr::core::plane3d<irr::f32> Plane2D);*/

@@ -11,14 +11,19 @@
 #define COLLECTABLESPAWNER_H
 
 #include <irrlicht.h>
-#include "../race.h"
-#include "collectable.h"
+#include <vector>
+#include "../resources/entityitem.h"
 
 #define DEF_COLLECTABLE_SPAWNER_STATE_INITIAL 0
 #define DEF_COLLECTABLE_SPAWNER_STATE_SPAWNING 1
 #define DEF_COLLECTABLE_SPAWNER_STATE_DONE 2
 
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class Collectable;
 
 //struct for keeping all the data of a spawned collectable entity
 //that is emitted from a spawnPoint

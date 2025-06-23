@@ -77,6 +77,15 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "worldaware.h"
+#include "../utils/physics.h"
+#include "../models/player.h"
+#include "../race.h"
+#include "../models/levelterrain.h"
+#include "../models/levelblocks.h"
+#include "../models/column.h"
+#include "../models/collectable.h"
+#include "../resources/columndefinition.h"
+#include "../resources/mapentry.h"
 
 //returns true if a track end was identified
 bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> cells,

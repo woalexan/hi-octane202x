@@ -10,9 +10,14 @@
 #ifndef EXPENTITY_H
 #define EXPENTITY_H
 
-#include "../race.h"
+#include "irrlicht.h"
 
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class EntityItem;
 
 class ExplosionEntity {
 public:

@@ -11,10 +11,9 @@
 #define CPUPLAYER_H
 
 #include <irrlicht.h>
-#include <iostream>
-#include "../utils/path.h"
-#include "../utils/bezier.h"
-#include "chargingstation.h"
+#include <cstdint>
+#include <vector>
+#include <list>
 
 #define CMD_NOCMD 0
 #define CMD_FLYTO_TARGETENTITY 1
@@ -54,12 +53,17 @@ const irr::f32 CP_PLAYER_ANGULAR_DAMPING_ANGLEMAX = 35.0f;
 
 const irr::f32 CP_BEZIER_RESOLUTION =  0.1f;
 
-struct RayHitInfoStruct; //Forward declaration
-struct WayPointLinkInfoStruct; //Forward declaration
-struct RayHitTriangleInfoStruct; //Forward declaration
-class Collectable; //Forward declaration
-class ChargingStation; //Forward declaration
-struct ChargerStoppingRegionStruct; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+struct RayHitInfoStruct;
+struct WayPointLinkInfoStruct;
+struct RayHitTriangleInfoStruct;
+class Collectable;
+class ChargingStation;
+struct ChargerStoppingRegionStruct;
+class EntityItem;
 
 typedef struct CpCommandEntry {
     uint8_t cmdType;

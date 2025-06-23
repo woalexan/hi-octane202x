@@ -8,6 +8,9 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "particle.h"
+#include "player.h"
+#include "../resources/texture.h"
+#include "../race.h"
 
 //***************************************************
 //*   SpriteParticle Base class                     *

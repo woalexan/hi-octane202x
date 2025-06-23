@@ -19,26 +19,11 @@
 #ifndef RACE_H
 #define RACE_H
 
-#include "models/cone.h"
-#include "models/morph.h"
-#include "models/recovery.h"
-#include "draw/drawdebug.h"
-#include "models/player.h"
-#include "draw/gametext.h"
-#include "input/input.h"
-#include "audio/music.h"
-#include "audio/sound.h"
-#include "utils/worldaware.h"
-#include "utils/tprofile.h"
-#include "utils/path.h"
-#include "game.h"
-#include "models/explauncher.h"
-#include "models/timer.h"
-#include "models/expentity.h"
-#include "models/camera.h"
-#include "models/chargingstation.h"
-#include "models/collectablespawner.h"
-#include "infrabase.h"
+#include "irrlicht.h"
+#include <vector>
+#include <list>
+#include "resources/entityitem.h"
+#include <string>
 
 using namespace std;
 
@@ -90,36 +75,46 @@ struct RaceStatsEntryStruct {
     irr::u8 racePosition;
 };
 
-class Player; //Forward declaration
-class HUD; //Forward declaration
-class WorldAwareness; //Forward declaration
-class SteamFountain; //Forward declaration
-class LevelTerrain; //Forward declaration
-class LevelBlocks; //Forward declaration
-class Physics; //Forward declaration
-class PhysicsObject; //Forward declaration
-class Recovery; //Forward declaration
-class Bezier; //Forward declaration
-class Path; //Forward declaration
-struct CheckPointInfoStruct; //Forward declaration
-class Game; //Forward declaration
-struct WayPointLinkInfoStruct; //Forward declaration
-class ExplosionLauncher;  //Forward declaration
-class Morph;   //Forward declaration
-class Timer;   //Forward declaration
-class ExplosionEntity; //Forward declaration
-class Cone; //Forward declaration
-class Camera; //Forward declaration
-class CollectableSpawner; //Forward declaration
-class SoundEngine; //Forward declaration
-class InfrastructureBase; //Forward declaration
-struct ExtendedRegionInfoStruct; //Forward declaration
-class ChargingStation; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Game;
+class Ray;
+class MyMusicStream;
+class Player;
+struct WayPointLinkInfoStruct;
+struct CheckPointInfoStruct;
+struct ExtendedRegionInfoStruct;
+struct MapTileRegionStruct;
+struct LineStruct;
+class PhysicsObject;
+class SoundEngine;
+class Physics;
+class Bezier;
+class Cone;
+class Recovery;
+class ExplosionLauncher;
+class ExplosionEntity;
+class HUD;
+class Timer;
+class WorldAwareness;
+class CollectableSpawner;
+class Path;
+class Camera;
+class ChargingStation;
+class SteamFountain;
+class LevelTerrain;
+class LevelBlocks;
+class Morph;
+class TextureLoader;
+class DrawDebug;
+class LevelFile;
+class Collectable;
 
 class Race {
 public:
-    Race(InfrastructureBase* infra,
-         Game* mParentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
+    Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
          int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
 
     ~Race();
@@ -158,19 +153,14 @@ public:
 
     Bezier *testBezier = nullptr;
 
+    Ray *mRay = nullptr;
+
     SoundEngine* mSoundEngine = nullptr;
 
     std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
 
-    //lets create and store a direction vector for
-    //later use (calculations), so that we do not have to do this
-    //over and over again
-    irr::core::vector3d<irr::f32>* xAxisDirVector = nullptr;
-    irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
-    irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
-
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
-    void CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<f32> playerBox);
+    void CheckPlayerCrossedCheckPoint(Player* whichPlayer, irr::core::aabbox3d<irr::f32> playerBox);
 
     //attacker is the enemy player that does damage the player targetToHit
     //for damage that an entity does cause (for example steamFountain) attacker is set
@@ -178,8 +168,6 @@ public:
     void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = nullptr);
 
     Player* currPlayerFollow = nullptr;
-
-    InfrastructureBase* mInfra = nullptr;
 
     //handles the columns (made of blocks)
     //of the level
@@ -213,9 +201,6 @@ public:
     //this list contains all players that have already
     //finished the race in the order how the have finished
     std::vector<Player*> playerRaceFinishedVec;
-
-    //my drawDebug object
-    DrawDebug *mDrawDebug = nullptr;
 
     //object for pathfinding and services
     Path* mPath = nullptr;
@@ -286,8 +271,6 @@ public:
     irr::u32 miniMapEndH;
 
     irr::u8 mPlayersInTrouble;
-
-    irr::core::aabbox3df validPlayerLocationBBox;
 
     std::vector<ExtendedRegionInfoStruct*>* mExtRegionVec = nullptr;
 
@@ -363,13 +346,13 @@ private:
 
     std::vector<Player*> playerRanking;
 
-    scene::IMeshSceneNode* testcube = nullptr;
+    irr::scene::IMeshSceneNode* testcube = nullptr;
 
     //my camera
-    scene::ICameraSceneNode* mCamera = nullptr;
+    irr::scene::ICameraSceneNode* mCamera = nullptr;
 
     //stores the currently active camera
-    scene::ICameraSceneNode* currActiveCamera = nullptr;
+    irr::scene::ICameraSceneNode* currActiveCamera = nullptr;
 
     //if all morphs should be executed
     //set to true
@@ -454,7 +437,7 @@ private:
     void UpdatePlayerRacePositionRankingHelper2(std::vector< pair <irr::s32, Player*> > vecNextCheckPointExpected);
     void UpdatePlayerRacePositionRankingHelper3(std::vector< pair <irr::f32, Player*> > vecRemainingDistanceToNextCheckpoint);
 
-    void CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<f32> playerBox);
+    void CheckPlayerCollidedCollectible(Player* player, irr::core::aabbox3d<irr::f32> playerBox);
 
     //my vector of SteamFountains
     std::vector<SteamFountain*>* steamFountainVec = nullptr;

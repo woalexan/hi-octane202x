@@ -3,21 +3,13 @@
  https://www.gafferongames.com/post/physics_in_3d/
  Honestly I can not confirm that I got this implementation 100% correct, but it seems to work for me. It was for sure
  fun to experiment with it :)
- 
+
  When I got stuck with the first collision detection attempts I found the project/game
  HCraft (which is also based on Irrlicht), and was able to take PhysicsCollisionArea
  and some collision detection/resolution code from it, which allowed me to make it work (big thank you!)
  Original header used in this game: "Written by Michael Zeilfelder, please check licenseHCraft.txt for the zlib-style license text."
- 
- The third big obstacle was ray intersection with the environment, even though Irrlicht seemed to provide a function like this. As it soon turned
- out this function does work, but its implementation is not fully finished/optimized, as the ray intersection test is simply done with all triangles of the
- environment (Irrlicht TriangleSelector) which will not work for the overall loaded HiOctane level. I was able to solve this problem by using
- a function which was taken from the following project, and later was modified to fit my project (and Irrlicht)
- https://github.com/francisengelmann/fast_voxel_traversal
- This project uses a MIT License, Copyright (c) 2019 Francis Engelmann  , Please see physics-fast-voxel-traversal-LICENSE.txt for original license
- 
- Copyright (C) 2024 Wolf Alexander              (for the source code based on the Glenn Fiedler article, and the extensions)
- Copyright (c) 2019 Francis Engelmann           (original author of the voxel_traversal function, was later modified by me)
+
+ Copyright (C) 2024-2025 Wolf Alexander              (for the source code based on the Glenn Fiedler article, and the extensions)
  Copyright (c) 2006-2015 by Michael Zeilfelder  (original author of the collision detection/resolution code taken, code was later modified by me)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -30,12 +22,10 @@
 #define PHYSICS_H
 
 #include <irrlicht.h>
-#include "../draw/drawdebug.h"
-#include "boundingbox/collision.h"
-#include "../models/player.h"
+#include <vector>
+#include "../definitions.h"
 
 #define PHYSICS_MAX_COLLISION_TRIANGLES 4000
-#define PHYSICS_MAX_RAYTARGET_TRIANGLES 4000
 
 //the following forces classes should improve debugging capability
 //as it allows to differentiate between different kind of forces
@@ -50,15 +40,13 @@
 #define PHYSIC_APPLYFORCE_ONLYTRANS 1 //applies a force only translateral to rigid body
 #define PHYSIC_APPLYFORCE_ONLYROT 2 //applies a force only rotational to rigid body
 
-class PhysicsObject; //Forward declaration
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
 
-struct RayHitTriangleInfoStruct {
-    irr::core::triangle3df hitTriangle;
-    irr::core::vector3df hitPointOnTriangle;
-    irr::core::vector3df rayDirVec;
-    irr::f32 distFromRayStartSquared = 0.0f;
-};
+class PhysicsObject;
+class Race;
+class DrawDebug;
 
 //PhysicsCollisionArea taken from game HCraft (which is also based on Irrlicht), and modified by me
 //Written by Michael Zeilfelder, please check licenseHCraft.txt for the zlib-style license text.
@@ -330,8 +318,6 @@ private:
     typedef std::vector<irr::scene::ITriangleSelector*> CollisionSelectorVector;
     std::vector<irr::scene::ITriangleSelector*> mCollisionSelectors;
 
-    typedef std::vector<irr::scene::ITriangleSelector*> RayTargetSelectorVector;
-    
     bool HandleSphereWallCollision(const PhysicsCollisionArea& collArea, PhysicsObject *obj, /*irr::core::vector3df &center_,*/
                                  float radius_, irr::core::triangle3df &nearestTriangle_, irr::core::vector3df &repulsionNormal_);
 
@@ -343,13 +329,7 @@ public:
     Physics(Race *parentRace, DrawDebug* drawDbg);
     ~Physics();
 
-     std::vector<irr::scene::ITriangleSelector*> mRayTargetSelectors;
-
      void DrawSelectedCollisionMeshTriangles(const PhysicsCollisionArea& collArea);
-     void DrawSelectedRayTargetMeshTriangles(std::vector<RayHitTriangleInfoStruct*> hitInfoTriangles);
-
-     //Returns indices of all voxels that a defined ray from ray_start to ray_end visits on its path
-     std::vector<irr::core::vector3di> voxel_traversal(irr::core::vector3df ray_start, irr::core::vector3df ray_end);
 
     irr::core::vector3df DbgCollStartVec;
     irr::core::vector3df DbgCollEndVec;
@@ -382,21 +362,6 @@ public:
 
     void AddCollisionMesh(irr::scene::ITriangleSelector* selector_);
     bool RemoveCollisionMesh(irr::scene::ITriangleSelector* selector_);
-
-    void AddRayTargetMesh(irr::scene::ITriangleSelector* selector_);
-    bool RemoveRayTargetMesh(irr::scene::ITriangleSelector* selector_);
-
-    int mRayTargetTrianglesSize = 0;    	// Nr of ray cast triangles which we have
-    irr::core::triangle3df mRayTargetTriangles[PHYSICS_MAX_RAYTARGET_TRIANGLES];  // triangles which are targeted currently
-
-    std::vector<RayHitTriangleInfoStruct*> ReturnTrianglesHitByRay( std::vector<irr::scene::ITriangleSelector*> triangleSelectorVector,
-                     irr::core::vector3df rayStart, irr::core::vector3df rayEnd, bool ReturnOnlyClosestTriangles = false);
-
-    void EmptyTriangleHitInfoVector(std::vector<RayHitTriangleInfoStruct*> &hitInfoTriangles);
-
-    //void FindRayTargetTriangles(PhysicsObject& physObj, irr::core::vector3df dirVector);
-
-    irr::core::line3df DbgRayTargetLine;
 
     bool ForceValid(irr::core::vector3df forceVec);
 };

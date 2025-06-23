@@ -20,6 +20,15 @@
 // This is the one method that we have to implement
 bool MyEventReceiver::OnEvent(const SEvent& event)
 {
+    //is this a mouse event? Is only really used
+    //in level editor, and not the game itself
+    if (event.EventType == irr::EET_MOUSE_INPUT_EVENT)
+    {
+        //Forward this event to my parent
+        //Infrastructure object
+        mInfra->HandleMouseEvent(event);
+    }
+
     // Remember whether each key is down or up
     if (event.EventType == irr::EET_KEY_INPUT_EVENT) {
         KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
@@ -62,6 +71,14 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
         return true;
     }
 
+    //is this a GUIElement event? Is only really used
+    //in level editor, and not the game itself
+    if (event.EventType == EET_GUI_EVENT) {
+         //Forward this event to my parent
+         //Infrastructure object
+         mInfra->HandleGuiEvent(event);
+    }
+
     return false;
 }
 
@@ -71,8 +88,10 @@ bool MyEventReceiver::IsKeyDown(EKEY_CODE keyCode) const
     return KeyIsDown[keyCode];
 }
 
-MyEventReceiver::MyEventReceiver()
+MyEventReceiver::MyEventReceiver(InfrastructureBase* infra)
 {
+    mInfra = infra;
+
     for (u32 i=0; i<KEY_KEY_CODES_COUNT; ++i) {
         KeyIsDown[i] = false;
         KeyIsLockedCurr[i] = false;
@@ -94,3 +113,4 @@ bool MyEventReceiver::IsKeyDownSingleEvent(EKEY_CODE keyCode) {
 
     return false;
 }
+

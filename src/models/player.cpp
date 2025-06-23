@@ -8,7 +8,23 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "player.h"
-#include "../definitions.h"
+#include "../game.h"
+#include "../utils/physics.h"
+#include "../utils/ray.h"
+#include "levelterrain.h"
+#include "levelblocks.h"
+#include "cpuplayer.h"
+#include "mgun.h"
+#include "missile.h"
+#include "particle.h"
+#include "../audio/sound.h"
+#include "../draw/hud.h"
+#include "../utils/logger.h"
+#include "camera.h"
+#include "../utils/movingavg.h"
+#include "../race.h"
+#include "collectable.h"
+#include "../resources/mapentry.h"
 
 void Player::SetPlayerObject(PhysicsObject* phObjPtr) {
    this->phobj = phObjPtr;
@@ -70,15 +86,15 @@ irr::core::vector3df Player::GetRandomMGunShootTargetLocation(bool shootDoesHit)
 
     if (shootDoesHit) {
         //shoot does hit, return random location at player craft model
-        randLocation.set(mPlayerModelExtend.X * this->mInfra->randFloat(),
-                         mPlayerModelExtend.Y * this->mInfra->randFloat(),
-                         mPlayerModelExtend.Z * this->mInfra->randFloat());
+        randLocation.set(mPlayerModelExtend.X * this->mRace->mGame->randFloat(),
+                         mPlayerModelExtend.Y * this->mRace->mGame->randFloat(),
+                         mPlayerModelExtend.Z * this->mRace->mGame->randFloat());
 
         randLocation -= mPlayerModelExtend * irr::core::vector3df(0.5f, 0.5f, 0.5f);
         randLocation += this->phobj->physicState.position;
     } else {
         //shoot does not hit, return random location around player at the terrain
-        randLocation.set(this->mInfra->randFloat(), 0.0f, this->mInfra->randFloat());
+        randLocation.set(this->mRace->mGame->randFloat(), 0.0f, this->mRace->mGame->randFloat());
 
         randLocation -= irr::core::vector3df(0.5f, 0.0f, 0.5f);
         randLocation += this->phobj->physicState.position;
@@ -124,8 +140,8 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
     std::vector<RayHitTriangleInfoStruct*> allHitTriangles;
 
     //with ReturnOnlyClosestTriangles = true!
-    allHitTriangles = this->mRace->mPhysics->ReturnTrianglesHitByRay( this->mRace->mPhysics->mRayTargetSelectors,
-                                  startPnt, endPnt, true);
+    allHitTriangles = this->mRace->mRay->ReturnTrianglesHitByRay( this->mRace->mRay->mRayTargetSelectors,
+                                  startPnt, endPnt, 1, true);
 
     int vecSize = (int)(allHitTriangles.size());
     std::vector<RayHitTriangleInfoStruct*>::iterator it;
@@ -140,7 +156,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
 
         //cleanup triangle hit information again
         //otherwise we have a memory leak!
-        this->mRace->mPhysics->EmptyTriangleHitInfoVector(allHitTriangles);
+        this->mRace->mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 
         return true;
     }
@@ -167,7 +183,7 @@ bool Player::GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget) {
 
     //cleanup triangle hit information again
     //otherwise we have a memory leak!
-    this->mRace->mPhysics->EmptyTriangleHitInfoVector(allHitTriangles);
+    this->mRace->mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 
     return true;
 }
@@ -189,7 +205,7 @@ Player::~Player() {
 
     //Remove my player Mesh
     if (this->PlayerMesh != nullptr) {
-       mInfra->mSmgr->getMeshCache()->removeMesh(this->PlayerMesh);
+       mRace->mGame->mSmgr->getMeshCache()->removeMesh(this->PlayerMesh);
        this->PlayerMesh = nullptr;
     }
 
@@ -404,11 +420,9 @@ irr::u32 Player::GetCurrentState() {
     return this->mPlayerStats->mPlayerCurrentState;
 }
 
-Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewPosition,
                irr::core::vector3d<irr::f32> NewFrontAt,
                irr::u8 nrLaps, bool humanPlayer) {
-
-    mInfra = infra;
 
     //mFinalPlayerStats allows to make a copy of the
     //final player stats, when the player finishes the race
@@ -454,8 +468,8 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     //Position = NewPosition;
     //FrontDir = (NewFrontAt-Position).normalize(); //calculate direction vector
 
-    PlayerMesh = mInfra->mSmgr->getMesh(model.c_str());
-    Player_node = mInfra->mSmgr->addMeshSceneNode(PlayerMesh);
+    PlayerMesh = mRace->mGame->mSmgr->getMesh(model.c_str());
+    Player_node = mRace->mGame->mSmgr->addMeshSceneNode(PlayerMesh);
 
     //set player model initial orientation and position, later player craft is only moved by physics engine
     //also current change in Rotation of player craft model compared with this initial orientation is controlled by a
@@ -468,13 +482,6 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
 
     Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
-
-    if (mRace->mInfra->mUseXEffects) {
-        // Add this SceneNode to the shadow node list, using the chosen filtertype.
-        // It will use the default shadow mode, ESM_BOTH, which allows it to
-        // both cast and receive shadows.
-        mRace->mInfra->mEffect->addShadowToNode(Player_node, this->mRace->mInfra->mShadowMapFilterType);
-    }
 
     if (this->mRace->mGame->enableShadows) {
        // add shadow
@@ -493,24 +500,24 @@ Player::Player(Race* race, InfrastructureBase* infra, std::string model, irr::co
     mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
 
     //create my internal camera SceneNode for 1st person
-    mIntCamera = mInfra->mSmgr->addCameraSceneNode(nullptr, NewPosition);
+    mIntCamera = mRace->mGame->mSmgr->addCameraSceneNode(nullptr, NewPosition);
 
     //create my internal camera SceneNode for 3rd person
-    mThirdPersonCamera = mInfra->mSmgr->addCameraSceneNode(nullptr, NewPosition);
+    mThirdPersonCamera = mRace->mGame->mSmgr->addCameraSceneNode(nullptr, NewPosition);
 
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
 
     //create my SmokeTrail particle system
-    mSmokeTrail = new SmokeTrail(mInfra->mSmgr, mInfra->mDriver, this, 20);
+    mSmokeTrail = new SmokeTrail(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 20);
 
     //create my Dust cloud emitter particles system
-    mDustBelowCraft = new DustBelowCraft(mInfra->mSmgr, mInfra->mDriver, this, 100);
+    mDustBelowCraft = new DustBelowCraft(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 100);
 
     //create my machinegun
-    mMGun = new MachineGun(this, mInfra->mSmgr, mInfra->mDriver);
+    mMGun = new MachineGun(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
 
     //create my missile launcher
-    mMissileLauncher = new MissileLauncher(this, mInfra->mSmgr, mInfra->mDriver);
+    mMissileLauncher = new MissileLauncher(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
 
     //create vector to store all the current broken Hud glas locations
     brokenGlasVec = new std::vector<HudDisplayPart*>();
@@ -1218,7 +1225,7 @@ void Player::LogMessage(char *msgTxt) {
     strcat(combinedMsg, msgTxt);
     strcat(combinedMsg, "\0");
 
-    mInfra->mLogger->AddLogMessage(combinedMsg);
+    mRace->mGame->mLogger->AddLogMessage(combinedMsg);
 
     delete[] combinedMsg;
 }
@@ -1817,7 +1824,7 @@ void Player::CalcPlayerCraftLeaningAngle() {
     irr::core::vector3d<irr::f32> craftUpwardsVec =
             (WorldCoordCraftAboveCOGStabilizationPoint - this->Player_node->getAbsolutePosition()).normalize();
 
-    irr::core::vector3d<irr::f32> distVec = (craftUpwardsVec - *mRace->yAxisDirVector);
+    irr::core::vector3d<irr::f32> distVec = (craftUpwardsVec - *mRace->mGame->yAxisDirVector);
     irr::f32 distVal = distVec.dotProduct(craftSidewaysToRightVec);
 
     //calculate angle between upVec and craftUpwardsVec
@@ -1827,7 +1834,7 @@ void Player::CalcPlayerCraftLeaningAngle() {
 
     this->currPlayerCraftLeaningAngleDeg = (angleRad / irr::core::PI) * 180.0f - 90.0f + terrainTiltCraftLeftRightDeg;
 
-    irr::core::vector3df leaningDirVec = craftUpwardsVec - *mRace->yAxisDirVector;
+    irr::core::vector3df leaningDirVec = craftUpwardsVec - *mRace->mGame->yAxisDirVector;
     irr::core::vector3df CraftRightDirVec = (WorldCoordCraftRightPnt - this->Player_node->getAbsolutePosition()).normalize();
     irr::f32 dotProductRightDir = leaningDirVec.dotProduct(CraftRightDirVec);
 
@@ -2678,7 +2685,7 @@ void Player::CraftHeightControl() {
     irr::f32 corrForceHeight = 100.0f;
     irr::f32 corrDampingHeight = 10.0f;
 
-    irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->yAxisDirVector);
+    irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->mGame->yAxisDirVector);
 
     //original lines until 21.12.2024
     irr::f32 currVelFront =  this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y;
@@ -3671,10 +3678,10 @@ void Player::FinishedLap() {
 //adds a single random location glas break
 void Player::AddGlasBreak() {
     irr::s32 rNum = rand();
-    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * mInfra->mScreenRes.Width;
+    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * mRace->mGame->mScreenRes.Width;
 
     rNum = rand();
-    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * mInfra->mScreenRes.Height;
+    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * mRace->mGame->mScreenRes.Height;
 
     HudDisplayPart* newGlasBreak = new HudDisplayPart();
     newGlasBreak->texture = this->mHUD->brokenGlas->texture;
@@ -3724,12 +3731,12 @@ void Player::CleanUpBrokenGlas() {
 
             if (pntr->texture != nullptr) {
                 //remove underlying texture
-                mInfra->mDriver->removeTexture(pntr->texture);
+                mRace->mGame->mDriver->removeTexture(pntr->texture);
             }
 
             if (pntr->altTexture != nullptr) {
                 //remove underlying texture
-                mInfra->mDriver->removeTexture(pntr->altTexture);
+                mRace->mGame->mDriver->removeTexture(pntr->altTexture);
             }
 
             delete pntr;

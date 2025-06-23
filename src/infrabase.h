@@ -10,16 +10,10 @@
 #ifndef INFRABASE_H
 #define INFRABASE_H
 
-#include <iostream>
 #include <irrlicht.h>
-#include "xeffects/XEffects.h"
-#include "input/input.h"
-#include "utils/logger.h"
-#include "resources/assets.h"
-#include "resources/readgamedata/preparedata.h"
-#include "utils/tprofile.h"
-#include "utils/logging.h"
 #include <vector>
+#include <cstdint>
+#include "resources/readgamedata/preparedata.h"
 
 using namespace std;
 
@@ -29,8 +23,16 @@ using namespace irr::video;
 using namespace irr::scene;
 using namespace irr::gui;
 
-class Logger; //Forward declaration
-class PrepareData; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Logger;
+class PrepareData;
+class GameText;
+class MyEventReceiver;
+class TimeProfiler;
+class DrawDebug;
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -44,7 +46,7 @@ struct OriginalGameFolderInfoStruct {
 
 class InfrastructureBase {
 public:
-  InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool useXEffects, bool enableShadows);
+  InfrastructureBase();
   ~InfrastructureBase();
 
   //get a random int in the range between min and max
@@ -56,20 +58,21 @@ public:
   dimension2d<u32> mScreenRes;
   Logger* mLogger = nullptr;
 
-  bool GetInitOk();
+  void InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
+  bool GetInfrastructureInitOk();
 
   //have all pointers as public
   //so that we can access them easily everywhere
   IrrlichtDevice* mDevice = nullptr;
   video::IVideoDriver* mDriver = nullptr;
   scene::ISceneManager* mSmgr = nullptr;
-  EffectHandler* mEffect = nullptr;
-  MyEventReceiver* mEventReceiver = nullptr;
+
   IGUIEnvironment* mGuienv = nullptr;
 
-  //ShadowMap settings
-  E_FILTER_TYPE mShadowMapFilterType;
-  irr::u32 mShadowMapResolution;
+  MyEventReceiver* mEventReceiver = nullptr;
+
+  //my drawDebug object
+  DrawDebug *mDrawDebug = nullptr;
 
   PrepareData* mPrepareData = nullptr;
   GameText* mGameTexts = nullptr;
@@ -80,11 +83,19 @@ public:
   std::vector<uint8_t> mGameVersionDate;
   bool mExtendedGame = false;
 
-  bool mUseXEffects;
-
   //if specified file is not found, returns empty path
   irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName);
   bool UpdateFileListSaveFolder();
+
+  //lets create and store a direction vector for
+  //later use (calculations), so that we do not have to do this
+  //over and over again
+  irr::core::vector3d<irr::f32>* xAxisDirVector = nullptr;
+  irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
+  irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
+
+  virtual void HandleGuiEvent(const irr::SEvent& event);
+  virtual void HandleMouseEvent(const irr::SEvent& event);
 
 private:
   //Irrlicht stuff

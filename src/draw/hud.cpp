@@ -8,6 +8,11 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "hud.h"
+#include "../game.h"
+#include "../models/player.h"
+#include "../utils/physics.h"
+#include "../draw/gametext.h"
+#include "../race.h"
 
 //a negative altPanelTexNr input value means no alternative texture (image) is used
 void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
@@ -22,9 +27,9 @@ void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
     strcat(fileName, fname);
 
     HudDisplayPart* newPart = new HudDisplayPart();
-    newPart->texture = mInfra->mDriver->getTexture(fileName);
+    newPart->texture = mGame->mDriver->getTexture(fileName);
     //make image transparent, take color at pixel coord 0,0 for transparency color
-    mInfra->mDriver->makeColorKeyTexture(newPart->texture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(newPart->texture, irr::core::position2d<irr::s32>(0,0));
 
     newPart->sizeTex = newPart->texture->getSize();
     newPart->drawScrPosition.set(drawPosX, drawPosY);
@@ -50,8 +55,8 @@ void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
         strcat(altFileName, fname);
 
         //load/add the alternative texture
-        newPart->altTexture = mInfra->mDriver->getTexture(altFileName);
-        mInfra->mDriver->makeColorKeyTexture(newPart->altTexture, irr::core::position2d<irr::s32>(0,0));
+        newPart->altTexture = mGame->mDriver->getTexture(altFileName);
+        mGame->mDriver->makeColorKeyTexture(newPart->altTexture, irr::core::position2d<irr::s32>(0,0));
     }
 
     //add the new image/texture/piece to the
@@ -64,7 +69,7 @@ void HUD::InitShieldBar() {
     shieldBar = new std::vector<HudDisplayPart*>;
 
     //initialize shield bar
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
     //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -80,7 +85,7 @@ void HUD::InitShieldBar() {
     Add1PlayerHudDisplayPart(shieldBar, 75, 95 + Xoff  , 3);     //Piece 5
     Add1PlayerHudDisplayPart(shieldBar, 76, 113 + Xoff , 3);     //Piece 6
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitAmmoBar() {
@@ -88,7 +93,7 @@ void HUD::InitAmmoBar() {
     ammoBar = new std::vector<HudDisplayPart*>;
 
     //initialize ammo bar
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -97,7 +102,7 @@ void HUD::InitAmmoBar() {
     //pixel 0,0
 
     int Xoff = + 2;
-    irr::u16 scrSizeX = mInfra->mScreenRes.Width;
+    irr::u16 scrSizeX = mGame->mScreenRes.Width;
 
     Add1PlayerHudDisplayPart(ammoBar, 90, scrSizeX - 43 + Xoff   , 3);    //Piece 1
     Add1PlayerHudDisplayPart(ammoBar, 89, scrSizeX - 86 + Xoff   , 3);    //Piece 2
@@ -106,7 +111,7 @@ void HUD::InitAmmoBar() {
     Add1PlayerHudDisplayPart(ammoBar, 86, scrSizeX - 152 + Xoff  , 3);    //Piece 5
     Add1PlayerHudDisplayPart(ammoBar, 85, scrSizeX - 180 + Xoff  , 3);    //Piece 6
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitGasolineBar() {
@@ -114,7 +119,7 @@ void HUD::InitGasolineBar() {
     gasolineBar = new std::vector<HudDisplayPart*>;
 
     //initialize gasoline bar
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -141,7 +146,7 @@ void HUD::InitGasolineBar() {
     Add1PlayerHudDisplayPart(gasolineBar, 15 , 497 + Xoff   , 3);     //Piece 16
     Add1PlayerHudDisplayPart(gasolineBar, 16 , 523 + Xoff   , 3);     //Piece 17
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitStartSignal() {
@@ -149,7 +154,7 @@ void HUD::InitStartSignal() {
     startSignal = new std::vector<HudDisplayPart*>;
 
     //initialize start signal
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
      * Start signal             *
@@ -161,12 +166,12 @@ void HUD::InitStartSignal() {
     Add1PlayerHudDisplayPart(startSignal, 282  , 113   , 10, 283);    //yellow light
     Add1PlayerHudDisplayPart(startSignal, 284  , 176   , 10, 285);    //green light
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitBrokenGlas() {
     //initialize texture for broken glass
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
      * Broken glas              *
@@ -174,8 +179,8 @@ void HUD::InitBrokenGlas() {
 
     //broken glas image
     brokenGlas = new HudDisplayPart();
-    brokenGlas->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0229.bmp");
-    mInfra->mDriver->makeColorKeyTexture(brokenGlas->texture, irr::core::position2d<irr::s32>(0,0));
+    brokenGlas->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0229.bmp");
+    mGame->mDriver->makeColorKeyTexture(brokenGlas->texture, irr::core::position2d<irr::s32>(0,0));
     brokenGlas->sizeTex = brokenGlas->texture->getSize();
     brokenGlas->drawScrPosition.set(0, 0);
     brokenGlas->sourceRect.UpperLeftCorner.X = 0;
@@ -183,7 +188,7 @@ void HUD::InitBrokenGlas() {
     brokenGlas->sourceRect.LowerRightCorner.X = brokenGlas->sizeTex.Width;
     brokenGlas->sourceRect.LowerRightCorner.Y = brokenGlas->sizeTex.Height;
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitMGHeatBar() {
@@ -191,7 +196,7 @@ void HUD::InitMGHeatBar() {
     mgHeatBar = new std::vector<HudDisplayPart*>;
 
     //initialize machine gun heat bar
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -217,7 +222,7 @@ void HUD::InitMGHeatBar() {
     Add1PlayerHudDisplayPart(mgHeatBar, 105 , 621 + Xoff ,  29);     //Piece 15
     Add1PlayerHudDisplayPart(mgHeatBar, 106 , 629 + Xoff ,  29);     //Piece 16
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitThrottleBar() {
@@ -225,7 +230,7 @@ void HUD::InitThrottleBar() {
     throttleBar = new std::vector<HudDisplayPart*>;
 
     //initialize throttle bar
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -254,7 +259,7 @@ void HUD::InitThrottleBar() {
     Add1PlayerHudDisplayPart(throttleBar, 34  , 491 + Xoff ,  15,   53);     //Piece 18
     Add1PlayerHudDisplayPart(throttleBar, 35  , 513 + Xoff ,  15,   54);     //Piece 19
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitSpeedBar() {
@@ -262,7 +267,7 @@ void HUD::InitSpeedBar() {
     speedBar = new std::vector<HudDisplayPart*>;
 
     //initialize booster bar
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -288,7 +293,7 @@ void HUD::InitSpeedBar() {
     Add1PlayerHudDisplayPart(speedBar, 69  , 421 + Xoff ,  27);     //Piece 15
     Add1PlayerHudDisplayPart(speedBar, 70  , 457 + Xoff ,  27);     //Piece 16
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitRacePosition() {
@@ -297,7 +302,7 @@ void HUD::InitRacePosition() {
     numberPlayers = new std::vector<HudDisplayPart*>;
 
     //initialize race position characters
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //driver->getMaterial2D().TextureLayer[0].BilinearFilter=true;
      //driver->getMaterial2D().AntiAliasing=video::EAAM_FULL_BASIC;
@@ -342,7 +347,7 @@ void HUD::InitRacePosition() {
     Add1PlayerHudDisplayPart(numberPlayers, 136  , 83 + Xoff ,  72);     //number 9
     Add1PlayerHudDisplayPart(numberPlayers, 137  , 83 + Xoff ,  72);     //add the slash
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::InitUpgradeBar() {
@@ -350,7 +355,7 @@ void HUD::InitUpgradeBar() {
     upgradeBar = new std::vector<HudDisplayPart*>;
 
     //initialize upgrade bar symbols
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     /****************************
      * Minigun                  *
@@ -379,7 +384,7 @@ void HUD::InitUpgradeBar() {
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 429 ,  71);     //booster upgrade level 2 symbol
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 443 ,  71);     //booster upgrade level 3 symbol
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 void HUD::SetHUDState(irr::u8 newHUDState) {
@@ -578,7 +583,7 @@ void HUD::BannerTextLogic(irr::f32 deltaTime) {
 
            //Draw the text
            //for Hud banner text we use HudWhiteTextBannerFont
-           mInfra->mGameTexts->DrawGameText(currShownBannerMsg->text, mInfra->mGameTexts->HudWhiteTextBannerFont,
+           mGame->mGameTexts->DrawGameText(currShownBannerMsg->text, mGame->mGameTexts->HudWhiteTextBannerFont,
                                         currShownBannerMsg->textPosition);
 
            if (!currShownBannerMsg->permanentMsg) {
@@ -658,26 +663,26 @@ void HUD::DrawHUD1PlayerStartSignal(irr::f32 deltaTime) {
     }
 
     if (redLit) {
-         mInfra->mDriver->draw2DImage((*startSignal)[0]->altTexture, (*startSignal)[0]->drawScrPosition,
+         mGame->mDriver->draw2DImage((*startSignal)[0]->altTexture, (*startSignal)[0]->drawScrPosition,
                (*startSignal)[0]->sourceRect, 0, *mColorSolid, true);
     } else {
-        mInfra->mDriver->draw2DImage((*startSignal)[0]->texture, (*startSignal)[0]->drawScrPosition,
+        mGame->mDriver->draw2DImage((*startSignal)[0]->texture, (*startSignal)[0]->drawScrPosition,
               (*startSignal)[0]->sourceRect, 0, *mColorSolid, true);
     }
 
     if (yellowLit) {
-         mInfra->mDriver->draw2DImage((*startSignal)[1]->altTexture, (*startSignal)[1]->drawScrPosition,
+         mGame->mDriver->draw2DImage((*startSignal)[1]->altTexture, (*startSignal)[1]->drawScrPosition,
                (*startSignal)[1]->sourceRect, 0, *mColorSolid, true);
     } else {
-        mInfra->mDriver->draw2DImage((*startSignal)[1]->texture, (*startSignal)[1]->drawScrPosition,
+        mGame->mDriver->draw2DImage((*startSignal)[1]->texture, (*startSignal)[1]->drawScrPosition,
               (*startSignal)[1]->sourceRect, 0, *mColorSolid, true);
     }
 
     if (greenLit) {
-         mInfra->mDriver->draw2DImage((*startSignal)[2]->altTexture, (*startSignal)[2]->drawScrPosition,
+         mGame->mDriver->draw2DImage((*startSignal)[2]->altTexture, (*startSignal)[2]->drawScrPosition,
                (*startSignal)[2]->sourceRect, 0, *mColorSolid, true);
     } else {
-        mInfra->mDriver->draw2DImage((*startSignal)[2]->texture, (*startSignal)[2]->drawScrPosition,
+        mGame->mDriver->draw2DImage((*startSignal)[2]->texture, (*startSignal)[2]->drawScrPosition,
               (*startSignal)[2]->sourceRect, 0, *mColorSolid, true);
     }
 }
@@ -700,10 +705,10 @@ void HUD::DrawAmmoBar() {
 
     for (int i = 0; i < (addBarsInt + 1); i++) {
         if (!mDrawAmmoBarTransparent) {
-            mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
                   (*ammoBar)[i]->sourceRect, 0, *mColorSolid, true);
         } else {
-            mInfra->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*ammoBar)[i]->texture, (*ammoBar)[i]->drawScrPosition,
                   (*ammoBar)[i]->sourceRect, 0, *mColorTransparent, true);
         }
     }
@@ -725,10 +730,10 @@ void HUD::DrawShieldBar() {
     //draw as many shield bars as the current shield state of the ship allows
     for (int i = 0; i < barsInt ; i++) {
         if (!mDrawShieldBarTransparent) {
-            mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
                   (*shieldBar)[i]->sourceRect, 0, *mColorSolid, true);
         } else {
-            mInfra->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*shieldBar)[i]->texture, (*shieldBar)[i]->drawScrPosition,
                   (*shieldBar)[i]->sourceRect, 0, *mColorTransparent, true);
         }
     }
@@ -807,10 +812,10 @@ void HUD::DrawGasolineBar() {
 
     for (int i = (sizeVec - nrBarsToDraw); i < sizeVec; i++) {
         if (!mDrawGasolineBarTransparent) {
-            mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
                   (*gasolineBar)[i]->sourceRect, 0, *mColorSolid, true);
         } else {
-            mInfra->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*gasolineBar)[i]->texture, (*gasolineBar)[i]->drawScrPosition,
                   (*gasolineBar)[i]->sourceRect, 0, *mColorTransparent, true);
         }
     }
@@ -854,7 +859,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             std::vector<HudDisplayPart*>::iterator itGlasBreak;
 
             for (itGlasBreak = this->monitorWhichPlayer->brokenGlasVec->begin(); itGlasBreak != this->monitorWhichPlayer->brokenGlasVec->end(); ++itGlasBreak) {
-                mInfra->mDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
+                mGame->mDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
                       (*itGlasBreak)->sourceRect, 0, *mColorSolid, true);
             }
         }
@@ -882,13 +887,13 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //according to current player throttle setting draw unlighted default colors
         for (int i = 0; i < perc2; i++) {
-            mInfra->mDriver->draw2DImage((*throttleBar)[i]->texture, (*throttleBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*throttleBar)[i]->texture, (*throttleBar)[i]->drawScrPosition,
                   (*throttleBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //according to current booster state draw over it with lighted colors
         for (int i = 0; i < perc; i++) {
-            mInfra->mDriver->draw2DImage((*throttleBar)[i]->altTexture, (*throttleBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*throttleBar)[i]->altTexture, (*throttleBar)[i]->drawScrPosition,
                   (*throttleBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
@@ -903,7 +908,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = (irr::f32)(sizeVec);
 
         for (int i = 0; i < perc; i++) {
-            mInfra->mDriver->draw2DImage((*speedBar)[i]->texture, (*speedBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*speedBar)[i]->texture, (*speedBar)[i]->drawScrPosition,
                   (*speedBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
@@ -919,7 +924,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             perc = (irr::f32)(sizeVec);
 
         for (int i = 0; i < perc; i++) {
-            mInfra->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
                   (*mgHeatBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
@@ -927,21 +932,21 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //symbol number 0 is the minigun symbol itself (for basic upgrade level 0)
         //the next three symbols 1, 2 and 3 are for upgrade levels 1, 2 and 3
         for (int i = 0; i <= monitorWhichPlayer->mPlayerStats->currMinigunUpgradeLevel; i++) {
-            mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //symbol number 4 is the rocket symbol itself (for basic upgrade level 0)
         //the next three symbols 5, 6 and 7 are for upgrade levels 1, 2 and 3
         for (int i = 4; i <= (monitorWhichPlayer->mPlayerStats->currRocketUpgradeLevel + 4); i++) {
-            mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //symbol number 8 is the booster symbol itself (for basic upgrade level 0)
         //the next three symbols 9, 10 and 11 are for upgrade levels 1, 2 and 3
         for (int i = 8; i <= (monitorWhichPlayer->mPlayerStats->currBoosterUpgradeLevel + 8); i++) {
-            mInfra->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
+            mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
@@ -955,11 +960,11 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         if (hlp > 9)
             hlp = 9;
 
-        mInfra->mDriver->draw2DImage((*currRacePlayerPosition)[hlp]->texture, (*currRacePlayerPosition)[hlp]->drawScrPosition,
+        mGame->mDriver->draw2DImage((*currRacePlayerPosition)[hlp]->texture, (*currRacePlayerPosition)[hlp]->drawScrPosition,
               (*currRacePlayerPosition)[hlp]->sourceRect, 0, *mColorSolid, true);
 
         //draw the slash for player position (slash is #10 in the list)
-        mInfra->mDriver->draw2DImage((*currRacePlayerPosition)[10]->texture, (*currRacePlayerPosition)[10]->drawScrPosition,
+        mGame->mDriver->draw2DImage((*currRacePlayerPosition)[10]->texture, (*currRacePlayerPosition)[10]->drawScrPosition,
               (*currRacePlayerPosition)[10]->sourceRect, 0, *mColorSolid, true);
 
         //draw overall number of players in race
@@ -972,7 +977,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             hlp = 9;
 
         //draw the overall number of players in the race
-        mInfra->mDriver->draw2DImage((*numberPlayers)[hlp]->texture, (*numberPlayers)[hlp]->drawScrPosition,
+        mGame->mDriver->draw2DImage((*numberPlayers)[hlp]->texture, (*numberPlayers)[hlp]->drawScrPosition,
               (*numberPlayers)[hlp]->sourceRect, 0, *mColorSolid, true);
 
         //render current lap number information
@@ -980,15 +985,15 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //first draw 2 red arrow symbol next to lap number display
         strcpy(&lapNumStr[0], ">");
         //RenderRedTextLapNumber(&lapNumStr[0], irr::core::vector2d<irr::s32>(128, 91));
-        mInfra->mGameTexts->DrawGameNumberText(lapNumStr,
-                                               mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(128, 91));
+        mGame->mGameTexts->DrawGameNumberText(lapNumStr,
+                                               mGame->mGameTexts->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(128, 91));
 
         //first built string
         //important! pad with 2 leading zeros!
         sprintf(&lapNumStr[0], "%02d/%02d", monitorWhichPlayer->mPlayerStats->currLapNumber, monitorWhichPlayer->mPlayerStats->raceNumberLaps);
         //RenderRedTextLapNumber(&lapNumStr[0], irr::core::vector2d<irr::s32>(178, 93));
-        mInfra->mGameTexts->DrawGameNumberText(lapNumStr,
-                                               mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(178, 93));
+        mGame->mGameTexts->DrawGameNumberText(lapNumStr,
+                                               mGame->mGameTexts->HudLaptimeNumberRed, irr::core::vector2d<irr::s32>(178, 93));
 
         //next draw red skull and current player kill count number
         char currKillCountStr[10];
@@ -997,14 +1002,14 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         //strcpy(&currKillCountStr[0], "s");
         //RenderRedTextKillCount(&currKillCountStr[0], irr::core::vector2d<irr::s32>(559, 62));
         strcpy(&currKillCountStr[0], ">");
-        mInfra->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
-                mInfra->mGameTexts->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(559, 62));
+        mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mGame->mGameTexts->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(559, 62));
 
         //now draw current kill number, dont forget the leading zeros!
         sprintf(&currKillCountStr[0], "%02d", monitorWhichPlayer->mPlayerStats->currKillCount);
         //RenderRedTextKillCount(&currKillCountStr[0], irr::core::vector2d<irr::s32>(592, 62));
-        mInfra->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
-                mInfra->mGameTexts->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(592, 62));
+        mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mGame->mGameTexts->HudKillCounterNumberRed, irr::core::vector2d<irr::s32>(592, 62));
 
         BannerTextLogic(deltaTime);
 
@@ -1031,8 +1036,8 @@ void HUD::RenderBigGreenText(irr::f32 deltaTime) {
         //Draw the text
         //we use HudBigGreenText
         if ((this->currentBigGreenTextState == 2) || (!blinkBigGreenText)) {
-            mInfra->mGameTexts->DrawGameText(currentBigGreenText,
-                                             mInfra->mGameTexts->HudBigGreenText, currentBigGreenTextDrawPosition);
+            mGame->mGameTexts->DrawGameText(currentBigGreenText,
+                                             mGame->mGameTexts->HudBigGreenText, currentBigGreenTextDrawPosition);
         }
 
         //check how long we still need to show this text
@@ -1169,9 +1174,9 @@ void HUD::InitHudBannerText() {
     bannerTextState7 = new std::vector<HudDisplayPart*>;
 
     //initialize graphics needed for bottom screen banner text view
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
-    irr::s32 posY = (mInfra->mScreenRes.Height - 39);
+    irr::s32 posY = (mGame->mScreenRes.Height - 39);
 
     /*************
      * State 1   * first/last symbols are seen from message banner
@@ -1179,7 +1184,7 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     HudDisplayPart* leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
     leftBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1187,7 +1192,7 @@ void HUD::InitHudBannerText() {
 
     //Right boundary block symbol
     HudDisplayPart* rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
     rightBoundarySymbState1->altTexture = nullptr;
    // myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1203,7 +1208,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 3; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
         middleWhiteSymbState1Symb->altTexture = nullptr;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1228,7 +1233,7 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
     leftBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1236,7 +1241,7 @@ void HUD::InitHudBannerText() {
 
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
     rightBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1251,7 +1256,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 5; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
         middleWhiteSymbState1Symb->altTexture = nullptr;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1276,7 +1281,7 @@ void HUD::InitHudBannerText() {
 
    //Left boundary block symbol
    leftBoundarySymbState1 = new HudDisplayPart();
-   leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+   leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
    leftBoundarySymbState1->altTexture = nullptr;
    //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
    leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1284,7 +1289,7 @@ void HUD::InitHudBannerText() {
 
    //Right boundary block symbol
    rightBoundarySymbState1 = new HudDisplayPart();
-   rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+   rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
    rightBoundarySymbState1->altTexture = nullptr;
    //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
    rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1299,7 +1304,7 @@ void HUD::InitHudBannerText() {
    //create all middle while background symbols (before text appears)
    for (int idx = 0; idx < 8; idx++) {
        middleWhiteSymbState1Symb = new HudDisplayPart();
-       middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+       middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
        middleWhiteSymbState1Symb->altTexture = nullptr;
      //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
        middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1324,7 +1329,7 @@ void HUD::InitHudBannerText() {
 
   //Left boundary block symbol
   leftBoundarySymbState1 = new HudDisplayPart();
-  leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+  leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
   leftBoundarySymbState1->altTexture = nullptr;
   //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
   leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1332,7 +1337,7 @@ void HUD::InitHudBannerText() {
 
   //Right boundary block symbol
   rightBoundarySymbState1 = new HudDisplayPart();
-  rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+  rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
   rightBoundarySymbState1->altTexture = nullptr;
   //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
   rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1347,7 +1352,7 @@ void HUD::InitHudBannerText() {
   //create all middle while background symbols (before text appears)
   for (int idx = 0; idx < 10; idx++) {
       middleWhiteSymbState1Symb = new HudDisplayPart();
-      middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+      middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
       middleWhiteSymbState1Symb->altTexture = nullptr;
     //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
       middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1372,7 +1377,7 @@ void HUD::InitHudBannerText() {
 
  //Left boundary block symbol
  leftBoundarySymbState1 = new HudDisplayPart();
- leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+ leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
  leftBoundarySymbState1->altTexture = nullptr;
  //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
  leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1380,7 +1385,7 @@ void HUD::InitHudBannerText() {
 
  //Right boundary block symbol
  rightBoundarySymbState1 = new HudDisplayPart();
- rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+ rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
  rightBoundarySymbState1->altTexture = nullptr;
  //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
  rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1395,7 +1400,7 @@ void HUD::InitHudBannerText() {
  //create all middle while background symbols (before text appears)
  for (int idx = 0; idx < 13; idx++) {
      middleWhiteSymbState1Symb = new HudDisplayPart();
-     middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+     middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
      middleWhiteSymbState1Symb->altTexture = nullptr;
    //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
      middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1420,7 +1425,7 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
     leftBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1428,7 +1433,7 @@ void HUD::InitHudBannerText() {
 
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
     rightBoundarySymbState1->altTexture = nullptr;
     //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1443,7 +1448,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 15; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
         middleWhiteSymbState1Symb->altTexture = nullptr;
       //  myDriver->makeColorKeyTexture(middleWhiteSymbState1Symb->texture, irr::core::position2d<irr::s32>(0,0));
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1468,7 +1473,7 @@ void HUD::InitHudBannerText() {
 
        //Left boundary block symbol
        leftBoundarySymbState1 = new HudDisplayPart();
-       leftBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+       leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
        leftBoundarySymbState1->altTexture = nullptr;
        //myDriver->makeColorKeyTexture(leftBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
        leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
@@ -1476,7 +1481,7 @@ void HUD::InitHudBannerText() {
 
        //Right boundary block symbol
        rightBoundarySymbState1 = new HudDisplayPart();
-       rightBoundarySymbState1->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+       rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
        rightBoundarySymbState1->altTexture = nullptr;
        //myDriver->makeColorKeyTexture(rightBoundarySymbState1->texture, irr::core::position2d<irr::s32>(0,0));
        rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
@@ -1486,7 +1491,7 @@ void HUD::InitHudBannerText() {
        bannerTextState7->push_back(leftBoundarySymbState1);
        bannerTextState7->push_back(rightBoundarySymbState1);
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     //current banner text state is 0 (means nothing is shown at all)
     currentBannerTextState = 0;
@@ -1543,7 +1548,7 @@ void HUD::RenderTextBannerGraphics() {
         if (elementsToDraw != nullptr) {
             //draw currently visible banner state
             for (unsigned long i = 0; i < elementsToDraw->size(); i++) {
-                mInfra->mDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
+                mGame->mDriver->draw2DImage(elementsToDraw->at(i)->texture, elementsToDraw->at(i)->drawScrPosition,
                       irr::core::rect<irr::s32>(0,0, elementsToDraw->at(i)->sizeTex.Width, elementsToDraw->at(i)->sizeTex.Height), 0,
                       *mColorSolid, true);
 
@@ -1569,7 +1574,7 @@ void HUD::RenderPlayerLapTimes() {
     //amountFinishedLaps = 3, if three laps are finished, and the last lap is not the fastest lap -> print current lap info, last lap info, and fastest lap info
     //                        if two laps are finished, and the last lap is  the fastest lap -> print current lap info and fastest lap info
 
-    irr::u32 posY = (mInfra->mScreenRes.Height - 24);
+    irr::u32 posY = (mGame->mScreenRes.Height - 24);
     irr::u32 posX;
     irr::u32 txtWidth;
 
@@ -1577,10 +1582,10 @@ void HUD::RenderPlayerLapTimes() {
     char text[20];
     sprintf(&text[0], "%2d.", this->monitorWhichPlayer->mPlayerStats->currLapNumber);
 
-    txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed);
+    txtWidth = mGame->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed);
     posX = 38 - txtWidth;
 
-    mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
+    mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
     //2. render current lap time number in the lowest line
     // this text is written in a way that times are alignment on the right side
@@ -1590,7 +1595,7 @@ void HUD::RenderPlayerLapTimes() {
     //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
     //posX = 92 - txtWidth;
 
-    mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
+    mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
 
     //for the next line decrease Y coordinate
     posY -= 23;
@@ -1612,17 +1617,17 @@ void HUD::RenderPlayerLapTimes() {
     if ((this->monitorWhichPlayer->mPlayerStats->lastLap.lapNr != 0) && (this->monitorWhichPlayer->mPlayerStats->lastLap.lapNr != fastestLapNr)) {
         sprintf(&text[0], "%2d.", this->monitorWhichPlayer->mPlayerStats->lastLap.lapNr);
 
-        txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed);
+        txtWidth = mGame->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed);
         posX = 38 - txtWidth;
 
-        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
+        mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
         sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->lastLap.lapTimeMultiple40mSec);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
         //posX = 92 - txtWidth;
 
-        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
+        mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
 
         //for the next line decrease Y coordinate
         posY -= 23;
@@ -1632,17 +1637,17 @@ void HUD::RenderPlayerLapTimes() {
     if ((this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapNr != 0) && (this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapNr != fastestLapNr)) {
         sprintf(&text[0], "%2d.", this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapNr);
 
-        txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed);
+        txtWidth = mGame->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed);
         posX = 38 - txtWidth;
 
-        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
+        mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(posX, posY));
 
         sprintf(&text[0], "%4d", this->monitorWhichPlayer->mPlayerStats->LapBeforeLastLap.lapTimeMultiple40mSec);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberRed);
         //posX = 92 - txtWidth;
 
-        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
+        mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberRed, irr::core::position2di(56, posY));
 
         //for the next line decrease Y coordinate
         posY -= 23;
@@ -1652,17 +1657,17 @@ void HUD::RenderPlayerLapTimes() {
     if (fastestLapNr != 0) {
         sprintf(&text[0], "%2d.", fastestLapNr);
 
-        txtWidth = mInfra->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey);
+        txtWidth = mGame->mGameTexts->GetWidthPixelsGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberGrey);
         posX = 38 - txtWidth;
 
-        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(posX, posY));
+        mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(posX, posY));
 
         sprintf(&text[0], "%4d", fastestLapNrLapTimeMultiple40ms);
 
         //txtWidth = this->myTextRenderer->GetWidthPixelsGameNumberText(&text[0], this->myTextRenderer->HudLaptimeNumberGrey);
         //posX = 92 - txtWidth;
 
-        mInfra->mGameTexts->DrawGameNumberText(&text[0], mInfra->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(56, posY));
+        mGame->mGameTexts->DrawGameNumberText(&text[0], mGame->mGameTexts->HudLaptimeNumberGrey, irr::core::position2di(56, posY));
     }
 }
 
@@ -1689,12 +1694,12 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
     newMsg->textAlreadyShownSec = 0.0f;
 
     //for Hud banner text we use HudWhiteTextBannerFont
-    irr::u32 currentTextWidthPixels = mInfra->mGameTexts->GetWidthPixelsGameText(newMsg->text,
-                                                                                 mInfra->mGameTexts->HudWhiteTextBannerFont);
+    irr::u32 currentTextWidthPixels = mGame->mGameTexts->GetWidthPixelsGameText(newMsg->text,
+                                                                                 mGame->mGameTexts->HudWhiteTextBannerFont);
 
     //calculate text position in a way that the new text is centered in the middle of the banner
-    newMsg->textPosition.Y = (irr::s32)((mInfra->mScreenRes.Height - 39));
-    newMsg->textPosition.X = (irr::s32)((mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0));
+    newMsg->textPosition.Y = (irr::s32)((mGame->mScreenRes.Height - 39));
+    newMsg->textPosition.X = (irr::s32)((mGame->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0));
 
     //add this new message to our current message vector
     this->bannerMessageVec->push_back(newMsg);
@@ -1743,29 +1748,29 @@ void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking) 
 
     //calculate big green text draw position
     //we use HudBigGreenText font
-    irr::u32 currentTextWidthPixels = mInfra->mGameTexts->GetWidthPixelsGameText(currentBigGreenText,
-                                                                                 mInfra->mGameTexts->HudBigGreenText);
-    irr::u32 currentTextHeightPixels = mInfra->mGameTexts->GetHeightPixelsGameText(currentBigGreenText,
-                                                                                   mInfra->mGameTexts->HudBigGreenText);
+    irr::u32 currentTextWidthPixels = mGame->mGameTexts->GetWidthPixelsGameText(currentBigGreenText,
+                                                                                 mGame->mGameTexts->HudBigGreenText);
+    irr::u32 currentTextHeightPixels = mGame->mGameTexts->GetHeightPixelsGameText(currentBigGreenText,
+                                                                                   mGame->mGameTexts->HudBigGreenText);
 
     //calculate text position in a way that the new text is centered in the middle of the player screen
-    currentBigGreenTextDrawPosition.Y = (irr::s32)((mInfra->mScreenRes.Height / 2) - (currentTextHeightPixels / 2.0));
-    currentBigGreenTextDrawPosition.X = (irr::s32)((mInfra->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0));
+    currentBigGreenTextDrawPosition.Y = (irr::s32)((mGame->mScreenRes.Height / 2) - (currentTextHeightPixels / 2.0));
+    currentBigGreenTextDrawPosition.X = (irr::s32)((mGame->mScreenRes.Width / 2) - (currentTextWidthPixels / 2.0));
 }
 
 void HUD::InitTargetStuff() {
     //initialize target other player ships stuff
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     targetSymbol = new HudDisplayPart();
     //green target symbol
-    targetSymbol->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0257.bmp");
+    targetSymbol->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0257.bmp");
 
     //red target symbol
-    targetSymbol->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0258.bmp");
+    targetSymbol->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0258.bmp");
 
-    mInfra->mDriver->makeColorKeyTexture(targetSymbol->texture, irr::core::position2d<irr::s32>(0,0));
-    mInfra->mDriver->makeColorKeyTexture(targetSymbol->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetSymbol->texture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetSymbol->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetSymbol->sizeTex = targetSymbol->texture->getSize();
 
@@ -1778,13 +1783,13 @@ void HUD::InitTargetStuff() {
     //arrow left of target symbol
     targetArrowLeft = new HudDisplayPart();
     //green arrow left
-    targetArrowLeft->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0263.bmp");
+    targetArrowLeft->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0263.bmp");
 
     //red arrow left
-    targetArrowLeft->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0264.bmp");
+    targetArrowLeft->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0264.bmp");
 
-    mInfra->mDriver->makeColorKeyTexture(targetArrowLeft->texture, irr::core::position2d<irr::s32>(0,0));
-    mInfra->mDriver->makeColorKeyTexture(targetArrowLeft->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowLeft->texture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowLeft->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowLeft->sizeTex = targetArrowLeft->texture->getSize();
 
@@ -1797,13 +1802,13 @@ void HUD::InitTargetStuff() {
     //arrow right of target symbol
     targetArrowRight = new HudDisplayPart();
     //green arrow right
-    targetArrowRight->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0265.bmp");
+    targetArrowRight->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0265.bmp");
 
     //red arrow right
-    targetArrowRight->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0266.bmp");
+    targetArrowRight->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0266.bmp");
 
-    mInfra->mDriver->makeColorKeyTexture(targetArrowRight->texture, irr::core::position2d<irr::s32>(0,0));
-    mInfra->mDriver->makeColorKeyTexture(targetArrowRight->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowRight->texture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowRight->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowRight->sizeTex = targetArrowRight->texture->getSize();
 
@@ -1816,13 +1821,13 @@ void HUD::InitTargetStuff() {
     //arrow above of target symbol
     targetArrowAbove = new HudDisplayPart();
     //green arrow above
-    targetArrowAbove->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0259.bmp");
+    targetArrowAbove->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0259.bmp");
 
     //red arrow above
-    targetArrowAbove->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0260.bmp");
+    targetArrowAbove->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0260.bmp");
 
-    mInfra->mDriver->makeColorKeyTexture(targetArrowAbove->texture, irr::core::position2d<irr::s32>(0,0));
-    mInfra->mDriver->makeColorKeyTexture(targetArrowAbove->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowAbove->texture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowAbove->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowAbove->sizeTex = targetArrowAbove->texture->getSize();
 
@@ -1835,13 +1840,13 @@ void HUD::InitTargetStuff() {
     //arrow below of target symbol
     targetArrowBelow = new HudDisplayPart();
     //green arrow below
-    targetArrowBelow->texture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0261.bmp");
+    targetArrowBelow->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0261.bmp");
 
     //red arrow below
-    targetArrowBelow->altTexture = mInfra->mDriver->getTexture("extract/hud1player/panel0-1-0262.bmp");
+    targetArrowBelow->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0262.bmp");
 
-    mInfra->mDriver->makeColorKeyTexture(targetArrowBelow->texture, irr::core::position2d<irr::s32>(0,0));
-    mInfra->mDriver->makeColorKeyTexture(targetArrowBelow->altTexture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowBelow->texture, irr::core::position2d<irr::s32>(0,0));
+    mGame->mDriver->makeColorKeyTexture(targetArrowBelow->altTexture, irr::core::position2d<irr::s32>(0,0));
 
     targetArrowBelow->sizeTex = targetArrowBelow->texture->getSize();
 
@@ -1851,7 +1856,7 @@ void HUD::InitTargetStuff() {
     targetArrowBelow->sourceRect.UpperLeftCorner.set(0,0);
     targetArrowBelow->sourceRect.LowerRightCorner.set(targetArrowBelow->sizeTex.Width, targetArrowBelow->sizeTex.Height);
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 }
 
 //Just taken from Irrlicht source code ISceneCollisionManager
@@ -1861,8 +1866,8 @@ core::position2d<s32> HUD::getScreenCoordinatesFrom3DPosition(
     const core::vector3df & pos3d, ICameraSceneNode* camera)
 {
 
-    irr::u32 Width = mInfra->mScreenRes.Width;
-    irr::u32 Height = mInfra->mScreenRes.Height;
+    irr::u32 Width = mGame->mScreenRes.Width;
+    irr::u32 Height = mGame->mScreenRes.Height;
 
     Width /= 2;
     Height /= 2;
@@ -1900,7 +1905,7 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
           //first we need to figure out where to draw target symbol on the 2D screen, so that the symbol is around
           //the targets player craft
-          ICameraSceneNode* actCamera = mInfra->mSmgr->getActiveCamera();
+          ICameraSceneNode* actCamera = mGame->mSmgr->getActiveCamera();
 
           irr::core::vector3df targetPlayerPos = monitorWhichPlayer->mTargetPlayer->phobj->physicState.position;
 
@@ -1930,7 +1935,7 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
           if (!monitorWhichPlayer->mTargetMissleLock) {
              //no missle lock, green symbol and green text
-             mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
+             mGame->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
                 targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
 
              /*mInfra->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
@@ -1938,54 +1943,54 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
 
                if (currShowTargetName) {
                     //write player name next to target symbol
-                    mInfra->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-                        mInfra->mGameTexts->HudTargetNameGreen,
+                    mGame->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
+                        mGame->mGameTexts->HudTargetNameGreen,
                             irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
                                             targetSymbol->drawScrPosition.Y));
                }
 
              //left green arrow
-             mInfra->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
+             mGame->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
                 targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
              //right green arrow
-             mInfra->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
+             mGame->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
                 targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
              //above green arrow
-             mInfra->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
+             mGame->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
                 targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
              //below green arrow
-             mInfra->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
+             mGame->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
                 targetArrowBelow->sourceRect, 0, *mColorSolid, true);
           } else {
               //we also have missile lock, red symbol and red text
-              mInfra->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
+              mGame->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
                  targetSymbol->sourceRect, 0, *mColorSolid, true);
 
               if (currShowTargetName) {
                 //write player name next to target symbol
-                mInfra->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-                        mInfra->mGameTexts->HudTargetNameRed,
+                mGame->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
+                        mGame->mGameTexts->HudTargetNameRed,
                         irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
                                              targetSymbol->drawScrPosition.Y));
               }
 
               //left red arrow
-              mInfra->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
+              mGame->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
                  targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
               //right red arrow
-              mInfra->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
+              mGame->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
                  targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
               //above red arrow
-              mInfra->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
+              mGame->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
                  targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
               //below red arrow
-              mInfra->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
+              mGame->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
                  targetArrowBelow->sourceRect, 0, *mColorSolid, true);
           }
 
@@ -2001,12 +2006,12 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
 
           //draw a small health bar below the target symbol
-          mInfra->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
+          mGame->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
      }
 }
 
-HUD::HUD(InfrastructureBase* infra) {
-    mInfra = infra;
+HUD::HUD(Game* game) {
+    mGame = game;
 
     monitorWhichPlayer = nullptr;
 
@@ -2050,12 +2055,12 @@ void HUD::CleanUpHudDisplayPartVector(std::vector<HudDisplayPart*> &pntrVector) 
 
            if (pntr->texture != nullptr) {
                //remove underlying texture
-               mInfra->mDriver->removeTexture(pntr->texture);
+               mGame->mDriver->removeTexture(pntr->texture);
            }
 
            if (pntr->altTexture != nullptr) {
                //remove underlying texture
-               mInfra->mDriver->removeTexture(pntr->altTexture);
+               mGame->mDriver->removeTexture(pntr->altTexture);
            }
 
            delete pntr;
@@ -2117,12 +2122,12 @@ HUD::~HUD() {
 
     if (brokenGlas->texture != nullptr) {
         //remove underlying texture
-        mInfra->mDriver->removeTexture(brokenGlas->texture);
+        mGame->mDriver->removeTexture(brokenGlas->texture);
     }
 
     if (brokenGlas->altTexture != nullptr) {
         //remove underlying texture
-        mInfra->mDriver->removeTexture(brokenGlas->altTexture);
+        mGame->mDriver->removeTexture(brokenGlas->altTexture);
     }
 
     delete brokenGlas;
@@ -2162,12 +2167,12 @@ void HUD::DrawFinishedPlayerList() {
             //first draw 2 red arrow symbol next to lap number display
             sprintf(posStr, "%d", position);
 
-            mInfra->mGameTexts->DrawGameNumberText(posStr, mInfra->mGameTexts->HudLaptimeNumberGrey,
+            mGame->mGameTexts->DrawGameNumberText(posStr, mGame->mGameTexts->HudLaptimeNumberGrey,
                                                irr::core::vector2d<irr::s32>(posXNr, posY));
 
-            mInfra->mGameTexts->DrawHudSmallText(
+            mGame->mGameTexts->DrawHudSmallText(
                         this->monitorWhichPlayer->mRace->playerRaceFinishedVec.at(position - 1)->mPlayerStats->name,
-                        this->mInfra->mGameTexts->HudTargetNameRed,  irr::core::vector2d<irr::s32>(posXPlayerName, posYPlayerName));
+                        this->mGame->mGameTexts->HudTargetNameRed,  irr::core::vector2d<irr::s32>(posXPlayerName, posYPlayerName));
 
             posY += 24;
             posYPlayerName += 24;

@@ -13,6 +13,13 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "column.h"
+#include "../utils/logging.h"
+#include "../resources/levelfile.h"
+#include "../resources/mapentry.h"
+#include "levelterrain.h"
+#include "../resources/blockdefinition.h"
+#include "../resources/columndefinition.h"
+#include "../utils/crc32.h"
 
 Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel) {
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
@@ -32,12 +39,12 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 
    if (levelResLevel != nullptr && Def != nullptr) {
     if (setupGeometry()) {
-        /*std::cout << "HiOctane Column loaded: " <<
-                   positionVboData.size() << " vertices, " <<
-                   normalVboData.size() << " normals, " <<
-                   uvVboData.size() << " UVs, " <<
-                   mTexSource->NumLevelTextures << " textures, " <<
-                   indicesVboData.size() << " indices" << endl << std::flush;*/
+       // std::cout << "HiOctane Column loaded: " <<
+       //            GeometryInfoList->vertices.size() << " vertices, " << std::endl << std::flush;
+//                   GeometryInfoList->normalVboData.size() << " normals, " <<
+//                   uvVboData.size() << " UVs, " <<
+//                   mTexSource->NumLevelTextures << " textures, " <<
+//                   indicesVboData.size() << " indices" <<*/ std::endl << std::flush;
 
     } else {
        logging::Error("Failed setting up column Mesh, exit race");
@@ -215,6 +222,57 @@ irr::f32 Column::GetOriginalHeightTile(int x, int z) {
     return p->m_Height;
 }
 
+//returns the number of "missing" blocks at the base
+//of the column until the first block is found
+//can be used to detect tunnel roof elements etc...
+//if there is not a single existing block in the column
+//still will return 0, because then there is technically
+//no "gap" of blocks
+irr::u16 Column::GetNumberMissingBlocksAtBase() {
+    irr::u16 gapBlockCnt = 0;
+
+    if (Definition->get_A() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_B() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_C() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_D() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_E() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_F() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_G() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_H() != 0)
+        return gapBlockCnt;
+
+    //no "gap" found, return 0
+    return 0;
+}
+
 std::vector<vector2d<irr::f32>> Column::ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod) {
    std::vector<vector2d<irr::f32>> uvs;
 
@@ -348,6 +406,8 @@ bool Column::setupGeometry() {
     int textIDInfoT;
     int textIDInfoB;
 
+    mNrBlocksInColumn = 0;
+
     for (int bitNum = 0; bitNum < 8; bitNum++) { // all blocks of this column
 
         if ((Definition->get_Shape() & (1 << bitNum)) == 0) continue;
@@ -474,6 +534,8 @@ bool Column::setupGeometry() {
         delete nW;
         delete nT;
         delete nB;
+
+        mNrBlocksInColumn++;
      }
 
     Size.X = segmentSize;
@@ -481,4 +543,8 @@ bool Column::setupGeometry() {
     Size.Z = segmentSize;
 
     return true;
+}
+
+irr::u16 Column::GetNumberContainedBlocks() {
+    return (mNrBlocksInColumn);
 }

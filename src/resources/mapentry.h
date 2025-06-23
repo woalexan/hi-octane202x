@@ -15,11 +15,15 @@
 #ifndef MAPENTRY_H
 #define MAPENTRY_H
 
+#include <cstdint>
+#include <vector>
 #include "tableitem.h"
-#include "columndefinition.h"
-#include "../utils/crc32.h"
-#include "../utils/logging.h"
-#include <iostream>
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class ColumnDefinition;
 
 class MapEntry:public TableItem {
 public:

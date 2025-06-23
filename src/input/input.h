@@ -18,8 +18,12 @@
 #define INPUT_H
 
 #include <irrlicht.h>
+#include <vector>
+#include "../infrabase.h"
 
 using namespace irr;
+
+class InfrastructureBase;
 
 /*
 To receive events like mouse and keyboard input, or GUI events like "the OK
@@ -29,7 +33,6 @@ irr::IEventReceiver::OnEvent(). This method will be called by the engine once
 when an event happens. What we really want to know is whether a key is being
 held down, and so we will remember the current state of each key.
 */
-
 class MyEventReceiver : public IEventReceiver
 {
 public:
@@ -44,7 +47,7 @@ public:
     // after the key was released first again
     bool IsKeyDownSingleEvent(EKEY_CODE keyCode);
 
-    MyEventReceiver();
+    MyEventReceiver(InfrastructureBase* infra);
 
 private:
     // We use this array to store the current state of each key
@@ -54,6 +57,9 @@ private:
     //for another activation, as the were already triggered and
     //need to be released first for another trigger possibility
     bool KeyIsLockedCurr[KEY_KEY_CODES_COUNT];
+
+    //pointer to my parent infrastructure object
+    InfrastructureBase* mInfra;
 };
 
 #endif // INPUT_H

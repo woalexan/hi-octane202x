@@ -12,10 +12,7 @@
 
 #include "irrlicht.h"
 #include <vector>
-#include "../audio/music.h"
-#include "../audio/sound.h"
-#include "../infrabase.h"
-#include "../utils/logging.h"
+#include "SFML/Audio.hpp"
 
 //this struct holds the information for a sound trigger event
 //used during the games intro playing
@@ -44,11 +41,12 @@ typedef struct IntroSoundTriggerStruct {
 
 class SoundEngine; //Forward declaration
 class MyMusicStream; //forward declaration
+class Game; //Forward declaration
 
 class IntroPlayer {
 
  public:
-    IntroPlayer(InfrastructureBase* infra, SoundEngine* soundEngine, MyMusicStream* gameMusicPlayerParam);
+    IntroPlayer(Game* game, SoundEngine* soundEngine, MyMusicStream* gameMusicPlayerParam);
     ~IntroPlayer();
 
     bool Init();
@@ -67,7 +65,7 @@ class IntroPlayer {
     //we need a music player for the game intro music
     MyMusicStream* mMusicPlayer = nullptr;
     SoundEngine* mSoundEngine = nullptr;
-    InfrastructureBase* mInfra = nullptr;
+    Game* mGame = nullptr;
 
     //stuff for game intro playing
     std::vector<irr::video::ITexture*>* introTextures = nullptr;

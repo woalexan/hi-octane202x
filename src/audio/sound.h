@@ -11,12 +11,7 @@
 #define SOUND_H
 
 #include "SFML/Audio.hpp"
-#include "../definitions.h"
-#include <cstdint>
-#include "../models/player.h"
-#include "../infrabase.h"
-#include "../utils/logging.h"
-#include <cstdio>
+#include "irrlicht.h"
 
 //File name definition
 #define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"
@@ -102,8 +97,12 @@
 //maximum number of allowed sound sources
 #define SOUND_MAXNR 20
 
-class Player; //Forward declaration
-class InfrastructureBase; //forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Player;
+class Game;
 
 struct SoundResEntry {
     sf::SoundBuffer* pntrSoundBuf = nullptr;
@@ -112,7 +111,7 @@ struct SoundResEntry {
 
 class SoundEngine {
 public:
-  SoundEngine(InfrastructureBase* infraPnter);
+  SoundEngine(Game* gamePnter);
   ~SoundEngine();
 
   bool getSoundResourcesLoadOk();
@@ -159,8 +158,8 @@ public:
   void LoadSoundResources();
 
 private:
-  //pointer to infrastructure
-  InfrastructureBase* mInfra = nullptr;
+  //pointer to Game
+  Game* mGame = nullptr;
 
   bool mSoundResourcesLoadOk = false;
   bool mPlaySound = true;

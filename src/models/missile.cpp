@@ -8,6 +8,14 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "missile.h"
+#include "../utils/physics.h"
+#include "../audio/sound.h"
+#include "../models/levelterrain.h"
+#include "../resources/texture.h"
+#include "../utils/ray.h"
+#include "explauncher.h"
+#include "../race.h"
+#include "../resources/mapentry.h"
 
 Missile::Missile(MissileLauncher* mParentLauncher, irr::core::vector3df launchLoc, irr::core::vector3df targetLoc,
                  bool targetLocked, Player* lockedPlayer) {

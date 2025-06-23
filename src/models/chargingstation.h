@@ -11,9 +11,7 @@
 #define CHARGINGSTATION_H
 
 #include <irrlicht.h>
-#include "../race.h"
-#include "../models/player.h"
-#include "../utils/path.h"
+#include <vector>
 
 //defines a rotation in clockwise direction
 //for the exit of the charging station
@@ -29,9 +27,15 @@
 //possible during creation of a charging station
 const irr::f32 DEF_CHARGING_STATION_STAND_MINSIDELEN = 1.0f;
 
-class Race; //Forward declaration
-class Player; //Forward declaration
-struct WayPointLinkInfoStruct; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class Player;
+struct WayPointLinkInfoStruct;
+class EntityItem;
+struct MapTileRegionStruct;
 
 //struct which holds information about a possible
 //position for stopping inside a charger region

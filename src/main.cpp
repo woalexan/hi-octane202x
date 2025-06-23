@@ -51,7 +51,8 @@ int main()
     //try to init most basic
     //game components, so that we
     //can show a first graphical screen
-    if (!mGame->InitGameStep1())
+    //04.05.2025: Do not use XEffects right now, I have problem with too dark lightning
+    if (!mGame->InitGameStep1(false))
        return 1;
 
     //run the game

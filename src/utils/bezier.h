@@ -15,14 +15,16 @@
 #ifndef BEZIER_H
 #define BEZIER_H
 
-#include "../utils/path.h"
 #include "irrlicht.h"
-#include "../draw/drawdebug.h"
-#include "../models/levelterrain.h"
+#include <vector>
 
-class LevelTerrain; //Forward declaration
-class DrawDebug;    //Forward declaration
-struct WayPointLinkInfoStruct; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class LevelTerrain;
+class DrawDebug;
+struct WayPointLinkInfoStruct;
 
 class Bezier
 {

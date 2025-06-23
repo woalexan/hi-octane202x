@@ -13,7 +13,6 @@
 #include "irrlicht.h"
 #include <vector>
 #include "SFML/System.hpp"
-#include <algorithm>
 #include <cstdint>
 #include "wchar.h"
 
@@ -33,13 +32,13 @@ public:
     char id[50];
 
     //hold minimum measured duration
-    float minDurationMs;
+    float minDurationMs = 0.0f;
 
     //holds average measured duration
-    float avgDurationMs;
+    float avgDurationMs = 0.0f;
 
     //hold maximum measured duration
-    float maxDurationMs;
+    float maxDurationMs = 0.0f;
 
 private:
 

@@ -8,16 +8,20 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "introplayer.h"
+#include "../input/input.h"
+#include "../audio/music.h"
+#include "../audio/sound.h"
+#include "../game.h"
 
-IntroPlayer::IntroPlayer(InfrastructureBase* infra, SoundEngine* soundEngine, MyMusicStream* gameMusicPlayerParam) {
-    mInfra = infra;
+IntroPlayer::IntroPlayer(Game* game, SoundEngine* soundEngine, MyMusicStream* gameMusicPlayerParam) {
+    mGame = game;
     mSoundEngine = soundEngine;
     mMusicPlayer = gameMusicPlayerParam;
 }
 
 void IntroPlayer::HandleInput() {
     //allow player to interrupt the intro with ESC
-    if (mInfra->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
        //interrupt the intro
        //we just need to set the current frame number
        //to the number of the last frame
@@ -52,12 +56,12 @@ void IntroPlayer::RenderIntro(irr::f32 frameDeltaTime) {
 
     //first draw a black rectangle over the whole screen to make sure that the parts of the
     //screen that are outside of the intro frames region are black as well
-    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
+    mGame->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mGame->mScreenRes.Width, mGame->mScreenRes.Height));
 
     if (introPlaying) {
         //draw the current intro frame
-        mInfra->mDriver->draw2DImage(this->introTextures->at(currIntroFrame), introFrameScrDrawPos,
+        mGame->mDriver->draw2DImage(this->introTextures->at(currIntroFrame), introFrameScrDrawPos,
                           irr::core::recti(0, 0, introFrameScrSize.Width, introFrameScrSize.Height)
                             , 0, irr::video::SColor(255,255,255,255), true);
 
@@ -130,7 +134,7 @@ bool IntroPlayer::Init() {
     }
 
     //first we need to load all textures (each frame is a texture) for the game intro
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     char frameFileName[50];
     char fname[20];
@@ -148,7 +152,7 @@ bool IntroPlayer::Init() {
         strcat(frameFileName, fname);
 
         //load this image (texture)
-        newTex = mInfra->mDriver->getTexture(frameFileName);
+        newTex = mGame->mDriver->getTexture(frameFileName);
         if (newTex == nullptr) {
             //there was a texture loading error
             //std::cout << "Intro image loading error" << std::endl;
@@ -160,15 +164,15 @@ bool IntroPlayer::Init() {
         introTextures->push_back(newTex);
     }
 
-    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+    mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     //get size of texture from first frame
     introFrameScrSize = introTextures->at(0)->getSize();
 
     //calculate position to draw intro frames so that the are centered on the screen
     //because maybe target resolution does not fit with image resolution
-    introFrameScrDrawPos.X = (mInfra->mScreenRes.Width - introFrameScrSize.Width) / 2;
-    introFrameScrDrawPos.Y = (mInfra->mScreenRes.Height - introFrameScrSize.Height) / 2;
+    introFrameScrDrawPos.X = (mGame->mScreenRes.Width - introFrameScrSize.Width) / 2;
+    introFrameScrDrawPos.Y = (mGame->mScreenRes.Height - introFrameScrSize.Height) / 2;
 
     //define sounds for intro
     introSoundEventVec = new std::vector<IntroSoundTriggerStruct*>();
@@ -275,7 +279,7 @@ void IntroPlayer::CleanupIntro() {
    //free each of the textures we loaded before
    for (it = this->introTextures->begin(); it != this->introTextures->end(); ++it) {
         //remove underlying texture
-        mInfra->mDriver->removeTexture((*it));
+        mGame->mDriver->removeTexture((*it));
    }
 
    //free vector at the end

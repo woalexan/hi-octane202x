@@ -10,12 +10,9 @@
 #ifndef LEVELBLOCKS_H
 #define LEVELBLOCKS_H
 
-#include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
 #include <irrlicht.h>
-#include "../resources/texture.h"
-#include "../utils/logging.h"
-#include "column.h"
+#include <vector>
+#include <cstdint>
 
 using namespace irr;
 using namespace video;
@@ -24,12 +21,29 @@ using namespace scene;
 using namespace io;
 using namespace gui;
 
-#define LEVELBLOCKS_VIEW_WIREFRAME 0
-#define LEVELBLOCKS_VIEW_DEFAULT 1
-#define LEVELBLOCKS_VIEW_DEBUGNORMALS 2
+#define LEVELBLOCKS_VIEW_OFF 0
+#define LEVELBLOCKS_VIEW_WIREFRAME 1
+#define LEVELBLOCKS_VIEW_DEFAULT 2
+#define LEVELBLOCKS_VIEW_DEBUGNORMALS 3
 
-class LevelTerrain; //Forward declaration
-class Column;       //Forward declaration
+#define DEF_SELBLOCK_FACENONE 0
+#define DEF_SELBLOCK_FACENORTH 1
+#define DEF_SELBLOCK_FACEEAST 2
+#define DEF_SELBLOCK_FACESOUTH 3
+#define DEF_SELBLOCK_FACEWEST 4
+#define DEF_SELBLOCK_FACETOP 5
+#define DEF_SELBLOCK_FACEBOTTOM 6
+
+/************************
+ * Forward declarations *
+ ************************/
+
+class LevelTerrain;
+class Column;
+class InfrastructureBase;
+class TextureLoader;
+class LevelFile;
+class ColumnDefinition;
 
 struct ColumnsByPositionStruct {
       int pos;
@@ -38,11 +52,9 @@ struct ColumnsByPositionStruct {
 
 class LevelBlocks {
 public:
-    LevelBlocks(Race* parentRace, LevelTerrain* myTerrain, LevelFile* levelRes, irr::scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver,
+    LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
                 TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning);
     ~LevelBlocks();
-
-    //MapEntry* GetMapEntry(int x, int y);
 
     SMesh * getBlocksMesh(int collisionSelector);
     std::vector<Column*> ColumnsInRange(int sx, int sz, float w, float h);
@@ -68,21 +80,27 @@ public:
 
     std::vector<ColumnsByPositionStruct> ColumnsByPosition;
 
-    void SwitchViewMode();
-
-private:   
-    irr::video::IVideoDriver *m_driver = nullptr;
-    TextureLoader* mTexSource = nullptr;
-    LevelTerrain* MyTerrain = nullptr;
-    scene::ISceneManager *MySmgr = nullptr;
-    Race* mRace = nullptr;
-
-    //std::string m_texfile;
-
-    void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
     bool searchColumnWithPosition(int posKey, Column* &columnFnd);
 
-    irr::s32 myCurrentViewMode = LEVELBLOCKS_VIEW_DEFAULT;
+    void SetViewMode(irr::u8 newViewMode);
+    irr::u8 GetCurrentViewMode();
+
+    void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, irr::video::SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace = DEF_SELBLOCK_FACENONE);
+
+    //Derives the current texturing information about a selected block face
+    //returns true if the information was found, false otherwise
+    bool GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks, irr::u8 selFace, int16_t& outCurrTextureId, uint8_t& outCurrTextureModification);
+
+    irr::u16 mNrBlocksInLevel = 0;
+
+private:   
+    TextureLoader* mTexSource = nullptr;
+    LevelTerrain* MyTerrain = nullptr;
+
+    InfrastructureBase* mInfra = nullptr;
+
+    void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
+    irr::u8 mCurrentViewMode;
 
     irr::u32 numVertices;
     irr::u32 numIndices;

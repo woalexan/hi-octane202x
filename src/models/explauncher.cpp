@@ -1,4 +1,7 @@
 #include "explauncher.h"
+#include "explosion.h"
+#include "../resources/texture.h"
+#include "../race.h"
 
 //Returns true in case of success
 //False otherwise

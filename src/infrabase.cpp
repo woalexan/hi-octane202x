@@ -8,6 +8,15 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "infrabase.h"
+#include "utils/logging.h"
+#include "utils/logger.h"
+#include <iostream>
+#include <fstream>
+#include "draw/gametext.h"
+#include "input/input.h"
+#include "utils/tprofile.h"
+#include "utils/fileutils.h"
+#include "draw/drawdebug.h"
 
 bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
@@ -15,7 +24,7 @@ bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
 
     // create event receiver
-    mEventReceiver = new MyEventReceiver();
+    mEventReceiver = new MyEventReceiver(this);
 
     //we need to enable stencil buffers, otherwise volumentric shadows
     //will not work
@@ -40,39 +49,21 @@ bool InfrastructureBase::InitIrrlicht() {
     //get Irrlicht GUI functionality pointers
     mGuienv = mDevice->getGUIEnvironment();
 
+    //create a DrawDebug object
+    mDrawDebug = new DrawDebug(mDriver);
+
     //get game root dir, is an absolute path
     mGameRootDir = mDevice->getFileSystem()->getWorkingDirectory();
 
     //mDriver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 10, 30, .03f, false, true);
 
-    if (mUseXEffects) {
-        // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
-        // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
-        // (The screen buffer resolution need not be the same as the screen resolution.)
-        // The second to last parameter enables VSM filtering, see example 6 for more information.
-        // The last parameter enables soft round spot light masks on our shadow lights.
-        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true);
-
-        //Set ShadowMap filter type
-        mShadowMapFilterType = E_FILTER_TYPE::EFT_12PCF;
-        mShadowMapResolution = 4096;
-
-        // Set a global ambient color. A very dark gray.
-        mEffect->setAmbientColor(SColor(255, 255, 255, 255));
-
-        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 120.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
-                SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false));
-
-        //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));
-
-        /*core::stringc shaderExt = (mDriver->getDriverType() == EDT_DIRECT3D9) ? ".hlsl" : ".glsl";
-
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurHP") + shaderExt);
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurVP") + shaderExt);
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BloomP") + shaderExt);*/
-    }
-
     return true;
+}
+
+void InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
+}
+
+void InfrastructureBase::HandleMouseEvent(const irr::SEvent& event) {
 }
 
 irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPath) {
@@ -508,7 +499,7 @@ float InfrastructureBase::randFloat() {
     return r;
 }
 
-bool InfrastructureBase::GetInitOk() {
+bool InfrastructureBase::GetInfrastructureInitOk() {
     return mInitOk;
 }
 
@@ -556,15 +547,20 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
-InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScreen, bool useXEffects, bool enableShadows) {
+void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
+
     mScreenRes = resolution;
     mFullscreen = fullScreen;
     mEnableShadows = enableShadows;
-    mUseXEffects = useXEffects;
 
     if (!InitIrrlicht()) {
         return;
     }
+
+    //create the predefined axis direction vectors
+    xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
+    yAxisDirVector = new irr::core::vector3df(0.0f, 1.0f, 0.0f);
+    zAxisDirVector = new irr::core::vector3df(0.0f, 0.0f, 1.0f);
 
     //detect the original game files
     //if some directory of original game is missing
@@ -609,11 +605,17 @@ InfrastructureBase::InfrastructureBase(dimension2d<u32> resolution, bool fullScr
     mInitOk = true;
 }
 
+InfrastructureBase::InfrastructureBase() {
+    mInitOk = false;
+}
+
 InfrastructureBase::~InfrastructureBase() {
     //cleanup game texts
     delete mGameTexts;
 
     delete mTimeProfiler;
+
+    delete mDrawDebug;
 
     //cleanup the original game folder information
     if (mOriginalGame != nullptr) {
@@ -655,4 +657,9 @@ InfrastructureBase::~InfrastructureBase() {
         delete mOriginalGame;
         mOriginalGame = nullptr;
     }
+
+    //delete my axis direction vectors
+    delete xAxisDirVector;
+    delete yAxisDirVector;
+    delete zAxisDirVector;
 }

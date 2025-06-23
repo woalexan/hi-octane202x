@@ -12,9 +12,6 @@
 
 #include "irrlicht.h"
 #include <vector>
-#include "../models/player.h"
-#include "gametext.h"
-#include "../infrabase.h"
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
 #define DEF_HUD_BANNERTEXT_MINSHOWTIME 1.0f //in seconds
@@ -45,6 +42,7 @@ struct HudDisplayPart{
 };
 
 class Player; //Forward declaration
+class Game; //Forward declaration
 
 struct BannerTextMessageStruct {
     char* text = nullptr;
@@ -60,7 +58,7 @@ class HUD {
 private:
     irr::u8 mHudState = DEF_HUD_STATE_NOTDRAWN;
 
-    InfrastructureBase* mInfra = nullptr;
+    Game* mGame = nullptr;
 
     //a negative altPanelTexNr input value means no alternative texture (image) is used
     void Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
@@ -209,7 +207,7 @@ private:
     irr::video::SColor* mColorTargetSymbolHealthBar = nullptr;
 
 public:
-    HUD(InfrastructureBase* infra);
+    HUD(Game* game);
     ~HUD();
 
     void SetMonitorWhichPlayer(Player* newPlayer);

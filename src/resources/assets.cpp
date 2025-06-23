@@ -8,6 +8,8 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "assets.h"
+#include "../game.h"
+#include "../race.h"
 
 /* 30.03.2025: Additional settings in CONFIG.DAT for extended original game version:
  *
@@ -33,8 +35,8 @@
      "Use saved best clone lap": just set to true when game starts, not stored in CONFIG.DAT
  */
 
-Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
-    this->mInfra = mInfraPntr;
+Assets::Assets(Game* game, bool updateGameConfigFile) {
+    this->mGame = game;
     mUpdateGameConfigFile = updateGameConfigFile;
 
     mCurrentConfigFileRead = false;
@@ -54,7 +56,7 @@ Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
         //save the new file
         char filenameTestFile[100];
 
-        strcpy(filenameTestFile, this->mInfra->mOriginalGame->saveFolder->getPath().c_str());
+        strcpy(filenameTestFile, this->mGame->mOriginalGame->saveFolder->getPath().c_str());
         strcat(filenameTestFile, (char*)("config.dat"));
 
         //save the new config.dat file
@@ -82,7 +84,7 @@ Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
             DecodeGraphicSettings(&currentConfigFileDataByteArray);
 
             //decode additional settings for extended version of the game
-            if (mInfra->mExtendedGame) {
+            if (mGame->mExtendedGame) {
                 DecodeExtGameAdditionalPlayerNames(&currentConfigFileDataByteArray);
                 DecodeDeathMatchLives(&currentConfigFileDataByteArray);
                 DecodeHotSeatPlayers(&currentConfigFileDataByteArray);
@@ -94,7 +96,7 @@ Assets::Assets(InfrastructureBase* mInfraPntr, bool updateGameConfigFile) {
     //if we have no extended game version, make sure
     //that player2 up to player8 player name is empty
     //so that we always use the default names for computer players
-    if (!mInfra->mExtendedGame) {
+    if (!mGame->mExtendedGame) {
         strcpy(currPlayer2Name, "");
         strcpy(currPlayer3Name, "");
         strcpy(currPlayer4Name, "");
@@ -142,7 +144,7 @@ Assets::~Assets() {
            itRaceTrack = this->mRaceTrackVec->erase(itRaceTrack);
 
            //cleanup mesh
-           mInfra->mSmgr->getMeshCache()->removeMesh(pntrTrack->MeshTrack);
+           mGame->mSmgr->getMeshCache()->removeMesh(pntrTrack->MeshTrack);
 
            //delete struct itself
            delete pntrTrack;
@@ -178,7 +180,7 @@ Assets::~Assets() {
 
            //cleanup all meshes (we have different color schemes)
            for (unsigned long j = 0; j < pntrCraft->MeshCraft.size(); j++) {
-                mInfra->mSmgr->getMeshCache()->removeMesh(pntrCraft->MeshCraft.at(j));
+                mGame->mSmgr->getMeshCache()->removeMesh(pntrCraft->MeshCraft.at(j));
            }
 
            //delete struct itself
@@ -529,7 +531,7 @@ bool Assets::FindGameConfigFile() {
     mAbsPathConfigFile = nullptr;
 
     irr::io::path configFilePath =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>("config.dat"));
+            mGame->LocateFileInFileList(mGame->mOriginalGame->saveFolder, irr::core::string<fschar_t>("config.dat"));
 
     if (configFilePath.empty()) {
         logging::Info("I did not find an existing config.dat file => create default config");
@@ -544,8 +546,8 @@ bool Assets::FindGameConfigFile() {
     size_t sizeFile = ftell(iFile);
     fclose(iFile);
 
-    if (((!mInfra->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_DEFAULT_GAME))
-         || ((mInfra->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_EXTENDED_GAME))) {
+    if (((!mGame->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_DEFAULT_GAME))
+         || ((mGame->mExtendedGame) && (sizeFile != CONFIG_DAT_SIZE_EXTENDED_GAME))) {
         logging::Warning("Existing config.dat file filesize does not fit to expected size => recreate it");
         return false;
     }
@@ -628,7 +630,7 @@ void Assets::SetNewExtGameAdditionalPlayerNames(irr::u8 setPlayerNr,
 //up to max 8 (8th player)
 void Assets::SetNewExtGameAdditionalPlayerNames(irr::u8 setPlayerNr,
                  char* newName, char** bufPntr) {
-    if (!mInfra->mExtendedGame)
+    if (!mGame->mExtendedGame)
         return;
 
     if ((setPlayerNr < 2) || (setPlayerNr > 8))
@@ -831,7 +833,7 @@ irr::u8 Assets::RotateColorScheme(irr::u8 currentColorScheme) {
 char* Assets::GetCurrentAdditionalPlayerNames(irr::u8 currPlayerNr, char* defaultName) {
     //the non extended game always uses the default
     //player/pilot names
-    if (!mInfra->mExtendedGame) {
+    if (!mGame->mExtendedGame) {
         return (defaultName);
     }
 
@@ -1610,7 +1612,7 @@ void Assets::AddCraft(char* nameCraft, char* meshFileName, irr::u8 statSpeed, ir
     //lets loop to load all available ship color schemes
     for (int i = 0; i < 8; i++) {
         sprintf(fileName, "%s%d.obj", meshFileName, i);
-        newMesh = mInfra->mSmgr->getMesh(fileName);
+        newMesh = mGame->mSmgr->getMesh(fileName);
 
         //add mesh to vector of available meshes (different color schemes)
         newCraft->MeshCraft.push_back(newMesh);
@@ -1671,7 +1673,7 @@ void Assets::AddRaceTrack(char* nameTrack, char* meshFileName, irr::u8 defaultNr
     strcpy(newTrack->name, nameTrack);
 
     //load the mesh
-    newTrack->MeshTrack = mInfra->mSmgr->getMesh(meshFileName);
+    newTrack->MeshTrack = mGame->mSmgr->getMesh(meshFileName);
 
     strcpy(newTrack->meshFileName, meshFileName);
 
@@ -1767,7 +1769,7 @@ void Assets::InitRaceTracks() {
 
     //if we have the extended original game version available
     //also add the additional 3 race tracks
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
         //Track7
         AddRaceTrack((char*)("7. ANCIENT MINE TOWN"), (char*)("extract/models/track0-6.obj"), GAME_DEFAULT_LAPS_TRACK7);
 
@@ -2068,7 +2070,7 @@ bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** champion
 
     //update file list for save directory
     //otherwise we do not find the latest added files
-    if (!mInfra->UpdateFileListSaveFolder())
+    if (!mGame->UpdateFileListSaveFolder())
         return false;
 
     //is this file existing?
@@ -2077,7 +2079,7 @@ bool Assets::SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** champion
     //does this file exist? If not or there is
     //another problem simply exit
     irr::io::path foundFilePath =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>(fname));
+            mGame->LocateFileInFileList(mGame->mOriginalGame->saveFolder, irr::core::string<fschar_t>(fname));
 
     if (foundFilePath.empty())
         return false;
@@ -2167,7 +2169,7 @@ bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
     char fname[20];
 
     //update file list for save directory
-    if (!mInfra->UpdateFileListSaveFolder())
+    if (!mGame->UpdateFileListSaveFolder())
         return false;
 
     //build file name
@@ -2176,7 +2178,7 @@ bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
     //does this file exist? If not or there is
     //another problem simply exit
     irr::io::path foundFilePath =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->saveFolder, irr::core::string<fschar_t>(fname));
+            mGame->LocateFileInFileList(mGame->mOriginalGame->saveFolder, irr::core::string<fschar_t>(fname));
 
     if (foundFilePath.empty())
         return false;
@@ -2205,7 +2207,7 @@ bool Assets::LoadChampionshipSaveGame(irr::u8 whichSlotNr) {
 
     //if we have the extended game read the player2 up to player8 names
     //back as well
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
        DecodeExtGameAdditionalPlayerNames(&currentChampionshipSaveGameDataByteArray);
     }
 
@@ -2249,7 +2251,7 @@ bool Assets::SaveChampionshipSaveGame(irr::u8 whichSlotNr) {
     char filename[100];
     char fname[20];
 
-    strcpy(filename, mInfra->mOriginalGame->saveFolder->getPath().c_str());
+    strcpy(filename, mGame->mOriginalGame->saveFolder->getPath().c_str());
     sprintf (fname, "/save%0*u.dat", 2, whichSlotNr);
 
     strcat(filename, fname);
@@ -2266,7 +2268,7 @@ bool Assets::SaveChampionshipSaveGame(irr::u8 whichSlotNr) {
 
     //if we have the extended game version, we need to also
     //write all other player names
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
         hlpBuf = strdup(this->currPlayer2Name);
         SetNewExtGameAdditionalPlayerNames(2, hlpBuf, &currentChampionshipSaveGameDataByteArray);
         free(hlpBuf);
@@ -2409,7 +2411,7 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     //so we add 126384 bytes
     size_t size = CONFIG_DAT_SIZE_DEFAULT_GAME;
 
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
         size = CONFIG_DAT_SIZE_EXTENDED_GAME;
     }
 
@@ -2434,7 +2436,7 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
 
     //if extended game version, set all player names from 2 up to 8
     //to empty strings
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
         SetNewExtGameAdditionalPlayerNames(2, (char*)"", targetBuf);
         SetNewExtGameAdditionalPlayerNames(3, (char*)"", targetBuf);
         SetNewExtGameAdditionalPlayerNames(4, (char*)"", targetBuf);
@@ -2510,7 +2512,7 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     //if we have the extended original game version
     //write also the information about the 3 additional
     //race tracks
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
         newTrack = CreateNewDefaultRaceTrackStats(7, GAME_DEFAULT_LAPS_TRACK7);
         WriteCurrentRaceTrackStats(7, newTrack, targetBuf);
         delete newTrack;
@@ -2750,7 +2752,7 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
     byteVec.push_back(std::make_pair(0x2B1B, 0x0F));
     byteVec.push_back(std::make_pair(0x2B65, 0x0F));
 
-    if (mInfra->mExtendedGame) {
+    if (mGame->mExtendedGame) {
        //add unknown value also for the additional 3 levels
        byteVec.push_back(std::make_pair(0x2BAF, 0x0F));
        byteVec.push_back(std::make_pair(0x2BF9, 0x0F));

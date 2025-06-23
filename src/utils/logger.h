@@ -12,11 +12,6 @@
 
 #include "irrlicht.h"
 #include <vector>
-//#include "SFML/System.hpp"
-//#include <algorithm>
-//#include <cstdint>
-#include "wchar.h"
-#include "../models/player.h"
 
 struct LogEntryStruct {
     wchar_t* logText = nullptr;

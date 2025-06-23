@@ -10,23 +10,22 @@
 #ifndef MUSIC_H
 #define MUSIC_H
 
-#include "adlmidi.h"
-#include "ail/format_ail2_gtl.h"
-#include "ail/wopl_file.h"
-#include "ail/format_wohlstand_opl3.h"
 #include "SFML/Audio.hpp"
-#include "../utils/fileutils.h"
-#include "../infrabase.h"
+#include "adlmidi.h"
 
 #define MUSIC_BUFSIZE 8192
 #define MUSIC_INSTRFILE_PATH "extract/InstrOPL.wopl"
 
-class InfrastructureBase; //forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Game;
 
 class MyMusicStream : public sf::SoundStream
 {
 public:
-    MyMusicStream(InfrastructureBase* infraPnter, unsigned int sampleRate);
+    MyMusicStream(Game* gamePnter, unsigned int sampleRate);
     ~MyMusicStream();
     virtual bool onGetData(Chunk& data);
 
@@ -46,8 +45,8 @@ public:
     void SetVolume(float newVolume);
 
 private:
-    //pointer to infrastructure
-    InfrastructureBase* mInfra = nullptr;
+    //pointer to game
+    Game* mGame = nullptr;
 
     //Its kind of dirty that we used two buffers
     //but leave it like this right now

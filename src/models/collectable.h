@@ -10,9 +10,8 @@
 #ifndef COLLECTABLE_H
 #define COLLECTABLE_H
 
-#include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
-#include "../race.h"
+#include "irrlicht.h"
+#include "../resources/entityitem.h"
 
 //preset values, also used in
 //HiOctaneTools
@@ -23,7 +22,11 @@ const irr::f32 CollectableSize_h = 0.45f;
 //disappears again, if it was not collected by any player until then
 const irr::f32 DEF_TYPE2_COLLECTABLE_LIFETIME = 30.0f;
 
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class InfrastructureBase;
 
 //Note 02.02.2025: In this project there are two different types of Collectables
 // Type 1: Entities (Collectables) that are stored inside the original game map files, and always
@@ -39,12 +42,10 @@ class Race; //Forward declaration
 class Collectable {
 public:
     //this constructor is for the first type of entity/collectable (which is created based on a game map file entity item)
-    Collectable(Race* race, EntityItem* entityItem, vector3d<irr::f32> pos,
-                irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver);
+    Collectable(InfrastructureBase* infra, EntityItem* entityItem, vector3d<irr::f32> pos, irr::video::ITexture* texture, bool enableLightning);
 
     //this constructor is for the second type of entity/collectable (which is temporarily spawned when a player craft breaks down)
-    Collectable(Race* race, Entity::EntityType type, vector3d<irr::f32> pos,
-                irr::scene::ISceneManager* mSmgr, irr::video::IVideoDriver *driver);
+    Collectable(InfrastructureBase* infra, Entity::EntityType type, vector3d<irr::f32> pos, irr::video::ITexture* texture, bool enableLightning);
 
     ~Collectable();
 
@@ -95,7 +96,7 @@ public:
     bool GetType2CollectableCleanUpNecessary();
 
 private:
-    Race* mRace = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     bool mEnableLightning;
 
@@ -107,9 +108,6 @@ private:
     irr::f32 remainingLifeTime = DEF_TYPE2_COLLECTABLE_LIFETIME;
 
 protected:
-    irr::video::IVideoDriver* m_driver = nullptr;
-    irr::scene::ISceneManager *m_smgr = nullptr;
-
     //default is non visible after
     //start of game, and before entity group
     //1 is triggered (group 1 is triggered once

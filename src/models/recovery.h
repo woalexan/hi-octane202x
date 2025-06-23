@@ -11,8 +11,6 @@
 #define RECOVERY_H
 
 #include <irrlicht.h>
-#include "player.h"
-#include "../utils/path.h"
 
 #define STATE_RECOVERY_IDLE 0
 #define STATE_RECOVERY_MOVETODUTY 1
@@ -31,7 +29,13 @@ const irr::f32 RECOVERY_VEHICLE_SPEED_CRAWL = 5.0f;
 const irr::f32 RECOVERY_VEHICLE_DROPOFTARGET_FREESPACE_REQ = 0.1f;  //1.0f
 const irr::f32 RECOVERY_VEHICLE_ACCELDEACCELRATE = 0.1f;
 
-class Player; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Player;
+struct WayPointLinkInfoStruct;
+class Race;
 
 class Recovery {
 public:
@@ -45,6 +49,8 @@ public:
     irr::core::vector3df GetCurrentPosition();
 
     void Update(irr::f32 deltaTime);
+
+    irr::scene::IMeshSceneNode* Recovery_node = nullptr;
 
 private:
     //my current position I am at
@@ -74,7 +80,6 @@ private:
     irr::f32 mDistanceStartBraking;
 
     irr::scene::IAnimatedMesh*  RecoveryMesh = nullptr;
-    irr::scene::IMeshSceneNode* Recovery_node = nullptr;
 
     //recovery vehicle shadow SceneNode
     irr::scene::IShadowVolumeSceneNode* NodeShadow = nullptr;

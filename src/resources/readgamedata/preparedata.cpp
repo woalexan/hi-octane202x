@@ -11,10 +11,15 @@
 //
 
 #include "preparedata.h"
-
+#include "../../infrabase.h"
 #include "../../utils/logging.h"
-#include "../intro/flifix.h"
+#include "../../utils/fileutils.h"
+#include "../readgamedata/objectdatfile.h"
 #include <iomanip>
+#include "../xbrz-1-8/xbrz.h"
+#include "../intro/flifix.h"
+#include "../readgamedata/dernc.h"
+#include <sstream>
 
 void UnpackDataFile(const char* packfile, const char* unpackfile);
 void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);

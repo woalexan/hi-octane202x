@@ -17,9 +17,6 @@ anymore   */
 #ifndef RNC_DERNC_H
 #define RNC_DERNC_H
 
-#include <string>
-#include "../../utils/logging.h"
-
 /*
  * Routines
  */

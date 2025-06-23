@@ -10,9 +10,14 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include "../race.h"
+#include <irrlicht.h>
 
-class Race; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Race;
+class EntityItem;
 
 class Timer {
 public:

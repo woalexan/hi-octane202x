@@ -15,7 +15,6 @@
 #define __PrgTools_H
 
 #include <stdio.h>
-#include "../../utils/logging.h"
 
 typedef unsigned long ulong;
 typedef unsigned int uint;
@@ -79,7 +78,6 @@ void saveBlockToNewFile(const char *FName,void *Buf,size_t BufSize);
 void saveDataToFile(void *BufDest,size_t Size,FILE *DestFile);
 int loadDataFromFile(FILE *File,void *Buf,size_t BytesToRead,int ErrNum,int Options);
 void *allocateMem(ulong buffer_size,int ErrNum,int mem_clear,int Options);
-
 
 
 #endif	// __PrgTools_H

@@ -15,13 +15,9 @@
 #ifndef LEVELTERRAIN_H
 #define LEVELTERRAIN_H
 
+#include "irrlicht.h"
+#include <vector>
 #include "../resources/levelfile.h"
-#include "../resources/mapentry.h"
-#include <irrlicht.h>
-#include "../resources/texture.h"
-#include "../utils/logging.h"
-#include "morph.h"
-#include "../definitions.h"
 #include "player.h"
 
 using namespace irr;
@@ -31,9 +27,10 @@ using namespace scene;
 using namespace io;
 using namespace gui;
 
-#define LEVELTERRAIN_VIEW_WIREFRAME 0
-#define LEVELTERRAIN_VIEW_DEFAULT 1
-#define LEVELTERRAIN_VIEW_DEBUGNORMALS 2
+#define LEVELTERRAIN_VIEW_OFF 0
+#define LEVELTERRAIN_VIEW_WIREFRAME 1
+#define LEVELTERRAIN_VIEW_DEFAULT 2
+#define LEVELTERRAIN_VIEW_DEBUGNORMALS 3
 
 typedef SColor colour_func(f32 x, f32 y, f32 z);
 
@@ -42,7 +39,15 @@ typedef SColor colour_func(f32 x, f32 y, f32 z);
 #define DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES 0.9f;  //steepness threshold to trigger
                                                           //collision with terrain tile map
 
-class Morph; //Forward declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Morph;
+class InfrastructureBase;
+struct TerrainTileData;
+class TextureLoader;
+class MapEntry;
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -116,12 +121,9 @@ struct TerrainTileData {
     irr::f32 currTileHeight = 0.0f;
 };
 
-class Race; //Forward declaration
-
 class LevelTerrain {
 public:
-    LevelTerrain(char* name, LevelFile* levelRes, scene::ISceneManager *mySmgr, irr::video::IVideoDriver *driver, TextureLoader* textureSource,
-                 Race* mRaceParent, bool enableLightning);
+    LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning);
     ~LevelTerrain();
 
     void FinishTerrainInitialization();
@@ -150,13 +152,17 @@ public:
     irr::u16 get_width();
     irr::u16 get_heigth();
 
+    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, irr::video::SMaterial* color);
+
     irr::f32 GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord);
     irr::f32 GetHeightInterpolated(irr::f32 x, irr::f32 z);
     MapEntry* GetMapEntry(int x, int y);
     irr::core::vector2di GetClosestTileGridCoordToMapPosition(irr::core::vector3df mapPosition, int &outNrVertice);
     void ForceTileGridCoordRange(irr::core::vector2di &tileGridPos);
 
-    void SwitchViewMode();
+    void SetViewMode(irr::u8 newViewMode);
+    irr::u8 GetCurrentViewMode();
+
     irr::video::IImage* CreateMiniMapInfo(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP);
     vector3d<irr::f32> computeNormalFromPositionsBuffer(irr::s32 x, irr::s32 z, irr::f32 intensity);
     void CheckPosInsideChargingRegion(int posX, int posY, bool &chargeShield, bool &chargeFuel, bool &chargeAmmo);
@@ -203,6 +209,8 @@ public:
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
     bool IsChargingStationTexture(irr::s32 texture);
 
+    void SetCellTexture(int posX, int posY, int16_t newTextureId, int8_t newTextureModifier);
+
     //void DebugOutputFoundChargingTextures();
 
 private:
@@ -214,19 +222,22 @@ private:
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
+    std::vector<SMeshBuffer*> meshBuffers;
+    std::vector<int16_t> meshBufferTexIdVec;
+
     void CreateTerrainMesh();
+    irr::u16 GetMeshBufferIndexForTextureId(int posX, int posY, int16_t newTextureId);
 
     //only used for debugging
     //std::vector<irr::s32> mDbgChargerTexFound;
 
-    irr::video::IVideoDriver *m_driver = nullptr;
-    scene::ISceneManager *m_smgr = nullptr;
-    Race* mRace = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     TextureLoader* mTexSource = nullptr;
     //std::string m_texfile;
 
     bool mEnableLightning;
+    bool mOptimizeMesh;
 
     char mName[50];
 
@@ -247,7 +258,7 @@ private:
     irr::u32 numUVs;
     irr::u32 numNormals;
 
-    irr::s32 myCurrentViewMode = LEVELTERRAIN_VIEW_DEFAULT;
+    irr::u8 mCurrentViewMode;
 };
 
 #endif // LEVELTERRAIN_H

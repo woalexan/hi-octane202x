@@ -8,13 +8,26 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "cpuplayer.h"
+#include "player.h"
+#include "../game.h"
+#include "../utils/physics.h"
+#include "../utils/bezier.h"
+#include "../utils/ray.h"
+#include "mgun.h"
+#include "missile.h"
+#include "../utils/worldaware.h"
+#include "../race.h"
+#include "chargingstation.h"
+#include "../draw/drawdebug.h"
+#include "../resources/levelfile.h"
+#include "../models/collectable.h"
 
 CpuPlayer::CpuPlayer(Player* myParentPlayer) {
    mParentPlayer = myParentPlayer;
 
    mPathHistoryVec.clear();
 
-   currDbgColor = mParentPlayer->mRace->mDrawDebug->red;
+   currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->red;
 
    //create the player command list
    cmdList = new std::list<CPCOMMANDENTRY*>();
@@ -132,7 +145,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     newLineStr->B = posEntity;
 
     //set white as default color
-    newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+    newLineStr->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
     newLineStr->name = new char[10];
     strcpy(newLineStr->name, "");
 
@@ -159,7 +172,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     sprintf(lineExt->name, "");
 
     //set white as default color
-    lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+    lineExt->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
 
     newStruct->pLineStructExtended = lineExt;
 
@@ -173,7 +186,7 @@ void CpuPlayer::AddCommand(uint8_t cmdType, EntityItem* targetEntity) {
     //to the right direction when looking into race direction
     //this direction vector is later used during the game to offset the player
     //path sideways
-    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+    newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mGame->yAxisDirVector).normalize();
 
     //also store this temporary waypointlink struct info
     //in the command, so that we can cleanup after this command was
@@ -249,7 +262,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         newLineStr->B = whichChargingStation->enterHelperEntityItem->getCenter();
 
         //set white as default color
-        newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+        newLineStr->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
         newLineStr->name = new char[10];
         strcpy(newLineStr->name, "");
 
@@ -276,7 +289,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         sprintf(lineExt->name, "");
 
         //set white as default color
-        lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+        lineExt->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
 
         newStruct->pLineStructExtended = lineExt;
 
@@ -295,7 +308,7 @@ void CpuPlayer::CpCommandPlayerToChargingStall(ChargingStation* whichChargingSta
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mGame->yAxisDirVector).normalize();
         //newStruct->pEndEntity = whichStall->entityItem;
 
         newStruct->pEndEntity = whichChargingStation->enterHelperEntityItem;
@@ -367,7 +380,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         }
 
         //set white as default color
-        newLineStr->color = mParentPlayer->mRace->mDrawDebug->white;
+        newLineStr->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
         newLineStr->name = new char[10];
         strcpy(newLineStr->name, "");
 
@@ -394,7 +407,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         sprintf(lineExt->name, "");
 
         //set white as default color
-        lineExt->color = mParentPlayer->mRace->mDrawDebug->white;
+        lineExt->color = mParentPlayer->mRace->mGame->mDrawDebug->white;
 
         newStruct->pLineStructExtended = lineExt;
 
@@ -414,7 +427,7 @@ void CpuPlayer::CpCommandPlayerToExitChargingStall(ChargingStation* whichChargin
         //to the right direction when looking into race direction
         //this direction vector is later used during the game to offset the player
         //path sideways
-        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->yAxisDirVector).normalize();
+        newStruct->offsetDirVec = newStruct->LinkDirectionVec.crossProduct(-*mParentPlayer->mRace->mGame->yAxisDirVector).normalize();
 
         CheckAndRemoveNoCommand();
 
@@ -537,7 +550,7 @@ void CpuPlayer::DebugDraw() {
        std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
        for (itPathEl = mCurrentPathSeg.begin(); itPathEl != mCurrentPathSeg.end(); ++itPathEl) {
-             mParentPlayer->mRace->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+             mParentPlayer->mRace->mGame->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
         }
   }
 }
@@ -730,7 +743,7 @@ WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vecto
 
         //choose available path random
         int rNum;
-        rNum = mParentPlayer->mInfra->randRangeInt(0, nrWays - 1);
+        rNum = mParentPlayer->mRace->mGame->randRangeInt(0, nrWays - 1);
 
         //LogMessage((char*)"Entered a new (unspecial) Waypoint-Link");
 
@@ -1520,14 +1533,14 @@ void CpuPlayer::CpStuckDetection(irr::f32 deltaTime) {
 }
 
 void CpuPlayer::AdvanceDbgColor() {
-    if (currDbgColor == mParentPlayer->mRace->mDrawDebug->red)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->cyan;
-    } else if (currDbgColor == mParentPlayer->mRace->mDrawDebug->cyan)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->pink;
-    } else if (currDbgColor == mParentPlayer->mRace->mDrawDebug->pink)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->green;
-    } else if (currDbgColor == mParentPlayer->mRace->mDrawDebug->green)  {
-        currDbgColor = mParentPlayer->mRace->mDrawDebug->red;
+    if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->red)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->cyan;
+    } else if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->cyan)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->pink;
+    } else if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->pink)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->green;
+    } else if (currDbgColor == mParentPlayer->mRace->mGame->mDrawDebug->green)  {
+        currDbgColor = mParentPlayer->mRace->mGame->mDrawDebug->red;
     }
 }
 

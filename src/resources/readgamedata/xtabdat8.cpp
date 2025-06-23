@@ -1,13 +1,12 @@
 // converts picture data from bullfrog's DAT/TAB files into BMPs
 // works with 8bpp files, needs a .dat and a .tab file
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "bulcommn.h"
 #include "xtabdat8.h"
 #include <inttypes.h>
+#include <cstring>
+#include "../../utils/logging.h"
+#include <stdlib.h>
 
 //source code taken from http://syndicate.lubiki.pl/downloads/bullfrog_utils_tabdat.zip
 //for readme file please see bullfrog_utils_tabdat-readme.txt

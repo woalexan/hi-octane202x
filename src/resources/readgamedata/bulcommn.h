@@ -5,13 +5,8 @@
 #ifndef BULL_BULCOMMN_H
 #define BULL_BULCOMMN_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <cstring>
 #include <cstdint>
-#include <string>
-#include "../../utils/logging.h"
+#include <stdio.h>
 
 //source code taken from http://syndicate.lubiki.pl/downloads/bullfrog_utils_tabdat.zip
 //for readme file please see bullfrog_utils_tabdat-readme.txt

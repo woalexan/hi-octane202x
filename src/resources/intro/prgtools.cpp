@@ -17,6 +17,7 @@ anymore. Otherwise I would not have been able to compile it, or use it in my pro
 #include <string.h>
 #include "prgtools.h"
 #include <errno.h>
+#include "../../utils/logging.h"
 
 long filesize(FILE *fp)
 {

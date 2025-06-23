@@ -11,12 +11,15 @@
 #define MISSILE_H
 
 #include <irrlicht.h>
-#include "player.h"
-#include "../audio/sound.h"
-#include "../models/explauncher.h"
+#include <vector>
+#include <SFML/Audio.hpp>
 
-class Player; //Forwards declaration
-class MissileLauncher; //Forwards declaration
+/************************
+ * Forward declarations *
+ ************************/
+
+class Player;
+class MissileLauncher;
 
 #define DEF_MISSILE_SPEED 20.0f
 #define DEF_MISSILE_SMOKEDIST 1.0f
