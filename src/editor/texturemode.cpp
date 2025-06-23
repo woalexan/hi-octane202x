@@ -25,6 +25,18 @@ TextureModeTexCategory::TextureModeTexCategory(TextureMode* parent) {
 }
 
 TextureModeTexCategory::~TextureModeTexCategory() {
+    //cleanup all texture info structs and Gui Elements
+    std::vector<GUITextureModeTexDataStruct*>::iterator it;
+    GUITextureModeTexDataStruct* pntr;
+
+    for (it = this->mGuiTextureSelectionVec.begin(); it != this->mGuiTextureSelectionVec.end(); ) {
+        pntr = (*it);
+
+        it = mGuiTextureSelectionVec.erase(it);
+
+        pntr->guiElement->remove();
+        delete pntr;
+    }
 }
 
 void TextureModeTexCategory::HideAllTextures() {
@@ -123,9 +135,20 @@ TextureMode::TextureMode(EditorSession* parentSession) {
 }
 
 TextureMode::~TextureMode() {
+    //cleanup all data
+    std::vector<TextureModeTexCategory*>::iterator it;
+    TextureModeTexCategory* pntr;
+
+    for (it = this->mTexCategoryVec.begin(); it != this->mTexCategoryVec.end(); ) {
+        pntr = (*it);
+
+        it = mTexCategoryVec.erase(it);
+
+        delete pntr;
+    }
 }
 
-void TextureMode::AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* checkBoxPntr) {
+void TextureMode::AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* comboBoxPntr) {
      TextureModeTexCategory* newCat = new TextureModeTexCategory(this);
      newCat->categoryName = categoryName;
      newCat->categoryNr = categoryNr;
@@ -134,7 +157,7 @@ void TextureMode::AddTextureCategory(const wchar_t* categoryName, irr::u8 catego
      newCat->mDialogComboBoxElementId = mParentSession->GetNextFreeGuiId();
 
      //add new item to the dialog checkbox
-     checkBoxPntr->addItem(categoryName, newCat->mDialogComboBoxElementId );
+     comboBoxPntr->addItem(categoryName, newCat->mDialogComboBoxElementId );
 
      mTexCategoryVec.push_back(newCat);
 }
@@ -147,6 +170,20 @@ void TextureMode::TextureCategoryChanged(irr::u32 newSelectedGuiId) {
     }
 }
 
+bool TextureMode::IsWindowOpen() {
+    if (mGuiTextureMode.Window != nullptr)
+        return true;
+
+    return false;
+}
+
+irr::core::rect<irr::s32> TextureMode::GetWindowPosition() {
+   if (mGuiTextureMode.Window != nullptr) {
+    return mGuiTextureMode.Window->getAbsolutePosition();
+   } else
+    return (irr::core::rect<irr::s32>(0, 0, 0, 0));
+}
+
 void TextureMode::CreateWindow() {
     mGuiTextureMode.drop();
 
@@ -157,7 +194,7 @@ void TextureMode::CreateWindow() {
 
     irr::core::dimension2d<irr::u32> dim ( 600, 500 );
 
-    mGuiTextureMode.Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures" );
+    mGuiTextureMode.Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures", 0, GUI_ID_TEXTUREWINDOW);
 
     mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
                                       rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, mGuiTextureMode.Window, -1, false );
@@ -420,32 +457,45 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
 }
 
 void TextureMode::OnLeftMouseButtonDown() {
-    //are we hovering right now over exactly one of my
-    //texture selection images?
-    if (mCurrShownTexCategory != nullptr) {
-        //returns nullptr if no texture image in the dialog
-        //is currently hovered with the mouse
-        GUITextureModeTexDataStruct* pntr = mCurrShownTexCategory->FoundCurrentlyHoveredTexture();
-        if (pntr != nullptr) {
-            //some new texture image was selected
-            //handle action inside this function call
-            OnUserChangedToNewTexture(mParentSession->mItemSelector->mCurrSelectedItem, pntr->textureId);
+    switch (mParentSession->mUserInDialogState) {
+         case DEF_EDITOR_USERINNODIALOG: {
+            //is now a new level cell or block selected?
+            if ((mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) ||
+               (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK)) {
+                    NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+            }
+
+            break;
+         }
+
+        case DEF_EDITOR_USERINTEXTUREDIALOG: {
+            //are we hovering right now over exactly one of my
+            //texture selection images?
+            if (mCurrShownTexCategory != nullptr) {
+                //returns nullptr if no texture image in the dialog
+                //is currently hovered with the mouse
+                GUITextureModeTexDataStruct* pntr = mCurrShownTexCategory->FoundCurrentlyHoveredTexture();
+                if (pntr != nullptr) {
+                    //some new texture image was selected
+                    //handle action inside this function call
+                    OnUserChangedToNewTexture(mParentSession->mItemSelector->mCurrSelectedItem, pntr->textureId);
+                }
+            }
+
+           break;
         }
-    }
 
-    //if we are not hovering right now over one of our
-    //texture selection images, check if the user has selected
-    //another element in the level
-
-    //is now an item selected?
-    if ((mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) ||
-        (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK)) {
-        NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+        default: {
+           break;
+        }
     }
 }
 
 void TextureMode::OnElementHovered(irr::u32 hoveredGuiId) {
     if (mCurrShownTexCategory == nullptr)
+        return;
+
+    if (mParentSession->mUserInDialogState != DEF_EDITOR_USERINTEXTUREDIALOG)
         return;
 
     //which texture was hovered?
@@ -482,6 +532,7 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
    //only trigger action if either a cell or a block face is currently selected
    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
        std::cout << "changed Cell TexID to " << newTextureId << std::endl;
+       mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId, 0);
    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
        std::cout << "changed block TexID to " << newTextureId << std::endl;
    }

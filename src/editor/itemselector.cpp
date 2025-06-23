@@ -15,6 +15,7 @@
 #include "../resources/columndefinition.h"
 #include "../editor.h"
 #include "../draw/drawdebug.h"
+#include "../models/column.h"
 
 ItemSelector::ItemSelector(EditorSession* parent) {
     mParent = parent;
@@ -44,8 +45,8 @@ ItemSelector::~ItemSelector() {
     delete mRayColumns;
 }
 
-//derives more high level information about the selected terrain cell
-void ItemSelector::DeriveSelectedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo) {
+//derives more high level information about the highlighted terrain cell
+void ItemSelector::DeriveHighlightedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo) {
     //a terrain cell is selected currently
     mCurrHighlightedItem.SelectedItemType = DEF_EDITOR_SELITEM_CELL;
     mCurrHighlightedItem.RayHitInfo = *hitTriangleInfo;
@@ -70,8 +71,8 @@ irr::core::vector3df ItemSelector::GetTriangleMidPoint(RayHitTriangleInfoStruct*
     return result;
 }
 
-//derives more high level information about the selected block
-void ItemSelector::DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo) {
+//derives more high level information about the highlighted block
+void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo) {
     //a block of a column is selected currently
     mCurrHighlightedItem.SelectedItemType = DEF_EDITOR_SELITEM_BLOCK;
     mCurrHighlightedItem.RayHitInfo = *hitTriangleInfo;
@@ -109,26 +110,31 @@ void ItemSelector::DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hitT
             //we found the column
             mCurrHighlightedItem.mColumnSelected = columnPntr;
 
-            std::vector<int>::iterator it;
-            for (it = columDef->mInCollisionMesh.begin(); it != columDef->mInCollisionMesh.end(); ++it) {
-                if ((*it) == 0) {
-                    nrSkippedBlocks++;
-                } else {
-                    break;
-                }
-            }
+            nrSkippedBlocks = columnPntr->GetNumberMissingBlocksAtBase();
         } else {
             mCurrHighlightedItem.mColumnSelected = nullptr;
         }
 
+        /*irr::f32 heightOfTerrain =
+                mParent->mLevelTerrain->GetMapEntry(cellCoord.X,cellCoord.Y)->m_Height;*/
+
         irr::f32 heightOfTerrain =
-                mParent->mLevelTerrain->GetMapEntry(cellCoord.X,cellCoord.Y)->m_Height;
+                -mParent->mLevelTerrain->GetHeightInterpolated(cellCoord.X,cellCoord.Y);
 
-        irr::f32 heightAboveTerrain = centerPoint.Y - heightOfTerrain - 0.5f * mParent->mLevelTerrain->segmentSize;
+        //in which block from the base are we currently?
+        int blockCntFromTerrain = 0;
 
-        int nrBlocks = (int)(heightAboveTerrain / (irr::f32)(mParent->mLevelTerrain->segmentSize));
-        mCurrHighlightedItem.mSelBlockNrStartingFromBase = nrBlocks;
-        mCurrHighlightedItem.mSelBlockNrSkippingMissingBlocks = nrBlocks  - nrSkippedBlocks;
+        irr::f32 blockhmin = heightOfTerrain;
+        irr::f32 blockhmax = heightOfTerrain + mParent->mLevelTerrain->segmentSize;
+
+        while (!((centerPoint.Y >= blockhmin) && (centerPoint.Y <= blockhmax))) {
+            blockhmin += mParent->mLevelTerrain->segmentSize;
+            blockhmax += mParent->mLevelTerrain->segmentSize;
+            blockCntFromTerrain++;
+        }
+
+        mCurrHighlightedItem.mSelBlockNrStartingFromBase = blockCntFromTerrain;
+        mCurrHighlightedItem.mSelBlockNrSkippingMissingBlocks = blockCntFromTerrain  - nrSkippedBlocks;
 
         //figure out which "face" of the column cube is closest to the user
         //means in which face the ray enters the cube
@@ -391,12 +397,12 @@ void ItemSelector::Update() {
          triangleHit = nearestTriangleHitColumns;
          //secondTriangleHitByMouse = true;
          //secondTriangleMouseHit = *secondNearestTriangleHitColumns;
-        DeriveSelectedBlockInformation(nearestTriangleHitColumns, secondNearestTriangleHitColumns);
+        DeriveHighlightedBlockInformation(nearestTriangleHitColumns, secondNearestTriangleHitColumns);
     }
 
     if (nearestTriangleHitTerrain != nullptr) {
         triangleHit = nearestTriangleHitTerrain;
-        DeriveSelectedTerrainCellInformation(nearestTriangleHitTerrain);
+        DeriveHighlightedTerrainCellInformation(nearestTriangleHitTerrain);
     }
 
     //store the triangle hit also for low level ray
@@ -437,6 +443,11 @@ void ItemSelector::createTriangleSelectors() {
 }
 
 void ItemSelector::OnLeftMouseButtonDown() {
+    //only process event if user is currently over no
+    //window
+    if (mParent->mUserInDialogState != DEF_EDITOR_USERINNODIALOG)
+        return;
+
     //if an element was highlighted when the user pressed down the
     //left mouse button => select this item now
     if (mCurrHighlightedItem.SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
@@ -453,9 +464,11 @@ bool ItemSelector::GetStateFrozen() {
     return mFrozen;
 }
 
-void ItemSelector::DebugDraw() {
+void ItemSelector::Draw() {
+   //the commented out source code below is for selection ray intersection debugging only
+
    //draw current ray that is used for item/entity selection
-  /* mParent->mParentEditor->mDrawDebug->Draw3DLine(mRayLine.start , mRayLine.end, mParent->mParentEditor->mDrawDebug->orange);
+   /* mParent->mParentEditor->mDrawDebug->Draw3DLine(mRayLine.start , mRayLine.end, mParent->mParentEditor->mDrawDebug->orange);
 
    if (mDbgTerrainClosestTriangleHit) {
         mParent->mParentEditor->mDrawDebug->Draw3DTriangleOutline(&mDbgTerrainClosestTriangleHitData.hitTriangle, mParent->mParentEditor->mDrawDebug->white);
@@ -465,13 +478,22 @@ void ItemSelector::DebugDraw() {
         mParent->mParentEditor->mDrawDebug->Draw3DTriangleOutline(&mDbgBlockClosestTriangleHitData.hitTriangle, mParent->mParentEditor->mDrawDebug->red);
    }
    if (!OnlyShowOneTriag) {
-
-   if (mDbgBlock2ndClosestTriangleHit) {
-        mParent->mParentEditor->mDrawDebug->Draw3DTriangleOutline(&mDbgBlock2ndClosestTriangleHitData.hitTriangle, mParent->mParentEditor->mDrawDebug->blue);
+       if (mDbgBlock2ndClosestTriangleHit) {
+            mParent->mParentEditor->mDrawDebug->Draw3DTriangleOutline(&mDbgBlock2ndClosestTriangleHitData.hitTriangle, mParent->mParentEditor->mDrawDebug->blue);
+       }
    }
-   }
-
 
    mParent->mParentEditor->mDrawDebug->Draw3DLine(*mParent->mParentEditor->mDrawDebug->origin , dbgAvgPos, mParent->mParentEditor->mDrawDebug->pink);*/
+
+  //mark the currently user selected item
+  if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+      mParent->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem.mCellCoordSelected, mParent->mParentEditor->mDrawDebug->blue);
+  } else if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+      mParent->mLevelBlocks->DrawOutlineSelectedColumn(mCurrSelectedItem.mColumnSelected,
+                                                       mCurrSelectedItem.mSelBlockNrSkippingMissingBlocks,
+                                                       mParent->mParentEditor->mDrawDebug->white,
+                                                       mParent->mParentEditor->mDrawDebug->blue,
+                                                       mCurrSelectedItem.mSelBlockFaceDirection);
+  }
 }
 

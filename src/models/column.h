@@ -99,6 +99,14 @@ public:
 
     irr::u16 GetNumberContainedBlocks();
 
+    //returns the number of "missing" blocks at the base
+    //of the column until the first block is found
+    //can be used to detect tunnel roof elements etc...
+    //if there is not a single existing block in the column
+    //still will return 0, because then there is technically
+    //no "gap" of blocks
+    irr::u16 GetNumberMissingBlocksAtBase();
+
 private:
     bool setupGeometry();
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);

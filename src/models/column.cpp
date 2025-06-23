@@ -222,6 +222,57 @@ irr::f32 Column::GetOriginalHeightTile(int x, int z) {
     return p->m_Height;
 }
 
+//returns the number of "missing" blocks at the base
+//of the column until the first block is found
+//can be used to detect tunnel roof elements etc...
+//if there is not a single existing block in the column
+//still will return 0, because then there is technically
+//no "gap" of blocks
+irr::u16 Column::GetNumberMissingBlocksAtBase() {
+    irr::u16 gapBlockCnt = 0;
+
+    if (Definition->get_A() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_B() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_C() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_D() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_E() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_F() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_G() != 0)
+        return gapBlockCnt;
+
+    gapBlockCnt++;
+
+    if (Definition->get_H() != 0)
+        return gapBlockCnt;
+
+    //no "gap" found, return 0
+    return 0;
+}
+
 std::vector<vector2d<irr::f32>> Column::ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod) {
    std::vector<vector2d<irr::f32>> uvs;
 

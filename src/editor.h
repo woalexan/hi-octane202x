@@ -27,7 +27,7 @@ using namespace gui;
 // Values used to identify individual GUI elements
 enum
 {
-    GUI_ID_DIALOG_ROOT_WINDOW  = 0x10000,
+    GUI_ID_DIALOG_ROOT_WINDOW  = 0x20000,
 
     GUI_ID_OPEN_LEVEL,
     GUI_ID_QUIT,
@@ -43,6 +43,8 @@ enum
     GUI_ID_VIEW_BLOCKS_WIREFRAME,
     GUI_ID_VIEW_BLOCKS_DEFAULT,
     GUI_ID_VIEW_BLOCKS_NORMALS,
+
+    GUI_ID_TEXTUREWINDOW,
 
     GUI_ID_TESTBUTTON,
     GUI_ID_SCROLLBAR,

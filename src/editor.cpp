@@ -240,23 +240,23 @@ void Editor::OnScrollbarMoved(irr::s32 scrollBarId) {
 }
 
 void Editor::OnElementFocused(irr::s32 elementId) {
-  std::cout << "Element Focus " << elementId << std::endl;
+  //std::cout << "Element Focus " << elementId << std::endl;
 }
 
 void Editor::OnElementHovered(irr::s32 elementId) {
-  std::cout << "Element Hovered " << elementId << std::endl;
+  //std::cout << "Element Hovered " << elementId << std::endl;
 
   //the texture selection dialog needs all hover events
   //to be able to properly select textures
   if (mCurrentSession != nullptr) {
-    if (mCurrentSession->mTextureMode != nullptr) {
-        mCurrentSession->mTextureMode->OnElementHovered(elementId);
-    }
+      if (mCurrentSession->mTextureMode != nullptr) {
+          mCurrentSession->mTextureMode->OnElementHovered(elementId);
+      }
   }
 }
 
 void Editor::OnElementLeft(irr::s32 elementId) {
-  std::cout << "Element Left " << elementId << std::endl;
+  //std::cout << "Element Left " << elementId << std::endl;
 
   //the texture selection dialog needs all element left events
   //to be able to properly select textures
@@ -269,7 +269,7 @@ void Editor::OnElementLeft(irr::s32 elementId) {
 
 void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
   u32 val = comboBox->getItemData ( comboBox->getSelected() );
-  std::cout << "ComboBox changed " << val << std::endl;
+  //std::cout << "ComboBox changed " << val << std::endl;
   mCurrentSession->mTextureMode->TextureCategoryChanged(val);
 }
 
@@ -607,13 +607,12 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
     mTimeProfiler->StartOfGameLoop();
 
     mCurrentSession->HandleBasicInput();
+    mCurrentSession->TrackActiveDialog();
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
     //Update Time Profiler results
     mTimeProfiler->UpdateWindow();
-
-
 
     if (DebugShowVariableBoxes) {
 

@@ -209,6 +209,8 @@ public:
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
     bool IsChargingStationTexture(irr::s32 texture);
 
+    void SetCellTexture(int posX, int posY, int16_t newTextureId, int8_t newTextureModifier);
+
     //void DebugOutputFoundChargingTextures();
 
 private:
@@ -220,7 +222,11 @@ private:
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
+    std::vector<SMeshBuffer*> meshBuffers;
+    std::vector<int16_t> meshBufferTexIdVec;
+
     void CreateTerrainMesh();
+    irr::u16 GetMeshBufferIndexForTextureId(int posX, int posY, int16_t newTextureId);
 
     //only used for debugging
     //std::vector<irr::s32> mDbgChargerTexFound;

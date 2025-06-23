@@ -17,6 +17,9 @@
 #include "resources/entityitem.h"
 #include "utils/ray.h"
 
+#define DEF_EDITOR_USERINNODIALOG 0
+#define DEF_EDITOR_USERINTEXTUREDIALOG 1
+
 /************************
  * Forward declarations *
  ************************/
@@ -144,6 +147,8 @@ private:
 
     void setActiveCamera(irr::scene::ICameraSceneNode* newActive);
 
+    irr::u8 mLastUserInDialogState = DEF_EDITOR_USERINNODIALOG;
+
     GUI gui;
 
 public:
@@ -156,6 +161,9 @@ public:
     void End();
 
     void TestDialog();
+    void TrackActiveDialog();
+
+    irr::u8 mUserInDialogState = DEF_EDITOR_USERINNODIALOG;
 
     irr::core::vector2d<irr::s32> mCurrentMousePos;
 

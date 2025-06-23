@@ -801,7 +801,7 @@ void EditorSession::Render() {
                                                 mParentEditor->mDrawDebug->cyan, mParentEditor->mDrawDebug->pink, mItemSelector->mCurrHighlightedItem.mSelBlockFaceDirection);
     }
 
-    mItemSelector->DebugDraw();
+    mItemSelector->Draw();
 
      //mDrawDebug->Draw3DLine(mDbgRay.start , mDbgRay.end, mDrawDebug->cyan);
    //   mDrawDebug->Draw3DLine(*mDrawDebug->origin, dbgRayEnd, mDrawDebug->blue);
@@ -900,6 +900,32 @@ void EditorSession::HandleBasicInput() {
                         camera->setInputReceiverEnabled( !camera->isInputReceiverEnabled() );
                     }
               }
+}
+
+void EditorSession::TrackActiveDialog() {
+    mLastUserInDialogState = mUserInDialogState;
+    mUserInDialogState = DEF_EDITOR_USERINNODIALOG;
+
+    if (mTextureMode != nullptr) {
+        if (mTextureMode->IsWindowOpen()) {
+           irr::core::rect<s32> windowPos = mTextureMode->GetWindowPosition();
+           if (windowPos.isPointInside(mCurrentMousePos)) {
+               //mouse cursor is currently inside
+               //texture mode window
+               mUserInDialogState = DEF_EDITOR_USERINTEXTUREDIALOG;
+           }
+        }
+    }
+
+    if (mLastUserInDialogState != mUserInDialogState) {
+        if (mUserInDialogState == DEF_EDITOR_USERINTEXTUREDIALOG) {
+            std::cout << "Mouse cursor entered TextureMode window!" << std::endl;
+        }
+
+        if (mUserInDialogState == DEF_EDITOR_USERINNODIALOG) {
+            std::cout << "Mouse cursor is currently over no window!" << std::endl;
+        }
+    }
 }
 
 void EditorSession::End() {

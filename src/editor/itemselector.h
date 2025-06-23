@@ -67,11 +67,11 @@ private:
 
     irr::core::line3df mRayLine;
 
-    //derives more high level information about the selected terrain cell
-    void DeriveSelectedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo);
+    //derives more high level information about the highlighted terrain cell
+    void DeriveHighlightedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo);
 
-    //derives more high level information about the selected block
-    void DeriveSelectedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo);
+    //derives more high level information about the highlighted block
+    void DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* hitTriangleInfo, RayHitTriangleInfoStruct* hitSecondClosestTriangleInfo);
 
     //ray class to find intersection with Terrain Cells
     Ray* mRayTerrain = nullptr;
@@ -132,7 +132,7 @@ public:
     void SetStateFrozen(bool frozen);
     bool GetStateFrozen();
 
-    void DebugDraw();
+    void Draw();
 };
 
 #endif // ITEMSELECTOR_H

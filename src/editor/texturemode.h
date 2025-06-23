@@ -100,7 +100,7 @@ struct GUITextureMode
 
 class TextureMode {
 private:
-    void AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* checkBoxPntr);
+    void AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* comboBoxPntr);
 
     //returns nullptr if category is not found
     TextureModeTexCategory* FindTextureCategory(irr::u8 categoryNr);
@@ -221,6 +221,9 @@ public:
     ~TextureMode();
 
     void CreateWindow();
+    bool IsWindowOpen();
+    irr::core::rect<irr::s32> GetWindowPosition();
+
     void TextureCategoryChanged(irr::u32 newSelectedGuiId);
 
     //we need the following two Gui events to be able to properly select
