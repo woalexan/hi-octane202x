@@ -123,7 +123,7 @@ struct TerrainTileData {
 
 class LevelTerrain {
 public:
-    LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning);
+    LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning);
     ~LevelTerrain();
 
     void FinishTerrainInitialization();
@@ -209,7 +209,8 @@ public:
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
     bool IsChargingStationTexture(irr::s32 texture);
 
-    void SetCellTexture(int posX, int posY, int16_t newTextureId, int8_t newTextureModifier);
+    void SetCellTexture(int posX, int posY, int16_t newTextureId);
+    void SetCellTextureModification(int posX, int posY, int8_t newTextureModifier);
 
     //void DebugOutputFoundChargingTextures();
 
@@ -226,7 +227,7 @@ private:
     std::vector<int16_t> meshBufferTexIdVec;
 
     void CreateTerrainMesh();
-    irr::u16 GetMeshBufferIndexForTextureId(int posX, int posY, int16_t newTextureId);
+    irr::u16 GetMeshBufferIndexForTextureId(int16_t newTextureId);
 
     //only used for debugging
     //std::vector<irr::s32> mDbgChargerTexFound;
@@ -240,6 +241,8 @@ private:
     bool mOptimizeMesh;
 
     char mName[50];
+
+    bool mLevelEditorMode;
 
     /*void AddDirtySMeshBuffer(irr::scene::SMeshBuffer *newDirtyBuffer,
                                            std::vector<irr::scene::SMeshBuffer*> &currDirtyList);*/

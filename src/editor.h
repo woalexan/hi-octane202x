@@ -30,6 +30,7 @@ enum
     GUI_ID_DIALOG_ROOT_WINDOW  = 0x20000,
 
     GUI_ID_OPEN_LEVEL,
+    GUI_ID_SAVE_LEVEL,
     GUI_ID_QUIT,
 
     GUI_ID_VIEWMODE_TERRAIN,
@@ -45,6 +46,9 @@ enum
     GUI_ID_VIEW_BLOCKS_NORMALS,
 
     GUI_ID_TEXTUREWINDOW,
+    GUI_ID_TEXCATEGORYCOMBOBOX,
+    GUI_ID_TEXMODIFICATIONCOMBOBOX,
+
 
     GUI_ID_TESTBUTTON,
     GUI_ID_SCROLLBAR,
@@ -101,6 +105,10 @@ private:
     void OnLeftMouseButtonDown();
     void OnLeftMouseButtonUp();
 
+    //Routine setSkinTransparency taken from Irrlicht engine
+    //"Example 009 Mesh Viewer"
+    void setSkinTransparency(s32 alpha, irr::gui::IGUISkin * skin);
+
     //special images for the game
     irr::video::ITexture* gameTitle = nullptr;
     irr::core::vector2di gameTitleDrawPos;
@@ -131,7 +139,7 @@ public:
     bool enableLightning = false;
     bool enableShadows = false;
     bool fullscreen = false;
-    bool DebugShowVariableBoxes = true;
+    bool DebugShowVariableBoxes = false;
 
     //Returns true for success, false for error occured
     bool InitEditorStep1();

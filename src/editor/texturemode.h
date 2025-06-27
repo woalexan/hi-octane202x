@@ -68,6 +68,12 @@ public:
       irr::u32 mDialogComboBoxElementId;
 };
 
+struct GUITextureModificationDataStruct {
+      const wchar_t* texModificationName;
+      int8_t texModValue;
+      irr::u32 mDialogComboBoxElementId;
+};
+
 struct GUITextureModeTexDataStruct {
     //TextureModeTexCategory* category;
     int16_t textureId;
@@ -94,8 +100,10 @@ struct GUITextureMode
 
     irr::gui::IGUIWindow* Window;
     irr::gui::IGUIComboBox* texCategoryList;
+    irr::gui::IGUIComboBox* texModification;
 
     irr::gui::IGUIImage* CurrentSelectedTexture;
+    irr::gui::IGUIStaticText* CurrentSelectedTextureIdText;
 };
 
 class TextureMode {
@@ -107,12 +115,16 @@ private:
 
     //returns nullptr if category is not found
     TextureModeTexCategory* FindTextureCategoryByGuiId(irr::u32 guiId);
+    GUITextureModificationDataStruct* FindTextureModificationByGuiId(irr::u32 guiId);
 
     void DefineAllTextures();
     void SelectTextureModeTexCategory(TextureModeTexCategory* newCat);
+    void SelectTextureModification(int8_t newSelectedTexModification);
 
     void OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruct whichItem, int16_t newTextureId);
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
+
+    void AddTextureModification(const wchar_t* entryName, int8_t texModValue, irr::gui::IGUIComboBox* comboBoxPntr);
 
     /* 21.06.2025: Best categories I found so far for the available
        Texture types in the game
@@ -215,6 +227,8 @@ private:
                                                124, 125, 126, 132};
 
     TextureModeTexCategory* mCurrShownTexCategory = nullptr;
+
+    std::vector<GUITextureModificationDataStruct*> mTexModificationVec;
     
 public:
     TextureMode(EditorSession* parentSession);
@@ -225,6 +239,7 @@ public:
     irr::core::rect<irr::s32> GetWindowPosition();
 
     void TextureCategoryChanged(irr::u32 newSelectedGuiId);
+    void TextureModificationChanged(irr::u32 newSelectedGuiId);
 
     //we need the following two Gui events to be able to properly select
     //textures in the texture selection dialog

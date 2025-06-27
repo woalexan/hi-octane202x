@@ -327,10 +327,11 @@ void LevelTerrain::FinishTerrainInitialization() {
     }
 }
 
-LevelTerrain::LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
+LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
    this->mInfra = infra;
    mEnableLightning = enableLightning;
    mOptimizeMesh = optimizeMesh;
+   mLevelEditorMode = levelEditorMode;
 
    //mDbgChargerTexFound.clear();
 
@@ -712,7 +713,7 @@ void LevelTerrain::CreateTerrainMesh() {
       //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
       newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
       meshBuffers.push_back(newBuf);
-      meshBufferTexIdVec.push_back(idx);
+      meshBufferTexIdVec.push_back(idx + this->mTexSource->NumLevelTextures);
     }
 
     //now we just need to sort the triangles into the different MeshBuffers according to their
@@ -826,11 +827,12 @@ void LevelTerrain::CreateTerrainMesh() {
               }
             }
 
-        meshBuffers[idx2]->BoundingBox.reset(0,0,0);
-        meshBuffers[idx2]->recalculateBoundingBox();
-
         //meshBuffers[idx2+nrTex]->BoundingBox.reset(0,0,0);
         //meshBuffers[idx2+nrTex]->recalculateBoundingBox();
+      }
+
+        meshBuffers[idx2]->BoundingBox.reset(0,0,0);
+        meshBuffers[idx2]->recalculateBoundingBox();
 
         //add SMeshbuffer to overall terrain mesh
         myStaticTerrainMesh->addMeshBuffer(meshBuffers[idx2]);
@@ -838,7 +840,6 @@ void LevelTerrain::CreateTerrainMesh() {
 
         myStaticTerrainMesh->recalculateBoundingBox();
         //myDynamicTerrainMesh->recalculateBoundingBox();
-      }
 
         //only process SMbuffer which actually has something inside it
         if ((meshBuffers[idx2 + nrTex]->getIndexCount() > 0)) {
@@ -871,6 +872,7 @@ void LevelTerrain::CreateTerrainMesh() {
                   }
               }
             }
+      }
 
         meshBuffers[idx2+nrTex]->BoundingBox.reset(0,0,0);
         meshBuffers[idx2+nrTex]->recalculateBoundingBox();
@@ -879,7 +881,6 @@ void LevelTerrain::CreateTerrainMesh() {
         myDynamicTerrainMesh->addMeshBuffer(meshBuffers[idx2+nrTex]);
 
         myDynamicTerrainMesh->recalculateBoundingBox();
-      }
 
       //clean up SMeshbuffer, we do not need it anymore
       //note 16.03.2024: we need to keep the MeshBuffer so that we can change the Mesh
@@ -1839,28 +1840,6 @@ bool LevelTerrain::setupGeometry() {
     return true;
 }
 
-/*
-void LevelTerrain::AddDirtySMeshBuffer(irr::scene::SMeshBuffer *newDirtyBuffer,
-                                       std::vector<irr::scene::SMeshBuffer*> &currDirtyList)
-{
-    //only add new dirty buffer pointer to list if the new specified buffer is not yet
-    //part of the list
-    bool fnd = false;
-    std::vector<irr::scene::SMeshBuffer*>::iterator it;
-
-    for (it = currDirtyList.begin(); it != currDirtyList.end(); ++(it)) {
-        if (newDirtyBuffer == (*it)) {
-            fnd = true;
-            break;
-        }
-    }
-
-    //not found, add to list
-    if (!fnd) {
-        currDirtyList.push_back(newDirtyBuffer);
-    }
-}*/
-
 void LevelTerrain::ApplyMorph(Morph morph)
       {
           if (morph.getProgress() == morph.LastProgress)
@@ -2226,7 +2205,7 @@ void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinat
     this->mInfra->mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
 }
 
-irr::u16 LevelTerrain::GetMeshBufferIndexForTextureId(int posX, int posY, int16_t newTextureId) {
+irr::u16 LevelTerrain::GetMeshBufferIndexForTextureId(int16_t newTextureId) {
      std::vector<int16_t>::iterator it;
 
      irr::u16 resultIdx = 0;
@@ -2242,13 +2221,22 @@ irr::u16 LevelTerrain::GetMeshBufferIndexForTextureId(int posX, int posY, int16_
      return 0;
 }
 
-void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8_t newTextureModifier) {
+void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId) {
     //This higher level function has to do 2 independent things:
     // 1, modify the cell configuration in the level/map file itself (so that next time we
     //    load the map again, everything is restored again in the same modified way)
     // 2, modify the current terrain Mesh used by Irrlicht to show the user the
     //    current state of the Terrain in the level. If we do not do this the level editor
     //    user can not see what he actually has changed already :)
+
+    //First edit low level/map data itself
+    MapEntry* entry = levelRes->pMap[posX][posY];
+
+    if (entry == nullptr)
+        return;
+
+    //set new texture modifier value in lowlevel map data
+    entry->m_TextureId = newTextureId;
 
     int nrTex = this->mTexSource->NumLevelTextures;
 
@@ -2358,8 +2346,16 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
     std::vector<int16_t>::iterator itTexId;
     irr::u16 currIdx = 0;
 
+    //if we have a dynamic cell, the "adjusted texture Id" is the
+    //initial texture Id + number of max possible texture (=256)
+    int16_t adjustedTexId = newTextureId;
+
+    if (tTilePntr->dynamicMesh) {
+        adjustedTexId += nrTex;
+    }
+
     for (itTexId = meshBufferTexIdVec.begin(); itTexId != meshBufferTexIdVec.end(); ++itTexId) {
-        if ((*itTexId) == newTextureId) {
+        if ((*itTexId) == adjustedTexId) {
             //This meshbuffer is needed
             newMeshBufferIdxVec.push_back(currIdx);
         }
@@ -2377,7 +2373,7 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
     int x, z;
 
     bool meshNewlySetup;
-    std::cout << "Meshbuf count before :" << this->pTerrainTiles[posX][posY].myMeshBuffers.size() << std::endl;
+    //std::cout << "Meshbuf count before :" << this->pTerrainTiles[posX][posY].myMeshBuffers.size() << std::endl;
 
     for (itNewMeshBuffer = newMeshBufferIdxVec.begin(); itNewMeshBuffer != newMeshBufferIdxVec.end(); ++itNewMeshBuffer) {
         //for static Mesh only the first nrTex Meshbuffers are used, for
@@ -2401,7 +2397,7 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
                       //only add vertices if terrain tile is drawn and was not optimized out
                       //we also need to store the meshBuffer and vertex index for later morphing of Terrain
                       if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
-                          if (!this->pTerrainTiles[x][z].dynamicMesh) {
+                       //   if (!this->pTerrainTiles[x][z].dynamicMesh) {
                                this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBufPntr->getVertexCount());
                                meshBufPntr->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
 
@@ -2418,29 +2414,49 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
                                //we need this for morphing of Terrain!
                                this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBufPntr);
                           }
-                      }
+                     // }
                   }
                }
 
                 //remember Mesh was newly setup, so that we can add it
                 //to the correct SceneNode afterwards
                 meshNewlySetup = true;
+            } else {
+                //we need to add the new indices for this tile in this meshBuffer (that is not new)
+                if (this->pTerrainTiles[posX][posY].m_draw_in_mesh == true) {
+                 //   if (!this->pTerrainTiles[posX][posY].dynamicMesh) {
+                         this->pTerrainTiles[posX][posY].myMeshBufVertexId1.push_back(meshBufPntr->getVertexCount());
+                         meshBufPntr->Vertices.push_back(*this->pTerrainTiles[posX][posY].vert1);
+
+                         this->pTerrainTiles[posX][posY].myMeshBufVertexId2.push_back(meshBufPntr->getVertexCount());
+                         meshBufPntr->Vertices.push_back(*this->pTerrainTiles[posX][posY].vert2);
+
+                         this->pTerrainTiles[posX][posY].myMeshBufVertexId3.push_back(meshBufPntr->getVertexCount());
+                         meshBufPntr->Vertices.push_back(*this->pTerrainTiles[posX][posY].vert3);
+
+                         this->pTerrainTiles[posX][posY].myMeshBufVertexId4.push_back(meshBufPntr->getVertexCount());
+                         meshBufPntr->Vertices.push_back(*this->pTerrainTiles[posX][posY].vert4);
+
+                         //keep pointer to my MeshBuffer
+                         //we need this for morphing of Terrain!
+                         this->pTerrainTiles[posX][posY].myMeshBuffers.push_back(meshBufPntr);
+                    }
             }
 
-            if (meshNewlySetup) {
+            /*if (meshNewlySetup) {
                 std::cout << "Newly Setup" << std::endl;
                  std::cout << "Meshbuf count after :" << this->pTerrainTiles[posX][posY].myMeshBuffers.size() << std::endl;
-            }
+            }*/
 
-            std::cout << "Number vertices before: " << meshBufPntr->getVertexCount() << std::endl;
-            std::cout << "Number indices before: " << meshBufPntr->getIndexCount() << std::endl;
+           // std::cout << "Number vertices before: " << meshBufPntr->getVertexCount() << std::endl;
+           //std::cout << "Number indices before: " << meshBufPntr->getIndexCount() << std::endl;
 
             meshBufPntr->drop();
 
             //now add the new tile to this Meshbuffer
             int newBufIndex = 0;
 
-            irr::u16 correctNewBufIdx = GetMeshBufferIndexForTextureId(posX, posY, newTextureId);
+            irr::u16 correctNewBufIdx = GetMeshBufferIndexForTextureId(adjustedTexId);
 
             std::vector<irr::scene::SMeshBuffer*>::iterator meshBufIdxIt;
             irr::u16 verticeVecIdx = 0;
@@ -2474,8 +2490,8 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
             meshBufPntr->Indices.push_back(newBufIndex + 2);
             meshBufPntr->Indices.push_back(newBufIndex + 3);
 
-            std::cout << "Number vertices after: " << meshBufPntr->getVertexCount() << std::endl;
-            std::cout << "Number indices after: " << meshBufPntr->getIndexCount() << std::endl;
+            //std::cout << "Number vertices after: " << meshBufPntr->getVertexCount() << std::endl;
+            //std::cout << "Number indices after: " << meshBufPntr->getIndexCount() << std::endl;
 
             meshBufPntr->drop();
 
@@ -2484,69 +2500,108 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
             meshBufPntr->BoundingBox.reset(0,0,0);
             meshBufPntr->recalculateBoundingBox();
 
-           /*meshBufPntr->grab();
-           irr::u16* pntrIndices;
-
-           void* pntrInd = meshBufPntr->getIndices();
-           pntrIndices = (irr::u16*)pntrInd;
-
-
-           S3DVertex* pntrVertices;
-
-           void* pntrVert = meshBufPntr->getVertices();
-           pntrVertices = (S3DVertex*)pntrVert;
-
-           irr::f32 px;
-           irr::f32 py;
-           irr::f32 pz;
-
-           for (int testvar = 0; testvar < 6; testvar++) {
-               px = pntrVertices[*pntrIndices].Pos.X;
-               py = pntrVertices[*pntrIndices].Pos.Y;
-               pz = pntrVertices[*pntrIndices].Pos.Z;
-
-               std::cout << *pntrIndices << ":" << px << " " << py << " " << pz << std::endl;
-               pntrIndices++;
-           }
-
-           meshBufPntr->drop();*/
-
-          /* SMesh* testMesh = new SMesh;
-           testMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-           testMesh->addMeshBuffer(meshBufPntr);
-
-           ISceneNode* testnode = this->mInfra->mSmgr->addMeshSceneNode(testMesh, 0, IDFlag_IsPickable);
-
-           //we need to rotate the terrain Mesh, otherwise it is upside down
-           testnode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
-           testnode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
-
-           testnode->setMaterialFlag(EMF_FOG_ENABLE, true);
-           testnode->setMaterialFlag(EMF_WIREFRAME, false);
-           //testnode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
-           // testnode->setMaterialFlag(EMF_FRONT_FACE_CULLING, false);
-
-           testnode->setDebugDataVisible(EDS_BBOX);*/
-
            if (!tTilePntr->dynamicMesh) {
                  if (meshNewlySetup) {
                    //add SMeshbuffer to overall terrain mesh
-                   myStaticTerrainMesh->addMeshBuffer(meshBufPntr);
+                  // myStaticTerrainMesh->addMeshBuffer(meshBufPntr);
                  }
 
-                 myStaticTerrainMesh->setDirty();
+                 myStaticTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
                  myStaticTerrainMesh->recalculateBoundingBox();
            } else {
                  if (meshNewlySetup) {
                     //add SMeshbuffer to overall terrain mesh
-                    myDynamicTerrainMesh->addMeshBuffer(meshBufPntr);
+                   // myDynamicTerrainMesh->addMeshBuffer(meshBufPntr);
                  }
 
-                 myDynamicTerrainMesh->setDirty();
+                 myDynamicTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
                  myDynamicTerrainMesh->recalculateBoundingBox();
            }
-
       }
   }
+}
+
+void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newTextureModifier) {
+    //This higher level function has to do 2 independent things:
+    // 1, modify the cell configuration in the level/map file itself (so that next time we
+    //    load the map again, everything is restored again in the same modified way)
+    // 2, modify the current terrain Mesh used by Irrlicht to show the user the
+    //    current state of the Terrain in the level. If we do not do this the level editor
+    //    user can not see what he actually has changed already :)
+
+    //check for valid value of new texture modifier
+    if ((newTextureModifier < 0) || (newTextureModifier > 7))
+        return;
+
+    // Part 1: Update the low level data in level file
+    MapEntry* entry = levelRes->pMap[posX][posY];
+
+    if (entry == nullptr)
+        return;
+
+    //set new texture modifier value in lowlevel map data
+    entry->m_TextureModification = newTextureModifier;
+
+    // Part 2: Update the current Irrlicht Mesh
+    TerrainTileData* tTilePntr = &this->pTerrainTiles[posX][posY];
+
+    //if this tile is optimized away, exit here
+    if (!tTilePntr->m_draw_in_mesh)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it;
+    irr::scene::SMeshBuffer* meshBufPntr;
+
+    //create the new UV information
+    std::vector<vector2d<irr::f32>> newUVS = MakeUVs(newTextureModifier);
+
+    irr::u32 vert1Idx;
+    irr::u32 vert2Idx;
+    irr::u32 vert3Idx;
+    irr::u32 vert4Idx;
+
+    void* pntrVert;
+    S3DVertex *pntrVertices;
+
+    std::vector<irr::u32>::iterator itVertId1 = tTilePntr->myMeshBufVertexId1.begin();
+    std::vector<irr::u32>::iterator itVertId2 = tTilePntr->myMeshBufVertexId2.begin();
+    std::vector<irr::u32>::iterator itVertId3 = tTilePntr->myMeshBufVertexId3.begin();
+    std::vector<irr::u32>::iterator itVertId4 = tTilePntr->myMeshBufVertexId4.begin();
+
+    irr::u32 bufIdx = 0;
+
+    //iterate through all meshbuffers where this tile is included, and
+    //see if we find any of the indices of the vertices of this tile included
+    for (it = tTilePntr->myMeshBuffers.begin(); it != tTilePntr->myMeshBuffers.end(); ++it) {
+        //what indices do my vertices have in this meshbuffer?
+        vert1Idx = (*itVertId1);
+        vert2Idx = (*itVertId2);
+        vert3Idx = (*itVertId3);
+        vert4Idx = (*itVertId4);
+
+        meshBufPntr = (*it);
+        meshBufPntr->grab();
+
+        pntrVert = meshBufPntr->getVertices();
+        pntrVertices = (S3DVertex*)pntrVert;
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx]].TCoords = newUVS.at(0);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId2[bufIdx]].TCoords = newUVS.at(1);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId3[bufIdx]].TCoords = newUVS.at(2);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId4[bufIdx]].TCoords = newUVS.at(3);
+
+        bufIdx++;
+
+        meshBufPntr->drop();
+
+        meshBufPntr->setDirty(EBT_VERTEX_AND_INDEX);
+    }
+
+    if (!tTilePntr->dynamicMesh) {
+        myStaticTerrainMesh->setDirty();
+        myStaticTerrainMesh->recalculateBoundingBox();
+    } else {
+        myDynamicTerrainMesh->setDirty();
+        myDynamicTerrainMesh->recalculateBoundingBox();
+    }
 }
 

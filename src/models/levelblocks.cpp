@@ -515,6 +515,10 @@ irr::u8 LevelBlocks::GetCurrentViewMode() {
     return mCurrentViewMode;
 }
 
+/***********************************************************************
+ * Functions mainly used by the LevelEditor and not the game itself    *
+ ***********************************************************************/
+
 void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace) {
     if (selColumnPntr == nullptr)
         return;

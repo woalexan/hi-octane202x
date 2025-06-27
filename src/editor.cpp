@@ -7,6 +7,10 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
+//Note: Routine "setSkinTransparency" inside this Cpp file was taken from Irrlicht engine
+//"Example 009 Mesh Viewer" source code file, and was not written by myself. But I do not know
+//who developed this routine in the first place.
+
 #include "editor.h"
 #include "draw/gametext.h"
 #include "editorsession.h"
@@ -53,6 +57,10 @@ bool Editor::InitEditorStep2() {
     if (enableShadows) {
        mSmgr->setShadowColor(video::SColor(150,0,0,0));
     }
+
+    //set Gui dialog transparency
+    //between 0 and 255
+    setSkinTransparency(200, mGuienv->getSkin());
 
     return true;
 }
@@ -112,6 +120,8 @@ void Editor::CreateMenue() {
     gui::IGUIContextMenu* submenu;
     submenu = menu->getSubMenu(0);
     submenu->addItem(L"Open level", GUI_ID_OPEN_LEVEL);
+    submenu->addItem(L"Save level", GUI_ID_SAVE_LEVEL);
+
     //submenu->addItem(L"Set Model Archive...", GUI_ID_SET_MODEL_ARCHIVE);
     //submenu->addItem(L"Load as Octree", GUI_ID_LOAD_AS_OCTREE);
     submenu->addSeparator();
@@ -140,6 +150,18 @@ void Editor::CreateMenue() {
     // add a status line help text
     StatusLine = mGuienv->addStaticText( 0, rect<s32>( 5,  mScreenRes.Height - 30,  mScreenRes.Width - 5, mScreenRes.Height - 10),
                                 false, false, 0, -1, true);
+}
+
+//Routine setSkinTransparency taken from Irrlicht engine
+//"Example 009 Mesh Viewer"
+void Editor::setSkinTransparency(s32 alpha, irr::gui::IGUISkin * skin)
+{
+    for (s32 i=0; i<irr::gui::EGDC_COUNT ; ++i)
+    {
+        video::SColor col = skin->getColor((EGUI_DEFAULT_COLOR)i);
+        col.setAlpha(alpha);
+        skin->setColor((EGUI_DEFAULT_COLOR)i, col);
+    }
 }
 
 void Editor::ChangeViewModeTerrain(irr::u8 newViewMode) {
@@ -215,6 +237,13 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
            break;
         }
 
+        case GUI_ID_SAVE_LEVEL: {
+            if (mCurrentSession != nullptr) {
+                mCurrentSession->mLevelRes->Save("level0-1m.dat");
+            }
+            break;
+        }
+
         case GUI_ID_QUIT: // File -> Quit
             ExitEditor = true;
             break;
@@ -270,7 +299,14 @@ void Editor::OnElementLeft(irr::s32 elementId) {
 void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
   u32 val = comboBox->getItemData ( comboBox->getSelected() );
   //std::cout << "ComboBox changed " << val << std::endl;
-  mCurrentSession->mTextureMode->TextureCategoryChanged(val);
+
+  if (comboBox->getID() == GUI_ID_TEXCATEGORYCOMBOBOX) {
+    mCurrentSession->mTextureMode->TextureCategoryChanged(val);
+  }
+
+  if (comboBox->getID() == GUI_ID_TEXMODIFICATIONCOMBOBOX) {
+    mCurrentSession->mTextureMode->TextureModificationChanged(val);
+  }
 }
 
 void Editor::OnLeftMouseButtonDown() {
