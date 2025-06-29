@@ -47,9 +47,6 @@ void LevelTerrain::ResetTerrainTileData() {
             pTerrainTiles[i][j].vert3CurrNormal.set(0.0f, 1.0f, 0.0f);
             pTerrainTiles[i][j].vert4CurrNormal.set(0.0f, 1.0f, 0.0f);
             pTerrainTiles[i][j].myMeshBufVertexId1.clear();
-            pTerrainTiles[i][j].myMeshBufVertexId2.clear();
-            pTerrainTiles[i][j].myMeshBufVertexId3.clear();
-            pTerrainTiles[i][j].myMeshBufVertexId4.clear();
             pTerrainTiles[i][j].vert1CurrPositionY = 0.0f;
             pTerrainTiles[i][j].vert2CurrPositionY = 0.0f;
             pTerrainTiles[i][j].vert3CurrPositionY = 0.0f;
@@ -235,17 +232,10 @@ void LevelTerrain::FinishTerrainInitialization() {
     //mesh, for the editor we do not want to do this
     if (mOptimizeMesh) {
         //optimize terrain
-        findTerrainOptimization();
+        FindTerrainOptimization();
     }
 
-    if (setupGeometry()) {
-         /*std::cout << "HiOctane Terrain '" << mName << "' loaded: " <<
-                    numVertices << " vertices, " <<
-                    numNormals << " normals, " <<
-                    numUVs << " UVs, " <<
-                    mTexSource->NumLevelTextures << " textures, " <<
-                    numIndices << " indices" << endl << std::flush;*/
-
+    if (SetupGeometry()) {
          std::string infoMsg("HiOctane Terrain '");
          infoMsg.append(mName);
          infoMsg.append("' loaded: ");
@@ -278,11 +268,6 @@ void LevelTerrain::FinishTerrainInitialization() {
 
          logging::Info(infoMsg);
 
-          if (numVertices > 80000) {
-               logging::Error("More than 80000 vertices for Level Mesh! Drawing whole level not possible anymore. Need to exit race!");
-               Terrain_ready = false;
-          }
-
          //std::cout << "HiOctane Terrain '" << mName << "' loaded ok"  << endl << std::flush;
          infoMsg.clear();
          infoMsg.append("HiOctane Terrain '");
@@ -305,7 +290,7 @@ void LevelTerrain::FinishTerrainInitialization() {
         /***********************************************************/
 
         //Create Mesh for Terrain
-        CreateTerrainMesh();
+        //CreateTerrainMesh();
 
         //create Static SceneNode for Terrain
         StaticTerrainSceneNode = this->mInfra->mSmgr->addMeshSceneNode(myStaticTerrainMesh, 0, IDFlag_IsPickable);
@@ -327,20 +312,320 @@ void LevelTerrain::FinishTerrainInitialization() {
     }
 }
 
-LevelTerrain::LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
+//finds the current (last in linked list) MeshBuffer info struct for a certain textureId
+//returns nullptr in case of error
+MeshBufferInfoStruct* LevelTerrain::FindLastMeshBufferInLinkedList(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId) {
+    //vector index is textureId
+    MeshBufferInfoStruct* currPntr = targetMeshBufVec.at(forTextureId);
+
+    if (currPntr == nullptr)
+        return nullptr;
+
+    //loop through MeshbufferInfoStruct until we find the last
+    //existing Meshbuffer Element
+    while (currPntr->nextPntr != nullptr) {
+         currPntr = currPntr->nextPntr;
+    }
+
+    return currPntr;
+}
+
+//finds the first available MeshBuffer info struct for a certain textureId
+//which has still space for 6 additional indices (an additional Quad)
+//returns nullptr in case of error, or nothing available
+MeshBufferInfoStruct* LevelTerrain::FindFirstMeshBufferForAdditionalQuad(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId) {
+    //vector index is textureId
+    MeshBufferInfoStruct* currPntr = targetMeshBufVec.at(forTextureId);
+
+    if (currPntr == nullptr)
+        return nullptr;
+
+    if (currPntr->remainingIndices >= 6)
+        return currPntr;
+
+    //loop through MeshbufferInfoStruct until we find the next
+    //Meshbuffer element with at least 6 free indices
+    while (currPntr->nextPntr != nullptr) {
+         currPntr = currPntr->nextPntr;
+
+         if (currPntr->remainingIndices >= 6)
+             return currPntr;
+    }
+
+    //no available meshbuffer found with at
+    //least 6 free indices
+    return nullptr;
+}
+
+//counts the number of existing Meshbuffers for all possible
+//Texture Ids
+std::vector<irr::u8> LevelTerrain::ReturnMeshBufferCntPerTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec) {
+    std::vector<irr::u8> result;
+
+    result.clear();
+    irr::u8 cnt;
+
+    for (int i = 0; i < mTerrainAvailableTextureCount; i++) {
+         //vector index is textureId
+         MeshBufferInfoStruct* currPntr = targetMeshBufVec.at(i);
+         cnt = 0;
+
+        if (currPntr == nullptr) {
+            result.push_back(cnt);
+            continue;
+        }
+
+        if (currPntr->meshBuf != nullptr) {
+           cnt++;
+        }
+
+        //loop through MeshbufferInfoStruct until we find the last
+        //existing Meshbuffer Element
+        while (currPntr->nextPntr != nullptr) {
+             currPntr = currPntr->nextPntr;
+
+             if (currPntr->meshBuf != nullptr) {
+                cnt++;
+             }
+        }
+
+        result.push_back(cnt);
+    }
+
+    return result;
+}
+
+//adds an additional Meshbuffer for the specified textureId (material). Returns
+//a pointer to the new added MeshBufferInfoStruct. In case something goes wrong
+//returns nullptr
+MeshBufferInfoStruct* LevelTerrain::AddAdditionalMeshBuffer(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId) {
+    //plausi-check for forTextureId parameter
+    if ((forTextureId < 0) || (forTextureId >= mTerrainAvailableTextureCount)) {
+       //something wrong, exit!
+       return nullptr;
+    }
+
+    //find out if there is already a Meshbuffer existing for this material?
+    //we do not need to search in the vector, as I make sure that
+    //there are always as many MeshBufferInfroStructs in this vector
+    //as there are available terrain textures; index is textureId
+    MeshBufferInfoStruct* currPntr = targetMeshBufVec.at(forTextureId);
+
+    MeshBufferInfoStruct* addToPntr = nullptr;
+
+    //Meshbuffers for this Material are already existing?
+    if (currPntr->meshBuf != nullptr) {
+       //yes, it is
+       addToPntr = currPntr;
+
+       //loop through MeshbufferInfoStruct until we find the last
+       //existing Meshbuffer Element
+       //add a new element there
+       while (addToPntr->nextPntr != nullptr) {
+           addToPntr = addToPntr->nextPntr;
+       }
+    }
+
+    SMeshBuffer* newBuf = new SMeshBuffer();
+
+    //set texture/material for each SMeshBuffer
+    newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[forTextureId]);
+    newBuf->getMaterial().Lighting = mEnableLightning;
+    newBuf->getMaterial().Wireframe = false;
+
+    //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
+    newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+
+    //if this is the first MeshBuffer for this material
+    //simply replace the nullptr in the initial element
+    if (currPntr->meshBuf == nullptr) {
+        currPntr->meshBuf = newBuf;
+        currPntr->remainingIndices = 65535;
+
+        return currPntr;
+    } else {
+        //for each additional Meshbuffer we need to add a new MeshBufferInfoStruct
+        //to encapsulate the new Meshbuffer
+        MeshBufferInfoStruct* newStruct = new MeshBufferInfoStruct();
+        newStruct->textureId = forTextureId;
+        newStruct->meshBuf = newBuf;
+        newStruct->remainingIndices = 65535;
+
+        //add pointer to new info struct
+        //into the last existing info struct for
+        //this texture Id (single linked list)
+        addToPntr->nextPntr = newStruct;
+
+        return newStruct;
+    }
+}
+
+void LevelTerrain::AddMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, TerrainTileData* tilePntr, int16_t textureId) {
+    //what is the current Meshbuffer for the textureId
+    //of the new tile
+    MeshBufferInfoStruct* nextBufInfo = FindFirstMeshBufferForAdditionalQuad(targetMeshBufVec, textureId);
+
+    //if routine returns nullptr something is wrong,
+    //or no free meshbuffer currently available to add
+    //new tile (quad)
+    if (nextBufInfo == nullptr) {
+        //no, create an additional MeshBuffer for this texture Id
+        nextBufInfo = AddAdditionalMeshBuffer(targetMeshBufVec, textureId);
+
+        //something wrong?
+        if (nextBufInfo == nullptr)
+            return;
+    }
+
+    //nextBufInfo contains now the Meshbuffer where we
+    //want to add the additional tile (4 vertices, 6 indices)
+    nextBufInfo->meshBuf->grab();
+
+    irr::u16 firstIndexNewQuad = nextBufInfo->meshBuf->getVertexCount();
+
+    //add the 4 existing vertices for this tile into the
+    //meshbuffer vertice array
+    nextBufInfo->meshBuf->Vertices.push_back(*tilePntr->vert1);
+    nextBufInfo->meshBuf->Vertices.push_back(*tilePntr->vert2);
+    nextBufInfo->meshBuf->Vertices.push_back(*tilePntr->vert3);
+    nextBufInfo->meshBuf->Vertices.push_back(*tilePntr->vert4);
+
+    //at the same time store in tile which index the vertices
+    //have in the meshbuffer vertices array; we need this information later
+    //for morphing
+    tilePntr->myMeshBufVertexId1.push_back(firstIndexNewQuad);
+
+    // add indices for the 2 new tris of the new
+    //quad (this are 6 new indices)
+    nextBufInfo->meshBuf->Indices.push_back(firstIndexNewQuad);
+    nextBufInfo->meshBuf->Indices.push_back(firstIndexNewQuad + 1);
+    nextBufInfo->meshBuf->Indices.push_back(firstIndexNewQuad + 3);
+
+    nextBufInfo->meshBuf->Indices.push_back(firstIndexNewQuad + 1);
+    nextBufInfo->meshBuf->Indices.push_back(firstIndexNewQuad + 2);
+    nextBufInfo->meshBuf->Indices.push_back(firstIndexNewQuad + 3);
+
+    //decrease remaining number of available indices in this Meshbuffer
+    //for this textureId
+    nextBufInfo->remainingIndices -= 6;
+
+    nextBufInfo->meshBuf->drop();
+
+    //also keep info which Meshbuffers we have used for this
+    //tile; is also necessary for morphing later
+    //current used Meshbuffer already stored for this tile?
+    std::vector<irr::scene::SMeshBuffer*>::iterator it;
+    bool found = false;
+
+    for (it = tilePntr->myMeshBuffers.begin(); it != tilePntr->myMeshBuffers.end(); ++it) {
+        if ((*it) == nextBufInfo->meshBuf) {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        //not yet part of vector, add also this (new) MeshBuffer
+        tilePntr->myMeshBuffers.push_back(nextBufInfo->meshBuf);
+    }
+
+    //increase statistical values
+    numUVs += 4;
+    numVertices += 4;
+    numNormals += 4;
+    numIndices += 6;
+}
+
+std::vector<irr::scene::SMeshBuffer*> LevelTerrain::ReturnAllMeshBuffersForTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t textureId) {
+    std::vector<irr::scene::SMeshBuffer*> result;
+    result.clear();
+
+    //vector index is textureId
+    MeshBufferInfoStruct* currPntr = targetMeshBufVec.at(textureId);
+
+    if (currPntr == nullptr)
+        return result;
+
+    if (currPntr->meshBuf != nullptr) {
+        result.push_back(currPntr->meshBuf);
+    }
+
+    while (currPntr->nextPntr != nullptr) {
+        if (currPntr->nextPntr->meshBuf != nullptr) {
+            result.push_back(currPntr->nextPntr->meshBuf);
+        }
+
+        currPntr = currPntr->nextPntr;
+    }
+
+    //return list of found MeshBuffers
+    return result;
+}
+
+void LevelTerrain::CleanupMeshBufferInfoStructs(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec) {
+    std::vector<MeshBufferInfoStruct*> infoStructVec;
+    std::vector<MeshBufferInfoStruct*>::iterator it;
+
+    MeshBufferInfoStruct* pntrStruct;
+
+    for (int i = 0; i < mTerrainAvailableTextureCount; i++) {
+        pntrStruct = targetMeshBufVec.at(i);
+        infoStructVec.clear();
+
+        if (pntrStruct == nullptr)
+            continue;
+
+        infoStructVec.push_back(pntrStruct);
+
+        while (pntrStruct->nextPntr != nullptr) {
+            pntrStruct = pntrStruct->nextPntr;
+            infoStructVec.push_back(pntrStruct);
+        }
+
+        for (it = infoStructVec.begin(); it != infoStructVec.end(); ) {
+            pntrStruct = (*it);
+
+            it = infoStructVec.erase(it);
+
+            //delete MeshBufferInfoStruct
+            delete pntrStruct;
+        }
+    }
+}
+
+LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
    this->mInfra = infra;
    mEnableLightning = enableLightning;
    mOptimizeMesh = optimizeMesh;
+   mLevelEditorMode = levelEditorMode;
+   mTexSource = textureSource;
 
-   //mDbgChargerTexFound.clear();
+   mTerrainAvailableTextureCount = mTexSource->NumLevelTextures;
 
-   meshBuffers.clear();
-   meshBufferTexIdVec.clear();
+   mStaticMeshBufferVec.clear();
+   mDynamicMeshBufferVec.clear();
+
+   //initial fill the mStaticMeshBufferVec vector
+   //with empty MeshBufferInfroStructs, one for each possible
+   //level texture Id
+   for (int i = 0; i < mTerrainAvailableTextureCount; i++) {
+       MeshBufferInfoStruct* newStruct = new MeshBufferInfoStruct;
+       newStruct->textureId = i;
+
+       mStaticMeshBufferVec.push_back(newStruct);
+   }
+
+   //initial fill the mDynamicMeshBufferVec vector
+   //with empty MeshBufferInfroStructs, one for each possible
+   //level texture Id
+   for (int i = 0; i < mTerrainAvailableTextureCount; i++) {
+       MeshBufferInfoStruct* newStruct = new MeshBufferInfoStruct;
+       newStruct->textureId = i;
+
+       mDynamicMeshBufferVec.push_back(newStruct);
+   }
 
    strcpy(mName, name);
-
-   //this->m_texfile = texfile;
-   mTexSource = textureSource;
 
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
 
@@ -355,6 +640,20 @@ LevelTerrain::LevelTerrain(InfrastructureBase* infra, char* name, LevelFile* lev
 
    //reset my internal map!
    ResetTerrainTileData();
+
+   //only used for the level editor; Minimum number
+   //of needed meshbuffers for each textureId so that
+   //worst case the user can fill each possible tile of the map
+   //with the same textureId
+
+   //calc max possible number of LevelTerrain indices, each tile needs
+   //6 indices to render it
+   irr::u32 maxNrMapIndices = levelRes->Width() * levelRes->Height() * 6;
+
+   //each Irrlicht Meshbuffer can hold maximum 65535 indices
+   //calculate how many Irrlicht Meshbuffers we will need minimum in
+   //level editor
+   mLevelEditorMinNrMeshBuffersNeeded = (irr::u8)(round((irr::f32)(maxNrMapIndices) / (irr::f32)(65535)));
 }
 
 LevelTerrain::~LevelTerrain() {
@@ -429,6 +728,9 @@ LevelTerrain::~LevelTerrain() {
          }
        }
     }
+
+  CleanupMeshBufferInfoStructs(mStaticMeshBufferVec);
+  CleanupMeshBufferInfoStructs(mDynamicMeshBufferVec);
 }
 
 //Returns true if input texture is a roadtexture
@@ -648,251 +950,6 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
     }
 
     return imgMiniMap;
-}
-
-void LevelTerrain::CreateTerrainMesh() {
-    //create Mesh for the static Terrain
-
-    //first make a mesh to hold the overall level terrain data
-    myStaticTerrainMesh = new SMesh;
-    myStaticTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-
-    //mesh for dynamic terrain
-    myDynamicTerrainMesh = new SMesh;
-    myDynamicTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-
-    std::vector<int>::iterator it;
-    it = this->indicesVboDataStatic.begin();
-
-    std::vector<int>::iterator it5;
-    it5 = this->textureIdDataStatic.begin();
-
-    //for each type of material (texture) we need to create a own MeshBuffer, as a MeshBuffer can have only triangles with the
-    //same material
-    //Note 02.01.2025: I had performance issues during morphs, because I believe the problem
-    //is that all static parts of the terrain that do not change, and the dynamic smaller portions of the
-    //level are all in the same mesh and SceneNodes; When now the dynamic smaller part is changed during an active
-    //morph a lot of data transfers and recalculations have to be done unnecessary; To improve performance I thought it might
-    //be a good idea to create own Meshbuffers for static terrain and dynamic terrain data, and also independent SceneNodes
-    //Therefor below I not only create a Meshbuffer for each available TextureID for each material, but also additional I create
-    //again the same amount of meshbuffers for the dynamic parts of the terrain
-
-    u64 triangles_remaining = this->indicesVboDataStatic.size()/3;
-    u64 triangles_done = 0;
-
-    //set iterator5 back to beginning of data
-    it5 = this->textureIdDataStatic.begin();
-
-    SMeshBuffer *newBuf;
-
-    //create a new SMeshBuffer for each material/texture type
-    //first for the static parts of the terrain
-    for (int idx = 0; idx < this->mTexSource->NumLevelTextures; idx++) {
-      newBuf = new SMeshBuffer();
-
-      //set texture/material for each SMeshBuffer
-      newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[idx]);
-      newBuf->getMaterial().Lighting = mEnableLightning;
-      newBuf->getMaterial().Wireframe = false;
-
-      //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
-      newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-      meshBuffers.push_back(newBuf);
-      meshBufferTexIdVec.push_back(idx);
-    }
-
-    //seconds for the dynamic parts of the terrain
-    for (int idx = 0; idx < this->mTexSource->NumLevelTextures; idx++) {
-      newBuf = new SMeshBuffer();
-
-      //set texture/material for each SMeshBuffer
-      newBuf->getMaterial().setTexture(0, this->mTexSource->levelTex[idx]);
-      newBuf->getMaterial().Lighting = mEnableLightning;
-      newBuf->getMaterial().Wireframe = false;
-      //newBuf->getMaterial().AntiAliasing = EAAM_QUALITY;
-      newBuf->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-      meshBuffers.push_back(newBuf);
-      meshBufferTexIdVec.push_back(idx);
-    }
-
-    //now we just need to sort the triangles into the different MeshBuffers according to their
-    //textureId and dependent on if the are static or dynamic
-    u32 nr;
-
-    /*****************************************
-     * Static terrain                        *
-     * ***************************************/
-    triangles_remaining = this->indicesVboDataStatic.size()/3;
-    triangles_done = 0;
-
-    video::SColor cubeColour2(255,255,255,255);
-
-    u16 debug2;
-    int usedMaterial = 0;
-
-    it = this->indicesVboDataStatic.begin();
-    it5 = this->textureIdDataStatic.begin();
-
-    while (triangles_remaining > 0 ) {
-        usedMaterial = (*it5);
-
-        //for each triangle add 3 indices
-        for (nr = 0; nr < 3; nr++) {
-            //add index
-            debug2 = ((u16)(*it));
-
-            meshBuffers[usedMaterial]->Indices.push_back(debug2);
-
-            it++;
-        }
-
-        it5++;
-
-        triangles_remaining--;
-        triangles_done++;
-    }
-
-    /*****************************************
-     * Dynamic terrain                       *
-     * ***************************************/
-    triangles_remaining = this->indicesVboDataDynamic.size()/3;
-    triangles_done = 0;
-
-    usedMaterial = 0;
-
-    it = this->indicesVboDataDynamic.begin();
-    it5 = this->textureIdDataDynamic.begin();
-
-    while (triangles_remaining > 0 ) {
-        usedMaterial = (*it5);
-
-        //for each triangle add 3 indices
-        for (nr = 0; nr < 3; nr++) {
-            //add index
-            debug2 = ((u16)(*it));
-
-            meshBuffers[usedMaterial + this->mTexSource->NumLevelTextures]->Indices.push_back(debug2);
-
-            it++;
-        }
-
-        it5++;
-
-        triangles_remaining--;
-        triangles_done++;
-    }
-
-     int x, z;
-
-     int Width = levelRes->Width();
-     int Height = levelRes->Height();
-     MapEntry *a;
-
-     int nrTex = this->mTexSource->NumLevelTextures;
-
-    //brute force variant: Add all available vertices to all SMBuffers
-    //to make it work; better would be to only add vertices to SMBuffers
-    //which are actually needed there; maybe improve later
-    for (int idx2 = 0; idx2 < nrTex; idx2++) {
-        //only process SMbuffer which actually has something inside it
-        if ((meshBuffers[idx2]->getIndexCount() > 0)) {
-            for (z = 0; z < Height; z++) {
-              for (x = 0; x < Width; x++) {
-                  a = GetMapEntry(x, z);
-
-                  //only add vertices if terrain tile is drawn and was not optimized out
-                  //we also need to store the meshBuffer and vertex index for later morphing of Terrain
-                  if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
-                          //this tile is static and belongs into the static mesh buffer
-                          if (this->pTerrainTiles[x][z].dynamicMesh == false) {
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBuffers[idx2]->getVertexCount());
-                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId2.push_back(meshBuffers[idx2]->getVertexCount());
-                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert2);
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId3.push_back(meshBuffers[idx2]->getVertexCount());
-                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert3);
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId4.push_back(meshBuffers[idx2]->getVertexCount());
-                              meshBuffers[idx2]->Vertices.push_back(*this->pTerrainTiles[x][z].vert4);
-
-                              //keep pointer to my MeshBuffer
-                              //we need this for morphing of Terrain!
-                              this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBuffers[idx2]);
-                         }
-                  }
-              }
-            }
-
-        meshBuffers[idx2]->BoundingBox.reset(0,0,0);
-        meshBuffers[idx2]->recalculateBoundingBox();
-
-        //meshBuffers[idx2+nrTex]->BoundingBox.reset(0,0,0);
-        //meshBuffers[idx2+nrTex]->recalculateBoundingBox();
-
-        //add SMeshbuffer to overall terrain mesh
-        myStaticTerrainMesh->addMeshBuffer(meshBuffers[idx2]);
-        //myDynamicTerrainMesh->addMeshBuffer(meshBuffers[idx2+nrTex]);
-
-        myStaticTerrainMesh->recalculateBoundingBox();
-        //myDynamicTerrainMesh->recalculateBoundingBox();
-      }
-
-        //only process SMbuffer which actually has something inside it
-        if ((meshBuffers[idx2 + nrTex]->getIndexCount() > 0)) {
-            for (z = 0; z < Height; z++) {
-              for (x = 0; x < Width; x++) {
-                  a = GetMapEntry(x, z);
-
-                  //only add vertices if terrain tile is drawn and was not optimized out
-                  //we also need to store the meshBuffer and vertex index for later morphing of Terrain
-                  if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
-                          //this tile is dynamic and belongs into the dynamic mesh buffer
-                          if (this->pTerrainTiles[x][z].dynamicMesh == true) {
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
-                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId2.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
-                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert2);
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId3.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
-                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert3);
-
-                              this->pTerrainTiles[x][z].myMeshBufVertexId4.push_back(meshBuffers[idx2+nrTex]->getVertexCount());
-                              meshBuffers[idx2+nrTex]->Vertices.push_back(*this->pTerrainTiles[x][z].vert4);
-
-                              //keep pointer to my MeshBuffer
-                              //we need this for morphing of Terrain!
-                              this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBuffers[idx2+nrTex]);
-                         }
-                  }
-              }
-            }
-
-        meshBuffers[idx2+nrTex]->BoundingBox.reset(0,0,0);
-        meshBuffers[idx2+nrTex]->recalculateBoundingBox();
-
-        //add SMeshbuffer to overall terrain mesh
-        myDynamicTerrainMesh->addMeshBuffer(meshBuffers[idx2+nrTex]);
-
-        myDynamicTerrainMesh->recalculateBoundingBox();
-      }
-
-      //clean up SMeshbuffer, we do not need it anymore
-      //note 16.03.2024: we need to keep the MeshBuffer so that we can change the Mesh
-      //dynamically (for Morphing!)
-      //meshBuffers[idx2]->drop();
-    }
-
-    //mark Terrain mesh as dirty, so that it is transfered again to graphics card
-    myStaticTerrainMesh->setDirty();
-    myStaticTerrainMesh->recalculateBoundingBox();
-
-    myDynamicTerrainMesh->setDirty();
-    myDynamicTerrainMesh->recalculateBoundingBox();
 }
 
 std::vector<vector2d<irr::f32>> LevelTerrain::ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod) {
@@ -1569,7 +1626,7 @@ bool LevelTerrain::Terrain_Optimization_isValid_Cell_coordinate(int xcoord, int 
 //and the amount of triangles available is only enough for approx. half the possible level size, I decided
 //to implement a way to remove unnecessary triangles from rendering (which are not used for the level itself);
 //This should help to stay below the maximum possible triangle count and should also improve rendering performance
-void LevelTerrain::findTerrainOptimization() {
+void LevelTerrain::FindTerrainOptimization() {
     int x, z;
 
     int Width = levelRes->Width();
@@ -1638,23 +1695,10 @@ void LevelTerrain::findTerrainOptimization() {
     }
 }
 
-bool LevelTerrain::setupGeometry() {
-    int x, z, iStatic = 0;
-    int iDynamic = 0;
-
-    // generate vertices
-    //std::vector<vector3d<irr::f32>> vertices;
-    //std::vector<vector3d<irr::f32>> normals;
-    //std::vector<vector2d<irr::f32>> uvs;
-
-    numVertices = 0;
-    numIndices = 0;
-    numUVs = 0;
-    numNormals = 0;
+bool LevelTerrain::SetupGeometry() {
+    int x, z = 0;
 
     float max = 0.0f;
-    std::vector<int> indicesStatic;
-    std::vector<int> indicesDynamic;
 
     int Width = levelRes->Width();
     int Height = levelRes->Height();
@@ -1663,203 +1707,208 @@ bool LevelTerrain::setupGeometry() {
 
     core::vector3df normal;
 
+    TerrainTileData* tile;
+    std::vector<vector2d<irr::f32>> newuvs;
+    MapEntry *a;
+    MapEntry *b;
+    MapEntry *c;
+    MapEntry *d;
+
+    /*********************************************************
+     * First setup vertices for all possible Terrain tiles   *
+     *********************************************************/
+
     for (z = 0; z < Height; z++) {
       for (x = 0; x < Width; x++) {
         // 4 vertices - need separate UVs so cannot share
-        MapEntry *a = GetMapEntry(x, z);
+        a = GetMapEntry(x, z);
+        b = GetMapEntry(x + 1, z);
+        c = GetMapEntry(x + 1, z + 1);
+        d = GetMapEntry(x, z + 1);
+
+        tile = &pTerrainTiles[x][z];
 
         //create 4 irrlicht vertices for this tile, regardless if we show the tile later or not!
-        this->pTerrainTiles[x][z].vert1 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
-        this->pTerrainTiles[x][z].vert2 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
-        this->pTerrainTiles[x][z].vert3 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
-        this->pTerrainTiles[x][z].vert4 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
+        tile->vert1 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
+        tile->vert2 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
+        tile->vert3 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
+        tile->vert4 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
 
-        this->pTerrainTiles[x][z].vert1CurrPositionY = 0.0f;
-        this->pTerrainTiles[x][z].vert2CurrPositionY = 0.0f;
-        this->pTerrainTiles[x][z].vert3CurrPositionY = 0.0f;
-        this->pTerrainTiles[x][z].vert4CurrPositionY = 0.0f;
+        tile->vert1->Pos.set(x       * segmentSize, -irr::f32(a->m_Height),  z * segmentSize);
+        tile->vert1CurrPositionY = tile->vert1->Pos.Y;
+        tile->vert1CurrPositionYDirty = false;
 
-        this->pTerrainTiles[x][z].vert1UVcoord.set(0.0f, 0.0f);
-        this->pTerrainTiles[x][z].vert2UVcoord.set(0.0f, 0.0f);
-        this->pTerrainTiles[x][z].vert3UVcoord.set(0.0f, 0.0f);
-        this->pTerrainTiles[x][z].vert4UVcoord.set(0.0f, 0.0f);
+        tile->vert2->Pos.set((x + 1) * segmentSize, -irr::f32(b->m_Height), z * segmentSize);
+        tile->vert2CurrPositionY = tile->vert2->Pos.Y;
+        tile->vert2CurrPositionYDirty = false;
 
-        this->pTerrainTiles[x][z].currTileHeight = 0.0f;
+        tile->vert3->Pos.set((x + 1) * segmentSize, -irr::f32(c->m_Height), (z + 1) * segmentSize);
+        tile->vert3CurrPositionY = tile->vert3->Pos.Y;
+        tile->vert3CurrPositionYDirty = false;
 
-            MapEntry *b = GetMapEntry(x + 1, z);
-            MapEntry *c = GetMapEntry(x + 1, z + 1);
-            MapEntry *d = GetMapEntry(x, z + 1);
+        tile->vert4->Pos.set(x       * segmentSize, -irr::f32(d->m_Height), (z + 1) * segmentSize);
+        tile->vert4CurrPositionY = tile->vert4->Pos.Y;
+        tile->vert4CurrPositionYDirty = false;
 
-            //vector3d<irr::f32> *newvec = new vector3d<irr::f32>(x       * segmentSize, -irr::f32(a->m_Height),  z * segmentSize);
-            //vertices.insert(vertices.end(), *newvec);
+        //precalculate averaged tile height, this value will be for example used later
+        //for player craft calculations...
+        tile->currTileHeight = GetAveragedTileHeight(x, z);
 
-            this->pTerrainTiles[x][z].vert1->Pos = vector3d<irr::f32>(x       * segmentSize, -irr::f32(a->m_Height),  z * segmentSize);
-            this->pTerrainTiles[x][z].vert1CurrPositionY = this->pTerrainTiles[x][z].vert1->Pos.Y;
-            this->pTerrainTiles[x][z].vert1CurrPositionYDirty = false;
+        //texture atlas 4 UVs
+        newuvs = MakeUVs(a->m_TextureModification);
 
-            //vector3d<irr::f32> *newvec2 = new vector3d<irr::f32>((x + 1) * segmentSize, -irr::f32(b->m_Height), z * segmentSize);
-            //vertices.insert(vertices.end(), *newvec2);
+        tile->vert1->TCoords = newuvs[0];
+        tile->vert1UVcoord = newuvs[0];
 
-            this->pTerrainTiles[x][z].vert2->Pos = vector3d<irr::f32>((x + 1) * segmentSize, -irr::f32(b->m_Height), z * segmentSize);
+        tile->vert2->TCoords = newuvs[1];
+        tile->vert2UVcoord = newuvs[1];
 
-            this->pTerrainTiles[x][z].vert2CurrPositionY = this->pTerrainTiles[x][z].vert2->Pos.Y;
-            this->pTerrainTiles[x][z].vert2CurrPositionYDirty = false;
+        tile->vert3->TCoords = newuvs[2];
+        tile->vert3UVcoord = newuvs[2];
 
-            //vector3d<irr::f32> *newvec3 = new vector3d<irr::f32>((x + 1) * segmentSize, -irr::f32(c->m_Height), (z + 1) * segmentSize);
-            //vertices.insert(vertices.end(), *newvec3);
+        tile->vert4->TCoords = newuvs[3];
+        tile->vert4UVcoord = newuvs[3];
 
-            this->pTerrainTiles[x][z].vert3->Pos = vector3d<irr::f32>((x + 1) * segmentSize, -irr::f32(c->m_Height), (z + 1) * segmentSize);
+        tile->VertUpdatedUVScoord = false;
 
-            this->pTerrainTiles[x][z].vert3CurrPositionY = this->pTerrainTiles[x][z].vert3->Pos.Y;
-            this->pTerrainTiles[x][z].vert3CurrPositionYDirty = false;
+        // add normals
+        normal = computeNormalFromMapEntries(x    , z    , 1.0f);
+        tile->vert1->Normal = normal;
+        tile->vert1CurrNormal = normal;
 
+        normal = computeNormalFromMapEntries(x + 1, z    , 1.0f);
+        tile->vert2->Normal = normal;
+        tile->vert2CurrNormal = normal;
 
-            //vector3d<irr::f32> *newvec4 = new vector3d<irr::f32>(x       * segmentSize, -irr::f32(d->m_Height), (z + 1) * segmentSize);
-            //vertices.insert(vertices.end(), *newvec4);
+        normal = computeNormalFromMapEntries(x + 1, z + 1, 1.0f);
+        tile->vert3->Normal = normal;
+        tile->vert3CurrNormal = normal;
 
-            this->pTerrainTiles[x][z].vert4->Pos = vector3d<irr::f32>(x       * segmentSize, -irr::f32(d->m_Height), (z + 1) * segmentSize);
-            this->pTerrainTiles[x][z].vert4CurrPositionY = this->pTerrainTiles[x][z].vert4->Pos.Y;
-            this->pTerrainTiles[x][z].vert4CurrPositionYDirty = false;
+        normal = computeNormalFromMapEntries(x    , z + 1, 1.0f);
+        tile->vert4->Normal = normal;
+        tile->vert4CurrNormal = normal;
 
-            //precalculate averaged tile height, this value will be for example used later
-            //for player craft calculations...
-            this->pTerrainTiles[x][z].currTileHeight = GetAveragedTileHeight(x, z);
+        tile->RefreshNormals = false;
+      }
+    }
 
-            //texture atlas 4 UVs
-            std::vector<vector2d<irr::f32>> newuvs;
-            newuvs = MakeUVs(a->m_TextureModification);
-            //uvs.insert(uvs.end(), newuvs.begin(), newuvs.end());
+    //now add all visible cells (only cells that were
+    //not optimized away (non used parts of the level map))
+    for (z = 0; z < Height; z++) {
+      for (x = 0; x < Width; x++) {
+          tile = &pTerrainTiles[x][z];
 
-            this->pTerrainTiles[x][z].vert1->TCoords = newuvs[0];
-            this->pTerrainTiles[x][z].vert1UVcoord = newuvs[0];
+          if (tile->m_draw_in_mesh == true) {
+              a = GetMapEntry(x, z);
 
-            this->pTerrainTiles[x][z].vert2->TCoords = newuvs[1];
-            this->pTerrainTiles[x][z].vert2UVcoord = newuvs[1];
+              // determine max height
+              max = std::max(max, a->m_Height);
 
-            this->pTerrainTiles[x][z].vert3->TCoords = newuvs[2];
-            this->pTerrainTiles[x][z].vert3UVcoord = newuvs[2];
+              if (!tile->dynamicMesh) {
+                 //is a static cell (does not morph)
+                 AddMeshBufferTile(mStaticMeshBufferVec, tile, a->m_TextureId);
+              } else {
+                 //is a dynamic cell (is able to morph)
+                 AddMeshBufferTile(mDynamicMeshBufferVec, tile, a->m_TextureId);
+              }
+        }
+      }
+    }
 
-            this->pTerrainTiles[x][z].vert4->TCoords = newuvs[3];
-            this->pTerrainTiles[x][z].vert4UVcoord = newuvs[3];
+    //get number of already existing Meshbuffers for all available Texture Ids of Terrain
+    std::vector<irr::u8> nrMeshBuffersPerTexId = ReturnMeshBufferCntPerTextureId(mStaticMeshBufferVec);
 
-            this->pTerrainTiles[x][z].VertUpdatedUVScoord = false;
+    //if we are starting for the level editor we need to make sure that for each possible
+    //texture Id existing we have enough meshbuffers available, so that in worst case if user
+    //tries to set all existing tiles of a map to the same texture Id, we do not run out of
+    //meshbuffer indices overall. Because Irrlicht is limited to max 65535 indices per
+    //meshbuffer
+    if (mLevelEditorMode) {
+        irr::u8 buffersToAdd;
 
-            // add normals
-            normal = computeNormalFromMapEntries(x    , z    , 1.0f);
-            //normals.push_back(normal);
-            this->pTerrainTiles[x][z].vert1->Normal = normal;
-            this->pTerrainTiles[x][z].vert1CurrNormal = normal;
+        //in for loop add additional "empty" meshbuffers for this worst case scenario
+        //first for static mesh
+        for (int i = 0; i < mTerrainAvailableTextureCount; i++) {
+           buffersToAdd = mLevelEditorMinNrMeshBuffersNeeded - nrMeshBuffersPerTexId.at(i);
 
-            normal = computeNormalFromMapEntries(x + 1, z    , 1.0f);
-            //normals.push_back(normal);
-            this->pTerrainTiles[x][z].vert2->Normal = normal;
-            this->pTerrainTiles[x][z].vert2CurrNormal = normal;
-
-            normal = computeNormalFromMapEntries(x + 1, z + 1, 1.0f);
-            //normals.push_back(normal);
-            this->pTerrainTiles[x][z].vert3->Normal = normal;
-            this->pTerrainTiles[x][z].vert3CurrNormal = normal;
-
-            normal = computeNormalFromMapEntries(x    , z + 1, 1.0f);
-            //normals.push_back(normal);
-            this->pTerrainTiles[x][z].vert4->Normal = normal;
-            this->pTerrainTiles[x][z].vert4CurrNormal = normal;
-
-            this->pTerrainTiles[x][z].RefreshNormals = false;
-
-            //only create mesh for cell if it was not optimized away (non used parts of the level map)
-            if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
-                if (this->pTerrainTiles[x][z].dynamicMesh == false) {
-                    //this is static terrain (no morphing)
-                     numUVs += 4;
-                     numVertices += 4;
-
-                     //store the texture ID information for the 2 tris
-                     textureIdDataStatic.push_back(a->m_TextureId);
-                     textureIdDataStatic.push_back(a->m_TextureId);
-
-                     numNormals += 4;
-
-                     // add indices for the 2 tris
-                     indicesStatic.push_back(iStatic);
-                     indicesStatic.push_back(iStatic + 1);
-                     indicesStatic.push_back(iStatic + 3);
-
-                     indicesStatic.push_back(iStatic + 1);
-                     indicesStatic.push_back(iStatic + 2);
-                     indicesStatic.push_back(iStatic + 3);
-
-                     iStatic += 4;
-
-                     numIndices += 6;
-
-                     // determine max height
-                     max = std::max(max, a->m_Height);
-                } else {
-                    //this is dynamic terrain (affected by morphing)
-                     numUVs += 4;
-                     numVertices += 4;
-
-                     //store the texture ID information for the 2 tris
-                     textureIdDataDynamic.push_back(a->m_TextureId);
-                     textureIdDataDynamic.push_back(a->m_TextureId);
-
-                     numNormals += 4;
-
-                     // add indices for the 2 tris
-                     indicesDynamic.push_back(iDynamic);
-                     indicesDynamic.push_back(iDynamic + 1);
-                     indicesDynamic.push_back(iDynamic + 3);
-
-                     indicesDynamic.push_back(iDynamic + 1);
-                     indicesDynamic.push_back(iDynamic + 2);
-                     indicesDynamic.push_back(iDynamic + 3);
-
-                     iDynamic += 4;
-
-                     numIndices += 6;
-
-                     // determine max height
-                     max = std::max(max, a->m_Height);
-                }
-          }
-       }
-     }
-
-   // positionVboData = vertices;
-   // normalVboData = normals;
-    indicesVboDataStatic = indicesStatic;
-    indicesVboDataDynamic = indicesDynamic;
-   // uvVboData = uvs;
-
-    Size.X = levelRes->Width() * segmentSize;
-    Size.Y = max;
-    Size.Z = levelRes->Height() * segmentSize;
-
-    return true;
-}
-
-/*
-void LevelTerrain::AddDirtySMeshBuffer(irr::scene::SMeshBuffer *newDirtyBuffer,
-                                       std::vector<irr::scene::SMeshBuffer*> &currDirtyList)
-{
-    //only add new dirty buffer pointer to list if the new specified buffer is not yet
-    //part of the list
-    bool fnd = false;
-    std::vector<irr::scene::SMeshBuffer*>::iterator it;
-
-    for (it = currDirtyList.begin(); it != currDirtyList.end(); ++(it)) {
-        if (newDirtyBuffer == (*it)) {
-            fnd = true;
-            break;
+           for (int j = 0; j < buffersToAdd; j++) {
+               AddAdditionalMeshBuffer(mStaticMeshBufferVec, i);
+           }
         }
     }
 
-    //not found, add to list
-    if (!fnd) {
-        currDirtyList.push_back(newDirtyBuffer);
+    nrMeshBuffersPerTexId = ReturnMeshBufferCntPerTextureId(mDynamicMeshBufferVec);
+
+    if (mLevelEditorMode) {
+        irr::u8 buffersToAdd;
+
+        //in for loop add additional "empty" meshbuffers for this worst case scenario
+        //first for static mesh
+        for (int i = 0; i < mTerrainAvailableTextureCount; i++) {
+           buffersToAdd = mLevelEditorMinNrMeshBuffersNeeded - nrMeshBuffersPerTexId.at(i);
+
+           for (int j = 0; j < buffersToAdd; j++) {
+               AddAdditionalMeshBuffer(mDynamicMeshBufferVec, i);
+           }
+        }
     }
-}*/
+
+    //create Mesh for the static Terrain
+
+    //first make a mesh to hold the overall level terrain data
+    myStaticTerrainMesh = new SMesh;
+    myStaticTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+
+    //mesh for dynamic terrain
+    myDynamicTerrainMesh = new SMesh;
+    myDynamicTerrainMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+
+    std::vector<irr::scene::SMeshBuffer*> bufList;
+    std::vector<irr::scene::SMeshBuffer*>::iterator bufIt;
+
+    for (int currTexId = 0; currTexId < mTerrainAvailableTextureCount; currTexId++) {
+
+        bufList = ReturnAllMeshBuffersForTextureId(mStaticMeshBufferVec, currTexId);
+
+        for (bufIt = bufList.begin(); bufIt != bufList.end(); ++bufIt) {
+              (*bufIt)->BoundingBox.reset(0,0,0);
+              (*bufIt)->recalculateBoundingBox();
+
+              //add SMeshbuffer to overall terrain mesh
+              myStaticTerrainMesh->addMeshBuffer((*bufIt));
+
+              myStaticTerrainMesh->recalculateBoundingBox();
+        }
+   }
+
+   for (int currTexId = 0; currTexId < mTerrainAvailableTextureCount; currTexId++) {
+
+        bufList = ReturnAllMeshBuffersForTextureId(mDynamicMeshBufferVec, currTexId);
+
+        for (bufIt = bufList.begin(); bufIt != bufList.end(); ++bufIt) {
+              (*bufIt)->BoundingBox.reset(0,0,0);
+              (*bufIt)->recalculateBoundingBox();
+
+              //add SMeshbuffer to overall terrain mesh
+              myDynamicTerrainMesh->addMeshBuffer((*bufIt));
+
+              myDynamicTerrainMesh->recalculateBoundingBox();
+        }
+   }
+
+   //mark Terrain mesh as dirty, so that it is transfered again to graphics card
+   myStaticTerrainMesh->setDirty();
+   myStaticTerrainMesh->recalculateBoundingBox();
+
+   myDynamicTerrainMesh->setDirty();
+   myDynamicTerrainMesh->recalculateBoundingBox();
+
+   Size.X = levelRes->Width() * segmentSize;
+   Size.Y = max;
+   Size.Z = levelRes->Height() * segmentSize;
+
+   return true;
+}
 
 void LevelTerrain::ApplyMorph(Morph morph)
       {
@@ -2021,9 +2070,6 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            idxMeshBuf++;
 
                            (*it2)->drop();
-
-                           //add this Meshbuffer to the list of overall dirty buffers
-                         //  AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
                        }
 
                       dirtyPos = true;
@@ -2036,16 +2082,15 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            (*it2)->grab();
                            void* pntrVert = (*it2)->getVertices();
                            pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert2CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert2UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert2CurrNormal;
+
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].Pos.Y = this->pTerrainTiles[x][z].vert2CurrPositionY;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][z].vert2UVcoord;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].Normal = this->pTerrainTiles[x][z].vert2CurrNormal;
+
 
                            idxMeshBuf++;
 
                            (*it2)->drop();
-
-                           //add this Meshbuffer to the list of overall dirty buffers
-                          // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
                        }
 
                       dirtyPos = true;
@@ -2058,16 +2103,15 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            (*it2)->grab();
                            void* pntrVert = (*it2)->getVertices();
                            pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert3CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert3UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert3CurrNormal;
+
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].Pos.Y = this->pTerrainTiles[x][z].vert3CurrPositionY;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][z].vert3UVcoord;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].Normal = this->pTerrainTiles[x][z].vert3CurrNormal;
+
 
                            idxMeshBuf++;
 
                            (*it2)->drop();
-
-                           //add this Meshbuffer to the list of overall dirty buffers
-                          // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
                        }
 
                       dirtyPos = true;
@@ -2080,16 +2124,15 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            (*it2)->grab();
                            void* pntrVert = (*it2)->getVertices();
                            pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert4CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert4UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert4CurrNormal;
+
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].Pos.Y = this->pTerrainTiles[x][z].vert4CurrPositionY;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][z].vert4UVcoord;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].Normal = this->pTerrainTiles[x][z].vert4CurrNormal;
+
 
                            idxMeshBuf++;
 
                            (*it2)->drop();
-
-                           //add this Meshbuffer to the list of overall dirty buffers
-                          // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
                        }
 
                       dirtyPos = true;
@@ -2226,37 +2269,24 @@ void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinat
     this->mInfra->mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
 }
 
-irr::u16 LevelTerrain::GetMeshBufferIndexForTextureId(int posX, int posY, int16_t newTextureId) {
-     std::vector<int16_t>::iterator it;
+//returns nullptr in case appropriate MeshBufferInfoStruct is not found
+MeshBufferInfoStruct* LevelTerrain::FindMeshBufferInfoStructForMeshBuffer(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, irr::scene::SMeshBuffer* meshBufToFind) {
+   std::vector<MeshBufferInfoStruct*>::iterator it;
 
-     irr::u16 resultIdx = 0;
+   for (it = targetMeshBufVec.begin(); it != targetMeshBufVec.end(); ++it) {
+       if ((*it)->meshBuf == meshBufToFind) {
+           //found, return pointer
+           return (*it);
+       }
+   }
 
-     for (it = meshBufferTexIdVec.begin(); it != meshBufferTexIdVec.end(); ++it) {
-         if ((*it) == newTextureId) {
-             return resultIdx;
-         }
-
-         resultIdx++;
-     }
-
-     return 0;
+   //not found
+   return nullptr;
 }
 
-void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8_t newTextureModifier) {
-    //This higher level function has to do 2 independent things:
-    // 1, modify the cell configuration in the level/map file itself (so that next time we
-    //    load the map again, everything is restored again in the same modified way)
-    // 2, modify the current terrain Mesh used by Irrlicht to show the user the
-    //    current state of the Terrain in the level. If we do not do this the level editor
-    //    user can not see what he actually has changed already :)
-
-    int nrTex = this->mTexSource->NumLevelTextures;
-
-    // Part 1: Update the current Irrlicht Mesh
-    TerrainTileData* tTilePntr = &this->pTerrainTiles[posX][posY];
-
+void LevelTerrain::RemoveMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, TerrainTileData* tilePntr) {
     //if this tile is optimized away, exit here
-    if (!tTilePntr->m_draw_in_mesh)
+    if (!tilePntr->m_draw_in_mesh)
         return;
 
     std::vector<irr::scene::SMeshBuffer*>::iterator it;
@@ -2270,10 +2300,9 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
     irr::u32 nrIndices;
     bool dirty;
 
-    std::vector<irr::u32>::iterator itVertId1 = tTilePntr->myMeshBufVertexId1.begin();
-    std::vector<irr::u32>::iterator itVertId2 = tTilePntr->myMeshBufVertexId2.begin();
-    std::vector<irr::u32>::iterator itVertId3 = tTilePntr->myMeshBufVertexId3.begin();
-    std::vector<irr::u32>::iterator itVertId4 = tTilePntr->myMeshBufVertexId4.begin();
+    std::vector<irr::u32>::iterator itVertId1 = tilePntr->myMeshBufVertexId1.begin();
+
+    MeshBufferInfoStruct* pInfoStruct;
 
     /******************************************************************
      * Part 1: Remove existing tile from Meshbuffers and Mesh         *
@@ -2281,18 +2310,23 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
 
     //iterate through all meshbuffers where this tile is included, and
     //see if we find any of the indices of the vertices of this tile included
-    for (it = tTilePntr->myMeshBuffers.begin(); it != tTilePntr->myMeshBuffers.end(); ) {
+    for (it = tilePntr->myMeshBuffers.begin(); it != tilePntr->myMeshBuffers.end(); ) {
         //what indices do my vertices have in this meshbuffer?
         vert1Idx = (*itVertId1);
-        vert2Idx = (*itVertId2);
-        vert3Idx = (*itVertId3);
-        vert4Idx = (*itVertId4);
+        vert2Idx = (*itVertId1) + 1;
+        vert3Idx = (*itVertId1) + 2;
+        vert4Idx = (*itVertId1) + 3;
 
         meshBufPntr = (*it);
 
+        //we need to adjust the number of free indices in the meshbuffer
+        //in case we delete indices later
+        //Therefore we need to find the correct MeshBufferInfoStruct for
+        //this Meshbuffer
+        pInfoStruct = FindMeshBufferInfoStructForMeshBuffer(targetMeshBufVec, meshBufPntr);
+
         meshBufPntr->grab();
-        //void* pntrInd = meshBufPntr->getIndices();
-        //pntrIndices = (irr::u16*)pntrInd;
+
         nrIndices = meshBufPntr->getIndexCount();
         dirty = false;
 
@@ -2308,6 +2342,11 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
                     dirty = true;
 
                     nrIndices--;
+                    if (pInfoStruct != nullptr) {
+                        //There is one more available index
+                        //again in indices array of Meshbuffer
+                        pInfoStruct->remainingIndices++;
+                    }
 
                     //after erasing the element the same idxCnt points now
                     //already to the next element
@@ -2324,229 +2363,147 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, int8
 
             //we also remove this meshBuffer index from the myMeshBuffers
             //vector
-            it = tTilePntr->myMeshBuffers.erase(it);
+            it = tilePntr->myMeshBuffers.erase(it);
 
-            itVertId1 = tTilePntr->myMeshBufVertexId1.erase(itVertId1);
-            itVertId2 = tTilePntr->myMeshBufVertexId2.erase(itVertId2);
-            itVertId3 = tTilePntr->myMeshBufVertexId3.erase(itVertId3);
-            itVertId4 = tTilePntr->myMeshBufVertexId4.erase(itVertId4);
+            itVertId1 = tilePntr->myMeshBufVertexId1.erase(itVertId1);
         } else {
             //advance to the next myMeshBuffers position
             it++;
 
             itVertId1++;
-            itVertId2++;
-            itVertId3++;
-            itVertId4++;
         }
     }
+}
+
+void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId) {
+    //This higher level function has to do 2 independent things:
+    // 1, modify the cell configuration in the level/map file itself (so that next time we
+    //    load the map again, everything is restored again in the same modified way)
+    // 2, modify the current terrain Mesh used by Irrlicht to show the user the
+    //    current state of the Terrain in the level. If we do not do this the level editor
+    //    user can not see what he actually has changed already :)
 
     /******************************************************************
-     * Part 2: According to new texture add to new correct Meshbuffer *
+     * Part 1: Modify low level map data                              *
      ******************************************************************/
 
-    //22.06.2025: If the new textureId was never used in this level before we have to create and fill
-    //the appropriate Meshbuffer first with all available vertices of the level
-    //If the meshbuffer is not used until now, its number of current vertices will be 0
+    //First edit low level/map data itself
+    MapEntry* entry = levelRes->pMap[posX][posY];
 
-    //After startup of the project there are 2 Meshbuffers created for each TextureId available (one
-    //static mesh, the other one dynamic mesh). Pointers to this meshbuffers are stored in the
-    //vector meshBuffers, and which meshbuffer is for which material is stored in vector meshBufferTexIdVec
-    std::vector<irr::u16> newMeshBufferIdxVec;
-    newMeshBufferIdxVec.clear();
+    if (entry == nullptr)
+        return;
 
-    std::vector<int16_t>::iterator itTexId;
-    irr::u16 currIdx = 0;
+    //set new texture modifier value in lowlevel map data
+    entry->m_TextureId = newTextureId;
 
-    for (itTexId = meshBufferTexIdVec.begin(); itTexId != meshBufferTexIdVec.end(); ++itTexId) {
-        if ((*itTexId) == newTextureId) {
-            //This meshbuffer is needed
-            newMeshBufferIdxVec.push_back(currIdx);
-        }
+    /******************************************************************
+     * Part 2: According to new texture modify Irrlicht Terrain Mesh  *
+     ******************************************************************/
 
-        currIdx++;
+    // Part 1: Update the current Irrlicht Mesh
+    TerrainTileData* tTilePntr = &this->pTerrainTiles[posX][posY];
+
+    //if this tile is optimized away, exit here
+    if (!tTilePntr->m_draw_in_mesh)
+        return;
+
+    if (!tTilePntr->dynamicMesh) {
+        //Remove existing mesh for this tile
+        RemoveMeshBufferTile(mStaticMeshBufferVec, tTilePntr);
+
+        //Add new mesh with new textureId
+        AddMeshBufferTile(mStaticMeshBufferVec, tTilePntr, newTextureId);
+
+        myStaticTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+        myStaticTerrainMesh->recalculateBoundingBox();
+    } else {
+        //Remove existing mesh for this tile
+        RemoveMeshBufferTile(mDynamicMeshBufferVec, tTilePntr);
+
+        //Add new mesh with new textureId
+        AddMeshBufferTile(mDynamicMeshBufferVec, tTilePntr, newTextureId);
+
+        myDynamicTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+        myDynamicTerrainMesh->recalculateBoundingBox();
+    }
+}
+
+void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newTextureModifier) {
+    //This higher level function has to do 2 independent things:
+    // 1, modify the cell configuration in the level/map file itself (so that next time we
+    //    load the map again, everything is restored again in the same modified way)
+    // 2, modify the current terrain Mesh used by Irrlicht to show the user the
+    //    current state of the Terrain in the level. If we do not do this the level editor
+    //    user can not see what he actually has changed already :)
+
+    //check for valid value of new texture modifier
+    if ((newTextureModifier < 0) || (newTextureModifier > 7))
+        return;
+
+    /******************************************************************
+     * Part 1: Modify low level map data                              *
+     ******************************************************************/
+    MapEntry* entry = levelRes->pMap[posX][posY];
+
+    if (entry == nullptr)
+        return;
+
+    //set new texture modifier value in lowlevel map data
+    entry->m_TextureModification = newTextureModifier;
+
+    /******************************************************************
+     * Part 2: According to new texture modify Irrlicht Terrain Mesh  *
+     ******************************************************************/
+    TerrainTileData* tTilePntr = &this->pTerrainTiles[posX][posY];
+
+    //if this tile is optimized away, exit here
+    if (!tTilePntr->m_draw_in_mesh)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it;
+    irr::scene::SMeshBuffer* meshBufPntr;
+
+    //create the new UV information
+    std::vector<vector2d<irr::f32>> newUVS = MakeUVs(newTextureModifier);
+
+    irr::u32 vert1Idx;
+
+    void* pntrVert;
+    S3DVertex *pntrVertices;
+
+    std::vector<irr::u32>::iterator itVertId1 = tTilePntr->myMeshBufVertexId1.begin();
+
+    irr::u32 bufIdx = 0;
+
+    //iterate through all meshbuffers where this tile is included, and
+    //see if we find any of the indices of the vertices of this tile included
+    for (it = tTilePntr->myMeshBuffers.begin(); it != tTilePntr->myMeshBuffers.end(); ++it) {
+        //what indices do my vertices have in this meshbuffer?
+        vert1Idx = (*itVertId1);
+
+        meshBufPntr = (*it);
+        meshBufPntr->grab();
+
+        pntrVert = meshBufPntr->getVertices();
+        pntrVertices = (S3DVertex*)pntrVert;
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx]].TCoords = newUVS.at(0);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx] + 1].TCoords = newUVS.at(1);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx] + 2].TCoords = newUVS.at(2);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx] + 3].TCoords = newUVS.at(3);
+
+        bufIdx++;
+
+        meshBufPntr->drop();
+
+        meshBufPntr->setDirty(EBT_VERTEX_AND_INDEX);
     }
 
-    //now vector newMeshBufferIdxVec has all the Meshbuffers inside we will need for
-    //this new textureId
-    std::vector<irr::u16>::iterator itNewMeshBuffer;
-
-    int Width = levelRes->Width();
-    int Height = levelRes->Height();
-
-    int x, z;
-
-    bool meshNewlySetup;
-    std::cout << "Meshbuf count before :" << this->pTerrainTiles[posX][posY].myMeshBuffers.size() << std::endl;
-
-    for (itNewMeshBuffer = newMeshBufferIdxVec.begin(); itNewMeshBuffer != newMeshBufferIdxVec.end(); ++itNewMeshBuffer) {
-        //for static Mesh only the first nrTex Meshbuffers are used, for
-        //dynamic Mesh only the second nrTex Meshbuffers afterwards
-        if (((!tTilePntr->dynamicMesh) && ((*itNewMeshBuffer) < nrTex)) ||
-               ((tTilePntr->dynamicMesh) && ((*itNewMeshBuffer) >= nrTex) && ((*itNewMeshBuffer) < (2 * nrTex))))  {
-            //this Meshbuffer is needed
-            //is it used already?
-            meshBufPntr = meshBuffers[(*itNewMeshBuffer)];
-
-            meshBufPntr->grab();
-
-            meshNewlySetup = false;
-
-            if (meshBufPntr->getVertexCount() < 1) {
-                //buffer is not setup yet, we need to add all vertices of the terrain!
-                for (z = 0; z < Height; z++) {
-                  for (x = 0; x < Width; x++) {
-                      //a = GetMapEntry(x, z);
-
-                      //only add vertices if terrain tile is drawn and was not optimized out
-                      //we also need to store the meshBuffer and vertex index for later morphing of Terrain
-                      if (this->pTerrainTiles[x][z].m_draw_in_mesh == true) {
-                          if (!this->pTerrainTiles[x][z].dynamicMesh) {
-                               this->pTerrainTiles[x][z].myMeshBufVertexId1.push_back(meshBufPntr->getVertexCount());
-                               meshBufPntr->Vertices.push_back(*this->pTerrainTiles[x][z].vert1);
-
-                               this->pTerrainTiles[x][z].myMeshBufVertexId2.push_back(meshBufPntr->getVertexCount());
-                               meshBufPntr->Vertices.push_back(*this->pTerrainTiles[x][z].vert2);
-
-                               this->pTerrainTiles[x][z].myMeshBufVertexId3.push_back(meshBufPntr->getVertexCount());
-                               meshBufPntr->Vertices.push_back(*this->pTerrainTiles[x][z].vert3);
-
-                               this->pTerrainTiles[x][z].myMeshBufVertexId4.push_back(meshBufPntr->getVertexCount());
-                               meshBufPntr->Vertices.push_back(*this->pTerrainTiles[x][z].vert4);
-
-                               //keep pointer to my MeshBuffer
-                               //we need this for morphing of Terrain!
-                               this->pTerrainTiles[x][z].myMeshBuffers.push_back(meshBufPntr);
-                          }
-                      }
-                  }
-               }
-
-                //remember Mesh was newly setup, so that we can add it
-                //to the correct SceneNode afterwards
-                meshNewlySetup = true;
-            }
-
-            if (meshNewlySetup) {
-                std::cout << "Newly Setup" << std::endl;
-                 std::cout << "Meshbuf count after :" << this->pTerrainTiles[posX][posY].myMeshBuffers.size() << std::endl;
-            }
-
-            std::cout << "Number vertices before: " << meshBufPntr->getVertexCount() << std::endl;
-            std::cout << "Number indices before: " << meshBufPntr->getIndexCount() << std::endl;
-
-            meshBufPntr->drop();
-
-            //now add the new tile to this Meshbuffer
-            int newBufIndex = 0;
-
-            irr::u16 correctNewBufIdx = GetMeshBufferIndexForTextureId(posX, posY, newTextureId);
-
-            std::vector<irr::scene::SMeshBuffer*>::iterator meshBufIdxIt;
-            irr::u16 verticeVecIdx = 0;
-            bool corrVerticeBufferFound = false;
-
-            meshBufPntr = meshBuffers[correctNewBufIdx];
-
-            for (meshBufIdxIt = tTilePntr->myMeshBuffers.begin(); meshBufIdxIt != tTilePntr->myMeshBuffers.end(); ++meshBufIdxIt) {
-                if ((*meshBufIdxIt) == meshBufPntr) {
-                    corrVerticeBufferFound = true;
-                    break;
-                }
-
-                verticeVecIdx++;
-            }
-
-            if (!corrVerticeBufferFound)
-                return;
-
-            newBufIndex = this->pTerrainTiles[posX][posY].myMeshBufVertexId1[verticeVecIdx];
-
-            meshBufPntr->grab();
-
-            // add indices for the 2 tris with the new
-            // textureId material
-            meshBufPntr->Indices.push_back(newBufIndex);
-            meshBufPntr->Indices.push_back(newBufIndex + 1);
-            meshBufPntr->Indices.push_back(newBufIndex + 3);
-
-            meshBufPntr->Indices.push_back(newBufIndex + 1);
-            meshBufPntr->Indices.push_back(newBufIndex + 2);
-            meshBufPntr->Indices.push_back(newBufIndex + 3);
-
-            std::cout << "Number vertices after: " << meshBufPntr->getVertexCount() << std::endl;
-            std::cout << "Number indices after: " << meshBufPntr->getIndexCount() << std::endl;
-
-            meshBufPntr->drop();
-
-            meshBufPntr->setDirty(EBT_VERTEX_AND_INDEX);
-
-            meshBufPntr->BoundingBox.reset(0,0,0);
-            meshBufPntr->recalculateBoundingBox();
-
-           /*meshBufPntr->grab();
-           irr::u16* pntrIndices;
-
-           void* pntrInd = meshBufPntr->getIndices();
-           pntrIndices = (irr::u16*)pntrInd;
-
-
-           S3DVertex* pntrVertices;
-
-           void* pntrVert = meshBufPntr->getVertices();
-           pntrVertices = (S3DVertex*)pntrVert;
-
-           irr::f32 px;
-           irr::f32 py;
-           irr::f32 pz;
-
-           for (int testvar = 0; testvar < 6; testvar++) {
-               px = pntrVertices[*pntrIndices].Pos.X;
-               py = pntrVertices[*pntrIndices].Pos.Y;
-               pz = pntrVertices[*pntrIndices].Pos.Z;
-
-               std::cout << *pntrIndices << ":" << px << " " << py << " " << pz << std::endl;
-               pntrIndices++;
-           }
-
-           meshBufPntr->drop();*/
-
-          /* SMesh* testMesh = new SMesh;
-           testMesh->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
-           testMesh->addMeshBuffer(meshBufPntr);
-
-           ISceneNode* testnode = this->mInfra->mSmgr->addMeshSceneNode(testMesh, 0, IDFlag_IsPickable);
-
-           //we need to rotate the terrain Mesh, otherwise it is upside down
-           testnode->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
-           testnode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
-
-           testnode->setMaterialFlag(EMF_FOG_ENABLE, true);
-           testnode->setMaterialFlag(EMF_WIREFRAME, false);
-           //testnode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
-           // testnode->setMaterialFlag(EMF_FRONT_FACE_CULLING, false);
-
-           testnode->setDebugDataVisible(EDS_BBOX);*/
-
-           if (!tTilePntr->dynamicMesh) {
-                 if (meshNewlySetup) {
-                   //add SMeshbuffer to overall terrain mesh
-                   myStaticTerrainMesh->addMeshBuffer(meshBufPntr);
-                 }
-
-                 myStaticTerrainMesh->setDirty();
-                 myStaticTerrainMesh->recalculateBoundingBox();
-           } else {
-                 if (meshNewlySetup) {
-                    //add SMeshbuffer to overall terrain mesh
-                    myDynamicTerrainMesh->addMeshBuffer(meshBufPntr);
-                 }
-
-                 myDynamicTerrainMesh->setDirty();
-                 myDynamicTerrainMesh->recalculateBoundingBox();
-           }
-
-      }
-  }
+    if (!tTilePntr->dynamicMesh) {
+        myStaticTerrainMesh->setDirty();
+        myStaticTerrainMesh->recalculateBoundingBox();
+    } else {
+        myDynamicTerrainMesh->setDirty();
+        myDynamicTerrainMesh->recalculateBoundingBox();
+    }
 }
 

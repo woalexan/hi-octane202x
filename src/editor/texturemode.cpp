@@ -87,6 +87,11 @@ void TextureModeTexCategory::AddTexture(int16_t textureId) {
             mParent->mParentSession->mParentEditor->mGuienv->addImage(mParent->mParentSession->mTexLoader->levelTex.at(textureId),
                                           newPos, true, mParent->mGuiTextureMode.Window, newStruct->guiElementId);
 
+    wchar_t* textTextureID = new wchar_t[50];
+    swprintf(textTextureID, 50, L"Texture Id: %d", (int)(textureId));
+    newStruct->guiElement->setToolTipText(textTextureID);
+    delete[] textTextureID;
+
     //default hide new images, and disable them so that
     //the do not sent Gui events when we go with the mouse
     //cursor over them
@@ -132,6 +137,7 @@ TextureMode::TextureMode(EditorSession* parentSession) {
     mParentSession = parentSession;
 
     mTexCategoryVec.clear();
+    mTexModificationVec.clear();
 }
 
 TextureMode::~TextureMode() {
@@ -146,6 +152,31 @@ TextureMode::~TextureMode() {
 
         delete pntr;
     }
+
+    std::vector<GUITextureModificationDataStruct*>::iterator it2;
+    GUITextureModificationDataStruct* pntr2;
+
+    for (it2 = this->mTexModificationVec.begin(); it2 != this->mTexModificationVec.end(); ) {
+        pntr2 = (*it2);
+
+        it2 = mTexModificationVec.erase(it2);
+
+        delete pntr2;
+    }
+}
+
+void TextureMode::AddTextureModification(const wchar_t* entryName, int8_t texModValue, irr::gui::IGUIComboBox* comboBoxPntr) {
+    GUITextureModificationDataStruct* newEntry = new GUITextureModificationDataStruct();
+    newEntry->texModificationName = entryName;
+    newEntry->texModValue = texModValue;
+
+    //get next free Gui Element Id
+    newEntry->mDialogComboBoxElementId = mParentSession->GetNextFreeGuiId();
+
+    //add new item to the dialog checkbox
+    comboBoxPntr->addItem(entryName, newEntry->mDialogComboBoxElementId );
+
+    mTexModificationVec.push_back(newEntry);
 }
 
 void TextureMode::AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* comboBoxPntr) {
@@ -167,6 +198,20 @@ void TextureMode::TextureCategoryChanged(irr::u32 newSelectedGuiId) {
 
     if (pntr != nullptr) {
           SelectTextureModeTexCategory(pntr);
+    }
+}
+
+void TextureMode::TextureModificationChanged(irr::u32 newSelectedGuiId) {
+    GUITextureModificationDataStruct* pntr = FindTextureModificationByGuiId(newSelectedGuiId);
+
+    if (pntr != nullptr) {
+        std::cout << "new tex modification value " << (int)(pntr->texModValue) << std::endl;
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+            mParentSession->mLevelTerrain->SetCellTextureModification(
+                       mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
+                       mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
+                       pntr->texModValue);
+        }
     }
 }
 
@@ -199,7 +244,7 @@ void TextureMode::CreateWindow() {
     mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
                                       rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, mGuiTextureMode.Window, -1, false );
 
-    mGuiTextureMode.texCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ), mGuiTextureMode.Window);
+    mGuiTextureMode.texCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ), mGuiTextureMode.Window, GUI_ID_TEXCATEGORYCOMBOBOX);
 
     AddTextureCategory(L"Terrain", (irr::u8)(EDITOR_TEXCAT_TERRAIN), mGuiTextureMode.texCategoryList);
     AddTextureCategory(L"Rock", (irr::u8)(EDITOR_TEXCAT_ROCK), mGuiTextureMode.texCategoryList);
@@ -217,6 +262,22 @@ void TextureMode::CreateWindow() {
     AddTextureCategory(L"Technical", (irr::u8)(EDITOR_TEXCAT_TECHNICAL), mGuiTextureMode.texCategoryList);
 
     mGuiTextureMode.texCategoryList->setToolTipText ( L"Select Texture Category" );
+
+    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Modification:",
+                                      rect<s32>( dim.Width - 400, 50, dim.Width - 310, 66 ),false, false, mGuiTextureMode.Window, -1, false );
+
+    mGuiTextureMode.texModification = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 50, dim.Width - 10, 66 ), mGuiTextureMode.Window, GUI_ID_TEXMODIFICATIONCOMBOBOX);
+
+    AddTextureModification(L"Default", 0, mGuiTextureMode.texModification);
+    AddTextureModification(L"RotateNoneFlipX", 1, mGuiTextureMode.texModification);
+    AddTextureModification(L"RotateNoneFlipY", 2, mGuiTextureMode.texModification);
+    AddTextureModification(L"Rotate180FlipNone", 3, mGuiTextureMode.texModification);
+    AddTextureModification(L"Rotate270FlipY", 4, mGuiTextureMode.texModification);
+    AddTextureModification(L"Rotate90FlipNone", 5, mGuiTextureMode.texModification);
+    AddTextureModification(L"Rotate270FlipNone", 6, mGuiTextureMode.texModification);
+    AddTextureModification(L"Rotate90FlipY", 7, mGuiTextureMode.texModification);
+
+    mGuiTextureMode.texModification->setToolTipText ( L"Select Texture Modification" );
 
     //configure area in dialog where the possible textures are
     //shown
@@ -254,7 +315,24 @@ void TextureMode::CreateWindow() {
     mGuiTextureMode.CurrentSelectedTexture->setEnabled(false);
     mGuiTextureMode.CurrentSelectedTexture->setVisible(false);
 
+    //first set empty text, only update with texture Id when first cell is clicked by the user
+    mGuiTextureMode.CurrentSelectedTextureIdText = mParentSession->mParentEditor->mGuienv->addStaticText ( L"",
+                                                                                             rect<s32>( mCurrentSelectedTextureImageLocation.X,
+                                                                                                        mCurrentSelectedTextureImageLocation.Y + 68,
+                                                                                                        mCurrentSelectedTextureImageLocation.X + 70,
+                                                                                                        mCurrentSelectedTextureImageLocation.Y + 80),false, false, mGuiTextureMode.Window, -1, false );
+
     //gui.testButton = mParentEditor->mGuienv->addButton(core::recti(50, 50, 100, 80), gui.Window, GUI_ID_TESTBUTTON, L"Test");
+}
+
+void TextureMode::SelectTextureModification(int8_t newSelectedTexModification) {
+   if ((newSelectedTexModification < 0) || (newSelectedTexModification > 7))
+       return;
+
+   //set to not enabled to prevent triggering of events
+   mGuiTextureMode.texModification->setEnabled(false);
+   mGuiTextureMode.texModification->setSelected((irr::s32)(newSelectedTexModification));
+   mGuiTextureMode.texModification->setEnabled(true);
 }
 
 void TextureMode::SelectTextureModeTexCategory(TextureModeTexCategory* newCat) {
@@ -408,6 +486,22 @@ TextureModeTexCategory* TextureMode::FindTextureCategoryByGuiId(irr::u32 guiId) 
     return result;
 }
 
+//returns nullptr if texture modification setting is not found
+GUITextureModificationDataStruct* TextureMode::FindTextureModificationByGuiId(irr::u32 guiId) {
+    std::vector<GUITextureModificationDataStruct*>::iterator it;
+
+    GUITextureModificationDataStruct* result = nullptr;
+
+    for (it = mTexModificationVec.begin(); it != mTexModificationVec.end(); ++it) {
+      if ((*it)->mDialogComboBoxElementId == guiId) {
+          result = (*it);
+          break;
+      }
+    }
+
+    return result;
+}
+
 void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
     if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         //is our dialog already open?
@@ -422,11 +516,19 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
 
         if (entry != nullptr) {
             int16_t texId = entry->m_TextureId;
+            int8_t texMod = entry->m_TextureModification;
 
             //update image of currently selected texture
             mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(texId));
             mGuiTextureMode.CurrentSelectedTexture->setEnabled(true);
             mGuiTextureMode.CurrentSelectedTexture->setVisible(true);
+
+            wchar_t* textTextureID = new wchar_t[50];
+            swprintf(textTextureID, 50, L"Texture Id: %d", (int)(texId));
+            mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
+            delete[] textTextureID;
+
+            SelectTextureModification(texMod);
         }
     } else if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
         //is our dialog already open?
@@ -451,6 +553,13 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
                    mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(currTextureId));
                    mGuiTextureMode.CurrentSelectedTexture->setEnabled(true);
                    mGuiTextureMode.CurrentSelectedTexture->setVisible(true);
+
+                   wchar_t* textTextureID = new wchar_t[50];
+                   swprintf(textTextureID, 50, L"Texture Id: %d", (int)(currTextureId));
+                   mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
+                   delete[] textTextureID;
+
+                   SelectTextureModification(currTextureMod);
             }
         }
     }
@@ -532,7 +641,7 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
    //only trigger action if either a cell or a block face is currently selected
    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
        std::cout << "changed Cell TexID to " << newTextureId << std::endl;
-       mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId, 0);
+       mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId);
    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
        std::cout << "changed block TexID to " << newTextureId << std::endl;
    }

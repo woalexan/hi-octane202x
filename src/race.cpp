@@ -3679,7 +3679,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /* Prepare level terrain                                   */
    /***********************************************************/
    //for the game optimize the Terrain mesh!
-   this->mLevelTerrain = new LevelTerrain(mGame, terrainname, this->mLevelRes, mTexLoader, true,
+   this->mLevelTerrain = new LevelTerrain(mGame, false, terrainname, this->mLevelRes, mTexLoader, true,
                                           this->mGame->enableLightning);
 
    /***********************************************************/
