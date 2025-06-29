@@ -121,6 +121,21 @@ struct TerrainTileData {
     irr::f32 currTileHeight = 0.0f;
 };
 
+struct MeshBufferInfoStruct {
+    irr::scene::SMeshBuffer* meshBuf = nullptr;
+
+    //pointer to the next MeshBufferInfoStruct if necessary
+    //because every Meshbuffer can hold max 65535 indices
+    //is nullptr if there is no additional meshbuffer anymore
+    MeshBufferInfoStruct* nextPntr = nullptr;
+
+    irr::u16 remainingIndices = 0;
+
+    //stores the textureId of the material
+    //inside this meshbuffer
+    int16_t textureId;
+};
+
 class LevelTerrain {
 public:
     LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning);
@@ -215,22 +230,54 @@ public:
     //void DebugOutputFoundChargingTextures();
 
 private:
-    bool setupGeometry();
-    void findTerrainOptimization();
+    void AddMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, TerrainTileData* tilePntr, int16_t textureId);
+    void RemoveMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, TerrainTileData* tilePntr);
+
+    //adds an additional Meshbuffer for the specified textureId (material). Returns
+    //a pointer to the new added MeshBufferInfoStruct. In case something goes wrong
+    //returns nullptr
+    MeshBufferInfoStruct* AddAdditionalMeshBuffer(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId);
+
+    //finds the current (last in linked list) MeshBuffer info struct for a certain textureId
+    //returns nullptr in case of error
+    MeshBufferInfoStruct* FindLastMeshBufferInLinkedList(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId);
+
+    //finds the first available MeshBuffer info struct for a certain textureId
+    //which has still space for 6 additional indices (an additional Quad)
+    //returns nullptr in case of error, or nothing available
+    MeshBufferInfoStruct* FindFirstMeshBufferForAdditionalQuad(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId);
+
+    std::vector<irr::scene::SMeshBuffer*> ReturnAllMeshBuffersForTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t textureId);
+
+    //returns nullptr in case appropriate MeshBufferInfoStruct is not found
+    MeshBufferInfoStruct* FindMeshBufferInfoStructForMeshBuffer(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, irr::scene::SMeshBuffer* meshBufToFind);
+
+    //counts the number of existing Meshbuffers for all possible
+    //Texture Ids
+    std::vector<irr::u8> ReturnMeshBufferCntPerTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec);
+
+    bool SetupGeometry();
+    void FindTerrainOptimization();
     bool Terrain_Optimization_isValid_Cell_coordinate(int xcoord, int zcoord);
     int TerrainOptimization_compareCells(MapEntry *MiddleCell, MapEntry *Neighborcell);
     vector3d<irr::f32> computeNormalFromMapEntries(int x, int z, float intensity);
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
-    std::vector<SMeshBuffer*> meshBuffers;
-    std::vector<int16_t> meshBufferTexIdVec;
+    //a vector containing a MeshbufferInfoStruct (+Meshbuffer)
+    //for each possible textureId of the terrain (256 different texture Ids)
+    //this one is for static terrain mesh (without morphing)
+    std::vector<MeshBufferInfoStruct*> mStaticMeshBufferVec;
 
-    void CreateTerrainMesh();
-    irr::u16 GetMeshBufferIndexForTextureId(int16_t newTextureId);
+    //this one is for dynamic terrain mesh (with morphing function)
+    //seperate this mesh and keep it much smaller for performance reasons
+    std::vector<MeshBufferInfoStruct*> mDynamicMeshBufferVec;
 
-    //only used for debugging
-    //std::vector<irr::s32> mDbgChargerTexFound;
+    //only used for the level editor; Minimum number
+    //of needed meshbuffers for each textureId so that
+    //worst case the user can fill each possible tile of the map
+    //with the same textureId
+    irr::u8 mLevelEditorMinNrMeshBuffersNeeded;
 
     InfrastructureBase* mInfra = nullptr;
 
@@ -239,22 +286,14 @@ private:
 
     bool mEnableLightning;
     bool mOptimizeMesh;
+    int mTerrainAvailableTextureCount;
 
     char mName[50];
 
     bool mLevelEditorMode;
 
-    /*void AddDirtySMeshBuffer(irr::scene::SMeshBuffer *newDirtyBuffer,
-                                           std::vector<irr::scene::SMeshBuffer*> &currDirtyList);*/
-
     void RecalculateNormals(MapEntry *entry);
     irr::f32 GetAveragedTileHeight(int x, int z);
-
-    std::vector<int> indicesVboDataStatic;
-    std::vector<int> textureIdDataStatic;
-
-    std::vector<int> indicesVboDataDynamic;
-    std::vector<int> textureIdDataDynamic;
 
     irr::u32 numVertices;
     irr::u32 numIndices;

@@ -228,9 +228,7 @@ bool EditorSession::LoadLevel() {
    /* Prepare level terrain                                   */
    /***********************************************************/
    //for the level editor do not optimize the Terrain mesh!
-   //08.06.2025: TODO, right now still optimize, Terrain Mesh not able to handle more
-   //tehn 65k Vertices because of MeshBuffer, fix later!
-   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, true, terrainname, this->mLevelRes, mTexLoader, true, false);
+   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, true, terrainname, this->mLevelRes, mTexLoader, false, false);
 
    /***********************************************************/
    /* Create building (cube) Mesh                             */
