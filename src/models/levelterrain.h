@@ -60,7 +60,7 @@ struct TerrainTileData {
     //stores the tile vertex1 index for all the Meshbuffers where this
     //vertex is part of
     std::vector<irr::u32> myMeshBufVertexId1;
-    //stores the tile vertex2 index for all the Meshbuffers where this
+   /* //stores the tile vertex2 index for all the Meshbuffers where this
     //vertex is part of
     std::vector<irr::u32> myMeshBufVertexId2;
     //stores the tile vertex3 index for all the Meshbuffers where this
@@ -68,7 +68,7 @@ struct TerrainTileData {
     std::vector<irr::u32> myMeshBufVertexId3;
     //stores the tile vertex4 index for all the Meshbuffers where this
     //vertex is part of
-    std::vector<irr::u32> myMeshBufVertexId4;
+    std::vector<irr::u32> myMeshBufVertexId4;*/
 
     //to allow easier recalculation of vertice normals during Terrain morphing also
     //store my vertice position for Y-axis information for every vertice here (positionVboData)

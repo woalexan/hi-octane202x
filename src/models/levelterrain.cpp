@@ -47,9 +47,9 @@ void LevelTerrain::ResetTerrainTileData() {
             pTerrainTiles[i][j].vert3CurrNormal.set(0.0f, 1.0f, 0.0f);
             pTerrainTiles[i][j].vert4CurrNormal.set(0.0f, 1.0f, 0.0f);
             pTerrainTiles[i][j].myMeshBufVertexId1.clear();
-            pTerrainTiles[i][j].myMeshBufVertexId2.clear();
-            pTerrainTiles[i][j].myMeshBufVertexId3.clear();
-            pTerrainTiles[i][j].myMeshBufVertexId4.clear();
+            //pTerrainTiles[i][j].myMeshBufVertexId2.clear();
+            //pTerrainTiles[i][j].myMeshBufVertexId3.clear();
+            //pTerrainTiles[i][j].myMeshBufVertexId4.clear();
             pTerrainTiles[i][j].vert1CurrPositionY = 0.0f;
             pTerrainTiles[i][j].vert2CurrPositionY = 0.0f;
             pTerrainTiles[i][j].vert3CurrPositionY = 0.0f;
@@ -497,9 +497,9 @@ void LevelTerrain::AddMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetM
     //have in the meshbuffer vertices array; we need this information later
     //for morphing
     tilePntr->myMeshBufVertexId1.push_back(firstIndexNewQuad);
-    tilePntr->myMeshBufVertexId2.push_back(firstIndexNewQuad + 1);
-    tilePntr->myMeshBufVertexId3.push_back(firstIndexNewQuad + 2);
-    tilePntr->myMeshBufVertexId4.push_back(firstIndexNewQuad + 3);
+    //tilePntr->myMeshBufVertexId2.push_back(firstIndexNewQuad + 1);
+    //tilePntr->myMeshBufVertexId3.push_back(firstIndexNewQuad + 2);
+    //tilePntr->myMeshBufVertexId4.push_back(firstIndexNewQuad + 3);
 
     // add indices for the 2 new tris of the new
     //quad (this are 6 new indices)
@@ -2057,9 +2057,14 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            (*it2)->grab();
                            void* pntrVert = (*it2)->getVertices();
                            pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert2CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert2UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert2CurrNormal;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert2CurrPositionY;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert2UVcoord;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId2[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert2CurrNormal;
+
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].Pos.Y = this->pTerrainTiles[x][z].vert2CurrPositionY;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][z].vert2UVcoord;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].Normal = this->pTerrainTiles[x][z].vert2CurrNormal;
+
 
                            idxMeshBuf++;
 
@@ -2079,9 +2084,14 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            (*it2)->grab();
                            void* pntrVert = (*it2)->getVertices();
                            pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert3CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert3UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert3CurrNormal;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert3CurrPositionY;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert3UVcoord;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId3[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert3CurrNormal;
+
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].Pos.Y = this->pTerrainTiles[x][z].vert3CurrPositionY;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][z].vert3UVcoord;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].Normal = this->pTerrainTiles[x][z].vert3CurrNormal;
+
 
                            idxMeshBuf++;
 
@@ -2101,9 +2111,14 @@ void LevelTerrain::ApplyMorph(Morph morph)
                            (*it2)->grab();
                            void* pntrVert = (*it2)->getVertices();
                            pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert4CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert4UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert4CurrNormal;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert4CurrPositionY;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert4UVcoord;
+                           //pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId4[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert4CurrNormal;
+
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].Pos.Y = this->pTerrainTiles[x][z].vert4CurrPositionY;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][z].vert4UVcoord;
+                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].Normal = this->pTerrainTiles[x][z].vert4CurrNormal;
+
 
                            idxMeshBuf++;
 
@@ -2279,9 +2294,9 @@ void LevelTerrain::RemoveMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targ
     bool dirty;
 
     std::vector<irr::u32>::iterator itVertId1 = tilePntr->myMeshBufVertexId1.begin();
-    std::vector<irr::u32>::iterator itVertId2 = tilePntr->myMeshBufVertexId2.begin();
-    std::vector<irr::u32>::iterator itVertId3 = tilePntr->myMeshBufVertexId3.begin();
-    std::vector<irr::u32>::iterator itVertId4 = tilePntr->myMeshBufVertexId4.begin();
+    //std::vector<irr::u32>::iterator itVertId2 = tilePntr->myMeshBufVertexId2.begin();
+    //std::vector<irr::u32>::iterator itVertId3 = tilePntr->myMeshBufVertexId3.begin();
+    //std::vector<irr::u32>::iterator itVertId4 = tilePntr->myMeshBufVertexId4.begin();
 
     MeshBufferInfoStruct* pInfoStruct;
 
@@ -2293,10 +2308,15 @@ void LevelTerrain::RemoveMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targ
     //see if we find any of the indices of the vertices of this tile included
     for (it = tilePntr->myMeshBuffers.begin(); it != tilePntr->myMeshBuffers.end(); ) {
         //what indices do my vertices have in this meshbuffer?
+        //vert1Idx = (*itVertId1);
+        //vert2Idx = (*itVertId2);
+        //vert3Idx = (*itVertId3);
+        //vert4Idx = (*itVertId4);
+
         vert1Idx = (*itVertId1);
-        vert2Idx = (*itVertId2);
-        vert3Idx = (*itVertId3);
-        vert4Idx = (*itVertId4);
+        vert2Idx = (*itVertId1) + 1;
+        vert3Idx = (*itVertId1) + 2;
+        vert4Idx = (*itVertId1) + 3;
 
         meshBufPntr = (*it);
 
@@ -2347,17 +2367,17 @@ void LevelTerrain::RemoveMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targ
             it = tilePntr->myMeshBuffers.erase(it);
 
             itVertId1 = tilePntr->myMeshBufVertexId1.erase(itVertId1);
-            itVertId2 = tilePntr->myMeshBufVertexId2.erase(itVertId2);
-            itVertId3 = tilePntr->myMeshBufVertexId3.erase(itVertId3);
-            itVertId4 = tilePntr->myMeshBufVertexId4.erase(itVertId4);
+            //itVertId2 = tilePntr->myMeshBufVertexId2.erase(itVertId2);
+            //itVertId3 = tilePntr->myMeshBufVertexId3.erase(itVertId3);
+            //itVertId4 = tilePntr->myMeshBufVertexId4.erase(itVertId4);
         } else {
             //advance to the next myMeshBuffers position
             it++;
 
             itVertId1++;
-            itVertId2++;
-            itVertId3++;
-            itVertId4++;
+            //itVertId2++;
+            //itVertId3++;
+            //itVertId4++;
         }
     }
 }
@@ -2454,17 +2474,17 @@ void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newText
     std::vector<vector2d<irr::f32>> newUVS = MakeUVs(newTextureModifier);
 
     irr::u32 vert1Idx;
-    irr::u32 vert2Idx;
-    irr::u32 vert3Idx;
-    irr::u32 vert4Idx;
+    //irr::u32 vert2Idx;
+    //irr::u32 vert3Idx;
+    //irr::u32 vert4Idx;
 
     void* pntrVert;
     S3DVertex *pntrVertices;
 
     std::vector<irr::u32>::iterator itVertId1 = tTilePntr->myMeshBufVertexId1.begin();
-    std::vector<irr::u32>::iterator itVertId2 = tTilePntr->myMeshBufVertexId2.begin();
-    std::vector<irr::u32>::iterator itVertId3 = tTilePntr->myMeshBufVertexId3.begin();
-    std::vector<irr::u32>::iterator itVertId4 = tTilePntr->myMeshBufVertexId4.begin();
+    //std::vector<irr::u32>::iterator itVertId2 = tTilePntr->myMeshBufVertexId2.begin();
+    //std::vector<irr::u32>::iterator itVertId3 = tTilePntr->myMeshBufVertexId3.begin();
+    //std::vector<irr::u32>::iterator itVertId4 = tTilePntr->myMeshBufVertexId4.begin();
 
     irr::u32 bufIdx = 0;
 
@@ -2473,9 +2493,9 @@ void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newText
     for (it = tTilePntr->myMeshBuffers.begin(); it != tTilePntr->myMeshBuffers.end(); ++it) {
         //what indices do my vertices have in this meshbuffer?
         vert1Idx = (*itVertId1);
-        vert2Idx = (*itVertId2);
-        vert3Idx = (*itVertId3);
-        vert4Idx = (*itVertId4);
+        //vert2Idx = (*itVertId2);
+        //vert3Idx = (*itVertId3);
+        //vert4Idx = (*itVertId4);
 
         meshBufPntr = (*it);
         meshBufPntr->grab();
@@ -2483,9 +2503,13 @@ void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newText
         pntrVert = meshBufPntr->getVertices();
         pntrVertices = (S3DVertex*)pntrVert;
         pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx]].TCoords = newUVS.at(0);
-        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId2[bufIdx]].TCoords = newUVS.at(1);
-        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId3[bufIdx]].TCoords = newUVS.at(2);
-        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId4[bufIdx]].TCoords = newUVS.at(3);
+        //pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId2[bufIdx]].TCoords = newUVS.at(1);
+        //pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId3[bufIdx]].TCoords = newUVS.at(2);
+        //pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId4[bufIdx]].TCoords = newUVS.at(3);
+
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx] + 1].TCoords = newUVS.at(1);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx] + 2].TCoords = newUVS.at(2);
+        pntrVertices[this->pTerrainTiles[posX][posY].myMeshBufVertexId1[bufIdx] + 3].TCoords = newUVS.at(3);
 
         bufIdx++;
 
