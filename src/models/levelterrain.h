@@ -58,17 +58,10 @@ struct TerrainTileData {
     video::S3DVertex *vert4 = nullptr;
 
     //stores the tile vertex1 index for all the Meshbuffers where this
-    //vertex is part of
+    //vertex is part of, we do not need to keep also the index number
+    //for 2nd, 3rd or 4th vertex, as this indices are simply
+    //index for first vertice + 1, + 2, and + 3
     std::vector<irr::u32> myMeshBufVertexId1;
-   /* //stores the tile vertex2 index for all the Meshbuffers where this
-    //vertex is part of
-    std::vector<irr::u32> myMeshBufVertexId2;
-    //stores the tile vertex3 index for all the Meshbuffers where this
-    //vertex is part of
-    std::vector<irr::u32> myMeshBufVertexId3;
-    //stores the tile vertex4 index for all the Meshbuffers where this
-    //vertex is part of
-    std::vector<irr::u32> myMeshBufVertexId4;*/
 
     //to allow easier recalculation of vertice normals during Terrain morphing also
     //store my vertice position for Y-axis information for every vertice here (positionVboData)
@@ -255,6 +248,8 @@ private:
     //counts the number of existing Meshbuffers for all possible
     //Texture Ids
     std::vector<irr::u8> ReturnMeshBufferCntPerTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec);
+
+    void CleanupMeshBufferInfoStructs(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec);
 
     bool SetupGeometry();
     void FindTerrainOptimization();
