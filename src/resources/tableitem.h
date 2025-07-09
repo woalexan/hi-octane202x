@@ -24,7 +24,9 @@ public:
     virtual ~TableItem();
 
     int get_ID();
+    void set_ID(int newID);
     int get_Offset();
+    void set_Offset(int newOffset);
     std::vector<uint8_t> get_Bytes();
 
     virtual bool WriteChanges();
@@ -38,8 +40,6 @@ public:
 
     std::vector<uint8_t> m_Bytes;
 
-    void set_ID(int newID);
-    void set_Offset(int newOffset);
     void set_Bytes(std::vector<uint8_t> new_bytes);
 };
 

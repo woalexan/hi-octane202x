@@ -1480,6 +1480,308 @@ bool LevelFile::loadUnknownTableOffset152976() {
     return true;
 }
 
+/*************************************************************
+ *                                                           *
+ * Block Definition helper routines used for level editor    *
+ *                                                           *
+ *************************************************************/
+
+//returns true if a block definition object
+//contains exactly the specified input texture Ids and
+//texture modification values
+//False otherwise
+bool LevelFile::CmpBlockDefinition(BlockDefinition* def, uint8_t compN, uint8_t compE, uint8_t compS, uint8_t compW, uint8_t compT, uint8_t compB,
+                                   uint8_t compNMod, uint8_t compEMod, uint8_t compSMod, uint8_t compWMod, uint8_t compTMod, uint8_t compBMod) {
+    if (def->get_N() != compN)
+        return false;
+
+    if (def->get_E() != compE)
+        return false;
+
+    if (def->get_S() != compS)
+        return false;
+
+    if (def->get_W() != compW)
+        return false;
+
+    if (def->get_B() != compB)
+        return false;
+
+    if (def->get_T() != compT)
+        return false;
+
+    if (def->NMod() != compNMod)
+        return false;
+
+    if (def->EMod() != compEMod)
+        return false;
+
+    if (def->SMod() != compSMod)
+        return false;
+
+    if (def->WMod() != compWMod)
+        return false;
+
+    if (def->BMod() != compBMod)
+        return false;
+
+    if (def->TMod() != compTMod)
+        return false;
+
+    //are identical
+    return true;
+}
+
+//returns true in case a specified input block definition was found in the vector of existing
+//blockdefinitions in the current level file; false otherwise
+//in case definition was found, returns also the index in the vector for this element
+//in parameter fndOutIndex
+bool LevelFile::SearchBlockDefinitionIndex(uint8_t compN, uint8_t compE, uint8_t compS, uint8_t compW, uint8_t compT, uint8_t compB,
+                                           uint8_t compNMod, uint8_t compEMod, uint8_t compSMod, uint8_t compWMod, uint8_t compTMod, uint8_t compBMod, irr::u32 &fndOutIndex) {
+    std::vector<BlockDefinition*>::iterator it;
+    irr::u32 currIdx = 0;
+
+    for (it = BlockDefinitions.begin(); it != BlockDefinitions.end(); ++it) {
+        if (CmpBlockDefinition((*it), compN, compE, compS, compW, compT, compB,
+                               compNMod, compEMod, compSMod, compWMod, compTMod, compBMod)) {
+            //found this definition
+            fndOutIndex = currIdx;
+
+            return true;
+        }
+
+        currIdx++;
+    }
+
+    //not found
+    return false;
+}
+
+//Returns true if new block definition was successfully created, false otherwise
+//if succesfull, returns the new index of the new blockdefinition in output parameter outIndex
+bool LevelFile::AddBlockDefinition(uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
+                                   uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod, irr::u32 &outIndex) {
+
+    int i;
+    int baseOffset;
+
+    //first find next free block definition location
+    //in current level file, if nothing free return with no success
+
+    //it seems we should skip i = 0 here, in the original level the first
+    //index i = 0 is still filled with zero bytes; better do the same
+    for (i = 1; i < 1024; i++) {
+        baseOffset = 124636 + i * 16;
+        if (this->m_bytes.at(baseOffset) == 0) {
+            //we found a free space
+            break;
+        }
+    }
+
+    //no free space anymore?
+    if (i == 1024) {
+        return false;
+    }
+
+    //create the new blockdefinition, use the alternative constructor
+    //for the leveleditor for this
+    BlockDefinition *newDef = new BlockDefinition(i, baseOffset, newN, newE, newS, newW, newT, newB, newNMod, newEMod, newSMod, newWMod, newTMod, newBMod);
+
+    std::string infoMsg("");
+    char hlpstr[100];
+
+    infoMsg.clear();
+    infoMsg.append("Add new block definition with Id = ");
+
+    //add id
+    sprintf(hlpstr, "%d", newDef->get_ID());
+    infoMsg.append(hlpstr);
+    logging::Info(infoMsg);
+
+    //add the new blockdefinition to the end of the
+    //vector with all current blockdefinitions
+    this->BlockDefinitions.push_back(newDef);
+
+    //return the index for the
+    //new blockdefinition
+    outIndex = BlockDefinitions.size() - 1;
+
+    return true;
+}
+
+//Makes sure a specified input Blockdefinition exists in the current levelfile.
+//If it does not exist yet it is newly created;
+//Returns true if the requested block definition is available, and the index
+//in the vector of all existing Blockdefinitions is returned in output parameter
+//outIndex;
+//If there is an unexpected error, and no blockdefinition index with this parameters
+//can be supplied, this function returns false
+bool LevelFile::RequestBlockDefinition(uint8_t pN, uint8_t pE, uint8_t pS, uint8_t pW, uint8_t pT, uint8_t pB,
+                                   uint8_t pNMod, uint8_t pEMod, uint8_t pSMod, uint8_t pWMod, uint8_t pTMod, uint8_t pBMod, irr::u32 &outIndex) {
+
+    irr::u32 outFndIndex;
+
+    //does this block definition already exist?
+    if (!SearchBlockDefinitionIndex(pN, pE, pS, pW, pT, pB, pNMod, pEMod, pSMod, pWMod, pTMod, pBMod, outFndIndex)) {
+        //specified block definition is not yet existing, create it
+        if (!AddBlockDefinition(pN, pE, pS, pW, pT, pB, pNMod, pEMod, pSMod, pWMod, pTMod, pBMod, outFndIndex)) {
+            //could not create new block definition
+            //no more space for new block definition in level file?
+            return false;
+        }
+    }
+
+    outIndex = outFndIndex;
+
+    //block definition does exist
+    return true;
+}
+
+/*************************************************************
+ *                                                           *
+ * Column Definition helper routines used for level editor   *
+ *                                                           *
+ *************************************************************/
+
+//returns true if a column definition object (therefore a column)
+//contains exactly the specified input block definition values (means
+//does consist of the specified blocks from the input parameters)
+//False otherwise
+bool LevelFile::CmpColumnDefinition(ColumnDefinition* def, int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
+                                   int16_t compG, int16_t compH) {
+    if (def->get_A() != compA)
+        return false;
+
+    if (def->get_B() != compB)
+        return false;
+
+    if (def->get_C() != compC)
+        return false;
+
+    if (def->get_D() != compD)
+        return false;
+
+    if (def->get_E() != compE)
+        return false;
+
+    if (def->get_F() != compF)
+        return false;
+
+    if (def->get_G() != compG)
+        return false;
+
+    if (def->get_H() != compH)
+        return false;
+
+    //are identical
+    return true;
+}
+
+//returns true in case a specified input column definition was found in the vector of existing
+//columndefinitions in the current level file; false otherwise
+//in case definition was found, returns also the index in the vector for this element
+//in parameter fndOutIndex
+bool LevelFile::SearchColumnDefinitionIndex(int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
+                                            int16_t compG, int16_t compH, irr::u32 &fndOutIndex) {
+    std::vector<ColumnDefinition*>::iterator it;
+    irr::u32 currIdx = 0;
+
+    for (it = ColumnDefinitions.begin(); it != ColumnDefinitions.end(); ++it) {
+        if (CmpColumnDefinition((*it), compA, compB, compC, compD, compE, compF,
+                               compG, compH)) {
+            //found this definition
+            fndOutIndex = currIdx;
+
+            return true;
+        }
+
+        currIdx++;
+    }
+
+    //not found
+    return false;
+}
+
+//Returns true if new column definition was successfully created, false otherwise
+//if succesfull, returns the new index of the new columndefinition in output parameter outIndex
+bool LevelFile::AddColumnDefinition(int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE, int16_t newF,
+                                    int16_t newG, int16_t newH, irr::u32 &outIndex) {
+
+    int i;
+    int baseOffset;
+
+    //first find next free column definition location
+    //in current level file, if nothing free return with no success
+
+    //it seems we should skip i = 0 here, in the original level the first
+    //index i = 0 is still filled with zero bytes; better do the same
+    for (i = 1; i < 1024; i++) {
+        baseOffset = 98012 + i * 26;
+        if (this->m_bytes.at(baseOffset) == 0) {
+            //we found a free space
+            break;
+        }
+    }
+
+    //no free space anymore?
+    if (i == 1024) {
+        return false;
+    }
+
+    //create the new columdefinition, use the alternative constructor
+    //for the leveleditor for this
+    ColumnDefinition *newDef = new ColumnDefinition(i, baseOffset, newA, newB, newC, newD, newE, newF, newG, newH);
+
+    std::string infoMsg("");
+    char hlpstr[100];
+
+    infoMsg.clear();
+    infoMsg.append("Add new column definition with Id = ");
+
+    //add id
+    sprintf(hlpstr, "%d", newDef->get_ID());
+    infoMsg.append(hlpstr);
+    logging::Info(infoMsg);
+
+    //add the new columndefinition to the end of the
+    //vector with all current columndefinitions
+    this->ColumnDefinitions.push_back(newDef);
+
+    //return the index for the
+    //new columndefinition
+    outIndex = ColumnDefinitions.size() - 1;
+
+    return true;
+}
+
+//Makes sure a specified input Columndefinition exists in the current levelfile.
+//If it does not exist yet it is newly created;
+//Returns true if the requested column definition is available, and the index
+//in the vector of all existing Columndefinitions is returned in output parameter
+//outIndex;
+//If there is an unexpected error, and no Columndefinition index with this parameters
+//can be supplied, this function returns false
+bool LevelFile::RequestColumnDefinition(int16_t pA, int16_t pB, int16_t pC, int16_t pD, int16_t pE, int16_t pF,
+                                         int16_t pG, int16_t pH, irr::u32 &outIndex) {
+
+    irr::u32 outFndIndex;
+
+    //does this column definition already exist?
+    if (!SearchColumnDefinitionIndex(pA, pB, pC, pD, pE, pF, pG, pH, outFndIndex)) {
+        //specified column definition is not yet existing, create it
+        if (!AddColumnDefinition(pA, pB, pC, pD, pE, pF, pG, pH, outFndIndex)) {
+            //could not create new column definition
+            //no more space for new column definition in level file?
+            return false;
+        }
+    }
+
+    outIndex = outFndIndex;
+
+    //column definition does exist
+    return true;
+}
+
 /**************************************
  * Save Map Stuff                     *
  **************************************/
@@ -1643,4 +1945,54 @@ bool LevelFile::saveUnknownTables() {
               + 152976);
 
     return true;
+}
+
+void LevelFile::DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName) {
+   FILE* debugOutputFile = nullptr;
+
+   debugOutputFile = fopen(debugOutPutFileName, "w");
+   if (debugOutputFile == nullptr) {
+         return;
+   }
+
+   std::vector<ColumnDefinition*>::iterator it;
+
+   //write a header
+   fprintf(debugOutputFile, "ColumnId;A;B;C;D;E;F;G;H;Offset\n");
+
+   for (it = ColumnDefinitions.begin(); it != ColumnDefinitions.end(); ++it) {
+        //write the next entry
+        fprintf(debugOutputFile, "%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\n",
+                (*it)->get_ID(), (*it)->get_A(), (*it)->get_B(),
+                (*it)->get_C(),  (*it)->get_D(), (*it)->get_E(),
+                (*it)->get_F(),  (*it)->get_G(), (*it)->get_H(),
+                (*it)->get_Offset());
+   }
+
+   fclose(debugOutputFile);
+}
+
+void LevelFile::DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName) {
+   FILE* debugOutputFile = nullptr;
+
+   debugOutputFile = fopen(debugOutPutFileName, "w");
+   if (debugOutputFile == nullptr) {
+         return;
+   }
+
+   std::vector<BlockDefinition*>::iterator it;
+
+   //write a header
+   fprintf(debugOutputFile, "BlockId;N;E;S;W;B;T;NMod;EMod;SMod;WMod;BMod;TMod;Offset\n");
+
+   for (it = BlockDefinitions.begin(); it != BlockDefinitions.end(); ++it) {
+        //write the next entry
+        fprintf(debugOutputFile, "%d;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%d\n",
+                (*it)->get_ID(), (*it)->get_N(), (*it)->get_E(), (*it)->get_S(),
+                (*it)->get_W(),  (*it)->get_B(), (*it)->get_T(), (*it)->NMod(),
+                (*it)->EMod(), (*it)->SMod(), (*it)->WMod(), (*it)->BMod(),
+                (*it)->TMod(), (*it)->get_Offset());
+   }
+
+   fclose(debugOutputFile);
 }

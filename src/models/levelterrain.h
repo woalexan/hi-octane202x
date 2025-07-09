@@ -48,6 +48,9 @@ class InfrastructureBase;
 struct TerrainTileData;
 class TextureLoader;
 class MapEntry;
+struct MeshBufferInfoStruct;
+struct MeshObjectStatsStruct;
+class IrrMeshBuf;
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -112,21 +115,6 @@ struct TerrainTileData {
     //afterwards; when the Terrain does morph this value
     //keeps to be correct
     irr::f32 currTileHeight = 0.0f;
-};
-
-struct MeshBufferInfoStruct {
-    irr::scene::SMeshBuffer* meshBuf = nullptr;
-
-    //pointer to the next MeshBufferInfoStruct if necessary
-    //because every Meshbuffer can hold max 65535 indices
-    //is nullptr if there is no additional meshbuffer anymore
-    MeshBufferInfoStruct* nextPntr = nullptr;
-
-    irr::u16 remainingIndices = 0;
-
-    //stores the textureId of the material
-    //inside this meshbuffer
-    int16_t textureId;
 };
 
 class LevelTerrain {
@@ -223,33 +211,7 @@ public:
     //void DebugOutputFoundChargingTextures();
 
 private:
-    void AddMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, TerrainTileData* tilePntr, int16_t textureId);
-    void RemoveMeshBufferTile(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, TerrainTileData* tilePntr);
-
-    //adds an additional Meshbuffer for the specified textureId (material). Returns
-    //a pointer to the new added MeshBufferInfoStruct. In case something goes wrong
-    //returns nullptr
-    MeshBufferInfoStruct* AddAdditionalMeshBuffer(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId);
-
-    //finds the current (last in linked list) MeshBuffer info struct for a certain textureId
-    //returns nullptr in case of error
-    MeshBufferInfoStruct* FindLastMeshBufferInLinkedList(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId);
-
-    //finds the first available MeshBuffer info struct for a certain textureId
-    //which has still space for 6 additional indices (an additional Quad)
-    //returns nullptr in case of error, or nothing available
-    MeshBufferInfoStruct* FindFirstMeshBufferForAdditionalQuad(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t forTextureId);
-
-    std::vector<irr::scene::SMeshBuffer*> ReturnAllMeshBuffersForTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, int16_t textureId);
-
-    //returns nullptr in case appropriate MeshBufferInfoStruct is not found
-    MeshBufferInfoStruct* FindMeshBufferInfoStructForMeshBuffer(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec, irr::scene::SMeshBuffer* meshBufToFind);
-
-    //counts the number of existing Meshbuffers for all possible
-    //Texture Ids
-    std::vector<irr::u8> ReturnMeshBufferCntPerTextureId(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec);
-
-    void CleanupMeshBufferInfoStructs(std::vector<MeshBufferInfoStruct*> &targetMeshBufVec);
+    IrrMeshBuf* mIrrMeshBuf = nullptr;
 
     bool SetupGeometry();
     void FindTerrainOptimization();
@@ -281,7 +243,6 @@ private:
 
     bool mEnableLightning;
     bool mOptimizeMesh;
-    int mTerrainAvailableTextureCount;
 
     char mName[50];
 
@@ -290,10 +251,7 @@ private:
     void RecalculateNormals(MapEntry *entry);
     irr::f32 GetAveragedTileHeight(int x, int z);
 
-    irr::u32 numVertices;
-    irr::u32 numIndices;
-    irr::u32 numUVs;
-    irr::u32 numNormals;
+    MeshObjectStatsStruct* mTerrainMeshStats;
 
     irr::u8 mCurrentViewMode;
 };

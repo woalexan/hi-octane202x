@@ -400,34 +400,27 @@ void WorldAwareness::CreateStaticWorld() {
          DrawLine(*staticWorld, *colorRed, p1.X, p1.Y, p2.X, p2.Y);
    }
 
-   ColumnVerticeInfo vert1;
-   //ColumnVerticeInfo vert2;
-   ColumnVerticeInfo vert3;
-   //ColumnVerticeInfo vert4;
+   irr::core::vector3df vert1;
+   irr::core::vector3df vert3;
 
    std::vector<ColumnsByPositionStruct>::iterator itCol;
    for (itCol = this->mRace->mLevelBlocks->ColumnsByPosition.begin(); itCol != this->mRace->mLevelBlocks->ColumnsByPosition.end(); ++itCol){
        //check if lowest block (block A, index 0) is in collision mesh or not (value 0 is not part of collision mesh)
        //if it is part of collision mesh, draw rectangle where lowest block sits in world
        if ((*itCol).pColumn->Definition->mInCollisionMesh[0] != 0) {
-           //each cube of the colum has 24 vertices,
-           //use vertices 16 up to 19 //which are vertices of bottom or top rectangle of cube
            //top or bottom is necessary as we create the 2D map from locking from the top down on player field
-           vert1 = (*itCol).pColumn->GeometryInfoList->vertices.at(16);
-           //vert2 = (*itCol).pColumn->GeometryInfoList->vertices.at(17);
-           vert3 = (*itCol).pColumn->GeometryInfoList->vertices.at(18);
-           //vert4 = (*itCol).pColumn->GeometryInfoList->vertices.at(19);
+           vert1 = (*itCol).pColumn->mBlockInfoVec.at(0)->fB->currPositionVert1;
+           vert3 = (*itCol).pColumn->mBlockInfoVec.at(0)->fB->currPositionVert3;
 
            //our universe X axis is mirrored!
            //therefore the - in X coordinate
            DrawRectangle(*staticWorld,
                          *colorRed,
-                         -vert1.currPosition.X * PixelScaleFactor,
-                         vert1.currPosition.Z * PixelScaleFactor,
-                         -vert3.currPosition.X * PixelScaleFactor,
-                         vert3.currPosition.Z * PixelScaleFactor);
+                         -vert1.X * PixelScaleFactor,
+                         vert1.Z * PixelScaleFactor,
+                         -vert3.X * PixelScaleFactor,
+                         vert3.Z * PixelScaleFactor);
        }
-
    }
 
    //only for debugging, save picture on disk

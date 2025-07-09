@@ -235,7 +235,7 @@ bool EditorSession::LoadLevel() {
    /***********************************************************/
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
-   this->mLevelBlocks = new LevelBlocks(this->mParentEditor, this->mLevelTerrain, this->mLevelRes, mTexLoader,
+   this->mLevelBlocks = new LevelBlocks(this->mParentEditor, this->mLevelTerrain, this->mLevelRes, mTexLoader, true,
                                         DebugShowWallCollisionMesh, false);
 
    //create all level entities
@@ -887,7 +887,12 @@ void EditorSession::HandleBasicInput() {
     }
 
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_S)) {
-        mParentEditor->UpdateStatusbarText(L"Testtext");
+        //mParentEditor->UpdateStatusbarText(L"Testtext");
+       /* if (mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+           mLevelBlocks->RemoveMeshCube(mItemSelector->mCurrSelectedItem.mColumnSelected,
+                                        mItemSelector->mCurrSelectedItem.mSelBlockNrStartingFromBase,
+                                        mItemSelector->mCurrSelectedItem.mSelBlockNrSkippingMissingBlocks);
+        }*/
     }
 
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_SPACE)) {

@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -22,6 +22,11 @@ class BlockDefinition : public TableItem {
 public:
     BlockDefinition(int id, int offset, std::vector<uint8_t> bytes);
     ~BlockDefinition();
+
+    //alternative constructor for usage with the level editor
+    //to add a new block definition to the level file
+    BlockDefinition(int id, int offset, uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
+                    uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod);
 
     bool WriteChanges() override;
 

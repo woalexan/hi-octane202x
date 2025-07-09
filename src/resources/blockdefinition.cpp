@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -20,7 +20,7 @@ BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)
    this->m_Bytes = bytes;
    this->m_Offset = offset;
 
-   //is blockDefinition is 16 bytes long
+   //each blockDefinition is 16 bytes long
    //Byte 0:   N
    //Byte 1:   E
    //Byte 2:   S
@@ -59,6 +59,62 @@ BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)
    //for debugging of level saving, comment out later
    this->m_wBytes.resize(this->m_Bytes.size());
    std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
+}
+
+//alternative constructor for usage with the level editor
+//to add a new block definition to the level file
+BlockDefinition::BlockDefinition(int id, int offset, uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
+                uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod) {
+    this->m_ID = id;
+    this->m_Offset = offset;
+
+    mN = newN;
+    mE = newE;
+    mS = newS;
+    mW = newW;
+    mT = newT;
+    mB = newB;
+
+    mNMod = newNMod;
+    mEMod = newEMod;
+    mSMod = newSMod;
+    mWMod = newWMod;
+    mTMod = newTMod;
+    mBMod = newBMod;
+
+    //each blockDefinition is 16 bytes long
+    //create empty data vector with 16 zero bytes
+    this->m_wBytes.resize(16);
+    this->m_Bytes.resize(16);
+
+    std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_wBytes.size(), 0);
+
+    //encode data into m_wBytes vector
+    save_N(mN);
+    save_E(mE);
+    save_S(mS);
+    save_W(mW);
+    save_T(mT);
+    save_B(mB);
+
+    save_NMod(mNMod);
+    save_EMod(mEMod);
+    save_SMod(mSMod);
+    save_WMod(mWMod);
+    save_BMod(mBMod);
+    save_TMod(mTMod);
+
+    //TODO: keep mUnknown1 && mUnknown2 zero bytes
+    //until we understand their purpose
+    mUnknown1 = 0;
+    mUnknown2 = 0;
+
+    //read unknown data: TODO, do we need this info?
+    //mUnknown1 = ConvertByteArray_ToInt16(bytes, 12);
+    //mUnknown2 = ConvertByteArray_ToInt16(bytes, 14);
+
+    //copy m_wBytes data into m_Bytes data vector
+    std::copy(this->m_wBytes.begin(), this->m_wBytes.end(), this->m_Bytes.begin());
 }
 
 BlockDefinition::~BlockDefinition() {

@@ -133,6 +133,123 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
 ColumnDefinition::~ColumnDefinition() {
 }
 
+//Alternative constructor used for the level editor
+ColumnDefinition::ColumnDefinition(int id, int offset, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
+                 int16_t newF, int16_t newG, int16_t newH) {
+    this->m_ID = id;
+    this->m_Offset = offset;
+
+    //each columndefinition is 26 bytes long
+    //Byte 0:   Shape
+    //Byte 1:   Unknown4
+    //Byte 2:   Floor Texture ID
+    //Byte 3:   Floor Texture ID
+    //Byte 4:   Unknown1
+    //Byte 5:   Unknown1
+    //Byte 6:   A
+    //Byte 7:   A
+    //Byte 8:   B
+    //Byte 9:   B
+    //Byte 10:  C
+    //Byte 11:  C
+    //Byte 12:  D
+    //Byte 13:  D
+    //Byte 14:  E
+    //Byte 15:  E
+    //Byte 16:  F
+    //Byte 17:  F
+    //Byte 18:  G
+    //Byte 19:  G
+    //Byte 20:  H
+    //Byte 21:  H
+    //Byte 22:  Unknown2
+    //Byte 23:  Unknown2
+    //Byte 24:  Unknown3
+    //Byte 25:  Unknown3
+
+    mA = newA;
+    mB = newB;
+    mC = newC;
+    mD = newD;
+    mE = newE;
+    mF = newF;
+    mG = newG;
+    mH = newH;
+
+    //we start from lowest block of colum upwards
+    //first collision is active, the first time we find a gap in the
+    //column going upwards (which means there is no block) we will disable collision
+    //for all blocks found above
+    //if we do this we make sure that the roof of tunnels, etc... is not part of the collision detection
+    //and so the player can not get stuck in the roof etc.
+    //we only add as much elements to the vector as there are blocks existing in the column
+    //so that the indices for for loop in next data handling step in levelblocks.cpp are
+    //correct
+    int collisionActive = 1;
+    mInCollisionMesh.clear();
+
+    if (get_A() == 0) {
+        collisionActive = 0;
+    } else {
+        mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_B() == 0) {
+        collisionActive = 0;
+    } else {
+        mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_C() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_D() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_E() == 0) {
+        collisionActive = 0;
+    } else {
+     mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_F() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_G() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_H() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
+
+    //each ColumnDefinition is 26 bytes long
+    //create empty data vector with 26 zero bytes
+    this->m_wBytes.resize(26);
+    this->m_Bytes.resize(26);
+
+    std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_wBytes.size(), 0);
+
+    //fill out m_wBytes data
+    WriteChanges();
+
+    //copy m_wBytes data into m_Bytes data vector
+    std::copy(this->m_wBytes.begin(), this->m_wBytes.end(), this->m_Bytes.begin());
+}
+
 uint8_t ColumnDefinition::get_Shape() {
     return mShape;
 }

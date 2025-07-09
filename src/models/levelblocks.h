@@ -44,6 +44,11 @@ class InfrastructureBase;
 class TextureLoader;
 class LevelFile;
 class ColumnDefinition;
+class IrrMeshBuf;
+struct MeshObjectStatsStruct;
+struct MeshBufferInfoStruct;
+struct BlockFaceInfoStruct;
+struct BlockInfoStruct;
 
 struct ColumnsByPositionStruct {
       int pos;
@@ -53,18 +58,14 @@ struct ColumnsByPositionStruct {
 class LevelBlocks {
 public:
     LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
-                TextureLoader* textureSource, bool debugShowWallCollisionMesh, bool enableLightning);
+                TextureLoader* textureSource, bool levelEditorMode, bool debugShowWallCollisionMesh, bool enableLightning);
     ~LevelBlocks();
 
-    SMesh * getBlocksMesh(int collisionSelector);
+    void CreateBlocksMesh();
     std::vector<Column*> ColumnsInRange(int sx, int sz, float w, float h);
     void SetColumnVerticeSMeshBufferVerticePositionsDirty();
 
     bool GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::f32 &heightVal);
-
-    vector3d<irr::f32> Size;
-
-    bool Blocks_ready;
 
     //Mesh with blocks that should all be part of craft collision detection
     SMesh *blockMeshForCollision = nullptr;
@@ -80,7 +81,7 @@ public:
 
     std::vector<ColumnsByPositionStruct> ColumnsByPosition;
 
-    bool searchColumnWithPosition(int posKey, Column* &columnFnd);
+    bool SearchColumnWithPosition(int posKey, Column* &columnFnd);
 
     void SetViewMode(irr::u8 newViewMode);
     irr::u8 GetCurrentViewMode();
@@ -93,21 +94,58 @@ public:
 
     irr::u16 mNrBlocksInLevel = 0;
 
+    void TestHeightChange(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks);
+
+    void SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
+                                         irr::u8 selFace, int16_t newTextureId);
+
+    void RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks);
+
+    std::vector<irr::u32> GetBlockDefinitionUsageCount();
+    std::vector<irr::u32> GetColumnDefinitionUsageCount();
+
 private:   
+    IrrMeshBuf* mIrrMeshBuf = nullptr;
+
+    //only used for the level editor; Minimum number
+    //of needed meshbuffers for each textureId so that
+    //user can add new cube faces (with before unused textureIds)
+    irr::u8 mLevelEditorMinNrMeshBuffersNeeded;
+
+    //a vector containing a MeshbufferInfoStruct (+Meshbuffer)
+    //for each possible textureId of the terrain (cube faces) (256 different texture Ids)
+    //this one with collision detection active
+    std::vector<MeshBufferInfoStruct*> mBlockwCollMeshBufferVec;
+
+    //this one with collision detection active
+    std::vector<MeshBufferInfoStruct*> mBlockwoCollMeshBufferVec;
+
     TextureLoader* mTexSource = nullptr;
     LevelTerrain* MyTerrain = nullptr;
 
     InfrastructureBase* mInfra = nullptr;
 
     void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
+
+    void DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color);
+
+    void ChangeMeshCubeFaceHeight(BlockFaceInfoStruct* whichFace, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
+    void ChangeMeshCubeHeight(BlockInfoStruct* whichCube, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
+
+    BlockInfoStruct* GetBlockInfoStruct(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks);
+    void RemoveUnusedBlockDefinitions();
+    void ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec);
+
+    void ReplaceColumnDefinitionWithNewOneForAllColumns(ColumnDefinition* oldDef, ColumnDefinition* newDef);
+    void RemoveUnusedColumnDefinitions();
+
     irr::u8 mCurrentViewMode;
 
-    irr::u32 numVertices;
-    irr::u32 numIndices;
-    irr::u32 numUVs;
-    irr::u32 numNormals;
+    MeshObjectStatsStruct* mBlocksMeshStats;
 
     bool mEnableLightning;
+
+    bool mLevelEditorMode;
 
 //protected:
 public:

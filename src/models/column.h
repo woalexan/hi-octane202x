@@ -28,12 +28,15 @@ using namespace gui;
 //struct needed for morphing, as
 //we need to keep more information
 //for later modification of SMeshBuffers
-struct ColumnVerticeInfo {
-   //pointer to the vertex
-   video::S3DVertex *vert = nullptr;
+struct BlockFaceInfoStruct {
+   //pointer to my vertices of the block face
+   video::S3DVertex *vert1 = nullptr;
+   video::S3DVertex *vert2 = nullptr;
+   video::S3DVertex *vert3 = nullptr;
+   video::S3DVertex *vert4 = nullptr;
 
    //stores the vertex index for all the Meshbuffers where this
-   //vertex is part of
+   //vertices are part of
    std::vector<irr::u32> myMeshBufVertexId;
 
    //we need to keep pointer to my meshbuffer,
@@ -41,29 +44,32 @@ struct ColumnVerticeInfo {
    //during morphing
    std::vector<irr::scene::SMeshBuffer*> myMeshBuffers;
 
+   //the textureId that is used to render
+   //this face of the cube
+   int16_t textureId;
+
    //original position before morphing
    //never modified, used as reference for morphs
-   vector3d<irr::f32> originalPosition;
+   vector3d<irr::f32> originalPositionVert1;
+   vector3d<irr::f32> originalPositionVert2;
+   vector3d<irr::f32> originalPositionVert3;
+   vector3d<irr::f32> originalPositionVert4;
 
    //current position, could be modified due to
    //morphing of column
-   vector3d<irr::f32> currPosition;
-
-   //bool positionDirty = false;
+   vector3d<irr::f32> currPositionVert1;
+   vector3d<irr::f32> currPositionVert2;
+   vector3d<irr::f32> currPositionVert3;
+   vector3d<irr::f32> currPositionVert4;
 };
 
-struct ColumnSideGeometryInfo {
-   std::vector<int> indicesVboData;
-   //std::vector<vector3d<irr::f32>> OriginalVertices;
-   //std::vector<vector3d<irr::f32>> positionVboData;
-   //std::vector<vector3d<irr::f32>> normalVboData;
-   //std::vector<vector2d<irr::f32>> uvVboData;
-
-    //Texture ID information for each face of the cubes
-    //of the column
-    std::vector<int> textureIdData;
-
-    std::vector<ColumnVerticeInfo> vertices;
+struct BlockInfoStruct {
+   BlockFaceInfoStruct* fN = nullptr;
+   BlockFaceInfoStruct* fE = nullptr;
+   BlockFaceInfoStruct* fS = nullptr;
+   BlockFaceInfoStruct* fW = nullptr;
+   BlockFaceInfoStruct* fT = nullptr;
+   BlockFaceInfoStruct* fB = nullptr;
 };
 
 /************************
@@ -108,15 +114,25 @@ public:
     irr::u16 GetNumberMissingBlocksAtBase();
 
 private:
-    bool setupGeometry();
+    bool SetupGeometry();
+    void MoveColumnVertex(irr::core::vector3df &vertex);
+
+    void CleanUpBlockFaceInfoStruct(BlockFaceInfoStruct &pntr);
+    void CleanUpBlockInfoStruct(BlockInfoStruct &pntr);
+
+    BlockFaceInfoStruct* CreateNewCubeFace(vector3d<irr::f32> v1,
+                                                   vector3d<irr::f32> v2,
+                                                   vector3d<irr::f32> v3,
+                                                   vector3d<irr::f32> v4,
+                                                   std::vector<vector2d<irr::f32>> uv, vector3d<irr::f32> normal,
+                                                   int textureId);
+
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
-    void AddNewColumnVertice(vector3d<irr::f32> position, vector2d<irr::f32> uv, vector3d<irr::f32> normal);
+    //void AddNewColumnVertice(vector3d<irr::f32> position, vector2d<irr::f32> uv, vector3d<irr::f32> normal);
     irr::f32 GetCurrentHeightTile(int x, int z);
     irr::f32 GetOriginalHeightTile(int x, int z);
-
-    void UpdateVertices();
 
     LevelBlocks* MyLevelBlocks = nullptr;
     LevelTerrain* MyTerrain = nullptr;
@@ -127,6 +143,9 @@ private:
 
 //protected:
 public:
+    //vector which contains all cubes of this column
+    std::vector<BlockInfoStruct*> mBlockInfoVec;
+
     vector3d<irr::f32> Position;
     ColumnDefinition* Definition = nullptr;
 

@@ -644,5 +644,8 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
        mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId);
    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
        std::cout << "changed block TexID to " << newTextureId << std::endl;
+       mParentSession->mLevelBlocks->SetCubeFaceTexture(
+                   whichItem.mColumnSelected, whichItem.mSelBlockNrStartingFromBase, whichItem.mSelBlockNrSkippingMissingBlocks,
+                   whichItem.mSelBlockFaceDirection, newTextureId);
    }
 }
