@@ -106,7 +106,7 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
         int posKey =  cellCoord.X + cellCoord.Y * mParent->mLevelTerrain->levelRes->Width();
         Column* columnPntr;
 
-        if (mParent->mLevelBlocks->searchColumnWithPosition(posKey, columnPntr)) {
+        if (mParent->mLevelBlocks->SearchColumnWithPosition(posKey, columnPntr)) {
             //we found the column
             mCurrHighlightedItem.mColumnSelected = columnPntr;
 

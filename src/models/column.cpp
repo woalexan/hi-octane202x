@@ -35,10 +35,10 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
    Definition = Def;
    Position = pos;
 
-   GeometryInfoList = new ColumnSideGeometryInfo();
+   mBlockInfoVec.clear();
 
    if (levelResLevel != nullptr && Def != nullptr) {
-    if (setupGeometry()) {
+    if (SetupGeometry()) {
        // std::cout << "HiOctane Column loaded: " <<
        //            GeometryInfoList->vertices.size() << " vertices, " << std::endl << std::flush;
 //                   GeometryInfoList->normalVboData.size() << " normals, " <<
@@ -54,147 +54,284 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 }
 
 Column::~Column() {
-  if (this->GeometryInfoList != nullptr) {
-      if (this->GeometryInfoList->vertices.size() > 0) {
-        std::vector<ColumnVerticeInfo>::iterator itVert;
-        ColumnVerticeInfo* vertInfoPntr;
+    std::vector<BlockInfoStruct*>:: iterator it;
+    BlockInfoStruct* pntr;
 
-        std::vector<irr::scene::SMeshBuffer*>::iterator itMesh;
-        irr::scene::SMeshBuffer* pntrMeshBuf;
+    if (mBlockInfoVec.size() > 0) {
+        for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ) {
+            pntr = (*it);
 
-        for (itVert = this->GeometryInfoList->vertices.begin(); itVert != this->GeometryInfoList->vertices.end(); ++itVert) {
-            vertInfoPntr = &(*itVert);
+            it = mBlockInfoVec.erase(it);
 
-            itVert = this->GeometryInfoList->vertices.erase(itVert);
-
-            //free existing MeshBuffers
-            if (vertInfoPntr->myMeshBuffers.size() > 0) {
-                  for (itMesh = vertInfoPntr->myMeshBuffers.begin(); itMesh != vertInfoPntr->myMeshBuffers.end(); ) {
-                      pntrMeshBuf = (*itMesh);
-
-                      itMesh = vertInfoPntr->myMeshBuffers.erase(itMesh);
-
-                      //Next line commented out, does crash program
-                      //what is wrong here?
-                      //pntrMeshBuf->drop();
-                  }
-            }
-
-            //free existing vertex
-            if (vertInfoPntr->vert != nullptr) {
-                delete vertInfoPntr->vert;
-                vertInfoPntr->vert = nullptr;
-            }
+            CleanUpBlockInfoStruct(*pntr);
         }
     }
-
-   //free the geometry info list
-   delete GeometryInfoList;
-   GeometryInfoList = nullptr;
- }
 }
 
+void Column::CleanUpBlockFaceInfoStruct(BlockFaceInfoStruct &pntr) {
+    std::vector<irr::scene::SMeshBuffer*>::iterator itMesh;
+    irr::scene::SMeshBuffer* pntrMeshBuf;
+
+    if (pntr.myMeshBuffers.size() > 0) {
+          for (itMesh = pntr.myMeshBuffers.begin(); itMesh != pntr.myMeshBuffers.end(); ) {
+              pntrMeshBuf = (*itMesh);
+              itMesh = pntr.myMeshBuffers.erase(itMesh);
+
+              //pntrMeshBuf->drop();
+          }
+    }
+
+    //free created vertices
+    if (pntr.vert1 != nullptr) {
+        delete pntr.vert1;
+        pntr.vert1 = nullptr;
+    }
+
+    if (pntr.vert2 != nullptr) {
+        delete pntr.vert2;
+        pntr.vert2 = nullptr;
+    }
+
+    if (pntr.vert3 != nullptr) {
+        delete pntr.vert3;
+        pntr.vert3 = nullptr;
+    }
+
+    if (pntr.vert4 != nullptr) {
+        delete pntr.vert4;
+        pntr.vert4 = nullptr;
+    }
+}
+
+void Column::CleanUpBlockInfoStruct(BlockInfoStruct &pntr) {
+   if (pntr.fN != nullptr) {
+       CleanUpBlockFaceInfoStruct(*pntr.fN);
+       pntr.fN = nullptr;
+   }
+
+   if (pntr.fE != nullptr) {
+       CleanUpBlockFaceInfoStruct(*pntr.fE);
+       pntr.fE = nullptr;
+   }
+
+   if (pntr.fS != nullptr) {
+       CleanUpBlockFaceInfoStruct(*pntr.fS);
+       pntr.fS = nullptr;
+   }
+
+   if (pntr.fW != nullptr) {
+       CleanUpBlockFaceInfoStruct(*pntr.fW);
+       pntr.fW = nullptr;
+   }
+
+   if (pntr.fB != nullptr) {
+       CleanUpBlockFaceInfoStruct(*pntr.fB);
+       pntr.fB = nullptr;
+   }
+
+   if (pntr.fT != nullptr) {
+       CleanUpBlockFaceInfoStruct(*pntr.fT);
+       pntr.fT = nullptr;
+   }
+}
+
+//void Column::ApplyMorph(float progress) {
+//    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+//    S3DVertex *pntrVertices;
+//    irr::u32 idxMeshBuf;
+
+//    if (DestroyOnMorph) {
+//        this->Hidden = progress > 0.01f;
+
+//        //if this column is hidden move column vertices
+//        //so far below the level that the are not visible anymore
+//        //for the player, therefore the column is "hidden"
+//        u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
+
+//        for (unsigned int i = 0; i < nrVertices; i++) {
+//            irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
+//            irr::f32 h = homeHeight - 100.0f;
+
+//            //set new vertice height
+//            GeometryInfoList->vertices[i].currPosition.Y = h;
+
+//            //need to update vertice position for this vertice!
+//            //GeometryInfoList->vertices[i].positionDirty = true;
+
+//            idxMeshBuf = 0;
+
+//            for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
+//                 (*it2)->grab();
+//                 void* pntrVert = (*it2)->getVertices();
+//                 pntrVertices = (S3DVertex*)pntrVert;
+//                 pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
+
+//                 idxMeshBuf++;
+
+//                 (*it2)->drop();
+
+//                 //add this Meshbuffer to the list of overall dirty buffers
+//                // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
+//             }
+
+//            //this->GeometryInfoList->vertices[i].positionDirty = false;
+//        }
+
+//        return;
+//    }
+
+//    //the next commented block is more or less
+//    //similar in the HioctaneTools source code
+//    //but seems to be not needed, therefore
+//    //I commented it out
+//    /*if (MorphSource == nullptr) {
+//        UpdateGeometry();
+//        return;
+//    }*/
+
+//     if (MorphSource->GeometryInfoList->vertices.size() != GeometryInfoList->vertices.size()) {
+//             logging::Error("Column morph - vertice count mismatch");
+//     }
+
+//    u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
+
+//    for (unsigned int i = 0; i < nrVertices; i++) {
+//        irr::f32 sourceHeight = MorphSource->GeometryInfoList->vertices[i].originalPosition.Y;
+//        irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
+//        irr::f32 h = homeHeight * (1.0f - progress) + sourceHeight * progress;
+
+//        //if this column is hidden move column vertices
+//        //so far below the level that the are not visible anymore
+//        //for the player, therefore the column is "hidden"
+//        if (this->Hidden) h -= 100.0f;
+
+//        //set new vertice height
+//        GeometryInfoList->vertices[i].currPosition.Y = h;
+
+//        //need to update vertice position for this vertice!
+//        //GeometryInfoList->vertices[i].positionDirty = true;
+
+//        idxMeshBuf = 0;
+
+//        for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
+//             (*it2)->grab();
+//             void* pntrVert = (*it2)->getVertices();
+//             pntrVertices = (S3DVertex*)pntrVert;
+//             pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
+
+//             idxMeshBuf++;
+
+//             (*it2)->drop();
+
+//             //add this Meshbuffer to the list of overall dirty buffers
+//            // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
+//         }
+
+//        //this->GeometryInfoList->vertices[i].positionDirty = false;
+//    }
+
+//    //mark column vertices as dirty
+//    //this->MyLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+//}
+
+//below is the new function
 void Column::ApplyMorph(float progress) {
-    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
-    S3DVertex *pntrVertices;
-    irr::u32 idxMeshBuf;
+//    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+//    S3DVertex *pntrVertices;
+//    irr::u32 idxMeshBuf;
 
-    if (DestroyOnMorph) {
-        this->Hidden = progress > 0.01f;
+//    if (DestroyOnMorph) {
+//        this->Hidden = progress > 0.01f;
 
-        //if this column is hidden move column vertices
-        //so far below the level that the are not visible anymore
-        //for the player, therefore the column is "hidden"
-        u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
+//        //if this column is hidden move column vertices
+//        //so far below the level that the are not visible anymore
+//        //for the player, therefore the column is "hidden"
+//        u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
 
-        for (unsigned int i = 0; i < nrVertices; i++) {
-            irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
-            irr::f32 h = homeHeight - 100.0f;
+//        for (unsigned int i = 0; i < nrVertices; i++) {
+//            irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
+//            irr::f32 h = homeHeight - 100.0f;
 
-            //set new vertice height
-            GeometryInfoList->vertices[i].currPosition.Y = h;
+//            //set new vertice height
+//            GeometryInfoList->vertices[i].currPosition.Y = h;
 
-            //need to update vertice position for this vertice!
-            //GeometryInfoList->vertices[i].positionDirty = true;
+//            //need to update vertice position for this vertice!
+//            //GeometryInfoList->vertices[i].positionDirty = true;
 
-            idxMeshBuf = 0;
+//            idxMeshBuf = 0;
 
-            for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
-                 (*it2)->grab();
-                 void* pntrVert = (*it2)->getVertices();
-                 pntrVertices = (S3DVertex*)pntrVert;
-                 pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
+//            for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
+//                 (*it2)->grab();
+//                 void* pntrVert = (*it2)->getVertices();
+//                 pntrVertices = (S3DVertex*)pntrVert;
+//                 pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
 
-                 idxMeshBuf++;
+//                 idxMeshBuf++;
 
-                 (*it2)->drop();
+//                 (*it2)->drop();
 
-                 //add this Meshbuffer to the list of overall dirty buffers
-                // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
-             }
+//                 //add this Meshbuffer to the list of overall dirty buffers
+//                // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
+//             }
 
-            //this->GeometryInfoList->vertices[i].positionDirty = false;
-        }
+//            //this->GeometryInfoList->vertices[i].positionDirty = false;
+//        }
 
-        return;
-    }
+//        return;
+//    }
 
-    //the next commented block is more or less
-    //similar in the HioctaneTools source code
-    //but seems to be not needed, therefore
-    //I commented it out
-    /*if (MorphSource == nullptr) {
-        UpdateGeometry();
-        return;
-    }*/
+//    //the next commented block is more or less
+//    //similar in the HioctaneTools source code
+//    //but seems to be not needed, therefore
+//    //I commented it out
+//    /*if (MorphSource == nullptr) {
+//        UpdateGeometry();
+//        return;
+//    }*/
 
-     if (MorphSource->GeometryInfoList->vertices.size() != GeometryInfoList->vertices.size()) {
-             logging::Error("Column morph - vertice count mismatch");
-     }
+//     if (MorphSource->GeometryInfoList->vertices.size() != GeometryInfoList->vertices.size()) {
+//             logging::Error("Column morph - vertice count mismatch");
+//     }
 
-    u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
+//    u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
 
-    for (unsigned int i = 0; i < nrVertices; i++) {
-        irr::f32 sourceHeight = MorphSource->GeometryInfoList->vertices[i].originalPosition.Y;
-        irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
-        irr::f32 h = homeHeight * (1.0f - progress) + sourceHeight * progress;
+//    for (unsigned int i = 0; i < nrVertices; i++) {
+//        irr::f32 sourceHeight = MorphSource->GeometryInfoList->vertices[i].originalPosition.Y;
+//        irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
+//        irr::f32 h = homeHeight * (1.0f - progress) + sourceHeight * progress;
 
-        //if this column is hidden move column vertices
-        //so far below the level that the are not visible anymore
-        //for the player, therefore the column is "hidden"
-        if (this->Hidden) h -= 100.0f;
+//        //if this column is hidden move column vertices
+//        //so far below the level that the are not visible anymore
+//        //for the player, therefore the column is "hidden"
+//        if (this->Hidden) h -= 100.0f;
 
-        //set new vertice height
-        GeometryInfoList->vertices[i].currPosition.Y = h;
+//        //set new vertice height
+//        GeometryInfoList->vertices[i].currPosition.Y = h;
 
-        //need to update vertice position for this vertice!
-        //GeometryInfoList->vertices[i].positionDirty = true;
+//        //need to update vertice position for this vertice!
+//        //GeometryInfoList->vertices[i].positionDirty = true;
 
-        idxMeshBuf = 0;
+//        idxMeshBuf = 0;
 
-        for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
-             (*it2)->grab();
-             void* pntrVert = (*it2)->getVertices();
-             pntrVertices = (S3DVertex*)pntrVert;
-             pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
+//        for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
+//             (*it2)->grab();
+//             void* pntrVert = (*it2)->getVertices();
+//             pntrVertices = (S3DVertex*)pntrVert;
+//             pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
 
-             idxMeshBuf++;
+//             idxMeshBuf++;
 
-             (*it2)->drop();
+//             (*it2)->drop();
 
-             //add this Meshbuffer to the list of overall dirty buffers
-            // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
-         }
+//             //add this Meshbuffer to the list of overall dirty buffers
+//            // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
+//         }
 
-        //this->GeometryInfoList->vertices[i].positionDirty = false;
-    }
+//        //this->GeometryInfoList->vertices[i].positionDirty = false;
+//    }
 
-    //mark column vertices as dirty
-    //this->MyLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
-}
-
-void Column::UpdateVertices() {
-
+//    //mark column vertices as dirty
+//    //this->MyLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
 }
 
 irr::f32 Column::GetCurrentHeightTile(int x, int z) {
@@ -355,20 +492,46 @@ MapEntry* Column::GetMapEntry(int x, int y) {
     return levelRes->pMap[x][y];
 }
 
-void Column::AddNewColumnVertice(vector3d<irr::f32> position, vector2d<irr::f32> uv, vector3d<irr::f32> normal) {
+BlockFaceInfoStruct* Column::CreateNewCubeFace(vector3d<irr::f32> v1,
+                                               vector3d<irr::f32> v2,
+                                               vector3d<irr::f32> v3,
+                                               vector3d<irr::f32> v4,
+                                               std::vector<vector2d<irr::f32>> uv, vector3d<irr::f32> normal,
+                                               int textureId) {
     video::SColor cubeColour3(255,255,255,255);
 
-    ColumnVerticeInfo* pntrVertInfo = new ColumnVerticeInfo();
-    pntrVertInfo->originalPosition = position;
-    pntrVertInfo->currPosition = position;
-    pntrVertInfo->vert = new video::S3DVertex(position.X, position.Y, position.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv.X, uv.Y);
+    BlockFaceInfoStruct* newFace = new BlockFaceInfoStruct();
+    newFace->vert1 = new video::S3DVertex(v1.X, v1.Y, v1.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[0].X, uv[0].Y);
+    newFace->vert2 = new video::S3DVertex(v2.X, v2.Y, v2.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[1].X, uv[1].Y);
+    newFace->vert3 = new video::S3DVertex(v3.X, v3.Y, v3.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[2].X, uv[2].Y);
+    newFace->vert4 = new video::S3DVertex(v4.X, v4.Y, v4.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[3].X, uv[3].Y);
 
-    //add new vertice to list of vertices of this column
-    GeometryInfoList->vertices.push_back(*pntrVertInfo);
+    newFace->currPositionVert1 = v1;
+    newFace->currPositionVert2 = v2;
+    newFace->currPositionVert3 = v3;
+    newFace->currPositionVert4 = v4;
+
+    newFace->originalPositionVert1 = v1;
+    newFace->originalPositionVert2 = v2;
+    newFace->originalPositionVert3 = v3;
+    newFace->originalPositionVert4 = v4;
+
+    newFace->textureId = textureId;
+
+    newFace->myMeshBuffers.clear();
+    newFace->myMeshBufVertexId.clear();
+
+    return (newFace);
 }
 
-bool Column::setupGeometry() {
-    int x, z, i = 0;
+void Column::MoveColumnVertex(irr::core::vector3df &vertex) {
+    vertex.X -= Position.X + 1;
+    vertex.Y += Position.Y;
+    vertex.Z += Position.Z;
+}
+
+bool Column::SetupGeometry() {
+    int x, z;
 
     x = (int)Position.X;
     z = (int)Position.Z;
@@ -388,10 +551,6 @@ bool Column::setupGeometry() {
 
     irr::f32 h = 0.0f;
 
-    GeometryInfoList->vertices.clear();
-    GeometryInfoList->textureIdData.clear();
-    GeometryInfoList->indicesVboData.clear();
-
     std::vector<vector2d<irr::f32>> newuvsS;
     std::vector<vector2d<irr::f32>> newuvsW;
     std::vector<vector2d<irr::f32>> newuvsN;
@@ -408,7 +567,8 @@ bool Column::setupGeometry() {
 
     mNrBlocksInColumn = 0;
 
-    for (int bitNum = 0; bitNum < 8; bitNum++) { // all blocks of this column
+    // Iterate through all blocks of this column
+    for (int bitNum = 0; bitNum < 8; bitNum++) {
 
         if ((Definition->get_Shape() & (1 << bitNum)) == 0) continue;
 
@@ -430,6 +590,18 @@ bool Column::setupGeometry() {
         vector3d<irr::f32> *F = new vector3d<irr::f32>(segmentSize, b + h, 0.0f);
         vector3d<irr::f32> *G = new vector3d<irr::f32>(segmentSize, c + h, segmentSize);
         vector3d<irr::f32> *H = new vector3d<irr::f32>(0.0f, d + h, segmentSize);
+
+        //we need to move this column to the correct map location
+        //because otherwise all of the columns would be in the level
+        //origin
+        MoveColumnVertex(*A);
+        MoveColumnVertex(*B);
+        MoveColumnVertex(*C);
+        MoveColumnVertex(*D);
+        MoveColumnVertex(*E);
+        MoveColumnVertex(*F);
+        MoveColumnVertex(*G);
+        MoveColumnVertex(*H);
 
         // texture atlas UVs
         newuvsS = MakeUVs(blockDef->SMod());
@@ -459,64 +631,31 @@ bool Column::setupGeometry() {
         vector3d<irr::f32> *nB = new vector3d<irr::f32>(0.0f, -1.0f, 0.0f);
 
         //create all vertices and store them
+        //create a new block
+        BlockInfoStruct* newBlock = new BlockInfoStruct();
 
         //define all faces
 
         //north side
-        AddNewColumnVertice(*F, newuvsN[0], *nN);
-        AddNewColumnVertice(*E, newuvsN[1], *nN);
-        AddNewColumnVertice(*A, newuvsN[2], *nN);
-        AddNewColumnVertice(*B, newuvsN[3], *nN);
-        GeometryInfoList->textureIdData.push_back(textIDInfoN);
+        newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, newuvsN, *nN, textIDInfoN);
 
         //east side
-        AddNewColumnVertice(*G, newuvsE[0], *nE);
-        AddNewColumnVertice(*F, newuvsE[1], *nE);
-        AddNewColumnVertice(*B, newuvsE[2], *nE);
-        AddNewColumnVertice(*C, newuvsE[3], *nE);
-        GeometryInfoList->textureIdData.push_back(textIDInfoE);
+        newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, newuvsE, *nE, textIDInfoE);
 
         //south side
-        AddNewColumnVertice(*H, newuvsS[0], *nS);
-        AddNewColumnVertice(*G, newuvsS[1], *nS);
-        AddNewColumnVertice(*C, newuvsS[2], *nS);
-        AddNewColumnVertice(*D, newuvsS[3], *nS);
-        GeometryInfoList->textureIdData.push_back(textIDInfoS);
+        newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, newuvsS, *nS, textIDInfoS);
 
         //west side
-        AddNewColumnVertice(*E, newuvsW[0], *nW);
-        AddNewColumnVertice(*H, newuvsW[1], *nW);
-        AddNewColumnVertice(*D, newuvsW[2], *nW);
-        AddNewColumnVertice(*A, newuvsW[3], *nW);
-        GeometryInfoList->textureIdData.push_back(textIDInfoW);
+        newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, newuvsW, *nW, textIDInfoW);
 
         //top side
-        AddNewColumnVertice(*E, newuvsT[0], *nT);
-        AddNewColumnVertice(*F, newuvsT[1], *nT);
-        AddNewColumnVertice(*G, newuvsT[2], *nT);
-        AddNewColumnVertice(*H, newuvsT[3], *nT);
-        GeometryInfoList->textureIdData.push_back(textIDInfoT);
+        newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, newuvsT, *nT, textIDInfoT);
 
         //bottom side
-        AddNewColumnVertice(*D, newuvsB[0], *nB);
-        AddNewColumnVertice(*C, newuvsB[1], *nB);
-        AddNewColumnVertice(*B, newuvsB[2], *nB);
-        AddNewColumnVertice(*A, newuvsB[3], *nB);
-        GeometryInfoList->textureIdData.push_back(textIDInfoB);
+        newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, newuvsB, *nB, textIDInfoB);
 
-        // indices for 2 tris
-        for (int j = 0; j < 6; j++) {
-            i = 0;
-            GeometryInfoList->indicesVboData.push_back(i);
-            GeometryInfoList->indicesVboData.push_back(i + 1);
-            GeometryInfoList->indicesVboData.push_back(i + 3);
-
-            GeometryInfoList->indicesVboData.push_back(i + 1);
-            GeometryInfoList->indicesVboData.push_back(i + 2);
-            GeometryInfoList->indicesVboData.push_back(i + 3);
-
-            //i += 4;
-         }
+        //add new block to my vector of blocks
+        mBlockInfoVec.push_back(newBlock);
 
         //cleanup
         delete A;

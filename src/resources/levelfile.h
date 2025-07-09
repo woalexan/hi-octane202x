@@ -100,6 +100,9 @@ public:
     std::vector<BlockDefinition*> BlockDefinitions;
     std::vector<ColumnDefinition*> ColumnDefinitions;
 
+    void DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName);
+    void DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName);
+
     std::vector<ColumnsStruct> Columns;
 
     //table starts at 0x00000000 offset until 0x0000000f offset, and is 16 bytes long
@@ -173,6 +176,26 @@ public:
     bool CheckTileForTextureId(int posX, int posY, int textureId);
     bool CanIFindTextureIdAroundCell(int posX, int posY, int textureId);
 
+    //Makes sure a specified input Blockdefinition exists in the current levelfile.
+    //If it does not exist yet it is newly created;
+    //Returns true if the requested block definition is available, and the index
+    //in the vector of all existing Blockdefinitions is returned in output parameter
+    //outIndex;
+    //If there is an unexpected error, and no blockdefinition index with this parameters
+    //can be supplied, this function returns false
+    bool RequestBlockDefinition(uint8_t pN, uint8_t pE, uint8_t pS, uint8_t pW, uint8_t pT, uint8_t pB,
+                                       uint8_t pNMod, uint8_t pEMod, uint8_t pSMod, uint8_t pWMod, uint8_t pTMod, uint8_t pBMod, irr::u32 &outIndex);
+
+    //Makes sure a specified input Columndefinition exists in the current levelfile.
+    //If it does not exist yet it is newly created;
+    //Returns true if the requested column definition is available, and the index
+    //in the vector of all existing Columndefinitions is returned in output parameter
+    //outIndex;
+    //If there is an unexpected error, and no Columndefinition index with this parameters
+    //can be supplied, this function returns false
+    bool RequestColumnDefinition(int16_t pA, int16_t pB, int16_t pC, int16_t pD, int16_t pE, int16_t pF,
+                                             int16_t pG, int16_t pH, irr::u32 &outIndex);
+
 private:
     void DetectAdditionalRegionsTextureId();
     void VerifyRegionFound(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType);
@@ -187,6 +210,40 @@ private:
     bool CanIFindTextureIdAtColumnsAroundCell(int posX, int posY, int textureId);
     void VerifyRegionFoundViaColumns(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType);
     void DetectAdditionalRegionsBasedOnColumns();
+
+    //returns true if a block definition object
+    //contains exactly the specified input texture Ids and
+    //texture modification values
+    //False otherwise
+    bool CmpBlockDefinition(BlockDefinition* def, uint8_t compN, uint8_t compE, uint8_t compS, uint8_t compW, uint8_t compT, uint8_t compB,
+                                       uint8_t compNMod, uint8_t compEMod, uint8_t compSMod, uint8_t compWMod, uint8_t compTMod, uint8_t compBMod);
+
+    //returns true in case a specified input block definition was found in the vector of existing
+    //blockdefinitions in the current level file; false otherwise
+    //in case definition was found, returns also the index in the vector for this element
+    //in parameter fndOutIndex
+    bool SearchBlockDefinitionIndex(uint8_t compN, uint8_t compE, uint8_t compS, uint8_t compW, uint8_t compT, uint8_t compB,
+                                    uint8_t compNMod, uint8_t compEMod, uint8_t compSMod, uint8_t compWMod, uint8_t compTMod, uint8_t compBMod, irr::u32 &fndOutIndex);
+
+    //Returns true if new block definition was successfully created, false otherwise
+    //if succesfull, returns the new index of the new blockdefinition in output parameter outIndex
+    bool AddBlockDefinition(uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
+                                       uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod, irr::u32 &outIndex);
+
+    bool CmpColumnDefinition(ColumnDefinition* def, int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
+                                       int16_t compG, int16_t compH);
+
+    //returns true in case a specified input column definition was found in the vector of existing
+    //columndefinitions in the current level file; false otherwise
+    //in case definition was found, returns also the index in the vector for this element
+    //in parameter fndOutIndex
+    bool SearchColumnDefinitionIndex(int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
+                                                int16_t compG, int16_t compH, irr::u32 &fndOutIndex);
+
+    //Returns true if new column definition was successfully created, false otherwise
+    //if succesfull, returns the new index of the new columndefinition in output parameter outIndex
+    bool AddColumnDefinition(int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE, int16_t newF,
+                                        int16_t newG, int16_t newH, irr::u32 &outIndex);
 
 protected:
      std::string m_Filename;

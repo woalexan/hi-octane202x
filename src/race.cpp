@@ -3687,7 +3687,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
-   this->mLevelBlocks = new LevelBlocks(mGame, this->mLevelTerrain, this->mLevelRes, mTexLoader,
+   this->mLevelBlocks = new LevelBlocks(mGame, this->mLevelTerrain, this->mLevelRes, mTexLoader, false,
                                         DebugShowWallCollisionMesh, this->mGame->enableLightning);
 
    if (mGame->mUseXEffects) {

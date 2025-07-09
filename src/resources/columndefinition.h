@@ -24,6 +24,10 @@ public:
     ColumnDefinition(int id, int offset, std::vector<uint8_t> bytes);
     ~ColumnDefinition();
 
+    //Alternative constructor used for the level editor
+    ColumnDefinition(int id, int offset, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
+                     int16_t newF, int16_t newG, int16_t newH);
+
     uint8_t get_Shape();
     int16_t get_FloorTextureID();
     int16_t get_Unknown1();
