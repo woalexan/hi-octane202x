@@ -105,6 +105,7 @@ public:
     TextureMode* mTextureMode = nullptr;
 
     irr::s32 GetNextFreeGuiId();
+    void HideWindow();
 
 private:
 

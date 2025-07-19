@@ -239,7 +239,7 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
-                mCurrentSession->mLevelRes->Save("level0-1m.dat");
+                mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
             }
             break;
         }
@@ -251,12 +251,15 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 }
 
 void Editor::OnButtonClicked(irr::s32 buttonId) {
-   switch (buttonId) {
-       case GUI_ID_TESTBUTTON: {
+    //depending over which window the user mouse cursor
+    //is currently, sent the button click Id to the correct
+    //window
+    if (mCurrentSession == nullptr)
+        return;
 
-           break;
-       }
-   }
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTEXTUREDIALOG) {
+        mCurrentSession->mTextureMode->OnButtonClicked(buttonId);
+    }
 }
 
 void Editor::OnScrollbarMoved(irr::s32 scrollBarId) {
@@ -293,6 +296,22 @@ void Editor::OnElementLeft(irr::s32 elementId) {
     if (mCurrentSession->mTextureMode != nullptr) {
         mCurrentSession->mTextureMode->OnElementLeft(elementId);
     }
+  }
+}
+
+//if function returns true the close action should be interrupted
+bool Editor::OnElementClose(irr::s32 elementId) {
+  //std::cout << "Element Close " << elementId << std::endl;
+
+  //prevent that user can close the editor windows
+  //otherwise the program will crash the next time we need the
+  //window again; just hide the window and interrupt the close call
+  if (elementId == GUI_ID_TEXTUREWINDOW) {
+      if (mCurrentSession->mTextureMode != nullptr) {
+          mCurrentSession->mTextureMode->HideWindow();
+
+          return true;
+      }
   }
 }
 
@@ -354,7 +373,8 @@ void Editor::HandleMouseEvent(const irr::SEvent& event) {
 }
 
 //overwrite HandleGuiEvent method for Editor
-void Editor::HandleGuiEvent(const irr::SEvent& event) {
+//returns true if Gui Event should be canceled
+bool Editor::HandleGuiEvent(const irr::SEvent& event) {
     irr::s32 id = event.GUIEvent.Caller->getID();
 
     switch(event.GUIEvent.EventType)
@@ -401,10 +421,21 @@ void Editor::HandleGuiEvent(const irr::SEvent& event) {
             break;
         }
 
+         case EGET_ELEMENT_CLOSED: {
+            //user tried to close an Ui element/window
+            if (OnElementClose(id)) {
+                //we want to prevent closing this element
+                return true;
+            }
+        }
+
         default: {
                 break;
         }
      }
+
+    //we do not want to cancel this event
+    return false;
 }
 
 bool Editor::LoadAdditionalGameImages() {
@@ -633,8 +664,10 @@ void Game::GameLoopLoadRaceScreen() {
 }*/
 
 void Editor::UpdateStatusbarText(const wchar_t *text) {
+    wcscpy(mCurrentStatusBarText, text);
+
     if ( StatusLine != nullptr ) {
-          StatusLine->setText (text);
+          StatusLine->setText(mCurrentStatusBarText);
     }
 }
 
@@ -811,6 +844,9 @@ bool Editor::CreateNewEditorSession(int load_levelnr) {
 }
 
 Editor::Editor() {
+    //allocate memory for current editor statusbar text
+    mCurrentStatusBarText = new wchar_t[400];
+    swprintf(mCurrentStatusBarText, 390, L"");
 }
 
 Editor::~Editor() {
@@ -828,5 +864,9 @@ Editor::~Editor() {
     if (raceLoadingScr != nullptr) {
         raceLoadingScr->drop();
         raceLoadingScr = nullptr;
+    }
+
+    if (mCurrentStatusBarText != nullptr) {
+           delete[] mCurrentStatusBarText;
     }
 }

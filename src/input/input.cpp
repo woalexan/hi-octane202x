@@ -76,7 +76,13 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
     if (event.EventType == EET_GUI_EVENT) {
          //Forward this event to my parent
          //Infrastructure object
-         mInfra->HandleGuiEvent(event);
+
+        //returns true if Gui Event should be canceled
+        if (mInfra->HandleGuiEvent(event)) {
+             //this Gui event should be canceled
+             //this is done by returning true here
+             return true;
+         }
     }
 
     return false;

@@ -70,6 +70,8 @@ struct BlockInfoStruct {
    BlockFaceInfoStruct* fW = nullptr;
    BlockFaceInfoStruct* fT = nullptr;
    BlockFaceInfoStruct* fB = nullptr;
+
+   irr::u8 idxBlockFromBaseCnt;
 };
 
 /************************
@@ -103,6 +105,10 @@ public:
 
     void ApplyMorph(float progress);
 
+    //allows to change the height of the 4 base block vertices of the column mesh, and all blocks above are
+    //adjusted as well
+    void AdjustMeshBaseVerticeHeight(irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
+
     irr::u16 GetNumberContainedBlocks();
 
     //returns the number of "missing" blocks at the base
@@ -112,6 +118,19 @@ public:
     //still will return 0, because then there is technically
     //no "gap" of blocks
     irr::u16 GetNumberMissingBlocksAtBase();
+
+    //stores the four current column base vertices
+    irr::core::vector3df mBaseVert1Coord;
+    irr::core::vector3df mBaseVert2Coord;
+    irr::core::vector3df mBaseVert3Coord;
+    irr::core::vector3df mBaseVert4Coord;
+
+    //stores the (initial) original column base vertice
+    //values
+    irr::core::vector3df mBaseVert1CoordOriginal;
+    irr::core::vector3df mBaseVert2CoordOriginal;
+    irr::core::vector3df mBaseVert3CoordOriginal;
+    irr::core::vector3df mBaseVert4CoordOriginal;
 
 private:
     bool SetupGeometry();
@@ -127,15 +146,12 @@ private:
                                                    std::vector<vector2d<irr::f32>> uv, vector3d<irr::f32> normal,
                                                    int textureId);
 
-    std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
-    std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
-
     //void AddNewColumnVertice(vector3d<irr::f32> position, vector2d<irr::f32> uv, vector3d<irr::f32> normal);
     irr::f32 GetCurrentHeightTile(int x, int z);
     irr::f32 GetOriginalHeightTile(int x, int z);
 
-    LevelBlocks* MyLevelBlocks = nullptr;
-    LevelTerrain* MyTerrain = nullptr;
+    LevelBlocks* mLevelBlocks = nullptr;
+    LevelTerrain* mTerrain = nullptr;
 
     float segmentSize;
 

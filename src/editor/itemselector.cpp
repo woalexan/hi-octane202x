@@ -92,6 +92,10 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
     irr::core::vector2di cellCoord =
         mParent->mLevelTerrain->GetClosestTileGridCoordToMapPosition(centerPoint, closestVertice);
 
+    //also add information in which cell coordinate this column is standing at
+    mCurrHighlightedItem.mCellCoordSelected.X = cellCoord.X;
+    mCurrHighlightedItem.mCellCoordSelected.Y = cellCoord.Y;
+
     //is at the cellCoord a column?
     MapEntry* entry = mParent->mLevelTerrain->GetMapEntry(cellCoord.X, cellCoord.Y);
 
@@ -494,6 +498,7 @@ void ItemSelector::Draw() {
                                                        mParent->mParentEditor->mDrawDebug->white,
                                                        mParent->mParentEditor->mDrawDebug->blue,
                                                        mCurrSelectedItem.mSelBlockFaceDirection);
+      /*mParent->mLevelBlocks->DrawColumnSelectionGrid(mCurrSelectedItem.mColumnSelected, mParent->mParentEditor->mDrawDebug->cyan);*/
   }
 }
 

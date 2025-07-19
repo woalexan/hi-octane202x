@@ -25,11 +25,13 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
   //each columndefinition is 26 bytes long
-  //Byte 0:   Shape
-  //Byte 1:   Unknown4
+  //Byte 0:   Shape (is a byte, where each bit tells the game if a block position in the column is currently used or is empty;
+  //          A high bit means the block is used, a low bit means empty space. The Lsb is block at lowest location (next to race track)
+  //          The MSB is the highest block H at the top of the column)
+  //Byte 1:   Unknown4 (in all 9 existing maps there is not a single place where this value is not zero; seems to be reserved for the future, but was never used)
   //Byte 2:   Floor Texture ID
   //Byte 3:   Floor Texture ID
-  //Byte 4:   Unknown1
+  //Byte 4:   Unknown1 (is used, but right now I do not know for what), there is even an extra column definition spent if all other values are the same, but this one is different)
   //Byte 5:   Unknown1
   //Byte 6:   A
   //Byte 7:   A
@@ -47,10 +49,12 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   //Byte 19:  G
   //Byte 20:  H
   //Byte 21:  H
-  //Byte 22:  Unknown2
-  //Byte 23:  Unknown2
-  //Byte 24:  Unknown3
-  //Byte 25:  Unknown3
+  //Byte 22:  From observation seems to be current number of occurences
+  //          that this column definition is used right now
+  //Byte 23:  From observation seems to be current number of occurences
+  //          that this column definition is used right now
+  //Byte 24:  Unknown3  (in all 9 existing maps there is not a single place where this value
+  //Byte 25:  Unknown3  is not zero; seems to be reserved for the future, but was never used)
 
   mShape = decode_Shape();
   mFloorTextureID = decode_FloorTextureID();
@@ -65,7 +69,7 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   mH = decode_H();
 
   mUnknown1 = decode_Unknown1();
-  mUnknown2 = decode_Unknown2();
+  mOccurence = decode_Occurence();
   mUnknown3 = decode_Unknown3();
   mUnknown4 = this->m_Bytes.at(1);
 
@@ -134,14 +138,18 @@ ColumnDefinition::~ColumnDefinition() {
 }
 
 //Alternative constructor used for the level editor
-ColumnDefinition::ColumnDefinition(int id, int offset, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
-                 int16_t newF, int16_t newG, int16_t newH) {
+ColumnDefinition::ColumnDefinition(int id, int offset, int newFloorTextureID, int16_t mUnknown1, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
+                 int16_t newF, int16_t newG, int16_t newH, int16_t newOccurence) {
     this->m_ID = id;
     this->m_Offset = offset;
+    this->mFloorTextureID = newFloorTextureID;
+    this->mUnknown1 = mUnknown1;
 
     //each columndefinition is 26 bytes long
-    //Byte 0:   Shape
-    //Byte 1:   Unknown4
+    //Byte 0:   Shape (is a byte, where each bit tells the game if a block position in the column is currently used or is empty;
+    //          A high bit means the block is used, a low bit means empty space. The Lsb is block at lowest location (next to race track)
+    //          The MSB is the highest block H at the top of the column)
+    //Byte 1:   Unknown4 (is used, but right now I do not know for what), there is even an extra column definition spent if all other values are the same, but this one is different
     //Byte 2:   Floor Texture ID
     //Byte 3:   Floor Texture ID
     //Byte 4:   Unknown1
@@ -162,10 +170,16 @@ ColumnDefinition::ColumnDefinition(int id, int offset, int16_t newA, int16_t new
     //Byte 19:  G
     //Byte 20:  H
     //Byte 21:  H
-    //Byte 22:  Unknown2
-    //Byte 23:  Unknown2
-    //Byte 24:  Unknown3
-    //Byte 25:  Unknown3
+    //Byte 22:  From observation seems to be current number of occurences
+    //          that this column definition is used right now
+    //Byte 23:  From observation seems to be current number of occurences
+    //          that this column definition is used right now
+    //Byte 24:  Unknown3  (in all 9 existing maps there is not a single place where this value
+    //Byte 25:  Unknown3  is not zero; seems to be reserved for the future, but was never used)
+
+    //set 0, until I know for what this is, seems to be not used
+    mUnknown4 = 0;
+    mUnknown3 = 0;
 
     mA = newA;
     mB = newB;
@@ -175,6 +189,14 @@ ColumnDefinition::ColumnDefinition(int id, int offset, int16_t newA, int16_t new
     mF = newF;
     mG = newG;
     mH = newH;
+
+    mOccurence = newOccurence;
+
+    //important: in case a new column definition is added
+    //in level editor first mark its state as newly added, so that it is
+    //not immediately removed again afterwards because it is not yet assigned to
+    //any column
+    mState = DEF_COLUMNDEF_STATE_NEWLYADDED_KEEP;
 
     //we start from lowest block of colum upwards
     //first collision is active, the first time we find a gap in the
@@ -294,8 +316,12 @@ int16_t ColumnDefinition::get_H() {
    return mH;
 }
 
-int16_t ColumnDefinition::get_Unknown2() {
-   return mUnknown2;
+uint8_t ColumnDefinition::get_Unknown4() {
+    return mUnknown4;
+}
+
+int16_t ColumnDefinition::get_Occurence() {
+   return mOccurence;
 }
 
 int16_t ColumnDefinition::get_Unknown3() {
@@ -346,7 +372,7 @@ int16_t ColumnDefinition::decode_H() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 20);
 }
 
-int16_t ColumnDefinition::decode_Unknown2() {
+int16_t ColumnDefinition::decode_Occurence() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 22);
 }
 
@@ -399,12 +425,16 @@ void ColumnDefinition::set_H(int16_t newVal) {
    mH = newVal;
 }
 
-void ColumnDefinition::set_Unknown2(int16_t newVal) {
-   mUnknown2 = newVal;
+void ColumnDefinition::set_Occurence(int16_t newVal) {
+   mOccurence = newVal;
 }
 
 void ColumnDefinition::set_Unknown3(int16_t newVal) {
    mUnknown3 = newVal;
+}
+
+void ColumnDefinition::set_Unknown4(uint8_t newVal) {
+   mUnknown4 = newVal;
 }
 
 bool ColumnDefinition::WriteChanges() {
@@ -417,8 +447,8 @@ bool ColumnDefinition::WriteChanges() {
     //store unknown 1 field
     ConvertAndWriteInt16ToByteArray(mUnknown1, this->m_wBytes, 4);
 
-    //store unknown 2 field
-    ConvertAndWriteInt16ToByteArray(mUnknown2, this->m_wBytes, 22);
+    //store current occurence (usage) of this colum definition
+    ConvertAndWriteInt16ToByteArray(mOccurence, this->m_wBytes, 22);
 
     //store unknown 3 field
     ConvertAndWriteInt16ToByteArray(mUnknown3, this->m_wBytes, 24);

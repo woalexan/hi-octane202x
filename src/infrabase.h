@@ -94,7 +94,9 @@ public:
   irr::core::vector3d<irr::f32>* yAxisDirVector = nullptr;
   irr::core::vector3d<irr::f32>* zAxisDirVector = nullptr;
 
-  virtual void HandleGuiEvent(const irr::SEvent& event);
+  //returns true if Gui Event should be canceled
+  virtual bool HandleGuiEvent(const irr::SEvent& event);
+
   virtual void HandleMouseEvent(const irr::SEvent& event);
 
 private:

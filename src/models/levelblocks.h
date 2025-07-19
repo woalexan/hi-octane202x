@@ -13,6 +13,7 @@
 #include <irrlicht.h>
 #include <vector>
 #include <cstdint>
+#include <string>
 
 using namespace irr;
 using namespace video;
@@ -87,6 +88,7 @@ public:
     irr::u8 GetCurrentViewMode();
 
     void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, irr::video::SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace = DEF_SELBLOCK_FACENONE);
+    void DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* color);
 
     //Derives the current texturing information about a selected block face
     //returns true if the information was found, false otherwise
@@ -97,12 +99,27 @@ public:
     void TestHeightChange(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks);
 
     void SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
-                                         irr::u8 selFace, int16_t newTextureId);
+                                         irr::u8 selFace, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureModifier);
+
+    void UpdateCubeFaceTextureModification(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks,
+                                                        BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier);
 
     void RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks);
 
+    std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
+    std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
+
     std::vector<irr::u32> GetBlockDefinitionUsageCount();
     std::vector<irr::u32> GetColumnDefinitionUsageCount();
+
+    void DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName);
+    void DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName);
+    void DebugWriteDefinedColumnsTableToCsvFile(char* debugOutPutFileName);
+
+    void ChangeMeshCubeHeight(BlockInfoStruct* whichCube, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
+
+    void UpdateBlockDefinitionUsageCnt();
+    void UpdateBlockMesh();
 
 private:   
     IrrMeshBuf* mIrrMeshBuf = nullptr;
@@ -129,15 +146,30 @@ private:
 
     void DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color);
 
+    std::string CreateDbgShapeString(ColumnDefinition* colDef);
+
     void ChangeMeshCubeFaceHeight(BlockFaceInfoStruct* whichFace, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
-    void ChangeMeshCubeHeight(BlockInfoStruct* whichCube, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
 
     BlockInfoStruct* GetBlockInfoStruct(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks);
     void RemoveUnusedBlockDefinitions();
-    void ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec);
+    //void RemoveUnusedBlockDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId);
+    void ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions();
 
-    void ReplaceColumnDefinitionWithNewOneForAllColumns(ColumnDefinition* oldDef, ColumnDefinition* newDef);
+    void ReplaceColumnDefinitionWithNewOneForAllColumns(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec);
+    //void RemoveUnusedColumnDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId);
     void RemoveUnusedColumnDefinitions();
+
+    //Returns true if the specified column was found, false otherwise
+    //If search succesfull outCoord output parameter returns the found map coordinates
+    //(map entry coordinates) for this specified column
+    bool FindMapCoordinateForColumn(Column* whichColumn, irr::core::vector2di& outCoord);
+
+    //update certain values stored in the column definitions
+    //that also the original game uses
+    void UpdateColumDefinitions();
+
+    //Returns simply 0 value if columnDefPntr is nullptr!
+    irr::u8 GetColumnDefinitionShapeValue(ColumnDefinition* columnDefPntr);
 
     irr::u8 mCurrentViewMode;
 
