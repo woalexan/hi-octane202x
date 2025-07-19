@@ -100,9 +100,6 @@ public:
     std::vector<BlockDefinition*> BlockDefinitions;
     std::vector<ColumnDefinition*> ColumnDefinitions;
 
-    void DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName);
-    void DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName);
-
     std::vector<ColumnsStruct> Columns;
 
     //table starts at 0x00000000 offset until 0x0000000f offset, and is 16 bytes long
@@ -183,8 +180,11 @@ public:
     //outIndex;
     //If there is an unexpected error, and no blockdefinition index with this parameters
     //can be supplied, this function returns false
+    //If block definition was newly added (not existing yet) output bool return value is
+    //set to true, if an already existing block definition is used false is returned
     bool RequestBlockDefinition(uint8_t pN, uint8_t pE, uint8_t pS, uint8_t pW, uint8_t pT, uint8_t pB,
-                                       uint8_t pNMod, uint8_t pEMod, uint8_t pSMod, uint8_t pWMod, uint8_t pTMod, uint8_t pBMod, irr::u32 &outIndex);
+                                       uint8_t pNMod, uint8_t pEMod, uint8_t pSMod, uint8_t pWMod, uint8_t pTMod, uint8_t pBMod,
+                                       int16_t pUnknown1, int16_t pUnknown2, irr::u32 &outIndex, bool &newlyAdded);
 
     //Makes sure a specified input Columndefinition exists in the current levelfile.
     //If it does not exist yet it is newly created;
@@ -193,8 +193,17 @@ public:
     //outIndex;
     //If there is an unexpected error, and no Columndefinition index with this parameters
     //can be supplied, this function returns false
-    bool RequestColumnDefinition(int16_t pA, int16_t pB, int16_t pC, int16_t pD, int16_t pE, int16_t pF,
-                                             int16_t pG, int16_t pH, irr::u32 &outIndex);
+    //If colum definition was newly added (not existing yet) output bool return value is
+    //set to true, if an already existing column definition is used false is returned
+    bool RequestColumnDefinition(int16_t pFloorTextureID, int16_t pUnknown1, int16_t pA, int16_t pB, int16_t pC, int16_t pD, int16_t pE, int16_t pF,
+                                             int16_t pG, int16_t pH, irr::u32 &outIndex, bool &newlyAdded);
+
+    //returns nullptr if a Column definition with this Id is not found
+    ColumnDefinition* GetColumnDefinitionWithCertainId(int whichId);
+
+
+    //returns nullptr if a block definition with this Id is not found
+    BlockDefinition* GetBlockDefinitionWithCertainId(int whichId);
 
 private:
     void DetectAdditionalRegionsTextureId();
@@ -228,21 +237,22 @@ private:
     //Returns true if new block definition was successfully created, false otherwise
     //if succesfull, returns the new index of the new blockdefinition in output parameter outIndex
     bool AddBlockDefinition(uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
-                                       uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod, irr::u32 &outIndex);
+                                       uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod,
+                                      int16_t newUnknown1, int16_t newUnknown2, irr::u32 &outIndex);
 
-    bool CmpColumnDefinition(ColumnDefinition* def, int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
+    bool CmpColumnDefinition(ColumnDefinition* def, int16_t cmpFloorTextureID, int16_t compUnknown1, int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
                                        int16_t compG, int16_t compH);
 
     //returns true in case a specified input column definition was found in the vector of existing
     //columndefinitions in the current level file; false otherwise
     //in case definition was found, returns also the index in the vector for this element
     //in parameter fndOutIndex
-    bool SearchColumnDefinitionIndex(int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
+    bool SearchColumnDefinitionIndex(int16_t cmpFloorTextureID, int16_t cmpUnknown1, int16_t compA, int16_t compB, int16_t compC, int16_t compD, int16_t compE, int16_t compF,
                                                 int16_t compG, int16_t compH, irr::u32 &fndOutIndex);
 
     //Returns true if new column definition was successfully created, false otherwise
     //if succesfull, returns the new index of the new columndefinition in output parameter outIndex
-    bool AddColumnDefinition(int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE, int16_t newF,
+    bool AddColumnDefinition(int16_t newFloorTextureID, int16_t newUnknown1, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE, int16_t newF,
                                         int16_t newG, int16_t newH, irr::u32 &outIndex);
 
 protected:

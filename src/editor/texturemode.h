@@ -104,6 +104,14 @@ struct GUITextureMode
 
     irr::gui::IGUIImage* CurrentSelectedTexture;
     irr::gui::IGUIStaticText* CurrentSelectedTextureIdText;
+
+    irr::gui::IGUIStaticText* LabelSelectCubeFaces;
+    irr::gui::IGUIButton* SelNButton;
+    irr::gui::IGUIButton* SelEButton;
+    irr::gui::IGUIButton* SelSButton;
+    irr::gui::IGUIButton* SelWButton;
+    irr::gui::IGUIButton* SelTButton;
+    irr::gui::IGUIButton* SelBButton;
 };
 
 class TextureMode {
@@ -229,12 +237,17 @@ private:
     TextureModeTexCategory* mCurrShownTexCategory = nullptr;
 
     std::vector<GUITextureModificationDataStruct*> mTexModificationVec;
+
+    bool mWindowHidden = false;
+
+    void CreateWindow();
+    void WindowControlBlockOptions(bool newState);
+    void SelectOtherBlockFace(irr::u8 newFaceSelection);
     
 public:
     TextureMode(EditorSession* parentSession);
     ~TextureMode();
 
-    void CreateWindow();
     bool IsWindowOpen();
     irr::core::rect<irr::s32> GetWindowPosition();
 
@@ -245,6 +258,11 @@ public:
     //textures in the texture selection dialog
     void OnElementHovered(irr::u32 hoveredGuiId);
     void OnElementLeft(irr::u32 leftGuiId);
+
+    void OnButtonClicked(irr::u32 buttonGuiId);
+
+    void HideWindow();
+    void ShowWindow();
 
     void OnLeftMouseButtonDown();
 

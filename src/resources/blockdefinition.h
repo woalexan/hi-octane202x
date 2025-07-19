@@ -18,6 +18,10 @@
 #include "tableitem.h"
 #include <cstdint>
 
+#define DEF_BLOCKDEF_STATE_DEFAULT 0
+#define DEF_BLOCKDEF_STATE_NEWLYADDED_KEEP 1
+#define DEF_BLOCKDEF_STATE_NEWLYUNASSIGNEDONE 2
+
 class BlockDefinition : public TableItem {
 public:
     BlockDefinition(int id, int offset, std::vector<uint8_t> bytes);
@@ -26,7 +30,7 @@ public:
     //alternative constructor for usage with the level editor
     //to add a new block definition to the level file
     BlockDefinition(int id, int offset, uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
-                    uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod);
+                    uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod, int16_t newUnknown1, int16_t newUnknown2);
 
     bool WriteChanges() override;
 
@@ -36,28 +40,43 @@ public:
     uint8_t get_W();
     uint8_t get_T();
     uint8_t get_B();
+    int16_t get_Unknown1();
+    int16_t get_Unknown2();
 
-    uint8_t NMod();
-    uint8_t EMod();
-    uint8_t SMod();
-    uint8_t WMod();
-    uint8_t TMod();
-    uint8_t BMod();
+    uint8_t get_NMod();
+    uint8_t get_EMod();
+    uint8_t get_SMod();
+    uint8_t get_WMod();
+    uint8_t get_TMod();
+    uint8_t get_BMod();
 
     //for the levelEditor functionality
-    void set_N(int newVal);
-    void set_E(int newVal);
-    void set_S(int newVal);
-    void set_W(int newVal);
-    void set_T(int newVal);
-    void set_B(int newVal);
+    void set_N(uint8_t newVal);
+    void set_E(uint8_t newVal);
+    void set_S(uint8_t newVal);
+    void set_W(uint8_t newVal);
+    void set_T(uint8_t newVal);
+    void set_B(uint8_t newVal);
 
-    void setNMod(int newVal);
-    void setEMod(int newVal);
-    void setSMod(int newVal);
-    void setWMod(int newVal);
-    void setTMod(int newVal);
-    void setBMod(int newVal);
+    void setNMod(uint8_t newVal);
+    void setEMod(uint8_t newVal);
+    void setSMod(uint8_t newVal);
+    void setWMod(uint8_t newVal);
+    void setTMod(uint8_t newVal);
+    void setBMod(uint8_t newVal);
+
+    //for the level editor
+    //usage count, how often is this blockdefinition
+    //used in the map
+    uint32_t usageCnt = 0;
+
+    //only used for the level editor
+    //while block definition changes
+    int m_initialID;
+
+    //this blockdefinition state variable is
+    //only used for the leveleditor
+    uint8_t mState = DEF_BLOCKDEF_STATE_DEFAULT;
 
 private:
     uint8_t mN;
@@ -91,19 +110,19 @@ private:
     uint8_t decode_TMod();
     uint8_t decode_BMod();
 
-    void save_N(int newVal);
-    void save_E(int newVal);
-    void save_S(int newVal);
-    void save_W(int newVal);
-    void save_T(int newVal);
-    void save_B(int newVal);
+    void save_N(uint8_t newVal);
+    void save_E(uint8_t newVal);
+    void save_S(uint8_t newVal);
+    void save_W(uint8_t newVal);
+    void save_T(uint8_t newVal);
+    void save_B(uint8_t newVal);
 
-    void save_NMod(int newVal);
-    void save_EMod(int newVal);
-    void save_SMod(int newVal);
-    void save_WMod(int newVal);
-    void save_TMod(int newVal);
-    void save_BMod(int newVal);
+    void save_NMod(uint8_t newVal);
+    void save_EMod(uint8_t newVal);
+    void save_SMod(uint8_t newVal);
+    void save_WMod(uint8_t newVal);
+    void save_TMod(uint8_t newVal);
+    void save_BMod(uint8_t newVal);
 };
 
 #endif // BLOCKDEFINITION_H

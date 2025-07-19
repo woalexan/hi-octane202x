@@ -211,12 +211,17 @@ void TextureMode::TextureModificationChanged(irr::u32 newSelectedGuiId) {
                        mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
                        mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
                        pntr->texModValue);
+        } else if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+            mParentSession->mLevelBlocks->SetCubeFaceTexture(mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected,
+                                                             mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockNrStartingFromBase,
+                                                             mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockNrSkippingMissingBlocks,
+                                                             mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockFaceDirection, false, 0, true, pntr->texModValue);
         }
     }
 }
 
 bool TextureMode::IsWindowOpen() {
-    if (mGuiTextureMode.Window != nullptr)
+    if ((mGuiTextureMode.Window != nullptr) && !mWindowHidden)
         return true;
 
     return false;
@@ -227,6 +232,29 @@ irr::core::rect<irr::s32> TextureMode::GetWindowPosition() {
     return mGuiTextureMode.Window->getAbsolutePosition();
    } else
     return (irr::core::rect<irr::s32>(0, 0, 0, 0));
+}
+
+void TextureMode::HideWindow() {
+   mGuiTextureMode.Window->setEnabled(false);
+   mGuiTextureMode.Window->setVisible(false);
+
+   mWindowHidden = true;
+}
+
+void TextureMode::ShowWindow() {
+    //does window already exist?
+    //if not create it
+    if (mGuiTextureMode.Window == nullptr) {
+        CreateWindow();
+    } else {
+        if (mWindowHidden) {
+            //unhide the existing window
+            mGuiTextureMode.Window->setEnabled(true);
+            mGuiTextureMode.Window->setVisible(true);
+        }
+    }
+
+    mWindowHidden = false;
 }
 
 void TextureMode::CreateWindow() {
@@ -322,7 +350,40 @@ void TextureMode::CreateWindow() {
                                                                                                         mCurrentSelectedTextureImageLocation.X + 70,
                                                                                                         mCurrentSelectedTextureImageLocation.Y + 80),false, false, mGuiTextureMode.Window, -1, false );
 
-    //gui.testButton = mParentEditor->mGuienv->addButton(core::recti(50, 50, 100, 80), gui.Window, GUI_ID_TESTBUTTON, L"Test");
+    mGuiTextureMode.LabelSelectCubeFaces = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Select Cubefaces:",
+                                      rect<s32>( 105 , 35, 180, 45 ),false, false, mGuiTextureMode.Window, -1, false );
+
+    irr::s32 mx = 0;
+    irr::s32 my = 22;
+    mGuiTextureMode.SelNButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 30, mx + 145, my + 45), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTN, L"N");
+    mGuiTextureMode.SelWButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 105, my + 50, mx + 125, my + 65), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTW, L"W");
+    mGuiTextureMode.SelEButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 50, mx + 165, my + 65), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTE, L"E");
+    mGuiTextureMode.SelSButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 70, mx + 145, my + 85), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTS, L"S");
+    mGuiTextureMode.SelTButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 30, mx + 165, my + 45), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTT, L"T");
+    mGuiTextureMode.SelBButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 70, mx + 165, my + 85), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTB, L"B");
+}
+
+void TextureMode::WindowControlBlockOptions(bool newState) {
+    mGuiTextureMode.LabelSelectCubeFaces->setVisible(newState);
+    mGuiTextureMode.LabelSelectCubeFaces->setEnabled(newState);
+
+    mGuiTextureMode.SelNButton->setVisible(newState);
+    mGuiTextureMode.SelNButton->setEnabled(newState);
+
+    mGuiTextureMode.SelEButton->setVisible(newState);
+    mGuiTextureMode.SelEButton->setEnabled(newState);
+
+    mGuiTextureMode.SelSButton->setVisible(newState);
+    mGuiTextureMode.SelSButton->setEnabled(newState);
+
+    mGuiTextureMode.SelWButton->setVisible(newState);
+    mGuiTextureMode.SelWButton->setEnabled(newState);
+
+    mGuiTextureMode.SelTButton->setVisible(newState);
+    mGuiTextureMode.SelTButton->setEnabled(newState);
+
+    mGuiTextureMode.SelBButton->setVisible(newState);
+    mGuiTextureMode.SelBButton->setEnabled(newState);
 }
 
 void TextureMode::SelectTextureModification(int8_t newSelectedTexModification) {
@@ -502,17 +563,72 @@ GUITextureModificationDataStruct* TextureMode::FindTextureModificationByGuiId(ir
     return result;
 }
 
+void TextureMode::SelectOtherBlockFace(irr::u8 newFaceSelection) {
+    //only continue if actually a block is currently selected
+    if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_BLOCK)
+        return;
+
+    mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockFaceDirection = newFaceSelection;
+
+    //update window information
+    NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+}
+
+void TextureMode::OnButtonClicked(irr::u32 buttonGuiId) {
+    switch (buttonGuiId) {
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTN: {
+             SelectOtherBlockFace(DEF_SELBLOCK_FACENORTH);
+             break;
+        }
+
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTE: {
+             SelectOtherBlockFace(DEF_SELBLOCK_FACEEAST);
+             break;
+        }
+
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTS: {
+             SelectOtherBlockFace(DEF_SELBLOCK_FACESOUTH);
+             break;
+        }
+
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTW: {
+             SelectOtherBlockFace(DEF_SELBLOCK_FACEWEST);
+             break;
+        }
+
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTT: {
+             SelectOtherBlockFace(DEF_SELBLOCK_FACETOP);
+             break;
+        }
+
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTB: {
+            SelectOtherBlockFace(DEF_SELBLOCK_FACEBOTTOM);
+            break;
+        }
+    }
+}
+
 void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
     if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         //is our dialog already open?
         //if not open it
-        if (mGuiTextureMode.Window == nullptr)
-            CreateWindow();
+        ShowWindow();
+
+        //for a selected cell hide the window block
+        //options (gui elements)
+        WindowControlBlockOptions(false);
 
         //a cell was selected
         //which texture Id does this cell have
         MapEntry* entry;
         entry = this->mParentSession->mLevelTerrain->levelRes->pMap[newItemSelected.mCellCoordSelected.X][newItemSelected.mCellCoordSelected.Y];
+
+        wchar_t* selInfo = new wchar_t[200];
+
+        swprintf(selInfo, 190, L"Selected Cell X = %d, Y = %d", newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y);
+        mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+
+        delete[] selInfo;
 
         if (entry != nullptr) {
             int16_t texId = entry->m_TextureId;
@@ -533,13 +649,23 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
     } else if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
         //is our dialog already open?
         //if not open it
-        if (mGuiTextureMode.Window == nullptr)
-            CreateWindow();
+        ShowWindow();
+
+        //for a selected block unhide the window block
+        //options (gui elements)
+        WindowControlBlockOptions(true);
 
         //a block face was selected
         //which texture Id does this face have
         int16_t currTextureId;
         uint8_t currTextureMod;
+
+        wchar_t* selInfo = new wchar_t[200];
+
+        swprintf(selInfo, 190, L"Selected Column at Cell X = %d, Y = %d", newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y);
+        mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+
+        delete[] selInfo;
 
         if (newItemSelected.mColumnSelected != nullptr) {
             if (mParentSession->mLevelBlocks->GetTextureInfoSelectedBlock(newItemSelected.mColumnSelected,
@@ -646,6 +772,6 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
        std::cout << "changed block TexID to " << newTextureId << std::endl;
        mParentSession->mLevelBlocks->SetCubeFaceTexture(
                    whichItem.mColumnSelected, whichItem.mSelBlockNrStartingFromBase, whichItem.mSelBlockNrSkippingMissingBlocks,
-                   whichItem.mSelBlockFaceDirection, newTextureId);
+                   whichItem.mSelBlockFaceDirection, true, newTextureId, false, 0);
    }
 }

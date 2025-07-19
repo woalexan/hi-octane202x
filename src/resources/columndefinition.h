@@ -19,20 +19,25 @@
 #include <vector>
 #include <cstdint>
 
+#define DEF_COLUMNDEF_STATE_DEFAULT 0
+#define DEF_COLUMNDEF_STATE_NEWLYADDED_KEEP 1
+#define DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE 2
+
 class ColumnDefinition : public TableItem {
 public:
     ColumnDefinition(int id, int offset, std::vector<uint8_t> bytes);
     ~ColumnDefinition();
 
     //Alternative constructor used for the level editor
-    ColumnDefinition(int id, int offset, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
-                     int16_t newF, int16_t newG, int16_t newH);
+    ColumnDefinition(int id, int offset, int newFloorTextureID, int16_t mUnknown1, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
+                     int16_t newF, int16_t newG, int16_t newH, int16_t newOccurence);
 
     uint8_t get_Shape();
     int16_t get_FloorTextureID();
     int16_t get_Unknown1();
-    int16_t get_Unknown2();
+    int16_t get_Occurence();
     int16_t get_Unknown3();
+    uint8_t get_Unknown4();
     int16_t get_A();
     int16_t get_B();
     int16_t get_C();
@@ -48,8 +53,9 @@ public:
     void set_Shape(uint8_t newVal);
     void set_FloorTextureID(int16_t newVal);
     void set_Unknown1(int16_t newVal);
-    void set_Unknown2(int16_t newVal);
+    void set_Occurence(int16_t newVal);
     void set_Unknown3(int16_t newVal);
+    void set_Unknown4(uint8_t newVal);
     void set_A(int16_t newVal);
     void set_B(int16_t newVal);
     void set_C(int16_t newVal);
@@ -67,6 +73,14 @@ public:
     //in the column
     std::vector<int> mInCollisionMesh;
 
+    //only used for the level editor
+    //while column definition changes
+    int m_initialID;
+
+    //this columndefinition state variable is
+    //only used for the leveleditor
+    uint8_t mState = DEF_COLUMNDEF_STATE_DEFAULT;
+
 private:
     int16_t mA;
     int16_t mB;
@@ -78,7 +92,7 @@ private:
     int16_t mH;
 
     int16_t mUnknown1;
-    int16_t mUnknown2;
+    int16_t mOccurence;
     int16_t mUnknown3;
     uint8_t mUnknown4;
 
@@ -88,7 +102,7 @@ private:
     uint8_t decode_Shape();
     int16_t decode_FloorTextureID();
     int16_t decode_Unknown1();
-    int16_t decode_Unknown2();
+    int16_t decode_Occurence();
     int16_t decode_Unknown3();
     int16_t decode_A();
     int16_t decode_B();

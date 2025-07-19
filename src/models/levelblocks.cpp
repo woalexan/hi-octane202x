@@ -97,6 +97,10 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
 
    segmentSize = DEF_SEGMENTSIZE;
 
+   //update block definition usage count inside
+   //blockdefinition objects
+   UpdateBlockDefinitionUsageCnt();
+
    //generate Mesh with blocks
    //creates 2 meshes inside, one with collision detection
    //and one without (contains roof blocks (for example of tunnels) where player craft easily could get stuck
@@ -362,6 +366,77 @@ void LevelBlocks::CreateBlocksMesh() {
     blockMeshWithoutCollision->recalculateBoundingBox();
 }
 
+std::vector<vector2d<irr::f32>> LevelBlocks::ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod) {
+   std::vector<vector2d<irr::f32>> uvs;
+
+   switch (mod) {
+        case 1: //RotateNoneFlipX
+                uvs.push_back(uvA);    //is correct, did check
+                uvs.push_back(uvB);
+                uvs.push_back(uvC);
+                uvs.push_back(uvD);
+                break;
+        case 2: //RotateNoneFlipY
+                uvs.push_back(uvD);    //is correct, did check
+                uvs.push_back(uvC);
+                uvs.push_back(uvB);
+                uvs.push_back(uvA);
+                break;
+        case 3: //Rotate180FlipNone   //is correct, did check
+                uvs.push_back(uvB);
+                uvs.push_back(uvA);
+                uvs.push_back(uvD);
+                uvs.push_back(uvC);
+                break;
+        case 4: //Rotate270FlipY
+                uvs.push_back(uvD);    //is correct, did check
+                uvs.push_back(uvC);
+                uvs.push_back(uvB);
+                uvs.push_back(uvA);
+                break;
+        case 5: //Rotate90FlipNone    //is not used in the first 6 levels, therefore I can not check if this
+                uvs.push_back(uvD);    //order is correct :(
+                uvs.push_back(uvA);
+                uvs.push_back(uvB);
+                uvs.push_back(uvC);
+                break;
+        case 6: //Rotate270FlipNone   //is not used in the first 6 levels, therefore I can not check if this
+                uvs.push_back(uvB);    //order is correct :(
+                uvs.push_back(uvC);
+                uvs.push_back(uvD);
+                uvs.push_back(uvA);
+                break;
+        case 7: //Rotate90FlipY      //is not used in the first 6 levels, therefore I can not check if this
+                uvs.push_back(uvC);   //order is correct :(
+                uvs.push_back(uvB);
+                uvs.push_back(uvA);
+                uvs.push_back(uvD);
+                break;
+        case 0:
+        default:
+                uvs.push_back(uvA); //is correct, did check
+                uvs.push_back(uvB);
+                uvs.push_back(uvC);
+                uvs.push_back(uvD);
+             break;
+   }
+   return uvs;
+}
+
+std::vector<vector2d<irr::f32>> LevelBlocks::MakeUVs(int texMod) {
+    vector2d<irr::f32> uvA;
+    vector2d<irr::f32> uvB;
+    vector2d<irr::f32> uvC;
+    vector2d<irr::f32> uvD;
+
+    uvA.X = 1.0f;   uvA.Y = 0.0f;
+    uvB.X = 0.0f;   uvB.Y = 0.0f;
+    uvC.X = 0.0f;   uvC.Y = 1.0f;
+    uvD.X = 1.0f;   uvD.Y = 1.0f;
+
+    return ApplyTexMod(uvA, uvB, uvC, uvD, texMod);
+}
+
 void LevelBlocks::ChangeMeshCubeFaceHeight(BlockFaceInfoStruct* whichFace, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y) {
     if (whichFace == nullptr)
         return;
@@ -399,14 +474,18 @@ void LevelBlocks::ChangeMeshCubeHeight(BlockInfoStruct* whichCube, irr::f32 newV
     if (whichCube == nullptr)
         return;
 
-    ChangeMeshCubeFaceHeight(whichCube->fB, newV1y, newV2y, newV3y, newV4y);
-    ChangeMeshCubeFaceHeight(whichCube->fT, newV4y + segmentSize, newV3y + segmentSize, newV2y + segmentSize, newV1y + segmentSize);
+    //change the cube face vertice heights one by one
+    ChangeMeshCubeFaceHeight(whichCube->fB, newV2y, newV1y, newV4y, newV3y);
+    ChangeMeshCubeFaceHeight(whichCube->fT, newV3y + segmentSize, newV4y + segmentSize, newV1y + segmentSize, newV2y + segmentSize);
+    ChangeMeshCubeFaceHeight(whichCube->fN, newV4y + segmentSize, newV3y + segmentSize, newV3y , newV4y);
+    ChangeMeshCubeFaceHeight(whichCube->fE, newV1y + segmentSize, newV4y + segmentSize, newV4y, newV1y);
+    ChangeMeshCubeFaceHeight(whichCube->fS, newV2y + segmentSize, newV1y + segmentSize, newV1y, newV2y);
+    ChangeMeshCubeFaceHeight(whichCube->fW, newV3y + segmentSize, newV2y + segmentSize, newV2y, newV3y);
+}
 
-    //ChangeMeshCubeFaceHeight(whichCube->fN, newV3y + segmentSize, newV3y , newV4y , newV3y + segmentSize );
-
-    //ChangeMeshCubeFaceHeight(whichCube->fT, newV1y + segmentSize, newV2y + segmentSize, newV3y + segmentSize, newV4y + segmentSize);
-
-    //ChangeMeshCubeFaceHeight(whichCube->fE, newV1y + segmentSize, newV2y, newV3y, newV4y + segmentSize);
+void LevelBlocks::UpdateBlockMesh() {
+    blockMeshForCollision->setDirty(EBT_VERTEX);
+    blockMeshWithoutCollision->setDirty(EBT_VERTEX);
 }
 
 void LevelBlocks::TestHeightChange(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks) {
@@ -420,10 +499,9 @@ void LevelBlocks::TestHeightChange(Column* selColumnPntr, int mSelBlockNrSkippin
     irr::f32 cV3 = blockInfo->fB->currPositionVert3.Y;
     irr::f32 cV4 = blockInfo->fB->currPositionVert4.Y;
 
-    ChangeMeshCubeHeight(blockInfo, cV1 - 0.1f , cV2 , cV3  , cV4 );
+    ChangeMeshCubeHeight(blockInfo, cV1 , cV2 , cV3   , cV4 );
 
-    blockMeshForCollision->setDirty(EBT_VERTEX);
-    blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+    UpdateBlockMesh();
 }
 
 //returns nullptr if specified block does not exit or is invalid
@@ -588,6 +666,46 @@ void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFr
     }
 }
 
+void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* color) {
+    if (selColumnPntr == nullptr)
+        return;
+
+    irr::core::vector3df v1 = selColumnPntr->mBaseVert1Coord;
+    irr::core::vector3df v2 = selColumnPntr->mBaseVert2Coord;
+    irr::core::vector3df v3 = selColumnPntr->mBaseVert3Coord;
+    irr::core::vector3df v4 = selColumnPntr->mBaseVert4Coord;
+
+    irr::core::vector3df v1h = v1 + irr::core::vector3df(0.0f, segmentSize, 0.0f);
+    irr::core::vector3df v2h = v2 + irr::core::vector3df(0.0f, segmentSize, 0.0f);
+    irr::core::vector3df v3h = v3 + irr::core::vector3df(0.0f, segmentSize, 0.0f);
+    irr::core::vector3df v4h = v4 + irr::core::vector3df(0.0f, segmentSize, 0.0f);
+
+    //draw the grid over all 8 possible cubes, it does not matter
+    //if the exit (are assigned to a block definition) right now
+    for (irr::u8 idx = 0; idx < 8; idx++) {
+        //draw a 3D rectangle for the base
+        this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
+
+        //and 4 lines at the cubes edges
+        this->mInfra->mDrawDebug->Draw3DLine(v1, v1h, color);
+        this->mInfra->mDrawDebug->Draw3DLine(v2, v2h, color);
+        this->mInfra->mDrawDebug->Draw3DLine(v3, v3h, color);
+        this->mInfra->mDrawDebug->Draw3DLine(v4, v4h, color);
+
+        v1.Y += segmentSize;
+        v2.Y += segmentSize;
+        v3.Y += segmentSize;
+        v4.Y += segmentSize;
+        v1h.Y += segmentSize;
+        v2h.Y += segmentSize;
+        v3h.Y += segmentSize;
+        v4h.Y += segmentSize;
+    }
+
+    //draw a last 3D rectangle for the top
+    this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
+}
+
 //Derives the current texturing information about a selected block face
 //returns true if the information was found, false otherwise
 bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
@@ -632,12 +750,12 @@ bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlock
 
     //mark also a possible selected face
     switch (selFace) {
-         case DEF_SELBLOCK_FACENORTH:  { outCurrTextureId = blockDef->get_N(); outCurrTextureModification = blockDef->NMod(); break;}
-         case DEF_SELBLOCK_FACEEAST:   { outCurrTextureId = blockDef->get_E(); outCurrTextureModification = blockDef->EMod(); break;}
-         case DEF_SELBLOCK_FACESOUTH:  { outCurrTextureId = blockDef->get_S(); outCurrTextureModification = blockDef->SMod(); break;}
-         case DEF_SELBLOCK_FACEWEST:   { outCurrTextureId = blockDef->get_W(); outCurrTextureModification = blockDef->WMod(); break;}
-         case DEF_SELBLOCK_FACEBOTTOM: { outCurrTextureId = blockDef->get_B(); outCurrTextureModification = blockDef->BMod(); break;}
-         case DEF_SELBLOCK_FACETOP:    { outCurrTextureId = blockDef->get_T(); outCurrTextureModification = blockDef->TMod(); break;}
+         case DEF_SELBLOCK_FACENORTH:  { outCurrTextureId = blockDef->get_N(); outCurrTextureModification = blockDef->get_NMod(); break;}
+         case DEF_SELBLOCK_FACEEAST:   { outCurrTextureId = blockDef->get_E(); outCurrTextureModification = blockDef->get_EMod(); break;}
+         case DEF_SELBLOCK_FACESOUTH:  { outCurrTextureId = blockDef->get_S(); outCurrTextureModification = blockDef->get_SMod(); break;}
+         case DEF_SELBLOCK_FACEWEST:   { outCurrTextureId = blockDef->get_W(); outCurrTextureModification = blockDef->get_WMod(); break;}
+         case DEF_SELBLOCK_FACEBOTTOM: { outCurrTextureId = blockDef->get_B(); outCurrTextureModification = blockDef->get_BMod(); break;}
+         case DEF_SELBLOCK_FACETOP:    { outCurrTextureId = blockDef->get_T(); outCurrTextureModification = blockDef->get_TMod(); break;}
          default:  { return false; break;}
     }
 
@@ -645,7 +763,7 @@ bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlock
 }
 
 void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
-                                     irr::u8 selFace, int16_t newTextureId) {
+                                     irr::u8 selFace, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureMod) {
     //This higher level function has to do 2 independent things:
     // 1, modify the cube face configuration in the level/map file itself (so that next time we
     //    load the map again, everything is restored again in the same modified way)
@@ -657,6 +775,7 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
         return;
 
     BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    ColumnDefinition* columDefStart = selColumnPntr->Definition;
 
     if (blockInfo == nullptr)
         return;
@@ -702,6 +821,8 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
         }
     }
 
+    //need to subtract one, to convert Block Id to
+    //"vector index"
     blockValue--;
 
     if ((blockValue < 0) || (blockValue >= (int16_t)(levelRes->BlockDefinitions.size())))
@@ -716,64 +837,201 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     uint8_t currT = blockDef->get_T();
     uint8_t currB = blockDef->get_B();
 
-    uint8_t currNMod = blockDef->NMod();
-    uint8_t currEMod = blockDef->EMod();
-    uint8_t currSMod = blockDef->SMod();
-    uint8_t currWMod = blockDef->WMod();
-    uint8_t currTMod = blockDef->TMod();
-    uint8_t currBMod = blockDef->BMod();
+    uint8_t currNMod = blockDef->get_NMod();
+    uint8_t currEMod = blockDef->get_EMod();
+    uint8_t currSMod = blockDef->get_SMod();
+    uint8_t currWMod = blockDef->get_WMod();
+    uint8_t currTMod = blockDef->get_TMod();
+    uint8_t currBMod = blockDef->get_BMod();
+
+    int16_t currUnknown1 = blockDef->get_Unknown1();
+    int16_t currUnknown2 = blockDef->get_Unknown2();
+
+    //mark block definition which was used until now at this location
+    //as a block definition that right now got unassigned, so that
+    //we know the occurence of this block definition needs to be decreased by one
+    blockDef->mState = DEF_BLOCKDEF_STATE_NEWLYUNASSIGNEDONE;
+
+    uint8_t currTexMod;
 
     //Replace the selected cube face with the new textureId
     //to create the new needed block definition, so that we can search
     //and if necessary create it in the current level file
     switch (selFace) {
-         case DEF_SELBLOCK_FACENORTH:  { currN = newTextureId; break;}
-         case DEF_SELBLOCK_FACEEAST:   { currE = newTextureId; break;}
-         case DEF_SELBLOCK_FACESOUTH:  { currS = newTextureId; break;}
-         case DEF_SELBLOCK_FACEWEST:   { currW = newTextureId; break;}
-         case DEF_SELBLOCK_FACEBOTTOM: { currB = newTextureId; break;}
-         case DEF_SELBLOCK_FACETOP:    { currT = newTextureId; break;}
+         case DEF_SELBLOCK_FACENORTH:  { if (updateTexId) { currN = newTextureId; } currTexMod = currNMod; if (updateTexMod) { currNMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACEEAST:   { if (updateTexId) { currE = newTextureId; } currTexMod = currEMod; if (updateTexMod) { currEMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACESOUTH:  { if (updateTexId) { currS = newTextureId; } currTexMod = currSMod; if (updateTexMod) { currSMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACEWEST:   { if (updateTexId) { currW = newTextureId; } currTexMod = currWMod; if (updateTexMod) { currWMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACEBOTTOM: { if (updateTexId) { currB = newTextureId; } currTexMod = currBMod; if (updateTexMod) { currBMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACETOP:    { if (updateTexId) { currT = newTextureId; } currTexMod = currTMod; if (updateTexMod) { currTMod = newTextureMod; } break;}
          default:  { return; break;}
     }
 
     irr::u32 outIndex;
+    irr::u32 outColumnIndex;
 
-    //levelRes->DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockDefBefore.csv"));
-    //levelRes->DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefBefore.csv"));
+    DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockDefBefore.csv"));
+    DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefBefore.csv"));
+    DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsBefore.csv"));
+
+    bool newlyAdded;
 
     //"Request" the new block definition
-    if (!this->MyTerrain->levelRes->RequestBlockDefinition(currN, currE, currS, currW, currT, currB, currNMod, currEMod, currSMod, currWMod, currTMod, currBMod, outIndex)) {
+    if (!this->MyTerrain->levelRes->RequestBlockDefinition(currN, currE, currS, currW, currT, currB, currNMod, currEMod, currSMod, currWMod, currTMod, currBMod,
+                                                           currUnknown1, currUnknown2, outIndex, newlyAdded)) {
         //unexpected error creating block definition, possibly we reached the maximum possible number
         //of 1024 block definitions in the levelfile?
         return;
     }
 
-     //levelRes->DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter1.csv"));
+    DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter1.csv"));
 
-    //The new or found block definition index is returned in outIndex
-    //modify the block definition in the selected column with the new one
-    switch (nrBlockFromBase) {
-        case 0: { selColumnPntr->Definition->set_A(outIndex); break; }
-        case 1: { selColumnPntr->Definition->set_B(outIndex); break; }
-        case 2: { selColumnPntr->Definition->set_C(outIndex); break; }
-        case 3: { selColumnPntr->Definition->set_D(outIndex); break; }
-        case 4: { selColumnPntr->Definition->set_E(outIndex); break; }
-        case 5: { selColumnPntr->Definition->set_F(outIndex); break; }
-        case 6: { selColumnPntr->Definition->set_G(outIndex); break; }
-        case 7: { selColumnPntr->Definition->set_H(outIndex); break; }
-        default: {
-            return;
-            break;
-        }
-    }
+    BlockDefinition* newCorrBlockDef = this->levelRes->BlockDefinitions.at(outIndex);
 
     //Make sure (possibly now) unused Blockdefinitions are deleted
     //Because I am not sure if the game can handle them, so make sure we
     //do not have them
     RemoveUnusedBlockDefinitions();
 
-    //levelRes->DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
-    //levelRes->DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
+    //after the possible reorganization of the block definition
+    //vector, search the (new) correct block definition again
+    //so that the index variable is corrected
+    std::vector<BlockDefinition*>::iterator itBlockDef;
+
+    outIndex = 0;
+    bool found = false;
+
+    for (itBlockDef = this->levelRes->BlockDefinitions.begin(); itBlockDef != this->levelRes->BlockDefinitions.end(); ++itBlockDef) {
+        if ((*itBlockDef) == newCorrBlockDef) {
+            found = true;
+            break;
+        }
+
+         outIndex++;
+    }
+
+    if (!found) {
+        return;
+    }
+
+    //set all block definition states to default state
+    //we do not need this flag anymore
+    for (itBlockDef = this->levelRes->BlockDefinitions.begin(); itBlockDef != this->levelRes->BlockDefinitions.end(); ++itBlockDef) {
+       (*itBlockDef)->mState = DEF_BLOCKDEF_STATE_DEFAULT;
+    }
+
+    //The new or found block definition index is returned in outIndex
+    //The new column we get, what block Id entries would it have?
+    int16_t newColBlockIdA = selColumnPntr->Definition->get_A();
+    int16_t newColBlockIdB = selColumnPntr->Definition->get_B();
+    int16_t newColBlockIdC = selColumnPntr->Definition->get_C();
+    int16_t newColBlockIdD = selColumnPntr->Definition->get_D();
+    int16_t newColBlockIdE = selColumnPntr->Definition->get_E();
+    int16_t newColBlockIdF = selColumnPntr->Definition->get_F();
+    int16_t newColBlockIdG = selColumnPntr->Definition->get_G();
+    int16_t newColBlockIdH = selColumnPntr->Definition->get_H();
+
+    int16_t newFloorTex = selColumnPntr->Definition->get_FloorTextureID();
+    int16_t newUnknown1 = selColumnPntr->Definition->get_Unknown1();
+
+    //modify the block definition Id with the new one
+    switch (nrBlockFromBase) {
+        case 0: { newColBlockIdA = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 1: { newColBlockIdB = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 2: { newColBlockIdC = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 3: { newColBlockIdD = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 4: { newColBlockIdE = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 5: { newColBlockIdF = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 6: { newColBlockIdG = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        case 7: { newColBlockIdH = this->levelRes->BlockDefinitions.at(outIndex)->get_ID(); break; }
+        default: {
+            return;
+            break;
+        }
+    }
+
+    bool newlyCreatedColumn;
+
+    //See if there is already a Column definition / type that fits with this new one
+    //If not, create a new column definition, and use it
+    //"Request" the new column definition
+    if (!this->MyTerrain->levelRes->RequestColumnDefinition(newFloorTex, newUnknown1, newColBlockIdA, newColBlockIdB,
+                      newColBlockIdC, newColBlockIdD, newColBlockIdE, newColBlockIdF,
+                      newColBlockIdG, newColBlockIdH, outColumnIndex, newlyCreatedColumn)) {
+        //unexpected error creating column definition, possibly we reached the maximum possible number
+        //of 1024 column definitions in the levelfile?
+        return;
+    }
+
+    ColumnDefinition* newCorrColumnDef = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    if (newlyCreatedColumn) {
+            //mark column definition which was used until now at this location
+            //as a column definition that right now got unassigned, so that
+            //we know the occurence of this column definition needs to be decreased by one
+            columDefStart->mState = DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE;
+    }
+
+    //Make sure (possibly now) unused Columndefinitions are deleted
+    //Because I am not sure if the game can handle them, so make sure we
+    //do not have them
+    RemoveUnusedColumnDefinitions();
+    //RemoveUnusedColumnDefinitions(newlyCreatedColumn, newCorrColumnDef->get_ID(), true, columDefStart->get_ID());
+
+    //after the possible reorganization of the column definition
+    //vector, search the (new) correct column definition again
+    //so that the index variable is corrected
+    std::vector<ColumnDefinition*>::iterator itColumnDef;
+
+    outColumnIndex = 0;
+    found = false;
+
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+        if ((*itColumnDef) == newCorrColumnDef) {
+            found = true;
+            break;
+        }
+
+        outColumnIndex++;
+    }
+
+    if (!found) {
+        return;
+    }
+
+    //reconfigure the selected column to use the new column definition Id
+    selColumnPntr->Definition = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    //set all column definition states to default state
+    //we do not need this flag anymore
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+       (*itColumnDef)->mState = DEF_COLUMNDEF_STATE_DEFAULT;
+    }
+
+    irr::core::vector2di columnOutputCoord;
+
+    bool columnFound = FindMapCoordinateForColumn(selColumnPntr, columnOutputCoord);
+
+    if (!columnFound)
+        return;
+
+    MapEntry* entry = this->levelRes->pMap[columnOutputCoord.X][columnOutputCoord.Y];
+
+    if (entry == nullptr)
+        return;
+
+    entry->set_Column(this->levelRes->ColumnDefinitions.at(outColumnIndex));
+    entry->WriteChanges();
+
+    //we need to update specific additional column definitions values
+    UpdateColumDefinitions();
+
+    //we need also to update Blockdefinition usage count
+    UpdateBlockDefinitionUsageCnt();
+
+    DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
+    DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
+    DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
 
     /******************************************************************
      * Part 2: According to new texture modify Irrlicht column Mesh   *
@@ -783,28 +1041,95 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
         //this block has collision detection, so we need to delete its mesh
         //from the mesh with collision detection
-        mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
+        if (updateTexId) {
+            mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
 
-        //setup new textureId the user has selected
-        selFacePntr->textureId = newTextureId;
+            //setup new textureId the user has selected
+            selFacePntr->textureId = newTextureId;
 
-        //add back cube face mesh with the new textureId
-        //so that the user sees the updated texture
-        mIrrMeshBuf->AddMeshBufferCubeFace(mBlockwCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
+            //add back cube face mesh with the new textureId
+            //so that the user sees the updated texture
+            mIrrMeshBuf->AddMeshBufferCubeFace(mBlockwCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
 
+            blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
+            blockMeshForCollision->recalculateBoundingBox();
+        }
+    } else {
+        //no collision detection, use other buffer without collision detection
+        if (updateTexId) {
+            mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
+
+            //setup new textureId the user has selected
+            selFacePntr->textureId = newTextureId;
+
+            //add back cube face mesh with the new textureId
+            //so that the user sees the updated texture
+            mIrrMeshBuf->AddMeshBufferCubeFace(mBlockwoCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
+
+            blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
+            blockMeshWithoutCollision->recalculateBoundingBox();
+        }
+    }
+
+    //if texture modification of cube face has also changed
+    //update it in Irrlicht Mesh as well
+    if (updateTexMod && (currTexMod != newTextureMod)) {
+        UpdateCubeFaceTextureModification(selColumnPntr, mSelBlockNrSkippingMissingBlocks, selFacePntr, newTextureMod);
+    }
+}
+
+void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks,
+                                                    BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier) {
+    //This function only needs to modify the current column/cube Mesh used by Irrlicht to show the user the
+    //    current state of the new cube texture in the level. The modification of the level map
+    //    file data is already handeled in the calling function
+
+    //check for valid value of new texture modifier
+    if ((newTextureModifier < 0) || (newTextureModifier > 7))
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it;
+    irr::scene::SMeshBuffer* meshBufPntr;
+
+    //create the new UV information
+    std::vector<vector2d<irr::f32>> newUVS = MakeUVs(newTextureModifier);
+
+    irr::u32 vert1Idx;
+
+    void* pntrVert;
+    S3DVertex *pntrVertices;
+
+    std::vector<irr::u32>::iterator itVertId1 = whichFace->myMeshBufVertexId.begin();
+
+    irr::u32 bufIdx = 0;
+
+    //iterate through all meshbuffers where this cube face is included, and
+    //see if we find any of the indices of the vertices of this cube face included
+    for (it = whichFace->myMeshBuffers.begin(); it != whichFace->myMeshBuffers.end(); ++it) {
+        //what indices do my vertices have in this meshbuffer?
+        vert1Idx = (*itVertId1);
+
+        meshBufPntr = (*it);
+        meshBufPntr->grab();
+
+        pntrVert = meshBufPntr->getVertices();
+        pntrVertices = (S3DVertex*)pntrVert;
+        pntrVertices[whichFace->myMeshBufVertexId[bufIdx]].TCoords = newUVS.at(0);
+        pntrVertices[whichFace->myMeshBufVertexId[bufIdx] + 1].TCoords = newUVS.at(1);
+        pntrVertices[whichFace->myMeshBufVertexId[bufIdx] + 2].TCoords = newUVS.at(2);
+        pntrVertices[whichFace->myMeshBufVertexId[bufIdx] + 3].TCoords = newUVS.at(3);
+
+        bufIdx++;
+
+        meshBufPntr->drop();
+
+        meshBufPntr->setDirty(EBT_VERTEX_AND_INDEX);
+    }
+
+    if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
         blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
         blockMeshForCollision->recalculateBoundingBox();
     } else {
-        //no collision detection, use other buffer without collision detection
-        mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
-
-        //setup new textureId the user has selected
-        selFacePntr->textureId = newTextureId;
-
-        //add back cube face mesh with the new textureId
-        //so that the user sees the updated texture
-        mIrrMeshBuf->AddMeshBufferCubeFace(mBlockwoCollMeshBufferVec, selFacePntr, *mBlocksMeshStats);
-
         blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
         blockMeshWithoutCollision->recalculateBoundingBox();
     }
@@ -847,6 +1172,19 @@ void LevelBlocks::RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int
     }
 }
 
+void LevelBlocks::UpdateBlockDefinitionUsageCnt() {
+    std::vector<irr::u32> usagecnt = GetBlockDefinitionUsageCount();
+
+    //how many different Blockdefinitions do we have currently?
+    size_t nrBlockDef = this->levelRes->BlockDefinitions.size();
+
+    for (size_t idx = 0; idx < nrBlockDef; idx++) {
+        //set current block definition usage count inside the block definition
+        //object
+        this->levelRes->BlockDefinitions.at(idx)->usageCnt = usagecnt[idx];
+    }
+}
+
 //Returns a vector which contains an element for each currently existing
 //Block definition, and how often it is used on the current map
 std::vector<irr::u32> LevelBlocks::GetBlockDefinitionUsageCount() {
@@ -868,64 +1206,64 @@ std::vector<irr::u32> LevelBlocks::GetBlockDefinitionUsageCount() {
         val = (*itCol)->get_A();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_B();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_C();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_D();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_E();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_F();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_G();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
 
         val = (*itCol)->get_H();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int16_t)(nrBlockDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
     }
@@ -933,281 +1271,258 @@ std::vector<irr::u32> LevelBlocks::GetBlockDefinitionUsageCount() {
     return (cntResult);
 }
 
-void LevelBlocks::ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec) {
+void LevelBlocks::ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions() {
     //loop through all currently existing columndefinitions
     std::vector<ColumnDefinition*>::iterator itCol;
 
-    size_t entriesToChange = changeFromIdVec.size();
+    int16_t newA;
+    int16_t newB;
+    int16_t newC;
+    int16_t newD;
+    int16_t newE;
+    int16_t newF;
+    int16_t newG;
+    int16_t newH;
 
-    //how many different Blockdefinitions do we have currently?
-    irr::u32 nrBlockDef = this->levelRes->BlockDefinitions.size();
-
-    int16_t val;
-
-    bool Amod;
-    bool Bmod;
-    bool Cmod;
-    bool Dmod;
-    bool Emod;
-    bool Fmod;
-    bool Gmod;
-    bool Hmod;
-
-    int oldId;
-    int newId;
+    std::vector<BlockDefinition*>::iterator itBlock;
 
     for (itCol = this->levelRes->ColumnDefinitions.begin(); itCol != this->levelRes->ColumnDefinitions.end(); ++itCol) {
-        Amod = false;
-        Bmod = false;
-        Cmod = false;
-        Dmod = false;
-        Emod = false;
-        Fmod = false;
-        Gmod = false;
-        Hmod = false;
 
-      for (size_t idxEntry = 1; idxEntry < entriesToChange; idxEntry++) {
+        newA = (*itCol)->get_A();
+        newB = (*itCol)->get_B();
+        newC = (*itCol)->get_C();
+        newD = (*itCol)->get_D();
+        newE = (*itCol)->get_E();
+        newF = (*itCol)->get_F();
+        newG = (*itCol)->get_G();
+        newH = (*itCol)->get_H();
 
-        oldId = (int)(changeFromIdVec.at(idxEntry));
-        newId = (int)(changeToIdVec.at(idxEntry));
+        for (itBlock = this->levelRes->BlockDefinitions.begin(); itBlock != this->levelRes->BlockDefinitions.end(); ++itBlock) {
 
-        val = (*itCol)->get_A();
+             //if the block Id of this block did not change during last block definition list redefinition
+             //go to the next block
+             if ((*itBlock)->m_initialID == (*itBlock)->get_ID())
+                 continue;
 
-        if ((!Amod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_A(newId);
-                    Amod = true;
-                }
-            }
-        }
+             //if this is a newly added block definition, also skip
+             if ((*itBlock)->mState == DEF_BLOCKDEF_STATE_NEWLYADDED_KEEP)
+                 continue;
 
-        val = (*itCol)->get_B();
+              //see if value of A was pointing to the old Id of this
+              //block definition
+              if ((newA != 0) && ((*itBlock)->m_initialID == newA)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newA = (*itBlock)->get_ID();
+              }
 
-        if ((!Bmod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_B(newId);
-                    Bmod = true;
-                }
-            }
-        }
+              //see if value of B was pointing to the old Id of this
+              //block definition
+              if ((newB != 0) && ((*itBlock)->m_initialID == newB)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newB = (*itBlock)->get_ID();
+              }
 
-        val = (*itCol)->get_C();
+              //see if value of C was pointing to the old Id of this
+              //block definition
+              if ((newC != 0) && ((*itBlock)->m_initialID == newC)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newC = (*itBlock)->get_ID();
+              }
 
-        if ((!Cmod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_C(newId);
-                    Cmod = true;
-                }
-            }
-        }
+              //see if value of D was pointing to the old Id of this
+              //block definition
+              if ((newD != 0) && ((*itBlock)->m_initialID == newD)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newD = (*itBlock)->get_ID();
+              }
 
-        val = (*itCol)->get_D();
+              //see if value of E was pointing to the old Id of this
+              //block definition
+              if ((newE != 0) && ((*itBlock)->m_initialID == newE)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newE = (*itBlock)->get_ID();
+              }
 
-        if ((!Dmod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_D(newId);
-                    Dmod = true;
-                }
-            }
-        }
+              //see if value of F was pointing to the old Id of this
+              //block definition
+              if ((newF != 0) && ((*itBlock)->m_initialID == newF)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newF = (*itBlock)->get_ID();
+              }
 
-        val = (*itCol)->get_E();
+              //see if value of G was pointing to the old Id of this
+              //block definition
+              if ((newG != 0) && ((*itBlock)->m_initialID == newG)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newG = (*itBlock)->get_ID();
+              }
 
-          if ((!Emod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_E(newId);
-                    Emod = true;
-                }
-            }
-        }
-
-        val = (*itCol)->get_F();
-
-         if ((!Fmod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_F(newId);
-                    Fmod = true;
-                }
-            }
-        }
-
-        val = (*itCol)->get_G();
-
-         if ((!Gmod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_G(newId);
-                    Gmod = true;
-                }
-            }
-        }
-
-        val = (*itCol)->get_H();
-
-        if ((!Hmod) && (val != 0)) {
-            if ((val > 0) && (val < (int16_t)(nrBlockDef))) {
-                if (val == oldId) {
-                    (*itCol)->set_H(newId);
-                    Hmod = true;
-                }
-            }
-        }
+              //see if value of H was pointing to the old Id of this
+              //block definition
+              if ((newH != 0) && ((*itBlock)->m_initialID == newH)) {
+                        //assign the new Id for this block after
+                        //block definition reorganization
+                        newH = (*itBlock)->get_ID();
+             }
     }
+
+    //now assign back possible modified values
+    (*itCol)->set_A(newA);
+    (*itCol)->set_B(newB);
+    (*itCol)->set_C(newC);
+    (*itCol)->set_D(newD);
+    (*itCol)->set_E(newE);
+    (*itCol)->set_F(newF);
+    (*itCol)->set_G(newG);
+    (*itCol)->set_H(newH);
   }
 }
 
-/*
-void LevelBlocks::ReplaceBlockDefinitionIdWithNewOneForAllColumns(int oldId, int newId) {
-    //loop through all currently existing columns and cube
-    //loop through all existing columns, and cube
-    std::vector<ColumnDefinition*>::iterator itCol;
-
-    //how many different Blockdefinitions do we have currently?
-    //irr::u32 nrBlockDef = this->levelRes->BlockDefinitions.size();
-
-    int16_t currA;
-    int16_t currB;
-    int16_t currC;
-    int16_t currD;
-    int16_t currE;
-    int16_t currF;
-    int16_t currG;
-    int16_t currH;
-
-    irr::u32 outIndex;
-    ColumnDefinition* newDef;
-    ColumnDefinition* oldDef;
-
+void LevelBlocks::RemoveUnusedBlockDefinitions() {
     std::string infoMsg("");
     char hlpstr[100];
 
-    infoMsg.clear();
-    infoMsg.append("Replace block definition Id = ");
-
-    //add id
-    sprintf(hlpstr, "%d", oldId);
-
-    infoMsg.append(hlpstr);
-    infoMsg.append(" with Id = ");
-
-    sprintf(hlpstr, "%d", newId);
-
-    infoMsg.append(hlpstr);
-    logging::Info(infoMsg);
-
-    for (itCol = this->levelRes->ColumnDefinitions.begin(); itCol != this->levelRes->ColumnDefinitions.end(); ++itCol) {
-        currA = (*itCol)->get_A();
-        currB = (*itCol)->get_B();
-        currC = (*itCol)->get_C();
-        currD = (*itCol)->get_D();
-        currE = (*itCol)->get_E();
-        currF = (*itCol)->get_F();
-        currG = (*itCol)->get_G();
-        currH = (*itCol)->get_H();
-
-        //is this "old" blockdefinition Id use somewhere, if not
-        //continue with next column definition
-        if ((currA != oldId) && (currB != oldId) && (currC != oldId) && (currD != oldId)
-            && (currE != oldId) && (currF != oldId) && (currG != oldId) && (currH != oldId))
-             continue;
-
-        //This colum definition needs to be adjusted
-        if (currA == oldId) {
-            currA = newId;
-        }
-
-        if (currB == oldId) {
-            currB = newId;
-        }
-
-        if (currC == oldId) {
-            currC = newId;
-        }
-
-        if (currD == oldId) {
-            currD = newId;
-        }
-
-        if (currE == oldId) {
-            currE = newId;
-        }
-
-        if (currF == oldId) {
-            currF = newId;
-        }
-
-        if (currG == oldId) {
-            currG = newId;
-        }
-
-        if (currH == oldId) {
-            currH = newId;
-        }
-
-        oldDef = (*itCol);
-
-        //does this newly needed column definition
-        //already exist?
-        //"Request" the new column definition
-        if (!this->MyTerrain->levelRes->RequestColumnDefinition(currA, currB, currC, currD, currE, currF, currG, currH, outIndex)) {
-            //unexpected error creating column definition, possibly we reached the maximum possible number
-            //of 1024 column definitions in the levelfile?
-            return;
-        }
-
-        newDef = this->levelRes->ColumnDefinitions.at(outIndex);
-
-        if (newDef == nullptr)
-            return;
-
-        ReplaceColumnDefinitionWithNewOneForAllColumns(oldDef, newDef);
-
-        //Make sure (possibly now) unused Columndefinitions are deleted
-        //Because I am not sure if the game can handle them, so make sure we
-        //do not have them
-        RemoveUnusedColumnDefinitions();
-   }
-}*/
-
-void LevelBlocks::RemoveUnusedBlockDefinitions() {
-    //first get usage count for each existing block definition
-    std::vector<irr::u32> usageCnt = GetBlockDefinitionUsageCount();
-
-    std::vector<irr::u32>::iterator it;
     std::vector<BlockDefinition*>::iterator itBlock;
     BlockDefinition* toDelete;
-    int nextId;
-    int oldId;
 
-    irr::u32 currIdx = 0;
-    irr::u32 deletedCnt = 0;
-    irr::u32 cntIndexUp;
+    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ++itBlock) {
+        //for later easier update of column definitions store original
+        //Id for every block definition before we modify it possibly
+        (*itBlock)->m_initialID = (*itBlock)->get_ID();
+
+        //if this block definition is marked as newly unassigned
+        //decrease its occurence variable by one
+        if ((*itBlock)->mState == DEF_BLOCKDEF_STATE_NEWLYUNASSIGNEDONE) {
+            (*itBlock)->usageCnt--;
+
+            infoMsg.clear();
+            infoMsg.append("Decrease usage count of block definition with Id = ");
+
+            //add id
+            sprintf(hlpstr, "%d", (*itBlock)->get_ID());
+
+            infoMsg.append(hlpstr);
+            logging::Info(infoMsg);
+        }
+    }
+
+    //remove each entry with 0 usage, as long as it was not newly added just before this function call
+    //we know this based on the block definition internal state variable
+    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ) {
+        if (((*itBlock)->usageCnt == 0) && ((*itBlock)->mState != DEF_BLOCKDEF_STATE_NEWLYADDED_KEEP)) {
+            //an unused BlockDefinition entry, remove it
+
+            toDelete = (*itBlock);
+
+            infoMsg.clear();
+            infoMsg.append("Removing unused block definition with Id = ");
+
+            //add id
+            sprintf(hlpstr, "%d", (*itBlock)->get_ID());
+
+            infoMsg.append(hlpstr);
+            logging::Info(infoMsg);
+
+            //remove blockDefinition vector entry
+            itBlock = MyTerrain->levelRes->BlockDefinitions.erase(itBlock);
+
+            //delete the blockdefinition struct itself
+            delete toDelete;
+        } else {
+            itBlock++;
+        }
+     }
+
+    irr::u32 currId = 1;
     int baseOffset;
 
+    //now all unused block definitions are removed, now it is important to reassign the Block
+    //definition Ids in the table, so that all Ids stays in order, increasing one by one for each element
+    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ++itBlock) {
+            //set new Id for the next Block definition
+            (*itBlock)->set_ID(currId);
+
+            //do not forget to also update Offset in file which depends
+            //on new Id!
+            baseOffset = 124636 + currId * 16;
+            (*itBlock)->set_Offset(baseOffset);
+
+            currId++;
+    }
+
+    //need to update all links to the old Block Id in all columdefinitions of the level
+    //to the newly assigned block definition Id
+    ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions();
+}
+
+//17.07.2025: Best function until now, but I believe it has bugs and is too complicated!
+/*void LevelBlocks::RemoveUnusedBlockDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId) {
     std::string infoMsg("");
     char hlpstr[100];
+    BlockDefinition* whichDefExclude = nullptr;
+    BlockDefinition* otherCheck = nullptr;
 
-    std::vector<irr::u32> changeFromId;
-    std::vector<irr::u32> changeToId;
+    if (excludeActive) {
+        otherCheck = levelRes->GetBlockDefinitionWithCertainId(excludeId);
+    }
 
-    changeFromId.clear();
-    changeToId.clear();
+    if (reduceCntByOneForIdActive) {
+        BlockDefinition* whichDef = levelRes->GetBlockDefinitionWithCertainId(reduceCntByOneForId);
+
+        //if we simply reuse the same block, do not decrease the mOccurence
+        //so that we do not delete the block we reuse
+        if ((whichDef != nullptr) && (whichDef != otherCheck)) {
+                if (whichDef->usageCnt > 0) {
+                    whichDef->usageCnt -= 1;
+
+                    infoMsg.clear();
+                    infoMsg.append("Block: Reduce usage cnt by one for Id = ");
+
+                    //add id
+                    sprintf(hlpstr, "%d", whichDef->get_ID());
+
+                    infoMsg.append(hlpstr);
+                    logging::Info(infoMsg);
+                }
+        }
+    }
+
+    if (excludeActive) {
+        whichDefExclude = levelRes->GetBlockDefinitionWithCertainId(excludeId);
+    }
+
+    std::vector<BlockDefinition*>::iterator itBlock;
+    BlockDefinition* toDelete;
+    int oldId;
+
+    irr::u32 currId = 1;
+    int baseOffset;
+
+    //std::vector<irr::u32> changeFromId;
+    //std::vector<irr::u32> changeToId;
+
+    bool keepUpdatingBlockIds = false;
+
+    //changeFromId.clear();
+    //changeToId.clear();
+
+    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ++itBlock) {
+        //for later easier update of column definitions store original
+        //Id for every block definition before we modify it possibly
+        (*itBlock)->m_initialID = (*itBlock)->get_ID();
+    }
 
     //remove each entry with 0 usage
-    //we need to skip first element, because there is no usage for BlockDefinition with
-    //Id = 0 in the game;
-    for (it = usageCnt.begin() + 1; it != usageCnt.end(); ++it) {
-        if ((*it) == 0) {
+    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ) {
+        if ((!(excludeActive && ((*itBlock) == whichDefExclude))) && ((*itBlock)->usageCnt == 0)) {
             //an unused BlockDefinition entry, remove it
-            //the order of the elements in usageCnt vector and BlockDefinitions vector
-            //below are identical
-            itBlock = MyTerrain->levelRes->BlockDefinitions.begin() + currIdx - deletedCnt;
 
             toDelete = (*itBlock);
 
@@ -1226,46 +1541,73 @@ void LevelBlocks::RemoveUnusedBlockDefinitions() {
             //remove blockDefinition vector entry
             itBlock = MyTerrain->levelRes->BlockDefinitions.erase(itBlock);
 
-            cntIndexUp = 0;
-
-            //reassign Ids for all following BlockDefinitions
-            for (; itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ++itBlock) {
-
-                cntIndexUp++;
-
-                //set next Id for the element
-                //at this vector position
-                nextId = currIdx - deletedCnt + cntIndexUp;
-
-                //remember which Id we replaced with which new Id
-                changeFromId.push_back(nextId);
-                changeToId.push_back(oldId);
-
-                //set new Id for the next Block definition
-                (*itBlock)->set_ID(nextId);
-
-                //do not forget to also update Offset in file which depends
-                //on new Id!
-                baseOffset = 124636 + nextId * 16;
-                (*itBlock)->set_Offset(baseOffset);
-
-                //keep old Id for later
-                oldId = (*itBlock)->get_ID();
-            }
-
             //delete the blockdefinition struct itself
             delete toDelete;
 
-            deletedCnt++;
+            //from now on we need to update every entry
+            //in the table that still follows to make sure all
+            //block Ids are properly aligned (increasing by one again)
+            keepUpdatingBlockIds = true;
+        } else {
+
+            //if this block should be excluded from erasing, leave it alone and go to
+            //the next element; This is true for example for a newly added block definition
+            //that is not assigned yet
+            if (excludeActive) {
+                if ((*itBlock) == whichDefExclude) {
+                    infoMsg.clear();
+                    infoMsg.append("Skip erasing block definition with Id = ");
+
+                    //add id
+                    sprintf(hlpstr, "%d", (*itBlock)->get_ID());
+
+                    infoMsg.append(hlpstr);
+                    logging::Info(infoMsg);
+                }
+            }
         }
 
-        currIdx++;
+          if (keepUpdatingBlockIds) {
+                //because we at least erased one block definition entry before,
+                //this next elements Id needs now to be adjusted down as well,
+                //so that all Ids stays in order, increasing one by one for each element
+                oldId = (*itBlock)->get_ID();
+
+                //the next element gets the new (current Id)
+                //remember which Id we replaced with which new Id
+                //changeFromId.push_back(oldId);
+                //changeToId.push_back(currId);
+
+                infoMsg.clear();
+                infoMsg.append("Modify block definition Id from = ");
+
+                //add id
+                sprintf(hlpstr, "%d", oldId);
+                infoMsg.append(hlpstr);
+
+                infoMsg.append(" to = ");
+                sprintf(hlpstr, "%d", currId);
+                infoMsg.append(hlpstr);
+
+                logging::Info(infoMsg);
+
+                //set new Id for the next Block definition
+                (*itBlock)->set_ID(currId);
+
+                //do not forget to also update Offset in file which depends
+                //on new Id!
+                baseOffset = 124636 + currId * 16;
+                (*itBlock)->set_Offset(baseOffset);
+            }
+
+            itBlock++;
+            currId++;
     }
 
     //need to update all links to the old Block Id in all columdefinitions of the level
     //to the newly assigned block definition Id
-    ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions(changeFromId, changeToId);
-}
+    ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions();
+}*/
 
 //Returns a vector which contains an element for each currently existing
 //Column definition, and how often it is used on the current map
@@ -1289,8 +1631,8 @@ std::vector<irr::u32> LevelBlocks::GetColumnDefinitionUsageCount() {
         val = (*itCol).pColumn->Definition->get_ID();
 
         if (val != 0) {
-            if ((val > 0) && (val < (int)(nrColumnDef))) {
-                cntResult.at(val) += 1;
+            if ((val > 0) && (val <= (int)(nrColumnDef))) {
+                cntResult.at(val - 1) += 1;
             }
         }
     }
@@ -1298,36 +1640,189 @@ std::vector<irr::u32> LevelBlocks::GetColumnDefinitionUsageCount() {
     return (cntResult);
 }
 
-void LevelBlocks::ReplaceColumnDefinitionWithNewOneForAllColumns(ColumnDefinition* oldDef, ColumnDefinition* newDef) {
-    //how many different columns do we have currently?
-    //irr::u32 nrColumns = this->ColumnsByPosition.size();
+//update certain values stored in the column definitions
+//that also the original game uses
+void LevelBlocks::UpdateColumDefinitions() {
+    //first important value that is stored inside
+    //the column definitions as well is the occurence (usage)
+    //for each column definition, we need to keep this value updated
+    std::vector<irr::u32> usage = GetColumnDefinitionUsageCount();
+
+    std::vector<ColumnDefinition*>::iterator it;
+    irr::u32 idx = 0;
+    irr::u8 newShape;
+
+    for (it = this->levelRes->ColumnDefinitions.begin(); it != this->levelRes->ColumnDefinitions.end(); ++it) {
+        (*it)->set_Occurence((int16_t)(usage.at(idx)));
+
+        idx++;
+
+        //keep shape up to date
+        newShape = GetColumnDefinitionShapeValue(*it);
+        (*it)->set_Shape(newShape);
+    }
+}
+
+//Returns simply 0 value if columnDefPntr is nullptr!
+irr::u8 LevelBlocks::GetColumnDefinitionShapeValue(ColumnDefinition* columnDefPntr) {
+    if (columnDefPntr == nullptr)
+        return 0;
+
+    irr::u8 result = 0;
+
+    if (columnDefPntr->get_A() != 0)
+        result |= 1;
+
+    if (columnDefPntr->get_B() != 0)
+        result |= 2;
+
+    if (columnDefPntr->get_C() != 0)
+        result |= 4;
+
+    if (columnDefPntr->get_D() != 0)
+        result |= 8;
+
+    if (columnDefPntr->get_E() != 0)
+        result |= 16;
+
+    if (columnDefPntr->get_F() != 0)
+        result |= 32;
+
+    if (columnDefPntr->get_G() != 0)
+        result |= 64;
+
+    if (columnDefPntr->get_H() != 0)
+        result |= 128;
+
+    return result;
+}
+
+std::string LevelBlocks::CreateDbgShapeString(ColumnDefinition* colDef) {
+    std::string resultStr("");
+
+    if (colDef == nullptr)
+        return resultStr;
+
+    irr::u8 value = GetColumnDefinitionShapeValue(colDef);
+    irr::u8 div = 128;
+
+    for (irr::u8 idx = 0; idx < 8; idx++) {
+        if ((value & div) == div) {
+            resultStr.append("1");
+        } else {
+            resultStr.append("0");
+        }
+
+        div /= 2;
+    }
+
+    return resultStr;
+}
+
+void LevelBlocks::DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName) {
+   FILE* debugOutputFile = nullptr;
+
+   debugOutputFile = fopen(debugOutPutFileName, "w");
+   if (debugOutputFile == nullptr) {
+         return;
+   }
+
+   std::vector<ColumnDefinition*>::iterator it;
+
+   //write a header
+   fprintf(debugOutputFile, "ColumnId;Shape;FloorTexId;Unknown1;A;B;C;D;E;F;G;H;Offset;Occurence\n");
+
+   for (it = levelRes->ColumnDefinitions.begin(); it != levelRes->ColumnDefinitions.end(); ++it) {
+        //write the next entry
+        fprintf(debugOutputFile, "%d;%s;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\n",
+                (*it)->get_ID(), CreateDbgShapeString(*it).c_str(), (*it)->get_FloorTextureID(), (*it)->get_Unknown1(),
+                (*it)->get_A(), (*it)->get_B(), (*it)->get_C(),  (*it)->get_D(), (*it)->get_E(),
+                (*it)->get_F(),  (*it)->get_G(), (*it)->get_H(), (*it)->get_Offset(), (*it)->get_Occurence());
+   }
+
+   fclose(debugOutputFile);
+}
+
+void LevelBlocks::DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName) {
+   FILE* debugOutputFile = nullptr;
+
+   debugOutputFile = fopen(debugOutPutFileName, "w");
+   if (debugOutputFile == nullptr) {
+         return;
+   }
+
+   std::vector<BlockDefinition*>::iterator it;
+
+   //write a header
+   fprintf(debugOutputFile, "BlockId;N;E;S;W;B;T;NMod;EMod;SMod;WMod;BMod;TMod;Unknown1;Unknown2;Offset;Occurence\n");
+
+   for (it = levelRes->BlockDefinitions.begin(); it != levelRes->BlockDefinitions.end(); ++it) {
+
+        //write the next entry
+        fprintf(debugOutputFile, "%d;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%d;%d;%d;%d\n",
+                (*it)->get_ID(), (*it)->get_N(), (*it)->get_E(), (*it)->get_S(),
+                (*it)->get_W(),  (*it)->get_B(), (*it)->get_T(), (*it)->get_NMod(),
+                (*it)->get_EMod(), (*it)->get_SMod(), (*it)->get_WMod(), (*it)->get_BMod(),
+                (*it)->get_TMod(), (*it)->get_Unknown1(), (*it)->get_Unknown2(),
+                (*it)->get_Offset(), (*it)->usageCnt);
+   }
+
+   fclose(debugOutputFile);
+}
+
+void LevelBlocks::DebugWriteDefinedColumnsTableToCsvFile(char* debugOutPutFileName) {
+   FILE* debugOutputFile = nullptr;
+
+   debugOutputFile = fopen(debugOutPutFileName, "w");
+   if (debugOutputFile == nullptr) {
+         return;
+   }
+
+   std::vector<ColumnsByPositionStruct>::iterator it;
+   int nrColumn = 1;
+   irr::core::vector2di columnPos;
+   Column* colPntr;
+
+   //write a header
+   fprintf(debugOutputFile, "Column Nr;Cell X;Cell Y;ColumnDef Id;Nr Blocks;PosValue\n");
+
+   for (it = ColumnsByPosition.begin(); it != ColumnsByPosition.end(); ++it) {
+        colPntr = (*it).pColumn;
+
+        if (colPntr == nullptr)
+            continue;
+
+        columnPos.X = (int)(colPntr->Position.X);
+        columnPos.Y = (int)(colPntr->Position.Z);
+
+        //write the next entry
+        fprintf(debugOutputFile, "%d;%d;%d;%d;%u;%d\n",
+                nrColumn, columnPos.X, columnPos.Y, (*it).pColumn->Definition->get_ID(),
+                (*it).pColumn->GetNumberContainedBlocks(),  (*it).pos);
+
+        nrColumn++;
+   }
+
+   fclose(debugOutputFile);
+}
+
+void LevelBlocks::ReplaceColumnDefinitionWithNewOneForAllColumns(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec) {
+    //how many different columndefinitions do we have currently?
+    irr::u32 nrColumnDef = this->levelRes->ColumnDefinitions.size();
+
+    size_t entriesToChange = changeFromIdVec.size();
 
     std::string infoMsg("");
     char hlpstr[100];
 
-    infoMsg.clear();
-    infoMsg.append("Replace column definition Id = ");
+    int oldId;
+    int newId;
+    ColumnDefinition* oldDef;
+    ColumnDefinition* newDef;
 
-    //add id
-    sprintf(hlpstr, "%d", oldDef->get_ID());
+    //int val;
 
-    infoMsg.append(hlpstr);
-    infoMsg.append(" with Id = ");
-
-    sprintf(hlpstr, "%d", newDef->get_ID());
-
-    infoMsg.append(hlpstr);
-    logging::Info(infoMsg);
-
-
-    //loop through all existing columns
-    std::vector<ColumnsByPositionStruct>::iterator itCol;
-
-    for (itCol = this->ColumnsByPosition.begin(); itCol != this->ColumnsByPosition.end(); ++itCol) {
-        if ((*itCol).pColumn->Definition == oldDef) {
-            (*itCol).pColumn->Definition = newDef;
-        }
-    }
+    bool colMod;
 
     int height = levelRes->Height();
     int width = levelRes->Width();
@@ -1337,54 +1832,210 @@ void LevelBlocks::ReplaceColumnDefinitionWithNewOneForAllColumns(ColumnDefinitio
     //iterate through tile map, and fix all columndefinitions
     for (int y = 0; y < height; y++) {
      for (int x = 0; x < width; x++) {
-         entry = levelRes->pMap[x][y];
+          entry = levelRes->pMap[x][y];
 
-         if ((entry != nullptr) && (entry->get_Column() == oldDef)) {
-             entry->set_Column(newDef);
+          if (entry == nullptr)
+              continue;
 
-             //update entry data, which will convert the new Id for this colum definition
-             //into the correct cid value inside this MapEntry
-             entry->WriteChanges();
+          colMod = false;
+
+          for (size_t idxEntry = 1; idxEntry < entriesToChange; idxEntry++) {
+              oldId = (int)(changeFromIdVec.at(idxEntry));
+              newId = (int)(changeToIdVec.at(idxEntry));
+
+             /* oldDef = this->levelRes->GetColumnDefinitionWithCertainId(oldId);
+              newDef = this->levelRes->GetColumnDefinitionWithCertainId(newId);
+
+              if ((oldDef == nullptr) || (newDef == nullptr))
+                  continue;*/
+
+              //if a new column was added at the end of the list, then
+              //there will be an entry more at the end of changeFromIdVec that
+              //contains an change from Id that would be too long for the ColumnDefinitions vector
+              //if this happens interrupt this entry, we do not need it, because there is for sure not
+              //yet a column with this newly created columndefinitionId that we would have to update
+              if ((oldId - 1) >= nrColumnDef)
+                  continue;
+
+              oldDef = this->levelRes->ColumnDefinitions.at(oldId - 1);
+              newDef = this->levelRes->ColumnDefinitions.at(newId - 1);
+
+              if ((!colMod) && (entry->get_Column() == oldDef)) {
+                  infoMsg.clear();
+                  infoMsg.append("Reassign Column at MapEntry X = ");
+
+                  //add x coord
+                  sprintf(hlpstr, "%d", x);
+
+                  infoMsg.append(hlpstr);
+                  infoMsg.append(" Y = ");
+
+                  //add y coord
+                  sprintf(hlpstr, "%d", y);
+                  infoMsg.append(hlpstr);
+
+                  infoMsg.append(" from Id = ");
+
+                  //add old Id
+                  sprintf(hlpstr, "%d", oldDef->get_ID());
+                  infoMsg.append(hlpstr);
+
+                  infoMsg.append(" to Id = ");
+
+                  //add new Id
+                  sprintf(hlpstr, "%d", newDef->get_ID());
+                  infoMsg.append(hlpstr);
+
+                  logging::Info(infoMsg);
+
+                  entry->set_Column(newDef);
+
+                  //update entry data, which will convert the new Id for this colum definition
+                  //into the correct cid value inside this MapEntry
+                  entry->WriteChanges();
+
+                  colMod = true;
+              }
          }
-    }
+     }
    }
 }
 
 void LevelBlocks::RemoveUnusedColumnDefinitions() {
-    //first get usage count for each existing column definition
-    std::vector<irr::u32> usageCnt = GetColumnDefinitionUsageCount();
-
-    std::vector<irr::u32>::iterator it;
-    std::vector<ColumnDefinition*>::iterator itCol;
-    ColumnDefinition* toDelete;
-    int nextId;
-    int oldId;
-
-    ColumnDefinition* oldDef;
-    ColumnDefinition* newDef;
-
-    irr::u32 currIdx = 0;
-    irr::u32 deletedCnt = 0;
-    irr::u32 cntIndexUp;
-    int baseOffset;
-
     std::string infoMsg("");
     char hlpstr[100];
+    std::vector<ColumnDefinition*>::iterator itCol;
+    ColumnDefinition* toDelete;
 
-    //remove each entry with 0 usage
-    //we need to skip first element, because there is no usage for ColumnDefinition with
-    //Id = 0 in the game;
-    for (it = usageCnt.begin() + 1; it != usageCnt.end(); ++it) {
-        if ((*it) == 0) {
+    for (itCol = MyTerrain->levelRes->ColumnDefinitions.begin(); itCol != MyTerrain->levelRes->ColumnDefinitions.end(); ++itCol) {
+        //for easier debugging etc. keep column definitions original
+        //Id for every column definition before we modify it possibly
+        (*itCol)->m_initialID = (*itCol)->get_ID();
+
+        //if this column definition is marked as newly unassigned
+        //decrease its occurence variable by one
+        if ((*itCol)->mState == DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE) {
+            (*itCol)->set_Occurence((*itCol)->get_Occurence() - 1);
+
+            infoMsg.clear();
+            infoMsg.append("Decrease mOccurence of column definition with Id = ");
+
+            //add id
+            sprintf(hlpstr, "%d", (*itCol)->get_ID());
+
+            infoMsg.append(hlpstr);
+            logging::Info(infoMsg);
+        }
+    }
+
+    //remove each entry with 0 usage, as long as it was not newly added just before this function call
+    //we know this based on the column definition internal state variable
+    for (itCol = MyTerrain->levelRes->ColumnDefinitions.begin(); itCol != MyTerrain->levelRes->ColumnDefinitions.end(); ) {
+        if (((*itCol)->get_Occurence() == 0) && ((*itCol)->mState != DEF_COLUMNDEF_STATE_NEWLYADDED_KEEP)) {
             //an unused ColumnDefinition entry, remove it
-            //the order of the elements in usageCnt vector and ColumnDefinitions vector
-            //below are identical
-            itCol = MyTerrain->levelRes->ColumnDefinitions.begin() + currIdx - deletedCnt;
 
             toDelete = (*itCol);
 
+            infoMsg.clear();
+            infoMsg.append("Removing unused column definition with Id = ");
+
+            //add id
+            sprintf(hlpstr, "%d", (*itCol)->get_ID());
+
+            infoMsg.append(hlpstr);
+            logging::Info(infoMsg);
+
+            //remove ColumnDefinition vector entry
+            itCol = MyTerrain->levelRes->ColumnDefinitions.erase(itCol);
+
+            //delete the columndefinition struct itself
+            delete toDelete;
+        } else {
+            itCol++;
+        }
+     }
+
+    irr::u32 currId = 1;
+    int baseOffset;
+
+    //now all unused column definitions are removed, now it is important to reassign the column
+    //definition Ids in the table, so that all Ids stays in order, increasing one by one for each element
+    for (itCol = MyTerrain->levelRes->ColumnDefinitions.begin(); itCol != MyTerrain->levelRes->ColumnDefinitions.end(); ++itCol) {
+            //set new Id for the next column definition
+            (*itCol)->set_ID(currId);
+
+            //do not forget to also update Offset in file which depends
+            //on new Id!
+            baseOffset = 98012 + currId * 26;
+            (*itCol)->set_Offset(baseOffset);
+
+            currId++;
+    }
+
+    //need to update all links to the old column definitions Id we modified in all colums of the level
+    //to the newly assigned column definition Id
+    //ReplaceColumnDefinitionWithNewOneForAllColumns(changeFromId, changeToId);
+}
+
+//Best version before 17.07.2025, but buggy, crashes
+/*void LevelBlocks::RemoveUnusedColumnDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId) {
+    std::string infoMsg("");
+    char hlpstr[100];
+    ColumnDefinition* whichDefExclude = nullptr;
+
+    if (reduceCntByOneForIdActive) {
+        ColumnDefinition* whichDef = levelRes->GetColumnDefinitionWithCertainId(reduceCntByOneForId);
+        ColumnDefinition* otherCheck = nullptr;
+
+        if (excludeActive) {
+            otherCheck = levelRes->GetColumnDefinitionWithCertainId(excludeId);
+        }
+
+        //if we simply reuse the same column, do not decrease the mOccurence
+        //so that we do not delete the column we reuse
+        if ((whichDef != nullptr) && (otherCheck != whichDef)) {
+                if (whichDef->get_Occurence() > 0) {
+                    whichDef->set_Occurence(whichDef->get_Occurence() - 1);
+
+                    infoMsg.clear();
+                    infoMsg.append("Column: Reduce mOccurence by one for Id = ");
+
+                    //add id
+                    sprintf(hlpstr, "%d", whichDef->get_ID());
+
+                    infoMsg.append(hlpstr);
+                    logging::Info(infoMsg);
+                }
+        }
+    }
+
+    if (excludeActive) {
+        whichDefExclude = levelRes->GetColumnDefinitionWithCertainId(excludeId);
+    }
+
+    std::vector<ColumnDefinition*>::iterator itCol;
+    ColumnDefinition* toDelete;
+    int oldId;
+
+    irr::u32 currId = 1;
+    int baseOffset;
+
+    std::vector<irr::u32> changeFromId;
+    std::vector<irr::u32> changeToId;
+
+    bool keepUpdatingColumnIds = false;
+
+    changeFromId.clear();
+    changeToId.clear();
+
+    //remove each entry with 0 usage
+    for (itCol = MyTerrain->levelRes->ColumnDefinitions.begin(); itCol != MyTerrain->levelRes->ColumnDefinitions.end(); ) {
+
+        if ((!(excludeActive && ((*itCol) == whichDefExclude))) && ((*itCol)->get_Occurence() == 0)) {
+            //an unused ColumnDefinition entry, remove it
+            toDelete = (*itCol);
+
             //keep old Id for later
-            oldDef = (*itCol);
             oldId = (*itCol)->get_ID();
 
             infoMsg.clear();
@@ -1394,49 +2045,98 @@ void LevelBlocks::RemoveUnusedColumnDefinitions() {
             sprintf(hlpstr, "%d", oldId);
 
             infoMsg.append(hlpstr);
-
             logging::Info(infoMsg);
 
             //remove ColumnDefinition vector entry
             itCol = MyTerrain->levelRes->ColumnDefinitions.erase(itCol);
 
-            cntIndexUp = 0;
-
-            //reassign Ids for all following ColumnDefinitions
-            for (; itCol != MyTerrain->levelRes->ColumnDefinitions.end(); ++itCol) {
-
-                cntIndexUp++;
-
-                newDef = (*itCol);
-
-                //set next Id for the element
-                //at this vector position
-                nextId = currIdx - deletedCnt + cntIndexUp;
-
-                //set new Id for the next column definition
-                (*itCol)->set_ID(nextId);
-
-                //do not forget to also update Offset in file which depends
-                //on new Id!
-                baseOffset = 98012 + nextId * 26;
-                (*itCol)->set_Offset(baseOffset);
-
-                //need to update map entry cid values, to reflect new assigned
-                //colum definition Id
-                ReplaceColumnDefinitionWithNewOneForAllColumns(oldDef, newDef);
-
-                //keep old Id for later
-                oldDef = (*itCol);
-                oldId = (*itCol)->get_ID();
-            }
-
-            //delete the colum defintion struct itself
+            //delete the ColumDefinition struct itself
             delete toDelete;
 
-            deletedCnt++;
+            //from now on we need to update every entry
+            //in the table that still follows to make sure all
+            //column Ids are properly aligned (increasing by one again)
+            keepUpdatingColumnIds = true;
+        } else {
+            //if this column should be excluded from erasing, leave it alone and go to
+            //the next element; This is true for example for a newly added column definition
+            //that is not assigned yet
+            if (excludeActive) {
+                if ((*itCol) == whichDefExclude) {
+                    infoMsg.clear();
+                    infoMsg.append("Skip erasing column definition with Id = ");
+
+                    //add id
+                    sprintf(hlpstr, "%d", (*itCol)->get_ID());
+
+                    infoMsg.append(hlpstr);
+                    logging::Info(infoMsg);
+                }
+            }
         }
 
-        currIdx++;
+        if (keepUpdatingColumnIds) {
+            //because we at least erased one column definition entry before,
+            //this next elements Id needs now to be adjusted down as well,
+            //so that all Ids stays in order, increasing one by one for each element
+            oldId = (*itCol)->get_ID();
+
+            //the next element gets the new (current Id)
+            //remember which Id we replaced with which new Id
+            changeFromId.push_back(oldId);
+            changeToId.push_back(currId);
+
+            infoMsg.clear();
+            infoMsg.append("Modify column definition Id from = ");
+
+            //add id
+            sprintf(hlpstr, "%d", oldId);
+            infoMsg.append(hlpstr);
+
+            infoMsg.append(" to = ");
+            sprintf(hlpstr, "%d", currId);
+            infoMsg.append(hlpstr);
+
+            logging::Info(infoMsg);
+
+            //set new Id for the next column definition
+            (*itCol)->set_ID(currId);
+
+            //do not forget to also update Offset in file which depends
+            //on new Id!
+            baseOffset = 98012 + currId * 26;
+            (*itCol)->set_Offset(baseOffset);
+        }
+
+        itCol++;
+        currId++;
     }
+
+    //need to update all links to the old column definitions Id we modified in all colums of the level
+    //to the newly assigned column definition Id
+    //ReplaceColumnDefinitionWithNewOneForAllColumns(changeFromId, changeToId);
+}*/
+
+//Returns true if the specified column was found, false otherwise
+//If search succesfull outCoord output parameter returns the found map coordinates
+//(map entry coordinates) for this specified column
+bool LevelBlocks::FindMapCoordinateForColumn(Column* whichColumn, irr::core::vector2di& outCoord) {
+
+    std::vector<ColumnsByPositionStruct>::iterator itColStruct;
+
+    if (whichColumn == nullptr)
+        return false;
+
+    for (itColStruct = ColumnsByPosition.begin(); itColStruct != ColumnsByPosition.end(); ++itColStruct) {
+        if ((*itColStruct).pColumn == whichColumn) {
+            outCoord.X = (int)((*itColStruct).pColumn->Position.X);
+            outCoord.Y = (int)((*itColStruct).pColumn->Position.Z);
+
+            return true;
+        }
+    }
+
+    //specified column not found
+    return false;
 }
 

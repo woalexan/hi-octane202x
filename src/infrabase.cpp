@@ -60,7 +60,9 @@ bool InfrastructureBase::InitIrrlicht() {
     return true;
 }
 
-void InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
+//returns true if Gui Event should be canceled
+bool InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
+    return false;
 }
 
 void InfrastructureBase::HandleMouseEvent(const irr::SEvent& event) {

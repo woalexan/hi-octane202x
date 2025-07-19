@@ -49,6 +49,12 @@ enum
     GUI_ID_TEXCATEGORYCOMBOBOX,
     GUI_ID_TEXMODIFICATIONCOMBOBOX,
 
+    GUI_ID_TEXTUREWINDOW_BUTTONSELECTN,
+    GUI_ID_TEXTUREWINDOW_BUTTONSELECTE,
+    GUI_ID_TEXTUREWINDOW_BUTTONSELECTS,
+    GUI_ID_TEXTUREWINDOW_BUTTONSELECTW,
+    GUI_ID_TEXTUREWINDOW_BUTTONSELECTT,
+    GUI_ID_TEXTUREWINDOW_BUTTONSELECTB,
 
     GUI_ID_TESTBUTTON,
     GUI_ID_SCROLLBAR,
@@ -98,6 +104,10 @@ private:
     void OnElementFocused(irr::s32 elementId);
     void OnElementHovered(irr::s32 elementId);
     void OnElementLeft(irr::s32 elementId);
+
+    //if function returns true the close action should be interrupted
+    bool OnElementClose(irr::s32 elementId);
+
     void OnComboBoxChanged( IGUIComboBox* comboBox);
 
     void ChangeViewModeTerrain(irr::u8 newViewMode);
@@ -120,6 +130,8 @@ private:
 
     irr::gui::IGUIStaticText* StatusLine = nullptr;
 
+    wchar_t *mCurrentStatusBarText = nullptr;
+
 public:
     irr::video::ITexture* backgnd = nullptr;
 
@@ -131,7 +143,8 @@ public:
     } MouseState;
 
     //overwrite HandleGuiEvent method for Editor
-    virtual void HandleGuiEvent(const irr::SEvent& event);
+    //returns true if Gui Event should be canceled
+    virtual bool HandleGuiEvent(const irr::SEvent& event);
 
     //overwrite HandleMouseEvent method for Editor
     virtual void HandleMouseEvent(const irr::SEvent& event);

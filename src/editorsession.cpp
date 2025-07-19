@@ -195,6 +195,9 @@ bool EditorSession::LoadLevel() {
    strcat(levelfilename, str);
    strcat(levelfilename, "-unpacked.dat");
 
+   //only for debugging
+   //strcpy(levelfilename, "/home/wolfalex/hi/maps/level0-1.dat");
+
    char texfilename[50];
    strcpy(texfilename, "extract/level0-");
    sprintf(str, "%d", load_texnr);
@@ -886,12 +889,10 @@ void EditorSession::HandleBasicInput() {
         this->exitEditorSession = true;
     }
 
-    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_S)) {
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
         //mParentEditor->UpdateStatusbarText(L"Testtext");
-       /* if (mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-           mLevelBlocks->RemoveMeshCube(mItemSelector->mCurrSelectedItem.mColumnSelected,
-                                        mItemSelector->mCurrSelectedItem.mSelBlockNrStartingFromBase,
-                                        mItemSelector->mCurrSelectedItem.mSelBlockNrSkippingMissingBlocks);
+     /*   if (mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+           mItemSelector->mCurrSelectedItem.mColumnSelected->AdjustMeshBaseVerticeHeight( 14.0f, 14.0f, 14.0f, 14.0f);
         }*/
     }
 
@@ -926,7 +927,7 @@ void EditorSession::TrackActiveDialog() {
         }
 
         if (mUserInDialogState == DEF_EDITOR_USERINNODIALOG) {
-           // std::cout << "Mouse cursor is currently over no window!" << std::endl;
+            //std::cout << "Mouse cursor is currently over no window!" << std::endl;
         }
     }
 }

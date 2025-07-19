@@ -17,14 +17,15 @@
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
 #include "levelterrain.h"
+#include "levelblocks.h"
 #include "../resources/blockdefinition.h"
 #include "../resources/columndefinition.h"
 #include "../utils/crc32.h"
 
 Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel) {
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
-   MyLevelBlocks = myLevelBlocks;
-   MyTerrain = myTerrain;
+   mLevelBlocks = myLevelBlocks;
+   mTerrain = myTerrain;
 
    column_ready = true;
    DestroyOnMorph = false;
@@ -135,203 +136,99 @@ void Column::CleanUpBlockInfoStruct(BlockInfoStruct &pntr) {
    }
 }
 
-//void Column::ApplyMorph(float progress) {
-//    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
-//    S3DVertex *pntrVertices;
-//    irr::u32 idxMeshBuf;
-
-//    if (DestroyOnMorph) {
-//        this->Hidden = progress > 0.01f;
-
-//        //if this column is hidden move column vertices
-//        //so far below the level that the are not visible anymore
-//        //for the player, therefore the column is "hidden"
-//        u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
-
-//        for (unsigned int i = 0; i < nrVertices; i++) {
-//            irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
-//            irr::f32 h = homeHeight - 100.0f;
-
-//            //set new vertice height
-//            GeometryInfoList->vertices[i].currPosition.Y = h;
-
-//            //need to update vertice position for this vertice!
-//            //GeometryInfoList->vertices[i].positionDirty = true;
-
-//            idxMeshBuf = 0;
-
-//            for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
-//                 (*it2)->grab();
-//                 void* pntrVert = (*it2)->getVertices();
-//                 pntrVertices = (S3DVertex*)pntrVert;
-//                 pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
-
-//                 idxMeshBuf++;
-
-//                 (*it2)->drop();
-
-//                 //add this Meshbuffer to the list of overall dirty buffers
-//                // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
-//             }
-
-//            //this->GeometryInfoList->vertices[i].positionDirty = false;
-//        }
-
-//        return;
-//    }
-
-//    //the next commented block is more or less
-//    //similar in the HioctaneTools source code
-//    //but seems to be not needed, therefore
-//    //I commented it out
-//    /*if (MorphSource == nullptr) {
-//        UpdateGeometry();
-//        return;
-//    }*/
-
-//     if (MorphSource->GeometryInfoList->vertices.size() != GeometryInfoList->vertices.size()) {
-//             logging::Error("Column morph - vertice count mismatch");
-//     }
-
-//    u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
-
-//    for (unsigned int i = 0; i < nrVertices; i++) {
-//        irr::f32 sourceHeight = MorphSource->GeometryInfoList->vertices[i].originalPosition.Y;
-//        irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
-//        irr::f32 h = homeHeight * (1.0f - progress) + sourceHeight * progress;
-
-//        //if this column is hidden move column vertices
-//        //so far below the level that the are not visible anymore
-//        //for the player, therefore the column is "hidden"
-//        if (this->Hidden) h -= 100.0f;
-
-//        //set new vertice height
-//        GeometryInfoList->vertices[i].currPosition.Y = h;
-
-//        //need to update vertice position for this vertice!
-//        //GeometryInfoList->vertices[i].positionDirty = true;
-
-//        idxMeshBuf = 0;
-
-//        for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
-//             (*it2)->grab();
-//             void* pntrVert = (*it2)->getVertices();
-//             pntrVertices = (S3DVertex*)pntrVert;
-//             pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
-
-//             idxMeshBuf++;
-
-//             (*it2)->drop();
-
-//             //add this Meshbuffer to the list of overall dirty buffers
-//            // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
-//         }
-
-//        //this->GeometryInfoList->vertices[i].positionDirty = false;
-//    }
-
-//    //mark column vertices as dirty
-//    //this->MyLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
-//}
-
-//below is the new function
 void Column::ApplyMorph(float progress) {
-//    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
-//    S3DVertex *pntrVertices;
-//    irr::u32 idxMeshBuf;
+    if (DestroyOnMorph) {
+        this->Hidden = progress > 0.01f;
 
-//    if (DestroyOnMorph) {
-//        this->Hidden = progress > 0.01f;
+        //if this column is hidden move column vertices
+        //so far below the level that the are not visible anymore
+        //for the player, therefore the column is "hidden"
+        irr::f32 newColBaseVertex1Y = this->mBaseVert1CoordOriginal.Y - 100.0f;
+        irr::f32 newColBaseVertex2Y = this->mBaseVert2CoordOriginal.Y - 100.0f;
+        irr::f32 newColBaseVertex3Y = this->mBaseVert3CoordOriginal.Y - 100.0f;
+        irr::f32 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y - 100.0f;
 
-//        //if this column is hidden move column vertices
-//        //so far below the level that the are not visible anymore
-//        //for the player, therefore the column is "hidden"
-//        u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
+        this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
 
-//        for (unsigned int i = 0; i < nrVertices; i++) {
-//            irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
-//            irr::f32 h = homeHeight - 100.0f;
+        this->mLevelBlocks->UpdateBlockMesh();
 
-//            //set new vertice height
-//            GeometryInfoList->vertices[i].currPosition.Y = h;
+        return;
+    }
 
-//            //need to update vertice position for this vertice!
-//            //GeometryInfoList->vertices[i].positionDirty = true;
+    //the next commented block is more or less
+    //similar in the HioctaneTools source code
+    //but seems to be not needed, therefore
+    //I commented it out
+    /*if (MorphSource == nullptr) {
+        UpdateGeometry();
+        return;
+    }*/
 
-//            idxMeshBuf = 0;
+     if (MorphSource->mBlockInfoVec.size() != mBlockInfoVec.size()) {
+             logging::Error("Column morph - block count mismatch");
 
-//            for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
-//                 (*it2)->grab();
-//                 void* pntrVert = (*it2)->getVertices();
-//                 pntrVertices = (S3DVertex*)pntrVert;
-//                 pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
+             return;
+     }
 
-//                 idxMeshBuf++;
+     if (MorphSource->Definition->get_Shape() != Definition->get_Shape()) {
+             logging::Error("Column morph - Shape mismatch");
 
-//                 (*it2)->drop();
+             return;
+     }
 
-//                 //add this Meshbuffer to the list of overall dirty buffers
-//                // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
-//             }
+     //interpolate new column morphing Y coordinates according to progress variable (0..1)
+     //between this column, and the Source Morphing column
+     irr::f32 newColBaseVertex1Y = (this->mBaseVert1CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert1CoordOriginal.Y * progress;
+     irr::f32 newColBaseVertex2Y = (this->mBaseVert2CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert2CoordOriginal.Y * progress;
+     irr::f32 newColBaseVertex3Y = (this->mBaseVert3CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert3CoordOriginal.Y * progress;
+     irr::f32 newColBaseVertex4Y = (this->mBaseVert4CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert4CoordOriginal.Y * progress;
 
-//            //this->GeometryInfoList->vertices[i].positionDirty = false;
-//        }
+     //if this column is hidden move column vertices
+     //so far below the level that the are not visible anymore
+     //for the player, therefore the column is "hidden"
+     if (this->Hidden) {
+         newColBaseVertex1Y -= 100.0f;
+         newColBaseVertex2Y -= 100.0f;
+         newColBaseVertex3Y -= 100.0f;
+         newColBaseVertex4Y -= 100.0f;
+     }
 
-//        return;
-//    }
+     this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
 
-//    //the next commented block is more or less
-//    //similar in the HioctaneTools source code
-//    //but seems to be not needed, therefore
-//    //I commented it out
-//    /*if (MorphSource == nullptr) {
-//        UpdateGeometry();
-//        return;
-//    }*/
+     this->mLevelBlocks->UpdateBlockMesh();
+}
 
-//     if (MorphSource->GeometryInfoList->vertices.size() != GeometryInfoList->vertices.size()) {
-//             logging::Error("Column morph - vertice count mismatch");
-//     }
+//allows to change the height of the 4 base block vertices of the column mesh, and all blocks above are
+//adjusted as well
+void Column::AdjustMeshBaseVerticeHeight(irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y) {
+    std::vector<BlockInfoStruct*>::iterator itBlock;
 
-//    u32 nrVertices = (irr::u32)(GeometryInfoList->vertices.size());
+    irr::f32 newV1;
+    irr::f32 newV2;
+    irr::f32 newV3;
+    irr::f32 newV4;
 
-//    for (unsigned int i = 0; i < nrVertices; i++) {
-//        irr::f32 sourceHeight = MorphSource->GeometryInfoList->vertices[i].originalPosition.Y;
-//        irr::f32 homeHeight = GeometryInfoList->vertices[i].originalPosition.Y;
-//        irr::f32 h = homeHeight * (1.0f - progress) + sourceHeight * progress;
+    //need also to update my current column base vertice coordinates
+    mBaseVert1Coord.Y = newV1y;
+    mBaseVert2Coord.Y = newV2y;
+    mBaseVert3Coord.Y = newV3y;
+    mBaseVert4Coord.Y = newV4y;
 
-//        //if this column is hidden move column vertices
-//        //so far below the level that the are not visible anymore
-//        //for the player, therefore the column is "hidden"
-//        if (this->Hidden) h -= 100.0f;
+    //loop through all existing blocks in this column
+    for (itBlock = mBlockInfoVec.begin(); itBlock != mBlockInfoVec.end(); ++itBlock) {
+       //calculate new adjusted y vertices coordinates for this specific block in the column
+       //we are lucky that we have stored the blocks position in the column before in the
+       //BlockInfoStruct struct
+       newV1 = (*itBlock)->idxBlockFromBaseCnt * segmentSize + newV1y;
+       newV2 = (*itBlock)->idxBlockFromBaseCnt * segmentSize + newV2y;
+       newV3 = (*itBlock)->idxBlockFromBaseCnt * segmentSize + newV3y;
+       newV4 = (*itBlock)->idxBlockFromBaseCnt * segmentSize + newV4y;
 
-//        //set new vertice height
-//        GeometryInfoList->vertices[i].currPosition.Y = h;
+       this->mLevelBlocks->ChangeMeshCubeHeight((*itBlock), newV1, newV2, newV3, newV4);
+    }
 
-//        //need to update vertice position for this vertice!
-//        //GeometryInfoList->vertices[i].positionDirty = true;
-
-//        idxMeshBuf = 0;
-
-//        for (it2 = this->GeometryInfoList->vertices[i].myMeshBuffers.begin(); it2 != this->GeometryInfoList->vertices[i].myMeshBuffers.end(); ++(it2)) {
-//             (*it2)->grab();
-//             void* pntrVert = (*it2)->getVertices();
-//             pntrVertices = (S3DVertex*)pntrVert;
-//             pntrVertices[this->GeometryInfoList->vertices[i].myMeshBufVertexId[idxMeshBuf]].Pos.Y = GeometryInfoList->vertices[i].currPosition.Y;
-
-//             idxMeshBuf++;
-
-//             (*it2)->drop();
-
-//             //add this Meshbuffer to the list of overall dirty buffers
-//            // AddDirtySMeshBuffer((*it2), dirtySMeshBuffers);
-//         }
-
-//        //this->GeometryInfoList->vertices[i].positionDirty = false;
-//    }
-
-//    //mark column vertices as dirty
-//    //this->MyLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+    //tell the block Mesh that it needs to be updated
+    mLevelBlocks->UpdateBlockMesh();
 }
 
 irr::f32 Column::GetCurrentHeightTile(int x, int z) {
@@ -343,7 +240,7 @@ irr::f32 Column::GetCurrentHeightTile(int x, int z) {
     if (x > Width - 1) x = Width - 1;
     if (z > Height - 1) z = Height - 1;
 
-    return MyTerrain->pTerrainTiles[x][z].vert1CurrPositionY;
+    return mTerrain->pTerrainTiles[x][z].vert1CurrPositionY;
 }
 
 irr::f32 Column::GetOriginalHeightTile(int x, int z) {
@@ -408,77 +305,6 @@ irr::u16 Column::GetNumberMissingBlocksAtBase() {
 
     //no "gap" found, return 0
     return 0;
-}
-
-std::vector<vector2d<irr::f32>> Column::ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod) {
-   std::vector<vector2d<irr::f32>> uvs;
-
-   switch (mod) {
-        case 1: //RotateNoneFlipX
-                uvs.push_back(uvA);    //is correct, did check
-                uvs.push_back(uvB);
-                uvs.push_back(uvC);
-                uvs.push_back(uvD);
-                break;
-        case 2: //RotateNoneFlipY
-                uvs.push_back(uvD);    //is correct, did check
-                uvs.push_back(uvC);
-                uvs.push_back(uvB);
-                uvs.push_back(uvA);
-                break;
-        case 3: //Rotate180FlipNone   //is correct, did check
-                uvs.push_back(uvB);
-                uvs.push_back(uvA);
-                uvs.push_back(uvD);
-                uvs.push_back(uvC);
-                break;
-        case 4: //Rotate270FlipY
-                uvs.push_back(uvD);    //is correct, did check
-                uvs.push_back(uvC);
-                uvs.push_back(uvB);
-                uvs.push_back(uvA);
-                break;
-        case 5: //Rotate90FlipNone    //is not used in the first 6 levels, therefore I can not check if this
-                uvs.push_back(uvD);    //order is correct :(
-                uvs.push_back(uvA);
-                uvs.push_back(uvB);
-                uvs.push_back(uvC);
-                break;
-        case 6: //Rotate270FlipNone   //is not used in the first 6 levels, therefore I can not check if this
-                uvs.push_back(uvB);    //order is correct :(
-                uvs.push_back(uvC);
-                uvs.push_back(uvD);
-                uvs.push_back(uvA);
-                break;
-        case 7: //Rotate90FlipY      //is not used in the first 6 levels, therefore I can not check if this
-                uvs.push_back(uvC);   //order is correct :(
-                uvs.push_back(uvB);
-                uvs.push_back(uvA);
-                uvs.push_back(uvD);
-                break;
-        case 0:
-        default:
-                uvs.push_back(uvA); //is correct, did check
-                uvs.push_back(uvB);
-                uvs.push_back(uvC);
-                uvs.push_back(uvD);
-             break;
-   }
-   return uvs;
-}
-
-std::vector<vector2d<irr::f32>> Column::MakeUVs(int texMod) {
-    vector2d<irr::f32> uvA;
-    vector2d<irr::f32> uvB;
-    vector2d<irr::f32> uvC;
-    vector2d<irr::f32> uvD;
-
-    uvA.X = 1.0f;   uvA.Y = 0.0f;
-    uvB.X = 0.0f;   uvB.Y = 0.0f;
-    uvC.X = 0.0f;   uvC.Y = 1.0f;
-    uvD.X = 1.0f;   uvD.Y = 1.0f;
-
-    return ApplyTexMod(uvA, uvB, uvC, uvD, texMod);
 }
 
 MapEntry* Column::GetMapEntry(int x, int y) {
@@ -551,6 +377,27 @@ bool Column::SetupGeometry() {
 
     irr::f32 h = 0.0f;
 
+    //set the current column base vertice coordinates
+    mBaseVert1Coord.set(segmentSize, d, segmentSize);
+    mBaseVert2Coord.set(0.0f, c, segmentSize);
+    mBaseVert3Coord.set(0.0f, b, 0.0f);
+    mBaseVert4Coord.set(segmentSize, a,  0.0f);
+
+    //we need to move this column to the correct map location
+    //because otherwise all of the columns would be in the level
+    //origin
+    MoveColumnVertex(mBaseVert1Coord);
+    MoveColumnVertex(mBaseVert2Coord);
+    MoveColumnVertex(mBaseVert3Coord);
+    MoveColumnVertex(mBaseVert4Coord);
+
+    //store the (initial) vertices heights also
+    //in a second variable, used for later column morphing
+    mBaseVert1CoordOriginal = mBaseVert1Coord;
+    mBaseVert2CoordOriginal = mBaseVert2Coord;
+    mBaseVert3CoordOriginal = mBaseVert3Coord;
+    mBaseVert4CoordOriginal = mBaseVert4Coord;
+
     std::vector<vector2d<irr::f32>> newuvsS;
     std::vector<vector2d<irr::f32>> newuvsW;
     std::vector<vector2d<irr::f32>> newuvsN;
@@ -604,22 +451,22 @@ bool Column::SetupGeometry() {
         MoveColumnVertex(*H);
 
         // texture atlas UVs
-        newuvsS = MakeUVs(blockDef->SMod());
+        newuvsS = mLevelBlocks->MakeUVs(blockDef->get_SMod());
         textIDInfoS = blockDef->get_S();
 
-        newuvsW = MakeUVs(blockDef->WMod());
+        newuvsW = mLevelBlocks->MakeUVs(blockDef->get_WMod());
         textIDInfoW = blockDef->get_W();
 
-        newuvsN = MakeUVs(blockDef->NMod());
+        newuvsN = mLevelBlocks->MakeUVs(blockDef->get_NMod());
         textIDInfoN = blockDef->get_N();
 
-        newuvsE = MakeUVs(blockDef->EMod());
+        newuvsE = mLevelBlocks->MakeUVs(blockDef->get_EMod());
         textIDInfoE = blockDef->get_E();
 
-        newuvsT = MakeUVs(blockDef->TMod());
+        newuvsT = mLevelBlocks->MakeUVs(blockDef->get_TMod());
         textIDInfoT = blockDef->get_T();
 
-        newuvsB = MakeUVs(blockDef->BMod());
+        newuvsB = mLevelBlocks->MakeUVs(blockDef->get_BMod());
         textIDInfoB = blockDef->get_B();
 
         // normals
@@ -633,9 +480,9 @@ bool Column::SetupGeometry() {
         //create all vertices and store them
         //create a new block
         BlockInfoStruct* newBlock = new BlockInfoStruct();
+        newBlock->idxBlockFromBaseCnt = (irr::u8)(bitNum);
 
         //define all faces
-
         //north side
         newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, newuvsN, *nN, textIDInfoN);
 
