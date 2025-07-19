@@ -870,9 +870,9 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     irr::u32 outIndex;
     irr::u32 outColumnIndex;
 
-    DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockDefBefore.csv"));
-    DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefBefore.csv"));
-    DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsBefore.csv"));
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockDefBefore.csv"));
+    //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefBefore.csv"));
+    //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsBefore.csv"));
 
     bool newlyAdded;
 
@@ -884,7 +884,7 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
         return;
     }
 
-    DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter1.csv"));
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter1.csv"));
 
     BlockDefinition* newCorrBlockDef = this->levelRes->BlockDefinitions.at(outIndex);
 
@@ -1029,9 +1029,9 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     //we need also to update Blockdefinition usage count
     UpdateBlockDefinitionUsageCnt();
 
-    DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
-    DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
-    DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
+    //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
+    //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
 
     /******************************************************************
      * Part 2: According to new texture modify Irrlicht column Mesh   *
