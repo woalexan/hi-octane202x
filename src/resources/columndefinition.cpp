@@ -138,6 +138,8 @@ ColumnDefinition::~ColumnDefinition() {
 }
 
 //Alternative constructor used for the level editor
+//if offset is set to -1 (for example for special column for block preview) writing to
+//map file data vector is disabled.
 ColumnDefinition::ColumnDefinition(int id, int offset, int newFloorTextureID, int16_t mUnknown1, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
                  int16_t newF, int16_t newG, int16_t newH, int16_t newOccurence) {
     this->m_ID = id;
@@ -438,6 +440,13 @@ void ColumnDefinition::set_Unknown4(uint8_t newVal) {
 }
 
 bool ColumnDefinition::WriteChanges() {
+    //I have the ability to create "special" column definitions that are
+    //used for example for block preview rendering; to prevent that this columns definitions are
+    //written accidently to the level file low level data, I set offset of this
+    //column definition to -1; In case we find -1 here prevent writting of data!
+    if (m_Offset == -1)
+        return true;
+
     //store shape
     this->m_wBytes.at(0) = static_cast<uint8_t>(mShape);
 

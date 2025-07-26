@@ -8,6 +8,8 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "editor/texturemode.h"
+#include "editor/columndesign.h"
+#include "editor/viewmode.h"
 #include "editorsession.h"
 #include "utils/logger.h"
 #include "utils/tprofile.h"
@@ -23,6 +25,7 @@
 #include "input/input.h"
 #include "resources/mapentry.h"
 #include "resources/columndefinition.h"
+#include "resources/blockdefinition.h"
 #include "editor/itemselector.h"
 
 EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
@@ -32,6 +35,10 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     ready = false;
 
     mTextureMode = new TextureMode(this);
+    mColumnDesigner = new ColumnDesigner(this);
+    mViewMode = new ViewMode(this);
+
+    mEditorMode = mViewMode;
 
 //    //create empty checkpoint info vector
 //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
@@ -102,6 +109,18 @@ EditorSession::~EditorSession() {
     {
         delete mTextureMode;
         mTextureMode = nullptr;
+    }
+
+    if (mColumnDesigner != nullptr)
+    {
+        delete mColumnDesigner;
+        mColumnDesigner = nullptr;
+    }
+
+    if (mViewMode != nullptr)
+    {
+        delete mViewMode;
+        mViewMode = nullptr;
     }
 
     CleanUpMorphs();
@@ -474,7 +493,8 @@ void EditorSession::createEntity(EntityItem *p_entity,
                                 colPos.Y = 0.0f;
                                 colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
 
-                                (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes);
+                                //Important: Do not create a special column here, this is a normal game map column!
+                                (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes, false, nullptr);
                             }
 
                             sourceColumns.clear();
@@ -755,10 +775,6 @@ irr::u16 EditorSession::GetCollectableSpriteNumber(Entity::EntityType mEntityTyp
   return nrSprite;
 }
 
-
-
-
-
 void EditorSession::Render() {
     //if we do not use XEffects we can simply render the sky
     //with XEffect this does not work, need a solution for this!
@@ -795,14 +811,19 @@ void EditorSession::Render() {
         }
     }*/
 
-    if (mItemSelector->mCurrHighlightedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        mLevelTerrain->DrawOutlineSelectedCell(mItemSelector->mCurrHighlightedItem.mCellCoordSelected, mParentEditor->mDrawDebug->white);
-    } else if (mItemSelector->mCurrHighlightedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        mLevelBlocks->DrawOutlineSelectedColumn(mItemSelector->mCurrHighlightedItem.mColumnSelected, mItemSelector->mCurrHighlightedItem.mSelBlockNrSkippingMissingBlocks,
-                                                mParentEditor->mDrawDebug->cyan, mParentEditor->mDrawDebug->pink, mItemSelector->mCurrHighlightedItem.mSelBlockFaceDirection);
-    }
-
+    //function call below only for debugging possibility
+    //of ItemSelector
     mItemSelector->Draw();
+
+    if (mEditorMode != mViewMode) {
+       //show currently highlighted level item (item over which
+       //the users mouse cursor is currently)
+       mEditorMode->OnDrawHighlightedLevelItem(&mItemSelector->mCurrHighlightedItem);
+
+       //draw currently selected level item (item which the user
+       //clicked the last time with the left mouse button)
+       mEditorMode->OnDrawSelectedLevelItem(&mItemSelector->mCurrSelectedItem);
+    }
 
      //mDrawDebug->Draw3DLine(mDbgRay.start , mDbgRay.end, mDrawDebug->cyan);
    //   mDrawDebug->Draw3DLine(*mDrawDebug->origin, dbgRayEnd, mDrawDebug->blue);
@@ -844,6 +865,7 @@ void EditorSession::Render() {
                 (*it)->DebugDraw();
             }
         }*/
+
 }
 
 void EditorSession::HandleBasicInput() {
@@ -851,7 +873,7 @@ void EditorSession::HandleBasicInput() {
     mCurrentMousePos = mParentEditor->MouseState.Position;
 
     //update item selection
-    if (mItemSelector != nullptr) {
+    if ((mItemSelector != nullptr) && (mEditorMode != mViewMode)) {
         mItemSelector->Update();
     }
 
@@ -921,9 +943,24 @@ void EditorSession::TrackActiveDialog() {
         }
     }
 
+    if (mColumnDesigner != nullptr) {
+        if (mColumnDesigner->IsWindowOpen()) {
+           irr::core::rect<s32> windowPos = mColumnDesigner->GetWindowPosition();
+           if (windowPos.isPointInside(mCurrentMousePos)) {
+               //mouse cursor is currently inside
+               //column designer window
+               mUserInDialogState = DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG;
+           }
+        }
+    }
+
     if (mLastUserInDialogState != mUserInDialogState) {
         if (mUserInDialogState == DEF_EDITOR_USERINTEXTUREDIALOG) {
             //std::cout << "Mouse cursor entered TextureMode window!" << std::endl;
+        }
+
+        if (mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
+            //std::cout << "Mouse cursor entered ColumnDesigner window!" << std::endl;
         }
 
         if (mUserInDialogState == DEF_EDITOR_USERINNODIALOG) {
@@ -934,6 +971,20 @@ void EditorSession::TrackActiveDialog() {
 
 void EditorSession::End() {
     //empty right now
+}
+
+void EditorSession::SetMode(EditorMode* selMode) {
+    if (selMode == nullptr)
+        return;
+
+    //hide possible open window of current
+    //editor mode
+    if (mEditorMode != nullptr) {
+        mEditorMode->HideWindow();
+    }
+
+    //set new Editor mode
+    mEditorMode = selMode;
 }
 
 void EditorSession::CleanUpEntities() {

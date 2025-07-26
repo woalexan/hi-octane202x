@@ -12,6 +12,7 @@
 
 #include "irrlicht.h"
 #include "../definitions.h"
+#include "editormode.h"
 #include <vector>
 #include <cstdint>
 
@@ -93,12 +94,6 @@ struct GUITextureMode
         memset ( this, 0, sizeof ( *this ) );
     }
 
-    void drop()
-    {
-        dropElement ( Window );
-    }
-
-    irr::gui::IGUIWindow* Window;
     irr::gui::IGUIComboBox* texCategoryList;
     irr::gui::IGUIComboBox* texModification;
 
@@ -114,7 +109,7 @@ struct GUITextureMode
     irr::gui::IGUIButton* SelBButton;
 };
 
-class TextureMode {
+class TextureMode : public EditorMode {
 private:
     void AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* comboBoxPntr);
 
@@ -238,35 +233,30 @@ private:
 
     std::vector<GUITextureModificationDataStruct*> mTexModificationVec;
 
-    bool mWindowHidden = false;
-
-    void CreateWindow();
     void WindowControlBlockOptions(bool newState);
     void SelectOtherBlockFace(irr::u8 newFaceSelection);
+
+    virtual void CreateWindow();
     
 public:
     TextureMode(EditorSession* parentSession);
-    ~TextureMode();
-
-    bool IsWindowOpen();
-    irr::core::rect<irr::s32> GetWindowPosition();
+    virtual ~TextureMode();
 
     void TextureCategoryChanged(irr::u32 newSelectedGuiId);
     void TextureModificationChanged(irr::u32 newSelectedGuiId);
 
     //we need the following two Gui events to be able to properly select
     //textures in the texture selection dialog
-    void OnElementHovered(irr::u32 hoveredGuiId);
-    void OnElementLeft(irr::u32 leftGuiId);
+    virtual void OnElementHovered(irr::s32 hoveredGuiId);
+    virtual void OnElementLeft(irr::s32 leftGuiId);
 
-    void OnButtonClicked(irr::u32 buttonGuiId);
+    virtual void OnButtonClicked(irr::s32 buttonGuiId);
 
-    void HideWindow();
-    void ShowWindow();
+    virtual void OnLeftMouseButtonDown();
 
-    void OnLeftMouseButtonDown();
+    virtual void OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem);
+    virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
 
-    EditorSession* mParentSession = nullptr;
     GUITextureMode mGuiTextureMode;
 
     std::vector<TextureModeTexCategory*> mTexCategoryVec;

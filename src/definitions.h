@@ -25,9 +25,6 @@
 
 #include "irrlicht.h"
 
-//! Macro for save Dropping an Element
-#define dropElement(x)	if (x) { x->remove(); x = 0; }
-
 struct LineStruct {
   //std::string name;
   char* name = nullptr;

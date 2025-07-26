@@ -22,7 +22,10 @@
 #include "../resources/columndefinition.h"
 #include "../utils/crc32.h"
 
-Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel) {
+//if specialPreviewColumn is true this column can be used to render block preview pictures via Render to Target, or for example to render
+//a preview picture of a whole column; This functions are only usefull in the level editor of the game!
+Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel,
+                bool specialPreviewColumn, BlockDefinition* specialPreviewColumnBlockDefPntrA) {
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
    mLevelBlocks = myLevelBlocks;
    mTerrain = myTerrain;
@@ -35,6 +38,8 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 
    Definition = Def;
    Position = pos;
+   mSpecialPreviewColumn = specialPreviewColumn;
+   mPreviewBlockDefA = specialPreviewColumnBlockDefPntrA;
 
    mBlockInfoVec.clear();
 
@@ -362,18 +367,40 @@ bool Column::SetupGeometry() {
     x = (int)Position.X;
     z = (int)Position.Z;
 
-    // 4 corners
-    MapEntry *pa = this->GetMapEntry(x + 1, z);
-    irr::f32 a = pa->m_Height;
+    MapEntry *pa;
+    MapEntry *pb;
+    MapEntry *pc;
+    MapEntry *pd;
 
-    MapEntry *pb = this->GetMapEntry(x, z);
-    irr::f32 b = pb->m_Height;
+    irr::f32 a;
+    irr::f32 b;
+    irr::f32 c;
+    irr::f32 d;
 
-    MapEntry *pc = this->GetMapEntry(x, z + 1);
-    irr::f32 c = pc->m_Height;
+    if (!mSpecialPreviewColumn) {
+            //default level map based column
+            //column Y position is based on level terrain
 
-    MapEntry *pd = this->GetMapEntry(x + 1, z + 1);
-    irr::f32 d = pd->m_Height;
+            // 4 corners
+            pa = this->GetMapEntry(x + 1, z);
+            a = pa->m_Height;
+
+            pb = this->GetMapEntry(x, z);
+            b = pb->m_Height;
+
+            pc = this->GetMapEntry(x, z + 1);
+            c = pc->m_Height;
+
+            pd = this->GetMapEntry(x + 1, z + 1);
+            d = pd->m_Height;
+    } else {
+        //special non level map based column
+        //ignore terrain height
+        a = 0;
+        b = 0;
+        c = 0;
+        d = 0;
+    }
 
     irr::f32 h = 0.0f;
 
@@ -413,16 +440,97 @@ bool Column::SetupGeometry() {
     int textIDInfoB;
 
     mNrBlocksInColumn = 0;
+    int16_t blockDefId;
+    BlockDefinition *blockDef;
 
     // Iterate through all blocks of this column
     for (int bitNum = 0; bitNum < 8; bitNum++) {
 
+        //the next line skips creation of currently non existing blocks
         if ((Definition->get_Shape() & (1 << bitNum)) == 0) continue;
 
-        std::vector<unsigned char> data = Definition->get_Bytes();
+        //next two liens: Best code before 21.07.2025
+        //std::vector<unsigned char> data = Definition->get_Bytes();
+        //int16_t blockDefId = ConvertByteArray_ToInt16(data, 6 + bitNum * 2);
 
-        int16_t blockDefId = ConvertByteArray_ToInt16(data, 6 + bitNum * 2);
-        BlockDefinition *blockDef = levelRes->BlockDefinitions.at(blockDefId - 1);
+        //for a non special preview column (normal level column from the map) we take the blockdefinition
+        //according to the block Id of the map entry
+        if (!mSpecialPreviewColumn) {
+                switch (bitNum) {
+                    case 0: {
+                        blockDefId = Definition->get_A();
+                        break;
+                    }
+                    case 1: {
+                        blockDefId = Definition->get_B();
+                        break;
+                    }
+                    case 2: {
+                        blockDefId = Definition->get_C();
+                        break;
+                    }
+                    case 3: {
+                        blockDefId = Definition->get_D();
+                        break;
+                    }
+                    case 4: {
+                        blockDefId = Definition->get_E();
+                        break;
+                    }
+                    case 5: {
+                        blockDefId = Definition->get_F();
+                        break;
+                    }
+                    case 6: {
+                        blockDefId = Definition->get_G();
+                        break;
+                    }
+                    case 7: {
+                        blockDefId = Definition->get_H();
+                        break;
+                    }
+                }
+
+                blockDef = levelRes->BlockDefinitions.at(blockDefId - 1);
+        } else {
+            //this is a special column, we use the supplied block definition pointers instead
+            //that can point everywhere
+            switch (bitNum) {
+                case 0:
+                default: {
+                    blockDef = this->mPreviewBlockDefA;
+                    break;
+                }
+                /*case 1: {
+                    blockDef = this->mPreviewBlockDefB;
+                    break;
+                }
+                case 2: {
+                    blockDef = this->mPreviewBlockDefC;
+                    break;
+                }
+                case 3: {
+                    blockDef = this->mPreviewBlockDefD;
+                    break;
+                }
+                case 4: {
+                    blockDef = this->mPreviewBlockDefE;
+                    break;
+                }
+                case 5: {
+                    blockDef = this->mPreviewBlockDefF;
+                    break;
+                }
+                case 6: {
+                    blockDef = this->mPreviewBlockDefG;
+                    break;
+                }
+                case 7: {
+                    blockDef = this->mPreviewBlockDefH;
+                    break;
+                }*/
+            }
+        }
 
         // bottom vertices
         h = bitNum * segmentSize;

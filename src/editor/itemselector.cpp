@@ -488,17 +488,5 @@ void ItemSelector::Draw() {
    }
 
    mParent->mParentEditor->mDrawDebug->Draw3DLine(*mParent->mParentEditor->mDrawDebug->origin , dbgAvgPos, mParent->mParentEditor->mDrawDebug->pink);*/
-
-  //mark the currently user selected item
-  if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-      mParent->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem.mCellCoordSelected, mParent->mParentEditor->mDrawDebug->blue);
-  } else if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-      mParent->mLevelBlocks->DrawOutlineSelectedColumn(mCurrSelectedItem.mColumnSelected,
-                                                       mCurrSelectedItem.mSelBlockNrSkippingMissingBlocks,
-                                                       mParent->mParentEditor->mDrawDebug->white,
-                                                       mParent->mParentEditor->mDrawDebug->blue,
-                                                       mCurrSelectedItem.mSelBlockFaceDirection);
-      /*mParent->mLevelBlocks->DrawColumnSelectionGrid(mCurrSelectedItem.mColumnSelected, mParent->mParentEditor->mDrawDebug->cyan);*/
-  }
 }
 

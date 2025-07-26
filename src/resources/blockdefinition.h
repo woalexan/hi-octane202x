@@ -17,6 +17,7 @@
 
 #include "tableitem.h"
 #include <cstdint>
+#include "irrlicht.h"
 
 #define DEF_BLOCKDEF_STATE_DEFAULT 0
 #define DEF_BLOCKDEF_STATE_NEWLYADDED_KEEP 1
@@ -29,6 +30,8 @@ public:
 
     //alternative constructor for usage with the level editor
     //to add a new block definition to the level file
+    //if offset is set to -1 (for example for special column for block preview) writing to
+    //map file data vector is disabled.
     BlockDefinition(int id, int offset, uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
                     uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod, int16_t newUnknown1, int16_t newUnknown2);
 
@@ -65,7 +68,10 @@ public:
     void setTMod(uint8_t newVal);
     void setBMod(uint8_t newVal);
 
-    //for the level editor
+    /*****************************************
+     * LevelEditor only used variables start *
+     *****************************************/
+
     //usage count, how often is this blockdefinition
     //used in the map
     uint32_t usageCnt = 0;
@@ -77,6 +83,17 @@ public:
     //this blockdefinition state variable is
     //only used for the leveleditor
     uint8_t mState = DEF_BLOCKDEF_STATE_DEFAULT;
+
+    //two preview textures only used in the leveleditor
+    //Important note: Do not create or delete the Textures
+    //in the Blockdefinition class itself, the LevelBlocks class
+    //takes care about this all!
+    irr::video::ITexture* mPreviewFront = nullptr;
+    irr::video::ITexture* mPreviewBack = nullptr;
+
+    /*****************************************
+     * LevelEditor only used variables end   *
+     *****************************************/
 
 private:
     uint8_t mN;

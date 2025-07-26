@@ -45,7 +45,9 @@ class InfrastructureBase;
 class TextureLoader;
 class LevelFile;
 class ColumnDefinition;
+class BlockDefinition;
 class IrrMeshBuf;
+class EditorSession;
 struct MeshObjectStatsStruct;
 struct MeshBufferInfoStruct;
 struct BlockFaceInfoStruct;
@@ -102,9 +104,13 @@ public:
                                          irr::u8 selFace, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureModifier);
 
     void UpdateCubeFaceTextureModification(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks,
-                                                        BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier);
+                                                        BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier, bool SetMeshDirty = true);
 
     void RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks);
+    void RemoveMeshColumn(Column* selColumnPntr);
+    void RemoveColumn(Column* selColumnPntr);
+
+    void AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef);
 
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
@@ -121,8 +127,25 @@ public:
     void UpdateBlockDefinitionUsageCnt();
     void UpdateBlockMesh();
 
+    void CreateBlockPreview(irr::video::ITexture& outputFrontTexture, irr::video::ITexture& outputBackTexture);
+
+    irr::video::ITexture* texPreviewFrontNoCube = nullptr;
+    irr::video::ITexture* texPreviewBackNoCube = nullptr;
+
+    irr::video::ITexture* GetBlockPreviewImage(Column* selColumn, int blockNrStartingFromBase, bool front);
+    void UpdatePreviewBlockMesh(BlockDefinition* previewBlockDef);
+    BlockDefinition* mCurrentPreviewedBlockDefinition = nullptr;
+
+    void UpdatePreviewForBlockDefinition(BlockDefinition* blockDef);
+
 private:   
     IrrMeshBuf* mIrrMeshBuf = nullptr;
+
+    //Render To Target texture
+    //needed for block preview
+    video::ITexture* mRenderToTargetTex = nullptr;
+
+    irr::core::vector2d<u32> mCubePreviewImageSize;
 
     //only used for the level editor; Minimum number
     //of needed meshbuffers for each textureId so that
@@ -142,7 +165,7 @@ private:
 
     InfrastructureBase* mInfra = nullptr;
 
-    void addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
+    void AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
 
     void DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color);
 
@@ -178,6 +201,22 @@ private:
     bool mEnableLightning;
 
     bool mLevelEditorMode;
+
+    //Special block definition for preview image creation (using render to target)
+    BlockDefinition* mBlockPreviewBlockDef = nullptr;
+
+    //Special column definition for preview image creation (using render to target)
+    ColumnDefinition* mBlockPreviewColumnDef = nullptr;
+
+    //Special column for block definition preview image creation (using render to target)
+    Column* mBlockPreviewColumn = nullptr;
+
+    irr::scene::ICameraSceneNode* mPreviewCameraFront = nullptr;
+    irr::scene::ICameraSceneNode* mPreviewCameraBack = nullptr;
+
+    void SetupBlockPreview();
+    void CreateAllBlockDefinitionPreviews();
+    void CleanUpBlockReview();
 
 //protected:
 public:

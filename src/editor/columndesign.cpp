@@ -7,19 +7,21 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
-#include "texturemode.h"
+#include "columndesign.h"
 #include "../editorsession.h"
-#include "../editor.h"
-#include "../resources/texture.h"
+#include "../models/column.h"
+#include "../resources/columndefinition.h"
 #include "../draw/drawdebug.h"
+#include "../editor.h"
 #include "itemselector.h"
+#include "../resources/texture.h"
 #include "../models/levelterrain.h"
 #include "../models/levelblocks.h"
 #include "../resources/levelfile.h"
 #include "../resources/mapentry.h"
 #include <iostream>
 
-TextureModeTexCategory::TextureModeTexCategory(TextureMode* parent) {
+/*TextureModeTexCategory::TextureModeTexCategory(TextureMode* parent) {
     mParent = parent;
 
     mGuiTextureSelectionVec.clear();
@@ -86,7 +88,7 @@ void TextureModeTexCategory::AddTexture(int16_t textureId) {
     //newStruct->textureCategory = this;
     newStruct->guiElement =
             mParent->mParentSession->mParentEditor->mGuienv->addImage(mParent->mParentSession->mTexLoader->levelTex.at(textureId),
-                                          newPos, true, mParent->Window, newStruct->guiElementId);
+                                          newPos, true, mParent->mGuiTextureMode.Window, newStruct->guiElementId);
 
     wchar_t* textTextureID = new wchar_t[50];
     swprintf(textTextureID, 50, L"Texture Id: %d", (int)(textureId));
@@ -132,16 +134,16 @@ GUITextureModeTexDataStruct* TextureModeTexCategory::FoundCurrentlyHoveredTextur
     }
 
     return result;
+}*/
+
+ColumnDesigner::ColumnDesigner(EditorSession* parentSession) : EditorMode(parentSession) {
+    //mTexCategoryVec.clear();
+    //mTexModificationVec.clear();
 }
 
-TextureMode::TextureMode(EditorSession* parentSession) : EditorMode(parentSession) {
-    mTexCategoryVec.clear();
-    mTexModificationVec.clear();
-}
-
-TextureMode::~TextureMode() {
+ColumnDesigner::~ColumnDesigner() {
     //cleanup all data
-    std::vector<TextureModeTexCategory*>::iterator it;
+   /* std::vector<TextureModeTexCategory*>::iterator it;
     TextureModeTexCategory* pntr;
 
     for (it = this->mTexCategoryVec.begin(); it != this->mTexCategoryVec.end(); ) {
@@ -161,9 +163,9 @@ TextureMode::~TextureMode() {
         it2 = mTexModificationVec.erase(it2);
 
         delete pntr2;
-    }
+    }*/
 }
-
+/*
 void TextureMode::AddTextureModification(const wchar_t* entryName, int8_t texModValue, irr::gui::IGUIComboBox* comboBoxPntr) {
     GUITextureModificationDataStruct* newEntry = new GUITextureModificationDataStruct();
     newEntry->texModificationName = entryName;
@@ -217,47 +219,171 @@ void TextureMode::TextureModificationChanged(irr::u32 newSelectedGuiId) {
                                                              mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockFaceDirection, false, 0, true, pntr->texModValue);
         }
     }
-}
+}*/
 
-void TextureMode::CreateWindow() {
+void ColumnDesigner::CreateWindow() {
+
     // set skin font
     /*IGUIFont* font = env->getFont("fontlucida.png");
     if (font)
         env->getSkin()->setFont(font);*/
 
-    irr::core::dimension2d<irr::u32> dim ( 600, 500 );
+    irr::core::dimension2d<irr::u32> dim ( 600, 600 );
 
     //finally create the window
-    Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures", 0, mGuiWindowId);
+    Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Column Designer", 0, mGuiWindowId);
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
+    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Column Definitions:",
                                       rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, Window, -1, false );
 
-    mGuiTextureMode.texCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ),
-                                                                                          Window, GUI_ID_TEXCATEGORYCOMBOBOX);
+    mGuiColumnDesigner.selColumnDefinition = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ),
+                                                                                                 Window, GUI_ID_COLUMNSELECTIONCOMBOBOX);
 
-    AddTextureCategory(L"Terrain", (irr::u8)(EDITOR_TEXCAT_TERRAIN), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Rock", (irr::u8)(EDITOR_TEXCAT_ROCK), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Grass", (irr::u8)(EDITOR_TEXCAT_GRASS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Water", (irr::u8)(EDITOR_TEXCAT_WATER), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Dirtroad", (irr::u8)(EDITOR_TEXCAT_DIRTROAD), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Road", (irr::u8)(EDITOR_TEXCAT_ROAD), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Roadmarkers", (irr::u8)(EDITOR_TEXCAT_ROADMARKERS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Fence", (irr::u8)(EDITOR_TEXCAT_FENCE), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Chargingstation", (irr::u8)(EDITOR_TEXCAT_CHARGINGSTATION), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Column", (irr::u8)(EDITOR_TEXCAT_COLUMN), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Buildings", (irr::u8)(EDITOR_TEXCAT_BUILDINGS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Signs", (irr::u8)(EDITOR_TEXCAT_SIGNS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Wall", (irr::u8)(EDITOR_TEXCAT_WALL), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Technical", (irr::u8)(EDITOR_TEXCAT_TECHNICAL), mGuiTextureMode.texCategoryList);
+    mGuiColumnDesigner.selColumnDefinition->setToolTipText ( L"Select from existing Column definitions" );
 
-    mGuiTextureMode.texCategoryList->setToolTipText ( L"Select Texture Category" );
+    /***************************************************************
+     * Front images                                                *
+     ***************************************************************/
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Modification:",
-                                      rect<s32>( dim.Width - 400, 50, dim.Width - 310, 66 ),false, false, Window, -1, false );
+    //create the column block preview:
+    blockAImageFrontId = this->mParentSession->GetNextFreeGuiId();
 
-    mGuiTextureMode.texModification = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 50, dim.Width - 10, 66 ),
-                                                                                          Window, GUI_ID_TEXMODIFICATIONCOMBOBOX);
+    irr::core::vector2d<irr::s32> newPos(30, dim.Height - 80);
+
+    mGuiColumnDesigner.blockAImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockAImageFrontId);
+
+    blockBImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockBImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockBImageFrontId);
+
+    blockCImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockCImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockCImageFrontId);
+
+    blockDImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockDImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockDImageFrontId);
+
+    blockEImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockEImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockEImageFrontId);
+
+    blockFImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockFImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockFImageFrontId);
+
+    blockGImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockGImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockGImageFrontId);
+
+    blockHImageFrontId = this->mParentSession->GetNextFreeGuiId();
+
+    newPos.Y -= 70;
+
+    mGuiColumnDesigner.blockHImageFront =
+           mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewFrontNoCube,
+                                          newPos, true, Window, blockHImageFrontId);
+
+    /***************************************************************
+     * Back images                                                *
+     ***************************************************************/
+
+     //create the column block preview:
+     blockAImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.set(110, dim.Height - 80);
+
+     mGuiColumnDesigner.blockAImageBack =
+          mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockAImageBackId);
+
+     blockBImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockBImageBack =
+          mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockBImageBackId);
+
+     blockCImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockCImageBack =
+         mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockCImageBackId);
+
+     blockDImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockDImageBack =
+         mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockDImageBackId);
+
+     blockEImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockEImageBack =
+         mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockEImageBackId);
+
+     blockFImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockFImageBack =
+         mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockFImageBackId);
+
+     blockGImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockGImageBack =
+                   mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockGImageBackId);
+
+     blockHImageBackId = this->mParentSession->GetNextFreeGuiId();
+
+     newPos.Y -= 70;
+
+     mGuiColumnDesigner.blockHImageBack =
+                   mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mLevelBlocks->texPreviewBackNoCube,
+                                                  newPos, true, Window, blockHImageBackId);
+
+
+    /*mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Modification:",
+                                      rect<s32>( dim.Width - 400, 50, dim.Width - 310, 66 ),false, false, mGuiTextureMode.Window, -1, false );
+
+    mGuiTextureMode.texModification = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 50, dim.Width - 10, 66 ), mGuiTextureMode.Window, GUI_ID_TEXMODIFICATIONCOMBOBOX);
 
     AddTextureModification(L"Default", 0, mGuiTextureMode.texModification);
     AddTextureModification(L"RotateNoneFlipX", 1, mGuiTextureMode.texModification);
@@ -268,11 +394,11 @@ void TextureMode::CreateWindow() {
     AddTextureModification(L"Rotate270FlipNone", 6, mGuiTextureMode.texModification);
     AddTextureModification(L"Rotate90FlipY", 7, mGuiTextureMode.texModification);
 
-    mGuiTextureMode.texModification->setToolTipText ( L"Select Texture Modification" );
+    mGuiTextureMode.texModification->setToolTipText ( L"Select Texture Modification" );*/
 
     //configure area in dialog where the possible textures are
     //shown
-    dimTexSelectionArea.UpperLeftCorner.set(10, 80);
+    /*dimTexSelectionArea.UpperLeftCorner.set(10, 80);
     dimTexSelectionArea.LowerRightCorner.set(dim.Width - 10, dim.Height - 40);
 
     irr::core::dimension2d dimTexSelectionSize = dimTexSelectionArea.getSize();
@@ -297,59 +423,128 @@ void TextureMode::CreateWindow() {
           rect<s32>( mCurrentSelectedTextureImageLocation.X,
                      mCurrentSelectedTextureImageLocation.Y - 15,
                      mCurrentSelectedTextureImageLocation.X + 70,
-                     mCurrentSelectedTextureImageLocation.Y - 5),false, false, Window, -1, false );
+                     mCurrentSelectedTextureImageLocation.Y - 5),false, false, mGuiTextureMode.Window, -1, false );
 
     mGuiTextureMode.CurrentSelectedTexture = mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mTexLoader->levelTex.at(0),
-                                                                      mCurrentSelectedTextureImageLocation, true, Window, -1);
+                                                                      mCurrentSelectedTextureImageLocation, true, mGuiTextureMode.Window, -1);
 
     //until user first selects something hide the current texture selection image
     mGuiTextureMode.CurrentSelectedTexture->setEnabled(false);
     mGuiTextureMode.CurrentSelectedTexture->setVisible(false);
 
     //first set empty text, only update with texture Id when first cell is clicked by the user
-    mGuiTextureMode.CurrentSelectedTextureIdText =
-            mParentSession->mParentEditor->mGuienv->addStaticText ( L"", rect<s32>( mCurrentSelectedTextureImageLocation.X,
-                                                                         mCurrentSelectedTextureImageLocation.Y + 68,
-                                                                         mCurrentSelectedTextureImageLocation.X + 70,
-                                                                         mCurrentSelectedTextureImageLocation.Y + 80),
-                                                                         false, false, Window, -1, false );
-
-    mGuiTextureMode.LabelSelectCubeFaces = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Select Cubefaces:",
-                                      rect<s32>( 105 , 35, 180, 45 ),false, false, Window, -1, false );
-
+    mGuiTextureMode.CurrentSelectedTextureIdText = mParentSession->mParentEditor->mGuienv->addStaticText ( L"",
+                                                                                             rect<s32>( mCurrentSelectedTextureImageLocation.X,
+                                                                                                        mCurrentSelectedTextureImageLocation.Y + 68,
+                                                                                                        mCurrentSelectedTextureImageLocation.X + 70,
+                                                                                                        mCurrentSelectedTextureImageLocation.Y + 80),false, false, mGuiTextureMode.Window, -1, false );
     irr::s32 mx = 0;
     irr::s32 my = 22;
-    mGuiTextureMode.SelNButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 30, mx + 145, my + 45), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTN, L"N");
-    mGuiTextureMode.SelWButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 105, my + 50, mx + 125, my + 65), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTW, L"W");
-    mGuiTextureMode.SelEButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 50, mx + 165, my + 65), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTE, L"E");
-    mGuiTextureMode.SelSButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 70, mx + 145, my + 85), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTS, L"S");
-    mGuiTextureMode.SelTButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 30, mx + 165, my + 45), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTT, L"T");
-    mGuiTextureMode.SelBButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 70, mx + 165, my + 85), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTB, L"B");
+    mGuiTextureMode.SelNButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 30, mx + 145, my + 45), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTN, L"N");
+    mGuiTextureMode.SelWButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 105, my + 50, mx + 125, my + 65), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTW, L"W");
+    mGuiTextureMode.SelEButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 50, mx + 165, my + 65), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTE, L"E");
+    mGuiTextureMode.SelSButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 70, mx + 145, my + 85), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTS, L"S");
+    mGuiTextureMode.SelTButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 30, mx + 165, my + 45), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTT, L"T");
+    mGuiTextureMode.SelBButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 70, mx + 165, my + 85), mGuiTextureMode.Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTB, L"B");*/
+
+    mGuiColumnDesigner.CurrentSelectedCellInfo = mParentSession->mParentEditor->mGuienv->addStaticText ( L"",
+                                      rect<s32>( dim.Width - 400 , 55, dim.Width - 200, 65 ),false, false, Window, -1, false );
+
+    mGuiColumnDesigner.CurrentSelectedColumnDefId = mParentSession->mParentEditor->mGuienv->addStaticText ( L"",
+                                      rect<s32>( dim.Width - 400 , 65, dim.Width - 200, 75 ),false, false, Window, -1, false );
+
+    irr::s32 mx = dim.Width - 400;
+    irr::s32 my = 90;
+
+    mGuiColumnDesigner.AddColumnButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 15), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN, L"Add column");
+
+    mGuiColumnDesigner.RemoveColumnButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 15), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN, L"Remove column");
 }
 
-void TextureMode::WindowControlBlockOptions(bool newState) {
-    mGuiTextureMode.LabelSelectCubeFaces->setVisible(newState);
-    mGuiTextureMode.LabelSelectCubeFaces->setEnabled(newState);
+void ColumnDesigner::UpdateBlockPreviewGuiImages(Column* selColumn) {
+    if (selColumn == nullptr)
+        return;
 
-    mGuiTextureMode.SelNButton->setVisible(newState);
-    mGuiTextureMode.SelNButton->setEnabled(newState);
+    //GetBlockPreviewImage function handles everything
+    //it also returns automatically the preview image for no existing block at this column position
+    //in case there is no block present currently
+    mGuiColumnDesigner.blockAImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 0, true));
+    mGuiColumnDesigner.blockBImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 1, true));
+    mGuiColumnDesigner.blockCImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 2, true));
+    mGuiColumnDesigner.blockDImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 3, true));
+    mGuiColumnDesigner.blockEImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 4, true));
+    mGuiColumnDesigner.blockFImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 5, true));
+    mGuiColumnDesigner.blockGImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 6, true));
+    mGuiColumnDesigner.blockHImageFront->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 7, true));
 
-    mGuiTextureMode.SelEButton->setVisible(newState);
-    mGuiTextureMode.SelEButton->setEnabled(newState);
-
-    mGuiTextureMode.SelSButton->setVisible(newState);
-    mGuiTextureMode.SelSButton->setEnabled(newState);
-
-    mGuiTextureMode.SelWButton->setVisible(newState);
-    mGuiTextureMode.SelWButton->setEnabled(newState);
-
-    mGuiTextureMode.SelTButton->setVisible(newState);
-    mGuiTextureMode.SelTButton->setEnabled(newState);
-
-    mGuiTextureMode.SelBButton->setVisible(newState);
-    mGuiTextureMode.SelBButton->setEnabled(newState);
+    mGuiColumnDesigner.blockAImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 0, false));
+    mGuiColumnDesigner.blockBImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 1, false));
+    mGuiColumnDesigner.blockCImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 2, false));
+    mGuiColumnDesigner.blockDImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 3, false));
+    mGuiColumnDesigner.blockEImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 4, false));
+    mGuiColumnDesigner.blockFImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 5, false));
+    mGuiColumnDesigner.blockGImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 6, false));
+    mGuiColumnDesigner.blockHImageBack->setImage(mParentSession->mLevelBlocks->GetBlockPreviewImage(selColumn, 7, false));
 }
 
+void ColumnDesigner::WindowControlColumnPreview(bool newState) {
+    mGuiColumnDesigner.blockAImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockAImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockBImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockBImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockCImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockCImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockDImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockDImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockEImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockEImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockFImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockFImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockGImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockGImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockHImageFront->setVisible(newState);
+    mGuiColumnDesigner.blockHImageFront->setEnabled(newState);
+
+    mGuiColumnDesigner.blockAImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockAImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockBImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockBImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockCImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockCImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockDImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockDImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockEImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockEImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockFImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockFImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockGImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockGImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.blockHImageBack->setVisible(newState);
+    mGuiColumnDesigner.blockHImageBack->setEnabled(newState);
+
+    mGuiColumnDesigner.AddColumnButton->setEnabled(!newState);
+    mGuiColumnDesigner.AddColumnButton->setVisible(!newState);
+
+    mGuiColumnDesigner.RemoveColumnButton->setEnabled(newState);
+    mGuiColumnDesigner.RemoveColumnButton->setVisible(newState);
+}
+/*
 void TextureMode::SelectTextureModification(int8_t newSelectedTexModification) {
    if ((newSelectedTexModification < 0) || (newSelectedTexModification > 7))
        return;
@@ -536,21 +731,29 @@ void TextureMode::SelectOtherBlockFace(irr::u8 newFaceSelection) {
 
     //update window information
     NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
-}
+}*/
 
-void TextureMode::OnButtonClicked(irr::s32 buttonGuiId) {
+void ColumnDesigner::OnButtonClicked(irr::s32 buttonGuiId) {
     switch (buttonGuiId) {
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTN: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACENORTH);
+        case GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN: {
+             if ((mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) &&
+                 (mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected != nullptr)) {
+                    mParentSession->mLevelBlocks->RemoveColumn(mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected);
+             }
              break;
         }
 
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTE: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACEEAST);
+        case GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN: {
+             if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+                    ColumnDefinition* colDef = mParentSession->mLevelRes->ColumnDefinitions.at(2);
+                    mParentSession->mLevelBlocks->AddColumnAtCell(mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
+                                                                  mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
+                                                                  colDef);
+             }
              break;
         }
 
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTS: {
+       /* case GUI_ID_TEXTUREWINDOW_BUTTONSELECTS: {
              SelectOtherBlockFace(DEF_SELBLOCK_FACESOUTH);
              break;
         }
@@ -568,11 +771,11 @@ void TextureMode::OnButtonClicked(irr::s32 buttonGuiId) {
         case GUI_ID_TEXTUREWINDOW_BUTTONSELECTB: {
             SelectOtherBlockFace(DEF_SELBLOCK_FACEBOTTOM);
             break;
-        }
+        }*/
     }
 }
 
-void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
+void ColumnDesigner::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
     if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         //is our dialog already open?
         //if not open it
@@ -580,7 +783,7 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
 
         //for a selected cell hide the window block
         //options (gui elements)
-        WindowControlBlockOptions(false);
+        WindowControlColumnPreview(false);
 
         //a cell was selected
         //which texture Id does this cell have
@@ -595,20 +798,12 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
         delete[] selInfo;
 
         if (entry != nullptr) {
-            int16_t texId = entry->m_TextureId;
-            int8_t texMod = entry->m_TextureModification;
+            wchar_t* textSelCell = new wchar_t[150];
+            swprintf(textSelCell, 150, L"Cell X: %d Y: %d", (int)(newItemSelected.mCellCoordSelected.X), (int)(newItemSelected.mCellCoordSelected.Y));
+            mGuiColumnDesigner.CurrentSelectedCellInfo->setText(textSelCell);
+            delete[] textSelCell;
 
-            //update image of currently selected texture
-            mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(texId));
-            mGuiTextureMode.CurrentSelectedTexture->setEnabled(true);
-            mGuiTextureMode.CurrentSelectedTexture->setVisible(true);
-
-            wchar_t* textTextureID = new wchar_t[50];
-            swprintf(textTextureID, 50, L"Texture Id: %d", (int)(texId));
-            mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
-            delete[] textTextureID;
-
-            SelectTextureModification(texMod);
+            mGuiColumnDesigner.CurrentSelectedColumnDefId->setText(L"No column");
         }
     } else if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
         //is our dialog already open?
@@ -617,45 +812,26 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
 
         //for a selected block unhide the window block
         //options (gui elements)
-        WindowControlBlockOptions(true);
+        WindowControlColumnPreview(true);
 
-        //a block face was selected
-        //which texture Id does this face have
-        int16_t currTextureId;
-        uint8_t currTextureMod;
+        if ((newItemSelected.mColumnSelected != nullptr) && (newItemSelected.mColumnSelected->Definition != nullptr)) {
+                wchar_t* selInfo = new wchar_t[200];
+                swprintf(selInfo, 190, L"Column at Cell X = %d, Y = %d, Id = %d",
+                         newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y,
+                         newItemSelected.mColumnSelected->Definition->get_ID());
 
-        wchar_t* selInfo = new wchar_t[200];
+                mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
 
-        swprintf(selInfo, 190, L"Selected Column at Cell X = %d, Y = %d", newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y);
-        mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+                mGuiColumnDesigner.CurrentSelectedColumnDefId->setText(selInfo);
 
-        delete[] selInfo;
+                delete[] selInfo;
 
-        if (newItemSelected.mColumnSelected != nullptr) {
-            if (mParentSession->mLevelBlocks->GetTextureInfoSelectedBlock(newItemSelected.mColumnSelected,
-                                                                          newItemSelected.mSelBlockNrStartingFromBase,
-                                                                          newItemSelected.mSelBlockNrSkippingMissingBlocks,
-                                                                          newItemSelected.mSelBlockFaceDirection,
-                                                                          currTextureId,
-                                                                          currTextureMod)) {
-                    //we received the block face information
-                   //update image of currently selected texture
-                   mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(currTextureId));
-                   mGuiTextureMode.CurrentSelectedTexture->setEnabled(true);
-                   mGuiTextureMode.CurrentSelectedTexture->setVisible(true);
-
-                   wchar_t* textTextureID = new wchar_t[50];
-                   swprintf(textTextureID, 50, L"Texture Id: %d", (int)(currTextureId));
-                   mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
-                   delete[] textTextureID;
-
-                   SelectTextureModification(currTextureMod);
-            }
+                UpdateBlockPreviewGuiImages(newItemSelected.mColumnSelected);
         }
-    }
+     }
 }
 
-void TextureMode::OnLeftMouseButtonDown() {
+void ColumnDesigner::OnLeftMouseButtonDown() {
     switch (mParentSession->mUserInDialogState) {
          case DEF_EDITOR_USERINNODIALOG: {
             //is now a new level cell or block selected?
@@ -667,8 +843,8 @@ void TextureMode::OnLeftMouseButtonDown() {
             break;
          }
 
-        case DEF_EDITOR_USERINTEXTUREDIALOG: {
-            //are we hovering right now over exactly one of my
+        case DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG: {
+           /* //are we hovering right now over exactly one of my
             //texture selection images?
             if (mCurrShownTexCategory != nullptr) {
                 //returns nullptr if no texture image in the dialog
@@ -679,7 +855,7 @@ void TextureMode::OnLeftMouseButtonDown() {
                     //handle action inside this function call
                     OnUserChangedToNewTexture(mParentSession->mItemSelector->mCurrSelectedItem, pntr->textureId);
                 }
-            }
+            }*/
 
            break;
         }
@@ -690,10 +866,8 @@ void TextureMode::OnLeftMouseButtonDown() {
     }
 }
 
-//the texture selection dialog needs all hover events
-//to be able to properly select textures
-void TextureMode::OnElementHovered(irr::s32 hoveredGuiId) {
-    if (mCurrShownTexCategory == nullptr)
+void ColumnDesigner::OnElementHovered(irr::s32 hoveredGuiId) {
+    /*if (mCurrShownTexCategory == nullptr)
         return;
 
     if (mParentSession->mUserInDialogState != DEF_EDITOR_USERINTEXTUREDIALOG)
@@ -709,13 +883,11 @@ void TextureMode::OnElementHovered(irr::s32 hoveredGuiId) {
 
     //we found the newly hovered texture image in the
     //dialog
-    pntr->currHovered = true;
+    pntr->currHovered = true;*/
 }
 
-//the texture selection dialog needs all element left events
-//to be able to properly select textures
-void TextureMode::OnElementLeft(irr::s32 leftGuiId) {
-    if (mCurrShownTexCategory == nullptr)
+void ColumnDesigner::OnElementLeft(irr::s32 leftGuiId) {
+   /* if (mCurrShownTexCategory == nullptr)
         return;
 
     //which texture image was left?
@@ -728,35 +900,32 @@ void TextureMode::OnElementLeft(irr::s32 leftGuiId) {
 
     //we found the new left texture image in the
     //dialog
-    pntr->currHovered = false;
+    pntr->currHovered = false;*/
 }
 
-void TextureMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem) {
+void ColumnDesigner::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem) {
     if (mCurrSelectedItem == nullptr)
         return;
 
-    //mark the currently user selected item for texturing mode
     if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->blue);
+        mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->orange);
     } else if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        mParentSession->mLevelBlocks->DrawOutlineSelectedColumn(mCurrSelectedItem->mColumnSelected,
-                                                         mCurrSelectedItem->mSelBlockNrSkippingMissingBlocks,
-                                                         mParentSession->mParentEditor->mDrawDebug->white,
-                                                         mParentSession->mParentEditor->mDrawDebug->blue,
-                                                         mCurrSelectedItem->mSelBlockFaceDirection);
-    }
+             mParentSession->mLevelBlocks->DrawColumnSelectionGrid(mCurrSelectedItem->mColumnSelected, mParentSession->mParentEditor->mDrawDebug->orange);
+        }
 }
 
-void TextureMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem) {
+void ColumnDesigner::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem) {
+    if (mCurrHighlightedItem == nullptr)
+        return;
+
     if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
     } else if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        mParentSession->mLevelBlocks->DrawOutlineSelectedColumn(mCurrHighlightedItem->mColumnSelected, mCurrHighlightedItem->mSelBlockNrSkippingMissingBlocks,
-                                                mParentSession->mParentEditor->mDrawDebug->cyan, mParentSession->mParentEditor->mDrawDebug->pink,
-                                                mCurrHighlightedItem->mSelBlockFaceDirection);
+         mParentSession->mLevelBlocks->DrawColumnSelectionGrid(mCurrHighlightedItem->mColumnSelected, mParentSession->mParentEditor->mDrawDebug->cyan);
     }
 }
 
+/*
 void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruct whichItem, int16_t newTextureId) {
    //only trigger action if either a cell or a block face is currently selected
    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
@@ -769,3 +938,4 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
                    whichItem.mSelBlockFaceDirection, true, newTextureId, false, 0);
    }
 }
+*/

@@ -549,6 +549,99 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
+//Returns the number of bytes per pixel for a certain ECOLOR_FORMAT
+//returns 0 for an undefined ECOLOR_FORMAT
+irr::u32 InfrastructureBase::ReturnBytesPerPixel(irr::video::ECOLOR_FORMAT colFormat) {
+    switch(colFormat) {
+        //! 16 bit color format used by the software driver.
+        case ECF_A1R5G5B5:
+        //! Standard 16 bit color format.
+        case ECF_R5G6B5:
+
+        /** Floating Point formats. The following formats may only be used for render target textures. */
+        //! 16 bit floating point format using 16 bits for the red channel.
+        case ECF_R16F:
+        {
+           return 2;
+        }
+
+        //! 24 bit color, no alpha channel, but 8 bit for red, green and blue
+        case ECF_R8G8B8:  {
+           return 3;
+        }
+
+        //! Default 32 bit color format. 8 bits are used for every component: red, green, blue and alpha.
+        case ECF_A8R8G8B8:
+        //! 32 bit floating point format using 16 bits for the red channel and 16 bits for the green channel.
+        case ECF_G16R16F:
+        //! 32 bit floating point format using 32 bits for the red channel.
+        case ECF_R32F:
+        {
+           return 4;
+        }
+
+        //! 64 bit floating point format 16 bits are used for the red, green, blue and alpha channels.
+        case ECF_A16B16G16R16F:
+        //! 64 bit floating point format using 32 bits for the red channel and 32 bits for the green channel.
+        case ECF_G32R32F:
+        {
+           return 8;
+        }
+
+        //! 128 bit floating point format. 32 bits are used for the red, green, blue and alpha channels.
+        case ECF_A32B32G32R32F:
+        {
+           return 16;
+        }
+
+        //! Unknown color format:
+        case ECF_UNKNOWN:
+        default: {
+            return 0;
+        }
+    };
+}
+
+void InfrastructureBase::CopyTexture(irr::video::ITexture* source, irr::video::ITexture* target) {
+    if ((source == nullptr) || (target == nullptr))
+        return;
+
+    if (source->getSize() != target->getSize())
+        return;
+
+    //25.07.2025: Normally I would like to compare Pitch too, but I had the problem
+    //that the reported pitch from a render to texture texture in Irrlicht is always
+    //return as 0, according to a Google Search this could be a old unsolved bug
+    //Therefore I will not compare pitch; But because the size is identical, and I verify that the
+    //color format is also identical there should be no problem because of this; I assume if the other
+    //two things are indentical also the Pitch should be the same
+    //irr:u32 srcPitch = source->getPitch();
+    //irr::u32 targetPitch = target->getPitch();
+    if (source->getColorFormat() != target->getColorFormat())
+        return;
+
+    //see comment above
+    /*if (source->getPitch() != target->getPitch())
+        return;*/
+
+    //how many bytes to copy
+    irr::u32 copyBytes = source->getSize().Width * source->getSize().Height * ReturnBytesPerPixel(source->getColorFormat());
+
+    //if no pixels to copy, or undefined/unknown color format => exit, so that we do no harm
+    if (copyBytes == 0)
+        return;
+
+    //we can simply copy the memory, lock the textures
+    void* srcPntr = source->lock(E_TEXTURE_LOCK_MODE::ETLM_READ_ONLY);
+    void* targetPntr = target->lock(E_TEXTURE_LOCK_MODE::ETLM_WRITE_ONLY);
+
+    memcpy(targetPntr, srcPntr, copyBytes);
+
+    //unlock the textures again
+    target->unlock();
+    source->unlock();
+}
+
 void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
 
     mScreenRes = resolution;
@@ -563,6 +656,18 @@ void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fu
     xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
     yAxisDirVector = new irr::core::vector3df(0.0f, 1.0f, 0.0f);
     zAxisDirVector = new irr::core::vector3df(0.0f, 0.0f, 1.0f);
+
+    //Query if the graphics adapter is able to render to a target
+    //we need this feature to create the block definition preview images
+    //for the Gui Windows
+    if (mDriver->queryFeature(video::EVDF_RENDER_TO_TARGET))
+     {
+        //we have this feature, we can enable block preview in LevelEditor
+        mBlockPreviewEnabled = true;
+     } else {
+        logging::Warning("Graphics Adapter does not support Render To Target Feature: Block definition preview images not working");
+        mBlockPreviewEnabled = false;
+    }
 
     //detect the original game files
     //if some directory of original game is missing
