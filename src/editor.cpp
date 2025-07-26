@@ -21,6 +21,7 @@
 #include "models/levelterrain.h"
 #include "models/levelblocks.h"
 #include "editor/texturemode.h"
+#include "editor/columndesign.h"
 
 //fully initializes the remaining editor
 //components
@@ -111,6 +112,7 @@ void Editor::CreateMenue() {
     gui::IGUIContextMenu* menu = mGuienv->addMenu();
     menu->addItem(L"File", -1, true, true);
     menu->addItem(L"Edit", -1, true, true);
+    menu->addItem(L"Mode", -1, true, true);
     menu->addItem(L"View", -1, true, true);
 
     /*************************************
@@ -128,20 +130,29 @@ void Editor::CreateMenue() {
     submenu->addItem(L"Quit", GUI_ID_QUIT);
 
     /*************************************
-     * Submenue View                     *
+     * Mode View                         *
      *************************************/
 
     submenu = menu->getSubMenu(2);
+    submenu->addItem(L"View", GUI_ID_MODE_VIEW, true, false);
+    submenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
+    submenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
+
+    /*************************************
+     * Submenue View                     *
+     *************************************/
+
+    submenu = menu->getSubMenu(3);
     submenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
     submenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
 
-    submenu = menu->getSubMenu(2)->getSubMenu(0);
+    submenu = menu->getSubMenu(3)->getSubMenu(0);
     submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
     submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
 
-    submenu = menu->getSubMenu(2)->getSubMenu(1);
+    submenu = menu->getSubMenu(3)->getSubMenu(1);
     submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
@@ -196,6 +207,27 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
             Octree = !Octree;
             menu->setItemChecked(menu->getSelectedItem(), Octree);
             break;*/
+
+        case GUI_ID_MODE_VIEW: {
+           if (mCurrentSession != nullptr) {
+               mCurrentSession->SetMode((EditorMode*)mCurrentSession->mViewMode);
+           }
+           break;
+        }
+
+        case GUI_ID_MODE_TEXTURING: {
+           if (mCurrentSession != nullptr) {
+               mCurrentSession->SetMode((EditorMode*)mCurrentSession->mTextureMode);
+           }
+           break;
+        }
+
+        case GUI_ID_MODE_COLUMNDESIGN: {
+           if (mCurrentSession != nullptr) {
+               mCurrentSession->SetMode((EditorMode*)mCurrentSession->mColumnDesigner);
+           }
+           break;
+        }
 
         case GUI_ID_VIEW_TERRAIN_OFF:  {
            ChangeViewModeTerrain(LEVELTERRAIN_VIEW_OFF);
@@ -261,6 +293,10 @@ void Editor::OnButtonClicked(irr::s32 buttonId) {
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTEXTUREDIALOG) {
         mCurrentSession->mTextureMode->OnButtonClicked(buttonId);
     }
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
+        mCurrentSession->mColumnDesigner->OnButtonClicked(buttonId);
+    }
 }
 
 void Editor::OnScrollbarMoved(irr::s32 scrollBarId) {
@@ -279,24 +315,19 @@ void Editor::OnElementFocused(irr::s32 elementId) {
 void Editor::OnElementHovered(irr::s32 elementId) {
   //std::cout << "Element Hovered " << elementId << std::endl;
 
-  //the texture selection dialog needs all hover events
-  //to be able to properly select textures
-  if (mCurrentSession != nullptr) {
-      if (mCurrentSession->mTextureMode != nullptr) {
-          mCurrentSession->mTextureMode->OnElementHovered(elementId);
-      }
-  }
+    if (mCurrentSession != nullptr) {
+          if (mCurrentSession->mEditorMode != nullptr) {
+                  mCurrentSession->mEditorMode->OnElementHovered(elementId);
+          }
+     }
 }
 
 void Editor::OnElementLeft(irr::s32 elementId) {
   //std::cout << "Element Left " << elementId << std::endl;
-
-  //the texture selection dialog needs all element left events
-  //to be able to properly select textures
   if (mCurrentSession != nullptr) {
-    if (mCurrentSession->mTextureMode != nullptr) {
-        mCurrentSession->mTextureMode->OnElementLeft(elementId);
-    }
+       if (mCurrentSession->mEditorMode != nullptr) {
+            mCurrentSession->mEditorMode->OnElementLeft(elementId);
+       }
   }
 }
 
@@ -307,13 +338,15 @@ bool Editor::OnElementClose(irr::s32 elementId) {
   //prevent that user can close the editor windows
   //otherwise the program will crash the next time we need the
   //window again; just hide the window and interrupt the close call
-  if (elementId == GUI_ID_TEXTUREWINDOW) {
-      if (mCurrentSession->mTextureMode != nullptr) {
-          mCurrentSession->mTextureMode->HideWindow();
+  if (mCurrentSession != nullptr) {
+      if (mCurrentSession->mEditorMode != nullptr) {
+            mCurrentSession->mEditorMode->HideWindow();
 
-          return true;
+            return true;
       }
   }
+
+  return false;
 }
 
 void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
@@ -340,8 +373,8 @@ void Editor::OnLeftMouseButtonDown() {
           mCurrentSession->mItemSelector->OnLeftMouseButtonDown();
       }
 
-      if (mCurrentSession->mTextureMode != nullptr) {
-          mCurrentSession->mTextureMode->OnLeftMouseButtonDown();
+      if (mCurrentSession->mEditorMode != nullptr) {
+          mCurrentSession->mEditorMode->OnLeftMouseButtonDown();
       }
     }
 }
@@ -703,6 +736,11 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
 
             delete[] text2;
     }
+
+   /* if (mCurrentSession->UpdateBlockPreview) {
+        mCurrentSession->UpdateBlockPreview = false;
+        mCurrentSession->mLevelBlocks->CreateBlockPreview();
+    }*/
 
     mDriver->beginScene(true,true,
      video::SColor(255,100,101,140));

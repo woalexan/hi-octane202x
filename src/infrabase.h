@@ -99,6 +99,14 @@ public:
 
   virtual void HandleMouseEvent(const irr::SEvent& event);
 
+  bool mBlockPreviewEnabled = true;
+
+  void CopyTexture(irr::video::ITexture* source, irr::video::ITexture* target);
+
+  //Returns the number of bytes per pixel for a certain ECOLOR_FORMAT
+  //returns 0 for an undefined ECOLOR_FORMAT
+  irr::u32 ReturnBytesPerPixel(irr::video::ECOLOR_FORMAT colFormat);
+
 private:
   //Irrlicht stuff
 

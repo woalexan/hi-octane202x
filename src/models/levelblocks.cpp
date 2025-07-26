@@ -20,6 +20,8 @@
 #include "../resources/blockdefinition.h"
 #include "irrmeshbuf.h"
 #include "../models/levelterrain.h"
+#include "../editorsession.h"
+#include "../editor.h"
 
 LevelBlocks::~LevelBlocks() {
   //remove existing SceneNodes
@@ -57,10 +59,31 @@ LevelBlocks::~LevelBlocks() {
     }
   }
 
+  if (mLevelEditorMode) {
+      CleanUpBlockReview();
+  }
+
   mIrrMeshBuf->CleanupMeshBufferInfoStructs(mBlockwCollMeshBufferVec);
   mIrrMeshBuf->CleanupMeshBufferInfoStructs(mBlockwoCollMeshBufferVec);
 
   delete mBlocksMeshStats;
+
+  if (mBlockPreviewColumn != nullptr) {
+      delete mBlockPreviewColumn;
+      mBlockPreviewColumn = nullptr;
+  }
+
+  if (mBlockPreviewColumnDef != nullptr) {
+      delete mBlockPreviewColumnDef;
+      mBlockPreviewColumnDef = nullptr;
+  }
+
+  if (mBlockPreviewBlockDef != nullptr) {
+      delete mBlockPreviewBlockDef;
+      mBlockPreviewBlockDef = nullptr;
+  }
+
+  CleanUpBlockReview();
 }
 
 LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
@@ -92,7 +115,7 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
 
    //create all buildings (column objects) out of the raw low level level data
    for(std::vector<ColumnsStruct>::iterator loopi = levelRes->Columns.begin(); loopi != levelRes->Columns.end(); ++loopi) {
-       addColumn((*loopi).Columns, (*loopi).Vector3, levelRes);
+       AddColumn((*loopi).Columns, (*loopi).Vector3, levelRes);
    }
 
    segmentSize = DEF_SEGMENTSIZE;
@@ -166,10 +189,21 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
    infoMsg.append(" indices");
 
    logging::Info(infoMsg);
+
+   if (mLevelEditorMode) {
+        SetupBlockPreview();
+
+        //during development I like to comment the next line
+        //temporarily to disable block preview images
+        //this makes the leveleditor start some seconds faster
+        CreateAllBlockDefinitionPreviews();
+   }
 }
 
-void LevelBlocks::addColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
-    Column *column = new Column(MyTerrain, this, definition, pos, levelRes);
+void LevelBlocks::AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
+    //important 21.07.2025: Do not create a special column here, this is a normal column from
+    //the map of the game!
+    Column *column = new Column(MyTerrain, this, definition, pos, levelRes, false, nullptr);
 
     this->mNrBlocksInLevel += column->GetNumberContainedBlocks();
 
@@ -762,6 +796,256 @@ bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlock
     return true;
 }
 
+void LevelBlocks::RemoveMeshColumn(Column* selColumnPntr) {
+    if (selColumnPntr == nullptr)
+        return;
+
+    size_t blockNr = selColumnPntr->mBlockInfoVec.size();
+
+    //delete mesh cube by cube
+    for (size_t idxBlock = 0; idxBlock < blockNr; idxBlock++) {
+        RemoveMeshCube(selColumnPntr, 0, (int)(idxBlock));
+    }
+}
+
+void LevelBlocks::RemoveColumn(Column* selColumnPntr) {
+    //This higher level function has to do 2 independent things:
+    // 1, modify the low level/map file itself (so that next time we
+    //    load the map again, everything is restored again in the same modified way)
+    // 2, modify the current column block Mesh used by Irrlicht to show the user the
+    //    current state of the column in the level. If we do not do this the level editor
+    //    user can not see what he actually has changed already :)
+
+    if (selColumnPntr == nullptr)
+        return;
+
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockBefore.csv"));
+    //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefBefore.csv"));
+    //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsBefore.csv"));
+
+    irr::core::vector2di columnCellCoord;
+
+    if (!FindMapCoordinateForColumn(selColumnPntr, columnCellCoord)) {
+        //did not find the coordinates of the cell
+        //where this column is located, something is wrong!
+        return;
+    }
+
+    std::string infoMsg("");
+    char hlpstr[100];
+
+    infoMsg.clear();
+    infoMsg.append("Remove column at cell X = ");
+
+    //add X
+    sprintf(hlpstr, "%d", columnCellCoord.X);
+    infoMsg.append(hlpstr);
+
+    infoMsg.append(", Y = ");
+
+    //add Y
+    sprintf(hlpstr, "%d", columnCellCoord.Y);
+    infoMsg.append(hlpstr);
+
+    infoMsg.append(", with Id = ");
+
+    //add Id
+    sprintf(hlpstr, "%d", selColumnPntr->Definition->get_ID());
+    infoMsg.append(hlpstr);
+
+    logging::Info(infoMsg);
+
+    /******************************************************************
+     * Part 1: Modify Irrlicht column Mesh                            *
+     ******************************************************************/
+
+    RemoveMeshColumn(selColumnPntr);
+
+    /******************************************************************
+     * Part 2: Modify low level map data                              *
+     ******************************************************************/
+
+    ColumnDefinition* columDefDelete = selColumnPntr->Definition;
+    BlockDefinition* blockPntr;
+    int16_t blockId;
+    std::vector<BlockDefinition*>::iterator itBlockDef;
+
+    //set all block definition states to default state
+    for (itBlockDef = this->levelRes->BlockDefinitions.begin(); itBlockDef != this->levelRes->BlockDefinitions.end(); ++itBlockDef) {
+       (*itBlockDef)->mState = DEF_BLOCKDEF_STATE_DEFAULT;
+    }
+
+    for (int blockIdx = 0; blockIdx < 8; blockIdx ++) {
+       switch (blockIdx) {
+            case 0: { blockId = columDefDelete->get_A(); break;}
+            case 1: { blockId = columDefDelete->get_B(); break;}
+            case 2: { blockId = columDefDelete->get_C(); break;}
+            case 3: { blockId = columDefDelete->get_D(); break;}
+            case 4: { blockId = columDefDelete->get_E(); break;}
+            case 5: { blockId = columDefDelete->get_F(); break;}
+            case 6: { blockId = columDefDelete->get_G(); break;}
+            case 7: { blockId = columDefDelete->get_H(); break;}
+            default: {
+                return;
+            }
+       }
+
+        if (blockId != 0) {
+             blockPntr = this->levelRes->BlockDefinitions.at(blockId - 1);
+             if (blockPntr != nullptr) {
+                 //we need to unassign block by block, faster is not possible with
+                 //the current code;
+                 blockPntr->mState = DEF_BLOCKDEF_STATE_NEWLYUNASSIGNEDONE;
+
+                 this->mNrBlocksInLevel--;
+
+                 //Make sure (possibly now) unused Blockdefinitions are deleted
+                 //Because I am not sure if the game can handle them, so make sure we
+                 //do not have them
+                 RemoveUnusedBlockDefinitions();
+
+                 //set all block definition states to default state
+                 for (itBlockDef = this->levelRes->BlockDefinitions.begin(); itBlockDef != this->levelRes->BlockDefinitions.end(); ++itBlockDef) {
+                    (*itBlockDef)->mState = DEF_BLOCKDEF_STATE_DEFAULT;
+                 }
+
+                 //we need also to update Blockdefinition usage count
+                 UpdateBlockDefinitionUsageCnt();
+             }
+        }
+    }
+
+    MapEntry* entry = this->levelRes->pMap[columnCellCoord.X][columnCellCoord.Y];
+
+    //before we remove the column try to set the futures cell textureID according
+    //to the information in the now soon be deleted column
+    entry->m_TextureId = columDefDelete->get_FloorTextureID();
+
+    //unassign column for this cell
+    selColumnPntr->Definition = nullptr;
+    entry->set_Column(nullptr);
+
+    //update the cells internal data
+    entry->WriteChanges();
+
+    std::vector<ColumnDefinition*>::iterator itColumnDef;
+
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+       (*itColumnDef)->mState = DEF_COLUMNDEF_STATE_DEFAULT;
+    }
+
+    //mark column definition which was used until now at this location
+    //as a column definition that right now got unassigned, so that
+    //we know the occurence of this column definition needs to be decreased by one
+    columDefDelete->mState = DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE;
+
+    //Make sure (possibly now) unused Columndefinitions are deleted
+    //Because I am not sure if the game can handle them, so make sure we
+    //do not have them
+    RemoveUnusedColumnDefinitions();
+
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+       (*itColumnDef)->mState = DEF_COLUMNDEF_STATE_DEFAULT;
+    }
+
+    //also delete column entry from the ColumnsByPosition vector
+    std::vector<ColumnsByPositionStruct>::iterator it;
+
+    for (it = ColumnsByPosition.begin(); it != ColumnsByPosition.end(); ) {
+        if ((*it).pColumn == selColumnPntr) {
+            it = ColumnsByPosition.erase(it);
+        } else {
+            it++;
+        }
+    }
+
+    //we need to update specific additional column definitions values
+    UpdateColumDefinitions();
+
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
+    //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
+    //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
+}
+
+void LevelBlocks::AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef) {
+    if (newColumDef == nullptr)
+        return;
+
+    if ((x < 0) || (y < 0)) {
+        return;
+    }
+
+    if ((x >= levelRes->Width()) || (y >= levelRes->Height())) {
+        return;
+    }
+
+    //if there is already a column at this location do
+    //nothing
+    MapEntry* entry = this->levelRes->pMap[x][y];
+
+    if (entry->get_Column() != nullptr) {
+        //there is already a column, return
+        return;
+    }
+
+    //add the new specified column at this location
+    entry->set_Column(newColumDef);
+
+    //update the cells internal data
+    entry->WriteChanges();
+
+    irr::core::vector3d<float> columPos;
+    columPos.set((irr::f32)(x), 0.0f, (irr::f32)(y));
+
+    //this function also sets up the Irrlicht Mesh
+    AddColumn(newColumDef, columPos, levelRes);
+
+    //we need to update specific additional column definitions values
+    UpdateColumDefinitions();
+
+    //now add the new mesh for this new column
+    ColumnsByPositionStruct GetColumnStruct = ColumnsByPosition.at(ColumnsByPosition.size() - 1);
+
+    std::vector<irr::u32> indiceOffset;
+    irr::u8 cubeCnt;
+    irr::u8 cubeIdx;
+
+    cubeCnt = (irr::u8)(GetColumnStruct.pColumn->mBlockInfoVec.size());
+    std::vector<BlockInfoStruct*>::iterator it;
+    cubeIdx = 0;
+
+    for (it = GetColumnStruct.pColumn->mBlockInfoVec.begin(); it != GetColumnStruct.pColumn->mBlockInfoVec.end(); ++it) {
+        //if collisionSelector = 1 then mesh contains all blocks
+        //that are needed for collision detection
+        if (GetColumnStruct.pColumn->Definition->mInCollisionMesh[cubeIdx] == 1) {
+            //we want collision detection for this block
+            mIrrMeshBuf->AddMeshBufferBlock(mBlockwCollMeshBufferVec, (*it), *mBlocksMeshStats);
+        }
+
+        cubeIdx++;
+    }
+
+    cubeIdx = 0;
+
+    for (it = GetColumnStruct.pColumn->mBlockInfoVec.begin(); it != GetColumnStruct.pColumn->mBlockInfoVec.end(); ++it) {
+        //if collisionSelector = 0 then mesh contains all blocks
+        //that should not be included in collision detection
+        if (GetColumnStruct.pColumn->Definition->mInCollisionMesh[cubeIdx] == 0) {
+            //we do not want collision detection for this block
+            mIrrMeshBuf->AddMeshBufferBlock(mBlockwoCollMeshBufferVec, (*it), *mBlocksMeshStats);
+        }
+
+        cubeIdx++;
+    }
+
+    //mark updated mesh as dirty, so that it is transfered again to graphics card
+    blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
+    blockMeshForCollision->recalculateBoundingBox();
+
+    blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
+    blockMeshWithoutCollision->recalculateBoundingBox();
+}
+
 void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
                                      irr::u8 selFace, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureMod) {
     //This higher level function has to do 2 independent things:
@@ -912,6 +1196,11 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
 
     if (!found) {
         return;
+    }
+
+    //if a new BlockDefinition was added, create its BlockPreviewTexture
+    if (newlyAdded) {
+        UpdatePreviewForBlockDefinition(this->levelRes->BlockDefinitions.at(outIndex));
     }
 
     //set all block definition states to default state
@@ -1074,12 +1363,12 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     //if texture modification of cube face has also changed
     //update it in Irrlicht Mesh as well
     if (updateTexMod && (currTexMod != newTextureMod)) {
-        UpdateCubeFaceTextureModification(selColumnPntr, mSelBlockNrSkippingMissingBlocks, selFacePntr, newTextureMod);
+        UpdateCubeFaceTextureModification(selColumnPntr, mSelBlockNrSkippingMissingBlocks, selFacePntr, newTextureMod, true);
     }
 }
 
 void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks,
-                                                    BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier) {
+                                                    BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier, bool SetMeshDirty) {
     //This function only needs to modify the current column/cube Mesh used by Irrlicht to show the user the
     //    current state of the new cube texture in the level. The modification of the level map
     //    file data is already handeled in the calling function
@@ -1126,12 +1415,14 @@ void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int m
         meshBufPntr->setDirty(EBT_VERTEX_AND_INDEX);
     }
 
-    if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
-        blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
-        blockMeshForCollision->recalculateBoundingBox();
-    } else {
-        blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
-        blockMeshWithoutCollision->recalculateBoundingBox();
+    if (SetMeshDirty) {
+            if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
+                blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
+                blockMeshForCollision->recalculateBoundingBox();
+            } else {
+                blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
+                blockMeshWithoutCollision->recalculateBoundingBox();
+            }
     }
 }
 
@@ -1433,6 +1724,21 @@ void LevelBlocks::RemoveUnusedBlockDefinitions() {
             //remove blockDefinition vector entry
             itBlock = MyTerrain->levelRes->BlockDefinitions.erase(itBlock);
 
+            //are there any block preview texture images to cleanup?
+            if (toDelete->mPreviewFront != nullptr) {
+                //free texture via driver
+                mInfra->mDriver->removeTexture(toDelete->mPreviewFront);
+
+                toDelete->mPreviewFront = nullptr;
+            }
+
+            if (toDelete->mPreviewBack != nullptr) {
+                //free texture via driver
+                mInfra->mDriver->removeTexture(toDelete->mPreviewBack);
+
+                toDelete->mPreviewBack = nullptr;
+            }
+
             //delete the blockdefinition struct itself
             delete toDelete;
         } else {
@@ -1461,153 +1767,6 @@ void LevelBlocks::RemoveUnusedBlockDefinitions() {
     //to the newly assigned block definition Id
     ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions();
 }
-
-//17.07.2025: Best function until now, but I believe it has bugs and is too complicated!
-/*void LevelBlocks::RemoveUnusedBlockDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId) {
-    std::string infoMsg("");
-    char hlpstr[100];
-    BlockDefinition* whichDefExclude = nullptr;
-    BlockDefinition* otherCheck = nullptr;
-
-    if (excludeActive) {
-        otherCheck = levelRes->GetBlockDefinitionWithCertainId(excludeId);
-    }
-
-    if (reduceCntByOneForIdActive) {
-        BlockDefinition* whichDef = levelRes->GetBlockDefinitionWithCertainId(reduceCntByOneForId);
-
-        //if we simply reuse the same block, do not decrease the mOccurence
-        //so that we do not delete the block we reuse
-        if ((whichDef != nullptr) && (whichDef != otherCheck)) {
-                if (whichDef->usageCnt > 0) {
-                    whichDef->usageCnt -= 1;
-
-                    infoMsg.clear();
-                    infoMsg.append("Block: Reduce usage cnt by one for Id = ");
-
-                    //add id
-                    sprintf(hlpstr, "%d", whichDef->get_ID());
-
-                    infoMsg.append(hlpstr);
-                    logging::Info(infoMsg);
-                }
-        }
-    }
-
-    if (excludeActive) {
-        whichDefExclude = levelRes->GetBlockDefinitionWithCertainId(excludeId);
-    }
-
-    std::vector<BlockDefinition*>::iterator itBlock;
-    BlockDefinition* toDelete;
-    int oldId;
-
-    irr::u32 currId = 1;
-    int baseOffset;
-
-    //std::vector<irr::u32> changeFromId;
-    //std::vector<irr::u32> changeToId;
-
-    bool keepUpdatingBlockIds = false;
-
-    //changeFromId.clear();
-    //changeToId.clear();
-
-    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ++itBlock) {
-        //for later easier update of column definitions store original
-        //Id for every block definition before we modify it possibly
-        (*itBlock)->m_initialID = (*itBlock)->get_ID();
-    }
-
-    //remove each entry with 0 usage
-    for (itBlock = MyTerrain->levelRes->BlockDefinitions.begin(); itBlock != MyTerrain->levelRes->BlockDefinitions.end(); ) {
-        if ((!(excludeActive && ((*itBlock) == whichDefExclude))) && ((*itBlock)->usageCnt == 0)) {
-            //an unused BlockDefinition entry, remove it
-
-            toDelete = (*itBlock);
-
-            //keep old Id for later
-            oldId = (*itBlock)->get_ID();
-
-            infoMsg.clear();
-            infoMsg.append("Removing unused block definition with Id = ");
-
-            //add id
-            sprintf(hlpstr, "%d", oldId);
-
-            infoMsg.append(hlpstr);
-            logging::Info(infoMsg);
-
-            //remove blockDefinition vector entry
-            itBlock = MyTerrain->levelRes->BlockDefinitions.erase(itBlock);
-
-            //delete the blockdefinition struct itself
-            delete toDelete;
-
-            //from now on we need to update every entry
-            //in the table that still follows to make sure all
-            //block Ids are properly aligned (increasing by one again)
-            keepUpdatingBlockIds = true;
-        } else {
-
-            //if this block should be excluded from erasing, leave it alone and go to
-            //the next element; This is true for example for a newly added block definition
-            //that is not assigned yet
-            if (excludeActive) {
-                if ((*itBlock) == whichDefExclude) {
-                    infoMsg.clear();
-                    infoMsg.append("Skip erasing block definition with Id = ");
-
-                    //add id
-                    sprintf(hlpstr, "%d", (*itBlock)->get_ID());
-
-                    infoMsg.append(hlpstr);
-                    logging::Info(infoMsg);
-                }
-            }
-        }
-
-          if (keepUpdatingBlockIds) {
-                //because we at least erased one block definition entry before,
-                //this next elements Id needs now to be adjusted down as well,
-                //so that all Ids stays in order, increasing one by one for each element
-                oldId = (*itBlock)->get_ID();
-
-                //the next element gets the new (current Id)
-                //remember which Id we replaced with which new Id
-                //changeFromId.push_back(oldId);
-                //changeToId.push_back(currId);
-
-                infoMsg.clear();
-                infoMsg.append("Modify block definition Id from = ");
-
-                //add id
-                sprintf(hlpstr, "%d", oldId);
-                infoMsg.append(hlpstr);
-
-                infoMsg.append(" to = ");
-                sprintf(hlpstr, "%d", currId);
-                infoMsg.append(hlpstr);
-
-                logging::Info(infoMsg);
-
-                //set new Id for the next Block definition
-                (*itBlock)->set_ID(currId);
-
-                //do not forget to also update Offset in file which depends
-                //on new Id!
-                baseOffset = 124636 + currId * 16;
-                (*itBlock)->set_Offset(baseOffset);
-            }
-
-            itBlock++;
-            currId++;
-    }
-
-    //need to update all links to the old Block Id in all columdefinitions of the level
-    //to the newly assigned block definition Id
-    ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions();
-}*/
 
 //Returns a vector which contains an element for each currently existing
 //Column definition, and how often it is used on the current map
@@ -1971,151 +2130,7 @@ void LevelBlocks::RemoveUnusedColumnDefinitions() {
 
             currId++;
     }
-
-    //need to update all links to the old column definitions Id we modified in all colums of the level
-    //to the newly assigned column definition Id
-    //ReplaceColumnDefinitionWithNewOneForAllColumns(changeFromId, changeToId);
 }
-
-//Best version before 17.07.2025, but buggy, crashes
-/*void LevelBlocks::RemoveUnusedColumnDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId) {
-    std::string infoMsg("");
-    char hlpstr[100];
-    ColumnDefinition* whichDefExclude = nullptr;
-
-    if (reduceCntByOneForIdActive) {
-        ColumnDefinition* whichDef = levelRes->GetColumnDefinitionWithCertainId(reduceCntByOneForId);
-        ColumnDefinition* otherCheck = nullptr;
-
-        if (excludeActive) {
-            otherCheck = levelRes->GetColumnDefinitionWithCertainId(excludeId);
-        }
-
-        //if we simply reuse the same column, do not decrease the mOccurence
-        //so that we do not delete the column we reuse
-        if ((whichDef != nullptr) && (otherCheck != whichDef)) {
-                if (whichDef->get_Occurence() > 0) {
-                    whichDef->set_Occurence(whichDef->get_Occurence() - 1);
-
-                    infoMsg.clear();
-                    infoMsg.append("Column: Reduce mOccurence by one for Id = ");
-
-                    //add id
-                    sprintf(hlpstr, "%d", whichDef->get_ID());
-
-                    infoMsg.append(hlpstr);
-                    logging::Info(infoMsg);
-                }
-        }
-    }
-
-    if (excludeActive) {
-        whichDefExclude = levelRes->GetColumnDefinitionWithCertainId(excludeId);
-    }
-
-    std::vector<ColumnDefinition*>::iterator itCol;
-    ColumnDefinition* toDelete;
-    int oldId;
-
-    irr::u32 currId = 1;
-    int baseOffset;
-
-    std::vector<irr::u32> changeFromId;
-    std::vector<irr::u32> changeToId;
-
-    bool keepUpdatingColumnIds = false;
-
-    changeFromId.clear();
-    changeToId.clear();
-
-    //remove each entry with 0 usage
-    for (itCol = MyTerrain->levelRes->ColumnDefinitions.begin(); itCol != MyTerrain->levelRes->ColumnDefinitions.end(); ) {
-
-        if ((!(excludeActive && ((*itCol) == whichDefExclude))) && ((*itCol)->get_Occurence() == 0)) {
-            //an unused ColumnDefinition entry, remove it
-            toDelete = (*itCol);
-
-            //keep old Id for later
-            oldId = (*itCol)->get_ID();
-
-            infoMsg.clear();
-            infoMsg.append("Removing unused column definition with Id = ");
-
-            //add id
-            sprintf(hlpstr, "%d", oldId);
-
-            infoMsg.append(hlpstr);
-            logging::Info(infoMsg);
-
-            //remove ColumnDefinition vector entry
-            itCol = MyTerrain->levelRes->ColumnDefinitions.erase(itCol);
-
-            //delete the ColumDefinition struct itself
-            delete toDelete;
-
-            //from now on we need to update every entry
-            //in the table that still follows to make sure all
-            //column Ids are properly aligned (increasing by one again)
-            keepUpdatingColumnIds = true;
-        } else {
-            //if this column should be excluded from erasing, leave it alone and go to
-            //the next element; This is true for example for a newly added column definition
-            //that is not assigned yet
-            if (excludeActive) {
-                if ((*itCol) == whichDefExclude) {
-                    infoMsg.clear();
-                    infoMsg.append("Skip erasing column definition with Id = ");
-
-                    //add id
-                    sprintf(hlpstr, "%d", (*itCol)->get_ID());
-
-                    infoMsg.append(hlpstr);
-                    logging::Info(infoMsg);
-                }
-            }
-        }
-
-        if (keepUpdatingColumnIds) {
-            //because we at least erased one column definition entry before,
-            //this next elements Id needs now to be adjusted down as well,
-            //so that all Ids stays in order, increasing one by one for each element
-            oldId = (*itCol)->get_ID();
-
-            //the next element gets the new (current Id)
-            //remember which Id we replaced with which new Id
-            changeFromId.push_back(oldId);
-            changeToId.push_back(currId);
-
-            infoMsg.clear();
-            infoMsg.append("Modify column definition Id from = ");
-
-            //add id
-            sprintf(hlpstr, "%d", oldId);
-            infoMsg.append(hlpstr);
-
-            infoMsg.append(" to = ");
-            sprintf(hlpstr, "%d", currId);
-            infoMsg.append(hlpstr);
-
-            logging::Info(infoMsg);
-
-            //set new Id for the next column definition
-            (*itCol)->set_ID(currId);
-
-            //do not forget to also update Offset in file which depends
-            //on new Id!
-            baseOffset = 98012 + currId * 26;
-            (*itCol)->set_Offset(baseOffset);
-        }
-
-        itCol++;
-        currId++;
-    }
-
-    //need to update all links to the old column definitions Id we modified in all colums of the level
-    //to the newly assigned column definition Id
-    //ReplaceColumnDefinitionWithNewOneForAllColumns(changeFromId, changeToId);
-}*/
 
 //Returns true if the specified column was found, false otherwise
 //If search succesfull outCoord output parameter returns the found map coordinates
@@ -2140,3 +2155,394 @@ bool LevelBlocks::FindMapCoordinateForColumn(Column* whichColumn, irr::core::vec
     return false;
 }
 
+void LevelBlocks::SetupBlockPreview() {
+    //Define image size for cubePreview
+    //set to 64x64 pixels
+    mCubePreviewImageSize.set(64, 64);
+
+    /*********************************************************
+     * First Setup camera for block preview image creation   *
+     * This is done using the render to texture feature      *
+     *********************************************************/
+
+    //Position of the preview block in the World
+    //is hidden below the level
+    irr::core::vector3df blockPos(-60.0f, -20.0f, 60.0f);
+
+    //based on block Position calculate position of back preview camera
+    irr::core::vector3df blockCornerFront(blockPos.X - 1.0f, blockPos.Y + 1.0f, blockPos.Z - 1.0f);
+    irr::core::vector3df posPreviewCameraBack = - (blockCornerFront - blockPos).normalize() * 1.4f + blockPos;
+
+    irr::core::vector3df lookAtPreviewCameraBack = (blockPos - posPreviewCameraBack).normalize() * 3.0f + blockPos;
+
+    //based on block position and back preview camera, calculate front preview camera
+    irr::core::vector3df deltaCamPosToBlock = blockPos - posPreviewCameraBack;
+    irr::core::vector3df posPreviewCameraFront = blockPos + deltaCamPosToBlock;
+
+    irr::core::vector3df deltaFrontLookAt = lookAtPreviewCameraBack - blockPos;
+
+    irr::core::vector3df lookAtPreviewCameraFront =  blockPos - deltaFrontLookAt;
+
+    //create the front preview camera
+    mPreviewCameraFront = this->mInfra->mSmgr->addCameraSceneNode(0, posPreviewCameraFront, lookAtPreviewCameraFront, -1, false);
+
+    //set correct aspect ratio for the camera, otherwise the rendered block texture result
+    //from the preview gets distorted
+    mPreviewCameraFront->setAspectRatio(1.0f);
+
+    //create the back preview camera
+    mPreviewCameraBack = this->mInfra->mSmgr->addCameraSceneNode(0, posPreviewCameraBack, lookAtPreviewCameraBack, -1, false);
+
+    mPreviewCameraBack->setAspectRatio(1.0f);
+
+    //create the special "render to texture" texture
+    mRenderToTargetTex = mInfra->mDriver->addRenderTargetTexture(mCubePreviewImageSize, "RTT1");
+
+    /*********************************************************
+     * Setup the special column for block preview creation   *
+     *********************************************************/
+
+   //create a special block definition for block preview feature
+   //Important: Set offset to -1 to prevent special block definition to write
+   //into the map file!
+   mBlockPreviewBlockDef = new BlockDefinition(1030, -1, 30, 30, 30, 30, 30, 30, 0, 0, 0, 0, 0, 0, 0, 0);
+
+   //create a special colum definition for block preview feature
+   //Important: Set offset to -1 to prevent special column definition to write
+   //into the map file!
+   mBlockPreviewColumnDef = new ColumnDefinition(1030, -1, 0, 0, 1030, 0, 0, 0, 0, 0, 0, 0, 1);
+   mBlockPreviewColumnDef->set_Shape(1);
+
+   irr::core::vector3df specialColumBase(-blockPos.X - 0.5f * segmentSize, blockPos.Y - 0.5f * segmentSize, blockPos.Z - 0.5f * segmentSize);
+
+   //create a special column far below the map (invisible to the player)
+   //which we can use for block preview image creation using render to target feature
+   mBlockPreviewColumn = new Column(MyTerrain, this, mBlockPreviewColumnDef, specialColumBase, levelRes, true, mBlockPreviewBlockDef);
+
+   /*********************************************************
+    * First create a preview texture for non existing cubes *
+    *********************************************************/
+
+   texPreviewFrontNoCube = mInfra->mDriver->addTexture(mCubePreviewImageSize, "texPreviewFrontNoCube");
+   texPreviewBackNoCube = mInfra->mDriver->addTexture(mCubePreviewImageSize, "texPreviewBackNoCube");
+
+   //now create the two images for no existing blocks
+   CreateBlockPreview(*texPreviewFrontNoCube, *texPreviewBackNoCube);
+
+   //reuse the blockmesh without collision detection for this reason, we could also have use the one with collision
+   //but the one without collision detection is barely used, so it does not matter much if we add one column more
+   mIrrMeshBuf->AddMeshBufferBlock(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0), *mBlocksMeshStats);
+
+   //mark updated mesh as dirty, so that it is transfered again to graphics card
+   blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
+   blockMeshWithoutCollision->recalculateBoundingBox();
+}
+
+void LevelBlocks::UpdatePreviewForBlockDefinition(BlockDefinition* blockDef) {
+    if (blockDef == nullptr)
+        return;
+
+    //if this block definitions preview textures were never created before
+    //do it now, otherwise we crash when we try to copy the new preview texture
+    //into the non existing texture
+    if (blockDef->mPreviewFront == nullptr) {
+        io::path newName2(blockDef->get_ID());
+        io::path newName1("mPreviewFront");
+        newName1.append(newName2);
+
+        blockDef->mPreviewFront = mInfra->mDriver->addTexture(mCubePreviewImageSize, newName1);
+    }
+
+    if (blockDef->mPreviewBack == nullptr) {
+        io::path newName2(blockDef->get_ID());
+        io::path newName1("mPreviewBack");
+        newName1.append(newName2);
+
+        blockDef->mPreviewBack = mInfra->mDriver->addTexture(mCubePreviewImageSize, newName1);
+    }
+
+    //adjust the preview block current Mesh
+    UpdatePreviewBlockMesh(blockDef);
+
+    //use render to texture feature to create the new
+    //block preview images
+    CreateBlockPreview(*blockDef->mPreviewFront, *blockDef->mPreviewBack);
+}
+
+void LevelBlocks::CreateAllBlockDefinitionPreviews() {
+    std::vector<BlockDefinition*>::iterator itBlockDef;
+
+    for (itBlockDef = levelRes->BlockDefinitions.begin(); itBlockDef != levelRes->BlockDefinitions.end(); ++itBlockDef) {
+        UpdatePreviewForBlockDefinition(*itBlockDef);
+    }
+}
+
+void LevelBlocks::UpdatePreviewBlockMesh(BlockDefinition* previewBlockDef) {
+    if (previewBlockDef == nullptr)
+        return;
+
+    bool updateAll = false;
+
+    if (mCurrentPreviewedBlockDefinition == nullptr) {
+        updateAll = true;
+    }
+
+    //remove all 6 sides of the block preview cube
+    //this cube is stored in the blockMeshwithout collision detection
+    mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0)->fB, *mBlocksMeshStats);
+    mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0)->fT, *mBlocksMeshStats);
+    mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0)->fN, *mBlocksMeshStats);
+    mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0)->fE, *mBlocksMeshStats);
+    mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0)->fS, *mBlocksMeshStats);
+    mIrrMeshBuf->RemoveMeshBufferCubeFace(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0)->fW, *mBlocksMeshStats);
+
+    //setup new textureId the user has selected
+    mBlockPreviewColumn->mBlockInfoVec.at(0)->fN->textureId = previewBlockDef->get_N();
+    mBlockPreviewColumn->mBlockInfoVec.at(0)->fE->textureId = previewBlockDef->get_E();
+    mBlockPreviewColumn->mBlockInfoVec.at(0)->fS->textureId = previewBlockDef->get_S();
+    mBlockPreviewColumn->mBlockInfoVec.at(0)->fW->textureId = previewBlockDef->get_W();
+    mBlockPreviewColumn->mBlockInfoVec.at(0)->fB->textureId = previewBlockDef->get_B();
+    mBlockPreviewColumn->mBlockInfoVec.at(0)->fT->textureId = previewBlockDef->get_T();
+
+    //Add new block preview cube mesh back
+    mIrrMeshBuf->AddMeshBufferBlock(mBlockwoCollMeshBufferVec, mBlockPreviewColumn->mBlockInfoVec.at(0), *mBlocksMeshStats);
+
+    //if necessary modify block/cube Face texture coordinates
+    if (updateAll || (mCurrentPreviewedBlockDefinition->get_NMod() != previewBlockDef->get_NMod())) {
+         UpdateCubeFaceTextureModification(mBlockPreviewColumn, 0, mBlockPreviewColumn->mBlockInfoVec.at(0)->fN, previewBlockDef->get_NMod(), false);
+    }
+
+    if (updateAll || (mCurrentPreviewedBlockDefinition->get_EMod() != previewBlockDef->get_EMod())) {
+         UpdateCubeFaceTextureModification(mBlockPreviewColumn, 0, mBlockPreviewColumn->mBlockInfoVec.at(0)->fE, previewBlockDef->get_EMod(), false);
+    }
+
+    if (updateAll || (mCurrentPreviewedBlockDefinition->get_SMod() != previewBlockDef->get_SMod())) {
+         UpdateCubeFaceTextureModification(mBlockPreviewColumn, 0, mBlockPreviewColumn->mBlockInfoVec.at(0)->fS, previewBlockDef->get_SMod(), false);
+    }
+
+    if (updateAll || (mCurrentPreviewedBlockDefinition->get_WMod() != previewBlockDef->get_WMod())) {
+         UpdateCubeFaceTextureModification(mBlockPreviewColumn, 0, mBlockPreviewColumn->mBlockInfoVec.at(0)->fW, previewBlockDef->get_WMod(), false);
+    }
+
+    if (updateAll || (mCurrentPreviewedBlockDefinition->get_TMod() != previewBlockDef->get_TMod())) {
+         UpdateCubeFaceTextureModification(mBlockPreviewColumn, 0, mBlockPreviewColumn->mBlockInfoVec.at(0)->fT, previewBlockDef->get_TMod(), false);
+    }
+
+    if (updateAll || (mCurrentPreviewedBlockDefinition->get_BMod() != previewBlockDef->get_BMod())) {
+         UpdateCubeFaceTextureModification(mBlockPreviewColumn, 0, mBlockPreviewColumn->mBlockInfoVec.at(0)->fB, previewBlockDef->get_BMod(), false);
+    }
+
+    blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
+    blockMeshWithoutCollision->recalculateBoundingBox();
+
+    mCurrentPreviewedBlockDefinition = previewBlockDef;
+}
+
+void LevelBlocks::CreateBlockPreview(irr::video::ITexture& outputFrontTexture, irr::video::ITexture& outputBackTexture) {
+     if (!mInfra->mBlockPreviewEnabled)
+         return;
+
+     mInfra->mDriver->beginScene(false,false, 0);
+
+     ICameraSceneNode* currCamera = mInfra->mSmgr->getActiveCamera();
+
+     // draw scene into render target
+     // set render target texture
+     this->mInfra->mDriver->setRenderTarget(mRenderToTargetTex, true, true, video::SColor(0,0,0,255));
+
+     //set front preview camera as active camera
+     this->mInfra->mSmgr->setActiveCamera(mPreviewCameraFront);
+
+     // draw whole scene into render buffer
+     mInfra->mSmgr->drawAll();
+
+     //draw a white selection box around the render preview
+     this->DrawOutlineSelectedColumn(this->mBlockPreviewColumn, 0, this->mInfra->mDrawDebug->white, this->mInfra->mDrawDebug->white, DEF_SELBLOCK_FACENONE);
+
+     //copy the preview front picture to the specified output texture
+     mInfra->CopyTexture(mRenderToTargetTex, &outputFrontTexture);
+
+     //set the render to target texture again as render target, this will clear the render target texture again
+     this->mInfra->mDriver->setRenderTarget(mRenderToTargetTex, true, true, video::SColor(0,0,0,255));
+
+     //set back preview camera as active camera
+     this->mInfra->mSmgr->setActiveCamera(mPreviewCameraBack);
+
+     // draw whole scene into render buffer
+     mInfra->mSmgr->drawAll();
+
+     //draw a white selection box around the render preview
+     this->DrawOutlineSelectedColumn(this->mBlockPreviewColumn, 0, this->mInfra->mDrawDebug->white, this->mInfra->mDrawDebug->white, DEF_SELBLOCK_FACENONE);
+
+     //copy the preview back picture to the specified output texture
+     mInfra->CopyTexture(mRenderToTargetTex, &outputBackTexture);
+
+     // set back old render target
+     mInfra->mDriver->setRenderTarget(0, false, false, 0);
+
+     //restore initial camera
+     this->mInfra->mSmgr->setActiveCamera(currCamera);
+
+     mInfra->mDriver->endScene();
+}
+
+irr::video::ITexture* LevelBlocks::GetBlockPreviewImage(Column* selColumn, int blockNrStartingFromBase, bool front) {
+      if (selColumn == nullptr) {
+          if (front) {
+              return texPreviewFrontNoCube;
+          } else {
+              return texPreviewBackNoCube;
+          }
+      }
+
+      BlockDefinition* blockDef = nullptr;
+      int blockId;
+
+      switch(blockNrStartingFromBase) {
+              case 0: {
+                  blockId = selColumn->Definition->get_A();
+                  break;
+              }
+              case 1: {
+                  blockId = selColumn->Definition->get_B();
+                  break;
+              }
+              case 2: {
+                  blockId = selColumn->Definition->get_C();
+                  break;
+              }
+              case 3: {
+                  blockId = selColumn->Definition->get_D();
+                  break;
+              }
+              case 4: {
+                  blockId = selColumn->Definition->get_E();
+                  break;
+              }
+              case 5: {
+                  blockId = selColumn->Definition->get_F();
+                  break;
+              }
+              case 6: {
+                  blockId = selColumn->Definition->get_G();
+                  break;
+              }
+              case 7: {
+                  blockId = selColumn->Definition->get_H();
+                  break;
+              }
+          default: {
+              if (front) {
+                  return texPreviewFrontNoCube;
+              } else {
+                  return texPreviewBackNoCube;
+              }
+          }
+      }
+
+      //block does not exist in this column?
+      if (blockId == 0) {
+          if (front) {
+              return texPreviewFrontNoCube;
+          } else {
+              return texPreviewBackNoCube;
+          }
+      }
+
+      blockDef = levelRes->BlockDefinitions.at(blockId - 1);
+
+      if (blockDef == nullptr) {
+          if (front) {
+              return texPreviewFrontNoCube;
+          } else {
+              return texPreviewBackNoCube;
+          }
+      }
+
+      if (front) {
+           if (blockDef->mPreviewFront != nullptr) {
+               return blockDef->mPreviewFront;
+           } else {
+               return texPreviewFrontNoCube;
+           }
+      } else {
+          if (blockDef->mPreviewBack != nullptr) {
+              return blockDef->mPreviewBack;
+          } else {
+              return texPreviewBackNoCube;
+          }
+      }
+}
+
+void LevelBlocks::CleanUpBlockReview() {
+    std::vector<BlockDefinition*>::iterator itBlockDef;
+
+    //first iterate through all existing block definitions and make sure that no
+    //generated block preview textures are still there that need to be removed
+    //from graphics driver texture cache
+    for (itBlockDef = this->levelRes->BlockDefinitions.begin(); itBlockDef != this->levelRes->BlockDefinitions.end(); ++itBlockDef) {
+
+            //are there any block preview texture images to cleanup?
+            if ((*itBlockDef)->mPreviewFront != nullptr) {
+                //free texture via driver
+                mInfra->mDriver->removeTexture((*itBlockDef)->mPreviewFront);
+
+                (*itBlockDef)->mPreviewFront = nullptr;
+            }
+
+            if ((*itBlockDef)->mPreviewBack != nullptr) {
+                //free texture via driver
+                mInfra->mDriver->removeTexture((*itBlockDef)->mPreviewBack);
+
+                (*itBlockDef)->mPreviewBack = nullptr;
+            }
+    }
+
+    if (texPreviewFrontNoCube != nullptr) {
+        //free texture via driver
+        mInfra->mDriver->removeTexture(texPreviewFrontNoCube);
+
+        texPreviewFrontNoCube = nullptr;
+    }
+
+    if (texPreviewBackNoCube != nullptr) {
+        //free texture via driver
+        mInfra->mDriver->removeTexture(texPreviewBackNoCube);
+
+        texPreviewBackNoCube = nullptr;
+    }
+
+    //remove the mPreviewCameraFront and mPreviewCameraBack
+    if (mPreviewCameraFront != nullptr) {
+        mPreviewCameraFront->remove();
+        mPreviewCameraFront = nullptr;
+    }
+
+    if (mPreviewCameraBack != nullptr) {
+        mPreviewCameraBack->remove();
+        mPreviewCameraBack = nullptr;
+    }
+
+    //cleanup the special "render to target texture"
+    //texture
+    if (mRenderToTargetTex != nullptr) {
+         mInfra->mDriver->removeTexture(mRenderToTargetTex);
+         mRenderToTargetTex = nullptr;
+    }
+
+    //delete the special column
+    if (mBlockPreviewColumn != nullptr) {
+        delete mBlockPreviewColumn;
+        mBlockPreviewColumn = nullptr;
+    }
+
+    if (mBlockPreviewColumnDef != nullptr) {
+        delete mBlockPreviewColumnDef;
+        mBlockPreviewColumnDef = nullptr;
+    }
+
+    if (mBlockPreviewBlockDef != nullptr) {
+        delete mBlockPreviewBlockDef;
+        mBlockPreviewBlockDef = nullptr;
+    }
+}

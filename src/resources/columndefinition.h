@@ -29,6 +29,8 @@ public:
     ~ColumnDefinition();
 
     //Alternative constructor used for the level editor
+    //if offset is set to -1 (for example for special column for block preview) writing to
+    //map file data vector is disabled.
     ColumnDefinition(int id, int offset, int newFloorTextureID, int16_t mUnknown1, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE,
                      int16_t newF, int16_t newG, int16_t newH, int16_t newOccurence);
 
@@ -73,13 +75,20 @@ public:
     //in the column
     std::vector<int> mInCollisionMesh;
 
-    //only used for the level editor
+    /*****************************************
+     * LevelEditor only used variables start *
+     *****************************************/
+
     //while column definition changes
     int m_initialID;
 
     //this columndefinition state variable is
     //only used for the leveleditor
     uint8_t mState = DEF_COLUMNDEF_STATE_DEFAULT;
+
+    /*****************************************
+     * LevelEditor only used variables end   *
+     *****************************************/
 
 private:
     int16_t mA;

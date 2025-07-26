@@ -81,6 +81,7 @@ struct BlockInfoStruct {
 class LevelTerrain;
 class LevelBlocks;
 class ColumnDefinition;
+class BlockDefinition;
 struct ColumnSideGeometryInfo;
 struct ColumnsByPositionStruct;
 class LevelFile;
@@ -88,7 +89,8 @@ class MapEntry;
 
 class Column {
 public:
-    Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelRes);
+    Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelRes,
+           bool specialPreviewColumn, BlockDefinition* specialPreviewColumnBlockDefPntrA);
     ~Column();
 
     MapEntry* GetMapEntry(int x, int y);
@@ -157,6 +159,9 @@ private:
 
     irr::u16 mNrBlocksInColumn = 0;
 
+    //special PreviewColumn variables
+    bool mSpecialPreviewColumn;
+
 //protected:
 public:
     //vector which contains all cubes of this column
@@ -168,6 +173,17 @@ public:
     ColumnSideGeometryInfo* GeometryInfoList = nullptr;
 
     LevelFile* levelRes = nullptr;
+
+    //for a special preview column this block definitions pointers
+    //are used instead the Block Ids to define the blocks
+    BlockDefinition* mPreviewBlockDefA = nullptr;
+    /*BlockDefinition* mPreviewBlockDefB = nullptr;
+    BlockDefinition* mPreviewBlockDefC = nullptr;
+    BlockDefinition* mPreviewBlockDefD = nullptr;
+    BlockDefinition* mPreviewBlockDefE = nullptr;
+    BlockDefinition* mPreviewBlockDefF = nullptr;
+    BlockDefinition* mPreviewBlockDefG = nullptr;
+    BlockDefinition* mPreviewBlockDefH = nullptr;*/
 };
 
 #endif // COLUMN_H

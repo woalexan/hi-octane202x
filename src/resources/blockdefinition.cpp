@@ -66,6 +66,8 @@ BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)
 
 //alternative constructor for usage with the level editor
 //to add a new block definition to the level file
+//if offset is set to -1 (for example for special column for block preview) writing to
+//map file data vector is disabled.
 BlockDefinition::BlockDefinition(int id, int offset, uint8_t newN, uint8_t newE, uint8_t newS, uint8_t newW, uint8_t newT, uint8_t newB,
                 uint8_t newNMod, uint8_t newEMod, uint8_t newSMod, uint8_t newWMod, uint8_t newTMod, uint8_t newBMod, int16_t newUnknown1, int16_t newUnknown2) {
     this->m_ID = id;
@@ -112,6 +114,13 @@ BlockDefinition::~BlockDefinition() {
 }
 
 bool BlockDefinition::WriteChanges() {
+   //I have the ability to create "special" block definitions that are
+    //used for example for block preview rendering; to prevent that this block definitions are
+    //written accidently to the level file low level data, I set offset of this
+    //block definitions to -1; In case we find -1 here prevent writting of data!
+    if (m_Offset == -1)
+        return true;
+
    save_N(mN);
    save_E(mE);
    save_S(mS);

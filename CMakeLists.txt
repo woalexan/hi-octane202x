@@ -322,8 +322,14 @@ add_executable(hi-editor
 
     src/editor/itemselector.h
     src/editor/itemselector.cpp
+    src/editor/editormode.h
+    src/editor/editormode.cpp
+    src/editor/viewmode.h
+    src/editor/viewmode.cpp
     src/editor/texturemode.h
     src/editor/texturemode.cpp
+    src/editor/columndesign.h
+    src/editor/columndesign.cpp
 
     src/definitions.h
     src/infrabase.h

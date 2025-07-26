@@ -19,6 +19,7 @@
 
 #define DEF_EDITOR_USERINNODIALOG 0
 #define DEF_EDITOR_USERINTEXTUREDIALOG 1
+#define DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG 2
 
 /************************
  * Forward declarations *
@@ -37,6 +38,9 @@ class LevelFile;
 class Morph;
 class ItemSelector;
 class TextureMode;
+class ColumnDesigner;
+class EditorMode;
+class ViewMode;
 
 /* GUI Elements
 */
@@ -45,11 +49,6 @@ struct GUI
     GUI ()
     {
         memset ( this, 0, sizeof ( *this ) );
-    }
-
-    void drop()
-    {
-        dropElement ( Window );
     }
 
     irr::gui::IGUICheckBox* FullScreen;
@@ -69,7 +68,6 @@ struct GUI
     irr::gui::IGUIImage* texImage10;
 
     irr::gui::IGUIComboBox* texCategoryList;
-    irr::gui::IGUIWindow* Window;
     irr::gui::IGUIScrollBar* Scrollbar;
 };
 
@@ -103,6 +101,8 @@ public:
     ItemSelector* mItemSelector = nullptr;
 
     TextureMode* mTextureMode = nullptr;
+    ColumnDesigner* mColumnDesigner = nullptr;
+    ViewMode* mViewMode = nullptr;
 
     irr::s32 GetNextFreeGuiId();
     void HideWindow();
@@ -161,8 +161,12 @@ public:
     void HandleBasicInput();
     void End();
 
+    void SetMode(EditorMode* selMode);
+
     void TestDialog();
     void TrackActiveDialog();
+
+    EditorMode* mEditorMode = nullptr;
 
     irr::u8 mUserInDialogState = DEF_EDITOR_USERINNODIALOG;
 
