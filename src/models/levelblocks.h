@@ -61,7 +61,7 @@ struct ColumnsByPositionStruct {
 class LevelBlocks {
 public:
     LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
-                TextureLoader* textureSource, bool levelEditorMode, bool debugShowWallCollisionMesh, bool enableLightning);
+                TextureLoader* textureSource, bool levelEditorMode, bool debugShowWallCollisionMesh, bool enableLightning, bool enableBlockPreview);
     ~LevelBlocks();
 
     void CreateBlocksMesh();
@@ -90,7 +90,8 @@ public:
     irr::u8 GetCurrentViewMode();
 
     void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, irr::video::SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace = DEF_SELBLOCK_FACENONE);
-    void DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* color);
+    void DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* colorGrid, bool drawCurrBlockToBeEdited, int nrBlockToBeEditedStartingFromBase,
+                                 irr::video::SMaterial* colorBlockToBeEdited);
 
     //Derives the current texturing information about a selected block face
     //returns true if the information was found, false otherwise
@@ -109,8 +110,11 @@ public:
     void RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks);
     void RemoveMeshColumn(Column* selColumnPntr);
     void RemoveColumn(Column* selColumnPntr);
+    void RemoveBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks);
 
     void AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef);
+    void AddMeshColumn(Column* column);
+    void AddBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks, BlockDefinition* whichBlockType);
 
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
@@ -201,6 +205,7 @@ private:
     bool mEnableLightning;
 
     bool mLevelEditorMode;
+    bool mEnableBlockPreview;
 
     //Special block definition for preview image creation (using render to target)
     BlockDefinition* mBlockPreviewBlockDef = nullptr;

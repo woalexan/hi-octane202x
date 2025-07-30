@@ -456,11 +456,23 @@ void ColumnDesigner::CreateWindow() {
     irr::s32 mx = dim.Width - 400;
     irr::s32 my = 90;
 
+    mGuiColumnDesigner.MoveUpColumnButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 15), Window, GUI_ID_COLUMNDESIGNER_BUTTON_MOVEUPCOLUMN, L"Move up");
+
+    mGuiColumnDesigner.MoveDownColumnButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 30, mx + 85, my + 45), Window, GUI_ID_COLUMNDESIGNER_BUTTON_MOVEDOWNCOLUMN, L"Move down");
+
     mGuiColumnDesigner.AddColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 15), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN, L"Add column");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 60, mx + 85, my + 75), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN, L"Add column");
 
     mGuiColumnDesigner.RemoveColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 15), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN, L"Remove column");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 60, mx + 85, my + 75), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN, L"Remove column");
+
+    mGuiColumnDesigner.AddBlockButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 90, mx + 85, my + 105), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDBLOCK, L"Add block");
+
+    mGuiColumnDesigner.RemoveBlockButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 90, mx + 85, my + 105), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVEBLOCK, L"Remove block");
 }
 
 void ColumnDesigner::UpdateBlockPreviewGuiImages(Column* selColumn) {
@@ -543,6 +555,18 @@ void ColumnDesigner::WindowControlColumnPreview(bool newState) {
 
     mGuiColumnDesigner.RemoveColumnButton->setEnabled(newState);
     mGuiColumnDesigner.RemoveColumnButton->setVisible(newState);
+
+    mGuiColumnDesigner.MoveUpColumnButton->setEnabled(newState);
+    mGuiColumnDesigner.MoveUpColumnButton->setVisible(newState);
+
+    mGuiColumnDesigner.MoveDownColumnButton->setEnabled(newState);
+    mGuiColumnDesigner.MoveDownColumnButton->setVisible(newState);
+
+    mGuiColumnDesigner.AddBlockButton->setEnabled(newState);
+    mGuiColumnDesigner.AddBlockButton->setVisible(newState);
+
+    mGuiColumnDesigner.RemoveBlockButton->setEnabled(newState);
+    mGuiColumnDesigner.RemoveBlockButton->setVisible(newState);
 }
 /*
 void TextureMode::SelectTextureModification(int8_t newSelectedTexModification) {
@@ -733,6 +757,134 @@ void TextureMode::SelectOtherBlockFace(irr::u8 newFaceSelection) {
     NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
 }*/
 
+void ColumnDesigner::OnSelectNewBlockForEditing(int newBlockSelectionForEditing) {
+    //if value is invalid, ignore it
+    if ((mCurrBlockToBeEditedSelection < 0) || (mCurrBlockToBeEditedSelection > 7)) {
+        //something seems to be wrong, disable both buttons
+        mGuiColumnDesigner.AddBlockButton->setEnabled(false);
+        mGuiColumnDesigner.AddBlockButton->setVisible(false);
+
+        mGuiColumnDesigner.RemoveBlockButton->setEnabled(false);
+        mGuiColumnDesigner.RemoveBlockButton->setVisible(false);
+
+        mSelectedBlockDefForEditing = nullptr;
+        return;
+    }
+
+    //update currently seelcted block for editing
+    mCurrBlockToBeEditedSelection = newBlockSelectionForEditing;
+
+    //if at the new selected position in the column there is already a block existing
+    //show and enable the RemoveBlock button
+    //otherwise enable and show the AddBlock button
+    int currBlockId;
+
+    mSelectedColumnForEditing = mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected;
+
+    ColumnDefinition* colDef = mSelectedColumnForEditing->Definition;
+
+    if (colDef == nullptr) {
+        //something seems to be wrong, disable both buttons
+        mGuiColumnDesigner.AddBlockButton->setEnabled(false);
+        mGuiColumnDesigner.AddBlockButton->setVisible(false);
+
+        mGuiColumnDesigner.RemoveBlockButton->setEnabled(false);
+        mGuiColumnDesigner.RemoveBlockButton->setVisible(false);
+
+        mSelectedBlockDefForEditing = nullptr;
+        return;
+    }
+
+    switch (newBlockSelectionForEditing) {
+        case 0: {
+             currBlockId = colDef->get_A();
+             break;
+        }
+
+        case 1: {
+             currBlockId = colDef->get_B();
+             break;
+        }
+
+        case 2: {
+             currBlockId = colDef->get_C();
+             break;
+        }
+
+        case 3: {
+             currBlockId = colDef->get_D();
+             break;
+        }
+
+        case 4: {
+             currBlockId = colDef->get_E();
+             break;
+        }
+
+        case 5: {
+             currBlockId = colDef->get_F();
+             break;
+        }
+
+        case 6: {
+             currBlockId = colDef->get_G();
+             break;
+        }
+
+        case 7: {
+             currBlockId = colDef->get_H();
+             break;
+        }
+
+        default: {
+            //something seems to be wrong, disable both buttons
+            mGuiColumnDesigner.AddBlockButton->setEnabled(false);
+            mGuiColumnDesigner.AddBlockButton->setVisible(false);
+
+            mGuiColumnDesigner.RemoveBlockButton->setEnabled(false);
+            mGuiColumnDesigner.RemoveBlockButton->setVisible(false);
+
+            mSelectedBlockDefForEditing = nullptr;
+            return;
+        }
+    }
+
+    //no block existing there?
+    if (currBlockId == 0) {
+        mGuiColumnDesigner.AddBlockButton->setEnabled(true);
+        mGuiColumnDesigner.AddBlockButton->setVisible(true);
+
+        mGuiColumnDesigner.RemoveBlockButton->setEnabled(false);
+        mGuiColumnDesigner.RemoveBlockButton->setVisible(false);
+
+        mSelectedBlockDefForEditing = nullptr;
+        return;
+    }
+
+    //returns nullptr if a block definition with this Id is not found
+    BlockDefinition* blockDef = this->mParentSession->mLevelRes->GetBlockDefinitionWithCertainId(currBlockId);
+
+    if (blockDef == nullptr) {
+        mGuiColumnDesigner.AddBlockButton->setEnabled(true);
+        mGuiColumnDesigner.AddBlockButton->setVisible(true);
+
+        mGuiColumnDesigner.RemoveBlockButton->setEnabled(false);
+        mGuiColumnDesigner.RemoveBlockButton->setVisible(false);
+
+        mSelectedBlockDefForEditing = nullptr;
+        return;
+    }
+
+    //yes, there is a block existing there currently
+    mSelectedBlockDefForEditing = blockDef;
+
+    mGuiColumnDesigner.AddBlockButton->setEnabled(false);
+    mGuiColumnDesigner.AddBlockButton->setVisible(false);
+
+    mGuiColumnDesigner.RemoveBlockButton->setEnabled(true);
+    mGuiColumnDesigner.RemoveBlockButton->setVisible(true);
+}
+
 void ColumnDesigner::OnButtonClicked(irr::s32 buttonGuiId) {
     switch (buttonGuiId) {
         case GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN: {
@@ -753,26 +905,48 @@ void ColumnDesigner::OnButtonClicked(irr::s32 buttonGuiId) {
              break;
         }
 
-       /* case GUI_ID_TEXTUREWINDOW_BUTTONSELECTS: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACESOUTH);
-             break;
-        }
+        case GUI_ID_COLUMNDESIGNER_BUTTON_MOVEUPCOLUMN: {
+            if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+                int newSelValue = mCurrBlockToBeEditedSelection;
+                newSelValue++;
 
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTW: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACEWEST);
-             break;
-        }
+                if (newSelValue > 7) {
+                    newSelValue = 7;
+                }
 
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTT: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACETOP);
-             break;
-        }
-
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTB: {
-            SelectOtherBlockFace(DEF_SELBLOCK_FACEBOTTOM);
+                OnSelectNewBlockForEditing(newSelValue);
+            }
             break;
-        }*/
+        }
+
+        case GUI_ID_COLUMNDESIGNER_BUTTON_MOVEDOWNCOLUMN: {
+            if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+                int newSelValue = mCurrBlockToBeEditedSelection;
+                newSelValue--;
+
+                if (newSelValue < 0) {
+                    newSelValue = 0;
+                }
+
+                OnSelectNewBlockForEditing(newSelValue);
+            }
+            break;
+        }
+
+        case GUI_ID_COLUMNDESIGNER_BUTTON_REMOVEBLOCK: {
+             OnRemoveBlock();
+             break;
+        }
     }
+}
+
+void ColumnDesigner::OnRemoveBlock() {
+    if (mSelectedColumnForEditing == nullptr)
+        return;
+
+     int nrBlockSkippingGaps = mSelectedColumnForEditing->GetNumberMissingBlocksAtBase();
+
+     mParentSession->mLevelBlocks->RemoveBlock(mSelectedColumnForEditing, mCurrBlockToBeEditedSelection, mCurrBlockToBeEditedSelection - nrBlockSkippingGaps);
 }
 
 void ColumnDesigner::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
@@ -784,6 +958,9 @@ void ColumnDesigner::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct 
         //for a selected cell hide the window block
         //options (gui elements)
         WindowControlColumnPreview(false);
+
+        mSelectedColumnForEditing = nullptr;
+        mSelectedBlockDefForEditing = nullptr;
 
         //a cell was selected
         //which texture Id does this cell have
@@ -827,8 +1004,57 @@ void ColumnDesigner::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct 
                 delete[] selInfo;
 
                 UpdateBlockPreviewGuiImages(newItemSelected.mColumnSelected);
+
+                OnSelectNewBlockForEditing(mCurrBlockToBeEditedSelection);
         }
      }
+}
+
+void ColumnDesigner::SelectBlockToEditFromBlockPreview(irr::gui::IGUIImage* currHoveredBlockPreviewImage) {
+    if (currHoveredBlockPreviewImage == nullptr)
+        return;
+
+    //for both the front and back block preview image we select the same block position
+    //front or back does not matter, user can use both to select
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockAImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockAImageBack)) {
+           OnSelectNewBlockForEditing(0);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockBImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockBImageBack)) {
+          OnSelectNewBlockForEditing(1);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockCImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockCImageBack)) {
+         OnSelectNewBlockForEditing(2);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockDImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockDImageBack)) {
+         OnSelectNewBlockForEditing(3);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockEImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockEImageBack)) {
+         OnSelectNewBlockForEditing(4);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockFImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockFImageBack)) {
+         OnSelectNewBlockForEditing(5);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockGImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockGImageBack)) {
+         OnSelectNewBlockForEditing(6);
+    }
+
+    if ((currHoveredBlockPreviewImage == mGuiColumnDesigner.blockHImageFront) ||
+        (currHoveredBlockPreviewImage == mGuiColumnDesigner.blockHImageBack)) {
+         OnSelectNewBlockForEditing(7);
+    }
 }
 
 void ColumnDesigner::OnLeftMouseButtonDown() {
@@ -844,18 +1070,11 @@ void ColumnDesigner::OnLeftMouseButtonDown() {
          }
 
         case DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG: {
-           /* //are we hovering right now over exactly one of my
+            //are we hovering right now over exactly one of my
             //texture selection images?
-            if (mCurrShownTexCategory != nullptr) {
-                //returns nullptr if no texture image in the dialog
-                //is currently hovered with the mouse
-                GUITextureModeTexDataStruct* pntr = mCurrShownTexCategory->FoundCurrentlyHoveredTexture();
-                if (pntr != nullptr) {
-                    //some new texture image was selected
-                    //handle action inside this function call
-                    OnUserChangedToNewTexture(mParentSession->mItemSelector->mCurrSelectedItem, pntr->textureId);
-                }
-            }*/
+            if (mBlockPreviewCurrentlyHovered != nullptr) {
+                SelectBlockToEditFromBlockPreview(mBlockPreviewCurrentlyHovered);
+            }
 
            break;
         }
@@ -866,24 +1085,66 @@ void ColumnDesigner::OnLeftMouseButtonDown() {
     }
 }
 
+//returns nullptr if currently no block preview image
+//is hovered by the user
+irr::gui::IGUIImage* ColumnDesigner::FindCurrentlyHoveredBlockPreviewImage(irr::s32 hoveredGuiId) {
+    //which block preview image was hovered?
+    if (blockAImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockAImageFront;
+
+    if (blockBImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockBImageFront;
+
+    if (blockCImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockCImageFront;
+
+    if (blockDImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockDImageFront;
+
+    if (blockEImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockEImageFront;
+
+    if (blockFImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockFImageFront;
+
+    if (blockGImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockGImageFront;
+
+    if (blockHImageFrontId == hoveredGuiId)
+        return mGuiColumnDesigner.blockHImageFront;
+
+    if (blockAImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockAImageBack;
+
+    if (blockBImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockBImageBack;
+
+    if (blockCImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockCImageBack;
+
+    if (blockDImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockDImageBack;
+
+    if (blockEImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockEImageBack;
+
+    if (blockFImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockFImageBack;
+
+    if (blockGImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockGImageBack;
+
+    if (blockHImageBackId == hoveredGuiId)
+        return mGuiColumnDesigner.blockHImageBack;
+
+    return nullptr;
+}
+
 void ColumnDesigner::OnElementHovered(irr::s32 hoveredGuiId) {
-    /*if (mCurrShownTexCategory == nullptr)
+    if (mParentSession->mUserInDialogState != DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG)
         return;
 
-    if (mParentSession->mUserInDialogState != DEF_EDITOR_USERINTEXTUREDIALOG)
-        return;
-
-    //which texture was hovered?
-
-    //returns nullptr if no texture is found
-    GUITextureModeTexDataStruct* pntr =  mCurrShownTexCategory->SearchTextureById(hoveredGuiId);
-
-    if (pntr == nullptr)
-        return;
-
-    //we found the newly hovered texture image in the
-    //dialog
-    pntr->currHovered = true;*/
+    mBlockPreviewCurrentlyHovered = FindCurrentlyHoveredBlockPreviewImage(hoveredGuiId);
 }
 
 void ColumnDesigner::OnElementLeft(irr::s32 leftGuiId) {
@@ -910,7 +1171,8 @@ void ColumnDesigner::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStru
     if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->orange);
     } else if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-             mParentSession->mLevelBlocks->DrawColumnSelectionGrid(mCurrSelectedItem->mColumnSelected, mParentSession->mParentEditor->mDrawDebug->orange);
+             mParentSession->mLevelBlocks->DrawColumnSelectionGrid(mCurrSelectedItem->mColumnSelected, mParentSession->mParentEditor->mDrawDebug->orange,
+                                                                   true, mCurrBlockToBeEditedSelection, mParentSession->mParentEditor->mDrawDebug->white);
         }
 }
 
@@ -921,7 +1183,8 @@ void ColumnDesigner::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoS
     if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
     } else if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-         mParentSession->mLevelBlocks->DrawColumnSelectionGrid(mCurrHighlightedItem->mColumnSelected, mParentSession->mParentEditor->mDrawDebug->cyan);
+         mParentSession->mLevelBlocks->DrawColumnSelectionGrid(mCurrHighlightedItem->mColumnSelected, mParentSession->mParentEditor->mDrawDebug->cyan, false,
+                                                               0, mParentSession->mParentEditor->mDrawDebug->cyan);
     }
 }
 

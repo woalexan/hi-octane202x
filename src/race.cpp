@@ -3688,7 +3688,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
    this->mLevelBlocks = new LevelBlocks(mGame, this->mLevelTerrain, this->mLevelRes, mTexLoader, false,
-                                        DebugShowWallCollisionMesh, this->mGame->enableLightning);
+                                        DebugShowWallCollisionMesh, this->mGame->enableLightning, false);
 
    if (mGame->mUseXEffects) {
        // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.

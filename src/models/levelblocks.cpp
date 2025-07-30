@@ -87,11 +87,12 @@ LevelBlocks::~LevelBlocks() {
 }
 
 LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, LevelFile* levelRes,
-                         TextureLoader* textureSource, bool levelEditorMode, bool debugShowWallCollisionMesh, bool enableLightning) {
+                         TextureLoader* textureSource, bool levelEditorMode, bool debugShowWallCollisionMesh, bool enableLightning, bool enableBlockPreview) {
    MyTerrain = myTerrain;
    mInfra = infra;
    mEnableLightning = enableLightning;
    mLevelEditorMode = levelEditorMode;
+   mEnableBlockPreview = enableBlockPreview;
 
    //this->m_texfile = texfile;
    mTexSource = textureSource;
@@ -193,10 +194,9 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
    if (mLevelEditorMode) {
         SetupBlockPreview();
 
-        //during development I like to comment the next line
-        //temporarily to disable block preview images
-        //this makes the leveleditor start some seconds faster
-        CreateAllBlockDefinitionPreviews();
+        if (mEnableBlockPreview) {
+            CreateAllBlockDefinitionPreviews();
+        }
    }
 }
 
@@ -700,7 +700,9 @@ void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFr
     }
 }
 
-void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* color) {
+void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* colorGrid,
+                                          bool drawCurrBlockToBeEdited, int nrBlockToBeEditedStartingFromBase,
+                                          irr::video::SMaterial* colorBlockToBeEdited) {
     if (selColumnPntr == nullptr)
         return;
 
@@ -718,13 +720,13 @@ void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMa
     //if the exit (are assigned to a block definition) right now
     for (irr::u8 idx = 0; idx < 8; idx++) {
         //draw a 3D rectangle for the base
-        this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
+        this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, colorGrid);
 
         //and 4 lines at the cubes edges
-        this->mInfra->mDrawDebug->Draw3DLine(v1, v1h, color);
-        this->mInfra->mDrawDebug->Draw3DLine(v2, v2h, color);
-        this->mInfra->mDrawDebug->Draw3DLine(v3, v3h, color);
-        this->mInfra->mDrawDebug->Draw3DLine(v4, v4h, color);
+        this->mInfra->mDrawDebug->Draw3DLine(v1, v1h, colorGrid);
+        this->mInfra->mDrawDebug->Draw3DLine(v2, v2h, colorGrid);
+        this->mInfra->mDrawDebug->Draw3DLine(v3, v3h, colorGrid);
+        this->mInfra->mDrawDebug->Draw3DLine(v4, v4h, colorGrid);
 
         v1.Y += segmentSize;
         v2.Y += segmentSize;
@@ -737,7 +739,39 @@ void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMa
     }
 
     //draw a last 3D rectangle for the top
-    this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, color);
+    this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, colorGrid);
+
+    //if feature enabled draw currently selected block to be edited
+    if (drawCurrBlockToBeEdited) {
+        v1 = selColumnPntr->mBaseVert1Coord;
+        v1.Y += segmentSize * (nrBlockToBeEditedStartingFromBase);
+
+        v2 = selColumnPntr->mBaseVert2Coord;
+        v2.Y += segmentSize * (nrBlockToBeEditedStartingFromBase);
+
+        v3 = selColumnPntr->mBaseVert3Coord;
+        v3.Y += segmentSize * (nrBlockToBeEditedStartingFromBase);
+
+        v4 = selColumnPntr->mBaseVert4Coord;
+        v4.Y += segmentSize * (nrBlockToBeEditedStartingFromBase);
+
+        v1h.Y = v1.Y + segmentSize;
+        v2h.Y = v2.Y + segmentSize;
+        v3h.Y = v3.Y + segmentSize;
+        v4h.Y = v4.Y + segmentSize;
+
+        //draw a 3D rectangle for the base rectangle of the selected block
+        this->mInfra->mDrawDebug->Draw3DRectangle(v1, v2, v3, v4, colorBlockToBeEdited);
+
+        //and 4 lines at the selected cubes edges
+        this->mInfra->mDrawDebug->Draw3DLine(v1, v1h, colorBlockToBeEdited);
+        this->mInfra->mDrawDebug->Draw3DLine(v2, v2h, colorBlockToBeEdited);
+        this->mInfra->mDrawDebug->Draw3DLine(v3, v3h, colorBlockToBeEdited);
+        this->mInfra->mDrawDebug->Draw3DLine(v4, v4h, colorBlockToBeEdited);
+
+        //draw a last 3D rectangle for the top
+        this->mInfra->mDrawDebug->Draw3DRectangle(v1h, v2h, v3h, v4h, colorBlockToBeEdited);
+    }
 }
 
 //Derives the current texturing information about a selected block face
@@ -962,6 +996,10 @@ void LevelBlocks::RemoveColumn(Column* selColumnPntr) {
     //we need to update specific additional column definitions values
     UpdateColumDefinitions();
 
+    //delete the column object itself
+    delete selColumnPntr;
+    selColumnPntr = nullptr;
+
     //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
     //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
     //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
@@ -997,7 +1035,8 @@ void LevelBlocks::AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef) {
     irr::core::vector3d<float> columPos;
     columPos.set((irr::f32)(x), 0.0f, (irr::f32)(y));
 
-    //this function also sets up the Irrlicht Mesh
+    //this function also sets up the Irrlicht vertices
+    //only the column is not yet added to the Irrlicht Mesh
     AddColumn(newColumDef, columPos, levelRes);
 
     //we need to update specific additional column definitions values
@@ -1006,18 +1045,25 @@ void LevelBlocks::AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef) {
     //now add the new mesh for this new column
     ColumnsByPositionStruct GetColumnStruct = ColumnsByPosition.at(ColumnsByPosition.size() - 1);
 
-    std::vector<irr::u32> indiceOffset;
+    //add the new column to the Irrlicht Mesh
+    AddMeshColumn(GetColumnStruct.pColumn);
+}
+
+void LevelBlocks::AddMeshColumn(Column* column) {
+    if (column == nullptr)
+        return;
+
     irr::u8 cubeCnt;
     irr::u8 cubeIdx;
 
-    cubeCnt = (irr::u8)(GetColumnStruct.pColumn->mBlockInfoVec.size());
+    cubeCnt = (irr::u8)(column->mBlockInfoVec.size());
     std::vector<BlockInfoStruct*>::iterator it;
     cubeIdx = 0;
 
-    for (it = GetColumnStruct.pColumn->mBlockInfoVec.begin(); it != GetColumnStruct.pColumn->mBlockInfoVec.end(); ++it) {
+    for (it = column->mBlockInfoVec.begin(); it != column->mBlockInfoVec.end(); ++it) {
         //if collisionSelector = 1 then mesh contains all blocks
         //that are needed for collision detection
-        if (GetColumnStruct.pColumn->Definition->mInCollisionMesh[cubeIdx] == 1) {
+        if (column->Definition->mInCollisionMesh[cubeIdx] == 1) {
             //we want collision detection for this block
             mIrrMeshBuf->AddMeshBufferBlock(mBlockwCollMeshBufferVec, (*it), *mBlocksMeshStats);
         }
@@ -1027,10 +1073,10 @@ void LevelBlocks::AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef) {
 
     cubeIdx = 0;
 
-    for (it = GetColumnStruct.pColumn->mBlockInfoVec.begin(); it != GetColumnStruct.pColumn->mBlockInfoVec.end(); ++it) {
+    for (it = column->mBlockInfoVec.begin(); it != column->mBlockInfoVec.end(); ++it) {
         //if collisionSelector = 0 then mesh contains all blocks
         //that should not be included in collision detection
-        if (GetColumnStruct.pColumn->Definition->mInCollisionMesh[cubeIdx] == 0) {
+        if (column->Definition->mInCollisionMesh[cubeIdx] == 0) {
             //we do not want collision detection for this block
             mIrrMeshBuf->AddMeshBufferBlock(mBlockwoCollMeshBufferVec, (*it), *mBlocksMeshStats);
         }
@@ -1462,6 +1508,292 @@ void LevelBlocks::RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int
         blockMeshWithoutCollision->recalculateBoundingBox();
     }
 }
+
+void LevelBlocks::RemoveBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks) {
+    //This higher level function has to do 2 independent things:
+    // 1, Remove the column block in the level/map file itself (so that next time we
+    //    load the map again, everything is restored again in the same modified way)
+    // 2, modify the current column block Mesh used by Irrlicht to show the user the
+    //    current state of the column in the level. If we do not do this the level editor
+    //    user can not see what he actually has changed already :)
+
+    if (selColumnPntr == nullptr)
+        return;
+
+    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    ColumnDefinition* columDefStart = selColumnPntr->Definition;
+
+    if (blockInfo == nullptr)
+        return;
+
+    //The issue is, that by removing blocks from the column it can be that the collision detection
+    //disabled/enabled for a block of the column can change; because block without collision detection
+    //are in a different Mesh then block with collision detection, it is easier to:
+    //
+    // * First remove the Mesh from the complete Column
+    // * Update the collision data in the selected column, so if collision detection state does
+    //   change for any block in the column we have the new updated state
+    // * Also remove the cube from the column geometry information, so that we do not add the removed block
+    //   back in the last step. This also deletes the now unnecessary vertices of this block
+    // * Add back the Mesh for the whole still existing column, but now in the updated MeshBuffers
+    //   This happens at the end of this function
+
+    /*****************************************************
+     * Part 1: Remove existing block from Irrlicht Mesh  *
+     *****************************************************/
+
+    //remove whole column from Irrlicht Mesh
+    RemoveMeshColumn(selColumnPntr);
+
+    //we also have to adjust the column information
+    //so that the now unnecessary Vertices of the column
+    //geometry are removed
+    //and that we do not add back the removed black in
+    //AddMeshColumn function below
+    selColumnPntr->RemoveBlock(nrBlockFromBase);
+
+    //Update collision information
+    selColumnPntr->Definition->CreateCollisionData();
+
+    /*****************************************************
+     * Part 2: Modify low level map data                 *
+     *****************************************************/
+
+    int16_t blockValue;
+
+    //get correct selected cube
+    switch (nrBlockFromBase) {
+        case 0: { blockValue = selColumnPntr->Definition->get_A(); break; }
+        case 1: { blockValue = selColumnPntr->Definition->get_B(); break; }
+        case 2: { blockValue = selColumnPntr->Definition->get_C(); break; }
+        case 3: { blockValue = selColumnPntr->Definition->get_D(); break; }
+        case 4: { blockValue = selColumnPntr->Definition->get_E(); break; }
+        case 5: { blockValue = selColumnPntr->Definition->get_F(); break; }
+        case 6: { blockValue = selColumnPntr->Definition->get_G(); break; }
+        case 7: { blockValue = selColumnPntr->Definition->get_H(); break; }
+        default: {
+            return;
+            break;
+        }
+    }
+
+    //need to subtract one, to convert Block Id to
+    //"vector index"
+    blockValue--;
+
+    if ((blockValue < 0) || (blockValue >= (int16_t)(levelRes->BlockDefinitions.size())))
+            return;
+
+    BlockDefinition *blockDef =  levelRes->BlockDefinitions.at(blockValue);
+
+    //mark block definition which was used until now at this location
+    //as a block definition that right now got unassigned, so that
+    //we know the occurence of this block definition needs to be decreased by one
+    blockDef->mState = DEF_BLOCKDEF_STATE_NEWLYUNASSIGNEDONE;
+
+    //Make sure (possibly now) unused Blockdefinitions are deleted
+    //Because I am not sure if the game can handle them, so make sure we
+    //do not have them
+    RemoveUnusedBlockDefinitions();
+
+    std::vector<BlockDefinition*>::iterator itBlockDef;
+
+    //set all block definition states to default state
+    //we do not need this flag anymore
+    for (itBlockDef = this->levelRes->BlockDefinitions.begin(); itBlockDef != this->levelRes->BlockDefinitions.end(); ++itBlockDef) {
+       (*itBlockDef)->mState = DEF_BLOCKDEF_STATE_DEFAULT;
+    }
+
+    //The new column we get, what block Id entries would it have?
+    int16_t newColBlockIdA = selColumnPntr->Definition->get_A();
+    int16_t newColBlockIdB = selColumnPntr->Definition->get_B();
+    int16_t newColBlockIdC = selColumnPntr->Definition->get_C();
+    int16_t newColBlockIdD = selColumnPntr->Definition->get_D();
+    int16_t newColBlockIdE = selColumnPntr->Definition->get_E();
+    int16_t newColBlockIdF = selColumnPntr->Definition->get_F();
+    int16_t newColBlockIdG = selColumnPntr->Definition->get_G();
+    int16_t newColBlockIdH = selColumnPntr->Definition->get_H();
+
+    int16_t newFloorTex = selColumnPntr->Definition->get_FloorTextureID();
+    int16_t newUnknown1 = selColumnPntr->Definition->get_Unknown1();
+
+    //modify the block definition Id so that the selected position
+    //gets no block anymore
+    switch (nrBlockFromBase) {
+        case 0: { newColBlockIdA = 0; break; }
+        case 1: { newColBlockIdB = 0; break; }
+        case 2: { newColBlockIdC = 0; break; }
+        case 3: { newColBlockIdD = 0; break; }
+        case 4: { newColBlockIdE = 0; break; }
+        case 5: { newColBlockIdF = 0; break; }
+        case 6: { newColBlockIdG = 0; break; }
+        case 7: { newColBlockIdH = 0; break; }
+        default: {
+            return;
+            break;
+        }
+    }
+
+    if (mNrBlocksInLevel > 0) {
+        mNrBlocksInLevel--;
+    }
+
+    bool newlyCreatedColumn;
+    irr::u32 outColumnIndex;
+
+    //See if there is already a Column definition / type that fits with this new one
+    //If not, create a new column definition, and use it
+    //"Request" the new column definition
+    if (!this->MyTerrain->levelRes->RequestColumnDefinition(newFloorTex, newUnknown1, newColBlockIdA, newColBlockIdB,
+                      newColBlockIdC, newColBlockIdD, newColBlockIdE, newColBlockIdF,
+                      newColBlockIdG, newColBlockIdH, outColumnIndex, newlyCreatedColumn)) {
+        //unexpected error creating column definition, possibly we reached the maximum possible number
+        //of 1024 column definitions in the levelfile?
+        return;
+    }
+
+    ColumnDefinition* newCorrColumnDef = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    if (newlyCreatedColumn) {
+            //mark column definition which was used until now at this location
+            //as a column definition that right now got unassigned, so that
+            //we know the occurence of this column definition needs to be decreased by one
+            columDefStart->mState = DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE;
+    }
+
+    //Make sure (possibly now) unused Columndefinitions are deleted
+    //Because I am not sure if the game can handle them, so make sure we
+    //do not have them
+    RemoveUnusedColumnDefinitions();
+    //RemoveUnusedColumnDefinitions(newlyCreatedColumn, newCorrColumnDef->get_ID(), true, columDefStart->get_ID());
+
+    //after the possible reorganization of the column definition
+    //vector, search the (new) correct column definition again
+    //so that the index variable is corrected
+    std::vector<ColumnDefinition*>::iterator itColumnDef;
+
+    outColumnIndex = 0;
+    bool found = false;
+
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+        if ((*itColumnDef) == newCorrColumnDef) {
+            found = true;
+            break;
+        }
+
+        outColumnIndex++;
+    }
+
+    if (!found) {
+        return;
+    }
+
+    //reconfigure the selected column to use the new column definition Id
+    selColumnPntr->Definition = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    //set all column definition states to default state
+    //we do not need this flag anymore
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+       (*itColumnDef)->mState = DEF_COLUMNDEF_STATE_DEFAULT;
+    }
+
+    irr::core::vector2di columnOutputCoord;
+
+    bool columnFound = FindMapCoordinateForColumn(selColumnPntr, columnOutputCoord);
+
+    if (!columnFound)
+        return;
+
+    MapEntry* entry = this->levelRes->pMap[columnOutputCoord.X][columnOutputCoord.Y];
+
+    if (entry == nullptr)
+        return;
+
+    entry->set_Column(this->levelRes->ColumnDefinitions.at(outColumnIndex));
+    entry->WriteChanges();
+
+    //we need to update specific additional column definitions values
+    UpdateColumDefinitions();
+
+    //we need also to update Blockdefinition usage count
+    UpdateBlockDefinitionUsageCnt();
+
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
+    //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
+    //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
+
+    /*****************************************************
+     * Part 3: Add back updated Irrlicht Mesh            *
+     *****************************************************/
+
+    //add back column mesh
+    AddMeshColumn(selColumnPntr);
+}
+
+void LevelBlocks::AddBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks, BlockDefinition* whichBlockType) {
+ /*   if ((selColumnPntr == nullptr) || (whichBlockType == nullptr))
+        return;
+
+    if ((nrBlockFromBase < 0) || (nrBlockFromBase > 7))
+        return;
+
+    if ((mSelBlockNrSkippingMissingBlocks < 0) || (mSelBlockNrSkippingMissingBlocks > 7))
+        return;
+
+    //is there already a block present?, if so exit
+    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    ColumnDefinition* columDefStart = selColumnPntr->Definition;
+
+    if (blockInfo != nullptr)
+        return;*/
+
+    //The issue is, that by adding blocks to the column it can be that the collision detection
+    //disabled/enabled for a block of the column can change; because block without collision detection
+    //are in a different Mesh then block with collision detection, it is easier to:
+    //
+    // * First remove the Mesh from the complete Column
+    // * Update the collision data in the selected column, so if collision detection state does
+    //   change for any block in the column we have the new updated state
+    // * We need to add the new geometry of the new cube to the column geometry information,
+    //   so that we later have the new cube vertices to be added to the Meshbuffers and the Irrlicht Mesh
+    // * Add back the Mesh for the whole still existing column, but now in the updated MeshBuffers
+    //   This happens at the end of this function*/
+
+    /*****************************************************
+     * Part 1: Remove existing column mesh               *
+     *****************************************************/
+
+    //remove whole column from Irrlicht Mesh
+   /* RemoveMeshColumn(selColumnPntr);
+
+    irr::f32 d = selColumnPntr->mBaseVert1Coord.Y - selColumnPntr->Position.Y;
+    irr::f32 c = selColumnPntr->mBaseVert2Coord.Y - selColumnPntr->Position.Y;
+    irr::f32 b = selColumnPntr->mBaseVert3Coord.Y - selColumnPntr->Position.Y;
+    irr::f32 a = selColumnPntr->mBaseVert4Coord.Y - selColumnPntr->Position.Y;
+
+    irr::f32 currHeight;
+
+    BlockInfoStruct* newBlock =
+            selColumnPntr->CreateGeometryBlock(whichBlockType, nrBlockFromBase, a, b, c, d, currHeight);
+
+    //we need to insert the new block info struct at the right location inside the vector
+   // std::vector<BlockInfoStruct*>::iterator itInsertBefore = selColumnPntr->mBlockInfoVec.begin() +
+    //selColumnPntr->mBlockInfoVec.insert();
+
+    //Update collision information
+    selColumnPntr->Definition->CreateCollisionData();
+
+    mNrBlocksInLevel++;*/
+
+    /*****************************************************
+     * Part 2: Modify low level map data                 *
+     *****************************************************/
+
+}
+
+/*****************************************
+ * LevelEditor editing helper functions  *
+ *****************************************/
 
 void LevelBlocks::UpdateBlockDefinitionUsageCnt() {
     std::vector<irr::u32> usagecnt = GetBlockDefinitionUsageCount();
@@ -2154,6 +2486,10 @@ bool LevelBlocks::FindMapCoordinateForColumn(Column* whichColumn, irr::core::vec
     //specified column not found
     return false;
 }
+
+/************************************************
+ * Block Preview Routines                       *
+ ************************************************/
 
 void LevelBlocks::SetupBlockPreview() {
     //Define image size for cubePreview

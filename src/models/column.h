@@ -82,7 +82,6 @@ class LevelTerrain;
 class LevelBlocks;
 class ColumnDefinition;
 class BlockDefinition;
-struct ColumnSideGeometryInfo;
 struct ColumnsByPositionStruct;
 class LevelFile;
 class MapEntry;
@@ -134,6 +133,12 @@ public:
     irr::core::vector3df mBaseVert3CoordOriginal;
     irr::core::vector3df mBaseVert4CoordOriginal;
 
+    void RemoveBlock(int nrBlockStartingFromBase);
+
+    //returns the current height of the column (size in Y direction) in parameter currHeight
+    BlockInfoStruct* CreateGeometryBlock(BlockDefinition* blockDef, int blockNrFromBase, irr::f32 a,
+                                     irr::f32 b, irr::f32 c, irr::f32 d, irr::f32 &currHeight);
+
 private:
     bool SetupGeometry();
     void MoveColumnVertex(irr::core::vector3df &vertex);
@@ -169,8 +174,6 @@ public:
 
     vector3d<irr::f32> Position;
     ColumnDefinition* Definition = nullptr;
-
-    ColumnSideGeometryInfo* GeometryInfoList = nullptr;
 
     LevelFile* levelRes = nullptr;
 

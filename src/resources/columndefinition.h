@@ -75,6 +75,8 @@ public:
     //in the column
     std::vector<int> mInCollisionMesh;
 
+    void CreateCollisionData();
+
     /*****************************************
      * LevelEditor only used variables start *
      *****************************************/

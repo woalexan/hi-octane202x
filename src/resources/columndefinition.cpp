@@ -73,65 +73,69 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   mUnknown3 = decode_Unknown3();
   mUnknown4 = this->m_Bytes.at(1);
 
-  //we start from lowest block of colum upwards
-  //first collision is active, the first time we find a gap in the
-  //column going upwards (which means there is no block) we will disable collision
-  //for all blocks found above
-  //if we do this we make sure that the roof of tunnels, etc... is not part of the collision detection
-  //and so the player can not get stuck in the roof etc.
-  //we only add as much elements to the vector as there are blocks existing in the column
-  //so that the indices for for loop in next data handling step in levelblocks.cpp are
-  //correct
-  int collisionActive = 1;
-  mInCollisionMesh.clear();
+  CreateCollisionData();
+}
 
-  if (get_A() == 0) {
-      collisionActive = 0;
-  } else {
+void ColumnDefinition::CreateCollisionData() {
+    //we start from lowest block of colum upwards
+    //first collision is active, the first time we find a gap in the
+    //column going upwards (which means there is no block) we will disable collision
+    //for all blocks found above
+    //if we do this we make sure that the roof of tunnels, etc... is not part of the collision detection
+    //and so the player can not get stuck in the roof etc.
+    //we only add as much elements to the vector as there are blocks existing in the column
+    //so that the indices for for loop in next data handling step in levelblocks.cpp are
+    //correct
+    int collisionActive = 1;
+    mInCollisionMesh.clear();
+
+    if (get_A() == 0) {
+        collisionActive = 0;
+    } else {
+        mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_B() == 0) {
+        collisionActive = 0;
+    } else {
+        mInCollisionMesh.push_back(collisionActive);
+    }
+
+    if (get_C() == 0) {
+        collisionActive = 0;
+    } else {
       mInCollisionMesh.push_back(collisionActive);
-  }
+    }
 
-  if (get_B() == 0) {
-      collisionActive = 0;
-  } else {
+    if (get_D() == 0) {
+        collisionActive = 0;
+    } else {
       mInCollisionMesh.push_back(collisionActive);
-  }
+    }
 
-  if (get_C() == 0) {
-      collisionActive = 0;
-  } else {
-    mInCollisionMesh.push_back(collisionActive);
-  }
+    if (get_E() == 0) {
+        collisionActive = 0;
+    } else {
+     mInCollisionMesh.push_back(collisionActive);
+    }
 
-  if (get_D() == 0) {
-      collisionActive = 0;
-  } else {
-    mInCollisionMesh.push_back(collisionActive);
-  }
+    if (get_F() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
 
-  if (get_E() == 0) {
-      collisionActive = 0;
-  } else {
-   mInCollisionMesh.push_back(collisionActive);
-  }
+    if (get_G() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
 
-  if (get_F() == 0) {
-      collisionActive = 0;
-  } else {
-    mInCollisionMesh.push_back(collisionActive);
-  }
-
-  if (get_G() == 0) {
-      collisionActive = 0;
-  } else {
-    mInCollisionMesh.push_back(collisionActive);
-  }
-
-  if (get_H() == 0) {
-      collisionActive = 0;
-  } else {
-    mInCollisionMesh.push_back(collisionActive);
-  }
+    if (get_H() == 0) {
+        collisionActive = 0;
+    } else {
+      mInCollisionMesh.push_back(collisionActive);
+    }
 }
 
 ColumnDefinition::~ColumnDefinition() {
@@ -200,65 +204,7 @@ ColumnDefinition::ColumnDefinition(int id, int offset, int newFloorTextureID, in
     //any column
     mState = DEF_COLUMNDEF_STATE_NEWLYADDED_KEEP;
 
-    //we start from lowest block of colum upwards
-    //first collision is active, the first time we find a gap in the
-    //column going upwards (which means there is no block) we will disable collision
-    //for all blocks found above
-    //if we do this we make sure that the roof of tunnels, etc... is not part of the collision detection
-    //and so the player can not get stuck in the roof etc.
-    //we only add as much elements to the vector as there are blocks existing in the column
-    //so that the indices for for loop in next data handling step in levelblocks.cpp are
-    //correct
-    int collisionActive = 1;
-    mInCollisionMesh.clear();
-
-    if (get_A() == 0) {
-        collisionActive = 0;
-    } else {
-        mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_B() == 0) {
-        collisionActive = 0;
-    } else {
-        mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_C() == 0) {
-        collisionActive = 0;
-    } else {
-      mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_D() == 0) {
-        collisionActive = 0;
-    } else {
-      mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_E() == 0) {
-        collisionActive = 0;
-    } else {
-     mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_F() == 0) {
-        collisionActive = 0;
-    } else {
-      mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_G() == 0) {
-        collisionActive = 0;
-    } else {
-      mInCollisionMesh.push_back(collisionActive);
-    }
-
-    if (get_H() == 0) {
-        collisionActive = 0;
-    } else {
-      mInCollisionMesh.push_back(collisionActive);
-    }
+    CreateCollisionData();
 
     //each ColumnDefinition is 26 bytes long
     //create empty data vector with 26 zero bytes

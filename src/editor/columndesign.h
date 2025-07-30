@@ -23,6 +23,7 @@
 class EditorSession;
 struct CurrentlySelectedEditorItemInfoStruct;
 class Column;
+class BlockDefinition;
 
 /* GUI Elements for Editor Column Designer
 */
@@ -62,6 +63,12 @@ struct GUIColumnDesigner
     //irr::gui::IGUIStaticText* LabelSelectCubeFaces;
     irr::gui::IGUIButton* AddColumnButton;
     irr::gui::IGUIButton* RemoveColumnButton;
+    irr::gui::IGUIButton* MoveUpColumnButton;
+    irr::gui::IGUIButton* MoveDownColumnButton;
+
+    irr::gui::IGUIButton* RemoveBlockButton;
+    irr::gui::IGUIButton* AddBlockButton;
+
     /*irr::gui::IGUIButton* SelSButton;
     irr::gui::IGUIButton* SelWButton;
     irr::gui::IGUIButton* SelTButton;
@@ -116,6 +123,22 @@ private:
     irr::s32 blockHImageBackId;
 
    void UpdateBlockPreviewGuiImages(Column* selColumn);
+
+   //Stores the currently selected block for editing of the
+   //currently selected column
+   int mCurrBlockToBeEditedSelection = 0;
+
+   irr::gui::IGUIImage* mBlockPreviewCurrentlyHovered = nullptr;
+
+   irr::gui::IGUIImage* FindCurrentlyHoveredBlockPreviewImage(irr::s32 hoveredGuiId);
+   void SelectBlockToEditFromBlockPreview(irr::gui::IGUIImage* currHoveredBlockPreviewImage);
+
+   void OnSelectNewBlockForEditing(int newBlockSelectionForEditing);
+
+   Column* mSelectedColumnForEditing = nullptr;
+   BlockDefinition* mSelectedBlockDefForEditing = nullptr;
+
+   void OnRemoveBlock();
 
 public:
     ColumnDesigner(EditorSession* parentSession);

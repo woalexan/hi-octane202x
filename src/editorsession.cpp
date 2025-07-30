@@ -258,7 +258,7 @@ bool EditorSession::LoadLevel() {
    //this routine also generates the column/block collision information inside that
    //we need for collision detection later
    this->mLevelBlocks = new LevelBlocks(this->mParentEditor, this->mLevelTerrain, this->mLevelRes, mTexLoader, true,
-                                        DebugShowWallCollisionMesh, false);
+                                        DebugShowWallCollisionMesh, false, mParentEditor->enableBlockPreview);
 
    //create all level entities
    //this are not only items to pickup by the player
