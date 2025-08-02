@@ -51,11 +51,6 @@ struct CurrentlySelectedEditorItemInfoStruct {
     //every block position is counted
     int mSelBlockNrStartingFromBase;
 
-    //the number of the block in the column
-    //counting from the base, but non existing
-    //blocks below are not counted
-    int mSelBlockNrSkippingMissingBlocks;
-
     irr::u8 mSelBlockFaceDirection;
 };
 
@@ -126,6 +121,10 @@ public:
     //mouse pointer position, and figure out which
     //items/entitys the players is currently selecting
     void Update();
+
+    //needs to be called in case the Irrlicht
+    //Meshes have changed in the level editor
+    void UpdateTrianglesSelectors();
 
     void OnLeftMouseButtonDown();
 

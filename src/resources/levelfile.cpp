@@ -794,7 +794,7 @@ bool LevelFile::CanIFindColumnWithDefinedTextureOnItAtLocation(int posX, int pos
 
         //we are only accepting columns as charging stations where the lowest
         //"cube/box" is not present, so that the driver can driver below it
-        if (columnPntr->mInCollisionMesh.at(0) == 0) {
+        if (columnPntr->mInCollisionMesh.at(0) == -1) {
             //collision in lowest block not active, not existing => ok
             //now check all symbol textures at this column if we find the
             //defined textureID on it

@@ -91,48 +91,72 @@ void ColumnDefinition::CreateCollisionData() {
 
     if (get_A() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
         mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_B() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
         mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_C() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
       mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_D() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
       mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_E() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
      mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_F() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
       mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_G() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
       mInCollisionMesh.push_back(collisionActive);
     }
 
     if (get_H() == 0) {
         collisionActive = 0;
+
+        //no block here, push -1 which means no block
+        mInCollisionMesh.push_back(-1);
     } else {
       mInCollisionMesh.push_back(collisionActive);
     }

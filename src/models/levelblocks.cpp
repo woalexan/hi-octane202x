@@ -267,7 +267,6 @@ void LevelBlocks::CreateBlocksMesh() {
     ColumnsByPositionStruct GetColumn;
     std::vector<irr::u32> indiceOffset;
     irr::u8 cubeCnt;
-    irr::u8 cubeIdx;
 
     //first create the building Mesh with
     //collision active
@@ -279,17 +278,14 @@ void LevelBlocks::CreateBlocksMesh() {
     for(loopi = ColumnsByPosition.begin(); loopi != ColumnsByPosition.end(); ++loopi) {
         GetColumn = (*loopi);
         cubeCnt = (irr::u8)(GetColumn.pColumn->mBlockInfoVec.size());
-        cubeIdx = 0;
 
         for (it = GetColumn.pColumn->mBlockInfoVec.begin(); it != GetColumn.pColumn->mBlockInfoVec.end(); ++it) {
             //if collisionSelector = 1 then mesh contains all blocks
             //that are needed for collision detection
-            if (GetColumn.pColumn->Definition->mInCollisionMesh[cubeIdx] == 1) {
+            if (GetColumn.pColumn->Definition->mInCollisionMesh[(*it)->idxBlockFromBaseCnt] == 1) {
                 //we want collision detection for this block
                 mIrrMeshBuf->AddMeshBufferBlock(mBlockwCollMeshBufferVec, (*it), *mBlocksMeshStats);
             }
-
-            cubeIdx++;
         }
     }
 
@@ -342,17 +338,14 @@ void LevelBlocks::CreateBlocksMesh() {
     for(loopi = ColumnsByPosition.begin(); loopi != ColumnsByPosition.end(); ++loopi) {
         GetColumn = (*loopi);
         cubeCnt = (irr::u8)(GetColumn.pColumn->mBlockInfoVec.size());
-        cubeIdx = 0;
 
         for (it = GetColumn.pColumn->mBlockInfoVec.begin(); it != GetColumn.pColumn->mBlockInfoVec.end(); ++it) {
             //if collisionSelector = 0 then mesh contains all blocks
             //that should not be included in collision detection
-            if (GetColumn.pColumn->Definition->mInCollisionMesh[cubeIdx] == 0) {
+            if (GetColumn.pColumn->Definition->mInCollisionMesh[(*it)->idxBlockFromBaseCnt] == 0) {
                 //we do not want collision detection for this block
                 mIrrMeshBuf->AddMeshBufferBlock(mBlockwoCollMeshBufferVec, (*it), *mBlocksMeshStats);
             }
-
-            cubeIdx++;
         }
     }
 
@@ -522,8 +515,8 @@ void LevelBlocks::UpdateBlockMesh() {
     blockMeshWithoutCollision->setDirty(EBT_VERTEX);
 }
 
-void LevelBlocks::TestHeightChange(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks) {
-    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, mSelBlockNrSkippingMissingBlocks);
+void LevelBlocks::TestHeightChange(Column* selColumnPntr, int mSelBlockNrFromBase) {
+    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, mSelBlockNrFromBase);
 
     if (blockInfo == nullptr)
          return;
@@ -539,14 +532,20 @@ void LevelBlocks::TestHeightChange(Column* selColumnPntr, int mSelBlockNrSkippin
 }
 
 //returns nullptr if specified block does not exit or is invalid
-BlockInfoStruct* LevelBlocks::GetBlockInfoStruct(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks) {
+BlockInfoStruct* LevelBlocks::GetBlockInfoStruct(Column* selColumnPntr, int mSelBlockNrFromBase) {
     if (selColumnPntr == nullptr)
         return nullptr;
 
-    if ((mSelBlockNrSkippingMissingBlocks < 0) || (mSelBlockNrSkippingMissingBlocks >= (int)(selColumnPntr->mBlockInfoVec.size())))
+    if ((mSelBlockNrFromBase < 0) || (mSelBlockNrFromBase > 7))
         return nullptr;
 
-    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    size_t idx;
+    if (!selColumnPntr->GetBlockInfoVecIndex(mSelBlockNrFromBase, idx)) {
+        //block not existing or invalid
+        return nullptr;
+    }
+
+    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(idx);
 
     return blockInfo;
 }
@@ -556,36 +555,31 @@ bool LevelBlocks::GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::
     //get pntr to this tile
     MapEntry* pntr = this->levelRes->pMap[cellCoord.X][cellCoord.Y];
 
-    irr::u8 firstCollDetBlock = 0;
-    irr::u8 nrBlocks = 0;
+    irr::u8 firstNoFreeRoomtBlock = 0;
 
     if (pntr != nullptr) {
         ColumnDefinition* colDef = pntr->get_Column();
         if (colDef != nullptr) {
-            //mInCollisionMesh has a "thermometer code" inside
-            //for all the blocks beginning at the terrain level
-            //in upwards direction where no collision detection can take place
-            //there is a 0 inside; from the moment when collision detection is activated
-            //there are 1 values inside for the remaining blocks upwards
-            nrBlocks = (irr::u8)(colDef->mInCollisionMesh.size());
+            //for each block that does not exist in the column
+            //there is a -1 value inside the vector mInCollisionMesh starting
+            //from the base of the column
+            //when we find the first value which is not -1 we have found
+            //the ceiling
 
-            firstCollDetBlock = nrBlocks;
-
-            for (irr::u8 blockCnt = 0; blockCnt < nrBlocks; blockCnt++) {
-                if (colDef->mInCollisionMesh[blockCnt] == 1) {
-                    //there is already collision detection inside this block
-                    //there is no ceiling anymore beginning from this position
-                    firstCollDetBlock = blockCnt;
+            for (irr::u8 blockCnt = 0; blockCnt < 8; blockCnt++) {
+                if (colDef->mInCollisionMesh[blockCnt] != -1) {
+                    //there is no free room (tunnel) anymore at this block
+                    firstNoFreeRoomtBlock = blockCnt;
                     break;
                 }
             }
         }
     }
 
-    if (firstCollDetBlock > 0) {
+    if (firstNoFreeRoomtBlock > 0) {
         //return the height where the ceiling is located
         //at this cell; return true because we found a ceiling
-        heightVal = firstCollDetBlock * this->segmentSize;
+        heightVal = firstNoFreeRoomtBlock * this->segmentSize;
         return true;
     }
 
@@ -664,14 +658,23 @@ void LevelBlocks::DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMateria
  * Functions mainly used by the LevelEditor and not the game itself    *
  ***********************************************************************/
 
+//creates an initial block definition for the Leveleditor
+//in case not a single one is existing yet
+void LevelBlocks::CreateInitialBlockDefinition() {
+   //create a first initial block definition
+
+   //first block definition offset is at
+   int baseOffset = 124636 + 1 * 16;
+   BlockDefinition* newDef = new BlockDefinition(1, baseOffset, 30, 30, 30, 30, 30, 30, 0, 0, 0, 0, 0, 0, 0, 0);
+
+   levelRes->BlockDefinitions.push_back(newDef);
+}
+
 void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace) {
     if (selColumnPntr == nullptr)
         return;
 
-    if ((nrBlockFromBase < 0) || (nrBlockFromBase >= (int)(selColumnPntr->mBlockInfoVec.size())))
-        return;
-
-   BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(nrBlockFromBase);
+   BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, nrBlockFromBase);
 
    if (blockInfo == nullptr)
         return;
@@ -776,12 +779,12 @@ void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMa
 
 //Derives the current texturing information about a selected block face
 //returns true if the information was found, false otherwise
-bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
+bool LevelBlocks::GetTextureInfoSelectedBlock(Column* selColumnPntr, int nrBlockFromBase,
                                               irr::u8 selFace, int16_t& outCurrTextureId, uint8_t& outCurrTextureModification) {
     if (selColumnPntr == nullptr)
         return false;
 
-    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, nrBlockFromBase);
 
     if (blockInfo == nullptr)
         return false;
@@ -834,11 +837,11 @@ void LevelBlocks::RemoveMeshColumn(Column* selColumnPntr) {
     if (selColumnPntr == nullptr)
         return;
 
-    size_t blockNr = selColumnPntr->mBlockInfoVec.size();
+    std::vector<BlockInfoStruct*>::iterator itBlock;
 
     //delete mesh cube by cube
-    for (size_t idxBlock = 0; idxBlock < blockNr; idxBlock++) {
-        RemoveMeshCube(selColumnPntr, 0, (int)(idxBlock));
+    for (itBlock = selColumnPntr->mBlockInfoVec.begin(); itBlock != selColumnPntr->mBlockInfoVec.end(); ++itBlock) {
+        RemoveMeshCube(selColumnPntr, (*itBlock)->idxBlockFromBaseCnt);
     }
 }
 
@@ -1053,35 +1056,24 @@ void LevelBlocks::AddMeshColumn(Column* column) {
     if (column == nullptr)
         return;
 
-    irr::u8 cubeCnt;
-    irr::u8 cubeIdx;
-
-    cubeCnt = (irr::u8)(column->mBlockInfoVec.size());
     std::vector<BlockInfoStruct*>::iterator it;
-    cubeIdx = 0;
 
     for (it = column->mBlockInfoVec.begin(); it != column->mBlockInfoVec.end(); ++it) {
         //if collisionSelector = 1 then mesh contains all blocks
         //that are needed for collision detection
-        if (column->Definition->mInCollisionMesh[cubeIdx] == 1) {
+        if (column->Definition->mInCollisionMesh[(*it)->idxBlockFromBaseCnt] == 1) {
             //we want collision detection for this block
             mIrrMeshBuf->AddMeshBufferBlock(mBlockwCollMeshBufferVec, (*it), *mBlocksMeshStats);
         }
-
-        cubeIdx++;
     }
-
-    cubeIdx = 0;
 
     for (it = column->mBlockInfoVec.begin(); it != column->mBlockInfoVec.end(); ++it) {
         //if collisionSelector = 0 then mesh contains all blocks
         //that should not be included in collision detection
-        if (column->Definition->mInCollisionMesh[cubeIdx] == 0) {
+        if (column->Definition->mInCollisionMesh[(*it)->idxBlockFromBaseCnt] == 0) {
             //we do not want collision detection for this block
             mIrrMeshBuf->AddMeshBufferBlock(mBlockwoCollMeshBufferVec, (*it), *mBlocksMeshStats);
         }
-
-        cubeIdx++;
     }
 
     //mark updated mesh as dirty, so that it is transfered again to graphics card
@@ -1092,7 +1084,7 @@ void LevelBlocks::AddMeshColumn(Column* column) {
     blockMeshWithoutCollision->recalculateBoundingBox();
 }
 
-void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks,
+void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
                                      irr::u8 selFace, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureMod) {
     //This higher level function has to do 2 independent things:
     // 1, modify the cube face configuration in the level/map file itself (so that next time we
@@ -1104,7 +1096,7 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     if (selColumnPntr == nullptr)
         return;
 
-    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, nrBlockFromBase);
     ColumnDefinition* columDefStart = selColumnPntr->Definition;
 
     if (blockInfo == nullptr)
@@ -1373,7 +1365,7 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
      ******************************************************************/
 
     // Part 1: Update the current Irrlicht Mesh
-    if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
+    if (selColumnPntr->Definition->mInCollisionMesh[blockInfo->idxBlockFromBaseCnt] == 1) {
         //this block has collision detection, so we need to delete its mesh
         //from the mesh with collision detection
         if (updateTexId) {
@@ -1409,11 +1401,11 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     //if texture modification of cube face has also changed
     //update it in Irrlicht Mesh as well
     if (updateTexMod && (currTexMod != newTextureMod)) {
-        UpdateCubeFaceTextureModification(selColumnPntr, mSelBlockNrSkippingMissingBlocks, selFacePntr, newTextureMod, true);
+        UpdateCubeFaceTextureModification(selColumnPntr, nrBlockFromBase, selFacePntr, newTextureMod, true);
     }
 }
 
-void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int mSelBlockNrSkippingMissingBlocks,
+void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int nrBlockFromBase,
                                                     BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier, bool SetMeshDirty) {
     //This function only needs to modify the current column/cube Mesh used by Irrlicht to show the user the
     //    current state of the new cube texture in the level. The modification of the level map
@@ -1462,7 +1454,7 @@ void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int m
     }
 
     if (SetMeshDirty) {
-            if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
+            if (selColumnPntr->Definition->mInCollisionMesh[nrBlockFromBase] == 1) {
                 blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
                 blockMeshForCollision->recalculateBoundingBox();
             } else {
@@ -1472,18 +1464,18 @@ void LevelBlocks::UpdateCubeFaceTextureModification(Column* selColumnPntr, int m
     }
 }
 
-void LevelBlocks::RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks) {
+void LevelBlocks::RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase) {
     if (selColumnPntr == nullptr)
         return;
 
-    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, nrBlockFromBase);
 
     if (blockInfo == nullptr)
         return;
 
     std::vector<MeshBufferInfoStruct*>* targetMeshBufVec;
 
-    if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
+    if (selColumnPntr->Definition->mInCollisionMesh[blockInfo->idxBlockFromBaseCnt] == 1) {
         //cube to delete has collision detection,
         //we need to take meshbuffers for cubes with collision detection
         targetMeshBufVec = &mBlockwCollMeshBufferVec;
@@ -1500,7 +1492,7 @@ void LevelBlocks::RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int
     mIrrMeshBuf->RemoveMeshBufferCubeFace(*targetMeshBufVec, blockInfo->fS, *mBlocksMeshStats);
     mIrrMeshBuf->RemoveMeshBufferCubeFace(*targetMeshBufVec, blockInfo->fW, *mBlocksMeshStats);
 
-    if (selColumnPntr->Definition->mInCollisionMesh[mSelBlockNrSkippingMissingBlocks] == 1) {
+    if (selColumnPntr->Definition->mInCollisionMesh[blockInfo->idxBlockFromBaseCnt] == 1) {
         blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
         blockMeshForCollision->recalculateBoundingBox();
     } else {
@@ -1509,7 +1501,7 @@ void LevelBlocks::RemoveMeshCube(Column* selColumnPntr, int nrBlockFromBase, int
     }
 }
 
-void LevelBlocks::RemoveBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks) {
+void LevelBlocks::RemoveBlock(Column* selColumnPntr, int nrBlockFromBase) {
     //This higher level function has to do 2 independent things:
     // 1, Remove the column block in the level/map file itself (so that next time we
     //    load the map again, everything is restored again in the same modified way)
@@ -1520,7 +1512,7 @@ void LevelBlocks::RemoveBlock(Column* selColumnPntr, int nrBlockFromBase, int mS
     if (selColumnPntr == nullptr)
         return;
 
-    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, nrBlockFromBase);
     ColumnDefinition* columDefStart = selColumnPntr->Definition;
 
     if (blockInfo == nullptr)
@@ -1730,22 +1722,21 @@ void LevelBlocks::RemoveBlock(Column* selColumnPntr, int nrBlockFromBase, int mS
     AddMeshColumn(selColumnPntr);
 }
 
-void LevelBlocks::AddBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelBlockNrSkippingMissingBlocks, BlockDefinition* whichBlockType) {
- /*   if ((selColumnPntr == nullptr) || (whichBlockType == nullptr))
+void LevelBlocks::AddBlock(Column* selColumnPntr, int nrBlockFromBase, BlockDefinition* whichBlockType) {
+    if ((selColumnPntr == nullptr) || (whichBlockType == nullptr))
         return;
 
     if ((nrBlockFromBase < 0) || (nrBlockFromBase > 7))
         return;
 
-    if ((mSelBlockNrSkippingMissingBlocks < 0) || (mSelBlockNrSkippingMissingBlocks > 7))
-        return;
-
     //is there already a block present?, if so exit
-    BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(mSelBlockNrSkippingMissingBlocks);
+    BlockInfoStruct* blockInfo = GetBlockInfoStruct(selColumnPntr, nrBlockFromBase);
     ColumnDefinition* columDefStart = selColumnPntr->Definition;
 
+    //if block already existing there
+    //exit
     if (blockInfo != nullptr)
-        return;*/
+        return;
 
     //The issue is, that by adding blocks to the column it can be that the collision detection
     //disabled/enabled for a block of the column can change; because block without collision detection
@@ -1764,7 +1755,7 @@ void LevelBlocks::AddBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelB
      *****************************************************/
 
     //remove whole column from Irrlicht Mesh
-   /* RemoveMeshColumn(selColumnPntr);
+    RemoveMeshColumn(selColumnPntr);
 
     irr::f32 d = selColumnPntr->mBaseVert1Coord.Y - selColumnPntr->Position.Y;
     irr::f32 c = selColumnPntr->mBaseVert2Coord.Y - selColumnPntr->Position.Y;
@@ -1777,18 +1768,141 @@ void LevelBlocks::AddBlock(Column* selColumnPntr, int nrBlockFromBase, int mSelB
             selColumnPntr->CreateGeometryBlock(whichBlockType, nrBlockFromBase, a, b, c, d, currHeight);
 
     //we need to insert the new block info struct at the right location inside the vector
-   // std::vector<BlockInfoStruct*>::iterator itInsertBefore = selColumnPntr->mBlockInfoVec.begin() +
-    //selColumnPntr->mBlockInfoVec.insert();
+    //before which element do we need to insert?
+    std::vector<BlockInfoStruct*>::iterator itInsertBefore = selColumnPntr->mBlockInfoVec.begin();
+
+    while (itInsertBefore != selColumnPntr->mBlockInfoVec.end()) {
+        if ((*itInsertBefore)->idxBlockFromBaseCnt > nrBlockFromBase) {
+            break;
+        } else {
+            itInsertBefore++;
+        }
+    }
+
+    selColumnPntr->mBlockInfoVec.insert(itInsertBefore, newBlock);
 
     //Update collision information
     selColumnPntr->Definition->CreateCollisionData();
 
-    mNrBlocksInLevel++;*/
+    mNrBlocksInLevel++;
 
     /*****************************************************
      * Part 2: Modify low level map data                 *
      *****************************************************/
 
+    //The new column we get, what block Id entries would it have?
+    int16_t newColBlockIdA = selColumnPntr->Definition->get_A();
+    int16_t newColBlockIdB = selColumnPntr->Definition->get_B();
+    int16_t newColBlockIdC = selColumnPntr->Definition->get_C();
+    int16_t newColBlockIdD = selColumnPntr->Definition->get_D();
+    int16_t newColBlockIdE = selColumnPntr->Definition->get_E();
+    int16_t newColBlockIdF = selColumnPntr->Definition->get_F();
+    int16_t newColBlockIdG = selColumnPntr->Definition->get_G();
+    int16_t newColBlockIdH = selColumnPntr->Definition->get_H();
+
+    int16_t newFloorTex = selColumnPntr->Definition->get_FloorTextureID();
+    int16_t newUnknown1 = selColumnPntr->Definition->get_Unknown1();
+
+    //modify the block definition Id for the added block
+    switch (nrBlockFromBase) {
+        case 0: { newColBlockIdA = whichBlockType->get_ID(); break; }
+        case 1: { newColBlockIdB = whichBlockType->get_ID(); break; }
+        case 2: { newColBlockIdC = whichBlockType->get_ID(); break; }
+        case 3: { newColBlockIdD = whichBlockType->get_ID(); break; }
+        case 4: { newColBlockIdE = whichBlockType->get_ID(); break; }
+        case 5: { newColBlockIdF = whichBlockType->get_ID(); break; }
+        case 6: { newColBlockIdG = whichBlockType->get_ID(); break; }
+        case 7: { newColBlockIdH = whichBlockType->get_ID(); break; }
+        default: {
+            return;
+            break;
+        }
+    }
+
+    bool newlyCreatedColumn;
+    irr::u32 outColumnIndex;
+
+    //See if there is already a Column definition / type that fits with this new one
+    //If not, create a new column definition, and use it
+    //"Request" the new column definition
+    if (!this->MyTerrain->levelRes->RequestColumnDefinition(newFloorTex, newUnknown1, newColBlockIdA, newColBlockIdB,
+                      newColBlockIdC, newColBlockIdD, newColBlockIdE, newColBlockIdF,
+                      newColBlockIdG, newColBlockIdH, outColumnIndex, newlyCreatedColumn)) {
+        //unexpected error creating column definition, possibly we reached the maximum possible number
+        //of 1024 column definitions in the levelfile?
+        return;
+    }
+
+    ColumnDefinition* newCorrColumnDef = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    if (newlyCreatedColumn) {
+            //mark column definition which was used until now at this location
+            //as a column definition that right now got unassigned, so that
+            //we know the occurence of this column definition needs to be decreased by one
+            columDefStart->mState = DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE;
+    }
+
+    //Make sure (possibly now) unused Columndefinitions are deleted
+    //Because I am not sure if the game can handle them, so make sure we
+    //do not have them
+    RemoveUnusedColumnDefinitions();
+
+    //after the possible reorganization of the column definition
+    //vector, search the (new) correct column definition again
+    //so that the index variable is corrected
+    std::vector<ColumnDefinition*>::iterator itColumnDef;
+
+    outColumnIndex = 0;
+    bool found = false;
+
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+        if ((*itColumnDef) == newCorrColumnDef) {
+            found = true;
+            break;
+        }
+
+        outColumnIndex++;
+    }
+
+    if (!found) {
+        return;
+    }
+
+    //reconfigure the selected column to use the new column definition Id
+    selColumnPntr->Definition = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    //set all column definition states to default state
+    //we do not need this flag anymore
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+       (*itColumnDef)->mState = DEF_COLUMNDEF_STATE_DEFAULT;
+    }
+
+    irr::core::vector2di columnOutputCoord;
+
+    bool columnFound = FindMapCoordinateForColumn(selColumnPntr, columnOutputCoord);
+
+    if (!columnFound)
+        return;
+
+    MapEntry* entry = this->levelRes->pMap[columnOutputCoord.X][columnOutputCoord.Y];
+
+    if (entry == nullptr)
+        return;
+
+    entry->set_Column(this->levelRes->ColumnDefinitions.at(outColumnIndex));
+    entry->WriteChanges();
+
+    //we need to update specific additional column definitions values
+    UpdateColumDefinitions();
+
+    //we need also to update Blockdefinition usage count
+    UpdateBlockDefinitionUsageCnt();
+
+    /*****************************************************
+     * Part 3: Add back Irrlich column mesh              *
+     *****************************************************/
+
+    AddMeshColumn(selColumnPntr);
 }
 
 /*****************************************
@@ -2722,8 +2836,8 @@ void LevelBlocks::CreateBlockPreview(irr::video::ITexture& outputFrontTexture, i
      mInfra->mDriver->endScene();
 }
 
-irr::video::ITexture* LevelBlocks::GetBlockPreviewImage(Column* selColumn, int blockNrStartingFromBase, bool front) {
-      if (selColumn == nullptr) {
+irr::video::ITexture* LevelBlocks::GetBlockPreviewImage(ColumnDefinition* selColumnDef, int blockNrStartingFromBase, bool front) {
+      if (selColumnDef == nullptr) {
           if (front) {
               return texPreviewFrontNoCube;
           } else {
@@ -2736,35 +2850,35 @@ irr::video::ITexture* LevelBlocks::GetBlockPreviewImage(Column* selColumn, int b
 
       switch(blockNrStartingFromBase) {
               case 0: {
-                  blockId = selColumn->Definition->get_A();
+                  blockId = selColumnDef->get_A();
                   break;
               }
               case 1: {
-                  blockId = selColumn->Definition->get_B();
+                  blockId = selColumnDef->get_B();
                   break;
               }
               case 2: {
-                  blockId = selColumn->Definition->get_C();
+                  blockId = selColumnDef->get_C();
                   break;
               }
               case 3: {
-                  blockId = selColumn->Definition->get_D();
+                  blockId = selColumnDef->get_D();
                   break;
               }
               case 4: {
-                  blockId = selColumn->Definition->get_E();
+                  blockId = selColumnDef->get_E();
                   break;
               }
               case 5: {
-                  blockId = selColumn->Definition->get_F();
+                  blockId = selColumnDef->get_F();
                   break;
               }
               case 6: {
-                  blockId = selColumn->Definition->get_G();
+                  blockId = selColumnDef->get_G();
                   break;
               }
               case 7: {
-                  blockId = selColumn->Definition->get_H();
+                  blockId = selColumnDef->get_H();
                   break;
               }
           default: {
@@ -2808,6 +2922,18 @@ irr::video::ITexture* LevelBlocks::GetBlockPreviewImage(Column* selColumn, int b
               return texPreviewBackNoCube;
           }
       }
+}
+
+irr::video::ITexture* LevelBlocks::GetBlockPreviewImage(Column* selColumn, int blockNrStartingFromBase, bool front) {
+      if (selColumn == nullptr) {
+          if (front) {
+              return texPreviewFrontNoCube;
+          } else {
+              return texPreviewBackNoCube;
+          }
+      }
+
+      return GetBlockPreviewImage(selColumn->Definition, blockNrStartingFromBase, front);
 }
 
 void LevelBlocks::CleanUpBlockReview() {

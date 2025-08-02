@@ -139,6 +139,12 @@ public:
     BlockInfoStruct* CreateGeometryBlock(BlockDefinition* blockDef, int blockNrFromBase, irr::f32 a,
                                      irr::f32 b, irr::f32 c, irr::f32 d, irr::f32 &currHeight);
 
+    //Returns true if block info struct was found at specified location (means block there exists)
+    //False otherwise
+    //if block was found correct index to access block info struct is written into output
+    //parameter outIndex;
+    bool GetBlockInfoVecIndex(int nrBlockStartingFromBase, size_t& outIndex);
+
 private:
     bool SetupGeometry();
     void MoveColumnVertex(irr::core::vector3df &vertex);

@@ -67,12 +67,14 @@ public:
     void set_G(int16_t newVal);
     void set_H(int16_t newVal);
 
-    //if 0 block will not be part of collision mesh for
+    //This vector always has 8 elements, for the 8 possible
+    //blocks; Regardless how many blocks really exist in the column
+    //definition
+    //if value is -1 no block exists at this location
+    //if 0 a existing block will not be part of collision mesh for
     //player craft collision detection
-    //if 1 then block will be part of collision mesh
+    //if 1 then existing block will be part of collision mesh
     //information order is A, B, C, D, E, F, G, H
-    //but only add element to vector if a block really exists
-    //in the column
     std::vector<int> mInCollisionMesh;
 
     void CreateCollisionData();

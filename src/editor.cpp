@@ -271,8 +271,8 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
-                //mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
-                mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
+                mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
+                //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
             }
             break;
         }
@@ -359,6 +359,10 @@ void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
 
   if (comboBox->getID() == GUI_ID_TEXMODIFICATIONCOMBOBOX) {
     mCurrentSession->mTextureMode->TextureModificationChanged(val);
+  }
+
+  if (comboBox->getID() == GUI_ID_COLUMNDEFSELECTIONCOMBOBOX) {
+      mCurrentSession->mColumnDesigner->OnColumnDefinitionComboBoxChanged(val);
   }
 }
 

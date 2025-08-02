@@ -52,9 +52,10 @@ enum
     GUI_ID_TEXCATEGORYCOMBOBOX,
     GUI_ID_TEXMODIFICATIONCOMBOBOX,
 
-    GUI_ID_COLUMNSELECTIONCOMBOBOX,
+    GUI_ID_COLUMNDEFSELECTIONCOMBOBOX,
     GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN,
     GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN,
+    GUI_ID_COLUMNDESIGNER_BUTTON_REPLACECOLUMN,
     GUI_ID_COLUMNDESIGNER_BUTTON_MOVEUPCOLUMN,
     GUI_ID_COLUMNDESIGNER_BUTTON_MOVEDOWNCOLUMN,
     GUI_ID_COLUMNDESIGNER_BUTTON_ADDBLOCK,
@@ -167,7 +168,7 @@ public:
 
     //during development I like to disable the block preview
     //temporarily. This makes the leveleditor start some seconds faster
-    bool enableBlockPreview = false;
+    bool enableBlockPreview = true;
 
     //Returns true for success, false for error occured
     bool InitEditorStep1();

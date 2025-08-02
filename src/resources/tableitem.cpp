@@ -18,7 +18,6 @@ TableItem::TableItem() {
 }
 
 TableItem::~TableItem() {
-
 }
 
 int TableItem::get_ID() {

@@ -418,14 +418,18 @@ void Column::RemoveBlock(int nrBlockStartingFromBase) {
     if (!blockExists)
         return;
 
-    irr::u16 skipBlocks = GetNumberMissingBlocksAtBase();
-
     //remove the BlockInfoStruct data that handles the removed
     //block
     std::vector<BlockInfoStruct*>:: iterator it;
     BlockInfoStruct* pntr;
 
-    it = mBlockInfoVec.begin() + (nrBlockStartingFromBase - skipBlocks);
+    size_t idx;
+    if (!GetBlockInfoVecIndex(nrBlockStartingFromBase, idx)) {
+        //does not exit
+        return;
+    }
+
+    it = mBlockInfoVec.begin() + idx;
 
     pntr = (*it);
 
@@ -441,6 +445,28 @@ void Column::RemoveBlock(int nrBlockStartingFromBase) {
     //column property "Size" here, because if we remove a block at the base or top
     //the physical size of the column can change
     //but do not care right now
+}
+
+//Returns true if block info struct was found at specified location (means block there exists)
+//False otherwise
+//if block was found correct index to access block info struct is written into output
+//parameter outIndex;
+bool Column::GetBlockInfoVecIndex(int nrBlockStartingFromBase, size_t& outIndex) {
+    std::vector<BlockInfoStruct*>::iterator it;
+
+    int idx = 0;
+
+    for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ++it) {
+        if ((*it)->idxBlockFromBaseCnt == (irr::u8)(nrBlockStartingFromBase)) {
+            outIndex = idx;
+            return true;
+        }
+
+        idx++;
+    }
+
+   //not found
+   return false;
 }
 
 void Column::MoveColumnVertex(irr::core::vector3df &vertex) {
