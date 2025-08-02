@@ -45,6 +45,32 @@ ItemSelector::~ItemSelector() {
     delete mRayColumns;
 }
 
+void ItemSelector::UpdateTrianglesSelectors() {
+    mRayTerrain->RemoveRayTargetMesh(this->triangleSelectorStaticTerrain);
+    mRayTerrain->RemoveRayTargetMesh(this->triangleSelectorDynamicTerrain);
+
+    mRayColumns->RemoveRayTargetMesh(this->triangleSelectorColumnswoCollision);
+    mRayColumns->RemoveRayTargetMesh(this->triangleSelectorColumnswCollision);
+
+    //unset the current triangle selector, this will also drop the current
+    //selector
+    mParent->mLevelBlocks->BlockCollisionSceneNode->setTriangleSelector(nullptr);
+    mParent->mLevelBlocks->BlockWithoutCollisionSceneNode->setTriangleSelector(nullptr);
+
+    mParent->mLevelTerrain->StaticTerrainSceneNode->setTriangleSelector(nullptr);
+    mParent->mLevelTerrain->DynamicTerrainSceneNode->setTriangleSelector(nullptr);
+
+    //Create the new triangle selectors
+    //based on the new Meshes
+    createTriangleSelectors();
+
+    mRayTerrain->AddRayTargetMesh(this->triangleSelectorStaticTerrain);
+    mRayTerrain->AddRayTargetMesh(this->triangleSelectorDynamicTerrain);
+
+    mRayColumns->AddRayTargetMesh(this->triangleSelectorColumnswoCollision);
+    mRayColumns->AddRayTargetMesh(this->triangleSelectorColumnswCollision);
+}
+
 //derives more high level information about the highlighted terrain cell
 void ItemSelector::DeriveHighlightedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo) {
     //a terrain cell is selected currently
@@ -100,7 +126,6 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
     MapEntry* entry = mParent->mLevelTerrain->GetMapEntry(cellCoord.X, cellCoord.Y);
 
     ColumnDefinition* columDef = entry->get_Column();
-    int nrSkippedBlocks = 0;
 
     if (columDef != nullptr) {
         mCurrHighlightedItem.mColumnDefinitionSelected = columDef;
@@ -113,8 +138,6 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
         if (mParent->mLevelBlocks->SearchColumnWithPosition(posKey, columnPntr)) {
             //we found the column
             mCurrHighlightedItem.mColumnSelected = columnPntr;
-
-            nrSkippedBlocks = columnPntr->GetNumberMissingBlocksAtBase();
         } else {
             mCurrHighlightedItem.mColumnSelected = nullptr;
         }
@@ -138,7 +161,6 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
         }
 
         mCurrHighlightedItem.mSelBlockNrStartingFromBase = blockCntFromTerrain;
-        mCurrHighlightedItem.mSelBlockNrSkippingMissingBlocks = blockCntFromTerrain  - nrSkippedBlocks;
 
         //figure out which "face" of the column cube is closest to the user
         //means in which face the ray enters the cube

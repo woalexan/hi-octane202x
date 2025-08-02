@@ -206,7 +206,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 //is not existing (means we have a tunnel)
                 if (!noColumnThere) {
                     //this is how we can check if there is a block or not
-                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                         //no lowest block, is a tunnel => is ok again
                         noColumnThere = true;
                     }
@@ -249,7 +249,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 //is not existing (means we have a tunnel)
                 if (!noColumnThere) {
                     //this is how we can check if there is a block or not
-                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                         //no lowest block, is a tunnel => is ok again
                         noColumnThere = true;
                     }
@@ -295,7 +295,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 //is not existing (means we have a tunnel)
                 if (!noColumnThere) {
                     //this is how we can check if there is a block or not
-                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                         //no lowest block, is a tunnel => is ok again
                         noColumnThere = true;
                     }
@@ -338,7 +338,7 @@ bool ChargingStation::IdentifyUsableArea() {
                 //is not existing (means we have a tunnel)
                 if (!noColumnThere) {
                     //this is how we can check if there is a block or not
-                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                    if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                         //no lowest block, is a tunnel => is ok again
                         noColumnThere = true;
                     }
@@ -389,7 +389,7 @@ bool ChargingStation::IdentifyUsableArea() {
            //is not existing (means we have a tunnel)
            if (!noColumnThere) {
                //this is how we can check if there is a block or not
-               if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+               if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                    //no lowest block, is a tunnel => is ok again
                    noColumnThere = true;
                }
@@ -432,7 +432,7 @@ bool ChargingStation::IdentifyUsableArea() {
             //is not existing (means we have a tunnel)
             if (!noColumnThere) {
                 //this is how we can check if there is a block or not
-                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                     //no lowest block, is a tunnel => is ok again
                     noColumnThere = true;
                 }
@@ -478,7 +478,7 @@ bool ChargingStation::IdentifyUsableArea() {
             //is not existing (means we have a tunnel)
             if (!noColumnThere) {
                 //this is how we can check if there is a block or not
-                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                     //no lowest block, is a tunnel => is ok again
                     noColumnThere = true;
                 }
@@ -521,7 +521,7 @@ bool ChargingStation::IdentifyUsableArea() {
             //is not existing (means we have a tunnel)
             if (!noColumnThere) {
                 //this is how we can check if there is a block or not
-                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == 0) {
+                if (mapEntry->get_Column()->mInCollisionMesh.at(0) == -1) {
                     //no lowest block, is a tunnel => is ok again
                     noColumnThere = true;
                 }

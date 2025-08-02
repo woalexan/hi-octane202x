@@ -360,6 +360,10 @@ void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
   if (comboBox->getID() == GUI_ID_TEXMODIFICATIONCOMBOBOX) {
     mCurrentSession->mTextureMode->TextureModificationChanged(val);
   }
+
+  if (comboBox->getID() == GUI_ID_COLUMNDEFSELECTIONCOMBOBOX) {
+      mCurrentSession->mColumnDesigner->OnColumnDefinitionComboBoxChanged(val);
+  }
 }
 
 void Editor::OnLeftMouseButtonDown() {

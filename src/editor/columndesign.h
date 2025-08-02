@@ -23,6 +23,8 @@
 class EditorSession;
 struct CurrentlySelectedEditorItemInfoStruct;
 class Column;
+class BlockDefinition;
+class ColumnDefinition;
 
 /* GUI Elements for Editor Column Designer
 */
@@ -34,9 +36,6 @@ struct GUIColumnDesigner
     }
 
     irr::gui::IGUIComboBox* selColumnDefinition;
-    //irr::gui::IGUIComboBox* texModification;
-
-    //irr::gui::IGUIImage* CurrentSelectedTexture;
 
     irr::gui::IGUIStaticText* CurrentSelectedCellInfo;
     irr::gui::IGUIStaticText* CurrentSelectedColumnDefId;
@@ -59,43 +58,37 @@ struct GUIColumnDesigner
     irr::gui::IGUIImage* blockGImageBack;
     irr::gui::IGUIImage* blockHImageBack;
 
-    //irr::gui::IGUIStaticText* LabelSelectCubeFaces;
     irr::gui::IGUIButton* AddColumnButton;
     irr::gui::IGUIButton* RemoveColumnButton;
-    /*irr::gui::IGUIButton* SelSButton;
-    irr::gui::IGUIButton* SelWButton;
-    irr::gui::IGUIButton* SelTButton;
-    irr::gui::IGUIButton* SelBButton;*/
+    irr::gui::IGUIButton* ReplaceColumnButton;
 
+    irr::gui::IGUIButton* MoveUpColumnButton;
+    irr::gui::IGUIButton* MoveDownColumnButton;
+
+    irr::gui::IGUIButton* RemoveBlockButton;
+    irr::gui::IGUIButton* AddBlockButton;
+};
+
+struct ColumnDesignerColDefComboBoxEntry {
+    wchar_t* entryText;
+    irr::s32 comboBoxEntryId;
+    ColumnDefinition* colDefPntr = nullptr;
 };
 
 class ColumnDesigner : public EditorMode {
 private:
-    //void AddTextureCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* comboBoxPntr);
+    void CreateNewColumnDefComboBoxEntry(ColumnDefinition* whichColDef);
+    void CleanupCurrentDefComboBoxEntries();
 
-    //returns nullptr if category is not found
-    //TextureModeTexCategory* FindTextureCategory(irr::u8 categoryNr);
+    //returns nullptr if entry is not found
+    ColumnDesignerColDefComboBoxEntry* FindColDefComboBoxEntry(irr::s32 index);
 
-    //returns nullptr if category is not found
-    //TextureModeTexCategory* FindTextureCategoryByGuiId(irr::u32 guiId);
-    //GUITextureModificationDataStruct* FindTextureModificationByGuiId(irr::u32 guiId);
+    std::vector<ColumnDesignerColDefComboBoxEntry*> mColumnDefComboBoxEntryVec;
 
-    /*void DefineAllTextures();
-    void SelectTextureModeTexCategory(TextureModeTexCategory* newCat);
-    void SelectTextureModification(int8_t newSelectedTexModification);
-
-    void OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruct whichItem, int16_t newTextureId);*/
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
 
-    /*void AddTextureModification(const wchar_t* entryName, int8_t texModValue, irr::gui::IGUIComboBox* comboBoxPntr);*/
-    
-    //TextureModeTexCategory* mCurrShownTexCategory = nullptr;
-
-    //std::vector<GUITextureModificationDataStruct*> mTexModificationVec;
-
     virtual void CreateWindow();
-    void WindowControlColumnPreview(bool newState);
-    //void SelectOtherBlockFace(irr::u8 newFaceSelection);
+    void WindowControlButtons(bool newState);
 
     irr::s32 blockAImageFrontId;
     irr::s32 blockBImageFrontId;
@@ -116,13 +109,34 @@ private:
     irr::s32 blockHImageBackId;
 
    void UpdateBlockPreviewGuiImages(Column* selColumn);
+   void UpdateBlockPreviewGuiImages(ColumnDefinition* selColumnDef);
+
+   //Stores the currently selected block for editing of the
+   //currently selected column
+   int mCurrBlockToBeEditedSelection = 0;
+
+   irr::gui::IGUIImage* mBlockPreviewCurrentlyHovered = nullptr;
+
+   irr::gui::IGUIImage* FindCurrentlyHoveredBlockPreviewImage(irr::s32 hoveredGuiId);
+   void SelectBlockToEditFromBlockPreview(irr::gui::IGUIImage* currHoveredBlockPreviewImage);
+
+   void OnSelectNewBlockForEditing(int newBlockSelectionForEditing);
+
+   Column* mSelectedColumnForEditing = nullptr;
+   BlockDefinition* mSelectedBlockDefForEditing = nullptr;
+
+   void OnRemoveBlock();
+   void OnAddBlock();
+   void UpdateColumnDefComboBox();
+
+   //returns nullptr if no valid column definition is selected
+   ColumnDefinition* GetComboBoxSelectedColumnDefinition();
 
 public:
     ColumnDesigner(EditorSession* parentSession);
     virtual ~ColumnDesigner();
 
-    /*void TextureCategoryChanged(irr::u32 newSelectedGuiId);
-    void TextureModificationChanged(irr::u32 newSelectedGuiId);*/
+    void OnColumnDefinitionComboBoxChanged(irr::u32 newSelectedGuiId);
 
     //we need the following two Gui events
     virtual void OnElementHovered(irr::s32 hoveredGuiId);
@@ -136,15 +150,6 @@ public:
     void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
 
     GUIColumnDesigner mGuiColumnDesigner;
-
-    //std::vector<TextureModeTexCategory*> mTexCategoryVec;
-
-    //irr::u8 mNrTexWidth;
-    //irr::u8 mNrTexHeight;
-
-    //irr::u32 mTexDimension;
-    //irr::core::recti dimTexSelectionArea;
-    //irr::core::vector2di mCurrentSelectedTextureImageLocation;
 };
 
 #endif // COLUMNDESIGN_H

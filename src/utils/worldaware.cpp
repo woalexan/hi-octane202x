@@ -405,9 +405,9 @@ void WorldAwareness::CreateStaticWorld() {
 
    std::vector<ColumnsByPositionStruct>::iterator itCol;
    for (itCol = this->mRace->mLevelBlocks->ColumnsByPosition.begin(); itCol != this->mRace->mLevelBlocks->ColumnsByPosition.end(); ++itCol){
-       //check if lowest block (block A, index 0) is in collision mesh or not (value 0 is not part of collision mesh)
+       //check if lowest block (block A, index 0) is in collision mesh or not (value 0 is not part of collision mesh, -1 means no block exists there)
        //if it is part of collision mesh, draw rectangle where lowest block sits in world
-       if ((*itCol).pColumn->Definition->mInCollisionMesh[0] != 0) {
+       if ((*itCol).pColumn->Definition->mInCollisionMesh[0] == 1) {
            //top or bottom is necessary as we create the 2D map from locking from the top down on player field
            vert1 = (*itCol).pColumn->mBlockInfoVec.at(0)->fB->currPositionVert1;
            vert3 = (*itCol).pColumn->mBlockInfoVec.at(0)->fB->currPositionVert3;

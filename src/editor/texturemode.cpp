@@ -213,7 +213,6 @@ void TextureMode::TextureModificationChanged(irr::u32 newSelectedGuiId) {
         } else if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
             mParentSession->mLevelBlocks->SetCubeFaceTexture(mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected,
                                                              mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockNrStartingFromBase,
-                                                             mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockNrSkippingMissingBlocks,
                                                              mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockFaceDirection, false, 0, true, pntr->texModValue);
         }
     }
@@ -228,7 +227,7 @@ void TextureMode::CreateWindow() {
     irr::core::dimension2d<irr::u32> dim ( 600, 500 );
 
     //finally create the window
-    Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Textures", 0, mGuiWindowId);
+    Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Texturing", 0, mGuiWindowId);
 
     mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
                                       rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, Window, -1, false );
@@ -634,7 +633,6 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
         if (newItemSelected.mColumnSelected != nullptr) {
             if (mParentSession->mLevelBlocks->GetTextureInfoSelectedBlock(newItemSelected.mColumnSelected,
                                                                           newItemSelected.mSelBlockNrStartingFromBase,
-                                                                          newItemSelected.mSelBlockNrSkippingMissingBlocks,
                                                                           newItemSelected.mSelBlockFaceDirection,
                                                                           currTextureId,
                                                                           currTextureMod)) {
@@ -740,7 +738,7 @@ void TextureMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct*
         mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->blue);
     } else if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
         mParentSession->mLevelBlocks->DrawOutlineSelectedColumn(mCurrSelectedItem->mColumnSelected,
-                                                         mCurrSelectedItem->mSelBlockNrSkippingMissingBlocks,
+                                                         mCurrSelectedItem->mSelBlockNrStartingFromBase,
                                                          mParentSession->mParentEditor->mDrawDebug->white,
                                                          mParentSession->mParentEditor->mDrawDebug->blue,
                                                          mCurrSelectedItem->mSelBlockFaceDirection);
@@ -751,7 +749,7 @@ void TextureMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStru
     if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
     } else if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        mParentSession->mLevelBlocks->DrawOutlineSelectedColumn(mCurrHighlightedItem->mColumnSelected, mCurrHighlightedItem->mSelBlockNrSkippingMissingBlocks,
+        mParentSession->mLevelBlocks->DrawOutlineSelectedColumn(mCurrHighlightedItem->mColumnSelected, mCurrHighlightedItem->mSelBlockNrStartingFromBase,
                                                 mParentSession->mParentEditor->mDrawDebug->cyan, mParentSession->mParentEditor->mDrawDebug->pink,
                                                 mCurrHighlightedItem->mSelBlockFaceDirection);
     }
@@ -765,7 +763,7 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
        std::cout << "changed block TexID to " << newTextureId << std::endl;
        mParentSession->mLevelBlocks->SetCubeFaceTexture(
-                   whichItem.mColumnSelected, whichItem.mSelBlockNrStartingFromBase, whichItem.mSelBlockNrSkippingMissingBlocks,
+                   whichItem.mColumnSelected, whichItem.mSelBlockNrStartingFromBase,
                    whichItem.mSelBlockFaceDirection, true, newTextureId, false, 0);
    }
 }

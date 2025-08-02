@@ -355,10 +355,242 @@ BlockFaceInfoStruct* Column::CreateNewCubeFace(vector3d<irr::f32> v1,
     return (newFace);
 }
 
+void Column::RemoveBlock(int nrBlockStartingFromBase) {
+    if ((nrBlockStartingFromBase < 0) || (nrBlockStartingFromBase > 7))
+        return;
+
+    bool blockExists = false;
+
+    //make sure at this location there is currently a block
+    //otherwise exit
+    switch (nrBlockStartingFromBase) {
+        case 0: {
+            if (Definition->get_A() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+        case 1: {
+            if (Definition->get_B() != 0) {
+                blockExists = true;
+
+            }
+            break;
+        }
+        case 2: {
+            if (Definition->get_C() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+        case 3: {
+            if (Definition->get_D() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+        case 4: {
+            if (Definition->get_E() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+        case 5: {
+            if (Definition->get_F() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+        case 6: {
+            if (Definition->get_G() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+        case 7: {
+            if (Definition->get_H() != 0) {
+                blockExists = true;
+            }
+            break;
+        }
+    }
+
+    if (!blockExists)
+        return;
+
+    //remove the BlockInfoStruct data that handles the removed
+    //block
+    std::vector<BlockInfoStruct*>:: iterator it;
+    BlockInfoStruct* pntr;
+
+    size_t idx;
+    if (!GetBlockInfoVecIndex(nrBlockStartingFromBase, idx)) {
+        //does not exit
+        return;
+    }
+
+    it = mBlockInfoVec.begin() + idx;
+
+    pntr = (*it);
+
+    it = mBlockInfoVec.erase(it);
+
+    CleanUpBlockInfoStruct(*pntr);
+
+    if (mNrBlocksInColumn > 0) {
+        mNrBlocksInColumn--;
+    }
+
+    //27.07.2025: TODO: if we need it one time (I think right now we dont) we need to adjust
+    //column property "Size" here, because if we remove a block at the base or top
+    //the physical size of the column can change
+    //but do not care right now
+}
+
+//Returns true if block info struct was found at specified location (means block there exists)
+//False otherwise
+//if block was found correct index to access block info struct is written into output
+//parameter outIndex;
+bool Column::GetBlockInfoVecIndex(int nrBlockStartingFromBase, size_t& outIndex) {
+    std::vector<BlockInfoStruct*>::iterator it;
+
+    int idx = 0;
+
+    for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ++it) {
+        if ((*it)->idxBlockFromBaseCnt == (irr::u8)(nrBlockStartingFromBase)) {
+            outIndex = idx;
+            return true;
+        }
+
+        idx++;
+    }
+
+   //not found
+   return false;
+}
+
 void Column::MoveColumnVertex(irr::core::vector3df &vertex) {
     vertex.X -= Position.X + 1;
     vertex.Y += Position.Y;
     vertex.Z += Position.Z;
+}
+
+//returns the current height of the column (size in Y direction) in parameter currHeight
+BlockInfoStruct* Column::CreateGeometryBlock(BlockDefinition* blockDef, int blockNrFromBase, irr::f32 a,
+                                 irr::f32 b, irr::f32 c, irr::f32 d, irr::f32 &currHeight) {
+    irr::f32 h;
+
+    std::vector<vector2d<irr::f32>> newuvsS;
+    std::vector<vector2d<irr::f32>> newuvsW;
+    std::vector<vector2d<irr::f32>> newuvsN;
+    std::vector<vector2d<irr::f32>> newuvsE;
+    std::vector<vector2d<irr::f32>> newuvsT;
+    std::vector<vector2d<irr::f32>> newuvsB;
+
+    int texIDInfoS;
+    int texIDInfoW;
+    int texIDInfoN;
+    int texIDInfoE;
+    int texIDInfoT;
+    int texIDInfoB;
+
+    // bottom vertices
+    h = blockNrFromBase * segmentSize;
+    vector3d<irr::f32> *A = new vector3d<irr::f32>(0.0f, a + h,  0.0f);
+    vector3d<irr::f32> *B = new vector3d<irr::f32>(segmentSize, b + h,  0.0f);
+    vector3d<irr::f32> *C = new vector3d<irr::f32>(segmentSize, c + h, segmentSize);
+    vector3d<irr::f32> *D = new vector3d<irr::f32>(0.0f, d + h, segmentSize);
+
+    // top vertices
+    h += segmentSize;
+    vector3d<irr::f32> *E = new vector3d<irr::f32>(0.0f, a + h, 0.0f);
+    vector3d<irr::f32> *F = new vector3d<irr::f32>(segmentSize, b + h, 0.0f);
+    vector3d<irr::f32> *G = new vector3d<irr::f32>(segmentSize, c + h, segmentSize);
+    vector3d<irr::f32> *H = new vector3d<irr::f32>(0.0f, d + h, segmentSize);
+
+    //we need to move this column to the correct map location
+    //because otherwise all of the columns would be in the level
+    //origin
+    MoveColumnVertex(*A);
+    MoveColumnVertex(*B);
+    MoveColumnVertex(*C);
+    MoveColumnVertex(*D);
+    MoveColumnVertex(*E);
+    MoveColumnVertex(*F);
+    MoveColumnVertex(*G);
+    MoveColumnVertex(*H);
+
+    // texture atlas UVs
+    newuvsS = mLevelBlocks->MakeUVs(blockDef->get_SMod());
+    texIDInfoS = blockDef->get_S();
+
+    newuvsW = mLevelBlocks->MakeUVs(blockDef->get_WMod());
+    texIDInfoW = blockDef->get_W();
+
+    newuvsN = mLevelBlocks->MakeUVs(blockDef->get_NMod());
+    texIDInfoN = blockDef->get_N();
+
+    newuvsE = mLevelBlocks->MakeUVs(blockDef->get_EMod());
+    texIDInfoE = blockDef->get_E();
+
+    newuvsT = mLevelBlocks->MakeUVs(blockDef->get_TMod());
+    texIDInfoT = blockDef->get_T();
+
+    newuvsB = mLevelBlocks->MakeUVs(blockDef->get_BMod());
+    texIDInfoB = blockDef->get_B();
+
+    // normals
+    vector3d<irr::f32> *nN = new vector3d<irr::f32>(0.0f, 0.0f, -1.0f);
+    vector3d<irr::f32> *nE = new vector3d<irr::f32>(1.0f, 0.0f, 0.0f);
+    vector3d<irr::f32> *nS = new vector3d<irr::f32>(0.0f, 0.0f, 1.0f);
+    vector3d<irr::f32> *nW = new vector3d<irr::f32>(-1.0f, 0.0f, 0.0f);
+    vector3d<irr::f32> *nT = new vector3d<irr::f32>(0.0f, 1.0f, 0.0f);
+    vector3d<irr::f32> *nB = new vector3d<irr::f32>(0.0f, -1.0f, 0.0f);
+
+    //create all vertices and store them
+    //create a new block
+    BlockInfoStruct* newBlock = new BlockInfoStruct();
+    newBlock->idxBlockFromBaseCnt = (irr::u8)(blockNrFromBase);
+
+    //define all faces
+    //north side
+    newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, newuvsN, *nN, texIDInfoN);
+
+    //east side
+    newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, newuvsE, *nE, texIDInfoE);
+
+    //south side
+    newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, newuvsS, *nS, texIDInfoS);
+
+    //west side
+    newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, newuvsW, *nW, texIDInfoW);
+
+    //top side
+    newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, newuvsT, *nT, texIDInfoT);
+
+    //bottom side
+    newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, newuvsB, *nB, texIDInfoB);
+
+    //cleanup
+    delete A;
+    delete B;
+    delete C;
+    delete D;
+    delete E;
+    delete F;
+    delete G;
+    delete H;
+
+    delete nN;
+    delete nE;
+    delete nS;
+    delete nW;
+    delete nT;
+    delete nB;
+
+    currHeight = h;
+
+    return newBlock;
 }
 
 bool Column::SetupGeometry() {
@@ -402,7 +634,7 @@ bool Column::SetupGeometry() {
         d = 0;
     }
 
-    irr::f32 h = 0.0f;
+    irr::f32 h;
 
     //set the current column base vertice coordinates
     mBaseVert1Coord.set(segmentSize, d, segmentSize);
@@ -425,23 +657,10 @@ bool Column::SetupGeometry() {
     mBaseVert3CoordOriginal = mBaseVert3Coord;
     mBaseVert4CoordOriginal = mBaseVert4Coord;
 
-    std::vector<vector2d<irr::f32>> newuvsS;
-    std::vector<vector2d<irr::f32>> newuvsW;
-    std::vector<vector2d<irr::f32>> newuvsN;
-    std::vector<vector2d<irr::f32>> newuvsE;
-    std::vector<vector2d<irr::f32>> newuvsT;
-    std::vector<vector2d<irr::f32>> newuvsB;
-
-    int textIDInfoS;
-    int textIDInfoW;
-    int textIDInfoN;
-    int textIDInfoE;
-    int textIDInfoT;
-    int textIDInfoB;
-
     mNrBlocksInColumn = 0;
     int16_t blockDefId;
     BlockDefinition *blockDef;
+    BlockInfoStruct* newBlock;
 
     // Iterate through all blocks of this column
     for (int bitNum = 0; bitNum < 8; bitNum++) {
@@ -532,102 +751,12 @@ bool Column::SetupGeometry() {
             }
         }
 
-        // bottom vertices
-        h = bitNum * segmentSize;
-        vector3d<irr::f32> *A = new vector3d<irr::f32>(0.0f, a + h,  0.0f);
-        vector3d<irr::f32> *B = new vector3d<irr::f32>(segmentSize, b + h,  0.0f);
-        vector3d<irr::f32> *C = new vector3d<irr::f32>(segmentSize, c + h, segmentSize);
-        vector3d<irr::f32> *D = new vector3d<irr::f32>(0.0f, d + h, segmentSize);
-
-        // top vertices
-        h += segmentSize;
-        vector3d<irr::f32> *E = new vector3d<irr::f32>(0.0f, a + h, 0.0f);
-        vector3d<irr::f32> *F = new vector3d<irr::f32>(segmentSize, b + h, 0.0f);
-        vector3d<irr::f32> *G = new vector3d<irr::f32>(segmentSize, c + h, segmentSize);
-        vector3d<irr::f32> *H = new vector3d<irr::f32>(0.0f, d + h, segmentSize);
-
-        //we need to move this column to the correct map location
-        //because otherwise all of the columns would be in the level
-        //origin
-        MoveColumnVertex(*A);
-        MoveColumnVertex(*B);
-        MoveColumnVertex(*C);
-        MoveColumnVertex(*D);
-        MoveColumnVertex(*E);
-        MoveColumnVertex(*F);
-        MoveColumnVertex(*G);
-        MoveColumnVertex(*H);
-
-        // texture atlas UVs
-        newuvsS = mLevelBlocks->MakeUVs(blockDef->get_SMod());
-        textIDInfoS = blockDef->get_S();
-
-        newuvsW = mLevelBlocks->MakeUVs(blockDef->get_WMod());
-        textIDInfoW = blockDef->get_W();
-
-        newuvsN = mLevelBlocks->MakeUVs(blockDef->get_NMod());
-        textIDInfoN = blockDef->get_N();
-
-        newuvsE = mLevelBlocks->MakeUVs(blockDef->get_EMod());
-        textIDInfoE = blockDef->get_E();
-
-        newuvsT = mLevelBlocks->MakeUVs(blockDef->get_TMod());
-        textIDInfoT = blockDef->get_T();
-
-        newuvsB = mLevelBlocks->MakeUVs(blockDef->get_BMod());
-        textIDInfoB = blockDef->get_B();
-
-        // normals
-        vector3d<irr::f32> *nN = new vector3d<irr::f32>(0.0f, 0.0f, -1.0f);
-        vector3d<irr::f32> *nE = new vector3d<irr::f32>(1.0f, 0.0f, 0.0f);
-        vector3d<irr::f32> *nS = new vector3d<irr::f32>(0.0f, 0.0f, 1.0f);
-        vector3d<irr::f32> *nW = new vector3d<irr::f32>(-1.0f, 0.0f, 0.0f);
-        vector3d<irr::f32> *nT = new vector3d<irr::f32>(0.0f, 1.0f, 0.0f);
-        vector3d<irr::f32> *nB = new vector3d<irr::f32>(0.0f, -1.0f, 0.0f);
-
-        //create all vertices and store them
-        //create a new block
-        BlockInfoStruct* newBlock = new BlockInfoStruct();
-        newBlock->idxBlockFromBaseCnt = (irr::u8)(bitNum);
-
-        //define all faces
-        //north side
-        newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, newuvsN, *nN, textIDInfoN);
-
-        //east side
-        newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, newuvsE, *nE, textIDInfoE);
-
-        //south side
-        newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, newuvsS, *nS, textIDInfoS);
-
-        //west side
-        newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, newuvsW, *nW, textIDInfoW);
-
-        //top side
-        newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, newuvsT, *nT, textIDInfoT);
-
-        //bottom side
-        newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, newuvsB, *nB, textIDInfoB);
+        //create the geometry for this block/cube
+        //returns the current height of the column (size in Y direction)
+        newBlock = CreateGeometryBlock(blockDef, bitNum, a, b, c, d, h);
 
         //add new block to my vector of blocks
         mBlockInfoVec.push_back(newBlock);
-
-        //cleanup
-        delete A;
-        delete B;
-        delete C;
-        delete D;
-        delete E;
-        delete F;
-        delete G;
-        delete H;
-
-        delete nN;
-        delete nE;
-        delete nS;
-        delete nW;
-        delete nT;
-        delete nB;
 
         mNrBlocksInColumn++;
      }
