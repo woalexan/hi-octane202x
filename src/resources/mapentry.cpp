@@ -31,18 +31,22 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
     std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_Bytes.size(), 0);
 
     //each map entry is 12 bytes long
-    //Byte 0:  Unknown 1
-    //Byte 1:  Unknown 1
+    //Byte 0:  Cell Illumination value: This value controls how well illuminated a cell is
+    //Byte 1:  Cell Illumination value: This value controls how well illuminated a cell is
     //Byte 2:  Height
     //Byte 3:  Height
     //Byte 4:  cid (cell id)
     //Byte 5:  cid (cell id)
     //Byte 6:  Point of Interest
     //Byte 7:  Point of Interest
-    //Byte 8:  Unknown 2
-    //Byte 9:  Unknown 2
+    //Byte 8:  Reserved 1 (seems to be not used)
+    //Byte 9:  Reserved 1 (seems to be not used)
     //Byte 10:  Texture Modification
-    //Byte 11:  Unknown 3
+    //Byte 11:  Reserved 2 (seems to be not used)
+
+    //Reserved 1 & Reserved 2: For both values I checked in every level of the original
+    //game. Is not a single time non zero. Was maybe reserved for
+    //a future expansion, and never used (maybe reserved).
 
     this->m_Height = (((float)(bytes.at(2))) / 256.0f) + (float)(bytes.at(3));
 
@@ -70,10 +74,12 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
 
     mPointOfInterest = ConvertByteArray_ToInt16(bytes, 6);
 
+    //read cell illumination value
+    mIllumination = ConvertByteArray_ToInt16(bytes, 0);
+
     //read also unknown data
-    mUnknown1 = ConvertByteArray_ToInt16(bytes, 0);
-    mUnknown2 = ConvertByteArray_ToInt16(bytes, 8);
-    mUnknown3 = bytes.at(11);
+    mReserved1 = ConvertByteArray_ToInt16(bytes, 8);
+    mReserved2 = bytes.at(11);
 }
 
 MapEntry::~MapEntry() {
@@ -133,10 +139,12 @@ bool MapEntry::WriteChanges() {
 
     ConvertAndWriteInt16ToByteArray(mPointOfInterest, this->m_wBytes, 6);
 
+    //write illumination value (how much light does a cell receive)
+    ConvertAndWriteInt16ToByteArray(mIllumination, this->m_wBytes, 0);
+
     //write also unknown data
-    ConvertAndWriteInt16ToByteArray(mUnknown1, this->m_wBytes, 0);
-    ConvertAndWriteInt16ToByteArray(mUnknown2, this->m_wBytes, 8);
-    this->m_wBytes.at(11) = (uint8_t)(mUnknown3);
+    ConvertAndWriteInt16ToByteArray(mReserved1, this->m_wBytes, 8);
+    this->m_wBytes.at(11) = (uint8_t)(mReserved2);
 
     return true;
 }

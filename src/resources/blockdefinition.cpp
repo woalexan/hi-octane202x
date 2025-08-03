@@ -30,10 +30,10 @@ BlockDefinition::BlockDefinition(int id, int offset, std::vector<uint8_t> bytes)
    //Byte 3:   E
    //Byte 4:   T
    //Byte 5:   B
-   //Byte 6:   NMod  (19.07.2025: does not seem to work in original game, reason unknown)
-   //Byte 7:   WMod  (19.07.2025: does not seem to work in original game, reason unknown)
+   //Byte 6:   NMod  (19.07.2025: does not seem to work in original game, reason unknown, bug in game that was never fixed?)
+   //Byte 7:   WMod  (19.07.2025: does not seem to work in original game, reason unknown, bug in game that was never fixed?)
    //Byte 8:   SMod  (works as expected)
-   //Byte 9:   EMod  (19.07.2025: does not seem to work in original game, reason unknown)
+   //Byte 9:   EMod  (19.07.2025: does not seem to work in original game, reason unknown, bug in game that was never fixed?)
    //Byte 10:  TMod  (works as expected)
    //Byte 11:  BMod  (works as expected)
    //Byte 12:  Unknown1 (TODO: this value seems to be used, but I do not known for what exactly right now)

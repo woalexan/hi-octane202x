@@ -132,6 +132,14 @@ public:
     bool GetStateFrozen();
 
     void Draw();
+
+    //the following function is for a special case, where the
+    //user wants to select the cell below a column (to change the
+    //column floor texture Id in the texturing tool)
+    //With a ray the user can not do this if the column is directly
+    //standing on the cell. Therefore the texturing tool is able to call
+    //the function below, to externally force a selection of the cell
+    void SelectSpecifiedCellAtCoordinate(int x, int y);
 };
 
 #endif // ITEMSELECTOR_H

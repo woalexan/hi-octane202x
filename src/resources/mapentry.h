@@ -34,7 +34,6 @@ public:
     int16_t m_TextureId;
     int8_t m_TextureModification;
 
-   // ColumnDefinition Column { get; private set; }
     int get_X();
     int get_Z();
     void set_X(int new_X);
@@ -46,9 +45,18 @@ public:
 
     int16_t mPointOfInterest;
 
-    int16_t mUnknown1;
-    int16_t mUnknown2;
-    int8_t mUnknown3;
+    //This value controls how well illuminated a cell
+    //is. This also affects blocks/column located above.
+    //a typical default illumination value seems to be 8191.
+    //a spot that is in the shadow is a value of approx. 12000,
+    //If a cell receives more light then normal we look at values around 6000.
+    int16_t mIllumination;
+
+    //For both values I checked in every level of the original
+    //game. Is not a single time non zero. Was maybe reserved for
+    //a future expansion, and never used (maybe reserved).
+    int16_t mReserved1;
+    int8_t mReserved2;
 
 protected:
     int m_X;

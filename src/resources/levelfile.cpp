@@ -105,13 +105,8 @@ LevelFile::LevelFile(std::string filename) {
     logging::Info(msg);
 
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMap() && loadEntitiesTable() &&
-            loadMapRegions() && loadUnknownTableOffset358222(); /*&& loadUnknownTableOffset0() &&
-            loadUnknownTableOffset96000() && loadUnknownTableOffset402192() && loadUnknownTableOffset362208()
-            && loadUnknownTableOffset357664() && loadUnknownTableOffset355360() && loadUnknownTableOffset355104()
-            && loadUnknownTableOffset354848() && loadUnknownTableOffset292096() && loadUnknownTableOffset160160()
-            && loadUnknownTableOffset157760() && loadUnknownTableOffset155376() && loadUnknownTableOffset141008() &&
-            loadUnknownTableOffset143408() && loadUnknownTableOffset145808() && loadUnknownTableOffset148192() &&
-            loadUnknownTableOffset150592() && loadUnknownTableOffset152976();*/
+            loadMapRegions() && loadUnknownTableOffset0() && loadUnknownTableOffset3168() &&
+            loadUnknownTableOffset3312() && loadUnknownTableOffset102068() && loadUnknownTableOffset127468() && loadUnknownTableOffset247604();
     this->m_Ready = ready_result;
 
     //for debugging of level save functionality
@@ -123,7 +118,15 @@ LevelFile::LevelFile(std::string filename) {
     DetectAdditionalRegionsTextureId();
     DetectAdditionalRegionsBasedOnColumns();
 
-    //InvestigatePrintUnknownTableOffset247264();
+    if (false) {
+        InvestigatePrintUnknownTableOffset3312();
+        InvestigatePrintUnknownTableOffset102068();
+        InvestigatePrintUnknownTableOffset127468();
+        InvestigatePrintUnknownTableOffset247264();
+        InvestigatePrintUnknownTableOffset247604();
+    }
+
+    //DebugWriteCellInfoToCsvFile((char*)("dbgcellInfo.csv"));
 
     /*std::vector<unsigned char>::iterator it;
     unsigned int pos = 0;
@@ -426,6 +429,8 @@ bool LevelFile::loadMap() {
         int16_t poiValue = (this->m_bytes.at(i + 7) << 8) | this->m_bytes.at(i + 6);
         if (poiValue > 0) {
             poi.Value = poiValue;
+            poi.cellCoord.X = x;
+            poi.cellCoord.Y = y;
             poi.Position = irr::core::vector3d<float>(-x * DEF_SEGMENTSIZE - 0.5f * DEF_SEGMENTSIZE,
                                 entry->m_Height, y * DEF_SEGMENTSIZE + 0.5f * DEF_SEGMENTSIZE);
             PointsOfInterest.push_back(poi);
@@ -442,12 +447,12 @@ bool LevelFile::Save(std::string filename) {
    //prepare all data in second data byte array
    //better write the unknown table data first, not that we
    //overwrite other data afterwards again at wrong spots
-   //saveUnknownTables();
+   saveUnknownTables();
 
    //copy initial read level data to write level data
    //array, to make sure that all data makes sense we do not
    //yet know what it means
-   std::copy(this->m_bytes.begin(), this->m_bytes.end(), this->m_wBytes.begin());
+  // std::copy(this->m_bytes.begin(), this->m_bytes.end(), this->m_wBytes.begin());
 
    saveMap();
    saveColumnsTable();
@@ -1154,6 +1159,141 @@ bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
     return true;
 }
 
+bool LevelFile::InvestigatePrintUnknownTableOffset127468() {
+    std::vector<uint8_t>::iterator it;
+
+    int cnt = 0;
+
+    char finalpath[100];
+
+    strcpy(finalpath, this->get_Filename().c_str());
+    strcat(finalpath, "-table127468.txt");
+
+    //now we have our output filename
+    //FILE* oFile = fopen(finalpath, "w");
+    FILE* oFile = fopen(finalpath, "w+b");
+    if (oFile == nullptr) {
+       return false;
+    }
+
+    it = this->unknownTable127468Data.begin();
+    for (; it != this->unknownTable127468Data.end();++it) {
+       //fprintf(oFile, "; %u ", (*it));
+       fprintf(oFile, "%c", (*it));
+    }
+
+    //close file
+    fclose(oFile);
+
+    return true;
+}
+
+bool LevelFile::InvestigatePrintUnknownTableOffset247604() {
+    std::vector<uint8_t>::iterator it;
+
+    int cnt = 0;
+
+    char finalpath[100];
+
+    strcpy(finalpath, this->get_Filename().c_str());
+    strcat(finalpath, "-table247604.txt");
+
+    //now we have our output filename
+    //FILE* oFile = fopen(finalpath, "w");
+    FILE* oFile = fopen(finalpath, "w+b");
+    if (oFile == nullptr) {
+       return false;
+    }
+
+    it = this->unknownTable247604Data.begin();
+    for (; it != this->unknownTable247604Data.end();++it) {
+       //fprintf(oFile, "; %u ", (*it));
+       fprintf(oFile, "%c", (*it));
+    }
+
+    //close file
+    fclose(oFile);
+
+    return true;
+}
+
+bool LevelFile::InvestigatePrintUnknownTableOffset102068() {
+    std::vector<uint8_t>::iterator it;
+
+    int cnt = 0;
+
+    char finalpath[100];
+
+    strcpy(finalpath, this->get_Filename().c_str());
+    strcat(finalpath, "-table102068.txt");
+
+    //now we have our output filename
+    //FILE* oFile = fopen(finalpath, "w");
+    FILE* oFile = fopen(finalpath, "w+b");
+    if (oFile == nullptr) {
+       return false;
+    }
+
+    it = this->unknownTable102068Data.begin();
+    for (; it != this->unknownTable102068Data.end();++it) {
+       //fprintf(oFile, "; %u ", (*it));
+       fprintf(oFile, "%c", (*it));
+    }
+
+    //close file
+    fclose(oFile);
+
+    return true;
+}
+
+bool LevelFile::InvestigatePrintUnknownTableOffset3312() {
+    std::vector<uint8_t>::iterator it;
+
+    int cnt = 0;
+
+    char finalpath[100];
+
+    strcpy(finalpath, this->get_Filename().c_str());
+    strcat(finalpath, "-table3312.txt");
+
+    //now we have our output filename
+    //FILE* oFile = fopen(finalpath, "w");
+    FILE* oFile = fopen(finalpath, "w+b");
+    if (oFile == nullptr) {
+       return false;
+    }
+
+    it = this->unknownTable3312Data.begin();
+    for (; it != this->unknownTable3312Data.end();++it) {
+       //fprintf(oFile, "; %u ", (*it));
+       fprintf(oFile, "%c", (*it));
+    }
+
+    //close file
+    fclose(oFile);
+
+    return true;
+}
+
+//Returns true if there is a column at the specified location
+//False for no column
+//Important note: in case of an invalid entry/coordinate this function
+//will also return false
+bool LevelFile::IsAColumnAtCoordinates(int x, int y) {
+    MapEntry* entry = pMap[x][y];
+
+    if (entry == nullptr)
+        return false;
+
+    //no column?
+    if (entry->get_Column() == nullptr)
+        return false;
+
+    //there is a column
+    return true;
+}
+
+/*
 bool LevelFile::SaveUnknownTableOffset247264() {
 
     int baseOffset = 247264;
@@ -1182,9 +1322,9 @@ bool LevelFile::SaveUnknownTableOffset247264() {
     fclose(oFile);
 
     return true;
-}
+}*/
 
-bool LevelFile::SaveUnknownTableOffset358222() {
+/*bool LevelFile::SaveUnknownTableOffset358222() {
 
     int baseOffset = 358222;
 
@@ -1212,18 +1352,18 @@ bool LevelFile::SaveUnknownTableOffset358222() {
     fclose(oFile);
 
     return true;
-}
+}*/
 
-bool LevelFile::loadUnknownTableOffset358222() {
+bool LevelFile::loadUnknownTableOffset247604() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 358222;
+    int baseOffset = 247604;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 169 entries with each 16 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 169 * 16;
-    unknownTable358222Data.assign(startslice, endslice);
+    //unknown table has 157016 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 157016;
+    unknownTable247604Data.assign(startslice, endslice);
 
     return true;
 }
@@ -1235,247 +1375,65 @@ bool LevelFile::loadUnknownTableOffset0() {
     int baseOffset = 0;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 16 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 16;
+    //unknown table has 24 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 24;
     unknownTable0Data.assign(startslice, endslice);
 
     return true;
 }
 
-bool LevelFile::loadUnknownTableOffset96000() {
+bool LevelFile::loadUnknownTableOffset3168() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 96000;
+    int baseOffset = 3168;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 2048 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 2048;
-    unknownTable96000Data.assign(startslice, endslice);
+    //unknown table has 72 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 72;
+    unknownTable3168Data.assign(startslice, endslice);
 
     return true;
 }
 
-bool LevelFile::loadUnknownTableOffset402192() {
+bool LevelFile::loadUnknownTableOffset3312() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 402192;
+    int baseOffset = 3312;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 688 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 688;
-    unknownTable402192Data.assign(startslice, endslice);
+    //unknown table has 94736 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 94736;
+    unknownTable3312Data.assign(startslice, endslice);
 
     return true;
 }
 
-bool LevelFile::loadUnknownTableOffset362208() {
+bool LevelFile::loadUnknownTableOffset102068() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 362208;
+    int baseOffset = 102068;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 3984 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 3984;
-    unknownTable362208Data.assign(startslice, endslice);
+    //unknown table has 22584 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 22584;
+    unknownTable102068Data.assign(startslice, endslice);
 
     return true;
 }
 
-bool LevelFile::loadUnknownTableOffset357664() {
+bool LevelFile::loadUnknownTableOffset127468() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 357664;
+    int baseOffset = 127468;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 528 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 528;
-    unknownTable357664Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset355360() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 355360;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 128 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 128;
-    unknownTable355360Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset355104() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 355104;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 96 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 96;
-    unknownTable355104Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset354848() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 354848;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 112 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 112;
-    unknownTable354848Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset292096() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 292096;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 128 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 128;
-    unknownTable292096Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset160160() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 160160;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 32 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 32;
-    unknownTable160160Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset157760() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 157760;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable157760Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset155376() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 155376;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable155376Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset141008() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 141008;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 80 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 80;
-    unknownTable141008Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset143408() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 143408;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable143408Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset145808() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 145808;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable145808Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset148192() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 148192;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable148192Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset150592() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 150592;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable150592Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset152976() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 152976;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 64 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 64;
-    unknownTable152976Data.assign(startslice, endslice);
+    //unknown table has 119796 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 119796;
+    unknownTable127468Data.assign(startslice, endslice);
 
     return true;
 }
@@ -1863,6 +1821,35 @@ bool LevelFile::RequestColumnDefinition(int16_t pFloorTextureID, int16_t pUnknow
     return true;
 }
 
+void LevelFile::DebugWriteCellInfoToCsvFile(char* debugOutPutFileName) {
+   FILE* debugOutputFile = nullptr;
+
+   debugOutputFile = fopen(debugOutPutFileName, "w");
+   if (debugOutputFile == nullptr) {
+         return;
+   }
+
+   MapEntry* entry;
+
+   //write a header
+   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;POI;Illumination;Reserved1;Reserved2\n");
+   for (int x = 0; x < LEVELFILE_WIDTH; x++) {
+       for (int y = 0; y < LEVELFILE_HEIGHT; y++) {
+           entry = pMap[x][y];
+
+           if (entry != nullptr) {
+               //write the next entry
+               fprintf(debugOutputFile, "%d;%d;%lf;%d;%d;%d;%d;%d;%d\n",
+                    x, y, entry->m_Height, entry->m_TextureId,
+                    entry->m_TextureModification, entry->mPointOfInterest,
+                     entry->mIllumination, entry->mReserved1, entry->mReserved2);
+            }
+      }
+   }
+
+   fclose(debugOutputFile);
+}
+
 /**************************************
  * Save Map Stuff                     *
  **************************************/
@@ -1934,8 +1921,6 @@ bool LevelFile::saveMap() {
             //copy new data to overall save data array
             std::copy(mapEntry->m_wBytes.begin(), mapEntry->m_wBytes.end(), this->m_wBytes.begin()
                       + mapEntry->get_Offset());
-
-            //TODO: add to save POI (point of interests)
         }
       }
     }
@@ -1944,86 +1929,37 @@ bool LevelFile::saveMap() {
 }
 
 bool LevelFile::saveUnknownTables() {
-    //first Table Offset247264
-    std::copy(this->unknownTable247264Data.begin(), unknownTable247264Data.end(), this->m_wBytes.begin()
-              + 247264);
-
-    //second table Offset358222
-    std::copy(this->unknownTable358222Data.begin(), unknownTable358222Data.end(), this->m_wBytes.begin()
-              + 358222);
-
     //third table Offset0
     std::copy(this->unknownTable0Data.begin(), unknownTable0Data.end(), this->m_wBytes.begin()
               + 0);
 
-    //fourth table Offset96000
-    std::copy(this->unknownTable96000Data.begin(), unknownTable96000Data.end(), this->m_wBytes.begin()
-              + 96000);
+    //third table Offset3168
+    std::copy(this->unknownTable3168Data.begin(), unknownTable3168Data.end(), this->m_wBytes.begin()
+              + 3168);
 
-    //fifth table Offset402192
-    std::copy(this->unknownTable402192Data.begin(), unknownTable402192Data.end(), this->m_wBytes.begin()
-              + 402192);
+    //fourth table Offset3312
+    std::copy(this->unknownTable3312Data.begin(), unknownTable3312Data.end(), this->m_wBytes.begin()
+              + 3312);
 
-    //sixth table Offset362208
-    std::copy(this->unknownTable362208Data.begin(), unknownTable362208Data.end(), this->m_wBytes.begin()
-              + 362208);
+    //fourth table Offset102068
+    std::copy(this->unknownTable102068Data.begin(), unknownTable102068Data.end(), this->m_wBytes.begin()
+              + 102068);
 
-    //7th table Offset357664
-    std::copy(this->unknownTable357664Data.begin(), unknownTable357664Data.end(), this->m_wBytes.begin()
-              + 357664);
+    //std::fill(this->unknownTable247604Data.begin(), unknownTable247604Data.end(), 0);
 
-    //8th table Offset355360
-    std::copy(this->unknownTable355360Data.begin(), unknownTable355360Data.end(), this->m_wBytes.begin()
-              + 355360);
+    //std::fill(this->unknownTable127468Data.begin(), unknownTable127468Data.end(), 0);
 
-    //9th table Offset355104
-    std::copy(this->unknownTable355104Data.begin(), unknownTable355104Data.end(), this->m_wBytes.begin()
-              + 355104);
+    //12th table Offset127468
+    std::copy(this->unknownTable127468Data.begin(), unknownTable127468Data.end(), this->m_wBytes.begin()
+              + 127468);
 
-    //10th table Offset354848
-    std::copy(this->unknownTable354848Data.begin(), unknownTable354848Data.end(), this->m_wBytes.begin()
-              + 354848);
+    //first Table Offset247264
+    std::copy(this->unknownTable247264Data.begin(), unknownTable247264Data.end(), this->m_wBytes.begin()
+              + 247264);
 
-    //11th table Offset292096
-    std::copy(this->unknownTable292096Data.begin(), unknownTable292096Data.end(), this->m_wBytes.begin()
-              + 292096);
-
-    //12th table Offset160160
-    std::copy(this->unknownTable160160Data.begin(), unknownTable160160Data.end(), this->m_wBytes.begin()
-              + 160160);
-
-    //13th table Offset157760
-    std::copy(this->unknownTable157760Data.begin(), unknownTable157760Data.end(), this->m_wBytes.begin()
-              + 157760);
-
-    //14th table Offset155376
-    std::copy(this->unknownTable155376Data.begin(), unknownTable155376Data.end(), this->m_wBytes.begin()
-              + 155376);
-
-    //15th table Offset141008
-    std::copy(this->unknownTable141008Data.begin(), unknownTable141008Data.end(), this->m_wBytes.begin()
-              + 141008);
-
-    //16th table Offset143408
-    std::copy(this->unknownTable143408Data.begin(), unknownTable143408Data.end(), this->m_wBytes.begin()
-              + 143408);
-
-    //17th table Offset145808
-    std::copy(this->unknownTable145808Data.begin(), unknownTable145808Data.end(), this->m_wBytes.begin()
-              + 145808);
-
-
-    //18th table Offset148192
-    std::copy(this->unknownTable148192Data.begin(), unknownTable148192Data.end(), this->m_wBytes.begin()
-              + 148192);
-
-    //19th table Offset150592
-    std::copy(this->unknownTable150592Data.begin(), unknownTable150592Data.end(), this->m_wBytes.begin()
-              + 150592);
-
-    //20th table Offset152976
-    std::copy(this->unknownTable152976Data.begin(), unknownTable152976Data.end(), this->m_wBytes.begin()
-              + 152976);
+    //11th table Offset247604
+    std::copy(this->unknownTable247604Data.begin(), unknownTable247604Data.end(), this->m_wBytes.begin()
+              + 247604);
 
     return true;
 }
