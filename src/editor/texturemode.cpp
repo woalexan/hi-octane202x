@@ -313,6 +313,10 @@ void TextureMode::CreateWindow() {
                                                                          mCurrentSelectedTextureImageLocation.Y + 80),
                                                                          false, false, Window, -1, false );
 
+    mGuiTextureMode.CurrentIlluminationValue = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Illumination:",
+                                                                                                       rect<s32>( 80, mCurrentSelectedTextureImageLocation.Y + 68, 160, mCurrentSelectedTextureImageLocation.Y + 80),
+                                                                                                       false, false, Window, -1, false );
+
     mGuiTextureMode.LabelSelectCubeFaces = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Select Cubefaces:",
                                       rect<s32>( 105 , 35, 180, 45 ),false, false, Window, -1, false );
 
@@ -324,6 +328,10 @@ void TextureMode::CreateWindow() {
     mGuiTextureMode.SelSButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 70, mx + 145, my + 85), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTS, L"S");
     mGuiTextureMode.SelTButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 30, mx + 165, my + 45), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTT, L"T");
     mGuiTextureMode.SelBButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 70, mx + 165, my + 85), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTB, L"B");
+
+    mGuiTextureMode.SelColumnFloorTextureIdButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 190, my + 70, mx + 300, my + 85),
+                                                              Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTCOLUMNFLOORTEXID, L"Select Column FloorTex Id");
 }
 
 void TextureMode::WindowControlBlockOptions(bool newState) {
@@ -347,6 +355,9 @@ void TextureMode::WindowControlBlockOptions(bool newState) {
 
     mGuiTextureMode.SelBButton->setVisible(newState);
     mGuiTextureMode.SelBButton->setEnabled(newState);
+
+    mGuiTextureMode.SelColumnFloorTextureIdButton->setVisible(newState);
+    mGuiTextureMode.SelColumnFloorTextureIdButton->setEnabled(newState);
 }
 
 void TextureMode::SelectTextureModification(int8_t newSelectedTexModification) {
@@ -568,7 +579,22 @@ void TextureMode::OnButtonClicked(irr::s32 buttonGuiId) {
             SelectOtherBlockFace(DEF_SELBLOCK_FACEBOTTOM);
             break;
         }
+
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTCOLUMNFLOORTEXID: {
+            SelectColumnFloorTexture();
+            break;
+        }
     }
+}
+
+void TextureMode::SelectColumnFloorTexture() {
+     //tell the ItemSelector to select the Terrain cell below the column
+     //in this way we can change the column floor texture Id
+     if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+        mParentSession->mItemSelector->SelectSpecifiedCellAtCoordinate(
+                    mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
+                    mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y);
+     }
 }
 
 void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
@@ -606,6 +632,12 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
             swprintf(textTextureID, 50, L"Texture Id: %d", (int)(texId));
             mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
             delete[] textTextureID;
+
+            wchar_t* illuminationInfo = new wchar_t[50];
+            swprintf(illuminationInfo, 45, L"Illumination: %d", entry->mIllumination);
+
+            mGuiTextureMode.CurrentIlluminationValue->setText(illuminationInfo);
+            delete[] illuminationInfo;
 
             SelectTextureModification(texMod);
         }
@@ -759,7 +791,28 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
    //only trigger action if either a cell or a block face is currently selected
    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
        std::cout << "changed Cell TexID to " << newTextureId << std::endl;
-       mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId);
+       //for a selected cell there are again two different possibilites
+       //if on this cell we have a column standing => we need to change the floor texture Id of the column
+       //if this is a simple cell without any column => we need to change the texture Id of the cell itself
+       int x = whichItem.mCellCoordSelected.X;
+       int y = whichItem.mCellCoordSelected.Y;
+
+       if (mParentSession->mLevelRes->IsAColumnAtCoordinates(x, y)) {
+           //there is a column => continue modification of column floor texture Id
+
+           //which column is this?
+           //there is a "position" key we can use for search
+           int posKey =  x + y * mParentSession->mLevelTerrain->levelRes->Width();
+           Column* columnPntr;
+
+           if (mParentSession->mLevelBlocks->SearchColumnWithPosition(posKey, columnPntr)) {
+               //we found the column, modfiy it
+               mParentSession->mLevelBlocks->SetColumnFloorTextureId(columnPntr, true, newTextureId, false, 0);
+           }
+       } else {
+           //there is no column, modify the cell information itself
+           mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId);
+       }
    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
        std::cout << "changed block TexID to " << newTextureId << std::endl;
        mParentSession->mLevelBlocks->SetCubeFaceTexture(

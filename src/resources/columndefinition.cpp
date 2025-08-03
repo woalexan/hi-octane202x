@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did just translation to C++)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -29,7 +29,8 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   //          A high bit means the block is used, a low bit means empty space. The Lsb is block at lowest location (next to race track)
   //          The MSB is the highest block H at the top of the column)
   //Byte 1:   Unknown4 (in all 9 existing maps there is not a single place where this value is not zero; seems to be reserved for the future, but was never used)
-  //Byte 2:   Floor Texture ID
+  //          Or it belongs to Byte 0, but because range of values in Byte 0 are so limited it is not actually used
+  //Byte 2:   Floor Texture ID (if between two columns only the floor texture Id differs both columns use different column definitions)
   //Byte 3:   Floor Texture ID
   //Byte 4:   Unknown1 (is used, but right now I do not know for what), there is even an extra column definition spent if all other values are the same, but this one is different)
   //Byte 5:   Unknown1

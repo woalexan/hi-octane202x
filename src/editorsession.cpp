@@ -911,6 +911,17 @@ void EditorSession::HandleBasicInput() {
         this->exitEditorSession = true;
     }
 
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_L)) {
+        if (mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+            irr::u32 x = mItemSelector->mCurrSelectedItem.mCellCoordSelected.X;
+            irr::u32 y = mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y;
+            MapEntry* entry = mLevelRes->pMap[x][y];
+            if (entry != nullptr) {
+                entry->mIllumination = 6000;
+            }
+        }
+    }
+
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_H)) {
         //mParentEditor->UpdateStatusbarText(L"Testtext");
      /*   if (mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {

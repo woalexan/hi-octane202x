@@ -107,6 +107,10 @@ struct GUITextureMode
     irr::gui::IGUIButton* SelWButton;
     irr::gui::IGUIButton* SelTButton;
     irr::gui::IGUIButton* SelBButton;
+
+    irr::gui::IGUIButton* SelColumnFloorTextureIdButton;
+
+    irr::gui::IGUIStaticText* CurrentIlluminationValue;
 };
 
 class TextureMode : public EditorMode {
@@ -126,6 +130,8 @@ private:
 
     void OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruct whichItem, int16_t newTextureId);
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
+
+    void SelectColumnFloorTexture();
 
     void AddTextureModification(const wchar_t* entryName, int8_t texModValue, irr::gui::IGUIComboBox* comboBoxPntr);
 

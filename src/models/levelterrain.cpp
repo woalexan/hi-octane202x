@@ -1980,7 +1980,7 @@ void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinat
     this->mInfra->mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
 }
 
-void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId) {
+void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh) {
     //This higher level function has to do 2 independent things:
     // 1, modify the cell configuration in the level/map file itself (so that next time we
     //    load the map again, everything is restored again in the same modified way)
@@ -1998,8 +1998,10 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId) {
     if (entry == nullptr)
         return;
 
-    //set new texture modifier value in lowlevel map data
-    entry->m_TextureId = newTextureId;
+    if (!onlyUpdateMesh) {
+        //set new texture modifier value in lowlevel map data
+        entry->m_TextureId = newTextureId;
+    }
 
     /******************************************************************
      * Part 2: According to new texture modify Irrlicht Terrain Mesh  *

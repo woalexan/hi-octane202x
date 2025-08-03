@@ -780,7 +780,9 @@ void ColumnDesigner::OnLeftMouseButtonDown() {
             //are we hovering right now over exactly one of my
             //texture selection images?
             if (mBlockPreviewCurrentlyHovered != nullptr) {
-                SelectBlockToEditFromBlockPreview(mBlockPreviewCurrentlyHovered);
+                if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+                    SelectBlockToEditFromBlockPreview(mBlockPreviewCurrentlyHovered);
+                }
             }
 
            break;

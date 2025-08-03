@@ -198,6 +198,8 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
             CreateAllBlockDefinitionPreviews();
         }
    }
+
+   //DebugWriteBlockDefinitionTableToCsvFile((char*)("DbgBlockDefinition.csv"));
 }
 
 void LevelBlocks::AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
@@ -421,17 +423,17 @@ std::vector<vector2d<irr::f32>> LevelBlocks::ApplyTexMod(vector2d<irr::f32> uvA,
                 uvs.push_back(uvB);
                 uvs.push_back(uvA);
                 break;
-        case 5: //Rotate90FlipNone    //is not used in the first 6 levels, therefore I can not check if this
-                uvs.push_back(uvD);    //order is correct :(
-                uvs.push_back(uvA);
+        case 5: //Rotate90FlipNone
                 uvs.push_back(uvB);
-                uvs.push_back(uvC);
-                break;
-        case 6: //Rotate270FlipNone   //is not used in the first 6 levels, therefore I can not check if this
-                uvs.push_back(uvB);    //order is correct :(
                 uvs.push_back(uvC);
                 uvs.push_back(uvD);
                 uvs.push_back(uvA);
+                break;
+        case 6: //Rotate270FlipNone
+                uvs.push_back(uvD);
+                uvs.push_back(uvA);
+                uvs.push_back(uvB);
+                uvs.push_back(uvC);
                 break;
         case 7: //Rotate90FlipY      //is not used in the first 6 levels, therefore I can not check if this
                 uvs.push_back(uvC);   //order is correct :(
@@ -1050,6 +1052,15 @@ void LevelBlocks::AddColumnAtCell(int x, int y, ColumnDefinition* newColumDef) {
 
     //add the new column to the Irrlicht Mesh
     AddMeshColumn(GetColumnStruct.pColumn);
+
+    //if the texture Id of the terrain cell below the new column
+    //is different to the floor texture Id specified in the new
+    //column we placed right now, we need to update the
+    //texture of the cell mesh below the new column as well
+    if (newColumDef->get_FloorTextureID() != entry->m_TextureId) {
+        //only update the Irrlicht mesh here! => optional parameter set to true!
+        MyTerrain->SetCellTexture(x, y, newColumDef->get_FloorTextureID(), true);
+    }
 }
 
 void LevelBlocks::AddMeshColumn(Column* column) {
@@ -1209,6 +1220,12 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter1.csv"));
 
     BlockDefinition* newCorrBlockDef = this->levelRes->BlockDefinitions.at(outIndex);
+
+    //if we have exactly the same blockDefinition as we had before, prevent counting down
+    //occurence of it
+    if (newCorrBlockDef == blockDef) {
+       newCorrBlockDef->mState = DEF_BLOCKDEF_STATE_DEFAULT;
+    }
 
     //Make sure (possibly now) unused Blockdefinitions are deleted
     //Because I am not sure if the game can handle them, so make sure we
@@ -1903,6 +1920,145 @@ void LevelBlocks::AddBlock(Column* selColumnPntr, int nrBlockFromBase, BlockDefi
      *****************************************************/
 
     AddMeshColumn(selColumnPntr);
+}
+
+void LevelBlocks::SetColumnFloorTextureId(Column* selColumnPntr, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureMod) {
+    //This higher level function has to do 2 independent things:
+    // 1, modify the floor texture Id information in the level/map file itself for the cell
+    //    that lays below the modified column (so that next time we
+    //    load the map again, everything is restored again in the same modified way)
+    // 2, modify the current cell Mesh used by Irrlicht to show the user the
+    //    current state of the cell in the level. If we do not do this the level editor
+    //    user can not see what he actually has changed already :)
+
+    if (selColumnPntr == nullptr)
+        return;
+
+    ColumnDefinition* columDefStart = selColumnPntr->Definition;
+
+    /******************************************************************
+     * Part 1: Modify low level map data                              *
+     ******************************************************************/
+
+    //If we take the current column definition (configuration), and we modify
+    //the floor texture Id, what new column definition would we get?
+    int16_t newColBlockIdA = selColumnPntr->Definition->get_A();
+    int16_t newColBlockIdB = selColumnPntr->Definition->get_B();
+    int16_t newColBlockIdC = selColumnPntr->Definition->get_C();
+    int16_t newColBlockIdD = selColumnPntr->Definition->get_D();
+    int16_t newColBlockIdE = selColumnPntr->Definition->get_E();
+    int16_t newColBlockIdF = selColumnPntr->Definition->get_F();
+    int16_t newColBlockIdG = selColumnPntr->Definition->get_G();
+    int16_t newColBlockIdH = selColumnPntr->Definition->get_H();
+
+    int16_t newFloorTex;
+
+    if (updateTexId) {
+        newFloorTex = newTextureId;
+    } else {
+        newFloorTex = selColumnPntr->Definition->get_FloorTextureID();
+    }
+
+    int16_t newUnknown1 = selColumnPntr->Definition->get_Unknown1();
+
+    bool newlyCreatedColumn;
+    irr::u32 outColumnIndex;
+
+    //See if there is already a Column definition / type that fits with this new one
+    //If not, create a new column definition, and use it
+    //"Request" the new column definition
+    if (!this->MyTerrain->levelRes->RequestColumnDefinition(newFloorTex, newUnknown1, newColBlockIdA, newColBlockIdB,
+                      newColBlockIdC, newColBlockIdD, newColBlockIdE, newColBlockIdF,
+                      newColBlockIdG, newColBlockIdH, outColumnIndex, newlyCreatedColumn)) {
+        //unexpected error creating column definition, possibly we reached the maximum possible number
+        //of 1024 column definitions in the levelfile?
+        return;
+    }
+
+    ColumnDefinition* newCorrColumnDef = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    if (newlyCreatedColumn) {
+            //mark column definition which was used until now at this location
+            //as a column definition that right now got unassigned, so that
+            //we know the occurence of this column definition needs to be decreased by one
+            columDefStart->mState = DEF_COLUMNDEF_STATE_NEWLYUNASSIGNEDONE;
+    }
+
+    //Make sure (possibly now) unused Columndefinitions are deleted
+    //Because I am not sure if the game can handle them, so make sure we
+    //do not have them
+    RemoveUnusedColumnDefinitions();
+
+    //after the possible reorganization of the column definition
+    //vector, search the (new) correct column definition again
+    //so that the index variable is corrected
+    std::vector<ColumnDefinition*>::iterator itColumnDef;
+
+    outColumnIndex = 0;
+    bool found = false;
+
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+        if ((*itColumnDef) == newCorrColumnDef) {
+            found = true;
+            break;
+        }
+
+        outColumnIndex++;
+    }
+
+    if (!found) {
+        return;
+    }
+
+    //reconfigure the selected column to use the new column definition Id
+    selColumnPntr->Definition = this->levelRes->ColumnDefinitions.at(outColumnIndex);
+
+    //set all column definition states to default state
+    //we do not need this flag anymore
+    for (itColumnDef = this->levelRes->ColumnDefinitions.begin(); itColumnDef != this->levelRes->ColumnDefinitions.end(); ++itColumnDef) {
+       (*itColumnDef)->mState = DEF_COLUMNDEF_STATE_DEFAULT;
+    }
+
+    irr::core::vector2di columnOutputCoord;
+
+    bool columnFound = FindMapCoordinateForColumn(selColumnPntr, columnOutputCoord);
+
+    if (!columnFound)
+        return;
+
+    MapEntry* entry = this->levelRes->pMap[columnOutputCoord.X][columnOutputCoord.Y];
+
+    if (entry == nullptr)
+        return;
+
+    entry->set_Column(this->levelRes->ColumnDefinitions.at(outColumnIndex));
+    entry->WriteChanges();
+
+    //we need to update specific additional column definitions values
+    UpdateColumDefinitions();
+
+    //we need also to update Blockdefinition usage count
+    UpdateBlockDefinitionUsageCnt();
+
+    //DebugWriteBlockDefinitionTableToCsvFile((char*)("BlockAfter2.csv"));
+    //DebugWriteColumnDefinitionTableToCsvFile((char*)("ColumnDefAfter2.csv"));
+    //DebugWriteDefinedColumnsTableToCsvFile((char*)("ColumnsAfter.csv"));
+
+    /******************************************************************
+     * Part 2: According to new texture modify Irrlicht column Mesh   *
+     ******************************************************************/
+
+    // Part 1: Update the current Irrlicht Mesh
+    if (updateTexId) {
+        //Important: Only update Irrlicht Mesh here => is optional parameter with true
+        MyTerrain->SetCellTexture(columnOutputCoord.X, columnOutputCoord.Y, newTextureId, true);
+    }
+
+    //if texture modification of cube face has also changed
+    //update it in Irrlicht Mesh as well
+/*    if (updateTexMod && (currTexMod != newTextureMod)) {
+        UpdateCubeFaceTextureModification(selColumnPntr, nrBlockFromBase, selFacePntr, newTextureMod, true);
+    }*/
 }
 
 /*****************************************

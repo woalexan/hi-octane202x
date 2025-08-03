@@ -205,7 +205,9 @@ public:
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
     bool IsChargingStationTexture(irr::s32 texture);
 
-    void SetCellTexture(int posX, int posY, int16_t newTextureId);
+    //if onlyUpdateMesh optional parameter is true, the low level data in the map is not modified
+    //only the Irrlicht cell mesh in this case
+    void SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh = false);
     void SetCellTextureModification(int posX, int posY, int8_t newTextureModifier);
 
     //void DebugOutputFoundChargingTextures();

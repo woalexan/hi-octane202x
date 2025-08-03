@@ -71,6 +71,29 @@ void ItemSelector::UpdateTrianglesSelectors() {
     mRayColumns->AddRayTargetMesh(this->triangleSelectorColumnswCollision);
 }
 
+//the following function is for a special case, where the
+//user wants to select the cell below a column (to change the
+//column floor texture Id in the texturing tool)
+//With a ray the user can not do this if the column is directly
+//standing on the cell. Therefore the texturing tool is able to call
+//the function below, to externally force a selection of the cell
+void ItemSelector::SelectSpecifiedCellAtCoordinate(int x, int y) {
+    int width = mParent->mLevelRes->Width();
+    int height = mParent->mLevelRes->Height();
+
+    if ((x < 0) || (y < 0) || (x >= width) || (y >= height)) {
+        return;
+    }
+
+    mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_CELL;
+    mCurrSelectedItem.mCellCoordSelected.set(x, y);
+
+    //just take the first vertice as default
+    mCurrSelectedItem.mCellCoordVerticeNrSelected = 0;
+
+    return;
+}
+
 //derives more high level information about the highlighted terrain cell
 void ItemSelector::DeriveHighlightedTerrainCellInformation(RayHitTriangleInfoStruct* hitTriangleInfo) {
     //a terrain cell is selected currently
@@ -154,7 +177,7 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
         irr::f32 blockhmin = heightOfTerrain;
         irr::f32 blockhmax = heightOfTerrain + mParent->mLevelTerrain->segmentSize;
 
-        while (!((centerPoint.Y >= blockhmin) && (centerPoint.Y <= blockhmax))) {
+        while ((!((centerPoint.Y >= blockhmin) && (centerPoint.Y <= blockhmax))) && (blockCntFromTerrain < 8)) {
             blockhmin += mParent->mLevelTerrain->segmentSize;
             blockhmax += mParent->mLevelTerrain->segmentSize;
             blockCntFromTerrain++;

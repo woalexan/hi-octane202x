@@ -99,10 +99,12 @@ public:
 
     irr::u16 mNrBlocksInLevel = 0;
 
-   void TestHeightChange(Column* selColumnPntr, int mSelBlockNrFromBase);
+    void TestHeightChange(Column* selColumnPntr, int mSelBlockNrFromBase);
 
     void SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
                                          irr::u8 selFace, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureModifier);
+
+    void SetColumnFloorTextureId(Column* selColumnPntr, bool updateTexId, int16_t newTextureId, bool updateTexMod, uint8_t newTextureMod);
 
     void UpdateCubeFaceTextureModification(Column* selColumnPntr, int nrBlockFromBase,
                                                         BlockFaceInfoStruct* whichFace, uint8_t newTextureModifier, bool SetMeshDirty = true);
@@ -187,11 +189,9 @@ private:
     BlockInfoStruct* GetBlockInfoStruct(Column* selColumnPntr, int mSelBlockNrFromBase);
 
     void RemoveUnusedBlockDefinitions();
-    //void RemoveUnusedBlockDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId);
     void ReplaceBlockDefinitionIdWithNewOneInAllColumdefinitions();
 
     void ReplaceColumnDefinitionWithNewOneForAllColumns(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec);
-    //void RemoveUnusedColumnDefinitions(bool excludeActive, irr::u32 excludeId, bool reduceCntByOneForIdActive, irr::u32 reduceCntByOneForId);
     void RemoveUnusedColumnDefinitions();
 
     //Returns true if the specified column was found, false otherwise
