@@ -156,6 +156,7 @@ private:
                                                    vector3d<irr::f32> v2,
                                                    vector3d<irr::f32> v3,
                                                    vector3d<irr::f32> v4,
+                                                   video::SColor v1Col, video::SColor v2Col, video::SColor v3Col, video::SColor v4Col,
                                                    std::vector<vector2d<irr::f32>> uv, vector3d<irr::f32> normal,
                                                    int textureId);
 

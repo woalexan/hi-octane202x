@@ -327,15 +327,16 @@ BlockFaceInfoStruct* Column::CreateNewCubeFace(vector3d<irr::f32> v1,
                                                vector3d<irr::f32> v2,
                                                vector3d<irr::f32> v3,
                                                vector3d<irr::f32> v4,
+                                               video::SColor v1Col, video::SColor v2Col, video::SColor v3Col, video::SColor v4Col,
                                                std::vector<vector2d<irr::f32>> uv, vector3d<irr::f32> normal,
                                                int textureId) {
     video::SColor cubeColour3(255,255,255,255);
 
     BlockFaceInfoStruct* newFace = new BlockFaceInfoStruct();
-    newFace->vert1 = new video::S3DVertex(v1.X, v1.Y, v1.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[0].X, uv[0].Y);
-    newFace->vert2 = new video::S3DVertex(v2.X, v2.Y, v2.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[1].X, uv[1].Y);
-    newFace->vert3 = new video::S3DVertex(v3.X, v3.Y, v3.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[2].X, uv[2].Y);
-    newFace->vert4 = new video::S3DVertex(v4.X, v4.Y, v4.Z, normal.X, normal.Y, normal.Z, cubeColour3, uv[3].X, uv[3].Y);
+    newFace->vert1 = new video::S3DVertex(v1.X, v1.Y, v1.Z, normal.X, normal.Y, normal.Z, v1Col, uv[0].X, uv[0].Y);
+    newFace->vert2 = new video::S3DVertex(v2.X, v2.Y, v2.Z, normal.X, normal.Y, normal.Z, v2Col, uv[1].X, uv[1].Y);
+    newFace->vert3 = new video::S3DVertex(v3.X, v3.Y, v3.Z, normal.X, normal.Y, normal.Z, v3Col, uv[2].X, uv[2].Y);
+    newFace->vert4 = new video::S3DVertex(v4.X, v4.Y, v4.Z, normal.X, normal.Y, normal.Z, v4Col, uv[3].X, uv[3].Y);
 
     newFace->currPositionVert1 = v1;
     newFace->currPositionVert2 = v2;
@@ -552,24 +553,34 @@ BlockInfoStruct* Column::CreateGeometryBlock(BlockDefinition* blockDef, int bloc
     BlockInfoStruct* newBlock = new BlockInfoStruct();
     newBlock->idxBlockFromBaseCnt = (irr::u8)(blockNrFromBase);
 
+    int xCoord = (int)(Position.X);
+    int yCoord = (int)(Position.Z);
+
+    TerrainTileData* tile = &mTerrain->pTerrainTiles[xCoord][yCoord];
+
+    //a  = x+1, y         *B, *F
+    //b = x , y           *A, *E
+    //c = x , y + 1       *D, *H
+    //d = x+1, y+1        *C, *G
+
     //define all faces
     //north side
-    newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, newuvsN, *nN, texIDInfoN);
+    newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, tile->vert1Color, tile->vert2Color, tile->vert2Color, tile->vert1Color, newuvsN, *nN, texIDInfoN);
 
     //east side
-    newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, newuvsE, *nE, texIDInfoE);
+    newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, tile->vert4Color, tile->vert1Color, tile->vert1Color, tile->vert4Color, newuvsE, *nE, texIDInfoE);
 
     //south side
-    newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, newuvsS, *nS, texIDInfoS);
+    newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, tile->vert3Color, tile->vert4Color, tile->vert4Color, tile->vert3Color, newuvsS, *nS, texIDInfoS);
 
     //west side
-    newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, newuvsW, *nW, texIDInfoW);
+    newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, tile->vert2Color, tile->vert3Color, tile->vert3Color, tile->vert2Color, newuvsW, *nW, texIDInfoW);
 
     //top side
-    newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, newuvsT, *nT, texIDInfoT);
+    newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, tile->vert2Color, tile->vert1Color, tile->vert4Color, tile->vert3Color, newuvsT, *nT, texIDInfoT);
 
     //bottom side
-    newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, newuvsB, *nB, texIDInfoB);
+    newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, tile->vert3Color, tile->vert4Color, tile->vert1Color, tile->vert2Color, newuvsB, *nB, texIDInfoB);
 
     //cleanup
     delete A;
