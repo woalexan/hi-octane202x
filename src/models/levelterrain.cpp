@@ -357,6 +357,8 @@ LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char
    //calculate how many Irrlicht Meshbuffers we will need minimum in
    //level editor
    mLevelEditorMinNrMeshBuffersNeeded = (irr::u8)(round((irr::f32)(maxNrMapIndices) / (irr::f32)(65535)));
+
+   CalculateIllumination();
 }
 
 LevelTerrain::~LevelTerrain() {
@@ -1400,6 +1402,107 @@ void LevelTerrain::FindTerrainOptimization() {
     }
 }
 
+int16_t LevelTerrain::GetIlluminationValueVertice1(int x, int y) {
+    MapEntry *a = GetMapEntry(x, y);
+    MapEntry *b = GetMapEntry(x + 1, y);
+    MapEntry *c = GetMapEntry(x + 1, y + 1);
+    MapEntry *d = GetMapEntry(x, y +  1);
+
+    return (a->mIllumination + b->mIllumination + c->mIllumination + d->mIllumination) / 4;
+}
+
+int16_t LevelTerrain::GetIlluminationValueVertice2(int x, int y) {
+    MapEntry *a = GetMapEntry(x, y);
+    MapEntry *b = GetMapEntry(x - 1, y);
+    MapEntry *c = GetMapEntry(x, y + 1);
+    MapEntry *d = GetMapEntry(x - 1, y +  1);
+
+    return (a->mIllumination + b->mIllumination + c->mIllumination + d->mIllumination) / 4;
+}
+
+int16_t LevelTerrain::GetIlluminationValueVertice3(int x, int y) {
+    MapEntry *a = GetMapEntry(x, y);
+    MapEntry *b = GetMapEntry(x - 1, y);
+    MapEntry *c = GetMapEntry(x - 1, y - 1);
+    MapEntry *d = GetMapEntry(x, y -  1);
+
+    return (a->mIllumination + b->mIllumination + c->mIllumination + d->mIllumination) / 4;
+}
+
+int16_t LevelTerrain::GetIlluminationValueVertice4(int x, int y) {
+    MapEntry *a = GetMapEntry(x, y);
+    MapEntry *b = GetMapEntry(x, y - 1);
+    MapEntry *c = GetMapEntry(x + 1, y - 1);
+    MapEntry *d = GetMapEntry(x + 1, y);
+
+    return (a->mIllumination + b->mIllumination + c->mIllumination + d->mIllumination) / 4;
+}
+
+irr::video::SColor LevelTerrain::CalcVertexColorForIllumination(int16_t illuminationValue) {
+   irr::f32 colVal;
+   irr::u32 colValInt;
+
+   //illuminationValue = 6144.0 (LEVEL_TERRAIN_ILLMINVAL) in level 1 should give SColor (255, 255, 255, 255) //brightest possible
+   //illuminationValue = 12800.0 (LEVEL_TERRAIN_ILLMAXVAL) should give darkest SColor (255, LEVEL_TERRAIN_COLOR_DARKEST, LEVEL_TERRAIN_COLOR_DARKEST, LEVEL_TERRAIN_COLOR_DARKEST)
+   colVal = 255.0f - mKIllumination * (irr::f32)(illuminationValue) + 147.0f;
+
+   colValInt = (irr::u32)(colVal);
+   if (colValInt < 0) {
+        colVal = 0;
+    }
+
+    if (colValInt > 255) {
+        colValInt = 255;
+    }
+
+    if (colValInt < mMinVertexCol) {
+        mMinVertexCol = colValInt;
+    }
+
+    if (colValInt > mMaxVertexCol) {
+        mMaxVertexCol = colValInt;
+    }
+
+    irr::video::SColor result(255, colValInt, colValInt, colValInt);
+
+    return result;
+}
+
+void LevelTerrain::CalculateIllumination() {
+    int x, z = 0;
+
+    int Width = levelRes->Width();
+    int Height = levelRes->Height();
+
+    TerrainTileData* tile;
+
+    //preproccess illumination slope value
+    mKIllumination = (255.0f - LEVEL_TERRAIN_COLOR_DARKEST) / (LEVEL_TERRAIN_ILLMAXVAL - LEVEL_TERRAIN_ILLMINVAL);
+
+    int16_t illumnVertex1;
+    int16_t illumnVertex2;
+    int16_t illumnVertex3;
+    int16_t illumnVertex4;
+
+    for (z = 0; z < Height; z++) {
+      for (x = 0; x < Width; x++) {
+        illumnVertex3 = GetIlluminationValueVertice1(x, z);
+        illumnVertex4 = GetIlluminationValueVertice2(x, z);
+        illumnVertex1 = GetIlluminationValueVertice3(x, z);
+        illumnVertex2 = GetIlluminationValueVertice4(x, z);
+
+        tile = &pTerrainTiles[x][z];
+
+        tile->vert1Color = CalcVertexColorForIllumination(illumnVertex1);
+        tile->vert2Color = CalcVertexColorForIllumination(illumnVertex2);
+        tile->vert3Color = CalcVertexColorForIllumination(illumnVertex3);
+        tile->vert4Color = CalcVertexColorForIllumination(illumnVertex4);
+       }
+    }
+
+    std::cout << "Min VertexCol value = " << mMinVertexCol << ", Max VertexCol value = " << mMaxVertexCol << std::endl;
+}
+
 bool LevelTerrain::SetupGeometry() {
     int x, z = 0;
 
@@ -1408,12 +1511,11 @@ bool LevelTerrain::SetupGeometry() {
     int Width = levelRes->Width();
     int Height = levelRes->Height();
 
-    video::SColor cubeColour2(255,255,255,255);
-
     core::vector3df normal;
 
     TerrainTileData* tile;
     std::vector<vector2d<irr::f32>> newuvs;
+
     MapEntry *a;
     MapEntry *b;
     MapEntry *c;
@@ -1434,10 +1536,10 @@ bool LevelTerrain::SetupGeometry() {
         tile = &pTerrainTiles[x][z];
 
         //create 4 irrlicht vertices for this tile, regardless if we show the tile later or not!
-        tile->vert1 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
-        tile->vert2 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
-        tile->vert3 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
-        tile->vert4 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, cubeColour2, 0.0f, 0.0f);
+        tile->vert1 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert1Color, 0.0f, 0.0f);
+        tile->vert2 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert2Color, 0.0f, 0.0f);
+        tile->vert3 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert3Color, 0.0f, 0.0f);
+        tile->vert4 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert4Color, 0.0f, 0.0f);
 
         tile->vert1->Pos.set(x       * segmentSize, -irr::f32(a->m_Height),  z * segmentSize);
         tile->vert1CurrPositionY = tile->vert1->Pos.Y;

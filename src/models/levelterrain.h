@@ -39,6 +39,25 @@ typedef SColor colour_func(f32 x, f32 y, f32 z);
 #define DEF_LEVELTERRAIN_HEIGHTMAP_COLLISION_THRES 0.9f;  //steepness threshold to trigger
                                                           //collision with terrain tile map
 
+//constants for interpretation from the map stored illumination
+//values into Irrlicht Vertex colors
+const irr::f32 LEVEL_TERRAIN_ILLMAXVAL = 12800.0f;
+const irr::f32 LEVEL_TERRAIN_ILLMINVAL = 6144.0f;
+const irr::f32 LEVEL_TERRAIN_ILLMIDVAL = 8192.0f;
+const irr::f32 LEVEL_TERRAIN_COLOR_DARKEST = 100.0f;
+
+//Illumination ranges observed in different original game levels:
+//Level 1: very bright spots with min value = 6144.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 2: no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 3: no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 4: no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 5: brighter spots with min value = 7104.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 6: there is an single outlier tile with value of only 2048.0f, but I believe this maybe a mistake
+//without this tile => no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 7: no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 8: no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+//Level 9: no brighter spots, min value = 8192.0f, default value = 8192.0f, max value (darkest areas) = 12800.0f
+
 /************************
  * Forward declarations *
  ************************/
@@ -59,6 +78,13 @@ struct TerrainTileData {
     video::S3DVertex *vert2 = nullptr;
     video::S3DVertex *vert3 = nullptr;
     video::S3DVertex *vert4 = nullptr;
+
+    //my 4 vertice colors, is used for shadows/lightning in
+    //level
+    video::SColor vert1Color;
+    video::SColor vert2Color;
+    video::SColor vert3Color;
+    video::SColor vert4Color;
 
     //stores the tile vertex1 index for all the Meshbuffers where this
     //vertex is part of, we do not need to keep also the index number
@@ -214,6 +240,20 @@ public:
 
 private:
     IrrMeshBuf* mIrrMeshBuf = nullptr;
+
+    int16_t GetIlluminationValueVertice1(int x, int y);
+    int16_t GetIlluminationValueVertice2(int x, int y);
+    int16_t GetIlluminationValueVertice3(int x, int y);
+    int16_t GetIlluminationValueVertice4(int x, int y);
+
+    void CalculateIllumination();
+    irr::video::SColor CalcVertexColorForIllumination(int16_t illuminationValue);
+
+    //Illumination preprocessed constant for slope
+    irr::f32 mKIllumination;
+
+    irr::u32 mMaxVertexCol;
+    irr::u32 mMinVertexCol;
 
     bool SetupGeometry();
     void FindTerrainOptimization();

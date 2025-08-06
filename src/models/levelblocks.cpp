@@ -137,10 +137,12 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
 
    BlockCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
    BlockCollisionSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
+   BlockCollisionSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
    BlockCollisionSceneNode->setMaterialFlag(EMF_FRONT_FACE_CULLING, true);
 
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
+   BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
    BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_FRONT_FACE_CULLING, true);
 
    SetViewMode(LEVELBLOCKS_VIEW_DEFAULT);
