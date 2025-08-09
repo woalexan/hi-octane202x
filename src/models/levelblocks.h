@@ -152,6 +152,8 @@ public:
 
     std::string CreateDbgShapeString(ColumnDefinition* colDef);
 
+    void SetFog(bool enabled);
+
 private:   
     IrrMeshBuf* mIrrMeshBuf = nullptr;
 

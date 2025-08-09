@@ -50,6 +50,9 @@ enum
     GUI_ID_VIEW_BLOCKS_DEFAULT,
     GUI_ID_VIEW_BLOCKS_NORMALS,
 
+    GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX,
+    GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX,
+
     GUI_ID_TEXCATEGORYCOMBOBOX,
     GUI_ID_TEXMODIFICATIONCOMBOBOX,
 
@@ -81,6 +84,7 @@ enum
 
 class Logger;
 class EditorSession;
+class EditorMode;
 
 class Editor : public InfrastructureBase {
 private:
@@ -118,6 +122,7 @@ private:
     void OnElementFocused(irr::s32 elementId);
     void OnElementHovered(irr::s32 elementId);
     void OnElementLeft(irr::s32 elementId);
+    void OnCheckBoxChanged(irr::s32 checkBoxId);
 
     //if function returns true the close action should be interrupted
     bool OnElementClose(irr::s32 elementId);
@@ -170,7 +175,7 @@ public:
 
     //during development I like to disable the block preview
     //temporarily. This makes the leveleditor start some seconds faster
-    bool enableBlockPreview = false;
+    bool enableBlockPreview = true;
 
     //Returns true for success, false for error occured
     bool InitEditorStep1();

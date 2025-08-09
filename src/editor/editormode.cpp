@@ -87,3 +87,18 @@ void EditorMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* 
 
 void EditorMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem) {
 }
+
+void EditorMode::OnCheckBoxChanged(irr::s32 checkboxId) {
+}
+
+//is called when the editor mode
+//is exited. Can be used to disable features
+//etc. that should only be active during this
+//mode is active
+void EditorMode::OnExitMode() {
+}
+
+//is called when the editor mode
+//is entered (becomes active)
+void EditorMode::OnEnterMode() {
+}
