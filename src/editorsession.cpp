@@ -27,6 +27,7 @@
 #include "resources/columndefinition.h"
 #include "resources/blockdefinition.h"
 #include "editor/itemselector.h"
+#include "editor/terraforming.h"
 
 EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mParentEditor = parentEditor;
@@ -37,6 +38,7 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mTextureMode = new TextureMode(this);
     mColumnDesigner = new ColumnDesigner(this);
     mViewMode = new ViewMode(this);
+    mTerraforming = new TerraformingMode(this);
 
     mEditorMode = mViewMode;
 
@@ -121,6 +123,12 @@ EditorSession::~EditorSession() {
     {
         delete mViewMode;
         mViewMode = nullptr;
+    }
+
+    if (mTerraforming != nullptr)
+    {
+        delete mTerraforming;
+        mTerraforming = nullptr;
     }
 
     CleanUpMorphs();
@@ -250,7 +258,8 @@ bool EditorSession::LoadLevel() {
    /* Prepare level terrain                                   */
    /***********************************************************/
    //for the level editor do not optimize the Terrain mesh!
-   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, true, terrainname, this->mLevelRes, mTexLoader, false, false);
+   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, true, terrainname, this->mLevelRes,
+                                          mTexLoader, false, false);
 
    /***********************************************************/
    /* Create building (cube) Mesh                             */
@@ -259,6 +268,10 @@ bool EditorSession::LoadLevel() {
    //we need for collision detection later
    this->mLevelBlocks = new LevelBlocks(this->mParentEditor, this->mLevelTerrain, this->mLevelRes, mTexLoader, true,
                                         DebugShowWallCollisionMesh, false, mParentEditor->enableBlockPreview);
+
+   //we can only set levelBlocks afterwards in Terrain
+   //unfortunetly! do not forget it!
+   mLevelTerrain->SetLevelBlocks(mLevelBlocks);
 
    //create all level entities
    //this are not only items to pickup by the player
@@ -911,13 +924,18 @@ void EditorSession::HandleBasicInput() {
         this->exitEditorSession = true;
     }
 
-    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_L)) {
-        if (mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-            irr::u32 x = mItemSelector->mCurrSelectedItem.mCellCoordSelected.X;
-            irr::u32 y = mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y;
-            MapEntry* entry = mLevelRes->pMap[x][y];
-            if (entry != nullptr) {
-                entry->mIllumination = 6000;
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_PLUS)) {
+        if (mEditorMode != nullptr) {
+            if (mEditorMode == mTerraforming) {
+                mTerraforming->OnSelectedVertexUp();
+            }
+        }
+    }
+
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_MINUS)) {
+        if (mEditorMode != nullptr) {
+            if (mEditorMode == mTerraforming) {
+                mTerraforming->OnSelectedVertexDown();
             }
         }
     }
@@ -950,6 +968,17 @@ void EditorSession::TrackActiveDialog() {
                //mouse cursor is currently inside
                //texture mode window
                mUserInDialogState = DEF_EDITOR_USERINTEXTUREDIALOG;
+           }
+        }
+    }
+
+    if (mTerraforming != nullptr) {
+        if (mTerraforming->IsWindowOpen()) {
+           irr::core::rect<s32> windowPos = mTerraforming->GetWindowPosition();
+           if (windowPos.isPointInside(mCurrentMousePos)) {
+               //mouse cursor is currently inside
+               //terraforming window
+               mUserInDialogState = DEF_EDITOR_USERINTERRAFORMINGDIALOG;
            }
         }
     }

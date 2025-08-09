@@ -330,6 +330,8 @@ add_executable(hi-editor
     src/editor/texturemode.cpp
     src/editor/columndesign.h
     src/editor/columndesign.cpp
+    src/editor/terraforming.h
+    src/editor/terraforming.cpp
 
     src/definitions.h
     src/infrabase.h
