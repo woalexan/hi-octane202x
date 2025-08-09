@@ -40,8 +40,6 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mViewMode = new ViewMode(this);
     mTerraforming = new TerraformingMode(this);
 
-    mEditorMode = mViewMode;
-
 //    //create empty checkpoint info vector
 //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
 //    checkPointVec->clear();
@@ -98,6 +96,61 @@ void EditorSession::UpdateMorphs(irr::f32 frameDeltaTime) {
     for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
         (*itMorph)->Update(frameDeltaTime);
     }
+}
+
+void EditorSession::AdvanceTime(irr::f32 frameDeltaTime) {
+    float progressMorph;
+
+    //Handle morphs here if activated
+    //in the level editor
+    if (mRunMorphs) {
+        absTimeMorph += frameDeltaTime;
+        progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
+
+        std::list<Morph*>::iterator itMorph;
+
+        for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+                (*itMorph)->setProgress(progressMorph);
+                this->mLevelTerrain->ApplyMorph((**itMorph));
+                (*itMorph)->MorphColumns();
+        }
+
+        //mark column vertices as dirty
+        mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+     }
+
+     //if (!AllowStartMorphsPerKey) {
+     //        //update level morphs
+     //        UpdateMorphs(frameDeltaTime);
+     //}
+
+     mParentEditor->mTimeProfiler->Profile(mParentEditor->mTimeProfiler->tIntMorphing);
+}
+
+void EditorSession::ActivateMorphs() {
+    absTimeMorph = 0.0f;
+    mRunMorphs = true;
+}
+
+void EditorSession::DeactivateMorphs() {
+    //reset level to original morph state
+    //at map loading time
+    absTimeMorph = 0.0f;
+
+    //apply morphs one last time
+    //to reset all Irrlicht Mesh to default state
+    std::list<Morph*>::iterator itMorph;
+
+    for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+            (*itMorph)->setProgress(0.0f);
+            this->mLevelTerrain->ApplyMorph((**itMorph));
+            (*itMorph)->MorphColumns();
+    }
+
+    //mark column vertices as dirty
+    mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+
+    mRunMorphs = false;
 }
 
 EditorSession::~EditorSession() {
@@ -924,6 +977,14 @@ void EditorSession::HandleBasicInput() {
         this->exitEditorSession = true;
     }
 
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_M)) {
+        ActivateMorphs();
+    }
+
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_N)) {
+        DeactivateMorphs();
+    }
+
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_PLUS)) {
         if (mEditorMode != nullptr) {
             if (mEditorMode == mTerraforming) {
@@ -972,6 +1033,17 @@ void EditorSession::TrackActiveDialog() {
         }
     }
 
+    if (mViewMode != nullptr) {
+        if (mViewMode->IsWindowOpen()) {
+           irr::core::rect<s32> windowPos = mViewMode->GetWindowPosition();
+           if (windowPos.isPointInside(mCurrentMousePos)) {
+               //mouse cursor is currently inside
+               //view mode window
+               mUserInDialogState = DEF_EDITOR_USERINVIEWMODEDIALOG;
+           }
+        }
+    }
+
     if (mTerraforming != nullptr) {
         if (mTerraforming->IsWindowOpen()) {
            irr::core::rect<s32> windowPos = mTerraforming->GetWindowPosition();
@@ -1009,6 +1081,20 @@ void EditorSession::TrackActiveDialog() {
     }
 }
 
+//Returns true if morphing is currently
+//enabled
+bool EditorSession::IsMorphingRunning() {
+  return mRunMorphs;
+}
+
+void EditorSession::SetFog(bool enabled) {
+   mLevelBlocks->SetFog(enabled);
+   mLevelTerrain->SetFog(enabled);
+
+   //09.08.2025: TODO: also add fog control
+   //to later editor entities (models)
+}
+
 void EditorSession::End() {
     //empty right now
 }
@@ -1021,10 +1107,16 @@ void EditorSession::SetMode(EditorMode* selMode) {
     //editor mode
     if (mEditorMode != nullptr) {
         mEditorMode->HideWindow();
+
+        //call OnExit function
+        mEditorMode->OnExitMode();
     }
 
     //set new Editor mode
     mEditorMode = selMode;
+
+    //call OnEnter function
+    mEditorMode->OnEnterMode();
 }
 
 void EditorSession::CleanUpEntities() {

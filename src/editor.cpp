@@ -14,6 +14,8 @@
 #include "editor.h"
 #include "draw/gametext.h"
 #include "editorsession.h"
+#include "editor/editormode.h"
+#include "editor/viewmode.h"
 #include "utils/logging.h"
 #include "utils/logger.h"
 #include "utils/tprofile.h"
@@ -280,8 +282,8 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
-                //mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
-                mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
+                mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
+                //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
             }
             break;
         }
@@ -303,12 +305,40 @@ void Editor::OnButtonClicked(irr::s32 buttonId) {
         mCurrentSession->mTextureMode->OnButtonClicked(buttonId);
     }
 
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINVIEWMODEDIALOG) {
+        mCurrentSession->mViewMode->OnButtonClicked(buttonId);
+    }
+
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
         mCurrentSession->mColumnDesigner->OnButtonClicked(buttonId);
     }
 
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTERRAFORMINGDIALOG) {
         mCurrentSession->mTerraforming->OnButtonClicked(buttonId);
+    }
+}
+
+void Editor::OnCheckBoxChanged(irr::s32 checkBoxId) {
+    //depending over which window the user mouse cursor
+    //is currently, sent the changed checkbox Id to the correct
+    //window
+    if (mCurrentSession == nullptr)
+        return;
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTEXTUREDIALOG) {
+        mCurrentSession->mTextureMode->OnCheckBoxChanged(checkBoxId);
+    }
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINVIEWMODEDIALOG) {
+        mCurrentSession->mViewMode->OnCheckBoxChanged(checkBoxId);
+    }
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
+        mCurrentSession->mColumnDesigner->OnCheckBoxChanged(checkBoxId);
+    }
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTERRAFORMINGDIALOG) {
+        mCurrentSession->mTerraforming->OnCheckBoxChanged(checkBoxId);
     }
 }
 
@@ -439,6 +469,12 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
         case EGET_BUTTON_CLICKED: {
             // a button was clicked
             OnButtonClicked(id);
+            break;
+        }
+
+        case EGET_CHECKBOX_CHANGED: {
+            //a checkbox was changed
+            OnCheckBoxChanged(id);
             break;
         }
 
@@ -726,6 +762,8 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->StartOfGameLoop();
 
+    mCurrentSession->AdvanceTime(frameDeltaTime);
+
     mCurrentSession->HandleBasicInput();
     mCurrentSession->TrackActiveDialog();
 
@@ -830,7 +868,7 @@ void Editor::EditorLoop() {
             }
 
             case DEF_EDITORSTATE_LOADDATA: {
-                if (!CreateNewEditorSession(1)) {
+                if (!CreateNewEditorSession(4)) {
                     mEditorState = DEF_EDITORSTATE_ERROR;
                 } else {
                     mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
@@ -895,6 +933,9 @@ bool Editor::CreateNewEditorSession(int load_levelnr) {
         logging::Error("EditorSession creation failed!");
         return false;
     }
+
+    //start in ViewMode
+    mCurrentSession->SetMode((EditorMode*)(mCurrentSession->mViewMode));
 
     return true;
 }

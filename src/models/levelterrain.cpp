@@ -1847,6 +1847,11 @@ void LevelTerrain::UpdateCellMeshVertex4(int x, int y) {
     this->pTerrainTiles[x][y].vert4CurrPositionYDirty = false;
 }
 
+void LevelTerrain::SetFog(bool enabled) {
+      StaticTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
+      DynamicTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
+}
+
 void LevelTerrain::ApplyMorph(Morph morph)
       {
           if (morph.getProgress() == morph.LastProgress)

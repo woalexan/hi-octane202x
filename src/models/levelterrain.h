@@ -251,6 +251,8 @@ public:
 
     void CheckAndUpdateHeightExistingColumn(int x, int y, int whichVertex, irr::f32 newHeightValue);
 
+    void SetFog(bool enabled);
+
 private:
     IrrMeshBuf* mIrrMeshBuf = nullptr;
 

@@ -244,6 +244,11 @@ void LevelBlocks::SetColumnVerticeSMeshBufferVerticePositionsDirty() {
     this->blockMeshWithoutCollision->setDirty(EBT_VERTEX);
 }
 
+void LevelBlocks::SetFog(bool enabled) {
+      BlockCollisionSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
+      BlockWithoutCollisionSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
+}
+
 std::vector<Column*> LevelBlocks::ColumnsInRange(int sx, int sz, float w, float h)
 {
     std::vector<Column*> columns;

@@ -21,13 +21,44 @@
 
 class EditorSession;
 
+/* GUI Elements for ViewMode
+*/
+struct GUIViewMode
+{
+    GUIViewMode ()
+    {
+        memset ( this, 0, sizeof ( *this ) );
+    }
+
+    irr::gui::IGUICheckBox* RunMorphsCheckbox;
+    irr::gui::IGUICheckBox* FogCheckbox;
+
+    //irr::gui::IGUIStaticText* CurrentSelectedCellInfo;
+
+    //irr::gui::IGUIButton* AddColumnButton;
+};
+
 class ViewMode : public EditorMode {
 private:
     virtual void CreateWindow();
-    
+
 public:
     ViewMode(EditorSession* parentSession);
     virtual ~ViewMode();
+
+    //is called when the editor mode
+    //is exited. Can be used to disable features
+    //etc. that should only be active during this
+    //mode is active
+    virtual void OnExitMode();
+
+    //is called when the editor mode
+    //is entered (becomes active)
+    virtual void OnEnterMode();
+
+    virtual void OnCheckBoxChanged(irr::s32 checkboxId);
+
+    GUIViewMode mGuiViewMode;
 };
 
 #endif // VIEWMODE_H

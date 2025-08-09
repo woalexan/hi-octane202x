@@ -21,6 +21,7 @@
 #define DEF_EDITOR_USERINTEXTUREDIALOG 1
 #define DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG 2
 #define DEF_EDITOR_USERINTERRAFORMINGDIALOG 3
+#define DEF_EDITOR_USERINVIEWMODEDIALOG 4
 
 /************************
  * Forward declarations *
@@ -110,6 +111,16 @@ public:
     irr::s32 GetNextFreeGuiId();
     void HideWindow();
 
+    void AdvanceTime(irr::f32 frameDeltaTime);
+    void ActivateMorphs();
+    void DeactivateMorphs();
+
+    //Returns true if morphing is currently
+    //enabled
+    bool IsMorphingRunning();
+
+    void SetFog(bool enabled);
+
 private:
 
     bool LoadLevel();
@@ -154,6 +165,9 @@ private:
     irr::u8 mLastUserInDialogState = DEF_EDITOR_USERINNODIALOG;
 
     GUI gui;
+
+    bool mRunMorphs = false;
+    irr::f32 absTimeMorph = 0.0f;
 
 public:
     EditorSession(Editor* parentEditor, irr::u8 loadLevelNr);

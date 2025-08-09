@@ -45,6 +45,7 @@ public:
     virtual void OnElementHovered(irr::s32 hoveredGuiId);
     virtual void OnElementLeft(irr::s32 leftGuiId);
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
+    virtual void OnCheckBoxChanged(irr::s32 checkboxId);
 
     virtual void OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem);
     virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
@@ -55,6 +56,16 @@ public:
 
     void HideWindow();
     void ShowWindow();
+
+    //is called when the editor mode
+    //is exited. Can be used to disable features
+    //etc. that should only be active during this
+    //mode is active
+    virtual void OnExitMode();
+
+    //is called when the editor mode
+    //is entered (becomes active)
+    virtual void OnEnterMode();
     
     EditorSession* mParentSession = nullptr;
 };
