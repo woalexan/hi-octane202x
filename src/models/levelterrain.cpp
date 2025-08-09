@@ -13,6 +13,8 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "levelterrain.h"
+#include "levelblocks.h"
+#include "column.h"
 #include "../resources/texture.h"
 #include "../infrabase.h"
 #include "../models/morph.h"
@@ -313,7 +315,12 @@ void LevelTerrain::FinishTerrainInitialization() {
     }
 }
 
-LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
+void LevelTerrain::SetLevelBlocks(LevelBlocks* levelBlocks) {
+    mLevelBlocks = levelBlocks;
+}
+
+LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes,
+                           TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
    this->mInfra = infra;
    mEnableLightning = enableLightning;
    mOptimizeMesh = optimizeMesh;
@@ -1206,22 +1213,33 @@ irr::core::vector2di LevelTerrain::GetClosestTileGridCoordToMapPosition(irr::cor
 
 //Helper function which makes sure that regardless of the coordinates
 //we never exit the valid coordinate range
-void LevelTerrain::ForceTileGridCoordRange(irr::core::vector2di &tileGridPos) {
+//Returns true if we were inside the terrain grid with the coordinates
+//Returns false if were landed outside of the valid grid area, and the coordinates
+//were adjusted
+bool LevelTerrain::ForceTileGridCoordRange(irr::core::vector2di &tileGridPos) {
+    bool adjust = false;
+
     if (tileGridPos.X < 0) {
         tileGridPos.X = 0;
+        adjust = true;
     }
 
     if (tileGridPos.Y < 0) {
         tileGridPos.Y = 0;
+        adjust = true;
     }
 
     if (tileGridPos.X >= this->levelRes->Width()) {
         tileGridPos.X = (this->levelRes->Width() - 1);
+        adjust = true;
     }
 
     if (tileGridPos.Y >= this->levelRes->Height()) {
         tileGridPos.Y = (this->levelRes->Height() - 1);
+        adjust = true;
     }
+
+    return adjust;
 }
 
 vector3d<irr::f32> LevelTerrain::computeNormalFromPositionsBuffer(irr::s32 x, irr::s32 z, irr::f32 intensity)
@@ -1723,6 +1741,112 @@ bool LevelTerrain::SetupGeometry() {
    return true;
 }
 
+void LevelTerrain::UpdateCellMeshVertex1(int x, int y) {
+    if (!this->pTerrainTiles[x][y].vert1CurrPositionYDirty)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+    S3DVertex *pntrVertices;
+    irr::u32 idxMeshBuf;
+
+    idxMeshBuf = 0;
+    for (it2 = this->pTerrainTiles[x][y].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][y].myMeshBuffers.end(); ++(it2)) {
+         (*it2)->grab();
+         void* pntrVert = (*it2)->getVertices();
+         pntrVertices = (S3DVertex*)pntrVert;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][y].vert1CurrPositionY;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].TCoords = this->pTerrainTiles[x][y].vert1UVcoord;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Normal = this->pTerrainTiles[x][y].vert1CurrNormal;
+
+         idxMeshBuf++;
+
+         (*it2)->drop();
+     }
+
+    this->pTerrainTiles[x][y].vert1CurrPositionYDirty = false;
+}
+
+void LevelTerrain::UpdateCellMeshVertex2(int x, int y) {
+    if (!this->pTerrainTiles[x][y].vert2CurrPositionYDirty)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+    S3DVertex *pntrVertices;
+    irr::u32 idxMeshBuf;
+
+    idxMeshBuf = 0;
+
+    for (it2 = this->pTerrainTiles[x][y].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][y].myMeshBuffers.end(); ++(it2)) {
+         (*it2)->grab();
+         void* pntrVert = (*it2)->getVertices();
+         pntrVertices = (S3DVertex*)pntrVert;
+
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Pos.Y = this->pTerrainTiles[x][y].vert2CurrPositionY;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][y].vert2UVcoord;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Normal = this->pTerrainTiles[x][y].vert2CurrNormal;
+
+         idxMeshBuf++;
+
+         (*it2)->drop();
+     }
+
+      this->pTerrainTiles[x][y].vert2CurrPositionYDirty = false;
+}
+
+void LevelTerrain::UpdateCellMeshVertex3(int x, int y) {
+    if (!this->pTerrainTiles[x][y].vert3CurrPositionYDirty)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+    S3DVertex *pntrVertices;
+    irr::u32 idxMeshBuf;
+
+    idxMeshBuf = 0;
+
+    for (it2 = this->pTerrainTiles[x][y].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][y].myMeshBuffers.end(); ++(it2)) {
+         (*it2)->grab();
+         void* pntrVert = (*it2)->getVertices();
+         pntrVertices = (S3DVertex*)pntrVert;
+
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Pos.Y = this->pTerrainTiles[x][y].vert3CurrPositionY;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][y].vert3UVcoord;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Normal = this->pTerrainTiles[x][y].vert3CurrNormal;
+
+         idxMeshBuf++;
+
+         (*it2)->drop();
+     }
+
+     this->pTerrainTiles[x][y].vert3CurrPositionYDirty = false;
+}
+
+void LevelTerrain::UpdateCellMeshVertex4(int x, int y) {
+    if (!this->pTerrainTiles[x][y].vert4CurrPositionYDirty)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+    S3DVertex *pntrVertices;
+    irr::u32 idxMeshBuf;
+
+    idxMeshBuf = 0;
+
+    for (it2 = this->pTerrainTiles[x][y].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][y].myMeshBuffers.end(); ++(it2)) {
+         (*it2)->grab();
+         void* pntrVert = (*it2)->getVertices();
+         pntrVertices = (S3DVertex*)pntrVert;
+
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Pos.Y = this->pTerrainTiles[x][y].vert4CurrPositionY;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][y].vert4UVcoord;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Normal = this->pTerrainTiles[x][y].vert4CurrNormal;
+
+         idxMeshBuf++;
+
+         (*it2)->drop();
+     }
+
+    this->pTerrainTiles[x][y].vert4CurrPositionYDirty = false;
+}
+
 void LevelTerrain::ApplyMorph(Morph morph)
       {
           if (morph.getProgress() == morph.LastProgress)
@@ -1745,10 +1869,7 @@ void LevelTerrain::ApplyMorph(Morph morph)
           bool updateUVs = morph.UVSFromSource != sourceEnabled;
           morph.UVSFromSource = sourceEnabled;
 
-          std::vector<irr::scene::SMeshBuffer*>::iterator it2;
           std::vector<vector2d<irr::f32>> uvs;
-          S3DVertex *pntrVertices;
-          irr::u32 idxMeshBuf;
           bool updatedUVS;
 
           dirtyPos = false;
@@ -1871,86 +1992,32 @@ void LevelTerrain::ApplyMorph(Morph morph)
 
                   // calculate and set new Y values
                   if (dx > 0 && dz > 0) {
-                      idxMeshBuf = 0;
-                      for (it2 = this->pTerrainTiles[x][z].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][z].myMeshBuffers.end(); ++(it2)) {
-                           (*it2)->grab();
-                           void* pntrVert = (*it2)->getVertices();
-                           pntrVertices = (S3DVertex*)pntrVert;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][z].vert1CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf]].TCoords = this->pTerrainTiles[x][z].vert1UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf]].Normal = this->pTerrainTiles[x][z].vert1CurrNormal;
-
-                           idxMeshBuf++;
-
-                           (*it2)->drop();
-                       }
+                      //update the terrain cell Mesh vertices
+                      UpdateCellMeshVertex1(x, z);
 
                       dirtyPos = true;
                   }
 
                   if (dx < morph.Width && dz > 0) {
-                      idxMeshBuf = 0;
-
-                      for (it2 = this->pTerrainTiles[x][z].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][z].myMeshBuffers.end(); ++(it2)) {
-                           (*it2)->grab();
-                           void* pntrVert = (*it2)->getVertices();
-                           pntrVertices = (S3DVertex*)pntrVert;
-
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].Pos.Y = this->pTerrainTiles[x][z].vert2CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][z].vert2UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 1].Normal = this->pTerrainTiles[x][z].vert2CurrNormal;
-
-
-                           idxMeshBuf++;
-
-                           (*it2)->drop();
-                       }
+                      //update the terrain cell Mesh vertices
+                      UpdateCellMeshVertex2(x, z);
 
                       dirtyPos = true;
                   }
 
                   if (dx < morph.Width && dz < morph.Height) {
-                      idxMeshBuf = 0;
-
-                      for (it2 = this->pTerrainTiles[x][z].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][z].myMeshBuffers.end(); ++(it2)) {
-                           (*it2)->grab();
-                           void* pntrVert = (*it2)->getVertices();
-                           pntrVertices = (S3DVertex*)pntrVert;
-
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].Pos.Y = this->pTerrainTiles[x][z].vert3CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][z].vert3UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 2].Normal = this->pTerrainTiles[x][z].vert3CurrNormal;
-
-
-                           idxMeshBuf++;
-
-                           (*it2)->drop();
-                       }
+                      //update the terrain cell Mesh vertices
+                      UpdateCellMeshVertex3(x, z);
 
                       dirtyPos = true;
                   }
 
                   if (dx > 0 && dz < morph.Height) {
-                      idxMeshBuf = 0;
-
-                      for (it2 = this->pTerrainTiles[x][z].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][z].myMeshBuffers.end(); ++(it2)) {
-                           (*it2)->grab();
-                           void* pntrVert = (*it2)->getVertices();
-                           pntrVertices = (S3DVertex*)pntrVert;
-
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].Pos.Y = this->pTerrainTiles[x][z].vert4CurrPositionY;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][z].vert4UVcoord;
-                           pntrVertices[this->pTerrainTiles[x][z].myMeshBufVertexId1[idxMeshBuf] + 3].Normal = this->pTerrainTiles[x][z].vert4CurrNormal;
-
-
-                           idxMeshBuf++;
-
-                           (*it2)->drop();
-                       }
+                      //update the terrain cell Mesh vertices
+                      UpdateCellMeshVertex4(x, z);
 
                       dirtyPos = true;
                   }
-
               }
           }
 
@@ -1998,6 +2065,43 @@ irr::u16 LevelTerrain::get_width() {
 
 irr::u16 LevelTerrain::get_heigth()  {
     return(this->levelRes->Height());
+}
+
+void LevelTerrain::DrawTerrainGrid(int gridMidPointX, int gridMidPointY, int gridSize, irr::video::SMaterial* color) {
+    int width = this->levelRes->Width();
+    int height = this->levelRes->Height();
+
+    irr::core::vector2di selCell;
+
+    int startX = gridMidPointX - gridSize;
+    int endX = gridMidPointX + gridSize;
+
+    if (endX > width) {
+        endX = width;
+    }
+
+    if (startX < 0) {
+        startX = 0;
+    }
+
+    int startY = gridMidPointY - gridSize;
+    int endY = gridMidPointY + gridSize;
+
+    if (endY > height) {
+        endY = height;
+    }
+
+    if (startY < 0) {
+        startY = 0;
+    }
+
+    for (int x = startX; x < endX; x++) {
+       for (int y = startY; y < endY; y++) {
+          selCell.X = x;
+          selCell.Y = y;
+          DrawOutlineSelectedCell(selCell, color);
+        }
+    }
 }
 
 irr::u8 LevelTerrain::GetCurrentViewMode() {
@@ -2065,21 +2169,327 @@ void LevelTerrain::SetViewMode(irr::u8 newViewMode) {
 void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, SMaterial* color) {
     irr::core::vector3df pos1 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert1->Pos;
     pos1.X = -pos1.X;
-    pos1.Y = -pos1.Y;
+    pos1.Y = -pos1.Y + 0.05f; //draw a little bit above the terrain cells, so that we do not get "flicker" effect
 
     irr::core::vector3df pos2 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert2->Pos;
     pos2.X = -pos2.X;
-    pos2.Y = -pos2.Y;
+    pos2.Y = -pos2.Y + 0.05f;
 
     irr::core::vector3df pos3 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert3->Pos;
     pos3.X = -pos3.X;
-    pos3.Y = -pos3.Y;
+    pos3.Y = -pos3.Y + 0.05f;
 
     irr::core::vector3df pos4 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert4->Pos;
     pos4.X = -pos4.X;
-    pos4.Y = -pos4.Y;
+    pos4.Y = -pos4.Y + 0.05f;
 
     this->mInfra->mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
+}
+
+void LevelTerrain::CheckAndUpdateHeightExistingColumn(int x, int y, int whichVertex, irr::f32 newHeightValue) {
+    //is there a column at cell coordinates x/y? if not return
+    if (!levelRes->IsAColumnAtCoordinates(x, y))
+        return;
+
+    //there is a column => get pointer to column
+
+    //there is a "position" key we can use for search
+    int posKey =  x + y * levelRes->Width();
+    Column* columnPntr;
+
+    irr::f32 currV1height;
+    irr::f32 currV2height;
+    irr::f32 currV3height;
+    irr::f32 currV4height;
+
+    if (mLevelBlocks->SearchColumnWithPosition(posKey, columnPntr)) {
+        //we found a column, modify its height if necessary
+        //get current column base heights for all 4 corners
+        currV1height = columnPntr->mBaseVert1Coord.Y;
+        currV2height = columnPntr->mBaseVert2Coord.Y;
+        currV3height = columnPntr->mBaseVert3Coord.Y;
+        currV4height = columnPntr->mBaseVert4Coord.Y;
+
+        //modify the value for the changed corner
+        //Important note 09.08.2025: it is not nice, but
+        //the vertex number order is different between the cell
+        //corner vertices, and the column vertices
+        //so we have to map it here properly!
+        //The case values below are therefore no mistake!
+        switch (whichVertex) {
+            case 1: {
+                 currV4height = newHeightValue;
+                 break;
+            }
+            case 2: {
+                 currV3height = newHeightValue;
+                 break;
+            }
+            case 3: {
+                 currV2height = newHeightValue;
+                 break;
+            }
+            case 4: {
+                 currV1height = newHeightValue;
+                 break;
+            }
+            default: {
+                return;
+            }
+        }
+
+        columnPntr->AdjustMeshBaseVerticeHeight(currV1height, currV2height, currV3height, currV4height);
+    }
+}
+
+void LevelTerrain::SetNewCellVertexHeight(int x, int y, int whichVertex, irr::f32 newHeightValue) {
+    //This higher level function has to do 2 independent things:
+    // 1, Modify the terrain cell vertex height in the low level map data itself
+    //    So that next time the map is loaded this changes becomes permanent
+    // 2, Modify the Irrlicht Terrain Mesh vertices height so that the change
+    //    becomes immediately visible in the level editor
+
+    MapEntry* a = GetMapEntry(x, y);
+    MapEntry* b = GetMapEntry(x + 1, y);
+    MapEntry* c = GetMapEntry(x + 1, y + 1);
+    MapEntry* d = GetMapEntry(x, y + 1);
+
+    irr::core::vector2di cell(x,y);
+
+    switch (whichVertex) {
+        case 1: {
+           //set new Y value in low level map
+           a->m_Height = -newHeightValue;
+
+           //set new Y values in Irrlicht Mesh
+           this->pTerrainTiles[x][y].vert1CurrPositionY = newHeightValue;
+           this->pTerrainTiles[x][y].vert1->Pos.Y = newHeightValue;
+           this->pTerrainTiles[x][y].vert1CurrPositionYDirty = true;
+
+           CheckAndUpdateHeightExistingColumn(x, y, 1, -newHeightValue);
+
+           cell.X = x - 1;
+           cell.Y = y;
+
+           //Returns true if we were inside the terrain grid with the coordinates
+           //Returns false if were landed outside of the valid grid area, and the coordinates
+           //were adjusted
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert2CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert2->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert2CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 2, -newHeightValue);
+           }
+
+           cell.X = x - 1;
+           cell.Y = y - 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert3CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert3->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert3CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 3, -newHeightValue);
+           }
+
+           cell.X = x;
+           cell.Y = y - 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert4CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert4->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert4CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 4, -newHeightValue);
+           }
+
+           break;
+        }
+
+        case 2: {
+           //set new Y value in low level map
+           b->m_Height = -newHeightValue;
+
+           //set new Y values in Irrlicht Mesh
+           this->pTerrainTiles[x][y].vert2CurrPositionY = newHeightValue;
+           this->pTerrainTiles[x][y].vert2->Pos.Y = newHeightValue;
+           this->pTerrainTiles[x][y].vert2CurrPositionYDirty = true;
+
+           CheckAndUpdateHeightExistingColumn(x, y, 2, -newHeightValue);
+
+           cell.X = x + 1;
+           cell.Y = y;
+
+           //Returns true if we were inside the terrain grid with the coordinates
+           //Returns false if were landed outside of the valid grid area, and the coordinates
+           //were adjusted
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert1CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert1->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert1CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 1, -newHeightValue);
+           }
+
+           cell.X = x;
+           cell.Y = y - 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert3CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert3->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert3CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 3, -newHeightValue);
+           }
+
+           cell.X = x + 1;
+           cell.Y = y - 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert4CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert4->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert4CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 4, -newHeightValue);
+           }
+
+           break;
+        }
+
+        case 3: {
+           //set new Y value in low level map
+           c->m_Height = -newHeightValue;
+
+           //set new Y values in Irrlicht Mesh
+           this->pTerrainTiles[x][y].vert3CurrPositionY = newHeightValue;
+           this->pTerrainTiles[x][y].vert3->Pos.Y = newHeightValue;
+           this->pTerrainTiles[x][y].vert3CurrPositionYDirty = true;
+
+           CheckAndUpdateHeightExistingColumn(x, y, 3, -newHeightValue);
+
+           cell.X = x + 1;
+           cell.Y = y;
+
+           //Returns true if we were inside the terrain grid with the coordinates
+           //Returns false if were landed outside of the valid grid area, and the coordinates
+           //were adjusted
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert4CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert4->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert4CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 4, -newHeightValue);
+           }
+
+           cell.X = x + 1;
+           cell.Y = y + 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert1CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert1->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert1CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 1, -newHeightValue);
+           }
+
+           cell.X = x;
+           cell.Y = y + 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert2CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert2->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert2CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 2, -newHeightValue);
+           }
+
+           break;
+        }
+
+        case 4: {
+           //set new Y value in low level map
+           d->m_Height = -newHeightValue;
+
+           //set new Y values in Irrlicht Mesh
+           this->pTerrainTiles[x][y].vert4CurrPositionY = newHeightValue;
+           this->pTerrainTiles[x][y].vert4->Pos.Y = newHeightValue;
+           this->pTerrainTiles[x][y].vert4CurrPositionYDirty = true;
+
+           CheckAndUpdateHeightExistingColumn(x, y, 4, -newHeightValue);
+
+           cell.X = x - 1;
+           cell.Y = y;
+
+           //Returns true if we were inside the terrain grid with the coordinates
+           //Returns false if were landed outside of the valid grid area, and the coordinates
+           //were adjusted
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert3CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert3->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert3CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 3, -newHeightValue);
+           }
+
+           cell.X = x - 1;
+           cell.Y = y + 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert2CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert2->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert2CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 2, -newHeightValue);
+           }
+
+           cell.X = x;
+           cell.Y = y + 1;
+
+           if (!ForceTileGridCoordRange(cell)) {
+               this->pTerrainTiles[cell.X][cell.Y].vert1CurrPositionY = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert1->Pos.Y = newHeightValue;
+               this->pTerrainTiles[cell.X][cell.Y].vert1CurrPositionYDirty = true;
+
+               CheckAndUpdateHeightExistingColumn(cell.X, cell.Y, 1, -newHeightValue);
+           }
+
+           break;
+        }
+
+        default: {
+           return;
+        }
+    }
+
+   irr::core::vector2di startPos(x-1, y-1);
+   irr::core::vector2di endPos(x+1, y+1);
+
+   ForceTileGridCoordRange(startPos);
+   ForceTileGridCoordRange(endPos);
+
+   for (int xIdx = startPos.X; xIdx <= endPos.X; xIdx++) {
+        for (int yIdx = startPos.Y; yIdx <= endPos.Y; yIdx++) {
+            //recalculate averaged tile height, this value will be for example used later
+            //for player craft calculations...
+            this->pTerrainTiles[xIdx][yIdx].currTileHeight = GetAveragedTileHeight(xIdx, yIdx);
+        }
+   }
+
+   //recalculate all necessary vertice normals
+   RecalculateNormals(a);
+
+   for (int xIdx = startPos.X; xIdx <= endPos.X; xIdx++) {
+        for (int yIdx = startPos.Y; yIdx <= endPos.Y; yIdx++) {
+           UpdateCellMeshVertex1(xIdx, yIdx);
+           UpdateCellMeshVertex2(xIdx, yIdx);
+           UpdateCellMeshVertex3(xIdx, yIdx);
+           UpdateCellMeshVertex4(xIdx, yIdx);
+        }
+   }
+
+   myStaticTerrainMesh->setDirty(EBT_VERTEX);
+   myDynamicTerrainMesh->setDirty(EBT_VERTEX);
 }
 
 void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh) {

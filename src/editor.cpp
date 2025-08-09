@@ -22,6 +22,7 @@
 #include "models/levelblocks.h"
 #include "editor/texturemode.h"
 #include "editor/columndesign.h"
+#include "editor/terraforming.h"
 
 //fully initializes the remaining editor
 //components
@@ -135,8 +136,9 @@ void Editor::CreateMenue() {
 
     submenu = menu->getSubMenu(2);
     submenu->addItem(L"View", GUI_ID_MODE_VIEW, true, false);
-    submenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
+    submenu->addItem(L"Terraforming", GUI_ID_MODE_TERRAFORMING, true, false);
     submenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
+    submenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
 
     /*************************************
      * Submenue View                     *
@@ -229,6 +231,13 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
            break;
         }
 
+        case GUI_ID_MODE_TERRAFORMING: {
+           if (mCurrentSession != nullptr) {
+               mCurrentSession->SetMode((EditorMode*)mCurrentSession->mTerraforming);
+           }
+           break;
+        }
+
         case GUI_ID_VIEW_TERRAIN_OFF:  {
            ChangeViewModeTerrain(LEVELTERRAIN_VIEW_OFF);
            break;
@@ -271,8 +280,8 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
-                mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
-                //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
+                //mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
+                mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
             }
             break;
         }
@@ -296,6 +305,10 @@ void Editor::OnButtonClicked(irr::s32 buttonId) {
 
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
         mCurrentSession->mColumnDesigner->OnButtonClicked(buttonId);
+    }
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTERRAFORMINGDIALOG) {
+        mCurrentSession->mTerraforming->OnButtonClicked(buttonId);
     }
 }
 

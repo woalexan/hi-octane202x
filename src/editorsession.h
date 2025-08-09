@@ -20,6 +20,7 @@
 #define DEF_EDITOR_USERINNODIALOG 0
 #define DEF_EDITOR_USERINTEXTUREDIALOG 1
 #define DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG 2
+#define DEF_EDITOR_USERINTERRAFORMINGDIALOG 3
 
 /************************
  * Forward declarations *
@@ -41,6 +42,7 @@ class TextureMode;
 class ColumnDesigner;
 class EditorMode;
 class ViewMode;
+class TerraformingMode;
 
 /* GUI Elements
 */
@@ -103,6 +105,7 @@ public:
     TextureMode* mTextureMode = nullptr;
     ColumnDesigner* mColumnDesigner = nullptr;
     ViewMode* mViewMode = nullptr;
+    TerraformingMode* mTerraforming = nullptr;
 
     irr::s32 GetNextFreeGuiId();
     void HideWindow();

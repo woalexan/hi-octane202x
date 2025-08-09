@@ -70,6 +70,7 @@ class MapEntry;
 struct MeshBufferInfoStruct;
 struct MeshObjectStatsStruct;
 class IrrMeshBuf;
+class LevelBlocks;
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -145,10 +146,12 @@ struct TerrainTileData {
 
 class LevelTerrain {
 public:
-    LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource, bool optimizeMesh, bool enableLightning);
+    LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource,
+                 bool optimizeMesh, bool enableLightning);
     ~LevelTerrain();
 
     void FinishTerrainInitialization();
+    void SetLevelBlocks(LevelBlocks* levelBlocks);
 
     void ResetTerrainTileData();
 
@@ -168,6 +171,7 @@ public:
     SMesh *myDynamicTerrainMesh = nullptr;
 
     LevelFile* levelRes = nullptr;
+    LevelBlocks* mLevelBlocks = nullptr;
 
     irr::f32 segmentSize;
 
@@ -180,7 +184,11 @@ public:
     irr::f32 GetHeightInterpolated(irr::f32 x, irr::f32 z);
     MapEntry* GetMapEntry(int x, int y);
     irr::core::vector2di GetClosestTileGridCoordToMapPosition(irr::core::vector3df mapPosition, int &outNrVertice);
-    void ForceTileGridCoordRange(irr::core::vector2di &tileGridPos);
+
+    //Returns true if we were inside the terrain grid with the coordinates
+    //Returns false if were landed outside of the valid grid area, and the coordinates
+    //were adjusted
+    bool ForceTileGridCoordRange(irr::core::vector2di &tileGridPos);
 
     void SetViewMode(irr::u8 newViewMode);
     irr::u8 GetCurrentViewMode();
@@ -237,6 +245,11 @@ public:
     void SetCellTextureModification(int posX, int posY, int8_t newTextureModifier);
 
     //void DebugOutputFoundChargingTextures();
+    void DrawTerrainGrid(int gridMidPointX, int gridMidPointY, int gridSize, irr::video::SMaterial* color);
+
+    void SetNewCellVertexHeight(int x, int y, int whichVertex, irr::f32 newHeightValue);
+
+    void CheckAndUpdateHeightExistingColumn(int x, int y, int whichVertex, irr::f32 newHeightValue);
 
 private:
     IrrMeshBuf* mIrrMeshBuf = nullptr;
@@ -254,6 +267,13 @@ private:
 
     irr::u32 mMaxVertexCol;
     irr::u32 mMinVertexCol;
+
+    void UpdateCellMeshVertex1(int x, int y);
+    void UpdateCellMeshVertex2(int x, int y);
+    void UpdateCellMeshVertex3(int x, int y);
+    void UpdateCellMeshVertex4(int x, int y);
+
+
 
     bool SetupGeometry();
     void FindTerrainOptimization();

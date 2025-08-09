@@ -36,6 +36,7 @@ enum
     GUI_ID_MODE_VIEW,
     GUI_ID_MODE_TEXTURING,
     GUI_ID_MODE_COLUMNDESIGN,
+    GUI_ID_MODE_TERRAFORMING,
 
     GUI_ID_VIEWMODE_TERRAIN,
     GUI_ID_VIEW_TERRAIN_OFF,
@@ -169,7 +170,7 @@ public:
 
     //during development I like to disable the block preview
     //temporarily. This makes the leveleditor start some seconds faster
-    bool enableBlockPreview = true;
+    bool enableBlockPreview = false;
 
     //Returns true for success, false for error occured
     bool InitEditorStep1();

@@ -3690,6 +3690,10 @@ bool Race::LoadLevel(int loadLevelNr) {
    this->mLevelBlocks = new LevelBlocks(mGame, this->mLevelTerrain, this->mLevelRes, mTexLoader, false,
                                         DebugShowWallCollisionMesh, this->mGame->enableLightning, false);
 
+   //we can only set levelBlocks afterwards in Terrain
+   //unfortunetly! do not forget it!
+   mLevelTerrain->SetLevelBlocks(mLevelBlocks);
+
    if (mGame->mUseXEffects) {
        // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
        // It will use the default shadow mode, ESM_BOTH, which allows it to
