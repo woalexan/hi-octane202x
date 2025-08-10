@@ -178,6 +178,9 @@ public:
     irr::u16 get_width();
     irr::u16 get_heigth();
 
+    void SetIllumination(bool enabled);
+    bool IsIlluminationEnabled();
+
     void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, irr::video::SMaterial* color);
 
     irr::f32 GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord);
@@ -253,6 +256,14 @@ public:
 
     void SetFog(bool enabled);
 
+    //Disables map illumination by setting all vertices
+    //colors full white
+    void DisableIllumination();
+
+    //Enables map illumination by setting all vertices
+    //colors to the illumination value stored in the map
+    void CalculateIllumination();
+
 private:
     IrrMeshBuf* mIrrMeshBuf = nullptr;
 
@@ -261,7 +272,6 @@ private:
     int16_t GetIlluminationValueVertice3(int x, int y);
     int16_t GetIlluminationValueVertice4(int x, int y);
 
-    void CalculateIllumination();
     irr::video::SColor CalcVertexColorForIllumination(int16_t illuminationValue);
 
     //Illumination preprocessed constant for slope
@@ -270,12 +280,14 @@ private:
     irr::u32 mMaxVertexCol;
     irr::u32 mMinVertexCol;
 
+    bool mIlluminationEnabled;
+
     void UpdateCellMeshVertex1(int x, int y);
     void UpdateCellMeshVertex2(int x, int y);
     void UpdateCellMeshVertex3(int x, int y);
     void UpdateCellMeshVertex4(int x, int y);
 
-
+    void UpdateTileVerticeColors(int x, int y);
 
     bool SetupGeometry();
     void FindTerrainOptimization();

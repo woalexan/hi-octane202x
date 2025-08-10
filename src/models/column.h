@@ -145,6 +145,8 @@ public:
     //parameter outIndex;
     bool GetBlockInfoVecIndex(int nrBlockStartingFromBase, size_t& outIndex);
 
+    void SetIllumination(bool enabled);
+
 private:
     bool SetupGeometry();
     void MoveColumnVertex(irr::core::vector3df &vertex);
@@ -168,6 +170,8 @@ private:
     LevelTerrain* mTerrain = nullptr;
 
     float segmentSize;
+
+    bool mIlluminationEnabled;
 
     irr::u16 mNrBlocksInColumn = 0;
 

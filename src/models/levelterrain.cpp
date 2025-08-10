@@ -365,7 +365,10 @@ LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char
    //level editor
    mLevelEditorMinNrMeshBuffersNeeded = (irr::u8)(round((irr::f32)(maxNrMapIndices) / (irr::f32)(65535)));
 
+   //Default use illumination (especially in the game)
    CalculateIllumination();
+
+   mIlluminationEnabled = true;
 }
 
 LevelTerrain::~LevelTerrain() {
@@ -445,6 +448,39 @@ LevelTerrain::~LevelTerrain() {
   mIrrMeshBuf->CleanupMeshBufferInfoStructs(mDynamicMeshBufferVec);
 
   delete mTerrainMeshStats;
+}
+
+void LevelTerrain::SetIllumination(bool enabled) {
+  bool updateMesh = false;
+
+  if (enabled) {
+        if (!mIlluminationEnabled) {
+            CalculateIllumination();
+            updateMesh = true;
+            mIlluminationEnabled = true;
+        }
+    } else {
+        if (mIlluminationEnabled) {
+            DisableIllumination();
+            mIlluminationEnabled = false;
+            updateMesh = true;
+        }
+    }
+
+  if (updateMesh) {
+      int levelWidth = this->levelRes->Width();
+      int levelHeight = this->levelRes->Height();
+
+      for (int i = 0; i < levelWidth; i++) {
+          for (int j = 0; j < levelHeight; j++) {
+                UpdateTileVerticeColors(i, j);
+          }
+      }
+  }
+}
+
+bool LevelTerrain::IsIlluminationEnabled() {
+    return mIlluminationEnabled;
 }
 
 //Returns true if input texture is a roadtexture
@@ -1486,6 +1522,28 @@ irr::video::SColor LevelTerrain::CalcVertexColorForIllumination(int16_t illumina
     return result;
 }
 
+void LevelTerrain::DisableIllumination() {
+    int x, z;
+
+    int Width = levelRes->Width();
+    int Height = levelRes->Height();
+
+    TerrainTileData* tile;
+
+    irr::video::SColor fullColor(255, 255, 255, 255);
+
+    for (z = 0; z < Height; z++) {
+      for (x = 0; x < Width; x++) {
+        tile = &pTerrainTiles[x][z];
+
+        tile->vert1Color = fullColor;
+        tile->vert2Color = fullColor;
+        tile->vert3Color = fullColor;
+        tile->vert4Color = fullColor;
+       }
+    }
+}
+
 void LevelTerrain::CalculateIllumination() {
     int x, z = 0;
 
@@ -2029,6 +2087,30 @@ void LevelTerrain::ApplyMorph(Morph morph)
           if (dirtyPos) {
                 myDynamicTerrainMesh->setDirty(EBT_VERTEX);
           }
+}
+
+void LevelTerrain::UpdateTileVerticeColors(int x, int y) {
+    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+    S3DVertex *pntrVertices;
+    irr::u32 idxMeshBuf;
+
+    idxMeshBuf = 0;
+    for (it2 = this->pTerrainTiles[x][y].myMeshBuffers.begin(); it2 != this->pTerrainTiles[x][y].myMeshBuffers.end(); ++(it2)) {
+         (*it2)->grab();
+         void* pntrVert = (*it2)->getVertices();
+         pntrVertices = (S3DVertex*)pntrVert;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]    ].Color = this->pTerrainTiles[x][y].vert1Color;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Color = this->pTerrainTiles[x][y].vert2Color;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Color = this->pTerrainTiles[x][y].vert3Color;
+         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Color = this->pTerrainTiles[x][y].vert4Color;
+
+         idxMeshBuf++;
+
+         (*it2)->drop();
+     }
+
+     myStaticTerrainMesh->setDirty(EBT_VERTEX);
+     myDynamicTerrainMesh->setDirty(EBT_VERTEX);
 }
 
 irr::f32 LevelTerrain::GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord) {

@@ -43,6 +43,9 @@ Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefini
 
    mBlockInfoVec.clear();
 
+   //Default illuminaion is enabled
+   mIlluminationEnabled = true;
+
    if (levelResLevel != nullptr && Def != nullptr) {
     if (SetupGeometry()) {
        // std::cout << "HiOctane Column loaded: " <<
@@ -259,6 +262,50 @@ irr::f32 Column::GetOriginalHeightTile(int x, int z) {
 
     MapEntry *p = this->GetMapEntry(x, z);
     return p->m_Height;
+}
+
+void Column::SetIllumination(bool enabled) {
+    irr::video::SColor vertCol1(255, 255, 255, 255);
+    irr::video::SColor vertCol2(255, 255, 255, 255);
+    irr::video::SColor vertCol3(255, 255, 255, 255);
+    irr::video::SColor vertCol4(255, 255, 255, 255);
+
+    if (enabled && !mIlluminationEnabled) {
+       //get correct vertex colors
+       //depending on which cell this column is located
+       int xCoord = (int)(Position.X);
+       int yCoord = (int)(Position.Z);
+
+       TerrainTileData* tile = &mTerrain->pTerrainTiles[xCoord][yCoord];
+
+       vertCol1 = tile->vert1Color;
+       vertCol2 = tile->vert2Color;
+       vertCol3 = tile->vert3Color;
+       vertCol4 = tile->vert4Color;
+
+       std::vector<BlockInfoStruct*>::iterator it;
+
+       //update vertices colors for all of my blocks
+       for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ++it) {
+           mLevelBlocks->BlockUpdateVerticeColors(*it, vertCol1, vertCol2, vertCol3, vertCol4);
+       }
+
+       mIlluminationEnabled = true;
+
+       return;
+    }
+
+    if (!enabled && mIlluminationEnabled) {
+       std::vector<BlockInfoStruct*>::iterator it;
+
+       //set all my blocks vertice colors to full white
+       //this disabled illumination for blocks
+       for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ++it) {
+            mLevelBlocks->BlockUpdateVerticeColors(*it, vertCol1, vertCol2, vertCol3, vertCol4);
+       }
+
+       mIlluminationEnabled = false;
+    }
 }
 
 //returns the number of "missing" blocks at the base
@@ -553,10 +600,24 @@ BlockInfoStruct* Column::CreateGeometryBlock(BlockDefinition* blockDef, int bloc
     BlockInfoStruct* newBlock = new BlockInfoStruct();
     newBlock->idxBlockFromBaseCnt = (irr::u8)(blockNrFromBase);
 
-    int xCoord = (int)(Position.X);
-    int yCoord = (int)(Position.Z);
+    //for a special preview column make sure that we always
+    //use highest illumination/brightness settings for the vertices
+    irr::video::SColor vert1Color(255, 255, 255, 255);
+    irr::video::SColor vert2Color(255, 255, 255, 255);
+    irr::video::SColor vert3Color(255, 255, 255, 255);
+    irr::video::SColor vert4Color(255, 255, 255, 255);
 
-    TerrainTileData* tile = &mTerrain->pTerrainTiles[xCoord][yCoord];
+    if (!mSpecialPreviewColumn) {
+        int xCoord = (int)(Position.X);
+        int yCoord = (int)(Position.Z);
+
+        TerrainTileData* tile = &mTerrain->pTerrainTiles[xCoord][yCoord];
+
+        vert1Color = tile->vert1Color;
+        vert2Color = tile->vert2Color;
+        vert3Color = tile->vert3Color;
+        vert4Color = tile->vert4Color;
+    }
 
     //a  = x+1, y         *B, *F
     //b = x , y           *A, *E
@@ -565,22 +626,22 @@ BlockInfoStruct* Column::CreateGeometryBlock(BlockDefinition* blockDef, int bloc
 
     //define all faces
     //north side
-    newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, tile->vert1Color, tile->vert2Color, tile->vert2Color, tile->vert1Color, newuvsN, *nN, texIDInfoN);
+    newBlock->fN = CreateNewCubeFace(*F, *E, *A, *B, vert1Color, vert2Color, vert2Color, vert1Color, newuvsN, *nN, texIDInfoN);
 
     //east side
-    newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, tile->vert4Color, tile->vert1Color, tile->vert1Color, tile->vert4Color, newuvsE, *nE, texIDInfoE);
+    newBlock->fE = CreateNewCubeFace(*G, *F, *B, *C, vert4Color, vert1Color, vert1Color, vert4Color, newuvsE, *nE, texIDInfoE);
 
     //south side
-    newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, tile->vert3Color, tile->vert4Color, tile->vert4Color, tile->vert3Color, newuvsS, *nS, texIDInfoS);
+    newBlock->fS = CreateNewCubeFace(*H, *G, *C, *D, vert3Color, vert4Color, vert4Color, vert3Color, newuvsS, *nS, texIDInfoS);
 
     //west side
-    newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, tile->vert2Color, tile->vert3Color, tile->vert3Color, tile->vert2Color, newuvsW, *nW, texIDInfoW);
+    newBlock->fW = CreateNewCubeFace(*E, *H, *D, *A, vert2Color, vert3Color, vert3Color, vert2Color, newuvsW, *nW, texIDInfoW);
 
     //top side
-    newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, tile->vert2Color, tile->vert1Color, tile->vert4Color, tile->vert3Color, newuvsT, *nT, texIDInfoT);
+    newBlock->fT = CreateNewCubeFace(*E, *F, *G, *H, vert2Color, vert1Color, vert4Color, vert3Color, newuvsT, *nT, texIDInfoT);
 
     //bottom side
-    newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, tile->vert3Color, tile->vert4Color, tile->vert1Color, tile->vert2Color, newuvsB, *nB, texIDInfoB);
+    newBlock->fB = CreateNewCubeFace(*D, *C, *B, *A, vert3Color, vert4Color, vert1Color, vert2Color, newuvsB, *nB, texIDInfoB);
 
     //cleanup
     delete A;

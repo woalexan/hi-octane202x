@@ -202,6 +202,9 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
    }
 
    //DebugWriteBlockDefinitionTableToCsvFile((char*)("DbgBlockDefinition.csv"));
+
+   //default illumination is enabled
+   mIlluminationEnabled = true;
 }
 
 void LevelBlocks::AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
@@ -661,6 +664,102 @@ void LevelBlocks::DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMateria
     irr::core::vector3df pos4 = selFace->vert4->Pos;
 
     mInfra->mDrawDebug->Draw3DRectangle(pos1, pos2, pos3, pos4, color);
+}
+
+void LevelBlocks::BlockFaceUpdateVerticeColors(BlockFaceInfoStruct* facePntr, irr::video::SColor vertCol1, irr::video::SColor vertCol2,
+                                          irr::video::SColor vertCol3, irr::video::SColor vertCol4) {
+    if (facePntr == nullptr)
+        return;
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it2;
+    S3DVertex *pntrVertices;
+    irr::u32 idxMeshBuf;
+
+    facePntr->vert1->Color = vertCol1;
+    facePntr->vert2->Color = vertCol2;
+    facePntr->vert3->Color = vertCol3;
+    facePntr->vert4->Color = vertCol4;
+
+    idxMeshBuf = 0;
+    for (it2 = facePntr->myMeshBuffers.begin(); it2 != facePntr->myMeshBuffers.end(); ++(it2)) {
+         (*it2)->grab();
+         void* pntrVert = (*it2)->getVertices();
+         pntrVertices = (S3DVertex*)pntrVert;
+         pntrVertices[facePntr->myMeshBufVertexId[idxMeshBuf]     ].Color = vertCol1;
+         pntrVertices[facePntr->myMeshBufVertexId[idxMeshBuf] + 1 ].Color = vertCol2;
+         pntrVertices[facePntr->myMeshBufVertexId[idxMeshBuf] + 2 ].Color = vertCol3;
+         pntrVertices[facePntr->myMeshBufVertexId[idxMeshBuf] + 3 ].Color = vertCol4;
+
+         idxMeshBuf++;
+
+         (*it2)->drop();
+     }
+}
+
+void LevelBlocks::BlockUpdateVerticeColors(BlockInfoStruct* pntrBlockInfoStruct, irr::video::SColor vertCol1, irr::video::SColor vertCol2,
+                                           irr::video::SColor vertCol3, irr::video::SColor vertCol4) {
+    if (pntrBlockInfoStruct == nullptr)
+        return;
+
+    if (pntrBlockInfoStruct->fN != nullptr) {
+        BlockFaceUpdateVerticeColors(pntrBlockInfoStruct->fN, vertCol1, vertCol2, vertCol2, vertCol1);
+    }
+
+    if (pntrBlockInfoStruct->fE != nullptr) {
+        BlockFaceUpdateVerticeColors(pntrBlockInfoStruct->fE, vertCol4, vertCol1, vertCol1, vertCol4);
+    }
+
+    if (pntrBlockInfoStruct->fS != nullptr) {
+        BlockFaceUpdateVerticeColors(pntrBlockInfoStruct->fS, vertCol3, vertCol4, vertCol4, vertCol3);
+    }
+
+    if (pntrBlockInfoStruct->fW != nullptr) {
+        BlockFaceUpdateVerticeColors(pntrBlockInfoStruct->fW, vertCol2, vertCol3, vertCol3, vertCol2);
+    }
+
+    if (pntrBlockInfoStruct->fT != nullptr) {
+        BlockFaceUpdateVerticeColors(pntrBlockInfoStruct->fT, vertCol2, vertCol1, vertCol4, vertCol3);
+    }
+
+    if (pntrBlockInfoStruct->fB != nullptr) {
+        BlockFaceUpdateVerticeColors(pntrBlockInfoStruct->fB, vertCol3, vertCol4, vertCol1, vertCol2);
+    }
+}
+
+void LevelBlocks::SetIllumination(bool enabled) {
+    //set illumination in all of my columns
+    std::vector<ColumnsByPositionStruct>::iterator it;
+
+    if (enabled && !mIlluminationEnabled) {
+
+        for (it = ColumnsByPosition.begin(); it != ColumnsByPosition.end(); ++it) {
+            (*it).pColumn->SetIllumination(true);
+        }
+
+        //we need to update my Mesh
+        blockMeshForCollision->setDirty(EBT_VERTEX);
+        blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+
+        mIlluminationEnabled = true;
+
+        return;
+    }
+
+    if (!enabled && mIlluminationEnabled) {
+        for (it = ColumnsByPosition.begin(); it != ColumnsByPosition.end(); ++it) {
+            (*it).pColumn->SetIllumination(false);
+        }
+
+        //we need to update my Mesh
+        blockMeshForCollision->setDirty(EBT_VERTEX);
+        blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+
+        mIlluminationEnabled = false;
+    }
+}
+
+bool LevelBlocks::IsIlluminationEnabled() {
+    return mIlluminationEnabled;
 }
 
 /***********************************************************************
