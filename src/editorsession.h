@@ -120,6 +120,8 @@ public:
     bool IsMorphingRunning();
 
     void SetFog(bool enabled);
+    void SetIllumination(bool enabled);
+    bool IsIlluminationEnabled();
 
 private:
 

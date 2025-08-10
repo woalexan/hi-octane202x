@@ -32,6 +32,7 @@ struct GUIViewMode
 
     irr::gui::IGUICheckBox* RunMorphsCheckbox;
     irr::gui::IGUICheckBox* FogCheckbox;
+    irr::gui::IGUICheckBox* IlluminationCheckBox;
 
     //irr::gui::IGUIStaticText* CurrentSelectedCellInfo;
 

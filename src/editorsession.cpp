@@ -366,6 +366,15 @@ bool EditorSession::LoadLevel() {
   return true;
 }
 
+void EditorSession::SetIllumination(bool enabled) {
+    mLevelTerrain->SetIllumination(enabled);
+    mLevelBlocks->SetIllumination(enabled);
+}
+
+bool EditorSession::IsIlluminationEnabled() {
+    return (mLevelTerrain->IsIlluminationEnabled() && mLevelBlocks->IsIlluminationEnabled());
+}
+
 void EditorSession::createLevelEntities() {
 
     ENTWaypoints_List = new std::vector<EntityItem*>;

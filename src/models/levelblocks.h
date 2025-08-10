@@ -135,6 +135,12 @@ public:
 
     void CreateBlockPreview(irr::video::ITexture& outputFrontTexture, irr::video::ITexture& outputBackTexture);
 
+    void BlockFaceUpdateVerticeColors(BlockFaceInfoStruct* facePntr, irr::video::SColor vertCol1, irr::video::SColor vertCol2,
+                                              irr::video::SColor vertCol3, irr::video::SColor vertCol4);
+
+    void BlockUpdateVerticeColors(BlockInfoStruct* pntrBlockInfoStruct, irr::video::SColor vertCol1, irr::video::SColor vertCol2,
+                                               irr::video::SColor vertCol3, irr::video::SColor vertCol4);
+
     irr::video::ITexture* texPreviewFrontNoCube = nullptr;
     irr::video::ITexture* texPreviewBackNoCube = nullptr;
 
@@ -153,6 +159,9 @@ public:
     std::string CreateDbgShapeString(ColumnDefinition* colDef);
 
     void SetFog(bool enabled);
+
+    void SetIllumination(bool enabled);
+    bool IsIlluminationEnabled();
 
 private:   
     IrrMeshBuf* mIrrMeshBuf = nullptr;
@@ -180,6 +189,8 @@ private:
     LevelTerrain* MyTerrain = nullptr;
 
     InfrastructureBase* mInfra = nullptr;
+
+    bool mIlluminationEnabled;
 
     void AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
 

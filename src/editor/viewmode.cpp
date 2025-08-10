@@ -24,18 +24,21 @@ void ViewMode::CreateWindow() {
     if (font)
         env->getSkin()->setFont(font);*/
 
-    irr::core::dimension2d<irr::u32> dim ( 100, 100 );
+    irr::core::dimension2d<irr::u32> dim ( 150, 150 );
 
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"View Mode", 0, mGuiWindowId);
 
     //create the checkbox which allows to disable/enable running
     //Morphs
-    mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 30, dim.Width - 10, 50),
+    mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 30, dim.Width - 10, 50),
                                                                                          Window, GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX, L"Run Morphs");
 
-    mGuiViewMode.FogCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 45, dim.Width - 10, 75),
+    mGuiViewMode.FogCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 45, dim.Width - 10, 75),
                                                                                          Window, GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX, L"Fog");
+
+    mGuiViewMode.IlluminationCheckBox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 100, dim.Width - 10, 130),
+                                                                                            Window, GUI_ID_VIEWMODEWINDOW_ILLUMINATION_CHECKBOX, L"Illumination");
 }
 
 void ViewMode::OnExitMode() {
@@ -67,6 +70,17 @@ void ViewMode::OnEnterMode() {
            mParentSession->ActivateMorphs();
      }
    }
+
+   //enable Fog?
+   mParentSession->SetFog(mGuiViewMode.FogCheckbox->isChecked());
+
+   if (!mGuiViewMode.IlluminationCheckBox->isChecked()) {
+       mParentSession->SetIllumination(false);
+   } else {
+       if (!mParentSession->IsIlluminationEnabled()) {
+           mParentSession->SetIllumination(true);
+       }
+   }
 }
 
 void ViewMode::OnCheckBoxChanged(irr::s32 checkboxId) {
@@ -87,5 +101,10 @@ void ViewMode::OnCheckBoxChanged(irr::s32 checkboxId) {
         bool fogEnabled = mGuiViewMode.FogCheckbox->isChecked();
 
         mParentSession->SetFog(fogEnabled);
+    } else if (checkboxId == GUI_ID_VIEWMODEWINDOW_ILLUMINATION_CHECKBOX) {
+        //Illumination enabled or disabled?
+        bool illuminationEnabled = mGuiViewMode.IlluminationCheckBox->isChecked();
+
+        mParentSession->SetIllumination(illuminationEnabled);
     }
 }
