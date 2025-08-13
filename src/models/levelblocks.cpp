@@ -242,9 +242,13 @@ bool LevelBlocks::SearchColumnWithPosition(int posKey, Column* &columnFnd) {
     return !notFound;
 }
 
-void LevelBlocks::SetColumnVerticeSMeshBufferVerticePositionsDirty() {
-    this->blockMeshForCollision->setDirty(EBT_VERTEX);
-    this->blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+void LevelBlocks::CheckForMeshUpdate() {
+    if (mMeshNeedsUpdate) {
+        blockMeshForCollision->setDirty(EBT_VERTEX);
+        blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+
+        mMeshNeedsUpdate = false;
+    }
 }
 
 void LevelBlocks::SetFog(bool enabled) {
@@ -950,6 +954,29 @@ void LevelBlocks::RemoveMeshColumn(Column* selColumnPntr) {
     //delete mesh cube by cube
     for (itBlock = selColumnPntr->mBlockInfoVec.begin(); itBlock != selColumnPntr->mBlockInfoVec.end(); ++itBlock) {
         RemoveMeshCube(selColumnPntr, (*itBlock)->idxBlockFromBaseCnt);
+    }
+}
+
+//Warning: This function removes every column currently existing
+//in the loaded level!
+void LevelBlocks::RemoveEveryColumn() {
+    std::vector<ColumnsByPositionStruct>::iterator it;
+
+    //we need a helper vector which keeps a second list of all columns
+    //to delete; Because while calling RemoveColumn function below the
+    //vector ColumnsByPosition is modified, and therefore we can not for loop
+    //over the vector while at the same time modifiy it inside the for loop!
+    std::vector<Column*> helpVec;
+    helpVec.clear();
+
+    for (it = ColumnsByPosition.begin(); it != ColumnsByPosition.end(); ++it) {
+        helpVec.push_back((*it).pColumn);
+    }
+
+    std::vector<Column*>::iterator it2;
+
+    for (it2 = helpVec.begin(); it2 != helpVec.end(); ++it2) {
+        RemoveColumn((*it2));
     }
 }
 

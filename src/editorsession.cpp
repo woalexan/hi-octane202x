@@ -115,8 +115,8 @@ void EditorSession::AdvanceTime(irr::f32 frameDeltaTime) {
                 (*itMorph)->MorphColumns();
         }
 
-        //mark column vertices as dirty
-        mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+        //Trigger Mesh update
+        CheckForMeshUpdate();
      }
 
      //if (!AllowStartMorphsPerKey) {
@@ -147,10 +147,15 @@ void EditorSession::DeactivateMorphs() {
             (*itMorph)->MorphColumns();
     }
 
-    //mark column vertices as dirty
-    mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+    //Trigger Mesh update
+    CheckForMeshUpdate();
 
     mRunMorphs = false;
+}
+
+void EditorSession::CheckForMeshUpdate() {
+    mLevelTerrain->CheckForMeshUpdate();
+    mLevelBlocks->CheckForMeshUpdate();
 }
 
 EditorSession::~EditorSession() {
@@ -1106,6 +1111,16 @@ void EditorSession::SetFog(bool enabled) {
 
 void EditorSession::End() {
     //empty right now
+}
+
+void EditorSession::RemoveEverythingFromLevel() {
+    //make sure all morphs are currently disabled!
+    DeactivateMorphs();
+
+    //remove every existing column
+    mLevelBlocks->RemoveEveryColumn();
+
+    mLevelTerrain->ResetTextureCompleteTerrain(0);
 }
 
 void EditorSession::SetMode(EditorMode* selMode) {

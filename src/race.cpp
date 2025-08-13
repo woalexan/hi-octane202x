@@ -2148,8 +2148,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
                       (*itMorph)->MorphColumns();
                   }
 
-                  //mark column vertices as dirty
-                  mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
+                  //if necessary update the Mesh now
+                  mLevelTerrain->CheckForMeshUpdate();
+                  mLevelBlocks->CheckForMeshUpdate();
                 }
 
             if (!AllowStartMorphsPerKey) {
@@ -4274,6 +4275,10 @@ void Race::UpdateMorphs(irr::f32 frameDeltaTime) {
     for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
         (*itMorph)->Update(frameDeltaTime);
     }
+
+    //if necessary update the Mesh now
+    mLevelTerrain->CheckForMeshUpdate();
+    mLevelBlocks->CheckForMeshUpdate();
 }
 
 void Race::UpdateTimers(irr::f32 frameDeltaTime) {

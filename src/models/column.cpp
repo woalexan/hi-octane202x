@@ -158,8 +158,6 @@ void Column::ApplyMorph(float progress) {
 
         this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
 
-        this->mLevelBlocks->UpdateBlockMesh();
-
         return;
     }
 
@@ -202,8 +200,6 @@ void Column::ApplyMorph(float progress) {
      }
 
      this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
-
-     this->mLevelBlocks->UpdateBlockMesh();
 }
 
 //allows to change the height of the 4 base block vertices of the column mesh, and all blocks above are
@@ -236,7 +232,7 @@ void Column::AdjustMeshBaseVerticeHeight(irr::f32 newV1y, irr::f32 newV2y, irr::
     }
 
     //tell the block Mesh that it needs to be updated
-    mLevelBlocks->UpdateBlockMesh();
+    mLevelBlocks->mMeshNeedsUpdate = true;
 }
 
 irr::f32 Column::GetCurrentHeightTile(int x, int z) {

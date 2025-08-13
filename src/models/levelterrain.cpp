@@ -2085,8 +2085,15 @@ void LevelTerrain::ApplyMorph(Morph morph)
           }
 
           if (dirtyPos) {
-                myDynamicTerrainMesh->setDirty(EBT_VERTEX);
+                mNeedMeshUpdate = true;
           }
+}
+
+void LevelTerrain::CheckForMeshUpdate() {
+    if (mNeedMeshUpdate) {
+        myDynamicTerrainMesh->setDirty(EBT_VERTEX);
+        mNeedMeshUpdate = false;
+    }
 }
 
 void LevelTerrain::UpdateTileVerticeColors(int x, int y) {
@@ -2252,6 +2259,19 @@ void LevelTerrain::SetViewMode(irr::u8 newViewMode) {
 /***********************************************************************
  * Functions mainly used by the LevelEditor and not the game itself    *
  ***********************************************************************/
+
+//Sets the texture Id for every tile of the complete terrain
+//to the specified value
+void LevelTerrain::ResetTextureCompleteTerrain(int newTexId) {
+    int width = get_width();
+    int height = get_heigth();
+
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+            SetCellTexture(x, y, newTexId, false);
+        }
+    }
+}
 
 void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, SMaterial* color) {
     irr::core::vector3df pos1 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert1->Pos;

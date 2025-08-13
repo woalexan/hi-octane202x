@@ -397,7 +397,9 @@ void TerraformingMode::OnSelectedVertexUp() {
         }
     }
 
+    //After the next command we need to ourself trigger a Mesh update!
     mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected, newH);
+    mParentSession->CheckForMeshUpdate();
 }
 
 void TerraformingMode::OnSelectedVertexDown() {
@@ -435,7 +437,9 @@ void TerraformingMode::OnSelectedVertexDown() {
         }
     }
 
+    //After the next command we need to ourself trigger a Mesh update!
     mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected, newH);
+    mParentSession->CheckForMeshUpdate();
 }
 
 void TerraformingMode::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, irr::video::SMaterial* color) {
