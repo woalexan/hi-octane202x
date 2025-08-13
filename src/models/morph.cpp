@@ -55,9 +55,6 @@ void Morph::Update(irr::f32 frameDeltaTime) {
     mLevelTerrain->ApplyMorph((*this));
     MorphColumns();
 
-    //mark column vertices as dirty
-    mLevelBlocks->SetColumnVerticeSMeshBufferVerticePositionsDirty();
-
     if (mMorphDirectionUp && (progress >= 0.99999f)) {
         mCurrMorphing = false;
         mMorphDirectionUp = false;

@@ -264,6 +264,12 @@ public:
     //colors to the illumination value stored in the map
     void CalculateIllumination();
 
+    void CheckForMeshUpdate();
+
+    //Sets the texture Id for every tile of the complete terrain
+    //to the specified value
+    void ResetTextureCompleteTerrain(int newTexId);
+
 private:
     IrrMeshBuf* mIrrMeshBuf = nullptr;
 
@@ -330,6 +336,8 @@ private:
     MeshObjectStatsStruct* mTerrainMeshStats;
 
     irr::u8 mCurrentViewMode;
+
+    bool mNeedMeshUpdate = false;
 };
 
 #endif // LEVELTERRAIN_H

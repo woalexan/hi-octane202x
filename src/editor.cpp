@@ -124,6 +124,7 @@ void Editor::CreateMenue() {
 
     gui::IGUIContextMenu* submenu;
     submenu = menu->getSubMenu(0);
+    submenu->addItem(L"New empty level", GUI_ID_NEWEMPTYLEVEL);
     submenu->addItem(L"Open level", GUI_ID_OPEN_LEVEL);
     submenu->addItem(L"Save level", GUI_ID_SAVE_LEVEL);
 
@@ -284,6 +285,13 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
             if (mCurrentSession != nullptr) {
                 mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
                 //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
+            }
+            break;
+        }
+
+        case GUI_ID_NEWEMPTYLEVEL: {
+            if (mCurrentSession != nullptr) {
+               //mCurrentSession->RemoveEverythingFromLevel();
             }
             break;
         }
@@ -868,7 +876,7 @@ void Editor::EditorLoop() {
             }
 
             case DEF_EDITORSTATE_LOADDATA: {
-                if (!CreateNewEditorSession(4)) {
+                if (!CreateNewEditorSession(1)) {
                     mEditorState = DEF_EDITORSTATE_ERROR;
                 } else {
                     mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;

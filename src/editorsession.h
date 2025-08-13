@@ -123,6 +123,8 @@ public:
     void SetIllumination(bool enabled);
     bool IsIlluminationEnabled();
 
+    void RemoveEverythingFromLevel();
+
 private:
 
     bool LoadLevel();
@@ -197,6 +199,8 @@ public:
 
     bool ready;
     bool exitEditorSession = false;
+
+    void CheckForMeshUpdate();
 };
 
 #endif // EDITORSESSION_H

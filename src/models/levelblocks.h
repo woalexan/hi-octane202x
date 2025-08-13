@@ -66,7 +66,6 @@ public:
 
     void CreateBlocksMesh();
     std::vector<Column*> ColumnsInRange(int sx, int sz, float w, float h);
-    void SetColumnVerticeSMeshBufferVerticePositionsDirty();
 
     bool GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::f32 &heightVal);
 
@@ -162,6 +161,12 @@ public:
 
     void SetIllumination(bool enabled);
     bool IsIlluminationEnabled();
+
+    bool mMeshNeedsUpdate = false;
+
+    void CheckForMeshUpdate();
+
+    void RemoveEveryColumn();
 
 private:   
     IrrMeshBuf* mIrrMeshBuf = nullptr;
