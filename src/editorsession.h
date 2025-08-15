@@ -147,7 +147,7 @@ private:
     //holds a list of all available level morphs
     std::list<Morph*> Morphs;
 
-    void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
+    void CreateEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks);
     void CleanUpEntities();
     void CleanUpMorphs();
 

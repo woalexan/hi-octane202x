@@ -144,19 +144,46 @@ void Column::CleanUpBlockInfoStruct(BlockInfoStruct &pntr) {
    }
 }
 
-void Column::ApplyMorph(float progress) {
+void Column::ResetDestroyedColumn() {
+    //function only used in the level-editor
+    //if the morphs were running and the column got
+    //already destroyed (hidden)... and then the user
+    //disables morphing again, we need to unhide (reverse destroying)
+    //the column again
     if (DestroyOnMorph) {
-        this->Hidden = progress > 0.01f;
+        Hidden = false;
 
-        //if this column is hidden move column vertices
-        //so far below the level that the are not visible anymore
-        //for the player, therefore the column is "hidden"
-        irr::f32 newColBaseVertex1Y = this->mBaseVert1CoordOriginal.Y - 100.0f;
-        irr::f32 newColBaseVertex2Y = this->mBaseVert2CoordOriginal.Y - 100.0f;
-        irr::f32 newColBaseVertex3Y = this->mBaseVert3CoordOriginal.Y - 100.0f;
-        irr::f32 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y - 100.0f;
+        irr::f32 newColBaseVertex1Y = this->mBaseVert1CoordOriginal.Y;
+        irr::f32 newColBaseVertex2Y = this->mBaseVert2CoordOriginal.Y;
+        irr::f32 newColBaseVertex3Y = this->mBaseVert3CoordOriginal.Y;
+        irr::f32 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y;
 
         this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+    }
+}
+
+void Column::ApplyMorph(float progress) {
+    if (DestroyOnMorph) {
+        if (!Hidden) {
+            this->Hidden = progress > 0.01f;
+
+            irr::f32 newColBaseVertex1Y;
+            irr::f32 newColBaseVertex2Y;
+            irr::f32 newColBaseVertex3Y;
+            irr::f32 newColBaseVertex4Y;
+
+            if (this->Hidden) {
+                //if this column is hidden move column vertices
+                //so far below the level that the are not visible anymore
+                //for the player, therefore the column is "hidden"
+                newColBaseVertex1Y = this->mBaseVert1CoordOriginal.Y - 100.0f;
+                newColBaseVertex2Y = this->mBaseVert2CoordOriginal.Y - 100.0f;
+                newColBaseVertex3Y = this->mBaseVert3CoordOriginal.Y - 100.0f;
+                newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y - 100.0f;
+
+                this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+            }
+        }
 
         return;
     }
@@ -184,22 +211,7 @@ void Column::ApplyMorph(float progress) {
 
      //interpolate new column morphing Y coordinates according to progress variable (0..1)
      //between this column, and the Source Morphing column
-     irr::f32 newColBaseVertex1Y = (this->mBaseVert1CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert1CoordOriginal.Y * progress;
-     irr::f32 newColBaseVertex2Y = (this->mBaseVert2CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert2CoordOriginal.Y * progress;
-     irr::f32 newColBaseVertex3Y = (this->mBaseVert3CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert3CoordOriginal.Y * progress;
-     irr::f32 newColBaseVertex4Y = (this->mBaseVert4CoordOriginal.Y) * (1.0f - progress) + MorphSource->mBaseVert4CoordOriginal.Y * progress;
-
-     //if this column is hidden move column vertices
-     //so far below the level that the are not visible anymore
-     //for the player, therefore the column is "hidden"
-     if (this->Hidden) {
-         newColBaseVertex1Y -= 100.0f;
-         newColBaseVertex2Y -= 100.0f;
-         newColBaseVertex3Y -= 100.0f;
-         newColBaseVertex4Y -= 100.0f;
-     }
-
-     this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+     MorphColumn(MorphSource, progress);
 }
 
 //allows to change the height of the 4 base block vertices of the column mesh, and all blocks above are
@@ -229,6 +241,24 @@ void Column::AdjustMeshBaseVerticeHeight(irr::f32 newV1y, irr::f32 newV2y, irr::
        newV4 = (*itBlock)->idxBlockFromBaseCnt * segmentSize + newV4y;
 
        this->mLevelBlocks->ChangeMeshCubeHeight((*itBlock), newV1, newV2, newV3, newV4);
+    }
+
+    //tell the block Mesh that it needs to be updated
+    mLevelBlocks->mMeshNeedsUpdate = true;
+}
+
+void Column::MorphColumn(Column* sourceColumn, irr::f32 progress) {
+    if (sourceColumn == nullptr)
+        return;
+
+    std::vector<BlockInfoStruct*>::iterator itBlock;
+
+    int idx = 0;
+
+    //loop through all existing blocks in this column
+    for (itBlock = mBlockInfoVec.begin(); itBlock != mBlockInfoVec.end(); ++itBlock) {
+       this->mLevelBlocks->MorphCube((*itBlock), sourceColumn->mBlockInfoVec.at(idx), progress);
+       idx++;
     }
 
     //tell the block Mesh that it needs to be updated

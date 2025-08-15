@@ -1813,7 +1813,9 @@ void LevelTerrain::UpdateCellMeshVertex1(int x, int y) {
          void* pntrVert = (*it2)->getVertices();
          pntrVertices = (S3DVertex*)pntrVert;
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][y].vert1CurrPositionY;
-         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].TCoords = this->pTerrainTiles[x][y].vert1UVcoord;
+         if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].TCoords = this->pTerrainTiles[x][y].vert1UVcoord;
+         }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Normal = this->pTerrainTiles[x][y].vert1CurrNormal;
 
          idxMeshBuf++;
@@ -1840,7 +1842,9 @@ void LevelTerrain::UpdateCellMeshVertex2(int x, int y) {
          pntrVertices = (S3DVertex*)pntrVert;
 
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Pos.Y = this->pTerrainTiles[x][y].vert2CurrPositionY;
-         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][y].vert2UVcoord;
+         if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][y].vert2UVcoord;
+         }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Normal = this->pTerrainTiles[x][y].vert2CurrNormal;
 
          idxMeshBuf++;
@@ -1867,7 +1871,9 @@ void LevelTerrain::UpdateCellMeshVertex3(int x, int y) {
          pntrVertices = (S3DVertex*)pntrVert;
 
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Pos.Y = this->pTerrainTiles[x][y].vert3CurrPositionY;
-         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][y].vert3UVcoord;
+         if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][y].vert3UVcoord;
+         }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Normal = this->pTerrainTiles[x][y].vert3CurrNormal;
 
          idxMeshBuf++;
@@ -1894,7 +1900,9 @@ void LevelTerrain::UpdateCellMeshVertex4(int x, int y) {
          pntrVertices = (S3DVertex*)pntrVert;
 
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Pos.Y = this->pTerrainTiles[x][y].vert4CurrPositionY;
-         pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][y].vert4UVcoord;
+         if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][y].vert4UVcoord;
+         }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Normal = this->pTerrainTiles[x][y].vert4CurrNormal;
 
          idxMeshBuf++;
@@ -1910,105 +1918,143 @@ void LevelTerrain::SetFog(bool enabled) {
       DynamicTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
 }
 
-void LevelTerrain::ApplyMorph(Morph morph)
+void LevelTerrain::ApplyMorph(Morph& morph)
       {
           if (morph.getProgress() == morph.LastProgress)
               return;
 
           bool dirtyPos;
 
-          //std::vector<irr::scene::SMeshBuffer*> dirtySMeshBuffers;
           irr::core::vector2di cellSrc = morph.Source->getCell();
           irr::core::vector2di cellTarget = morph.Target->getCell();
 
+          //the "-1" are necessary, because otherwise the morph
+          //happens slightly at the "wrong" location at the map
           int xSource = cellSrc.X - 1;
           int zSource = cellSrc.Y - 1;
           int xTarget = cellTarget.X - 1;
           int zTarget = cellTarget.Y - 1;
-          //List<MapEntry> refreshNormals = new List<MapEntry>();
 
-          // check if UVs need an update
+          // check if UVs or texture Ids need an update
           bool sourceEnabled = morph.getProgress() > 0.01f;
-          bool updateUVs = morph.UVSFromSource != sourceEnabled;
+          bool updateUVs = (morph.UVSFromSource != sourceEnabled);
           morph.UVSFromSource = sourceEnabled;
 
           std::vector<vector2d<irr::f32>> uvs;
-          bool updatedUVS;
+          bool updatedUVS = false;
 
           dirtyPos = false;
 
+          int xIdxSrc;
+          int zIdxSrc;
+
+          int xIdxTarget;
+          int zIdxTarget;
+
           // apply morph to positions and texture UVs
-          for (int dz = 0; dz < morph.Height + 1; dz++)
+          for (int dz = 0; dz <= morph.Height; dz++)
           {
-              for (int dx = 0; dx < morph.Width + 1; dx++)
+              for (int dx = 0; dx <= morph.Width; dx++)
               {
                   // source entries
-                  int x = xSource + dx;
-                  int z = zSource + dz;
+                  xIdxSrc = xSource + dx;
+                  zIdxSrc = zSource + dz;
 
-                  MapEntry* a = GetMapEntry(x, z);
-                  MapEntry* b = GetMapEntry(x + 1, z);
-                  MapEntry* c = GetMapEntry(x + 1, z + 1);
-                  MapEntry* d = GetMapEntry(x, z + 1);
+                  MapEntry* a = GetMapEntry(xIdxSrc, zIdxSrc);
+                  MapEntry* b = GetMapEntry(xIdxSrc + 1, zIdxSrc);
+                  MapEntry* c = GetMapEntry(xIdxSrc + 1, zIdxSrc + 1);
+                  MapEntry* d = GetMapEntry(xIdxSrc, zIdxSrc + 1);
 
                   //activate refreshNormals for entry a
-                  this->pTerrainTiles[x][z].RefreshNormals = true;
+                  this->pTerrainTiles[xIdxSrc][zIdxSrc].RefreshNormals = true;
 
                   // target entries
-                  x = xTarget + dx;
-                  z = zTarget + dz;
+                  xIdxTarget = xTarget + dx;
+                  zIdxTarget = zTarget + dz;
 
-                  MapEntry* e = GetMapEntry(x, z);
-                  MapEntry* f = GetMapEntry(x + 1, z);
-                  MapEntry* g = GetMapEntry(x + 1, z + 1);
-                  MapEntry* h = GetMapEntry(x, z + 1);
+                  MapEntry* e = GetMapEntry(xIdxTarget, zIdxTarget);
+                  MapEntry* f = GetMapEntry(xIdxTarget + 1, zIdxTarget);
+                  MapEntry* g = GetMapEntry(xIdxTarget + 1, zIdxTarget + 1);
+                  MapEntry* h = GetMapEntry(xIdxTarget, zIdxTarget + 1);
 
                   //activate refreshNormals for entry e
-                  this->pTerrainTiles[x][z].RefreshNormals = true;
+                  this->pTerrainTiles[xIdxTarget][zIdxTarget].RefreshNormals = true;
 
                   // set UVs either from source or from target
-                  if (updateUVs && dx > 0 && dz > 0)
+                  if (updateUVs && (dx > 0) && (dz > 0))
                   {
                       //create updated texture coordinates
-                       uvs = sourceEnabled && !morph.Permanent ?
-                          MakeUVs(a->m_TextureModification) :
-                          MakeUVs(e->m_TextureModification);
+                      if (a->m_TextureModification != e->m_TextureModification) {
+                               uvs = sourceEnabled && !morph.Permanent ?
+                                  MakeUVs(a->m_TextureModification) :
+                                  MakeUVs(e->m_TextureModification);
 
-                       updatedUVS = true;
+                               updatedUVS = true;
 
-                       //store precalculated results
-                       this->pTerrainTiles[x][z].vert1UVcoord = uvs[0];
-                       this->pTerrainTiles[x][z].vert2UVcoord = uvs[1];
-                       this->pTerrainTiles[x][z].vert3UVcoord = uvs[2];
-                       this->pTerrainTiles[x][z].vert4UVcoord = uvs[3];
+                               //store precalculated results
+                               this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1UVcoord = uvs[0];
+                               this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2UVcoord = uvs[1];
+                               this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3UVcoord = uvs[2];
+                               this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4UVcoord = uvs[3];
+                      }
 
-                       this->pTerrainTiles[x][z].VertUpdatedUVScoord = true;
+                       //we also need to update the texture Ids here; The target cell gets the
+                       //texture Ids from the source cell here!
+                       //only update the Mesh here!
+                       if (a->m_TextureId != e->m_TextureId) {
+                           (sourceEnabled && !morph.Permanent) ? this->SetCellTexture(xIdxTarget, zIdxTarget, a->m_TextureId, true, true) :
+                                           this->SetCellTexture(xIdxTarget, zIdxTarget, e->m_TextureId, true, true);
+
+                            updatedUVS = true;
+                       }
+
+                       /*if (a->mIllumination != e->mIllumination) {
+                          int16_t newIllVal;
+
+                          newIllVal = sourceEnabled && !morph.Permanent ?
+                             a->mIllumination :
+                             e->mIllumination;
+
+                          //store precalculated results
+                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1Color =
+                                  this->pTerrainTiles[xIdxSrc][zIdxSrc].vert1Color;
+
+                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2UVcoord = uvs[1];
+                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3UVcoord = uvs[2];
+                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4UVcoord = uvs[3];
+                       }*/
+
+                       this->pTerrainTiles[xIdxTarget][zIdxTarget].VertUpdatedUVScoord = true;
                   }
 
                   // calculate and set new Y values
                   if (dx > 0 && dz > 0) {
-                     this->pTerrainTiles[x][z].vert1CurrPositionY = -(e->m_Height * (1.0f - morph.getProgress()) + a->m_Height * morph.getProgress());
-                     this->pTerrainTiles[x][z].vert1CurrPositionYDirty = true;
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1CurrPositionY =
+                              -(e->m_Height * (1.0f - morph.getProgress()) + a->m_Height * morph.getProgress());
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1CurrPositionYDirty = true;
                   }
 
-                  if (dx < morph.Width && dz > 0) {
-                     this->pTerrainTiles[x][z].vert2CurrPositionY = -(f->m_Height * (1.0f - morph.getProgress()) + b->m_Height * morph.getProgress());
-                     this->pTerrainTiles[x][z].vert2CurrPositionYDirty = true;
+                  if ((dx < morph.Width) && (dz > 0)) {
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2CurrPositionY =
+                              -(f->m_Height * (1.0f - morph.getProgress()) + b->m_Height * morph.getProgress());
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2CurrPositionYDirty = true;
                    }
 
-                  if (dx < morph.Width && dz < morph.Height) {
-                     this->pTerrainTiles[x][z].vert3CurrPositionY = -(g->m_Height * (1.0f - morph.getProgress()) + c->m_Height * morph.getProgress());
-                     this->pTerrainTiles[x][z].vert3CurrPositionYDirty = true;
+                  if ((dx < morph.Width) && (dz < morph.Height)) {
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3CurrPositionY =
+                              -(g->m_Height * (1.0f - morph.getProgress()) + c->m_Height * morph.getProgress());
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3CurrPositionYDirty = true;
                   }
 
-                 if (dx > 0 && dz < morph.Height) {
-                     this->pTerrainTiles[x][z].vert4CurrPositionY =  -(h->m_Height * (1.0f - morph.getProgress()) + d->m_Height * morph.getProgress());
-                     this->pTerrainTiles[x][z].vert4CurrPositionYDirty = true;
+                 if ((dx > 0) && (dz < morph.Height)) {
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4CurrPositionY =
+                             -(h->m_Height * (1.0f - morph.getProgress()) + d->m_Height * morph.getProgress());
+                     this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4CurrPositionYDirty = true;
                  }
 
                  //recalculate averaged tile height, this value will be for example used later
                  //for player craft calculations...
-                 this->pTerrainTiles[x][z].currTileHeight = GetAveragedTileHeight(x, z);
+                 this->pTerrainTiles[xIdxTarget][zIdxTarget].currTileHeight = GetAveragedTileHeight(xIdxTarget, zIdxTarget);
               }
           }
 
@@ -2047,8 +2093,6 @@ void LevelTerrain::ApplyMorph(Morph morph)
           {
               for (int dx = 0; dx < morph.Width + 1; dx++)
               {
-                  updatedUVS= false;
-
                   // target entries
                   int x = xTarget + dx;
                   int z = zTarget + dz;
@@ -2081,18 +2125,31 @@ void LevelTerrain::ApplyMorph(Morph morph)
 
                       dirtyPos = true;
                   }
+
+                  //if we have updated the UV coordinates, reset
+                  //flag that we need to still update them
+                  if (this->pTerrainTiles[x][z].VertUpdatedUVScoord) {
+                      this->pTerrainTiles[x][z].VertUpdatedUVScoord = false;
+                  }
               }
           }
 
           if (dirtyPos) {
-                mNeedMeshUpdate = true;
+                mNeedMeshUpdate = LEVELTERRAIN_MESH_VERTEXUPDATENEEDED;
+          }
+
+          if (updatedUVS) {
+              mNeedMeshUpdate = LEVELTERRAIN_MESH_VERTEXANDINDEXUPDATENEEDED;
           }
 }
 
 void LevelTerrain::CheckForMeshUpdate() {
-    if (mNeedMeshUpdate) {
+    if (mNeedMeshUpdate == LEVELTERRAIN_MESH_VERTEXUPDATENEEDED) {
         myDynamicTerrainMesh->setDirty(EBT_VERTEX);
-        mNeedMeshUpdate = false;
+        mNeedMeshUpdate = LEVELTERRAIN_MESH_NOUPDATENEEDED;
+    } else if (mNeedMeshUpdate == LEVELTERRAIN_MESH_VERTEXANDINDEXUPDATENEEDED) {
+        myDynamicTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+        mNeedMeshUpdate = LEVELTERRAIN_MESH_NOUPDATENEEDED;
     }
 }
 
@@ -2599,7 +2656,7 @@ void LevelTerrain::SetNewCellVertexHeight(int x, int y, int whichVertex, irr::f3
    myDynamicTerrainMesh->setDirty(EBT_VERTEX);
 }
 
-void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh) {
+void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh, bool doNotSetMeshDirty) {
     //This higher level function has to do 2 independent things:
     // 1, modify the cell configuration in the level/map file itself (so that next time we
     //    load the map again, everything is restored again in the same modified way)
@@ -2640,8 +2697,10 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, bool
         //Add new mesh with new textureId
         mIrrMeshBuf->AddMeshBufferTile(mStaticMeshBufferVec, tTilePntr, newTextureId, *mTerrainMeshStats);
 
-        myStaticTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
-        myStaticTerrainMesh->recalculateBoundingBox();
+        if (!doNotSetMeshDirty) {
+            myStaticTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+            myStaticTerrainMesh->recalculateBoundingBox();
+        }
     } else {
         //Remove existing mesh for this tile
         mIrrMeshBuf->RemoveMeshBufferTile(mDynamicMeshBufferVec, tTilePntr, *mTerrainMeshStats);
@@ -2649,8 +2708,10 @@ void LevelTerrain::SetCellTexture(int posX, int posY, int16_t newTextureId, bool
         //Add new mesh with new textureId
         mIrrMeshBuf->AddMeshBufferTile(mDynamicMeshBufferVec, tTilePntr, newTextureId, *mTerrainMeshStats);
 
-        myDynamicTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
-        myDynamicTerrainMesh->recalculateBoundingBox();
+        if (!doNotSetMeshDirty) {
+            myDynamicTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+            myDynamicTerrainMesh->recalculateBoundingBox();
+        }
     }
 }
 

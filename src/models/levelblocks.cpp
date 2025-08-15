@@ -513,6 +513,51 @@ void LevelBlocks::ChangeMeshCubeFaceHeight(BlockFaceInfoStruct* whichFace, irr::
     }
 }
 
+void LevelBlocks::MorphCube(BlockInfoStruct* whichBlock, BlockInfoStruct* sourceBlock, irr::f32 progress) {
+    if ((whichBlock == nullptr) || (sourceBlock == nullptr))
+        return;
+
+    MorphMeshCubeFace(whichBlock->fB, sourceBlock->fB, progress);
+    MorphMeshCubeFace(whichBlock->fT, sourceBlock->fT, progress);
+    MorphMeshCubeFace(whichBlock->fN, sourceBlock->fN, progress);
+    MorphMeshCubeFace(whichBlock->fE, sourceBlock->fE, progress);
+    MorphMeshCubeFace(whichBlock->fS, sourceBlock->fS, progress);
+    MorphMeshCubeFace(whichBlock->fW, sourceBlock->fW, progress);
+}
+
+void LevelBlocks::MorphMeshCubeFace(BlockFaceInfoStruct* whichFace, BlockFaceInfoStruct* sourceFace, irr::f32 progress) {
+    if ((whichFace == nullptr) || (sourceFace == nullptr))
+        return;
+
+    whichFace->currPositionVert1.Y = irr::core::lerp(whichFace->originalPositionVert1.Y, sourceFace->originalPositionVert1.Y, progress);
+    whichFace->currPositionVert2.Y = irr::core::lerp(whichFace->originalPositionVert2.Y, sourceFace->originalPositionVert2.Y, progress);
+    whichFace->currPositionVert3.Y = irr::core::lerp(whichFace->originalPositionVert3.Y, sourceFace->originalPositionVert3.Y, progress);
+    whichFace->currPositionVert4.Y = irr::core::lerp(whichFace->originalPositionVert4.Y, sourceFace->originalPositionVert4.Y, progress);
+
+    std::vector<irr::scene::SMeshBuffer*>::iterator it;
+    irr::u32 idxMeshBuf;
+    S3DVertex *pntrVertices;
+    irr::u32 vertexIdx;
+
+    idxMeshBuf = 0;
+
+    for (it = whichFace->myMeshBuffers.begin(); it != whichFace->myMeshBuffers.end(); ++it) {
+        (*it)->grab();
+        void* pntrVert = (*it)->getVertices();
+        pntrVertices = (S3DVertex*)pntrVert;
+        vertexIdx = whichFace->myMeshBufVertexId[idxMeshBuf];
+
+        pntrVertices[vertexIdx].Pos.Y = whichFace->currPositionVert1.Y;
+        pntrVertices[vertexIdx + 1].Pos.Y = whichFace->currPositionVert2.Y;
+        pntrVertices[vertexIdx + 2].Pos.Y = whichFace->currPositionVert3.Y;
+        pntrVertices[vertexIdx + 3].Pos.Y = whichFace->currPositionVert4.Y;
+
+        idxMeshBuf++;
+
+        (*it)->drop();
+    }
+}
+
 void LevelBlocks::ChangeMeshCubeHeight(BlockInfoStruct* whichCube, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y) {
     if (whichCube == nullptr)
         return;
@@ -564,6 +609,16 @@ BlockInfoStruct* LevelBlocks::GetBlockInfoStruct(Column* selColumnPntr, int mSel
     BlockInfoStruct* blockInfo = selColumnPntr->mBlockInfoVec.at(idx);
 
     return blockInfo;
+}
+
+void LevelBlocks::ReverseDestroyAllColumns() {
+    //first unhide (reverse destroying) destroyed
+    //columns
+    std::vector<ColumnsByPositionStruct>::iterator itCol;
+
+    for (itCol = this->ColumnsByPosition.begin(); itCol != this->ColumnsByPosition.end(); ++itCol) {
+        (*itCol).pColumn->ResetDestroyedColumn();
+    }
 }
 
 bool LevelBlocks::GetCurrentCeilingHeightForTileCoord(vector2di cellCoord, irr::f32 &heightVal) {
