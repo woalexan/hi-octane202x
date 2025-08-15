@@ -244,7 +244,7 @@ void Column::AdjustMeshBaseVerticeHeight(irr::f32 newV1y, irr::f32 newV2y, irr::
     }
 
     //tell the block Mesh that it needs to be updated
-    mLevelBlocks->mMeshNeedsUpdate = true;
+    mLevelBlocks->mNeedMeshUpdate = LEVELBLOCKS_MESH_VERTEXUPDATENEEDED;
 }
 
 void Column::MorphColumn(Column* sourceColumn, irr::f32 progress) {
@@ -262,7 +262,7 @@ void Column::MorphColumn(Column* sourceColumn, irr::f32 progress) {
     }
 
     //tell the block Mesh that it needs to be updated
-    mLevelBlocks->mMeshNeedsUpdate = true;
+    mLevelBlocks->mNeedMeshUpdate = LEVELBLOCKS_MESH_VERTEXUPDATENEEDED;
 }
 
 irr::f32 Column::GetCurrentHeightTile(int x, int z) {
@@ -290,38 +290,37 @@ irr::f32 Column::GetOriginalHeightTile(int x, int z) {
     return p->m_Height;
 }
 
-void Column::SetIllumination(bool enabled) {
-    irr::video::SColor vertCol1(255, 255, 255, 255);
-    irr::video::SColor vertCol2(255, 255, 255, 255);
-    irr::video::SColor vertCol3(255, 255, 255, 255);
-    irr::video::SColor vertCol4(255, 255, 255, 255);
+void Column::UpdateIllumination() {
+    //get correct vertex colors
+    //depending on which cell this column is located
+    int xCoord = (int)(Position.X);
+    int yCoord = (int)(Position.Z);
 
-    if (enabled && !mIlluminationEnabled) {
-       //get correct vertex colors
-       //depending on which cell this column is located
-       int xCoord = (int)(Position.X);
-       int yCoord = (int)(Position.Z);
+    TerrainTileData* tile = &mTerrain->pTerrainTiles[xCoord][yCoord];
 
-       TerrainTileData* tile = &mTerrain->pTerrainTiles[xCoord][yCoord];
+    std::vector<BlockInfoStruct*>::iterator it;
 
-       vertCol1 = tile->vert1Color;
-       vertCol2 = tile->vert2Color;
-       vertCol3 = tile->vert3Color;
-       vertCol4 = tile->vert4Color;
+    //update vertices colors for all of my blocks
+    for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ++it) {
+        mLevelBlocks->BlockUpdateVerticeColors(*it, tile->vert1Color, tile->vert2Color, tile->vert3Color, tile->vert4Color);
+    }
+}
 
-       std::vector<BlockInfoStruct*>::iterator it;
-
-       //update vertices colors for all of my blocks
-       for (it = mBlockInfoVec.begin(); it != mBlockInfoVec.end(); ++it) {
-           mLevelBlocks->BlockUpdateVerticeColors(*it, vertCol1, vertCol2, vertCol3, vertCol4);
-       }
+void Column::SetIllumination(bool enable) {
+    if (enable && !mIlluminationEnabled) {
+       UpdateIllumination();
 
        mIlluminationEnabled = true;
 
        return;
     }
 
-    if (!enabled && mIlluminationEnabled) {
+    if (!enable && mIlluminationEnabled) {
+       irr::video::SColor vertCol1(255, 255, 255, 255);
+       irr::video::SColor vertCol2(255, 255, 255, 255);
+       irr::video::SColor vertCol3(255, 255, 255, 255);
+       irr::video::SColor vertCol4(255, 255, 255, 255);
+
        std::vector<BlockInfoStruct*>::iterator it;
 
        //set all my blocks vertice colors to full white

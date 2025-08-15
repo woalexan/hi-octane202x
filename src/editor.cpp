@@ -876,7 +876,7 @@ void Editor::EditorLoop() {
             }
 
             case DEF_EDITORSTATE_LOADDATA: {
-                if (!CreateNewEditorSession(4)) {
+                if (!CreateNewEditorSession(1)) {
                     mEditorState = DEF_EDITORSTATE_ERROR;
                 } else {
                     mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;

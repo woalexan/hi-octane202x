@@ -35,6 +35,10 @@ using namespace gui;
 #define DEF_SELBLOCK_FACETOP 5
 #define DEF_SELBLOCK_FACEBOTTOM 6
 
+#define LEVELBLOCKS_MESH_NOUPDATENEEDED 0
+#define LEVELBLOCKS_MESH_VERTEXUPDATENEEDED 1
+#define LEVELBLOCKS_MESH_VERTEXANDINDEXUPDATENEEDED 2
+
 /************************
  * Forward declarations *
  ************************/
@@ -165,7 +169,7 @@ public:
     void SetIllumination(bool enabled);
     bool IsIlluminationEnabled();
 
-    bool mMeshNeedsUpdate = false;
+    irr::u8 mNeedMeshUpdate = LEVELBLOCKS_MESH_NOUPDATENEEDED;
 
     void CheckForMeshUpdate();
 

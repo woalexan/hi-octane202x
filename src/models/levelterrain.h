@@ -91,6 +91,13 @@ struct TerrainTileData {
     video::SColor vert3Color;
     video::SColor vert4Color;
 
+    //my 4 initial vertice colors, is used for shadows/lightning in
+    //level, when we want to reverse morphing we need this values
+    video::SColor vert1ColorInitial;
+    video::SColor vert2ColorInitial;
+    video::SColor vert3ColorInitial;
+    video::SColor vert4ColorInitial;
+
     //stores the tile vertex1 index for all the Meshbuffers where this
     //vertex is part of, we do not need to keep also the index number
     //for 2nd, 3rd or 4th vertex, as this indices are simply
@@ -257,6 +264,7 @@ public:
     void SetNewCellVertexHeight(int x, int y, int whichVertex, irr::f32 newHeightValue);
 
     void CheckAndUpdateHeightExistingColumn(int x, int y, int whichVertex, irr::f32 newHeightValue);
+    void CheckAndUpdateVertexColorExistingColumn(int xTile, int yTile);
 
     void SetFog(bool enabled);
 
@@ -297,7 +305,7 @@ private:
     void UpdateCellMeshVertex3(int x, int y);
     void UpdateCellMeshVertex4(int x, int y);
 
-    void UpdateTileVerticeColors(int x, int y);
+    void UpdateTileVerticeColors(int x, int y, bool skipMeshUpdate = false);
 
     bool SetupGeometry();
     void FindTerrainOptimization();
