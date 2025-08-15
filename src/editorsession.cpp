@@ -137,12 +137,21 @@ void EditorSession::DeactivateMorphs() {
     //at map loading time
     absTimeMorph = 0.0f;
 
-    //apply morphs one last time
-    //to reset all Irrlicht Mesh to default state
     std::list<Morph*>::iterator itMorph;
 
+    //first reset all morphs progress back to zero
+    //is important so that ReverseDestroyAllColumns call below works
+    //correctly
     for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
             (*itMorph)->setProgress(0.0f);
+    }
+
+    //first unhide (reverse destroy) destroyed columns
+    mLevelBlocks->ReverseDestroyAllColumns();
+
+    //apply morphs one last time
+    //to reset all Irrlicht Mesh to default state
+    for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
             this->mLevelTerrain->ApplyMorph((**itMorph));
             (*itMorph)->MorphColumns();
     }
@@ -399,7 +408,7 @@ void EditorSession::createLevelEntities() {
 
     //create all level entities
     for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
-        createEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks, mParentEditor->mDriver);
+        CreateEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks);
     }
 }
 
@@ -410,8 +419,8 @@ irr::s32 EditorSession::GetNextFreeGuiId() {
     return newId;
 }
 
-void EditorSession::createEntity(EntityItem *p_entity,
-                        LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver) {
+void EditorSession::CreateEntity(EntityItem *p_entity,
+                        LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks) {
     //Line line;
     irr::f32 w, h;
     Collectable* collectable;

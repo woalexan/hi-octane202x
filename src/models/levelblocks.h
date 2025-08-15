@@ -117,6 +117,9 @@ public:
     void AddMeshColumn(Column* column);
     void AddBlock(Column* selColumnPntr, int nrBlockFromBase, BlockDefinition* whichBlockType);
 
+    void MorphCube(BlockInfoStruct* whichBlock, BlockInfoStruct* sourceBlock, irr::f32 progress);
+    void ReverseDestroyAllColumns();
+
     std::vector<vector2d<irr::f32>> ApplyTexMod(vector2d<irr::f32> uvA, vector2d<irr::f32> uvB, vector2d<irr::f32> uvC, vector2d<irr::f32> uvD, int mod);
     std::vector<vector2d<irr::f32>> MakeUVs(int texMod);
 
@@ -202,6 +205,8 @@ private:
     void DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color);
 
     void ChangeMeshCubeFaceHeight(BlockFaceInfoStruct* whichFace, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
+
+    void MorphMeshCubeFace(BlockFaceInfoStruct* whichFace, BlockFaceInfoStruct* sourceFace, irr::f32 progress);
 
     //returns nullptr if specified block does not exit or is invalid
     BlockInfoStruct* GetBlockInfoStruct(Column* selColumnPntr, int mSelBlockNrFromBase);

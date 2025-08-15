@@ -32,6 +32,10 @@ using namespace gui;
 #define LEVELTERRAIN_VIEW_DEFAULT 2
 #define LEVELTERRAIN_VIEW_DEBUGNORMALS 3
 
+#define LEVELTERRAIN_MESH_NOUPDATENEEDED 0
+#define LEVELTERRAIN_MESH_VERTEXUPDATENEEDED 1
+#define LEVELTERRAIN_MESH_VERTEXANDINDEXUPDATENEEDED 2
+
 typedef SColor colour_func(f32 x, f32 y, f32 z);
 
 #define CELL_OPTIMIZATION_THRESHOLD 0.0f  //Optimization Threshold in percent;
@@ -155,7 +159,7 @@ public:
 
     void ResetTerrainTileData();
 
-    void ApplyMorph(Morph morph);
+    void ApplyMorph(Morph& morph);
     vector3d<irr::f32> Size;
     bool Terrain_ready;
     TerrainTileData pTerrainTiles[LEVELFILE_WIDTH][LEVELFILE_HEIGHT];
@@ -244,7 +248,7 @@ public:
 
     //if onlyUpdateMesh optional parameter is true, the low level data in the map is not modified
     //only the Irrlicht cell mesh in this case
-    void SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh = false);
+    void SetCellTexture(int posX, int posY, int16_t newTextureId, bool onlyUpdateMesh, bool doNotSetMeshDirty = false);
     void SetCellTextureModification(int posX, int posY, int8_t newTextureModifier);
 
     //void DebugOutputFoundChargingTextures();
@@ -336,8 +340,7 @@ private:
     MeshObjectStatsStruct* mTerrainMeshStats;
 
     irr::u8 mCurrentViewMode;
-
-    bool mNeedMeshUpdate = false;
+    irr::u8 mNeedMeshUpdate = LEVELTERRAIN_MESH_NOUPDATENEEDED;
 };
 
 #endif // LEVELTERRAIN_H

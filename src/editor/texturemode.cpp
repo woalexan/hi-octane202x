@@ -811,7 +811,7 @@ void TextureMode::OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruc
            }
        } else {
            //there is no column, modify the cell information itself
-           mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId);
+           mParentSession->mLevelTerrain->SetCellTexture(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y, newTextureId, false);
        }
    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
        std::cout << "changed block TexID to " << newTextureId << std::endl;

@@ -105,6 +105,7 @@ public:
     Column* MorphSource = nullptr;
 
     void ApplyMorph(float progress);
+    void ResetDestroyedColumn();
 
     //allows to change the height of the 4 base block vertices of the column mesh, and all blocks above are
     //adjusted as well
@@ -165,6 +166,8 @@ private:
     //void AddNewColumnVertice(vector3d<irr::f32> position, vector2d<irr::f32> uv, vector3d<irr::f32> normal);
     irr::f32 GetCurrentHeightTile(int x, int z);
     irr::f32 GetOriginalHeightTile(int x, int z);
+
+    void MorphColumn(Column* sourceColumn, irr::f32 progress);
 
     LevelBlocks* mLevelBlocks = nullptr;
     LevelTerrain* mTerrain = nullptr;
