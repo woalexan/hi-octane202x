@@ -31,7 +31,7 @@ void ViewMode::CreateWindow() {
 
     //create the checkbox which allows to disable/enable running
     //Morphs
-    mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 30, dim.Width - 10, 50),
+    mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 30, dim.Width - 10, 50),
                                                                                          Window, GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX, L"Run Morphs");
 
     mGuiViewMode.FogCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 45, dim.Width - 10, 75),

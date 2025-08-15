@@ -473,10 +473,15 @@ void LevelTerrain::SetIllumination(bool enabled) {
 
       for (int i = 0; i < levelWidth; i++) {
           for (int j = 0; j < levelHeight; j++) {
-                UpdateTileVerticeColors(i, j);
+                //skip Mesh update here!
+                //only update Mesh once at the end
+                UpdateTileVerticeColors(i, j, true);
           }
       }
   }
+
+  //Update Mesh only once at the end
+  CheckForMeshUpdate();
 }
 
 bool LevelTerrain::IsIlluminationEnabled() {
@@ -1573,6 +1578,13 @@ void LevelTerrain::CalculateIllumination() {
         tile->vert2Color = CalcVertexColorForIllumination(illumnVertex2);
         tile->vert3Color = CalcVertexColorForIllumination(illumnVertex3);
         tile->vert4Color = CalcVertexColorForIllumination(illumnVertex4);
+
+        //also stored the initial values for later
+        //morphing
+        tile->vert1ColorInitial = tile->vert1Color;
+        tile->vert2ColorInitial = tile->vert2Color;
+        tile->vert3ColorInitial = tile->vert3Color;
+        tile->vert4ColorInitial = tile->vert4Color;
        }
     }
 
@@ -1815,6 +1827,7 @@ void LevelTerrain::UpdateCellMeshVertex1(int x, int y) {
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Pos.Y = this->pTerrainTiles[x][y].vert1CurrPositionY;
          if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
             pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].TCoords = this->pTerrainTiles[x][y].vert1UVcoord;
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Color = this->pTerrainTiles[x][y].vert1Color;
          }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf]].Normal = this->pTerrainTiles[x][y].vert1CurrNormal;
 
@@ -1844,6 +1857,7 @@ void LevelTerrain::UpdateCellMeshVertex2(int x, int y) {
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Pos.Y = this->pTerrainTiles[x][y].vert2CurrPositionY;
          if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
             pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].TCoords = this->pTerrainTiles[x][y].vert2UVcoord;
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Color = this->pTerrainTiles[x][y].vert2Color;
          }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 1].Normal = this->pTerrainTiles[x][y].vert2CurrNormal;
 
@@ -1873,6 +1887,7 @@ void LevelTerrain::UpdateCellMeshVertex3(int x, int y) {
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Pos.Y = this->pTerrainTiles[x][y].vert3CurrPositionY;
          if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
             pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].TCoords = this->pTerrainTiles[x][y].vert3UVcoord;
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Color = this->pTerrainTiles[x][y].vert3Color;
          }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 2].Normal = this->pTerrainTiles[x][y].vert3CurrNormal;
 
@@ -1902,6 +1917,7 @@ void LevelTerrain::UpdateCellMeshVertex4(int x, int y) {
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Pos.Y = this->pTerrainTiles[x][y].vert4CurrPositionY;
          if (this->pTerrainTiles[x][y].VertUpdatedUVScoord) {
             pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].TCoords = this->pTerrainTiles[x][y].vert4UVcoord;
+            pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Color = this->pTerrainTiles[x][y].vert4Color;
          }
          pntrVertices[this->pTerrainTiles[x][y].myMeshBufVertexId1[idxMeshBuf] + 3].Normal = this->pTerrainTiles[x][y].vert4CurrNormal;
 
@@ -1950,6 +1966,8 @@ void LevelTerrain::ApplyMorph(Morph& morph)
 
           int xIdxTarget;
           int zIdxTarget;
+
+          bool illumnFromSource;
 
           // apply morph to positions and texture UVs
           for (int dz = 0; dz <= morph.Height; dz++)
@@ -2008,23 +2026,48 @@ void LevelTerrain::ApplyMorph(Morph& morph)
                             updatedUVS = true;
                        }
 
-                       /*if (a->mIllumination != e->mIllumination) {
-                          int16_t newIllVal;
-
-                          newIllVal = sourceEnabled && !morph.Permanent ?
-                             a->mIllumination :
-                             e->mIllumination;
-
-                          //store precalculated results
-                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1Color =
-                                  this->pTerrainTiles[xIdxSrc][zIdxSrc].vert1Color;
-
-                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2UVcoord = uvs[1];
-                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3UVcoord = uvs[2];
-                          this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4UVcoord = uvs[3];
-                       }*/
-
                        this->pTerrainTiles[xIdxTarget][zIdxTarget].VertUpdatedUVScoord = true;
+
+                       //update illumination
+                       illumnFromSource = sourceEnabled && !morph.Permanent;
+
+                       if (!mIlluminationEnabled) {
+                           irr::video::SColor fullColor(255, 255, 255, 255);
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1Color = fullColor;
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2Color = fullColor;
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3Color = fullColor;
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4Color = fullColor;
+                       } else if (illumnFromSource) {
+                           //store precalculated results
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1Color =
+                                   this->pTerrainTiles[xIdxSrc][zIdxSrc].vert1ColorInitial;
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2Color =
+                                   this->pTerrainTiles[xIdxSrc][zIdxSrc].vert2ColorInitial;
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3Color =
+                                   this->pTerrainTiles[xIdxSrc][zIdxSrc].vert3ColorInitial;
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4Color =
+                                   this->pTerrainTiles[xIdxSrc][zIdxSrc].vert4ColorInitial;
+                       } else {
+                           //store precalculated results
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1Color =
+                                   this->pTerrainTiles[xIdxTarget][zIdxTarget].vert1ColorInitial;
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2Color =
+                                   this->pTerrainTiles[xIdxTarget][zIdxTarget].vert2ColorInitial;
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3Color =
+                                   this->pTerrainTiles[xIdxTarget][zIdxTarget].vert3ColorInitial;
+
+                           this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4Color =
+                                   this->pTerrainTiles[xIdxTarget][zIdxTarget].vert4ColorInitial;
+                       }
+
+                       //update illumination of possible existing column at this cell
+                       CheckAndUpdateVertexColorExistingColumn(xIdxTarget, zIdxTarget);
                   }
 
                   // calculate and set new Y values
@@ -2146,14 +2189,20 @@ void LevelTerrain::ApplyMorph(Morph& morph)
 void LevelTerrain::CheckForMeshUpdate() {
     if (mNeedMeshUpdate == LEVELTERRAIN_MESH_VERTEXUPDATENEEDED) {
         myDynamicTerrainMesh->setDirty(EBT_VERTEX);
+        if (mLevelEditorMode) {
+            myStaticTerrainMesh->setDirty(EBT_VERTEX);
+        }
         mNeedMeshUpdate = LEVELTERRAIN_MESH_NOUPDATENEEDED;
     } else if (mNeedMeshUpdate == LEVELTERRAIN_MESH_VERTEXANDINDEXUPDATENEEDED) {
         myDynamicTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+        if (mLevelEditorMode) {
+            myStaticTerrainMesh->setDirty(EBT_VERTEX_AND_INDEX);
+        }
         mNeedMeshUpdate = LEVELTERRAIN_MESH_NOUPDATENEEDED;
     }
 }
 
-void LevelTerrain::UpdateTileVerticeColors(int x, int y) {
+void LevelTerrain::UpdateTileVerticeColors(int x, int y, bool skipMeshUpdate) {
     std::vector<irr::scene::SMeshBuffer*>::iterator it2;
     S3DVertex *pntrVertices;
     irr::u32 idxMeshBuf;
@@ -2173,8 +2222,12 @@ void LevelTerrain::UpdateTileVerticeColors(int x, int y) {
          (*it2)->drop();
      }
 
-     myStaticTerrainMesh->setDirty(EBT_VERTEX);
-     myDynamicTerrainMesh->setDirty(EBT_VERTEX);
+    if (!skipMeshUpdate) {
+        myStaticTerrainMesh->setDirty(EBT_VERTEX);
+        myDynamicTerrainMesh->setDirty(EBT_VERTEX);
+    } else {
+        mNeedMeshUpdate = LEVELTERRAIN_MESH_VERTEXUPDATENEEDED;
+    }
 }
 
 irr::f32 LevelTerrain::GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord) {
@@ -2310,6 +2363,23 @@ void LevelTerrain::SetViewMode(irr::u8 newViewMode) {
            DynamicTerrainSceneNode->setMaterialFlag(EMF_WIREFRAME, false);
            break;
         }
+    }
+}
+
+void LevelTerrain::CheckAndUpdateVertexColorExistingColumn(int xTile, int yTile) {
+    //is there a column at cell coordinates x/y? if not return
+    if (!levelRes->IsAColumnAtCoordinates(xTile, yTile))
+        return;
+
+    //there is a column => get pointer to column
+
+    //there is a "position" key we can use for search
+    int posKey =  xTile + yTile * levelRes->Width();
+    Column* columnPntr;
+
+    if (mLevelBlocks->SearchColumnWithPosition(posKey, columnPntr)) {
+        //we found a column, modify its vertex colors
+        columnPntr->UpdateIllumination();
     }
 }
 

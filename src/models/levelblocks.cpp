@@ -243,11 +243,16 @@ bool LevelBlocks::SearchColumnWithPosition(int posKey, Column* &columnFnd) {
 }
 
 void LevelBlocks::CheckForMeshUpdate() {
-    if (mMeshNeedsUpdate) {
+    if (mNeedMeshUpdate == LEVELBLOCKS_MESH_VERTEXUPDATENEEDED) {
         blockMeshForCollision->setDirty(EBT_VERTEX);
         blockMeshWithoutCollision->setDirty(EBT_VERTEX);
 
-        mMeshNeedsUpdate = false;
+        mNeedMeshUpdate = LEVELBLOCKS_MESH_NOUPDATENEEDED;
+    } else if (mNeedMeshUpdate == LEVELBLOCKS_MESH_VERTEXANDINDEXUPDATENEEDED) {
+        blockMeshForCollision->setDirty(EBT_VERTEX_AND_INDEX);
+        blockMeshWithoutCollision->setDirty(EBT_VERTEX_AND_INDEX);
+
+        mNeedMeshUpdate = LEVELBLOCKS_MESH_NOUPDATENEEDED;
     }
 }
 
@@ -753,6 +758,8 @@ void LevelBlocks::BlockFaceUpdateVerticeColors(BlockFaceInfoStruct* facePntr, ir
 
          (*it2)->drop();
      }
+
+    mNeedMeshUpdate = LEVELBLOCKS_MESH_VERTEXUPDATENEEDED;
 }
 
 void LevelBlocks::BlockUpdateVerticeColors(BlockInfoStruct* pntrBlockInfoStruct, irr::video::SColor vertCol1, irr::video::SColor vertCol2,
@@ -796,8 +803,7 @@ void LevelBlocks::SetIllumination(bool enabled) {
         }
 
         //we need to update my Mesh
-        blockMeshForCollision->setDirty(EBT_VERTEX);
-        blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+        CheckForMeshUpdate();
 
         mIlluminationEnabled = true;
 
@@ -810,8 +816,7 @@ void LevelBlocks::SetIllumination(bool enabled) {
         }
 
         //we need to update my Mesh
-        blockMeshForCollision->setDirty(EBT_VERTEX);
-        blockMeshWithoutCollision->setDirty(EBT_VERTEX);
+        CheckForMeshUpdate();
 
         mIlluminationEnabled = false;
     }

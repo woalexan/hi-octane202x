@@ -146,7 +146,8 @@ public:
     //parameter outIndex;
     bool GetBlockInfoVecIndex(int nrBlockStartingFromBase, size_t& outIndex);
 
-    void SetIllumination(bool enabled);
+    void SetIllumination(bool enable);
+    void UpdateIllumination();
 
 private:
     bool SetupGeometry();
