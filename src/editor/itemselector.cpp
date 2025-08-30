@@ -16,6 +16,8 @@
 #include "../editor.h"
 #include "../draw/drawdebug.h"
 #include "../models/column.h"
+#include "../models/entitymanager.h"
+#include "../models/editorentity.h"
 
 ItemSelector::ItemSelector(EditorSession* parent) {
     mParent = parent;
@@ -71,6 +73,29 @@ void ItemSelector::UpdateTrianglesSelectors() {
     mRayColumns->AddRayTargetMesh(this->triangleSelectorColumnswCollision);
 }
 
+void ItemSelector::SetEnableSelection(irr::u8 whichTypeItem, bool enabledState) {
+    switch (whichTypeItem) {
+        case DEF_EDITOR_SELITEM_ENACELLS: {
+            mEnaSelectCells = enabledState;
+            break;
+        }
+
+        case DEF_EDITOR_SELITEM_ENABLOCKS: {
+            mEnaSelectBlocks = enabledState;
+            break;
+        }
+
+        case DEF_EDITOR_SELITEM_ENAENTITIES: {
+            mEnaSelectEntities = enabledState;
+            break;
+        }
+
+        default: {
+          break;
+        }
+    }
+}
+
 //the following function is for a special case, where the
 //user wants to select the cell below a column (to change the
 //column floor texture Id in the texturing tool)
@@ -92,6 +117,33 @@ void ItemSelector::SelectSpecifiedCellAtCoordinate(int x, int y) {
     mCurrSelectedItem.mCellCoordVerticeNrSelected = 0;
 
     return;
+}
+
+//the following function is for a special case, where the user
+//selected a cell below an already existing EntityItem in EntityMode,
+//and we want to actually force the selection of the EntityItem itself
+//Therefore the EntityMode tool can call this function to select
+//the Entity itself
+void ItemSelector::SelectEntityAtCellCoordinate(int x, int y) {
+    int width = mParent->mLevelRes->Width();
+    int height = mParent->mLevelRes->Height();
+
+    if ((x < 0) || (y < 0) || (x >= width) || (y >= height)) {
+        return;
+    }
+
+    //which EditorEntity object is at this cell?
+    EditorEntity* entityItem;
+
+    if (mParent->mEntityManager->IsEntityItemAtCellCoord(x, y, &entityItem)) {
+        if (entityItem != nullptr) {
+            mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_ENTITY;
+            mCurrSelectedItem.mEntitySelected = entityItem;
+
+            mCurrSelectedItem.mCellCoordSelected.X = entityItem->GetCellCoord().X;
+            mCurrSelectedItem.mCellCoordSelected.Y = entityItem->GetCellCoord().Y;
+        }
+    }
 }
 
 //derives more high level information about the highlighted terrain cell
@@ -253,6 +305,33 @@ void ItemSelector::DeriveHighlightedBlockInformation(RayHitTriangleInfoStruct* h
     }
 }
 
+//Returns true if an entity was selected
+//by the user, false otherwise
+bool ItemSelector::CheckForEntitySelection(irr::core::line3df rayLine, EditorEntity** selectedEntityItem) {
+    std::vector<EditorEntity*>::iterator itEntity;
+    irr::f32 distSquared;
+
+    for (itEntity = mParent->mEntityManager->mEntityVec.begin(); itEntity != mParent->mEntityManager->mEntityVec.end(); ++itEntity) {
+        //(*itEntity)->HideBoundingBox();
+
+         //coarse check, if we are very far away from the object with the camera, it can not be selected right now
+        distSquared = (mParent->mCamera->getPosition() - (*itEntity)->mPosition).getLengthSQ();
+
+        if (distSquared > 1000.0f)
+            continue;
+
+        //(*itEntity)->ShowBoundingBox();
+
+        if ((*itEntity)->mBoundingBox.intersectsWithLine(rayLine)) {
+            //(*itEntity)->ShowBoundingBox();
+            *selectedEntityItem = (*itEntity);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 //update the itemSelector, which means
 //we cast a ray from the current camera to the
 //mouse pointer position, and figure out which
@@ -268,6 +347,7 @@ void ItemSelector::Update() {
     mCurrHighlightedItem.SelectedItemType = DEF_EDITOR_SELITEM_NONE;
     mCurrHighlightedItem.mColumnSelected = nullptr;
     mCurrHighlightedItem.mColumnDefinitionSelected = nullptr;
+    mCurrHighlightedItem.mEntitySelected = nullptr;
 
     /***********************************************************************
      * First try mouse ray intersection with Terrain to find possible      *
@@ -298,6 +378,20 @@ void ItemSelector::Update() {
 
     //irr::core::vector3df endPoint = ray.start + ray.getVector().normalize() * 100.0f;
     //irr::core::vector3df endPoint = ray.start + dirVec * 100.0f;
+    if (mEnaSelectEntities) {
+            if (CheckForEntitySelection(mRayLine, &mCurrHighlightedItem.mEntitySelected)) {
+                //an editor entityitem is currently selected
+                mCurrHighlightedItem.SelectedItemType = DEF_EDITOR_SELITEM_ENTITY;
+
+                //also return cell coordinate where this EntityItem is located at
+                mCurrHighlightedItem.mCellCoordSelected.X = mCurrHighlightedItem.mEntitySelected->GetCellCoord().X;
+                mCurrHighlightedItem.mCellCoordSelected.Y = mCurrHighlightedItem.mEntitySelected->GetCellCoord().Y;
+
+                //we can exit here
+                //selection of entities has priority
+                return;
+            }
+    }
 
     //built a ray cast 3d line to find out at which 3D object the users mouse
     //is pointing at
@@ -428,7 +522,7 @@ void ItemSelector::Update() {
     //if we have found both an intersection of a block/cube and a terrain tile, take whatever is closest to the player
     if ((foundCubeIntersection) && (nearestTriangleHitTerrain != nullptr)) {
         if (minDistanceTerrain < minDistanceColumns) {
-            //do not case about the cubes, terrain is closer
+            //do not care about the cubes, terrain is closer
             foundCubeIntersection = false;
         } else {
             //cube is closer, take cube
@@ -442,14 +536,14 @@ void ItemSelector::Update() {
     //wins and is selected
     RayHitTriangleInfoStruct* triangleHit = nullptr;
 
-    if (foundCubeIntersection) {
+    if (foundCubeIntersection && mEnaSelectBlocks) {
          triangleHit = nearestTriangleHitColumns;
          //secondTriangleHitByMouse = true;
          //secondTriangleMouseHit = *secondNearestTriangleHitColumns;
         DeriveHighlightedBlockInformation(nearestTriangleHitColumns, secondNearestTriangleHitColumns);
     }
 
-    if (nearestTriangleHitTerrain != nullptr) {
+    if ((nearestTriangleHitTerrain != nullptr) && mEnaSelectCells) {
         triangleHit = nearestTriangleHitTerrain;
         DeriveHighlightedTerrainCellInformation(nearestTriangleHitTerrain);
     }

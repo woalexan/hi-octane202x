@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did first a translation to C++, then modified it)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did first a translation to C++, then modified it)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -76,6 +76,59 @@ EntityItem::EntityItem(int id, int offset, std::vector<uint8_t> bytes) {
    mUnknown1 = ConvertByteArray_ToInt16(bytes, 6);
    mUnknown2 = ConvertByteArray_ToInt16(bytes, 8);
    mUnknown3 = ConvertByteArray_ToInt16(bytes, 10);
+}
+
+//special constructor that is only used in LevelEditor for creation of new
+//EntityItems via the EntityManager
+EntityItem::EntityItem(int x, int y, irr::f32 heightTerrain, int id, int offset, Entity::EntityType ofType) {
+   this->m_ID = id;
+   this->m_Offset = offset;
+   this->mEntityType = ofType;
+
+   //first get levelfile type
+   //and subtype back
+   int8_t type;
+   int8_t subtype;
+
+   revIdentify(mEntityType, type, subtype);
+   mRawType = type;
+   mRawSubType = subtype;
+
+   irr::core::vector3df newCenter;
+
+   newCenter.X = - x * DEF_SEGMENTSIZE - 0.5f * DEF_SEGMENTSIZE;
+   newCenter.Y = heightTerrain;
+   newCenter.Z = y * DEF_SEGMENTSIZE + 0.5f * DEF_SEGMENTSIZE;
+
+   setCenter(newCenter);
+
+   this->setNextID(0);
+
+   //default set Group to 1 so that the item
+   //is immediately visible after level start
+   this->setGroup(1);
+
+   this->setValue(0);
+   this->setOffsetX(0.0f);
+   this->setOffsetY(0.0f);
+
+   //set all unknown values 0 right now
+   mUnknown1 = 0;
+   mUnknown2 = 0;
+   mUnknown3 = 0;
+
+   //each EntityItem is 24 bytes long
+   //create empty data vector with 24 zero bytes
+   this->m_wBytes.resize(24);
+   this->m_Bytes.resize(24);
+
+   std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_wBytes.size(), 0);
+
+   //fill out m_wBytes data
+   WriteChanges();
+
+   //copy m_wBytes data into m_Bytes data vector
+   std::copy(this->m_wBytes.begin(), this->m_wBytes.end(), this->m_Bytes.begin());
 }
 
 EntityItem::~EntityItem() {
@@ -245,6 +298,30 @@ Entity::EntityType EntityItem::getEntityType() {
 
 void EntityItem::setEntityType(Entity::EntityType newEntityType) {
     this->mEntityType = newEntityType;
+}
+
+//Only used for writing debugging table file
+//do not use otherwise in higher level code!
+int8_t EntityItem::getRawType() {
+    return mRawType;
+}
+
+//Only used for writing debugging table file
+//do not use otherwise in higher level code!
+int8_t EntityItem::getRawSubType() {
+    return mRawSubType;
+}
+
+int16_t EntityItem::getUnknown1() {
+    return mUnknown1;
+}
+
+int16_t EntityItem::getUnknown2() {
+    return mUnknown2;
+}
+
+int16_t EntityItem::getUnknown3() {
+    return mUnknown3;
 }
 
 Entity::EntityType EntityItem::identify() {

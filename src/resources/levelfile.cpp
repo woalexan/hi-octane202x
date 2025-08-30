@@ -292,8 +292,6 @@ bool LevelFile::loadEntitiesTable() {
 
     this->Entities.clear();
 
-     //Entities = new OrderedDictionary<int, EntityItem>();
-
     for (int i = 0; i < 4000; i++) {
         int baseOffset = i * 24;
         if (this->m_bytes.at(baseOffset) == 0) continue;
@@ -1850,6 +1848,57 @@ void LevelFile::DebugWriteCellInfoToCsvFile(char* debugOutPutFileName) {
    fclose(debugOutputFile);
 }
 
+//Returns true if new entity was successfully created, false otherwise
+//if succesfull, returns the new index of the new entity in output parameter outIndex
+bool LevelFile::AddEntityAtCell(int x, int y, irr::f32 heightTerrain, Entity::EntityType ofType, irr::u32 &outIndex) {
+    int i;
+    int baseOffset;
+
+    //first find next free entity item location
+    //in current level file, if nothing free return with no success
+
+    //it seems we should skip i = 0 here, in the original level the first
+    //index i = 0 is still filled with zero bytes; better do the same
+    for (i = 1; i < 4000; i++) {
+        baseOffset = i * 24;
+        if (this->m_bytes.at(baseOffset) == 0) {
+            //we found a free space
+            break;
+        }
+    }
+
+    //no free space anymore?
+    if (i == 4000) {
+        return false;
+    }
+
+    //create the new Entity Item, use the alternative constructor
+    //for the leveleditor for this
+    //create the new low level entity Item
+    EntityItem* newItem = new EntityItem(x, y, heightTerrain, i, baseOffset, ofType);
+
+    std::string infoMsg("");
+    char hlpstr[100];
+
+    infoMsg.clear();
+    infoMsg.append("Add new EntityItem with Id = ");
+
+    //add id
+    sprintf(hlpstr, "%d", newItem->get_ID());
+    infoMsg.append(hlpstr);
+    logging::Info(infoMsg);
+
+    //add the new EntityItem to the end of the
+    //vector with all current EntityItems
+    this->Entities.push_back(newItem);
+
+    //return the index for the
+    //new EntityItem
+    outIndex = Entities.size() - 1;
+
+    return true;
+}
+
 /**************************************
  * Save Map Stuff                     *
  **************************************/
@@ -1963,5 +2012,3 @@ bool LevelFile::saveUnknownTables() {
 
     return true;
 }
-
-

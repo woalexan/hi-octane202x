@@ -129,3 +129,13 @@ void DrawDebug::DrawWorldCoordinateSystemArrows(void) {
     Draw3DArrow(*origin, *YAxis, green);
     Draw3DArrow(*origin, *ZAxis, blue);
 }
+
+void DrawDebug::DrawAround3DBoundingBox(irr::core::aabbox3df* boundingBox, irr::video::SMaterial* color) {
+    if (boundingBox == nullptr)
+        return;
+
+    myDriver->setMaterial(*color);
+    myDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
+
+    myDriver->draw3DBox(*boundingBox);
+}

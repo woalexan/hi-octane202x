@@ -24,6 +24,7 @@ public:
     void Draw3DTriangleOutline(const irr::core::triangle3df *triangle, irr::video::SMaterial* color);
     void Draw3DRectangle(irr::core::vector3df v1, irr::core::vector3df v2, irr::core::vector3df v3, irr::core::vector3df v4,
                          irr::video::SMaterial* color);
+    void DrawAround3DBoundingBox(irr::core::aabbox3df* boundingBox, irr::video::SMaterial* color);
 
     //colors for drawing debug arrows, lines etc
     irr::video::SMaterial *red = nullptr;

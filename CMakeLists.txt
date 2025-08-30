@@ -262,8 +262,6 @@ add_executable(hi-editor
     src/draw/gametext.h
     src/draw/gametext.cpp
 
-    src/models/collectable.h
-    src/models/collectable.cpp
     src/models/column.h
     src/models/column.cpp
     src/models/irrmeshbuf.h
@@ -274,6 +272,10 @@ add_executable(hi-editor
     src/models/levelterrain.cpp
     src/models/morph.h
     src/models/morph.cpp
+    src/models/editorentity.h
+    src/models/editorentity.cpp
+    src/models/entitymanager.h
+    src/models/entitymanager.cpp
 
     src/utils/tprofile.h
     src/utils/tprofile.cpp
@@ -332,6 +334,8 @@ add_executable(hi-editor
     src/editor/columndesign.cpp
     src/editor/terraforming.h
     src/editor/terraforming.cpp
+    src/editor/entitymode.h
+    src/editor/entitymode.cpp
 
     src/definitions.h
     src/infrabase.h

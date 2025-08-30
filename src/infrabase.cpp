@@ -642,6 +642,26 @@ void InfrastructureBase::CopyTexture(irr::video::ITexture* source, irr::video::I
     source->unlock();
 }
 
+void InfrastructureBase::FillTexture(irr::video::ITexture* target, unsigned char fillvalue) {
+    if (target == nullptr)
+        return;
+
+    //how many bytes to write
+    irr::u32 writeBytes = target->getSize().Width * target->getSize().Height * ReturnBytesPerPixel(target->getColorFormat());
+
+    //if no pixels to fill (bytes to write), or undefined/unknown color format => exit, so that we do no harm
+    if (writeBytes == 0)
+        return;
+
+    //we can simply fill the memory, lock the textures
+    void* targetPntr = target->lock(E_TEXTURE_LOCK_MODE::ETLM_WRITE_ONLY);
+
+    memset(targetPntr, fillvalue, writeBytes);
+
+    //unlock the textures again
+    target->unlock();
+}
+
 void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
 
     mScreenRes = resolution;
