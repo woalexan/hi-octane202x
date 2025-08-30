@@ -21,16 +21,24 @@ public:
     int NumLevelTextures;
     int NumSpriteTextures;
 
+    int NumEditorTextures;
+
     std::vector<irr::video::ITexture*> levelTex;
     std::vector<irr::video::ITexture*> spriteTex;
-    TextureLoader(irr::video::IVideoDriver* myDriver,  char* levelTexFilePath, char* spriteTexFilePath);
+    std::vector<irr::video::ITexture*> editorTex;
+    TextureLoader(irr::video::IVideoDriver* myDriver,  char* levelTexFilePath, char* spriteTexFilePath, bool loadLevelEditorSprites = false);
     ~TextureLoader();
 
     void LoadLevelTextures(char* filePath);
-    void LoadSpriteTextures(char* filePath);
+    void LoadSpriteTextures(char* filePath, bool makeTransparent = false);
+    void LoadEditorTextures();
+
+    bool mLoadSuccess = true;
 
 private:
     irr::video::IVideoDriver *m_driver = nullptr;
+
+    void LoadEditorTexture(const char* fileName, bool makeTransparent = false);
 };
 
 #endif // TEXTURE_H

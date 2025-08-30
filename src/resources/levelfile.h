@@ -20,6 +20,7 @@
 #include <list>
 #include <string>
 #include <cstdint>
+#include "entityitem.h"
 
 #define LEVELFILE_WIDTH 256
 #define LEVELFILE_HEIGHT 160
@@ -177,6 +178,10 @@ public:
     //Important note: in case of an invalid entry/coordinate this function
     //will also return false
     bool IsAColumnAtCoordinates(int x, int y);
+
+    //Returns true if new entity was successfully created, false otherwise
+    //if succesfull, returns the new index of the new entity in output parameter outIndex
+    bool AddEntityAtCell(int x, int y, irr::f32 heightTerrain, Entity::EntityType ofType, irr::u32 &outIndex);
 
 private:
     void DetectAdditionalRegionsTextureId();

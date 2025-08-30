@@ -25,6 +25,7 @@
 #include "editor/texturemode.h"
 #include "editor/columndesign.h"
 #include "editor/terraforming.h"
+#include "editor/entitymode.h"
 
 //fully initializes the remaining editor
 //components
@@ -142,6 +143,7 @@ void Editor::CreateMenue() {
     submenu->addItem(L"Terraforming", GUI_ID_MODE_TERRAFORMING, true, false);
     submenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
     submenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
+    submenu->addItem(L"Entity", GUI_ID_MODE_ENTITYMODE, true, false);
 
     /*************************************
      * Submenue View                     *
@@ -241,6 +243,13 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
            break;
         }
 
+        case GUI_ID_MODE_ENTITYMODE: {
+           if (mCurrentSession != nullptr) {
+               mCurrentSession->SetMode((EditorMode*)mCurrentSession->mEntityMode);
+           }
+           break;
+        }
+
         case GUI_ID_VIEW_TERRAIN_OFF:  {
            ChangeViewModeTerrain(LEVELTERRAIN_VIEW_OFF);
            break;
@@ -317,6 +326,10 @@ void Editor::OnButtonClicked(irr::s32 buttonId) {
         mCurrentSession->mViewMode->OnButtonClicked(buttonId);
     }
 
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINENTITYMODEDIALOG) {
+        mCurrentSession->mEntityMode->OnButtonClicked(buttonId);
+    }
+
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
         mCurrentSession->mColumnDesigner->OnButtonClicked(buttonId);
     }
@@ -339,6 +352,10 @@ void Editor::OnCheckBoxChanged(irr::s32 checkBoxId) {
 
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINVIEWMODEDIALOG) {
         mCurrentSession->mViewMode->OnCheckBoxChanged(checkBoxId);
+    }
+
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINENTITYMODEDIALOG) {
+        mCurrentSession->mEntityMode->OnCheckBoxChanged(checkBoxId);
     }
 
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG) {
@@ -414,6 +431,10 @@ void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
 
   if (comboBox->getID() == GUI_ID_COLUMNDEFSELECTIONCOMBOBOX) {
       mCurrentSession->mColumnDesigner->OnColumnDefinitionComboBoxChanged(val);
+  }
+
+  if (comboBox->getID() == GUI_ID_ENTITYCATEGORYCOMBOBOX) {
+      mCurrentSession->mEntityMode->EntityCategoryChanged(val);
   }
 }
 

@@ -19,6 +19,11 @@
 #define DEF_EDITOR_SELITEM_NONE 0
 #define DEF_EDITOR_SELITEM_CELL 1
 #define DEF_EDITOR_SELITEM_BLOCK 2
+#define DEF_EDITOR_SELITEM_ENTITY 3
+
+#define DEF_EDITOR_SELITEM_ENACELLS 1
+#define DEF_EDITOR_SELITEM_ENABLOCKS 2
+#define DEF_EDITOR_SELITEM_ENAENTITIES 3
 
 /************************
  * Forward declarations *
@@ -27,6 +32,7 @@
 class ColumnDefinition;
 class Column;
 class EditorSession;
+class EditorEntity;
 
 struct CurrentlySelectedEditorItemInfoStruct {
     irr::u8 SelectedItemType;
@@ -52,6 +58,10 @@ struct CurrentlySelectedEditorItemInfoStruct {
     int mSelBlockNrStartingFromBase;
 
     irr::u8 mSelBlockFaceDirection;
+
+    //holds the entity item for the level editor
+    //in case one is currently selected
+    EditorEntity* mEntitySelected = nullptr;
 };
 
 class ItemSelector {
@@ -73,6 +83,12 @@ private:
 
     //ray class to find intersection with Columns
     Ray* mRayColumns = nullptr;
+
+    //which type of items do we want to select
+    //currently
+    bool mEnaSelectCells = false;
+    bool mEnaSelectBlocks = false;
+    bool mEnaSelectEntities = false;
 
     //creates final TriangleSelectors to be able to do ray
     //intersection from user mouse pointer to level environment
@@ -97,6 +113,10 @@ private:
     RayHitTriangleInfoStruct mDbgBlock2ndClosestTriangleHitData;
 
     irr::core::vector3df GetTriangleMidPoint(RayHitTriangleInfoStruct* triangleInfo);
+
+    //Returns true if an entity was selected
+    //by the user, false otherwise
+    bool CheckForEntitySelection(irr::core::line3df rayLine, EditorEntity** selectedEntityItem);
 
 public:
     ItemSelector(EditorSession* parent);
@@ -133,6 +153,10 @@ public:
 
     void Draw();
 
+    //whichTypeItem = DEF_EDITOR_SELITEM_ENACELLS, DEF_EDITOR_SELITEM_ENABLOCKS, or
+    //DEF_EDITOR_SELITEM_ENAENTITIES
+    void SetEnableSelection(irr::u8 whichTypeItem, bool enabledState);
+
     //the following function is for a special case, where the
     //user wants to select the cell below a column (to change the
     //column floor texture Id in the texturing tool)
@@ -140,6 +164,13 @@ public:
     //standing on the cell. Therefore the texturing tool is able to call
     //the function below, to externally force a selection of the cell
     void SelectSpecifiedCellAtCoordinate(int x, int y);
+
+    //the following function is for a special case, where the user
+    //selected a cell below an already existing EntityItem in EntityMode,
+    //and we want to actually force the selection of the EntityItem itself
+    //Therefore the EntityMode tool can call this function to select
+    //the Entity itself
+    void SelectEntityAtCellCoordinate(int x, int y);
 };
 
 #endif // ITEMSELECTOR_H

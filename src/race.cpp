@@ -3661,6 +3661,12 @@ bool Race::LoadLevel(int loadLevelNr) {
    /***********************************************************/
    mTexLoader = new TextureLoader(mGame->mDriver, texfilename, spritefilename);
 
+   //was loading textures succesfull? if not interrupt
+   if (!this->mTexLoader->mLoadSuccess) {
+       logging::Error("Race::LoadTextures failed, exiting");
+       return false;
+   }
+
    //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
 

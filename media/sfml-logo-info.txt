@@ -1,0 +1,6 @@
+SFML logo and text below copied from:
+https://www.sfml-dev.org/download/goodies/
+
+SFML Logo
+
+The official SFML logo is in the public domain, you can do whatever you want with it.

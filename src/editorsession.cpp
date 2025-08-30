@@ -28,6 +28,8 @@
 #include "resources/blockdefinition.h"
 #include "editor/itemselector.h"
 #include "editor/terraforming.h"
+#include "editor/entitymode.h"
+#include "models/entitymanager.h"
 
 EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mParentEditor = parentEditor;
@@ -39,21 +41,7 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mColumnDesigner = new ColumnDesigner(this);
     mViewMode = new ViewMode(this);
     mTerraforming = new TerraformingMode(this);
-
-//    //create empty checkpoint info vector
-//    checkPointVec = new std::vector<CheckPointInfoStruct*>;
-//    checkPointVec->clear();
-
-      //create an empty waypoint link info vector
-//    wayPointLinkVec = new std::vector<WayPointLinkInfoStruct*>;
-//    wayPointLinkVec->clear();
-
-//    steamFountainVec = new std::vector<SteamFountain*>;
-//    steamFountainVec->clear();
-
-//    //my vector of recovery vehicles
-//    recoveryVec = new std::vector<Recovery*>;
-//    recoveryVec->clear();
+    mEntityMode = new EntityMode(this);
 
 //    //my vector of extended region data
 //    mExtRegionVec = new std::vector<ExtendedRegionInfoStruct*>;
@@ -71,17 +59,11 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
 //    mPlayerWaitForRecoveryVec = new std::vector<Player*>;
 //    mPlayerWaitForRecoveryVec->clear();
 
-//    //my vector of cones on the race track
-//    coneVec = new std::vector<Cone*>;
-//    coneVec->clear();
-
 //    mPlayerVec.clear();
 //    mPlayerPhysicObjVec.clear();
 //    playerRaceFinishedVec.clear();
 //    mTriggerRegionVec.clear();
 //    mPendingTriggerTargetGroups.clear();
-//    mTimerVec.clear();
-//    mExplosionEntityVec.clear();
 //    mType2CollectableForCleanupLater.clear();
 
 //    //for the start of the race we want to trigger
@@ -93,7 +75,7 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
 void EditorSession::UpdateMorphs(irr::f32 frameDeltaTime) {
     std::list<Morph*>::iterator itMorph;
 
-    for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+    for (itMorph = mEntityManager->Morphs.begin(); itMorph != mEntityManager->Morphs.end(); ++itMorph) {
         (*itMorph)->Update(frameDeltaTime);
     }
 }
@@ -109,7 +91,7 @@ void EditorSession::AdvanceTime(irr::f32 frameDeltaTime) {
 
         std::list<Morph*>::iterator itMorph;
 
-        for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+        for (itMorph = mEntityManager->Morphs.begin(); itMorph != mEntityManager->Morphs.end(); ++itMorph) {
                 (*itMorph)->setProgress(progressMorph);
                 this->mLevelTerrain->ApplyMorph((**itMorph));
                 (*itMorph)->MorphColumns();
@@ -142,7 +124,7 @@ void EditorSession::DeactivateMorphs() {
     //first reset all morphs progress back to zero
     //is important so that ReverseDestroyAllColumns call below works
     //correctly
-    for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+    for (itMorph = mEntityManager->Morphs.begin(); itMorph != mEntityManager->Morphs.end(); ++itMorph) {
             (*itMorph)->setProgress(0.0f);
     }
 
@@ -151,7 +133,7 @@ void EditorSession::DeactivateMorphs() {
 
     //apply morphs one last time
     //to reset all Irrlicht Mesh to default state
-    for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+    for (itMorph = mEntityManager->Morphs.begin(); itMorph != mEntityManager->Morphs.end(); ++itMorph) {
             this->mLevelTerrain->ApplyMorph((**itMorph));
             (*itMorph)->MorphColumns();
     }
@@ -198,9 +180,11 @@ EditorSession::~EditorSession() {
         mTerraforming = nullptr;
     }
 
-    CleanUpMorphs();
-
-    CleanUpEntities();
+    if (mEntityMode != nullptr)
+    {
+        delete mEntityMode;
+        mEntityMode = nullptr;
+    }
 }
 
 void EditorSession::Init() {
@@ -304,7 +288,14 @@ bool EditorSession::LoadLevel() {
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
-   mTexLoader = new TextureLoader(mParentEditor->mDriver, texfilename, spritefilename);
+   //Note: We need to additional load the level editor textures!
+   mTexLoader = new TextureLoader(mParentEditor->mDriver, texfilename, spritefilename, true);
+
+   //was loading textures succesfull? if not interrupt
+   if (!this->mTexLoader->mLoadSuccess) {
+       logging::Error("EditorSession::LoadTextures failed, exiting");
+       return false;
+   }
 
    //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
@@ -340,11 +331,13 @@ bool EditorSession::LoadLevel() {
    //unfortunetly! do not forget it!
    mLevelTerrain->SetLevelBlocks(mLevelBlocks);
 
+   mEntityManager = new EntityManager(this->mParentEditor, mLevelRes, mLevelTerrain, mLevelBlocks, mTexLoader);
+
    //create all level entities
    //this are not only items to pickup by the player
    //but also waypoints, collision information, checkpoints
    //level morph information and so on...
-   createLevelEntities();
+   mEntityManager->CreateLevelEntities();
 
    //The second part of the terrain initialization can only be done
    //after the map entities are loaded in another part of the code
@@ -389,479 +382,11 @@ bool EditorSession::IsIlluminationEnabled() {
     return (mLevelTerrain->IsIlluminationEnabled() && mLevelBlocks->IsIlluminationEnabled());
 }
 
-void EditorSession::createLevelEntities() {
-
-    ENTWaypoints_List = new std::vector<EntityItem*>;
-    ENTWaypoints_List->clear();
-
-    ENTWallsegments_List = new std::list<EntityItem*>;
-    ENTWallsegments_List->clear();
-
-    ENTWallsegmentsLine_List = new std::vector<LineStruct*>;
-    ENTWallsegmentsLine_List->clear();
-
-    ENTTriggers_List = new std::list<EntityItem*>;
-    ENTTriggers_List->clear();
-
-    ENTCollectablesVec = new std::vector<Collectable*>;
-    ENTCollectablesVec->clear();
-
-    //create all level entities
-    for(std::vector<EntityItem*>::iterator loopi = this->mLevelRes->Entities.begin(); loopi != this->mLevelRes->Entities.end(); ++loopi) {
-        CreateEntity(*loopi, this->mLevelRes, this->mLevelTerrain, this->mLevelBlocks);
-    }
-}
-
 irr::s32 EditorSession::GetNextFreeGuiId() {
     irr::s32 newId = mNextFreeGuiId;
     mNextFreeGuiId++;
 
     return newId;
-}
-
-void EditorSession::CreateEntity(EntityItem *p_entity,
-                        LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks) {
-    //Line line;
-    irr::f32 w, h;
-    Collectable* collectable;
-    //Box box;
-
-    //make local variable which points on pointer
-    EntityItem entity = *p_entity;
-    EntityItem *next = nullptr;
-
-//    if (!GroupedEntities.ContainsKey(entity.Group)) GroupedEntities.Add(entity.Group, new List<EntityItem>());
-//    GroupedEntities[entity.Group].Add(entity);
-
-    float boxSize = 0;
-    collectable = nullptr;
-
-    int next_ID = entity.getNextID();
-    bool exists;
-
-    if (next_ID != 0) {
-        //see if a entity with this ID exists
-        exists = levelRes->ReturnEntityItemWithId(next_ID, &next);
-    }
-
-    Entity::EntityType type = entity.getEntityType();
-
-    switch (type) {
-        case Entity::EntityType::WaypointAmmo:
-        case Entity::EntityType::WaypointFuel:
-        case Entity::EntityType::WaypointShield:
-        case Entity::EntityType::WaypointShortcut:
-        case Entity::EntityType::WaypointSpecial1:
-        case Entity::EntityType::WaypointSpecial2:
-        case Entity::EntityType::WaypointSpecial3:
-        case Entity::EntityType::WaypointFast:
-        case Entity::EntityType::WaypointSlow: {
-            //add a level waypoint
-            //TODO:
-            //AddWayPoint(p_entity, next);
-            break;
-        }
-
-        case Entity::EntityType::WallSegment: {
-
-            if (next != nullptr) {
-                LineStruct *line = new LineStruct;
-                line->A = entity.getCenter();
-                line->B = next->getCenter();
-                //line = new Line(entity.Center, next.Center, color);
-                //line->name.clear();
-                //line->name.append("Wall segment line ");
-                //line->name.append(std::to_string(entity.get_ID()));
-                //line->name.append(" to ");
-                //line->name.append(std::to_string(next->get_ID()));
-
-                line->name = new char[100];
-                sprintf(&line->name[0], "Wall segment line %d to %d", entity.get_ID(), next->get_ID());
-
-                //remember a line between both waypoints for debugging purposes
-                ENTWallsegmentsLine_List->push_back(line);
-            }
-           ENTWallsegments_List->push_back(p_entity);
-           break;
-        }
-
-       case Entity::EntityType::TriggerCraft:
-       case Entity::EntityType::TriggerRocket: {
-            //TODO: AddTrigger(p_entity);
-            break;
-       }
-
-       case Entity::EntityType::TriggerTimed: {
-                //TODO: AddTimer(p_entity);
-                break;
-       }
-
-            case Entity::EntityType::MorphOnce:
-            case Entity::EntityType::MorphPermanent: {
-                    w = entity.getOffsetX() + 1.0f;
-                    h = entity.getOffsetY() + 1.0f;
-                    //box = new Box(0, 0, 0, w, 1, h, new Vector4(0.1f, 0.3f, 0.9f, 0.5f));
-                    //box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-                    //AddNode(box);
-
-                    EntityItem* source;
-
-                    std::vector<Column*> sourceColumns;
-                    sourceColumns.clear();
-
-                    //see if a entity with this ID exists
-                    bool entFound = levelRes->ReturnEntityItemWithId(entity.getNextID(), &source);
-
-                    if (entFound) {
-                        sourceColumns = levelBlocks->ColumnsInRange(source->getCell().X, source->getCell().Y, w, h);
-                    }
-
-                    // morph for this entity and its linked source
-                    std::vector<Column*> targetColumns = levelBlocks->ColumnsInRange(entity.getCell().X , entity.getCell().Y, w, h);
-
-                    //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
-                    //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
-                    //so that later we can put this cells into their own Meshbuffers/SceneNodes
-
-                    //Additional note 03.01.2025: We need to include a little bit more cells into the dynamic terrain around the
-                    //initial morphing area defined in the level (+/- 5 cells as defined below), because otherwise when we run a
-                    //morph there will be areas in the terrain at the seems between static & dynamic area that do not behave
-                    //correctly (for example hole appear where the player can see through). But including slightly more area into the dynamic
-                    //mesh this problem does not arise.
-                    irr::u32 baseX = entity.getCell().X - 5;
-                    irr::u32 baseY = entity.getCell().Y - 5;
-
-                    irr::core::vector2di cellCoord;
-                    for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
-                        for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                            cellCoord.set(idxX+baseX, idxY+baseY);
-                            this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
-
-                            this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
-                        }
-                    }
-
-                    if (entFound) {
-                        baseX = source->getCell().X - 5;
-                        baseY = source->getCell().Y - 5;
-
-                        for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
-                            for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                                cellCoord.set(idxX + baseX, idxY + baseY);
-                                this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
-
-                                this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
-                            }
-                        }
-                    }
-
-                    // regular morph
-                    if (targetColumns.size() == sourceColumns.size())
-                    {
-                            for (unsigned int i = 0; i < targetColumns.size(); i++)
-                            {
-                                targetColumns[i]->MorphSource = sourceColumns[i];
-                                sourceColumns[i]->MorphSource = targetColumns[i];
-                            }
-                    }
-                    else
-                    {
-                        // permanent morphs dont destroy buildings, instead they morph the column based on terrain height
-                        if (entity.getEntityType() == Entity::EntityType::MorphPermanent)
-                        {
-                            // we need to update surrounding columns too because they could be affected (one side of them)
-                            // (problem comes from not using terrain height for all columns in realtime)
-                            targetColumns = levelBlocks->ColumnsInRange(entity.getCell().X - 1, entity.getCell().Y - 1, w + 1, h + 1);
-
-                            // create dummy morph source columns at source position
-                            std::vector<Column*>::iterator colIt;
-
-                            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                                vector3d<irr::f32> colPos(0.0f, 0.0f, 0.0f);
-                                colPos.X = source->getCell().X + ((*colIt)->Position.X - entity.getCell().X);
-                                colPos.Y = 0.0f;
-                                colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
-
-                                //Important: Do not create a special column here, this is a normal game map column!
-                                (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes, false, nullptr);
-                            }
-
-                            sourceColumns.clear();
-                        }
-                        else
-                        {
-                            // in this case (MorphOnce) there are no target columns and
-                            // (target and source areas are swapped from game perspective)
-                            // and buildings have to be destroyed as soon as the morph starts
-                            std::vector<Column*>::iterator colIt;
-
-                            for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
-                                (*colIt)->DestroyOnMorph = true;
-                            }
-
-                            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                                (*colIt)->DestroyOnMorph = true;
-                            }
-                        }
-                    }
-
-                    // create and collect morph instances
-                    Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h,
-                                             entity.getEntityType() == Entity::EntityType::MorphPermanent,
-                                             this->mLevelTerrain, this->mLevelBlocks);
-                    std::vector<Column*>::iterator colIt;
-
-                    for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                        morph->Columns.push_back(*colIt);
-                    }
-
-                    Morphs.push_back(morph);
-
-                    // source
-                    morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h,
-                                      entity.getEntityType() == Entity::EntityType::MorphPermanent,
-                                      this->mLevelTerrain, this->mLevelBlocks);
-                    for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
-                        morph->Columns.push_back(*colIt);
-                    }
-
-                    Morphs.push_back(morph);
-                    break;
-            }
-
-        case Entity::EntityType::MorphSource1:
-        case Entity::EntityType::MorphSource2: {
-            // no need to display morph sources since they are handled above by their targets
-
-            w = entity.getOffsetX() + 1.0f;
-            h = entity.getOffsetY() + 1.0f;
-
-            //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
-            //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
-            //so that later we can put this cells into their own Meshbuffers/SceneNodes
-            irr::u32 baseX = entity.getCell().X - 5;
-            irr::u32 baseY = entity.getCell().Y - 5;
-
-            irr::core::vector2di cellCoord;
-            for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
-                for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                    cellCoord.set(idxX+baseX, idxY+baseY);
-                    this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
-
-                    this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
-                }
-            }
-
-            break;
-         }
-
-        case Entity::EntityType::RecoveryTruck: {
-            /*TODO: Recovery *recov1 =
-                    new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, mInfra->mSmgr);
-
-            //remember all recovery vehicles in a vector for later use
-            this->recoveryVec->push_back(recov1);*/
-
-            break;
-        }
-
-        case Entity::EntityType::Cone: {
-            /*TODO: irr::core::vector3df center = entity.getCenter();
-            Cone *cone = new Cone(this, center.X, center.Y + 0.104f, center.Z, mInfra->mSmgr);
-
-            //remember all cones in a vector for later use
-            this->coneVec->push_back(cone);
-                */
-            break;
-        }
-
-        case Entity::EntityType::Checkpoint:     {
-            //30.05.2025: It seems in Level 7 the map
-            //designer made a mistake, and added a second
-            //checkpoint with value 4, but with DX = 0 and DY = 0
-            //This additional (faulty) checkpoint prevents my
-            //lap counting from working properly
-            //to fix this here make sure that if DX = 0 and DY = 0
-            //we do not add this fault checkpoint
-            if ((entity.getOffsetX() != 0.0f) || (entity.getOffsetY() != 0.0f))
-              {
-                //TODO:
-                //AddCheckPoint(entity);
-               }
-            break;
-        }
-
-        case Entity::EntityType::Camera: {
-            //TODO: AddCamera(p_entity);
-            break;
-        }
-
-        case Entity::EntityType::Explosion: {
-                //TODO: AddExplosionEntity(p_entity);
-                break;
-            }
-
-        //this are default collectable items from
-        //the map files
-        case Entity::EntityType::ExtraFuel:
-        case Entity::EntityType::FuelFull:
-        case Entity::EntityType::DoubleFuel:
-        case Entity::EntityType::ExtraAmmo:
-        case Entity::EntityType::AmmoFull:
-        case Entity::EntityType::DoubleAmmo:
-        case Entity::EntityType::ExtraShield:
-        case Entity::EntityType::ShieldFull:
-        case Entity::EntityType::DoubleShield:
-        case Entity::EntityType::BoosterUpgrade:
-        case Entity::EntityType::MissileUpgrade:
-        case Entity::EntityType::MinigunUpgrade:  {
-                    //if entity type is invalid for a collectable the function below will fallback
-                    //to sprite number 42, which is a sprite I did not know the purpose of
-                    irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
-
-                    //Point to the correct (billboard) texture
-                    collectable = new Collectable(this->mParentEditor, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), false);
-                    ENTCollectablesVec->push_back(collectable);
-                    break;
-        }
-
-        case Entity::EntityType::UnknownShieldItem:
-            {
-                   //uncomment the next 2 lines to show this items also to the player
-                   // collectable = new Collectable(41, entity.get_Center(), color, driver);
-                   // ENTCollectables_List.push_back(collectable);
-                    break;
-            }
-
-        case Entity::EntityType::UnknownItem:
-        case Entity::EntityType::Unknown:
-            {
-                   //uncomment the next 2 lines to show this items also to the player
-                   // collectable = new Collectable(50, entity.get_Center(), color, driver);
-                   // ENTCollectables_List.push_back(collectable);
-                    break;
-            }
-
-        case Entity::EntityType::SteamStrong: {
-               //TODO:
-//               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-//               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 100);
-
-//               //only for first testing
-//               //sf->Activate();
-
-//               //it seems when SteamFountains are created the are not
-//               //active yet in the game, the are normally triggered to be
-//               //active by a craft trigger or similar
-
-//               //add new steam fontain to my list of fontains
-//               steamFountainVec->push_back(sf);
-               break;
-        }
-
-        case Entity::EntityType::SteamLight: {
-               //TODO:
-//               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-//               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 50);
-
-//               //only for first testing
-//               //sf->Activate();
-
-//               //it seems when SteamFountains are created the are not
-//               //active yet in the game, the are normally triggered to be
-//               //active by a craft trigger or similar
-
-//               //add new steam fontain to my list of fontains
-//               steamFountainVec->push_back(sf);
-               break;
-        }
-
-        default:
-            {
-                    boxSize = 0.98f;
-                    break;
-            }
-    }
-}
-
-//returns filename of sprite file for collectable
-//invalid entity types will revert to sprite number 42
-irr::u16 EditorSession::GetCollectableSpriteNumber(Entity::EntityType mEntityType) {
-    irr::u16 nrSprite;
-
-    switch (mEntityType) {
-        case Entity::EntityType::ExtraFuel:
-        {
-            nrSprite = 29;
-            break;
-        }
-
-        case Entity::EntityType::FuelFull:
-        {
-            nrSprite = 30;
-            break;
-        }
-        case Entity::EntityType::DoubleFuel:
-        {
-            nrSprite = 31;
-            break;
-        }
-
-        case Entity::EntityType::ExtraAmmo:
-        {
-           nrSprite = 32;
-           break;
-        }
-        case Entity::EntityType::AmmoFull:
-            {
-               nrSprite = 33;
-               break;
-            }
-        case Entity::EntityType::DoubleAmmo:
-            {
-               nrSprite = 34;
-               break;
-            }
-
-        case Entity::EntityType::ExtraShield:
-            {
-               nrSprite = 35;
-               break;
-            }
-        case Entity::EntityType::ShieldFull:
-            {
-               nrSprite = 36;
-               break;
-            }
-        case Entity::EntityType::DoubleShield:
-            {
-               nrSprite = 37;
-               break;
-            }
-
-        case Entity::EntityType::BoosterUpgrade:
-            {
-               nrSprite = 40;
-               break;
-            }
-        case Entity::EntityType::MissileUpgrade:
-            {
-              nrSprite = 39;
-              break;
-            }
-        case Entity::EntityType::MinigunUpgrade:
-            {
-              nrSprite = 38;
-              break;
-            }
-
-        default: {
-            nrSprite = 42;
-            break;
-        }
-    }
-
-  return nrSprite;
 }
 
 void EditorSession::Render() {
@@ -875,20 +400,8 @@ void EditorSession::Render() {
     //draw 3D world coordinate axis with arrows
     mParentEditor->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
-    if (DebugShowWaypoints) {
-        //DebugDrawWayPointLinks(false);
-     }
+    mEntityManager->Draw();
 
-    std::vector<LineStruct*>::iterator Linedraw_iterator2;
-
-    if (DebugShowWallSegments) {
-         //draw all wallsegments for debugging purposes
-         mParentEditor->mDriver->setMaterial(*mParentEditor->mDrawDebug->red);
-         for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-              mParentEditor->mDriver->setMaterial(*mParentEditor->mDrawDebug->red);
-              mParentEditor->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
-         }
-     }
 /*
     if (DebugShowLowLevelTriangleSelection) {
         if (triangleHitByMouse) {
@@ -1008,6 +521,10 @@ void EditorSession::HandleBasicInput() {
         DeactivateMorphs();
     }
 
+    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
+
+    }
+
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_PLUS)) {
         if (mEditorMode != nullptr) {
             if (mEditorMode == mTerraforming) {
@@ -1074,6 +591,17 @@ void EditorSession::TrackActiveDialog() {
                //mouse cursor is currently inside
                //terraforming window
                mUserInDialogState = DEF_EDITOR_USERINTERRAFORMINGDIALOG;
+           }
+        }
+    }
+
+    if (mEntityMode != nullptr) {
+        if (mEntityMode->IsWindowOpen()) {
+           irr::core::rect<s32> windowPos = mEntityMode->GetWindowPosition();
+           if (windowPos.isPointInside(mCurrentMousePos)) {
+               //mouse cursor is currently inside
+               //EntityMode window
+               mUserInDialogState = DEF_EDITOR_USERINENTITYMODEDIALOG;
            }
         }
     }
@@ -1148,101 +676,32 @@ void EditorSession::SetMode(EditorMode* selMode) {
     //set new Editor mode
     mEditorMode = selMode;
 
+    //control what ItemSelector is actually
+    //Selecting dependent on the new Editor Mode
+    if (selMode == mViewMode) {
+        //do not select anything in ViewMode
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, false);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+    } else if ((selMode == mTextureMode) || (selMode == mColumnDesigner)) {
+        //do only select cells and Blocks in Texture and Column Designer Mode
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+    } else if (selMode == mTerraforming) {
+        //do only select cells in Terraforming mode, the columns are modified depending
+        //on the cells below them
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+    } else if (selMode == mEntityMode) {
+        //do select cells and entities in EntityMode
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, true);
+    }
+
     //call OnEnter function
     mEditorMode->OnEnterMode();
-}
-
-void EditorSession::CleanUpEntities() {
-
-   if (ENTWallsegmentsLine_List->size() > 0) {
-       std::vector<LineStruct*>::iterator it;
-       LineStruct* pntr;
-       for (it = ENTWallsegmentsLine_List->begin(); it != ENTWallsegmentsLine_List->end(); ) {
-           pntr = (LineStruct*)(*it);
-           it = ENTWallsegmentsLine_List->erase(it);
-
-           //free name inside LineStruct
-           delete[] pntr->name;
-
-           //delete LineStruct itself
-           delete pntr;
-       }
-   }
-
-   delete ENTWallsegmentsLine_List;
-   ENTWallsegmentsLine_List = nullptr;
-
-   if (ENTWaypoints_List->size() > 0) {
-       std::vector<EntityItem*>::iterator it;
-
-       for (it = ENTWaypoints_List->begin(); it != ENTWaypoints_List->end(); ) {
-           it = ENTWaypoints_List->erase(it);
-
-           //the entityItems itself are deleted inside
-           //Levelfile source code
-       }
-   }
-
-   delete ENTWaypoints_List;
-   ENTWaypoints_List = nullptr;
-
-   if (ENTWallsegments_List->size() > 0) {
-       std::list<EntityItem*>::iterator it;
-
-       for (it = ENTWallsegments_List->begin(); it != ENTWallsegments_List->end(); ) {
-           it = ENTWallsegments_List->erase(it);
-
-           //the entityItems itself are deleted inside
-           //Levelfile source code
-       }
-   }
-
-   delete ENTWallsegments_List;
-   ENTWallsegments_List = nullptr;
-
-   if (ENTTriggers_List->size() > 0) {
-       std::list<EntityItem*>::iterator it;
-
-       for (it = ENTTriggers_List->begin(); it != ENTTriggers_List->end(); ) {
-           it = ENTTriggers_List->erase(it);
-
-           //the entityItems itself are deleted inside
-           //Levelfile source code
-       }
-   }
-
-   delete ENTTriggers_List;
-   ENTTriggers_List = nullptr;
-
-   if (ENTCollectablesVec->size() > 0) {
-       std::vector<Collectable*>::iterator it;
-       Collectable* pntr;
-       for (it = ENTCollectablesVec->begin(); it != ENTCollectablesVec->end(); ) {
-           pntr = (Collectable*)(*it);
-           it = ENTCollectablesVec->erase(it);
-
-           //delete Collectable itself
-           //this frees SceneNode and texture inside
-           //collectable implementation
-           delete pntr;
-       }
-   }
-
-   delete ENTCollectablesVec;
-   ENTCollectablesVec = nullptr;
-}
-
-void EditorSession::CleanUpMorphs() {
-    if (Morphs.size() > 0) {
-        std::list<Morph*>::iterator it;
-        Morph* pntr;
-        for (it = Morphs.begin(); it != Morphs.end(); ) {
-            pntr = (*it);
-            it = Morphs.erase(it);
-
-            //delete Morph itself
-            delete pntr;
-        }
-    }
 }
 

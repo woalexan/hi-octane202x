@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did first a translation to C++, then modified it)
+ Copyright (C) 2024-2025 Wolf Alexander       (I did first a translation to C++, then modified it)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -18,6 +18,11 @@
 #include "tableitem.h"
 #include "irrlicht.h"
 #include <cstdint>
+
+//This two states are only used in the LevelEditor
+#define DEF_ENTITYITEM_STATE_DEFAULT 0
+#define DEF_ENTITYITEM_STATE_NEWLYUNASSIGNEDONE 1
+#define DEF_ENTITYITEM_STATE_LINKUPDATED 2
 
 using namespace irr::core;
 
@@ -47,6 +52,10 @@ public:
     //constructor for entity items stored inside game level files
     EntityItem(int id, int offset, std::vector<unsigned char> bytes);
     virtual ~EntityItem();
+
+    //special constructor that is only used in LevelEditor for creation of new
+    //EntityItems via the EntityManager
+    EntityItem(int x, int y, irr::f32 heightTerrain, int id, int offset, Entity::EntityType ofType);
 
     //special constructor only used for creation
     //of InternalTemporaryWaypoint entity items
@@ -81,6 +90,31 @@ public:
 
     int16_t getTargetGroup();
     void setTargetGroup(int16_t newTargetGroup);
+
+    //Only used for writing debugging table file
+    //do not use otherwise in higher level code!
+    int8_t getRawType();
+    int8_t getRawSubType();
+
+    int16_t getUnknown1();
+    int16_t getUnknown2();
+    int16_t getUnknown3();
+
+    /*****************************************
+     * LevelEditor only used variables start *
+     *****************************************/
+
+    //while EntityItem is removed from
+    //levelfile table this variable helps us
+    int m_initialID;
+
+    //this EntityItem state variable is
+    //only used for the leveleditor
+    uint8_t mState = DEF_ENTITYITEM_STATE_DEFAULT;
+
+    /*****************************************
+     * LevelEditor only used variables end   *
+     *****************************************/
 
 private:
     irr::core::vector3d<float> getPos();

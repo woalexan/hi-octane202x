@@ -102,6 +102,7 @@ public:
   bool mBlockPreviewEnabled = true;
 
   void CopyTexture(irr::video::ITexture* source, irr::video::ITexture* target);
+  void FillTexture(irr::video::ITexture* target, unsigned char fillvalue);
 
   //Returns the number of bytes per pixel for a certain ECOLOR_FORMAT
   //returns 0 for an undefined ECOLOR_FORMAT

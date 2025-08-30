@@ -22,6 +22,7 @@
 #define DEF_EDITOR_USERINCOLUMNDESIGNERDIALOG 2
 #define DEF_EDITOR_USERINTERRAFORMINGDIALOG 3
 #define DEF_EDITOR_USERINVIEWMODEDIALOG 4
+#define DEF_EDITOR_USERINENTITYMODEDIALOG 5
 
 /************************
  * Forward declarations *
@@ -44,6 +45,9 @@ class ColumnDesigner;
 class EditorMode;
 class ViewMode;
 class TerraformingMode;
+class EditorEntity;
+class EntityMode;
+class EntityManager;
 
 /* GUI Elements
 */
@@ -95,11 +99,13 @@ public:
 
     //handles the height map terrain
     //of the level
-    LevelTerrain *mLevelTerrain = nullptr;
+    LevelTerrain* mLevelTerrain = nullptr;
 
     //handles the columns (made of blocks)
     //of the level
-    LevelBlocks *mLevelBlocks = nullptr;
+    LevelBlocks* mLevelBlocks = nullptr;
+
+    EntityManager* mEntityManager = nullptr;
 
     ItemSelector* mItemSelector = nullptr;
 
@@ -107,6 +113,7 @@ public:
     ColumnDesigner* mColumnDesigner = nullptr;
     ViewMode* mViewMode = nullptr;
     TerraformingMode* mTerraforming = nullptr;
+    EntityMode* mEntityMode = nullptr;
 
     irr::s32 GetNextFreeGuiId();
     void HideWindow();
@@ -128,37 +135,18 @@ public:
 private:
 
     bool LoadLevel();
-    void createLevelEntities();
 
     void AddCheckPoint(EntityItem entity);
     void AddWayPoint(EntityItem *entity, EntityItem *next);
 
-    irr::u16 GetCollectableSpriteNumber(Entity::EntityType mEntityType);
-
     //start at Id = 1000;
     irr::s32 mNextFreeGuiId = 1000;
-
-    std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
-    std::vector<EntityItem*> *ENTWaypoints_List = nullptr;
-    std::list<EntityItem*> *ENTWallsegments_List = nullptr;
-    std::list<EntityItem*> *ENTTriggers_List = nullptr;
-    std::vector<Collectable*> *ENTCollectablesVec = nullptr;
-
-    //holds a list of all available level morphs
-    std::list<Morph*> Morphs;
-
-    void CreateEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks);
-    void CleanUpEntities();
-    void CleanUpMorphs();
 
     void UpdateMorphs(irr::f32 frameDeltaTime);
 
     bool DebugShowWallCollisionMesh = false;
     //variables to switch different debugging functions on and off
-    bool DebugShowWaypoints = false;
 
-    bool DebugShowCheckpoints = false;
-    bool DebugShowWallSegments = false;
     bool DebugShowRegionsAndPointOfInterest = false;
     bool DebugShowTriggerRegions = false;
 
