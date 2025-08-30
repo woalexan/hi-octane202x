@@ -371,3 +371,5 @@ target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 # SFML-Game-Development-Book End
 
 ###########################
+
+file(COPY media DESTINATION ${CMAKE_BINARY_DIR})
