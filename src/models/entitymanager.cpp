@@ -1445,4 +1445,68 @@ void EntityManager::RestoreEntityItemLinks() {
     }
 }
 
+void EntityManager::ChangeEntitiyGroup(EditorEntity* editorEntity, int16_t newGroupValue) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setGroup(newGroupValue);
+}
+
+void EntityManager::ChangeEntitiyTargetGroup(EditorEntity* editorEntity, int16_t newTargetGroupValue) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setTargetGroup(newTargetGroupValue);
+}
+
+void EntityManager::ChangeEntitiyNextId(EditorEntity* editorEntity, int16_t newNextIdValue) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setNextID(newNextIdValue);
+}
+
+void EntityManager::ChangeEntitiyUnknown1(EditorEntity* editorEntity, int16_t newUnknown1Value) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setUnknown1(newUnknown1Value);
+
+}
+
+void EntityManager::ChangeEntitiyUnknown2(EditorEntity* editorEntity, int16_t newUnknown2Value) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setUnknown2(newUnknown2Value);
+}
+
+void EntityManager::ChangeEntitiyUnknown3(EditorEntity* editorEntity, int16_t newUnknown3Value) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setUnknown3(newUnknown3Value);
+}
+
+void EntityManager::ChangeEntitiyValue(EditorEntity* editorEntity, int16_t newValue) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setValue(newValue);
+}
+
+void EntityManager::ChangeEntitiyOffsetX(EditorEntity* editorEntity, float newOffsetXValue) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setOffsetX(newOffsetXValue);
+}
+
+void EntityManager::ChangeEntitiyOffsetY(EditorEntity* editorEntity, float newOffsetYValue) {
+    if (editorEntity == nullptr)
+        return;
+
+    editorEntity->mEntityItem->setOffsetY(newOffsetYValue);
+}
+
 

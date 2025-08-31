@@ -94,6 +94,18 @@ public:
     void CreateLevelEntities();
 
     void AddEntityAtCell(int x, int y, Entity::EntityType type);
+    void ChangeEntitiyGroup(EditorEntity* editorEntity, int16_t newGroupValue);
+    void ChangeEntitiyTargetGroup(EditorEntity* editorEntity, int16_t newTargetGroupValue);
+    void ChangeEntitiyNextId(EditorEntity* editorEntity, int16_t newNextIdValue);
+
+    void ChangeEntitiyUnknown1(EditorEntity* editorEntity, int16_t newUnknown1Value);
+    void ChangeEntitiyUnknown2(EditorEntity* editorEntity, int16_t newUnknown2Value);
+    void ChangeEntitiyUnknown3(EditorEntity* editorEntity, int16_t newUnknown3Value);
+
+    void ChangeEntitiyValue(EditorEntity* editorEntity, int16_t newValue);
+
+    void ChangeEntitiyOffsetX(EditorEntity* editorEntity, float newOffsetXValue);
+    void ChangeEntitiyOffsetY(EditorEntity* editorEntity, float newOffsetYValue);
 
     //Returns true if there is currently an entity item at the specified cell
     //coordinates. Pointer to existing item is also returned via reference parameter returnPntr

@@ -289,6 +289,8 @@ add_executable(hi-editor
 
     src/input/input.h
     src/input/input.cpp
+    src/input/numbereditbox.h
+    src/input/numbereditbox.cpp
 
     src/resources/readgamedata/bulcommn.h
     src/resources/readgamedata/bulcommn.cpp

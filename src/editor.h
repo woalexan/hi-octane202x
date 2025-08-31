@@ -78,6 +78,8 @@ enum
 
     GUI_ID_ENTITYCATEGORYCOMBOBOX,
     GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY,
+    GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_GROUP_EDITBOX,
 
     GUI_ID_TESTBUTTON,
     GUI_ID_SCROLLBAR,
@@ -91,6 +93,7 @@ enum
 class Logger;
 class EditorSession;
 class EditorMode;
+class NumberEditBox;
 
 class Editor : public InfrastructureBase {
 private:
@@ -129,6 +132,8 @@ private:
     void OnElementHovered(irr::s32 elementId);
     void OnElementLeft(irr::s32 elementId);
     void OnCheckBoxChanged(irr::s32 checkBoxId);
+    void OnEditBoxEnterEvent(IGUIEditBox* editBox);
+    void OnElementFocusLost(irr::s32 elementId);
 
     //if function returns true the close action should be interrupted
     bool OnElementClose(irr::s32 elementId);
@@ -156,6 +161,10 @@ private:
     irr::gui::IGUIStaticText* StatusLine = nullptr;
 
     wchar_t *mCurrentStatusBarText = nullptr;
+
+    std::vector<std::pair<irr::s32, NumberEditBox*>> mRegisteredNumberEditBoxes;
+
+    void CheckForNumberEditBoxEvent(irr::s32 receivedGuiId);
 
 public:
     irr::video::ITexture* backgnd = nullptr;
@@ -190,6 +199,9 @@ public:
     void UpdateStatusbarText(const wchar_t *text);
 
     void RunEditor();
+
+    void RegisterNumberEditBox(NumberEditBox* whichBox, irr::s32 boxGuiId);
+    void UnregisterNumberEditBox(irr::s32 boxGuiId);
 
     Editor();
     ~Editor();

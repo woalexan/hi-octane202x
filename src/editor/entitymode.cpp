@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include "../models/levelterrain.h"
 #include <locale.h>
+#include "../input/numbereditbox.h"
 
 EntityModeEntityCategory::EntityModeEntityCategory(EntityMode* parent) {
     mParent = parent;
@@ -211,7 +212,7 @@ void EntityMode::CreateWindow() {
     if (font)
         env->getSkin()->setFont(font);*/
 
-    irr::core::dimension2d<irr::u32> dim ( 600, 500 );
+    irr::core::dimension2d<irr::u32> dim ( 450, 400 );
 
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Entity Mode", 0, mGuiWindowId);
@@ -231,15 +232,14 @@ void EntityMode::CreateWindow() {
 
     //configure area in dialog where the possible entity categories are
     //shown
-    dimEntityTypeSelectionArea.UpperLeftCorner.set(10, 110);
+    //dimEntityTypeSelectionArea.UpperLeftCorner.set(10, 110);
+    dimEntityTypeSelectionArea.UpperLeftCorner.set(10, 60);
     dimEntityTypeSelectionArea.LowerRightCorner.set(dim.Width - 10, dim.Height - 40);
 
     irr::core::dimension2d dimEntityTypeSelectionSize = dimEntityTypeSelectionArea.getSize();
 
-    //how much entity type pictures do we fit into the available entity types picture selection area, round down
-    //the collectible entities sprites have the same dimension, just take the dimension from the first one, which is sprite number 29
-    //dimension is 100x100 pixels; only exception is sprite number 41 which is not used in the game, this one is 94x90 pixels
-    irr::core::dimension2d spriteDimension = this->mParentSession->mTexLoader->spriteTex.at(29)->getSize();
+    //Show the entity item symbols with a size of 50 x 50 pixels
+    irr::core::dimension2d spriteDimension(50, 50);
 
     mEntityTypeSelectionImageDimension = spriteDimension.Width;
 
@@ -253,7 +253,7 @@ void EntityMode::CreateWindow() {
 
     mCurrentSelectedEntitySpriteLocation.set(10, 50);
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Current Selected:",
+    mGuiEntityMode.LabelCurrentlySelected = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Current Selected:",
           rect<s32>( mCurrentSelectedEntitySpriteLocation.X,
                      mCurrentSelectedEntitySpriteLocation.Y - 15,
                      mCurrentSelectedEntitySpriteLocation.X + 70,
@@ -278,22 +278,232 @@ void EntityMode::CreateWindow() {
     mGuiEntityMode.CurrentSelectedEntitySprite->setEnabled(false);
     mGuiEntityMode.CurrentSelectedEntitySprite->setVisible(false);
 
+    mGuiEntityMode.LabelCurrentlySelected->setEnabled(false);
+    mGuiEntityMode.LabelCurrentlySelected->setVisible(false);
+
     irr::s32 mx = mCurrentSelectedEntitySpriteLocation.X + spriteDimension.Width + 30;
     irr::s32 my = mCurrentSelectedEntitySpriteLocation.Y + 10;
 
     mGuiEntityMode.RemoveEntityButton
             = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 100, my + 15), Window, GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY, L"Remove Entity");
 
-    //create the checkbox which allows to disable/enable running
-    //Morphs
-    /*mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 30, dim.Width - 10, 50),
-                                                                                         Window, GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX, L"Run Morphs");
+    mGuiEntityMode.RemoveEntityButton->setEnabled(false);
+    mGuiEntityMode.RemoveEntityButton->setVisible(false);
 
-    mGuiViewMode.FogCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 45, dim.Width - 10, 75),
-                                                                                         Window, GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX, L"Fog");
+    irr::s32 dx = mCurrentSelectedEntitySpriteLocation.X;
+    irr::s32 dy = mCurrentSelectedEntitySpriteLocation.Y;
 
-    mGuiViewMode.IlluminationCheckBox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 100, dim.Width - 10, 130),
-                                                                                           Window, GUI_ID_VIEWMODEWINDOW_ILLUMINATION_CHECKBOX, L"Illumination");*/
+    /********************************************
+     * Group Edit Box and Create At Start       *
+     ********************************************/
+
+    //Create the Ui Elements with the settings for default Entity Items
+    mGuiEntityMode.CollectibleCreateAtStart =
+            mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( dx, dy + 25 + spriteDimension.Height,
+                                                                                  dx + 120, dy + 40 + spriteDimension.Height),
+                                                                         Window, GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX, L"Create at Start");
+
+    mGuiEntityMode.GroupEditBox = new NumberEditBox(this, L"1", rect<s32> ( dx + 55, dy + 55 + spriteDimension.Height,
+                                                                             dx + 115, dy + 70 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.GroupEditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.GroupEditBox->AddLabel(L"Group:",
+                                          rect<s32>( dx, dy + 58 + spriteDimension.Height,
+                                                     dx + 70,
+                                                     dy + 73 + spriteDimension.Height));
+
+    /********************************************
+     * Target Group Edit Box                    *
+     ********************************************/
+
+    mGuiEntityMode.TargetGroupEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 55, dy + 82 + spriteDimension.Height,
+                                                                             dx + 115, dy + 97 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.TargetGroupEditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.TargetGroupEditBox->AddLabel(L"TargetGroup:",
+                                          rect<s32>( dx, dy + 85 + spriteDimension.Height,
+                                                     dx + 70,
+                                                     dy + 100 + spriteDimension.Height));
+
+    /********************************************
+     * NextId Edit Box                          *
+     ********************************************/
+
+    mGuiEntityMode.NextIdEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + spriteDimension.Height,
+                                                                             dx + 230, dy + 70 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.NextIdEditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.NextIdEditBox->AddLabel(L"NextId:",
+                                          rect<s32>( dx + 130, dy + 58 + spriteDimension.Height,
+                                                     dx + 200,
+                                                     dy + 73 + spriteDimension.Height));
+
+    /********************************************
+     * Value Edit Box                           *
+     ********************************************/
+
+    mGuiEntityMode.ValueEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + 28 + spriteDimension.Height,
+                                                                             dx + 230, dy + 70 + 28 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.ValueEditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.ValueEditBox->AddLabel(L"Value:",
+                                          rect<s32>( dx + 130, dy + 58 + 28 + spriteDimension.Height,
+                                                     dx + 200,
+                                                     dy + 73 + 28 + spriteDimension.Height));
+
+    /********************************************
+     * OffsetX Edit Box                         *
+     ********************************************/
+
+    mGuiEntityMode.OffsetXEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + 56 + spriteDimension.Height,
+                                                                             dx + 230, dy + 70 + 56 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.OffsetXEditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.OffsetXEditBox->AddLabel(L"Offset X:",
+                                          rect<s32>( dx + 130, dy + 58 + 56 + spriteDimension.Height,
+                                                     dx + 200,
+                                                     dy + 73 + 56 + spriteDimension.Height));
+
+    /********************************************
+     * OffsetY Edit Box                         *
+     ********************************************/
+
+    mGuiEntityMode.OffsetYEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + 56 + 28 + spriteDimension.Height,
+                                                                             dx + 230, dy + 70 + 56 + 28 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.OffsetYEditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.OffsetYEditBox->AddLabel(L"Offset Y:",
+                                          rect<s32>( dx + 130, dy + 58 + 56 + 28 + spriteDimension.Height,
+                                                     dx + 200,
+                                                     dy + 73 + 56 + 28 + spriteDimension.Height));
+
+    /********************************************
+     * Unknown Edit Boxes                       *
+     ********************************************/
+
+    mGuiEntityMode.Unknown1EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 300, dy + 55 + spriteDimension.Height,
+                                                                               dx + 360, dy + 70 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.Unknown1EditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.Unknown1EditBox->AddLabel(L"Unknown1:",
+                                          rect<s32>( dx + 250, dy + 58 + spriteDimension.Height,
+                                                     dx + 320,
+                                                     dy + 73 + spriteDimension.Height));
+
+    mGuiEntityMode.Unknown2EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 300, dy + 55 + 28 + spriteDimension.Height,
+                                                                               dx + 360, dy + 70 + 28 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.Unknown2EditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.Unknown2EditBox->AddLabel(L"Unknown2:",
+                                          rect<s32>( dx + 250, dy + 58 + 28 + spriteDimension.Height,
+                                                     dx + 320,
+                                                     dy + 73 + 28 + spriteDimension.Height));
+
+    mGuiEntityMode.Unknown3EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 300, dy + 55 + 57 + spriteDimension.Height,
+                                                                               dx + 360, dy + 70 + 57 + spriteDimension.Height), true,
+                                                                              Window);
+
+    mGuiEntityMode.Unknown3EditBox->SetValueLimit(-1, 32767);
+    mGuiEntityMode.Unknown3EditBox->AddLabel(L"Unknown3:",
+                                          rect<s32>( dx + 250, dy + 58 + 57 + spriteDimension.Height,
+                                                     dx + 320,
+                                                     dy + 73 + 57 + spriteDimension.Height));
+
+
+    ShowUiDefaultSettings(false);
+}
+
+void EntityMode::ShowUiDefaultSettings(bool visible) {
+  mGuiEntityMode.CollectibleCreateAtStart->setVisible(visible);
+  mGuiEntityMode.CollectibleCreateAtStart->setEnabled(visible);
+
+  mGuiEntityMode.GroupEditBox->SetEnabled(visible);
+  mGuiEntityMode.GroupEditBox->SetVisible(visible);
+
+  mGuiEntityMode.TargetGroupEditBox->SetEnabled(visible);
+  mGuiEntityMode.TargetGroupEditBox->SetVisible(visible);
+
+  mGuiEntityMode.NextIdEditBox->SetEnabled(visible);
+  mGuiEntityMode.NextIdEditBox->SetVisible(visible);
+
+  mGuiEntityMode.Unknown1EditBox->SetEnabled(visible);
+  mGuiEntityMode.Unknown1EditBox->SetVisible(visible);
+
+  mGuiEntityMode.Unknown2EditBox->SetEnabled(visible);
+  mGuiEntityMode.Unknown2EditBox->SetVisible(visible);
+
+  mGuiEntityMode.Unknown3EditBox->SetEnabled(visible);
+  mGuiEntityMode.Unknown3EditBox->SetVisible(visible);
+
+  mGuiEntityMode.ValueEditBox->SetEnabled(visible);
+  mGuiEntityMode.ValueEditBox->SetVisible(visible);
+
+  mGuiEntityMode.OffsetXEditBox->SetEnabled(visible);
+  mGuiEntityMode.OffsetXEditBox->SetVisible(visible);
+
+  mGuiEntityMode.OffsetYEditBox->SetEnabled(visible);
+  mGuiEntityMode.OffsetYEditBox->SetVisible(visible);
+
+  //Update the Ui elements with the current values
+  if (visible) {
+      UpdateUiDefaultSettings();
+  }
+}
+
+void EntityMode::UpdateUiDefaultSettings() {
+    if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_ENTITY)
+        return;
+
+    EditorEntity* pntr = mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected;
+    int16_t group = pntr->mEntityItem->getGroup();
+
+    if (group == 1) {
+         mGuiEntityMode.CollectibleCreateAtStart->setChecked(true);
+         mGuiEntityMode.GroupEditBox->SetEnabled(false);
+    } else {
+         mGuiEntityMode.CollectibleCreateAtStart->setChecked(false);
+         mGuiEntityMode.GroupEditBox->SetEnabled(true);
+    }
+
+    mGuiEntityMode.GroupEditBox->SetValue(group);
+
+    int16_t targetGroup = pntr->mEntityItem->getTargetGroup();
+
+    mGuiEntityMode.TargetGroupEditBox->SetValue(targetGroup);
+
+    int16_t nextId = pntr->mEntityItem->getNextID();
+
+    mGuiEntityMode.NextIdEditBox->SetValue(nextId);
+
+    int16_t unknown1 = pntr->mEntityItem->getUnknown1();
+    mGuiEntityMode.Unknown1EditBox->SetValue(unknown1);
+
+    int16_t unknown2 = pntr->mEntityItem->getUnknown2();
+    mGuiEntityMode.Unknown2EditBox->SetValue(unknown2);
+
+    int16_t unknown3 = pntr->mEntityItem->getUnknown3();
+    mGuiEntityMode.Unknown3EditBox->SetValue(unknown3);
+
+    int16_t value = pntr->mEntityItem->getValue();
+    mGuiEntityMode.ValueEditBox->SetValue(value);
+
+    //OffsetX and OffsetY according to the underlying
+    //EntityItem and Levelfile seem to be a irr::f32 (float)
+    //But actually when loading original levels the only contain whole integers
+    //So we can get away with using NumberEditBox (does only support int) for them as well
+    int16_t offsetX = (int16_t)(pntr->mEntityItem->getOffsetX());
+    mGuiEntityMode.OffsetXEditBox->SetValue(offsetX);
+
+    int16_t offsetY = (int16_t)(pntr->mEntityItem->getOffsetY());
+    mGuiEntityMode.OffsetYEditBox->SetValue(offsetY);
 }
 
 void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
@@ -344,9 +554,14 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
             mGuiEntityMode.CurrentSelectedEntitySprite->setEnabled(true);
             mGuiEntityMode.CurrentSelectedEntitySprite->setVisible(true);
 
+            mGuiEntityMode.LabelCurrentlySelected->setEnabled(true);
+            mGuiEntityMode.LabelCurrentlySelected->setVisible(true);
+
             //show remove entity button
             mGuiEntityMode.RemoveEntityButton->setEnabled(true);
             mGuiEntityMode.RemoveEntityButton->setVisible(true);
+
+            ShowUiDefaultSettings(true);
 
             //Hide all entity "Add buttons"
             ShowAllEntitiesAddButtons(false);
@@ -370,6 +585,11 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
         //Hide remove entity button
         mGuiEntityMode.RemoveEntityButton->setEnabled(false);
         mGuiEntityMode.RemoveEntityButton->setVisible(false);
+
+        mGuiEntityMode.LabelCurrentlySelected->setEnabled(false);
+        mGuiEntityMode.LabelCurrentlySelected->setVisible(false);
+
+        ShowUiDefaultSettings(false);
 
         //give user the ability to see the "Add Entity" buttons
         ShowAllEntitiesAddButtons(true);
@@ -553,20 +773,28 @@ void EntityMode::OnEnterMode() {
    }
 }
 
+void EntityMode::ChangeCreateAtStart(bool newValue) {
+   //Do not create entity at start anymore
+   if (!newValue) {
+       //Set other groupValue then 1 (which would create item
+       //again at start) to indicate other behavior in Ui dialog
+       mParentSession->mEntityManager->ChangeEntitiyGroup(
+                   mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, 0);
+   } else {
+       //Set groupValue of 1 (which does create item
+       //again at start)
+       mParentSession->mEntityManager->ChangeEntitiyGroup(
+                   mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, 1);
+   }
+
+   UpdateUiDefaultSettings();
+}
+
 void EntityMode::OnCheckBoxChanged(irr::s32 checkboxId) {
-    /*if (checkboxId == GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX) {
+    if (checkboxId == GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX) {
         //is the checkbox now checked or not?
-        if (mGuiViewMode.RunMorphsCheckbox->isChecked()) {
-            //make sure morphing is enabled
-            if (!mParentSession->IsMorphingRunning()) {
-                mParentSession->ActivateMorphs();
-            }
-        } else {
-            //morphs were disabled by the user
-            //in the checkbox
-            mParentSession->DeactivateMorphs();
-        }
-    } else if (checkboxId == GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX) {
+        ChangeCreateAtStart(mGuiEntityMode.CollectibleCreateAtStart->isChecked());
+    } /*else if (checkboxId == GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX) {
         //Fog enabled or disabled?
         bool fogEnabled = mGuiViewMode.FogCheckbox->isChecked();
 
@@ -651,6 +879,66 @@ void EntityMode::OnButtonClicked(irr::s32 buttonGuiId) {
                 mParentSession->mEntityManager->RemoveEntity(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected);
              }
              break;
+        }
+    }
+}
+
+void EntityMode::OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
+    if (whichBox == mGuiEntityMode.GroupEditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyGroup(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.TargetGroupEditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyTargetGroup(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.NextIdEditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyNextId(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.Unknown1EditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyUnknown1(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.Unknown2EditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyUnknown2(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.Unknown3EditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyUnknown3(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.ValueEditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyValue(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.OffsetXEditBox) {
+        //OffsetX and OffsetY according to the underlying
+        //EntityItem and Levelfile seem to be a irr::f32 (float)
+        //But actually when loading original levels the only contain whole integers
+        //So we can get away with using NumberEditBox (does only support int) for them as well
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyOffsetX(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (float)(newValue));
+        }
+    }
+
+    if (whichBox == mGuiEntityMode.OffsetYEditBox) {
+        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+             mParentSession->mEntityManager->ChangeEntitiyOffsetY(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (float)(newValue));
         }
     }
 }

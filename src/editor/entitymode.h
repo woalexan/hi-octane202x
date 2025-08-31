@@ -28,6 +28,7 @@
 
 class EditorSession;
 class EntityMode;
+class NumberEditBox;
 struct GUIEntityModeEntityCategoryDataStruct;
 
 class EntityModeEntityCategory {
@@ -83,14 +84,29 @@ struct GUIEntityMode
 
     irr::gui::IGUIImage* CurrentSelectedEntitySprite;
 
-    //irr::gui::IGUICheckBox* RunMorphsCheckbox;
-    //irr::gui::IGUICheckBox* FogCheckbox;
-    //irr::gui::IGUICheckBox* IlluminationCheckBox;
-
     irr::gui::IGUIStaticText* CurrentlySelectedEntityTypeStr;
+    irr::gui::IGUIStaticText* LabelCurrentlySelected;
     irr::gui::IGUIStaticText* LabelEntityCategory;
 
     irr::gui::IGUIButton* RemoveEntityButton;
+
+    /* Extra Ui Elements for Configuration of default Collectibles */
+    irr::gui::IGUICheckBox* CollectibleCreateAtStart;
+    NumberEditBox* GroupEditBox;
+    NumberEditBox* TargetGroupEditBox;
+    NumberEditBox* NextIdEditBox;
+    NumberEditBox* ValueEditBox;
+
+    //OffsetX and OffsetY according to the underlying
+    //EntityItem and Levelfile seem to be a irr::f32 (float)
+    //But actually when loading original levels the only contain whole integers
+    //So we can get away with using NumberEditBox (does only support int) for them as well
+    NumberEditBox* OffsetXEditBox;
+    NumberEditBox* OffsetYEditBox;
+
+    NumberEditBox* Unknown1EditBox;
+    NumberEditBox* Unknown2EditBox;
+    NumberEditBox* Unknown3EditBox;
 };
 
 class EntityMode : public EditorMode {
@@ -117,6 +133,13 @@ private:
 
     void OnUserChangedToNewEntity(GUIEntityModeEntityCategoryDataStruct* entitySelectedInDialog);
 
+    void ShowUiDefaultSettings(bool visible);
+    void UpdateUiDefaultSettings();
+
+    void ChangeCreateAtStart(bool newValue);
+
+    void TriggerChangeGroupValue();
+
 public:
     EntityMode(EditorSession* parentSession);
     virtual ~EntityMode();
@@ -139,6 +162,8 @@ public:
     virtual void OnLeftMouseButtonDown();
 
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
+
+    virtual void OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
 
     //the entity category selection dialog needs all hover events
     //to be able to properly select the category

@@ -23,6 +23,7 @@
  ************************/
 
 class EditorSession;
+class NumberEditBox;
 struct CurrentlySelectedEditorItemInfoStruct;
 
 class EditorMode {
@@ -51,8 +52,12 @@ public:
     virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
     
     virtual void OnLeftMouseButtonDown();
+    virtual void OnEditBoxEnterEvent(irr::s32 editBoxId);
+    virtual void OnElementFocusLost(irr::s32 elementId);
 
     virtual void OnNewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
+
+    virtual void OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
 
     void HideWindow();
     void ShowWindow();
