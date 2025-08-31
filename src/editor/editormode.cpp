@@ -91,6 +91,15 @@ void EditorMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruc
 void EditorMode::OnCheckBoxChanged(irr::s32 checkboxId) {
 }
 
+void EditorMode::OnEditBoxEnterEvent(irr::s32 editBoxId) {
+}
+
+void EditorMode::OnElementFocusLost(irr::s32 elementId) {
+}
+
+void EditorMode::OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
+}
+
 //is called when the editor mode
 //is exited. Can be used to disable features
 //etc. that should only be active during this

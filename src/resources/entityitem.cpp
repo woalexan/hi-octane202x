@@ -191,6 +191,18 @@ void EntityItem::setNextID(int16_t newNextID) {
     mNextId = newNextID;
 }
 
+void EntityItem::setUnknown1(int16_t newValue) {
+    mUnknown1 = newValue;
+}
+
+void EntityItem::setUnknown2(int16_t newValue) {
+    mUnknown2 = newValue;
+}
+
+void EntityItem::setUnknown3(int16_t newValue) {
+    mUnknown3 = newValue;
+}
+
 irr::core::vector3d<float> EntityItem::getPos() {
     //my Irrlicht coordinate system is swapped/mirrored at the x axis compared with the coordinate
     //system in the level file, fix this issue here lowlevel

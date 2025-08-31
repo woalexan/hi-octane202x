@@ -26,6 +26,7 @@
 #include "editor/columndesign.h"
 #include "editor/terraforming.h"
 #include "editor/entitymode.h"
+#include "input/numbereditbox.h"
 
 //fully initializes the remaining editor
 //components
@@ -380,6 +381,11 @@ void Editor::OnElementFocused(irr::s32 elementId) {
   //std::cout << "Element Focus " << elementId << std::endl;
 }
 
+void Editor::OnElementFocusLost(irr::s32 elementId) {
+  //std::cout << "Element Focus " << elementId << std::endl;
+  CheckForNumberEditBoxEvent(elementId);
+}
+
 void Editor::OnElementHovered(irr::s32 elementId) {
   //std::cout << "Element Hovered " << elementId << std::endl;
 
@@ -436,6 +442,16 @@ void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
   if (comboBox->getID() == GUI_ID_ENTITYCATEGORYCOMBOBOX) {
       mCurrentSession->mEntityMode->EntityCategoryChanged(val);
   }
+}
+
+void Editor::OnEditBoxEnterEvent(IGUIEditBox* editBox) {
+  s32 val = editBox->getID();
+  //std::cout << "EditBox Enter Event " << val << std::endl;
+
+  if (val == -1)
+      return;
+
+  CheckForNumberEditBoxEvent(val);
 }
 
 void Editor::OnLeftMouseButtonDown() {
@@ -519,6 +535,15 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
             break;
         }
 
+        case EGET_ELEMENT_FOCUS_LOST: {
+            //an element lost the focus
+            //for the EditorBox I want to use
+            //this event to know when the user
+            //stops editing to trigger an update
+            OnElementFocusLost(id);
+            break;
+        }
+
         case EGET_ELEMENT_HOVERED: {
             //user hovered over an element
             OnElementHovered(id);
@@ -543,6 +568,12 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
                 //we want to prevent closing this element
                 return true;
             }
+        }
+
+        case EGET_EDITBOX_ENTER: {
+            //user pressed Enter in an EditBox
+            OnEditBoxEnterEvent((IGUIEditBox*)event.GUIEvent.Caller);
+            break;
         }
 
         default: {
@@ -969,10 +1000,42 @@ bool Editor::CreateNewEditorSession(int load_levelnr) {
     return true;
 }
 
+void Editor::RegisterNumberEditBox(NumberEditBox* whichBox, irr::s32 boxGuiId) {
+   mRegisteredNumberEditBoxes.push_back(std::make_pair(boxGuiId, whichBox));
+}
+
+void Editor::UnregisterNumberEditBox(irr::s32 boxGuiId) {
+   std::vector<std::pair<irr::s32, NumberEditBox*>>::iterator it;
+
+   for (it = mRegisteredNumberEditBoxes.begin(); it != mRegisteredNumberEditBoxes.end(); ) {
+       if ((*it).first == boxGuiId) {
+           //we need to erase this entry
+           it = mRegisteredNumberEditBoxes.erase(it);
+       } else {
+           //go to the next element
+           ++it;
+       }
+   }
+}
+
+void Editor::CheckForNumberEditBoxEvent(irr::s32 receivedGuiId) {
+   std::vector<std::pair<irr::s32, NumberEditBox*>>::iterator it;
+
+   for (it = mRegisteredNumberEditBoxes.begin(); it != mRegisteredNumberEditBoxes.end(); ++it) {
+      if ((*it).first == receivedGuiId) {
+          //we found an event for this NumberEditBox
+          (*it).second->OnEditBoxEditEndedEvent();
+          return;
+      }
+   }
+}
+
 Editor::Editor() {
     //allocate memory for current editor statusbar text
     mCurrentStatusBarText = new wchar_t[400];
     swprintf(mCurrentStatusBarText, 390, L"");
+
+    mRegisteredNumberEditBoxes.clear();
 }
 
 Editor::~Editor() {

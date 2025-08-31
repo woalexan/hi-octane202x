@@ -71,6 +71,10 @@ public:
     int16_t getValue();
     void setValue(int16_t newValue);
 
+    void setUnknown1(int16_t newValue);
+    void setUnknown2(int16_t newValue);
+    void setUnknown3(int16_t newValue);
+
     float getOffsetX();
     float getOffsetY();
     void setOffsetX(float newOffsetX);
