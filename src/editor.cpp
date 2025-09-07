@@ -159,17 +159,18 @@ void Editor::CreateMenue() {
     submenu->addItem(L"Wallsegments", GUI_ID_VIEW_ENTITY_WALLSEGMENTS, true, false, true, true);
     submenu->addItem(L"Triggers", GUI_ID_VIEW_ENTITY_TRIGGERS, true, false, true, true);
     submenu->addItem(L"Cameras", GUI_ID_VIEW_ENTITY_CAMERAS, true, false, true, true);
+    submenu->addItem(L"Effects", GUI_ID_VIEW_ENTITY_EFFECTS, true, false, true, true);
 
     submenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
     submenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
 
-    submenu = mMenu->getSubMenu(3)->getSubMenu(7);
+    submenu = mMenu->getSubMenu(3)->getSubMenu(8);
     submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
     submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
 
-    submenu = mMenu->getSubMenu(3)->getSubMenu(8);
+    submenu = mMenu->getSubMenu(3)->getSubMenu(9);
     submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
@@ -237,6 +238,7 @@ void Editor::UpdateEntityVisibilityMenueEntries() {
     UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, GUI_ID_VIEW_ENTITY_WALLSEGMENTS);
     UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, GUI_ID_VIEW_ENTITY_TRIGGERS);
     UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, GUI_ID_VIEW_ENTITY_CAMERAS);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, GUI_ID_VIEW_ENTITY_EFFECTS);
 }
 
 void Editor::ChangeEntityVisibility(IGUIContextMenu* menu) {
@@ -290,6 +292,11 @@ void Editor::ChangeEntityVisibility(IGUIContextMenu* menu) {
 
         case GUI_ID_VIEW_ENTITY_CAMERAS:  {
             mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, visible);
+            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_EFFECTS: {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, visible);
             break;
         }
 
@@ -397,7 +404,8 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
         case GUI_ID_VIEW_ENTITY_WAYPOINTS:
         case GUI_ID_VIEW_ENTITY_WALLSEGMENTS:
         case GUI_ID_VIEW_ENTITY_TRIGGERS:
-        case GUI_ID_VIEW_ENTITY_CAMERAS: {
+        case GUI_ID_VIEW_ENTITY_CAMERAS:
+        case GUI_ID_VIEW_ENTITY_EFFECTS: {
             ChangeEntityVisibility(menu);
             break;
         }

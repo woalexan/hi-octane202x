@@ -176,6 +176,10 @@ add_executable(hi-octane202x
     src/models/missile.cpp
     src/models/morph.h
     src/models/morph.cpp
+    src/models/spriteparticle.h
+    src/models/spriteparticle.cpp
+    src/models/steamfountain.h
+    src/models/steamfountain.cpp
     src/models/particle.h
     src/models/particle.cpp
     src/models/player.h
@@ -276,6 +280,10 @@ add_executable(hi-editor
     src/models/editorentity.cpp
     src/models/entitymanager.h
     src/models/entitymanager.cpp
+    src/models/spriteparticle.h
+    src/models/spriteparticle.cpp
+    src/models/steamfountain.h
+    src/models/steamfountain.cpp
 
     src/utils/tprofile.h
     src/utils/tprofile.cpp

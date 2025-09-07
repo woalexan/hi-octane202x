@@ -22,6 +22,7 @@
  ************************/
 
 class EntityManager;
+class SteamFountain;
 
 class EditorEntity {
 private:
@@ -35,9 +36,14 @@ private:
     irr::scene::IBillboardSceneNode *mBillSceneNode = nullptr;
     irr::core::dimension2d<irr::u32> mTextureSize;
 
+    //special variable if we are a steamfountain
+    SteamFountain* mSteamFountain = nullptr;
+
     bool mBoundingBoxVisible = false;
 
     void UpdateBoundingBox();
+
+    bool mTransparentMesh = false;
 
 public:
     //Constructor for a Mesh based 3D model (Mesh in OBJ file)
@@ -71,6 +77,10 @@ public:
 
     void Hide();
     void Show();
+
+    //special EditorEntities need updates like the
+    //SteamFoutains
+    void Update(irr::f32 frameDeltaTime);
 };
 
 #endif // EDITORENTITY_H

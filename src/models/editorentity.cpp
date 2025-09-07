@@ -11,6 +11,8 @@
 #include "editorentity.h"
 #include "../editor.h"
 #include "../models/entitymanager.h"
+#include "../resources/texture.h"
+#include "../models/steamfountain.h"
 
 //Constructor for a Mesh based 3D model (Mesh in OBJ file)
 EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::io::path modelFileName) {
@@ -44,11 +46,30 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
     //therefore we need to add the height of the billboard to the Y coordinate
     mPosition = mEntityItem->getCenter();
 
+    //Special case for SteamFountain?
+    if ((itemPntr->getEntityType() == Entity::SteamLight) || (itemPntr->getEntityType() == Entity::SteamStrong)) {
+        //get the cloud sprite from the game
+        mSpriteTex = mParentManager->mTexLoader->spriteTex.at(17);
+
+        mTransparentMesh = true;
+
+        //Create us a SteamFountain for visible effect
+        mSteamFountain = new SteamFountain(mSpriteTex, itemPntr, mParentManager->mInfra->mSmgr, mParentManager->mInfra->mDriver,
+            mPosition, 100);
+
+        mSteamFountain->Activate();
+    }
+
     mMesh = mesh;
     mSceneNode = parentManager->mInfra->mSmgr->addMeshSceneNode(mMesh);
 
     mSceneNode->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+
+    if (mTransparentMesh) {
+        mSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ALPHA_CHANNEL);
+    }
+
     mSceneNode->setPosition(mPosition);
     mSceneNode->setVisible(true);
 
@@ -93,6 +114,12 @@ Entity::EntityType EditorEntity::GetEntityType() {
 
 irr::core::vector2di EditorEntity::GetCellCoord() {
     return mEntityItem->getCell();
+}
+
+void EditorEntity::Update(irr::f32 frameDeltaTime) {
+    if (mSteamFountain != nullptr) {
+        mSteamFountain->TriggerUpdate(frameDeltaTime);
+    }
 }
 
 void EditorEntity::UpdateBoundingBox() {
@@ -144,6 +171,10 @@ void EditorEntity::Hide() {
       if (mBillSceneNode != nullptr) {
           mBillSceneNode->setVisible(false);
       }
+
+      if (mSteamFountain != nullptr) {
+          mSteamFountain->Hide();
+      }
   }
 }
 
@@ -157,6 +188,10 @@ void EditorEntity::Show() {
 
         if (mBillSceneNode != nullptr) {
             mBillSceneNode->setVisible(true);
+        }
+
+        if (mSteamFountain != nullptr) {
+            mSteamFountain->Show();
         }
     }
 }
@@ -202,5 +237,11 @@ EditorEntity::~EditorEntity() {
     if (mBillSceneNode != nullptr) {
         //remove SceneNode
         this->mBillSceneNode->remove();
+    }
+
+    //if this was a special SteamFoutain enitorEntity
+    //item cleanup steamFountain as well
+    if (mSteamFountain != nullptr) {
+        delete mSteamFountain;
     }
 }
