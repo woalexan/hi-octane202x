@@ -63,12 +63,12 @@ public:
 struct GUIEntityModeEntityCategoryDataStruct {
     Entity::EntityType type;
     std::string nameType;
-    irr::video::ITexture* texture;
+    irr::video::ITexture* texture = nullptr;
     irr::s32 guiElementId;
 
     bool currHovered = false;
 
-    irr::gui::IGUIImage* guiElement;
+    irr::gui::IGUIImage* guiElement = nullptr;
 };
 
 /* GUI Elements for EntityMode
@@ -137,8 +137,6 @@ private:
     void UpdateUiDefaultSettings();
 
     void ChangeCreateAtStart(bool newValue);
-
-    void TriggerChangeGroupValue();
 
 public:
     EntityMode(EditorSession* parentSession);

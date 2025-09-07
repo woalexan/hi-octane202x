@@ -47,7 +47,7 @@ struct MeshObjectStatsStruct {
  * Forward declarations *
  ************************/
 
-class TerrainTileData;
+struct TerrainTileData;
 class TextureLoader;
 struct BlockFaceInfoStruct;
 struct BlockInfoStruct;

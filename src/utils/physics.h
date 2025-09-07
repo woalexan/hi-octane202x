@@ -47,7 +47,7 @@
 class PhysicsObject;
 class Race;
 class DrawDebug;
-class ColorStruct;
+struct ColorStruct;
 
 //PhysicsCollisionArea taken from game HCraft (which is also based on Irrlicht), and modified by me
 //Written by Michael Zeilfelder, please check licenseHCraft.txt for the zlib-style license text.

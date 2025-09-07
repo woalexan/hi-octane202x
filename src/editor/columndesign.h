@@ -70,7 +70,7 @@ struct GUIColumnDesigner
 };
 
 struct ColumnDesignerColDefComboBoxEntry {
-    wchar_t* entryText;
+    wchar_t* entryText = nullptr;
     irr::s32 comboBoxEntryId;
     ColumnDefinition* colDefPntr = nullptr;
 };
@@ -90,23 +90,23 @@ private:
     virtual void CreateWindow();
     void WindowControlButtons(bool newState);
 
-    irr::s32 blockAImageFrontId;
-    irr::s32 blockBImageFrontId;
-    irr::s32 blockCImageFrontId;
-    irr::s32 blockDImageFrontId;
-    irr::s32 blockEImageFrontId;
-    irr::s32 blockFImageFrontId;
-    irr::s32 blockGImageFrontId;
-    irr::s32 blockHImageFrontId;
+    irr::s32 blockAImageFrontId = -1;
+    irr::s32 blockBImageFrontId = -1;
+    irr::s32 blockCImageFrontId = -1;
+    irr::s32 blockDImageFrontId = -1;
+    irr::s32 blockEImageFrontId = -1;
+    irr::s32 blockFImageFrontId = -1;
+    irr::s32 blockGImageFrontId = -1;
+    irr::s32 blockHImageFrontId = -1;
 
-    irr::s32 blockAImageBackId;
-    irr::s32 blockBImageBackId;
-    irr::s32 blockCImageBackId;
-    irr::s32 blockDImageBackId;
-    irr::s32 blockEImageBackId;
-    irr::s32 blockFImageBackId;
-    irr::s32 blockGImageBackId;
-    irr::s32 blockHImageBackId;
+    irr::s32 blockAImageBackId = -1;
+    irr::s32 blockBImageBackId = -1;
+    irr::s32 blockCImageBackId = -1;
+    irr::s32 blockDImageBackId = -1;
+    irr::s32 blockEImageBackId = -1;
+    irr::s32 blockFImageBackId = -1;
+    irr::s32 blockGImageBackId = -1;
+    irr::s32 blockHImageBackId = -1;
 
    void UpdateBlockPreviewGuiImages(Column* selColumn);
    void UpdateBlockPreviewGuiImages(ColumnDefinition* selColumnDef);

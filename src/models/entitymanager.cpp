@@ -1593,7 +1593,7 @@ void EntityManager::AddEntityAtCell(int x, int y, Entity::EntityType type) {
   irr::u32 outIndex;
 
   //what is the correct height for the new EntityItem
-  irr::f32 height = -mLevelTerrain->GetHeightInterpolated(x, y);
+  irr::f32 height = -mLevelTerrain->GetHeightInterpolated((irr::f32)(x), (irr::f32)(y));
 
   if (!mLevelFile->AddEntityAtCell(x, y, height, type, outIndex)) {
        logging::Error("Failed to create new EntityItem");

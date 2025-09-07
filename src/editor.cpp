@@ -679,6 +679,9 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
                 //we want to prevent closing this element
                 return true;
             }
+
+            //we do not want to cancel this event
+            return false;
         }
 
         case EGET_EDITBOX_ENTER: {
