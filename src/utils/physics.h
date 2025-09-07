@@ -47,6 +47,7 @@
 class PhysicsObject;
 class Race;
 class DrawDebug;
+struct ColorStruct;
 
 //PhysicsCollisionArea taken from game HCraft (which is also based on Irrlicht), and modified by me
 //Written by Michael Zeilfelder, please check licenseHCraft.txt for the zlib-style license text.
@@ -222,7 +223,7 @@ public:
     std::vector<ObjectPhysicsForce> currForceVectorWorldCoord;
     std::vector<ObjectPhysicsForce> debugForceVectorWorldCoord;
 
-    void DebugDrawCurrentWorldCoordForces(DrawDebug* drawDebugObj, irr::video::SMaterial* Color, irr::u8 dbgForceClassification = PHYSIC_DBG_FORCETYPE_GENERICALL);
+    void DebugDrawCurrentWorldCoordForces(DrawDebug* drawDebugObj, ColorStruct* Color, irr::u8 dbgForceClassification = PHYSIC_DBG_FORCETYPE_GENERICALL);
 
     //current force vector that applies to this physics object
     //this forces are all in world coordinates

@@ -563,9 +563,6 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
     //Texture ID = 51 -> Shield charger
     //116 - 156 Road Textures
 
-    irr::video::SColor shieldChargerColor(255, 24, 254, 56);
-    irr::video::SColor fuelChargerColor(255, 121, 65, 198);
-    irr::video::SColor ammoChargerColor(255, 254, 222, 48);
     irr::video::SColor roadColor(255, 73, 81, 85);
     irr::video::SColor finishLineColor(255, 105, 121, 129);
     irr::video::SColor transparent(0, 0, 0, 0);
@@ -667,17 +664,17 @@ irr::video::IImage* LevelTerrain::CreateMiniMapInfo(irr::u32 &startWP, irr::u32 
 
             switch (texID) {
                 case 43: {  //Fuel charger
-                        cPixelCol = fuelChargerColor;
+                        cPixelCol = *mInfra->mDrawDebug->colorFuelCharger->color;
                         break;
                      }
 
                 case 47: { //Ammo charger
-                        cPixelCol = ammoChargerColor;
+                        cPixelCol = *mInfra->mDrawDebug->colorAmmoCharger->color;
                         break;
                      }
 
                 case 51: { //Shield charger
-                        cPixelCol = shieldChargerColor;
+                        cPixelCol = *mInfra->mDrawDebug->colorShieldCharger->color;
                         break;
                     }
 
@@ -2271,7 +2268,7 @@ irr::u16 LevelTerrain::get_heigth()  {
     return(this->levelRes->Height());
 }
 
-void LevelTerrain::DrawTerrainGrid(int gridMidPointX, int gridMidPointY, int gridSize, irr::video::SMaterial* color) {
+void LevelTerrain::DrawTerrainGrid(int gridMidPointX, int gridMidPointY, int gridSize, ColorStruct* color) {
     int width = this->levelRes->Width();
     int height = this->levelRes->Height();
 
@@ -2400,7 +2397,7 @@ void LevelTerrain::ResetTextureCompleteTerrain(int newTexId) {
     }
 }
 
-void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, SMaterial* color) {
+void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, ColorStruct* color) {
     irr::core::vector3df pos1 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert1->Pos;
     pos1.X = -pos1.X;
     pos1.Y = -pos1.Y + 0.05f; //draw a little bit above the terrain cells, so that we do not get "flicker" effect

@@ -721,7 +721,7 @@ irr::u8 LevelBlocks::GetCurrentViewMode() {
     return mCurrentViewMode;
 }
 
-void LevelBlocks::DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color) {
+void LevelBlocks::DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, ColorStruct* color) {
     irr::core::vector3df pos1 = selFace->vert1->Pos;
     irr::core::vector3df pos2 = selFace->vert2->Pos;
     irr::core::vector3df pos3 = selFace->vert3->Pos;
@@ -842,7 +842,7 @@ void LevelBlocks::CreateInitialBlockDefinition() {
    levelRes->BlockDefinitions.push_back(newDef);
 }
 
-void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace) {
+void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, ColorStruct* color, ColorStruct* selFaceColor, irr::u8 selFace) {
     if (selColumnPntr == nullptr)
         return;
 
@@ -875,9 +875,9 @@ void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFr
     }
 }
 
-void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* colorGrid,
+void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, ColorStruct* colorGrid,
                                           bool drawCurrBlockToBeEdited, int nrBlockToBeEditedStartingFromBase,
-                                          irr::video::SMaterial* colorBlockToBeEdited) {
+                                          ColorStruct* colorBlockToBeEdited) {
     if (selColumnPntr == nullptr)
         return;
 
@@ -1384,12 +1384,12 @@ void LevelBlocks::SetCubeFaceTexture(Column* selColumnPntr, int nrBlockFromBase,
     //to create the new needed block definition, so that we can search
     //and if necessary create it in the current level file
     switch (selFace) {
-         case DEF_SELBLOCK_FACENORTH:  { if (updateTexId) { currN = newTextureId; } currTexMod = currNMod; if (updateTexMod) { currNMod = newTextureMod; } break;}
-         case DEF_SELBLOCK_FACEEAST:   { if (updateTexId) { currE = newTextureId; } currTexMod = currEMod; if (updateTexMod) { currEMod = newTextureMod; } break;}
-         case DEF_SELBLOCK_FACESOUTH:  { if (updateTexId) { currS = newTextureId; } currTexMod = currSMod; if (updateTexMod) { currSMod = newTextureMod; } break;}
-         case DEF_SELBLOCK_FACEWEST:   { if (updateTexId) { currW = newTextureId; } currTexMod = currWMod; if (updateTexMod) { currWMod = newTextureMod; } break;}
-         case DEF_SELBLOCK_FACEBOTTOM: { if (updateTexId) { currB = newTextureId; } currTexMod = currBMod; if (updateTexMod) { currBMod = newTextureMod; } break;}
-         case DEF_SELBLOCK_FACETOP:    { if (updateTexId) { currT = newTextureId; } currTexMod = currTMod; if (updateTexMod) { currTMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACENORTH:  { if (updateTexId) { currN = (uint8_t)(newTextureId); } currTexMod = currNMod; if (updateTexMod) { currNMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACEEAST:   { if (updateTexId) { currE = (uint8_t)(newTextureId); } currTexMod = currEMod; if (updateTexMod) { currEMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACESOUTH:  { if (updateTexId) { currS = (uint8_t)(newTextureId); } currTexMod = currSMod; if (updateTexMod) { currSMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACEWEST:   { if (updateTexId) { currW = (uint8_t)(newTextureId); } currTexMod = currWMod; if (updateTexMod) { currWMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACEBOTTOM: { if (updateTexId) { currB = (uint8_t)(newTextureId); } currTexMod = currBMod; if (updateTexMod) { currBMod = newTextureMod; } break;}
+         case DEF_SELBLOCK_FACETOP:    { if (updateTexId) { currT = (uint8_t)(newTextureId); } currTexMod = currTMod; if (updateTexMod) { currTMod = newTextureMod; } break;}
          default:  { return; break;}
     }
 
@@ -2279,7 +2279,7 @@ std::vector<irr::u32> LevelBlocks::GetBlockDefinitionUsageCount() {
     cntResult.clear();
 
     //how many different Blockdefinitions do we have currently?
-    irr::u32 nrBlockDef = this->levelRes->BlockDefinitions.size();
+    irr::u32 nrBlockDef = (irr::u32)(this->levelRes->BlockDefinitions.size());
 
     cntResult.resize(nrBlockDef);
 
@@ -2572,7 +2572,7 @@ std::vector<irr::u32> LevelBlocks::GetColumnDefinitionUsageCount() {
     cntResult.clear();
 
     //how many different Columndefinitions do we have currently?
-    irr::u32 nrColumnDef = this->levelRes->ColumnDefinitions.size();
+    irr::u32 nrColumnDef = (irr::u32)(this->levelRes->ColumnDefinitions.size());
 
     cntResult.resize(nrColumnDef);
 
@@ -2762,7 +2762,7 @@ void LevelBlocks::DebugWriteDefinedColumnsTableToCsvFile(char* debugOutPutFileNa
 
 void LevelBlocks::ReplaceColumnDefinitionWithNewOneForAllColumns(std::vector<irr::u32> changeFromIdVec, std::vector<irr::u32> changeToIdVec) {
     //how many different columndefinitions do we have currently?
-    irr::u32 nrColumnDef = this->levelRes->ColumnDefinitions.size();
+    irr::u32 nrColumnDef = (irr::u32)(this->levelRes->ColumnDefinitions.size());
 
     size_t entriesToChange = changeFromIdVec.size();
 
@@ -2808,7 +2808,7 @@ void LevelBlocks::ReplaceColumnDefinitionWithNewOneForAllColumns(std::vector<irr
               //contains an change from Id that would be too long for the ColumnDefinitions vector
               //if this happens interrupt this entry, we do not need it, because there is for sure not
               //yet a column with this newly created columndefinitionId that we would have to update
-              if ((oldId - 1) >= nrColumnDef)
+              if ((oldId - 1) >= (int)(nrColumnDef))
                   continue;
 
               oldDef = this->levelRes->ColumnDefinitions.at(oldId - 1);

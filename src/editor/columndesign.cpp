@@ -74,7 +74,21 @@ void ColumnDesigner::CreateNewColumnDefComboBoxEntry(ColumnDefinition* whichColD
     std::string shapeString = mParentSession->mLevelBlocks->CreateDbgShapeString(whichColDef);
 
     newEntry->entryText = new wchar_t[70];
+
+    //07.09.2025: It seems Visual Studio automatically changes swprintf to instead using
+    //safer function swprintf_s which would be fine for me
+    //The problem is this function checks for validity of format strings, and simply %s as under GCC
+    //is not valid when specifiying a normal non wide C-string, and as a result text output does not work (only
+    //garbage is shown); To fix this we need to use special format string "%hs" under windows;
+    //But because I am not sure if GCC will accept this under Linux, I will keep the original code under GCC
+    //here
+
+#ifdef _MSC_VER 
+    swprintf(newEntry->entryText, 65, L"Id: %d: Shape: %hs Occurence: %d", whichColDef->get_ID(), shapeString.c_str(), whichColDef->get_Occurence());
+#endif
+#ifdef __GNUC__
     swprintf(newEntry->entryText, 65, L"Id: %d: Shape: %s Occurence: %d", whichColDef->get_ID(), shapeString.c_str(), whichColDef->get_Occurence());
+#endif
 
     newEntry->comboBoxEntryId = mParentSession->GetNextFreeGuiId();
 

@@ -25,6 +25,7 @@
 class LevelTerrain;
 class DrawDebug;
 struct WayPointLinkInfoStruct;
+struct ColorStruct;
 
 class Bezier
 {
@@ -36,10 +37,10 @@ public:
                                             irr::core::vector2df endPnt, irr::core::vector2df cntrlPoint, irr::f32 t);
 
     void QuadBezierCurveDrawAtTerrain(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
-                                        irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color, bool goThrough = true);
+                                        irr::core::vector2df cntrlPoint, irr::f32 resolution, ColorStruct *color, bool goThrough = true);
 
     std::vector<WayPointLinkInfoStruct*> QuadBezierCurveGetSegments(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
-                                        irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color, bool goThrough = true);
+                                        irr::core::vector2df cntrlPoint, irr::f32 resolution, ColorStruct *color, bool goThrough = true);
 
     //if this function is used the bezier curve is forced to go exactly through
     //the control point, and is not simply bend towards the control point

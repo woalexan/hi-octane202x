@@ -3118,18 +3118,15 @@ void Race::Render() {
 
     if (DebugShowWallSegments) {
       //draw all wallsegments for debugging purposes
-     mGame->mDriver->setMaterial(*mGame->mDrawDebug->red);
      for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-          mGame->mDriver->setMaterial(*mGame->mDrawDebug->red);
-          mGame->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
+          mGame->mDrawDebug->Draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B, mGame->mDrawDebug->red);
        }
      }
 
     if (DebugShowCheckpoints) {
       //draw all checkpoint lines for debugging purposes
-      mGame->mDriver->setMaterial(*mGame->mDrawDebug->blue);
       for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
-          mGame->mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
+          mGame->mDrawDebug->Draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B, mGame->mDrawDebug->blue);
       }
     }
 
@@ -3411,7 +3408,7 @@ void Race::IndicateMapRegions() {
     irr::core::vector3df pos4;
     irr::core::vector2di cell;
 
-    irr::video::SMaterial *color = this->mGame->mDrawDebug->red;
+    ColorStruct *color = this->mGame->mDrawDebug->red;
 
     for (it = this->mLevelRes->mMapRegionVec->begin(); it != this->mLevelRes->mMapRegionVec->end(); ++it) {
        pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
@@ -3452,7 +3449,7 @@ void Race::IndicateTriggerRegions() {
     irr::core::vector3df pos4;
     irr::core::vector2di cell;
 
-    irr::video::SMaterial *color = this->mGame->mDrawDebug->red;
+    ColorStruct *color = this->mGame->mDrawDebug->red;
 
     for (it = this->mTriggerRegionVec.begin(); it != this->mTriggerRegionVec.end(); ++it) {
        pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
@@ -3481,7 +3478,7 @@ void Race::IndicateTriggerRegions() {
    }
 }
 
-void Race::DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color) {
+void Race::DebugDrawHeightMapTileOutline(int x, int z, ColorStruct* color) {
     if ((mGame->mDrawDebug != nullptr) && (this->mLevelTerrain != nullptr)) {
         if (x < 0) {
             x = 0;

@@ -357,7 +357,7 @@ void PhysicsObject::interpolatePhysicState(irr::f32 alphaVal) {
         previousPhysicState.spin * invalpha;
 }
 
-void PhysicsObject::DebugDrawCurrentWorldCoordForces(DrawDebug* drawDebugObj, irr::video::SMaterial* Color, irr::u8 dbgForceClassification) {
+void PhysicsObject::DebugDrawCurrentWorldCoordForces(DrawDebug* drawDebugObj, ColorStruct* Color, irr::u8 dbgForceClassification) {
      std::vector<ObjectPhysicsForce>::iterator it;
 
      //draw all currently active force vectors with arrows
@@ -365,7 +365,7 @@ void PhysicsObject::DebugDrawCurrentWorldCoordForces(DrawDebug* drawDebugObj, ir
          if ((dbgForceClassification == PHYSIC_DBG_FORCETYPE_GENERICALL) || (dbgForceClassification == (*it).DbgForceType)) {
             drawDebugObj->Draw3DLine((*it).DbgLastArmVecStart, (*it).DbgLastArmVecEnd, drawDebugObj->pink);
             drawDebugObj->Draw3DLine((*it).DbgFTorqueStart, (*it).DbgFTorqueEnd, drawDebugObj->brown);
-            drawDebugObj->Draw3DArrow((*it).ForceStartPoint, (*it).ForceEndPoint, Color);
+            drawDebugObj->Draw3DArrow((*it).ForceStartPoint, (*it).ForceEndPoint, 0.0f, Color);
          }
      }
 }
@@ -894,7 +894,7 @@ void Physics::DrawSelectedCollisionMeshTriangles(const PhysicsCollisionArea& col
 
     for ( int i=0; i < collArea.mCollisionTrianglesSize; i++ )
     {
-      this->mDebugObj->Draw3DTriangle(&collArea.mCollisionTriangles[i], irr::video::SColor(0, 255, 0,127));
+      this->mDebugObj->Draw3DTriangle(&collArea.mCollisionTriangles[i], mDebugObj->pink);
     }
 }
 

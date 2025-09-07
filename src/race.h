@@ -111,6 +111,7 @@ class TextureLoader;
 class DrawDebug;
 class LevelFile;
 class Collectable;
+struct ColorStruct;
 
 class Race {
 public:
@@ -195,7 +196,7 @@ public:
 
     //debugging function which allows to draw a rectangle around a selected
     //tile of the heightmap of the terrain level
-    void DebugDrawHeightMapTileOutline(int x, int z, irr::video::SMaterial* color);
+    void DebugDrawHeightMapTileOutline(int x, int z, ColorStruct* color);
     void PlayerHasFinishedLastLapOfRace(Player *whichPlayer);
 
     //this list contains all players that have already

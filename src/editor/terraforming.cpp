@@ -141,8 +141,8 @@ void TerraformingMode::CreateWindow() {
 }
 
 void TerraformingMode::OnButtonClicked(irr::s32 buttonGuiId) {
-    switch (buttonGuiId) {
-   /*     case GUI_ID_TEXTUREWINDOW_BUTTONSELECTN: {
+   /* switch (buttonGuiId) {
+        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTN: {
              SelectOtherBlockFace(DEF_SELBLOCK_FACENORTH);
              break;
         }
@@ -175,11 +175,11 @@ void TerraformingMode::OnButtonClicked(irr::s32 buttonGuiId) {
         case GUI_ID_TEXTUREWINDOW_BUTTONSELECTCOLUMNFLOORTEXID: {
             SelectColumnFloorTexture();
             break;
-        }*/
+        }
         default: {
             break;
         }
-    }
+    }*/
 }
 
 void TerraformingMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
@@ -442,7 +442,7 @@ void TerraformingMode::OnSelectedVertexDown() {
     mParentSession->CheckForMeshUpdate();
 }
 
-void TerraformingMode::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, irr::video::SMaterial* color) {
+void TerraformingMode::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color) {
     if (mSelVertex->SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
@@ -630,8 +630,8 @@ void TerraformingMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInf
 
     irr::core::vector2di cellPosBelowUserCamera;
 
-    cellPosBelowUserCamera.X = -userCamPos.X / DEF_SEGMENTSIZE;
-    cellPosBelowUserCamera.Y = userCamPos.Z / DEF_SEGMENTSIZE;
+    cellPosBelowUserCamera.X = (irr::s32)(-userCamPos.X / DEF_SEGMENTSIZE);
+    cellPosBelowUserCamera.Y = (irr::s32)(userCamPos.Z / DEF_SEGMENTSIZE);
 
     mParentSession->mLevelTerrain->DrawTerrainGrid(cellPosBelowUserCamera.X, cellPosBelowUserCamera.Y, 20,
                                                            mParentSession->mParentEditor->mDrawDebug->white);

@@ -52,6 +52,14 @@ enum
     GUI_ID_VIEW_BLOCKS_DEFAULT,
     GUI_ID_VIEW_BLOCKS_NORMALS,
 
+    GUI_ID_VIEW_ENTITY_COLLECTIBLES,
+    GUI_ID_VIEW_ENTITY_RECOVERY,
+    GUI_ID_VIEW_ENTITY_CONES,
+    GUI_ID_VIEW_ENTITY_WAYPOINTS,
+    GUI_ID_VIEW_ENTITY_WALLSEGMENTS,
+    GUI_ID_VIEW_ENTITY_TRIGGERS,
+    GUI_ID_VIEW_ENTITY_CAMERAS,
+
     GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX,
     GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX,
     GUI_ID_VIEWMODEWINDOW_ILLUMINATION_CHECKBOX,
@@ -165,6 +173,12 @@ private:
     std::vector<std::pair<irr::s32, NumberEditBox*>> mRegisteredNumberEditBoxes;
 
     void CheckForNumberEditBoxEvent(irr::s32 receivedGuiId);
+
+    void ChangeEntityVisibility(IGUIContextMenu* menu);
+    void UpdateEntityVisibilityMenueEntries();
+    void UpdateEntityVisibilityMenueEntry(irr::u8 whichEntityClass, irr::s32 commandIdMenueEntry);
+
+    gui::IGUIContextMenu* mMenu = nullptr;
 
 public:
     irr::video::ITexture* backgnd = nullptr;

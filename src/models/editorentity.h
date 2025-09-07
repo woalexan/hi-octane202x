@@ -27,7 +27,7 @@ class EditorEntity {
 private:
     //variables for a 3D model like cone, recovery vehicle...
     irr::scene::IMeshSceneNode* mSceneNode = nullptr;
-    irr::scene::IAnimatedMesh*  mMesh = nullptr;
+    irr::scene::IMesh*  mMesh = nullptr;
     irr::io::path mModelFileName;
 
     //variables for a collectable, or sprite
@@ -40,8 +40,11 @@ private:
     void UpdateBoundingBox();
 
 public:
-    //Constructor for a Mesh based 3D model
+    //Constructor for a Mesh based 3D model (Mesh in OBJ file)
     EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::io::path modelFileName);
+
+    //Constructor for a Mesh based 3D model (Mesh preloaded and existing in Irrlicht already)
+    EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::scene::IMesh* mesh);
 
     //Constructor for a texture/Sprite based 2D model
     EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::video::ITexture* texture);
@@ -63,6 +66,11 @@ public:
     irr::core::vector2di GetCellCoord();
 
     EntityItem* mEntityItem = nullptr;
+
+    bool mVisible = true;
+
+    void Hide();
+    void Show();
 };
 
 #endif // EDITORENTITY_H

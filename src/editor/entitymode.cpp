@@ -101,8 +101,23 @@ void EntityModeEntityCategory::AddEntityType(irr::video::ITexture* texture, Enti
     newStruct->guiElement->setScaleImage(true);
     newStruct->guiElement->setImage(texture);
 
+    //07.09.2025: It seems Visual Studio automatically changes swprintf to instead using
+    //safer function swprintf_s which would be fine for me
+    //The problem is this function checks for validity of format strings, and simply %s as under GCC
+    //is not valid when specifiying a normal non wide C-string, and as a result text output does not work (only
+    //garbage is shown); To fix this we need to use special format string "%hs" under windows;
+    //But because I am not sure if GCC will accept this under Linux, I will keep the original code under GCC
+    //here
+
     wchar_t* textDescription = new wchar_t[100];
+
+#ifdef _MSC_VER 
+    swprintf(textDescription, 100, L"%hs", newStruct->nameType.c_str());
+#endif
+#ifdef __GNUC__
     swprintf(textDescription, 100, L"%s", newStruct->nameType.c_str());
+#endif
+
     newStruct->guiElement->setToolTipText(textDescription);
     delete[] textDescription;
 
@@ -537,7 +552,20 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
             Entity::EntityType type = newItemSelected.mEntitySelected->GetEntityType();
             std::string typeName = mParentSession->mEntityManager->GetNameForEntityType(type);
 
-            swprintf(selInfo, 190, L"%s", typeName.c_str());
+            //07.09.2025: It seems Visual Studio automatically changes swprintf to instead using
+            //safer function swprintf_s which would be fine for me
+            //The problem is this function checks for validity of format strings, and simply %s as under GCC
+            //is not valid when specifiying a normal non wide C-string, and as a result text output does not work (only
+            //garbage is shown); To fix this we need to use special format string "%hs" under windows;
+            //But because I am not sure if GCC will accept this under Linux, I will keep the original code under GCC
+            //here
+
+            #ifdef _MSC_VER 
+                swprintf(selInfo, 190, L"%hs", typeName.c_str());
+            #endif
+            #ifdef __GNUC__
+                swprintf(selInfo, 190, L"%s", typeName.c_str());
+            #endif
 
             /*wchar_t* coordInfo = new wchar_t[200];
             int res2 = swprintf(coordInfo, 190, L" at X = %d, Y = %d\0", newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y);
@@ -650,7 +678,7 @@ void EntityMode::ShowAllEntitiesAddButtons(bool visible) {
 
 void EntityMode::AddDefaultCollectable(EntityModeEntityCategory* catPntr, Entity::EntityType type) {
     irr::video::ITexture* texPntr;
-    irr::u8 spriteNr;
+    irr::u16 spriteNr;
 
     spriteNr = mParentSession->mEntityManager->GetCollectableSpriteNumber(type);
     texPntr = mParentSession->mTexLoader->spriteTex.at(spriteNr);

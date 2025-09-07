@@ -19,6 +19,23 @@
 #include "../resources/texture.h"
 #include "../utils/logging.h"
 #include "../resources/levelfile.h"
+#include "irrlicht.h"
+
+//If specified color is not available, returns a white cube
+irr::scene::IMesh* EntityManager::GetCubeMeshWithColor(ColorStruct* whichColor) {
+    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>>::iterator it;
+
+    for (it = mCubeMeshVec.begin(); it != mCubeMeshVec.end(); ++it) {
+        if ((*it).first == whichColor) {
+            //correct cube Mesh with this color found
+            return (*it).second;
+        }
+    }
+
+    //correct color not found, return white cube
+    //which is at index0
+    return mCubeMeshVec.at(0).second;
+}
 
 EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
                              TextureLoader* texLoader) {
@@ -29,6 +46,21 @@ EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, Lev
     mTexLoader = texLoader;
 
     mEntityVec.clear();
+
+    //create a simple small Cube Mesh for Waypoint and
+    //Wallsegment Editor Entity item objects
+    mCubeMeshVec.clear();
+
+    //Important note: Keep cube with Color White at the first position of the std::Vector!
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->white, CreateCubeMesh(0.2f, mInfra->mDrawDebug->white)));
+
+    //order of all remaining colors does not matter!
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->grey, CreateCubeMesh(0.2f, mInfra->mDrawDebug->grey)));
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->orange, CreateCubeMesh(0.2f, mInfra->mDrawDebug->orange)));
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->red, CreateCubeMesh(0.2f, mInfra->mDrawDebug->red)));
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorShieldCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorShieldCharger)));
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorFuelCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorFuelCharger)));
+    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorAmmoCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorAmmoCharger)));
 
     //    //create empty checkpoint info vector
     //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
@@ -79,22 +111,299 @@ EntityManager::~EntityManager() {
     }
 }
 
+void EntityManager::SetVisibleEntityType(Entity::EntityType whichType, bool visible) {
+    std::vector<EditorEntity*>::iterator it;
+    Entity::EntityType type;
+
+    for (it = mEntityVec.begin(); it != mEntityVec.end(); ++it) {
+        type = (*it)->GetEntityType();
+
+        if (type == whichType) {
+            if (visible) {
+                (*it)->Show();
+            } else {
+                (*it)->Hide();
+            }
+        }
+    }
+}
+
+bool EntityManager::IsVisible(irr::u8 whichEntityClass) {
+    switch (whichEntityClass) {
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES: {
+            return(mShowCollectibles);
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY: {
+           return(mShowRecoveryVehicles);
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_CONES: {
+            return(mShowCones);
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS: {
+            return(mShowWayPoints);
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS: {
+            return(mShowWallSegments);
+        }
+
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS: {
+            return(mShowTriggers);
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS: {
+            return(mShowCameras);
+        }
+
+        default: {
+            return(false);
+        }
+    }
+}
+
+void EntityManager::SetVisible(irr::u8 whichEntityClass, bool visible) {
+    switch (whichEntityClass) {
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES: {
+            mShowCollectibles = visible;
+            SetVisibleEntityType(Entity::ExtraFuel, visible);
+            SetVisibleEntityType(Entity::FuelFull, visible);
+            SetVisibleEntityType(Entity::DoubleFuel, visible);
+
+            SetVisibleEntityType(Entity::ExtraAmmo, visible);
+            SetVisibleEntityType(Entity::AmmoFull, visible);
+            SetVisibleEntityType(Entity::DoubleAmmo, visible);
+
+            SetVisibleEntityType(Entity::ExtraShield, visible);
+            SetVisibleEntityType(Entity::ShieldFull, visible);
+            SetVisibleEntityType(Entity::DoubleShield, visible);
+
+            SetVisibleEntityType(Entity::BoosterUpgrade, visible);
+            SetVisibleEntityType(Entity::MissileUpgrade, visible);
+            SetVisibleEntityType(Entity::MinigunUpgrade, visible);
+
+            break;
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY: {
+           mShowRecoveryVehicles = visible;
+           SetVisibleEntityType(Entity::RecoveryTruck, visible);
+
+           break;
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_CONES: {
+            mShowCones = visible;
+            SetVisibleEntityType(Entity::Cone, visible);
+
+            break;
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS: {
+            mShowWayPoints = visible;
+            SetVisibleEntityType(Entity::WaypointAmmo, visible);
+            SetVisibleEntityType(Entity::WaypointFuel, visible);
+            SetVisibleEntityType(Entity::WaypointShield, visible);
+
+            SetVisibleEntityType(Entity::WaypointFast, visible);
+            SetVisibleEntityType(Entity::WaypointShortcut, visible);
+            SetVisibleEntityType(Entity::WaypointSpecial1, visible);
+
+            SetVisibleEntityType(Entity::WaypointSpecial2, visible);
+            SetVisibleEntityType(Entity::WaypointSpecial3, visible);
+            SetVisibleEntityType(Entity::WaypointSlow, visible);
+
+            break;
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS: {
+            mShowWallSegments = visible;
+
+            SetVisibleEntityType(Entity::WallSegment, visible);
+
+            break;
+        }
+
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS: {
+            mShowTriggers = visible;
+
+            SetVisibleEntityType(Entity::TriggerCraft, visible);
+            SetVisibleEntityType(Entity::TriggerTimed, visible);
+            SetVisibleEntityType(Entity::TriggerRocket, visible);
+
+            break;
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS: {
+            mShowCameras = visible;
+
+            SetVisibleEntityType(Entity::Camera, visible);
+
+            break;
+        }
+
+        default: {
+            break;
+        }
+    }
+}
+
+irr::scene::IMesh* EntityManager::CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor) {
+   //This Source code was copied from Irrlicht source code
+   //CGeometryCreator.cpp, function CGeometryCreator::createCubeMesh
+   SMeshBuffer* buffer = new SMeshBuffer();
+
+   // Create indices
+   const u16 u[36] = {   0,2,1,   0,3,2,   1,5,4,   1,2,5,   4,6,7,   4,5,6,
+             7,3,0,   7,6,3,   9,5,2,   9,8,5,   0,11,10,   0,10,7};
+
+   buffer->Indices.set_used(36);
+
+   for (u32 i=0; i<36; ++i)
+       buffer->Indices[i] = u[i];
+
+   // Create vertices
+   buffer->Vertices.reallocate(12);
+
+   buffer->Vertices.push_back(video::S3DVertex(0,0,0, -1,-1,-1, *cubeColor->color, 0, 1));
+   buffer->Vertices.push_back(video::S3DVertex(1,0,0,  1,-1,-1, *cubeColor->color, 1, 1));
+   buffer->Vertices.push_back(video::S3DVertex(1,1,0,  1, 1,-1, *cubeColor->color, 1, 0));
+   buffer->Vertices.push_back(video::S3DVertex(0,1,0, -1, 1,-1, *cubeColor->color, 0, 0));
+   buffer->Vertices.push_back(video::S3DVertex(1,0,1,  1,-1, 1, *cubeColor->color, 0, 1));
+   buffer->Vertices.push_back(video::S3DVertex(1,1,1,  1, 1, 1, *cubeColor->color, 0, 0));
+   buffer->Vertices.push_back(video::S3DVertex(0,1,1, -1, 1, 1, *cubeColor->color, 1, 0));
+   buffer->Vertices.push_back(video::S3DVertex(0,0,1, -1,-1, 1, *cubeColor->color, 1, 1));
+   buffer->Vertices.push_back(video::S3DVertex(0,1,1, -1, 1, 1, *cubeColor->color, 0, 1));
+   buffer->Vertices.push_back(video::S3DVertex(0,1,0, -1, 1,-1, *cubeColor->color, 1, 1));
+   buffer->Vertices.push_back(video::S3DVertex(1,0,1,  1,-1, 1, *cubeColor->color, 1, 0));
+   buffer->Vertices.push_back(video::S3DVertex(1,0,0,  1,-1,-1, *cubeColor->color, 0, 0));
+
+   // Recalculate bounding box
+   buffer->BoundingBox.reset(0,0,0);
+
+   for (u32 i=0; i<12; ++i)
+    {
+        buffer->Vertices[i].Pos -= core::vector3df(0.5f, 0.5f, 0.5f);
+        buffer->Vertices[i].Pos *= size;
+        buffer->BoundingBox.addInternalPoint(buffer->Vertices[i].Pos);
+    }
+
+    SMesh* mesh = new SMesh;
+    mesh->addMeshBuffer(buffer);
+    buffer->drop();
+
+    mesh->recalculateBoundingBox();
+    return mesh;
+}
+
+void EntityManager::DrawWayPointLinks() {
+   std::vector<EditorEntity*>::iterator it;
+   ColorStruct* color;
+   EditorEntity* linkedItem;
+   int16_t linkedItemId;
+
+   for (it = mEntityVec.begin(); it != mEntityVec.end(); ++it) {
+     if (EntityIsWayPoint(*it)) {
+        linkedItemId = (*it)->mEntityItem->getNextID();
+
+        //if nextId is zero no item is linked
+        if (linkedItemId != 0) {
+            linkedItem = GetEditorEntityWithId(linkedItemId);
+
+            if (linkedItem != nullptr) {
+                //get color we want to use for this line
+                color = GetColorForWayPointType((*it)->GetEntityType());
+                mInfra->mDrawDebug->Draw3DArrow((*it)->mPosition, linkedItem->mPosition, 0.5f, color, 0.1f);
+            }
+        }
+     }
+   }
+}
+
+void EntityManager::DrawWallSegments() {
+   std::vector<EditorEntity*>::iterator it;
+   EditorEntity* linkedItem;
+   int16_t linkedItemId;
+
+   for (it = mEntityVec.begin(); it != mEntityVec.end(); ++it) {
+     if (EntityIsWallSegment(*it)) {
+        linkedItemId = (*it)->mEntityItem->getNextID();
+
+        //if nextId is zero no item is linked
+        if (linkedItemId != 0) {
+            linkedItem = GetEditorEntityWithId(linkedItemId);
+
+            if (linkedItem != nullptr) {
+                mInfra->mDrawDebug->Draw3DArrow((*it)->mPosition, linkedItem->mPosition, 0.5f, mInfra->mDrawDebug->red, 0.1f);
+            }
+        }
+     }
+   }
+}
+
+//returns nullpntr in case EditorEntity with the specified ID
+//is not found
+EditorEntity* EntityManager::GetEditorEntityWithId(int16_t whichId) {
+    std::vector<EditorEntity*>::iterator it;
+
+    for (it = mEntityVec.begin(); it != mEntityVec.end(); ++it) {
+      if ((*it)->mEntityItem->get_ID() == whichId) {
+         return (*it);
+      }
+    }
+
+    //not found
+    return nullptr;
+}
+
+bool EntityManager::EntityIsWayPoint(EditorEntity* entity) {
+    Entity::EntityType type = entity->mEntityItem->getEntityType();
+
+    switch (type) {
+        case Entity::EntityType::WaypointAmmo:
+        case Entity::EntityType::WaypointFuel:
+        case Entity::EntityType::WaypointShield:
+        case Entity::EntityType::WaypointFast:
+        case Entity::EntityType::WaypointShortcut:
+        case Entity::EntityType::WaypointSpecial1:
+        case Entity::EntityType::WaypointSpecial2:
+        case Entity::EntityType::WaypointSpecial3:
+        case Entity::EntityType::WaypointSlow: {
+            return true;
+        }
+
+        default: {
+           return false;
+        }
+    }
+}
+
+bool EntityManager::EntityIsWallSegment(EditorEntity *entity) {
+    Entity::EntityType type = entity->mEntityItem->getEntityType();
+
+    switch (type) {
+        case Entity::EntityType::WallSegment: {
+            return true;
+        }
+
+        default: {
+           return false;
+        }
+    }
+}
+
 void EntityManager::Draw() {
+    if (mShowWayPoints) {
+        DrawWayPointLinks();
+    }
 
-    if (DebugShowWaypoints) {
-        //DebugDrawWayPointLinks(false);
-     }
-
-    std::vector<LineStruct*>::iterator Linedraw_iterator2;
-
-    if (DebugShowWallSegments) {
-         //draw all wallsegments for debugging purposes
-         mInfra->mDriver->setMaterial(*mInfra->mDrawDebug->red);
-         for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-              mInfra->mDriver->setMaterial(*mInfra->mDrawDebug->red);
-              mInfra->mDriver->draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B);
-         }
-     }
+    if (mShowWallSegments) {
+        DrawWallSegments();
+    }
 }
 
 void EntityManager::CleanUpEntities() {
@@ -245,6 +554,36 @@ void EntityManager::CreateLevelEntities() {
     //DebugWriteEntityTableToCsvFile((char*)("dbgEntitiesTable.csv"));
 }
 
+ColorStruct* EntityManager::GetColorForWayPointType(Entity::EntityType whichType) {
+    switch (whichType) {
+        case Entity::EntityType::WaypointAmmo: {
+           return(mInfra->mDrawDebug->colorAmmoCharger);
+        }
+
+        case Entity::EntityType::WaypointFuel: {
+            return(mInfra->mDrawDebug->colorFuelCharger);
+        }
+
+        case Entity::EntityType::WaypointShield: {
+            return(mInfra->mDrawDebug->colorShieldCharger);
+        }
+
+        case Entity::EntityType::WaypointFast: {
+            return(mInfra->mDrawDebug->orange);
+        }
+
+        //default use grey
+        case Entity::EntityType::WaypointShortcut:
+        case Entity::EntityType::WaypointSpecial1:
+        case Entity::EntityType::WaypointSpecial2:
+        case Entity::EntityType::WaypointSpecial3:
+        case Entity::EntityType::WaypointSlow:
+        default: {
+           return(mInfra->mDrawDebug->grey);
+        }
+    }
+}
+
 //for an unknown/undefined entity type returns an empty string
 //in case of an error
 irr::io::path EntityManager::GetModelForEntityType(Entity::EntityType entityType) {
@@ -379,21 +718,31 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
         case Entity::EntityType::WaypointAmmo:
         case Entity::EntityType::WaypointFuel:
         case Entity::EntityType::WaypointShield:
+        case Entity::EntityType::WaypointFast:
         case Entity::EntityType::WaypointShortcut:
         case Entity::EntityType::WaypointSpecial1:
         case Entity::EntityType::WaypointSpecial2:
         case Entity::EntityType::WaypointSpecial3:
-        case Entity::EntityType::WaypointFast:
         case Entity::EntityType::WaypointSlow: {
-            //add a level waypoint
-            //TODO:
-            //AddWayPoint(p_entity, next);
+            EditorEntity* newEntity;
+            irr::scene::IMesh* wMesh = nullptr;
+
+            wMesh = GetCubeMeshWithColor(GetColorForWayPointType(type));
+
+            //use the prepared cubeMesh for Waypoint editor entity items
+            newEntity = new EditorEntity(this, p_entity, wMesh);
+
+            //modify cube position, so that it is not
+            //stuck in the terrain tiles
+            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+
+            mEntityVec.push_back(newEntity);
             break;
         }
 
         case Entity::EntityType::WallSegment: {
 
-            if (next != nullptr) {
+           /* if (next != nullptr) {
                 LineStruct *line = new LineStruct;
                 line->A = entity.getCenter();
                 line->B = next->getCenter();
@@ -410,7 +759,22 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
                 //remember a line between both waypoints for debugging purposes
                 ENTWallsegmentsLine_List->push_back(line);
             }
-           ENTWallsegments_List->push_back(p_entity);
+           ENTWallsegments_List->push_back(p_entity);*/
+
+           EditorEntity* newEntity;
+           irr::scene::IMesh* wMesh = nullptr;
+
+            wMesh = GetCubeMeshWithColor(mInfra->mDrawDebug->red);
+
+            //use the prepared cubeMesh for WallPointSegments as well
+            newEntity = new EditorEntity(this, p_entity, wMesh);
+
+            //modify cube position, so that it is not
+            //stuck in the terrain tiles
+            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+
+            mEntityVec.push_back(newEntity);
+
            break;
         }
 
@@ -635,9 +999,11 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
         }
 
         case Entity::EntityType::Explosion: {
-                //TODO: AddExplosionEntity(p_entity);
-                break;
-            }
+            //For explosion entities use the Game Sprite number 4
+            EditorEntity* newEntity = new EditorEntity(this, p_entity,  mTexLoader->spriteTex.at(4));
+            mEntityVec.push_back(newEntity);
+            break;
+        }
 
         //this are default collectable items from
         //the map files
@@ -768,6 +1134,11 @@ irr::video::ITexture* EntityManager::GetImageForEntityType(Entity::EntityType mE
 
         case Entity::EntityType::TriggerTimed: {
            return mTexLoader->editorTex.at(1);
+        }
+
+        case Entity::EntityType::Explosion: {
+           //for explosion use ingame sprite number 4
+           return mTexLoader->spriteTex.at(4);
         }
 
         default: {
@@ -1222,7 +1593,7 @@ void EntityManager::AddEntityAtCell(int x, int y, Entity::EntityType type) {
   irr::u32 outIndex;
 
   //what is the correct height for the new EntityItem
-  irr::f32 height = -mLevelTerrain->GetHeightInterpolated(x, y);
+  irr::f32 height = -mLevelTerrain->GetHeightInterpolated((irr::f32)(x), (irr::f32)(y));
 
   if (!mLevelFile->AddEntityAtCell(x, y, height, type, outIndex)) {
        logging::Error("Failed to create new EntityItem");

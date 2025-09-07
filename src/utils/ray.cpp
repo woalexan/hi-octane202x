@@ -55,7 +55,7 @@ void Ray::DrawSelectedRayTargetMeshTriangles(std::vector<RayHitTriangleInfoStruc
 
     std::vector<RayHitTriangleInfoStruct*>::iterator it;
     for (it = hitInfoTriangles.begin(); it != hitInfoTriangles.end(); ++it) {
-          mDrawDebug->Draw3DTriangle(&(*it)->hitTriangle, irr::video::SColor(0, 255, 0,127));
+          mDrawDebug->Draw3DTriangle(&(*it)->hitTriangle, mDrawDebug->pink);
     }
 }
 

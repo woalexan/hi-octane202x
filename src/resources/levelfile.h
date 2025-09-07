@@ -251,7 +251,6 @@ protected:
      bool loadMap();
 
      bool loadMapRegions();
-     bool loadUnknownTableOffset358222();
      bool loadUnknownTableOffset0();
      bool loadUnknownTableOffset3168();
      bool loadUnknownTableOffset3312();

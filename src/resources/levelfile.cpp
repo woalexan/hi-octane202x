@@ -1562,7 +1562,7 @@ bool LevelFile::AddBlockDefinition(uint8_t newN, uint8_t newE, uint8_t newS, uin
 
     //return the index for the
     //new blockdefinition
-    outIndex = BlockDefinitions.size() - 1;
+    outIndex = (irr::u32)(BlockDefinitions.size()) - 1;
 
     return true;
 }
@@ -1767,7 +1767,7 @@ bool LevelFile::AddColumnDefinition(int16_t newFloorTextureID, int16_t newUnknow
 
     //return the index for the
     //new columndefinition
-    outIndex = ColumnDefinitions.size() - 1;
+    outIndex = (irr::u32)(ColumnDefinitions.size()) - 1;
 
     return true;
 }
@@ -1894,7 +1894,7 @@ bool LevelFile::AddEntityAtCell(int x, int y, irr::f32 heightTerrain, Entity::En
 
     //return the index for the
     //new EntityItem
-    outIndex = Entities.size() - 1;
+    outIndex = (irr::u32)(Entities.size()) - 1;
 
     return true;
 }

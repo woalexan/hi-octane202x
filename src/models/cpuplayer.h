@@ -64,6 +64,7 @@ class Collectable;
 class ChargingStation;
 struct ChargerStoppingRegionStruct;
 class EntityItem;
+struct ColorStruct;
 
 typedef struct CpCommandEntry {
     uint8_t cmdType;
@@ -261,7 +262,7 @@ private:
     WayPointLinkInfoStruct* mCpWayPointLinkClosestToCollectable = nullptr;
     bool DoISeeACertainCollectable(Collectable* whichItem);
 
-    irr::video::SMaterial* currDbgColor = nullptr;
+    ColorStruct* currDbgColor = nullptr;
     void AdvanceDbgColor();
 
     irr::f32 mLastCraftDistToWaypointLink = 0.0f;

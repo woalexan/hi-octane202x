@@ -492,7 +492,6 @@ public:
     void SetupComputerPlayerForStart(irr::core::vector3df startPos);
 
     void CraftHeightControl();
-    void JumpControl(irr::f32 deltaTime);
 
     void SetupForStart();
     void SetupToSkipStart();
