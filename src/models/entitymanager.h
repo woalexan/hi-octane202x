@@ -18,12 +18,21 @@
 #include "../resources/entityitem.h"
 #include <string>
 
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES 1
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY 2
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_CONES 3
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS 4
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS 5
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS 6
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS 7
+
 //preset values, also used in
 //HiOctaneTools
 const irr::f32 EntityManagerCollectableSize_w = 0.45f;
 const irr::f32 EntityManagerCollectableSize_h = 0.45f;
 
 const irr::f32 EntityManagerRecoveryVehicleFlyingHeight = 6.0f;
+const irr::f32 EntityManagerCubeHeightDistance = 0.3f;
 
 /************************
  * Forward declarations *
@@ -36,6 +45,7 @@ class LevelTerrain;
 class LevelBlocks;
 class Morph;
 class TextureLoader;
+struct ColorStruct;
 
 class EntityManager {
 private:
@@ -59,11 +69,6 @@ private:
      void CleanUpEntities();
      void CleanUpMorphs();
 
-     bool DebugShowWaypoints = false;
-
-     bool DebugShowCheckpoints = false;
-     bool DebugShowWallSegments = false;
-
      //Render To Target texture
      //needed to create image of the recovery vehicle and cone
      irr::video::ITexture* mRenderToTargetTex = nullptr;
@@ -78,12 +83,38 @@ private:
      void RemoveUnusedEntityTableEntries();
      void RestoreEntityItemLinks();
 
+     irr::scene::IMesh* CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor);
+
+     //Different defined colors for the cube Entities
+
+     //If specified color is not available, returns a white cube
+     irr::scene::IMesh* GetCubeMeshWithColor(ColorStruct* whichColor);
+     void DrawWayPointLinks();
+     void DrawWallSegments();
+
+     bool EntityIsWayPoint(EditorEntity* entity);
+     bool EntityIsWallSegment(EditorEntity* entity);
+     ColorStruct* GetColorForWayPointType(Entity::EntityType whichType);
+
+     void SetVisibleEntityType(Entity::EntityType whichType, bool visible);
+
+     bool mShowCollectibles = false;
+     bool mShowRecoveryVehicles = false;
+     bool mShowCones = false;
+     bool mShowWayPoints = false;
+     bool mShowWallSegments = false;
+     bool mShowTriggers = false;
+     bool mShowCameras = false;
+
 public:
     EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
                   TextureLoader* texLoader);
     ~EntityManager();
 
     InfrastructureBase* mInfra = nullptr;
+
+    void SetVisible(irr::u8 whichEntityClass, bool visible);
+    bool IsVisible(irr::u8 whichEntityClass);
 
     irr::f32 GetCollectableCenterHeight();
     irr::core::vector2df GetCollectableSize();
@@ -112,6 +143,10 @@ public:
     //Returns false if there is no Entity item right now
     bool IsEntityItemAtCellCoord(int x, int y, EditorEntity **returnPntr);
 
+    //returns nullpntr in case EditorEntity with the specified ID
+    //is not found
+    EditorEntity* GetEditorEntityWithId(int16_t whichId);
+
     //holds a list of all available level morphs
     std::list<Morph*> Morphs;
 
@@ -130,13 +165,15 @@ public:
     //Stores an empty image
     irr::video::ITexture* mTexImageEmpty = nullptr;
 
+    //a simple Cube Mesh for Waypoint and Wallsegment level Editor
+    //entity items
+    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>> mCubeMeshVec;
+
     bool AreModelImagesAvailable();
 
     void DebugWriteEntityTableToCsvFile(char* debugOutPutFileName);
 
     void RemoveEntity(EditorEntity* removeItem);
-
-
 };
 
 #endif // ENTITYMANAGER_H

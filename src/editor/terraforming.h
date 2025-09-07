@@ -22,6 +22,7 @@
 
 class EditorSession;
 struct CurrentlySelectedEditorItemInfoStruct;
+struct ColorStruct;
 
 /* GUI Elements for Editor Terraforming Mode
 */
@@ -57,7 +58,7 @@ private:
     virtual void CreateWindow();
 
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
-    void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, irr::video::SMaterial* color);
+    void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color);
     
 public:
     TerraformingMode(EditorSession* parentSession);

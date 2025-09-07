@@ -721,7 +721,7 @@ irr::u8 LevelBlocks::GetCurrentViewMode() {
     return mCurrentViewMode;
 }
 
-void LevelBlocks::DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color) {
+void LevelBlocks::DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, ColorStruct* color) {
     irr::core::vector3df pos1 = selFace->vert1->Pos;
     irr::core::vector3df pos2 = selFace->vert2->Pos;
     irr::core::vector3df pos3 = selFace->vert3->Pos;
@@ -842,7 +842,7 @@ void LevelBlocks::CreateInitialBlockDefinition() {
    levelRes->BlockDefinitions.push_back(newDef);
 }
 
-void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace) {
+void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, ColorStruct* color, ColorStruct* selFaceColor, irr::u8 selFace) {
     if (selColumnPntr == nullptr)
         return;
 
@@ -875,9 +875,9 @@ void LevelBlocks::DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFr
     }
 }
 
-void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* colorGrid,
+void LevelBlocks::DrawColumnSelectionGrid(Column* selColumnPntr, ColorStruct* colorGrid,
                                           bool drawCurrBlockToBeEdited, int nrBlockToBeEditedStartingFromBase,
-                                          irr::video::SMaterial* colorBlockToBeEdited) {
+                                          ColorStruct* colorBlockToBeEdited) {
     if (selColumnPntr == nullptr)
         return;
 

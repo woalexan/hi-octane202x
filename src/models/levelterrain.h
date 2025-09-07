@@ -75,6 +75,7 @@ struct MeshBufferInfoStruct;
 struct MeshObjectStatsStruct;
 class IrrMeshBuf;
 class LevelBlocks;
+struct ColorStruct;
 
 struct TerrainTileData {
     //pointers to my 4 vertices per tile to be able to morph Terrain
@@ -192,7 +193,7 @@ public:
     void SetIllumination(bool enabled);
     bool IsIlluminationEnabled();
 
-    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, irr::video::SMaterial* color);
+    void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, ColorStruct* color);
 
     irr::f32 GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord);
     irr::f32 GetHeightInterpolated(irr::f32 x, irr::f32 z);
@@ -259,7 +260,7 @@ public:
     void SetCellTextureModification(int posX, int posY, int8_t newTextureModifier);
 
     //void DebugOutputFoundChargingTextures();
-    void DrawTerrainGrid(int gridMidPointX, int gridMidPointY, int gridSize, irr::video::SMaterial* color);
+    void DrawTerrainGrid(int gridMidPointX, int gridMidPointY, int gridSize, ColorStruct* color);
 
     void SetNewCellVertexHeight(int x, int y, int whichVertex, irr::f32 newHeightValue);
 

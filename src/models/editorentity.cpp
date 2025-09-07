@@ -12,7 +12,7 @@
 #include "../editor.h"
 #include "../models/entitymanager.h"
 
-//Constructor for a Mesh based 3D model
+//Constructor for a Mesh based 3D model (Mesh in OBJ file)
 EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::io::path modelFileName) {
     mParentManager = parentManager;
     mEntityItem = itemPntr;
@@ -24,6 +24,27 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
     mPosition = mEntityItem->getCenter();
 
     mMesh = parentManager->mInfra->mSmgr->getMesh(modelFileName);
+    mSceneNode = parentManager->mInfra->mSmgr->addMeshSceneNode(mMesh);
+
+    mSceneNode->setScale(irr::core::vector3d<irr::f32>(1,1,1));
+    mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+    mSceneNode->setPosition(mPosition);
+    mSceneNode->setVisible(true);
+
+    UpdateBoundingBox();
+}
+
+//Constructor for a Mesh based 3D model (Mesh preloaded and existing in Irrlicht already)
+EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::scene::IMesh* mesh) {
+    mParentManager = parentManager;
+    mEntityItem = itemPntr;
+
+    //Position is the center of the BillboardSceneNode
+    //Position in the level file could be the bottom location at the surface
+    //therefore we need to add the height of the billboard to the Y coordinate
+    mPosition = mEntityItem->getCenter();
+
+    mMesh = mesh;
     mSceneNode = parentManager->mInfra->mSmgr->addMeshSceneNode(mMesh);
 
     mSceneNode->setScale(irr::core::vector3d<irr::f32>(1,1,1));
@@ -109,6 +130,34 @@ void EditorEntity::HideBoundingBox() {
             mBillSceneNode->setDebugDataVisible(EDS_OFF);
         }
         mBoundingBoxVisible = false;
+    }
+}
+
+void EditorEntity::Hide() {
+  if (mVisible) {
+      mVisible = false;
+
+      if (mSceneNode != nullptr) {
+          mSceneNode->setVisible(false);
+      }
+
+      if (mBillSceneNode != nullptr) {
+          mBillSceneNode->setVisible(false);
+      }
+  }
+}
+
+void EditorEntity::Show() {
+    if (!mVisible) {
+        mVisible = true;
+
+        if (mSceneNode != nullptr) {
+            mSceneNode->setVisible(true);
+        }
+
+        if (mBillSceneNode != nullptr) {
+            mBillSceneNode->setVisible(true);
+        }
     }
 }
 

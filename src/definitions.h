@@ -25,11 +25,16 @@
 
 #include "irrlicht.h"
 
+/************************
+ * Forward declarations *
+ ************************/
+struct ColorStruct;
+
 struct LineStruct {
   //std::string name;
   char* name = nullptr;
   irr::core::vector3d<irr::f32> A, B;
-  irr::video::SMaterial *color = nullptr;
+  ColorStruct *color = nullptr;
 
   //irr::core::line3df *debugLine = NULL;
 };

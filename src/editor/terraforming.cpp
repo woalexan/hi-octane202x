@@ -442,7 +442,7 @@ void TerraformingMode::OnSelectedVertexDown() {
     mParentSession->CheckForMeshUpdate();
 }
 
-void TerraformingMode::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, irr::video::SMaterial* color) {
+void TerraformingMode::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color) {
     if (mSelVertex->SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 

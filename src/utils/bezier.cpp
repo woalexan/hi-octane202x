@@ -23,7 +23,7 @@ Bezier::Bezier(LevelTerrain* terrain, DrawDebug* pntrDrawDebug)
 }
 
 void Bezier::QuadBezierCurveDrawAtTerrain(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
-                                          irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color, bool goThrough) {
+                                          irr::core::vector2df cntrlPoint, irr::f32 resolution, ColorStruct *color, bool goThrough) {
   irr::core::vector3df drawPnt1(startPnt.X, 0.0f, startPnt.Y);
   irr::core::vector3df drawPnt2;
   irr::core::vector2df helper2D;
@@ -60,7 +60,7 @@ void Bezier::QuadBezierCurveDrawAtTerrain(irr::core::vector2df startPnt, irr::co
 }
 
 std::vector<WayPointLinkInfoStruct*> Bezier::QuadBezierCurveGetSegments(irr::core::vector2df startPnt, irr::core::vector2df endPnt,
-                                          irr::core::vector2df cntrlPoint, irr::f32 resolution, irr::video::SMaterial *color,
+                                          irr::core::vector2df cntrlPoint, irr::f32 resolution, ColorStruct *color,
                                               bool goThrough) {
   irr::core::vector3df drawPnt1(startPnt.X, 0.0f, startPnt.Y);
   irr::core::vector3df drawPnt2;

@@ -27,6 +27,7 @@
 #include "editor/terraforming.h"
 #include "editor/entitymode.h"
 #include "input/numbereditbox.h"
+#include "models/entitymanager.h"
 
 //fully initializes the remaining editor
 //components
@@ -114,18 +115,18 @@ void Editor::RunEditor() {
 
 void Editor::CreateMenue() {
     // create menu
-    gui::IGUIContextMenu* menu = mGuienv->addMenu();
-    menu->addItem(L"File", -1, true, true);
-    menu->addItem(L"Edit", -1, true, true);
-    menu->addItem(L"Mode", -1, true, true);
-    menu->addItem(L"View", -1, true, true);
+    mMenu = mGuienv->addMenu();
+    mMenu->addItem(L"File", -1, true, true);
+    mMenu->addItem(L"Edit", -1, true, true);
+    mMenu->addItem(L"Mode", -1, true, true);
+    mMenu->addItem(L"View", -1, true, true);
 
     /*************************************
      * Submenue File                     *
      *************************************/
 
     gui::IGUIContextMenu* submenu;
-    submenu = menu->getSubMenu(0);
+    submenu = mMenu->getSubMenu(0);
     submenu->addItem(L"New empty level", GUI_ID_NEWEMPTYLEVEL);
     submenu->addItem(L"Open level", GUI_ID_OPEN_LEVEL);
     submenu->addItem(L"Save level", GUI_ID_SAVE_LEVEL);
@@ -139,7 +140,7 @@ void Editor::CreateMenue() {
      * Mode View                         *
      *************************************/
 
-    submenu = menu->getSubMenu(2);
+    submenu = mMenu->getSubMenu(2);
     submenu->addItem(L"View", GUI_ID_MODE_VIEW, true, false);
     submenu->addItem(L"Terraforming", GUI_ID_MODE_TERRAFORMING, true, false);
     submenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
@@ -150,17 +151,25 @@ void Editor::CreateMenue() {
      * Submenue View                     *
      *************************************/
 
-    submenu = menu->getSubMenu(3);
+    submenu = mMenu->getSubMenu(3);
+    submenu->addItem(L"Collectibles", GUI_ID_VIEW_ENTITY_COLLECTIBLES, true, false, true, true);
+    submenu->addItem(L"Recovery vehicles", GUI_ID_VIEW_ENTITY_RECOVERY, true, false, true, true);
+    submenu->addItem(L"Cones", GUI_ID_VIEW_ENTITY_CONES, true, false, true, true);
+    submenu->addItem(L"Waypoints", GUI_ID_VIEW_ENTITY_WAYPOINTS, true, false, true, true);
+    submenu->addItem(L"Wallsegments", GUI_ID_VIEW_ENTITY_WALLSEGMENTS, true, false, true, true);
+    submenu->addItem(L"Triggers", GUI_ID_VIEW_ENTITY_TRIGGERS, true, false, true, true);
+    submenu->addItem(L"Cameras", GUI_ID_VIEW_ENTITY_CAMERAS, true, false, true, true);
+
     submenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
     submenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
 
-    submenu = menu->getSubMenu(3)->getSubMenu(0);
+    submenu = mMenu->getSubMenu(3)->getSubMenu(7);
     submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
     submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
 
-    submenu = menu->getSubMenu(3)->getSubMenu(1);
+    submenu = mMenu->getSubMenu(3)->getSubMenu(8);
     submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
@@ -195,6 +204,97 @@ void Editor::ChangeViewModeBlocks(irr::u8 newViewMode) {
     if (mCurrentSession != nullptr) {
         if (mCurrentSession->mLevelBlocks != nullptr) {
            mCurrentSession->mLevelBlocks->SetViewMode(newViewMode);
+        }
+    }
+}
+
+void Editor::UpdateEntityVisibilityMenueEntry(irr::u8 whichEntityClass, irr::s32 commandIdMenueEntry) {
+    gui::IGUIContextMenu* subMenu = mMenu->getSubMenu(3);
+
+    bool visible = mCurrentSession->mEntityManager->IsVisible(whichEntityClass);
+
+    s32 idxMenuePnt = subMenu->findItemWithCommandId(commandIdMenueEntry, 0);
+
+    if (idxMenuePnt == -1) {
+        //menue entry not found
+        return;
+    }
+
+    subMenu->setItemChecked(idxMenuePnt, visible);
+}
+
+void Editor::UpdateEntityVisibilityMenueEntries() {
+    if (mCurrentSession == nullptr)
+        return;
+
+    if (mCurrentSession->mEntityManager == nullptr)
+        return;
+
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, GUI_ID_VIEW_ENTITY_COLLECTIBLES);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, GUI_ID_VIEW_ENTITY_RECOVERY);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, GUI_ID_VIEW_ENTITY_CONES);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, GUI_ID_VIEW_ENTITY_WAYPOINTS);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, GUI_ID_VIEW_ENTITY_WALLSEGMENTS);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, GUI_ID_VIEW_ENTITY_TRIGGERS);
+    UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, GUI_ID_VIEW_ENTITY_CAMERAS);
+}
+
+void Editor::ChangeEntityVisibility(IGUIContextMenu* menu) {
+    s32 id = menu->getItemCommandId(menu->getSelectedItem());
+
+    s32 idxMenuePnt = menu->findItemWithCommandId(id, 0);
+
+    if (idxMenuePnt == -1) {
+        //menue entry not found
+        return;
+    }
+
+    bool visible = menu->isItemChecked(idxMenuePnt);
+
+    if (mCurrentSession == nullptr)
+        return;
+
+    if (mCurrentSession->mEntityManager == nullptr)
+        return;
+
+    switch (id) {
+        case GUI_ID_VIEW_ENTITY_COLLECTIBLES: {
+           mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, visible);
+           break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_RECOVERY:  {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, visible);
+            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_CONES:  {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, visible);
+            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_WAYPOINTS:  {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, visible);
+            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_WALLSEGMENTS:  {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, visible);
+            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_TRIGGERS:  {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, visible);
+            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_CAMERAS:  {
+            mCurrentSession->mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, visible);
+            break;
+        }
+
+        default: {
+            break;
         }
     }
 }
@@ -289,6 +389,17 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
         case GUI_ID_VIEW_BLOCKS_NORMALS:  {
            ChangeViewModeBlocks(LEVELBLOCKS_VIEW_DEBUGNORMALS);
            break;
+        }
+
+        case GUI_ID_VIEW_ENTITY_COLLECTIBLES:
+        case GUI_ID_VIEW_ENTITY_RECOVERY:
+        case GUI_ID_VIEW_ENTITY_CONES:
+        case GUI_ID_VIEW_ENTITY_WAYPOINTS:
+        case GUI_ID_VIEW_ENTITY_WALLSEGMENTS:
+        case GUI_ID_VIEW_ENTITY_TRIGGERS:
+        case GUI_ID_VIEW_ENTITY_CAMERAS: {
+            ChangeEntityVisibility(menu);
+            break;
         }
 
         case GUI_ID_SAVE_LEVEL: {
@@ -993,6 +1104,9 @@ bool Editor::CreateNewEditorSession(int load_levelnr) {
         logging::Error("EditorSession creation failed!");
         return false;
     }
+
+    //update current visible Entities
+    UpdateEntityVisibilityMenueEntries();
 
     //start in ViewMode
     mCurrentSession->SetMode((EditorMode*)(mCurrentSession->mViewMode));

@@ -314,6 +314,10 @@ bool ItemSelector::CheckForEntitySelection(irr::core::line3df rayLine, EditorEnt
     for (itEntity = mParent->mEntityManager->mEntityVec.begin(); itEntity != mParent->mEntityManager->mEntityVec.end(); ++itEntity) {
         //(*itEntity)->HideBoundingBox();
 
+        //if Entity is currently not visible skip it
+        if (!(*itEntity)->mVisible)
+            continue;
+
          //coarse check, if we are very far away from the object with the camera, it can not be selected right now
         distSquared = (mParent->mCamera->getPosition() - (*itEntity)->mPosition).getLengthSQ();
 

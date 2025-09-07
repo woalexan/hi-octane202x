@@ -56,6 +56,7 @@ struct MeshObjectStatsStruct;
 struct MeshBufferInfoStruct;
 struct BlockFaceInfoStruct;
 struct BlockInfoStruct;
+struct ColorStruct;
 
 struct ColumnsByPositionStruct {
       int pos;
@@ -92,9 +93,9 @@ public:
     void SetViewMode(irr::u8 newViewMode);
     irr::u8 GetCurrentViewMode();
 
-    void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, irr::video::SMaterial* color, SMaterial* selFaceColor, irr::u8 selFace = DEF_SELBLOCK_FACENONE);
-    void DrawColumnSelectionGrid(Column* selColumnPntr, irr::video::SMaterial* colorGrid, bool drawCurrBlockToBeEdited, int nrBlockToBeEditedStartingFromBase,
-                                 irr::video::SMaterial* colorBlockToBeEdited);
+    void DrawOutlineSelectedColumn(Column* selColumnPntr, int nrBlockFromBase, ColorStruct* color, ColorStruct* selFaceColor, irr::u8 selFace = DEF_SELBLOCK_FACENONE);
+    void DrawColumnSelectionGrid(Column* selColumnPntr, ColorStruct* colorGrid, bool drawCurrBlockToBeEdited, int nrBlockToBeEditedStartingFromBase,
+                                 ColorStruct* colorBlockToBeEdited);
 
     //Derives the current texturing information about a selected block face
     //returns true if the information was found, false otherwise
@@ -206,7 +207,7 @@ private:
 
     void AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
 
-    void DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, SMaterial* color);
+    void DrawOutlineSelectedFace(BlockFaceInfoStruct* selFace, ColorStruct* color);
 
     void ChangeMeshCubeFaceHeight(BlockFaceInfoStruct* whichFace, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
 
