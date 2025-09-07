@@ -46,6 +46,7 @@
 #include "models/expentity.h"
 #include "models/collectablespawner.h"
 #include "draw/drawdebug.h"
+#include "models/steamfountain.h"
 
 #include "audio/sound.h"
 #include "audio/music.h"
@@ -5018,7 +5019,8 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::SteamStrong: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-               SteamFountain *sf = new SteamFountain(this, p_entity, mGame->mSmgr, driver, newlocation , 100);
+               //get the cloud sprite from the game
+               SteamFountain *sf = new SteamFountain(mTexLoader->spriteTex.at(17), p_entity, mGame->mSmgr, driver, newlocation , 100);
 
                //only for first testing
                //sf->Activate();
@@ -5034,7 +5036,8 @@ void Race::createEntity(EntityItem *p_entity,
 
         case Entity::EntityType::SteamLight: {
                irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-               SteamFountain *sf = new SteamFountain(this, p_entity, mGame->mSmgr, driver, newlocation , 50);
+               //get the cloud sprite from the game
+               SteamFountain *sf = new SteamFountain(mTexLoader->spriteTex.at(17), p_entity, mGame->mSmgr, driver, newlocation , 50);
 
                //only for first testing
                //sf->Activate();
@@ -5224,7 +5227,7 @@ void Race::CleanUpCollectableSpawners() {
     if (mCollectableSpawnerVec.size() > 0) {
         std::vector<CollectableSpawner*>::iterator it;
         CollectableSpawner* pntr;
-
+        
         for (it = mCollectableSpawnerVec.begin(); it != mCollectableSpawnerVec.end(); ) {
                 pntr = (*it);
 

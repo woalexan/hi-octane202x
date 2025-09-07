@@ -46,6 +46,7 @@ EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, Lev
     mTexLoader = texLoader;
 
     mEntityVec.clear();
+    mSteamFountainVec.clear();
 
     //create a simple small Cube Mesh for Waypoint and
     //Wallsegment Editor Entity item objects
@@ -62,6 +63,14 @@ EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, Lev
     mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorFuelCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorFuelCharger)));
     mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorAmmoCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorAmmoCharger)));
 
+    //Create the box mesh for surrounding SteamFountains
+    mSteamFountainMesh = CreateCubeMesh(1.0f, mInfra->mDrawDebug->pink);
+
+    irr::scene::IMeshManipulator* meshManipulator = mInfra->mDriver->getMeshManipulator();
+    meshManipulator->scale(mSteamFountainMesh, irr::core::vector3df(1.0f, 4.0f, 1.0f));
+    meshManipulator->setVertexColors(mSteamFountainMesh, video::SColor(100, 252, 221, 145));
+    meshManipulator->setVertexColorAlpha(mSteamFountainMesh, 100);
+     
     //    //create empty checkpoint info vector
     //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
     //    checkPointVec->clear();
@@ -159,6 +168,10 @@ bool EntityManager::IsVisible(irr::u8 whichEntityClass) {
             return(mShowCameras);
         }
 
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS: {
+            return(mShowEffects);
+        }
+
         default: {
             return(false);
         }
@@ -234,6 +247,16 @@ void EntityManager::SetVisible(irr::u8 whichEntityClass, bool visible) {
             SetVisibleEntityType(Entity::TriggerCraft, visible);
             SetVisibleEntityType(Entity::TriggerTimed, visible);
             SetVisibleEntityType(Entity::TriggerRocket, visible);
+
+            break;
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS: {
+            mShowEffects = visible;
+
+            SetVisibleEntityType(Entity::SteamStrong, visible);
+            SetVisibleEntityType(Entity::SteamLight, visible);
+            SetVisibleEntityType(Entity::Explosion, visible);
 
             break;
         }
@@ -688,6 +711,15 @@ irr::io::path EntityManager::GetModelForEntityType(Entity::EntityType entityType
     }
 }
 
+void EntityManager::UpdateSteamFoutains(irr::f32 frameDeltaTime) {
+    //update all steam fontains
+    std::vector <EditorEntity*>::iterator it;
+
+    for (it = mSteamFountainVec.begin(); it != mSteamFountainVec.end(); ++it) {
+        (*it)->Update(frameDeltaTime);
+    }
+}
+
 void EntityManager::CreateEntity(EntityItem *p_entity) {
     //Line line;
     irr::f32 w, h;
@@ -1050,6 +1082,18 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
             }
 
         case Entity::EntityType::SteamStrong: {
+            EditorEntity* newEntity;
+            
+            //use the prepared SteamFountain Mesh
+            newEntity = new EditorEntity(this, p_entity, mSteamFountainMesh);
+
+            //modify surrounding box position, so that it is not
+            //stuck in the terrain tiles
+            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerSteamFountainBoxHeightDistance);
+
+            mEntityVec.push_back(newEntity);
+            mSteamFountainVec.push_back(newEntity);
+
                //TODO:
 //               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
 //               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 100);
@@ -1067,6 +1111,18 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
         }
 
         case Entity::EntityType::SteamLight: {
+            EditorEntity* newEntity;
+
+            //use the prepared SteamFountain Mesh
+            newEntity = new EditorEntity(this, p_entity, mSteamFountainMesh);
+
+            //modify surrounding box position, so that it is not
+            //stuck in the terrain tiles
+            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerSteamFountainBoxHeightDistance);
+
+            mEntityVec.push_back(newEntity);
+            mSteamFountainVec.push_back(newEntity);
+
                //TODO:
 //               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
 //               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 50);
@@ -1675,6 +1731,22 @@ void EntityManager::RemoveEntity(EditorEntity* removeItem) {
     /******************************************************************
      * Part 1: Remove the higher level EntityItem data                *
      ******************************************************************/
+
+    //if this was a special EditorEntity for SteamFountain remove this Item
+    //also from my internal vector of SteamFoutains we need to update
+    if ((removeItem->GetEntityType() == Entity::SteamStrong) ||
+        (removeItem->GetEntityType() == Entity::SteamLight)) {
+        std::vector<EditorEntity*>::iterator itSteam;
+
+        for (itSteam = mSteamFountainVec.begin(); itSteam != mSteamFountainVec.end();) {
+            if ((*itSteam) == removeItem) {
+                itSteam = mSteamFountainVec.erase(itSteam);
+            }
+            else {
+                itSteam++;
+            }
+        }
+    }
 
     //Remove from the list of EditorEntity items
     std::vector<EditorEntity*>::iterator it;

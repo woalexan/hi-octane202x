@@ -133,6 +133,8 @@ void TextureLoader::LoadEditorTextures() {
 
     LoadEditorTexture("media/editor/camera-small.png", true);
     LoadEditorTexture("media/editor/stopwatch-small.png", true);
+    LoadEditorTexture("media/editor/speedo-slow-small.png", true);
+    LoadEditorTexture("media/editor/speedo-fast-small.png", true);
 }
 
 TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, char* levelTexFilePath,  char* spriteTexFilePath,

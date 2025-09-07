@@ -25,6 +25,7 @@
 #define DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS 5
 #define DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS 6
 #define DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS 7
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS 8
 
 //preset values, also used in
 //HiOctaneTools
@@ -33,6 +34,7 @@ const irr::f32 EntityManagerCollectableSize_h = 0.45f;
 
 const irr::f32 EntityManagerRecoveryVehicleFlyingHeight = 6.0f;
 const irr::f32 EntityManagerCubeHeightDistance = 0.3f;
+const irr::f32 EntityManagerSteamFountainBoxHeightDistance = 2.0f;
 
 /************************
  * Forward declarations *
@@ -52,8 +54,7 @@ private:
      LevelFile* mLevelFile = nullptr;
      LevelTerrain* mLevelTerrain = nullptr;
      LevelBlocks* mLevelBlocks = nullptr;
-     TextureLoader* mTexLoader = nullptr;
-
+   
      void CreateEntity(EntityItem *p_entity);
 
      //for an unknown/undefined entity type returns an empty string
@@ -105,6 +106,9 @@ private:
      bool mShowWallSegments = false;
      bool mShowTriggers = false;
      bool mShowCameras = false;
+     bool mShowEffects = false;
+
+     std::vector<EditorEntity*> mSteamFountainVec;
 
 public:
     EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
@@ -112,6 +116,9 @@ public:
     ~EntityManager();
 
     InfrastructureBase* mInfra = nullptr;
+    TextureLoader* mTexLoader = nullptr;
+
+    void UpdateSteamFoutains(irr::f32 frameDeltaTime);
 
     void SetVisible(irr::u8 whichEntityClass, bool visible);
     bool IsVisible(irr::u8 whichEntityClass);
@@ -168,6 +175,9 @@ public:
     //a simple Cube Mesh for Waypoint and Wallsegment level Editor
     //entity items
     std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>> mCubeMeshVec;
+
+    //a simple box Mesh for selection of SteamFountains
+    irr::scene::IMesh* mSteamFountainMesh;
 
     bool AreModelImagesAvailable();
 

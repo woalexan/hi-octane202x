@@ -107,6 +107,9 @@ void EditorSession::AdvanceTime(irr::f32 frameDeltaTime) {
      //}
 
      mParentEditor->mTimeProfiler->Profile(mParentEditor->mTimeProfiler->tIntMorphing);
+
+     //Update "special" EditorEntities, like SteamFoutains
+     mEntityManager->UpdateSteamFoutains(frameDeltaTime);
 }
 
 void EditorSession::ActivateMorphs() {
@@ -360,6 +363,7 @@ bool EditorSession::LoadLevel() {
 
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+   mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
 
    //create my Item selector which allows the user to
    //select level items by moving the move cursor onto them

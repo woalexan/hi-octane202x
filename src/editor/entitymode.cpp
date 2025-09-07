@@ -241,6 +241,7 @@ void EntityMode::CreateWindow() {
     AddEntityTypeCategory(L"PowerUp", (irr::u8)(EDITOR_ENTITYCAT_POWERUPS), mGuiEntityMode.EntityItemTypeCategoryList);
     AddEntityTypeCategory(L"Models", (irr::u8)(EDITOR_ENTITYCAT_MODELS), mGuiEntityMode.EntityItemTypeCategoryList);
     AddEntityTypeCategory(L"Control", (irr::u8)(EDITOR_ENTITYCAT_CONTROL), mGuiEntityMode.EntityItemTypeCategoryList);
+    AddEntityTypeCategory(L"Waypoints", (irr::u8)(EDITOR_ENTITYCAT_WAYPOINTS), mGuiEntityMode.EntityItemTypeCategoryList);
     AddEntityTypeCategory(L"Unused", (irr::u8)(EDITOR_ENTITYCAT_UNUSED), mGuiEntityMode.EntityItemTypeCategoryList);
 
     mGuiEntityMode.EntityItemTypeCategoryList->setToolTipText ( L"Select Entity Category" );
@@ -718,6 +719,17 @@ void EntityMode::DefineAllEntityItemTypes() {
    if (catPntr != nullptr) {
        catPntr->AddEntityType(mParentSession->mEntityManager->mTexImageRecoveryVehicle, Entity::EntityType::RecoveryTruck);
        catPntr->AddEntityType(mParentSession->mEntityManager->mTexImageCone, Entity::EntityType::Cone);
+       catPntr->AddEntityType(mParentSession->mTexLoader->spriteTex.at(12), Entity::EntityType::SteamLight);
+       catPntr->AddEntityType(mParentSession->mTexLoader->spriteTex.at(17), Entity::EntityType::SteamStrong);
+   }
+
+   catPntr = this->FindEntityItemTypeCategory((irr::u8)(EDITOR_ENTITYCAT_WAYPOINTS));
+   if (catPntr != nullptr) {
+       catPntr->AddEntityType(mParentSession->mTexLoader->levelTex.at(40), Entity::EntityType::WaypointFuel);
+       catPntr->AddEntityType(mParentSession->mTexLoader->levelTex.at(44), Entity::EntityType::WaypointAmmo);
+       catPntr->AddEntityType(mParentSession->mTexLoader->levelTex.at(48), Entity::EntityType::WaypointShield);
+       catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(2), Entity::EntityType::WaypointSlow);
+       catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(3), Entity::EntityType::WaypointFast);
    }
 
    catPntr = this->FindEntityItemTypeCategory((irr::u8)(EDITOR_ENTITYCAT_CONTROL));
@@ -727,6 +739,7 @@ void EntityMode::DefineAllEntityItemTypes() {
        //second texture item in editorTex vector is StopWatch image I want
        //to use for Time Trigger
        catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(1), Entity::EntityType::TriggerTimed);
+       catPntr->AddEntityType(mParentSession->mTexLoader->spriteTex.at(4), Entity::EntityType::Explosion);
    }
 }
 
