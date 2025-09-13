@@ -736,9 +736,12 @@ void EntityMode::DefineAllEntityItemTypes() {
    if (catPntr != nullptr) {
        //first texture item in editorTex vector is camera image
        catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(0) , Entity::EntityType::Camera);
+       catPntr->AddEntityType(mParentSession->mTexLoader->levelTex.at(121), Entity::EntityType::Checkpoint);
        //second texture item in editorTex vector is StopWatch image I want
        //to use for Time Trigger
        catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(1), Entity::EntityType::TriggerTimed);
+       catPntr->AddEntityType(mParentSession->mEntityManager->mTexImageRaceVehicle, Entity::EntityType::TriggerCraft);
+       catPntr->AddEntityType(mParentSession->mTexLoader->spriteTex.at(39), Entity::EntityType::TriggerRocket);
        catPntr->AddEntityType(mParentSession->mTexLoader->spriteTex.at(4), Entity::EntityType::Explosion);
    }
 }
@@ -918,7 +921,15 @@ void EntityMode::OnButtonClicked(irr::s32 buttonGuiId) {
         case GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY: {
              if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
                 mParentSession->mEntityManager->RemoveEntity(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected);
+
+                //make sure to deselect currently selected Entity and too instead select cell below
+                mParentSession->mItemSelector->SelectSpecifiedCellAtCoordinate(
+                    mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
+                    mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y);
+
+                NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
              }
+
              break;
         }
     }

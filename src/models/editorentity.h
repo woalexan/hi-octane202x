@@ -31,6 +31,8 @@ private:
     irr::scene::IMesh*  mMesh = nullptr;
     irr::io::path mModelFileName;
 
+    irr::core::vector3df mOffsetMeshPos;
+
     //variables for a collectable, or sprite
     irr::video::ITexture* mSpriteTex = nullptr;
     irr::scene::IBillboardSceneNode *mBillSceneNode = nullptr;
@@ -40,8 +42,6 @@ private:
     SteamFountain* mSteamFountain = nullptr;
 
     bool mBoundingBoxVisible = false;
-
-    void UpdateBoundingBox();
 
     bool mTransparentMesh = false;
 
@@ -55,6 +55,8 @@ public:
     //Constructor for a texture/Sprite based 2D model
     EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, irr::video::ITexture* texture);
     ~EditorEntity();
+
+    void UpdateBoundingBox();
     
     EntityManager* mParentManager = nullptr;
 
@@ -77,6 +79,14 @@ public:
 
     void Hide();
     void Show();
+
+    //in case of a special EditiorEntity (like SteamFountain) we also
+    //have the two methods below, which allows to control if linked effect
+    //is visible or not
+    void ShowEffect();
+    void HideEffect();
+
+    void SetMeshPosOffset(irr::core::vector3df newOffset);
 
     //special EditorEntities need updates like the
     //SteamFoutains
