@@ -37,6 +37,33 @@ irr::scene::IMesh* EntityManager::GetCubeMeshWithColor(ColorStruct* whichColor) 
     return mCubeMeshVec.at(0).second;
 }
 
+IMesh* EntityManager::CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor) {
+
+    //Some TriggerCraft and TriggerRocket entities have an OffsetX and OffsetY value of 0
+    //in this case make sure that a minimum Size of the Mesh is guaranteed, so that we see something
+    if (scaleFactors.X < 0.01f) {
+        scaleFactors.X = 0.05f;
+    }
+
+    if (scaleFactors.Y < 0.01f) {
+        scaleFactors.Y = 0.05f;
+    }
+
+    if (scaleFactors.Z < 0.01f) {
+        scaleFactors.Z = 0.05f;
+    }
+
+    //the specified color here does not matter, is replaced afterwards anyway
+    irr::scene::IMesh* mesh = CreateCubeMesh(1.0f, mInfra->mDrawDebug->pink);
+
+    irr::scene::IMeshManipulator* meshManipulator = mInfra->mDriver->getMeshManipulator();
+    meshManipulator->scale(mesh, scaleFactors);
+    meshManipulator->setVertexColors(mesh, boxColor);
+    meshManipulator->setVertexColorAlpha(mesh, boxColor.getAlpha());
+
+    return mesh;
+}
+
 EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
                              TextureLoader* texLoader) {
     mInfra = infra;
@@ -64,12 +91,10 @@ EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, Lev
     mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorAmmoCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorAmmoCharger)));
 
     //Create the box mesh for surrounding SteamFountains
-    mSteamFountainMesh = CreateCubeMesh(1.0f, mInfra->mDrawDebug->pink);
+    mSteamFountainMesh = CreateSelectionMeshBox(irr::core::vector3df(1.0f, 4.0f, 1.0f),
+        DEF_EDITOR_ENTITYMANAGER_STEAMFOUNTAIN_SELMESHBOXCOLOR);
 
-    irr::scene::IMeshManipulator* meshManipulator = mInfra->mDriver->getMeshManipulator();
-    meshManipulator->scale(mSteamFountainMesh, irr::core::vector3df(1.0f, 4.0f, 1.0f));
-    meshManipulator->setVertexColors(mSteamFountainMesh, video::SColor(100, 252, 221, 145));
-    meshManipulator->setVertexColorAlpha(mSteamFountainMesh, 100);
+    mSelectionMeshVec.clear();
      
     //    //create empty checkpoint info vector
     //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
@@ -109,6 +134,11 @@ EntityManager::~EntityManager() {
         mTexImageRecoveryVehicle = nullptr;
     }
 
+    if (mTexImageRaceVehicle != nullptr) {
+        mInfra->mDriver->removeTexture(mTexImageRaceVehicle);
+        mTexImageRaceVehicle = nullptr;
+    }
+
     if (mTexImageCone != nullptr) {
         mInfra->mDriver->removeTexture(mTexImageCone);
         mTexImageCone = nullptr;
@@ -120,6 +150,10 @@ EntityManager::~EntityManager() {
     }
 }
 
+void EntityManager::SetShowSpecialEditorEntityTransparentSelectionBoxes(bool visible) {
+    mShowSpecialEditorEntityTransparentSelectionBoxes = visible;
+}
+
 void EntityManager::SetVisibleEntityType(Entity::EntityType whichType, bool visible) {
     std::vector<EditorEntity*>::iterator it;
     Entity::EntityType type;
@@ -129,9 +163,29 @@ void EntityManager::SetVisibleEntityType(Entity::EntityType whichType, bool visi
 
         if (type == whichType) {
             if (visible) {
-                (*it)->Show();
+                //modified handling for special type like SteamFountains
+                if ((type == Entity::SteamStrong) || (type == Entity::SteamLight)) {
+                    (*it)->ShowEffect();
+                    //in EntityMode show additional transparend box to be able to select
+                    //this entity
+                    if (mShowSpecialEditorEntityTransparentSelectionBoxes) {
+                        (*it)->Show();
+                    }
+                    else {
+                        (*it)->Hide();
+                    }
+                }
+                else {
+                    (*it)->Show();
+                }
             } else {
-                (*it)->Hide();
+                if ((type == Entity::SteamStrong) || (type == Entity::SteamLight)) {
+                    (*it)->HideEffect();
+                    (*it)->Hide();
+                }
+                else {
+                    (*it)->Hide();
+                }
             }
         }
     }
@@ -170,6 +224,10 @@ bool EntityManager::IsVisible(irr::u8 whichEntityClass) {
 
         case DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS: {
             return(mShowEffects);
+        }
+
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS: {
+            return(mShowMorphs);
         }
 
         default: {
@@ -240,6 +298,16 @@ void EntityManager::SetVisible(irr::u8 whichEntityClass, bool visible) {
             break;
         }
 
+        case DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS: {
+            mShowMorphs = visible;
+
+            SetVisibleEntityType(Entity::MorphOnce, visible);
+            SetVisibleEntityType(Entity::MorphPermanent, visible);
+            SetVisibleEntityType(Entity::MorphSource1, visible);
+            SetVisibleEntityType(Entity::MorphSource2, visible);
+
+            break;
+        }
 
         case DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS: {
             mShowTriggers = visible;
@@ -247,6 +315,7 @@ void EntityManager::SetVisible(irr::u8 whichEntityClass, bool visible) {
             SetVisibleEntityType(Entity::TriggerCraft, visible);
             SetVisibleEntityType(Entity::TriggerTimed, visible);
             SetVisibleEntityType(Entity::TriggerRocket, visible);
+            SetVisibleEntityType(Entity::Checkpoint, visible);
 
             break;
         }
@@ -720,7 +789,7 @@ void EntityManager::UpdateSteamFoutains(irr::f32 frameDeltaTime) {
     }
 }
 
-void EntityManager::CreateEntity(EntityItem *p_entity) {
+void EntityManager::CreateEntity(EntityItem* p_entity) {
     //Line line;
     irr::f32 w, h;
     //Collectable* collectable;
@@ -728,10 +797,10 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
 
     //make local variable which points on pointer
     EntityItem entity = *p_entity;
-    EntityItem *next = nullptr;
+    EntityItem* next = nullptr;
 
-//    if (!GroupedEntities.ContainsKey(entity.Group)) GroupedEntities.Add(entity.Group, new List<EntityItem>());
-//    GroupedEntities[entity.Group].Add(entity);
+    //    if (!GroupedEntities.ContainsKey(entity.Group)) GroupedEntities.Add(entity.Group, new List<EntityItem>());
+    //    GroupedEntities[entity.Group].Add(entity);
 
     float boxSize = 0;
     //collectable = nullptr;
@@ -747,403 +816,430 @@ void EntityManager::CreateEntity(EntityItem *p_entity) {
     Entity::EntityType type = entity.getEntityType();
 
     switch (type) {
-        case Entity::EntityType::WaypointAmmo:
-        case Entity::EntityType::WaypointFuel:
-        case Entity::EntityType::WaypointShield:
-        case Entity::EntityType::WaypointFast:
-        case Entity::EntityType::WaypointShortcut:
-        case Entity::EntityType::WaypointSpecial1:
-        case Entity::EntityType::WaypointSpecial2:
-        case Entity::EntityType::WaypointSpecial3:
-        case Entity::EntityType::WaypointSlow: {
-            EditorEntity* newEntity;
-            irr::scene::IMesh* wMesh = nullptr;
+    case Entity::EntityType::WaypointAmmo:
+    case Entity::EntityType::WaypointFuel:
+    case Entity::EntityType::WaypointShield:
+    case Entity::EntityType::WaypointFast:
+    case Entity::EntityType::WaypointShortcut:
+    case Entity::EntityType::WaypointSpecial1:
+    case Entity::EntityType::WaypointSpecial2:
+    case Entity::EntityType::WaypointSpecial3:
+    case Entity::EntityType::WaypointSlow: {
+        EditorEntity* newEntity;
+        irr::scene::IMesh* wMesh = nullptr;
 
-            wMesh = GetCubeMeshWithColor(GetColorForWayPointType(type));
+        wMesh = GetCubeMeshWithColor(GetColorForWayPointType(type));
 
-            //use the prepared cubeMesh for Waypoint editor entity items
-            newEntity = new EditorEntity(this, p_entity, wMesh);
+        //use the prepared cubeMesh for Waypoint editor entity items
+        newEntity = new EditorEntity(this, p_entity, wMesh);
 
-            //modify cube position, so that it is not
-            //stuck in the terrain tiles
-            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+        //modify cube position, so that it is not
+        //stuck in the terrain tiles
+        newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
 
-            mEntityVec.push_back(newEntity);
-            break;
+        mEntityVec.push_back(newEntity);
+        break;
+    }
+
+    case Entity::EntityType::WallSegment: {
+
+        /* if (next != nullptr) {
+             LineStruct *line = new LineStruct;
+             line->A = entity.getCenter();
+             line->B = next->getCenter();
+             //line = new Line(entity.Center, next.Center, color);
+             //line->name.clear();
+             //line->name.append("Wall segment line ");
+             //line->name.append(std::to_string(entity.get_ID()));
+             //line->name.append(" to ");
+             //line->name.append(std::to_string(next->get_ID()));
+
+             line->name = new char[100];
+             sprintf(&line->name[0], "Wall segment line %d to %d", entity.get_ID(), next->get_ID());
+
+             //remember a line between both waypoints for debugging purposes
+             ENTWallsegmentsLine_List->push_back(line);
+         }
+        ENTWallsegments_List->push_back(p_entity);*/
+
+        EditorEntity* newEntity;
+        irr::scene::IMesh* wMesh = nullptr;
+
+        wMesh = GetCubeMeshWithColor(mInfra->mDrawDebug->red);
+
+        //use the prepared cubeMesh for WallPointSegments as well
+        newEntity = new EditorEntity(this, p_entity, wMesh);
+
+        //modify cube position, so that it is not
+        //stuck in the terrain tiles
+        newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+
+        mEntityVec.push_back(newEntity);
+
+        break;
+    }
+
+    case Entity::EntityType::TriggerCraft:
+    case Entity::EntityType::TriggerRocket:
+    case Entity::EntityType::Checkpoint: {
+        EditorEntity* newEntity;
+
+        irr::core::vector3df scaleVal(p_entity->getOffsetX(), 1.0f, p_entity->getOffsetY());
+
+        irr::scene::IMesh* newCustomMesh;
+
+        if (type == Entity::EntityType::TriggerCraft) {
+            newCustomMesh = CreateSelectionMeshBox(scaleVal,
+                DEF_EDITOR_ENTITYMANAGER_CRAFTTRIGGER_SELMESHBOXCOLOR);
+        }
+        else if (type == Entity::EntityType::Checkpoint) {
+            newCustomMesh = CreateSelectionMeshBox(scaleVal,
+                DEF_EDITOR_ENTITYMANAGER_CHECKPOINT_SELMESHBOXCOLOR);
+        }
+        else {
+            newCustomMesh = CreateSelectionMeshBox(scaleVal,
+                DEF_EDITOR_ENTITYMANAGER_MISSILETRIGGER_SELMESHBOXCOLOR);
         }
 
-        case Entity::EntityType::WallSegment: {
+        //use the custom mesh created above
+        newEntity = new EditorEntity(this, p_entity, newCustomMesh);
 
-           /* if (next != nullptr) {
-                LineStruct *line = new LineStruct;
-                line->A = entity.getCenter();
-                line->B = next->getCenter();
-                //line = new Line(entity.Center, next.Center, color);
-                //line->name.clear();
-                //line->name.append("Wall segment line ");
-                //line->name.append(std::to_string(entity.get_ID()));
-                //line->name.append(" to ");
-                //line->name.append(std::to_string(next->get_ID()));
+        mSelectionMeshVec.push_back(std::make_pair(newEntity, newCustomMesh));
 
-                line->name = new char[100];
-                sprintf(&line->name[0], "Wall segment line %d to %d", entity.get_ID(), next->get_ID());
+        //modify surrounding box position, so that it is not
+        //stuck in the terrain tiles
+        //newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
 
-                //remember a line between both waypoints for debugging purposes
-                ENTWallsegmentsLine_List->push_back(line);
-            }
-           ENTWallsegments_List->push_back(p_entity);*/
+        //we additionally need to offset the Mesh position by half the OffsetX and OffsetY distance,
+        //so that the custom Selection Mesh for this item is displayed at the correct location
+        //X offset needs to be used in negative direction, as our universe is swapped at the X-Axis
+        newEntity->SetMeshPosOffset(irr::core::vector3df(-scaleVal.X * 0.5f, 0.5f, scaleVal.Z * 0.5f));
 
-           EditorEntity* newEntity;
-           irr::scene::IMesh* wMesh = nullptr;
+        mEntityVec.push_back(newEntity);
 
-            wMesh = GetCubeMeshWithColor(mInfra->mDrawDebug->red);
+        break;
+    }
 
-            //use the prepared cubeMesh for WallPointSegments as well
-            newEntity = new EditorEntity(this, p_entity, wMesh);
+    case Entity::EntityType::TriggerTimed: {
+        //the stopwatch image is at index 1 of editorTex vector!
+        EditorEntity* newEntity = new EditorEntity(this, p_entity, mTexLoader->editorTex.at(1));
+        mEntityVec.push_back(newEntity);
+        break;
+    }
 
-            //modify cube position, so that it is not
-            //stuck in the terrain tiles
-            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+    case Entity::EntityType::MorphOnce:
+    case Entity::EntityType::MorphPermanent: {
+        EditorEntity* newEntity;
 
-            mEntityVec.push_back(newEntity);
+        irr::core::vector3df scaleVal(p_entity->getOffsetX(), 1.0f, p_entity->getOffsetY());
 
-           break;
+        irr::scene::IMesh* newCustomMesh;
+
+        newCustomMesh = CreateSelectionMeshBox(scaleVal,
+            DEF_EDITOR_ENTITYMANAGER_MORPHTARGET_SELMESHBOXCOLOR);
+
+        //use the custom mesh created above
+        newEntity = new EditorEntity(this, p_entity, newCustomMesh);
+
+        mSelectionMeshVec.push_back(std::make_pair(newEntity, newCustomMesh));
+
+        //modify surrounding box position, so that it is not
+        //stuck in the terrain tiles
+        //newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+
+        //we additionally need to offset the Mesh position by half the OffsetX and OffsetY distance,
+        //so that the custom Selection Mesh for this item is displayed at the correct location
+        //X offset needs to be used in negative direction, as our universe is swapped at the X-Axis
+        newEntity->SetMeshPosOffset(irr::core::vector3df(-scaleVal.X * 0.5f, 0.5f, scaleVal.Z * 0.5f));
+
+        mEntityVec.push_back(newEntity);
+
+        w = entity.getOffsetX() + 1.0f;
+        h = entity.getOffsetY() + 1.0f;
+        //box = new Box(0, 0, 0, w, 1, h, new Vector4(0.1f, 0.3f, 0.9f, 0.5f));
+        //box.Position = entity.Pos + Vector3.UnitY * 0.01f;
+        //AddNode(box);
+
+        EntityItem* source;
+
+        std::vector<Column*> sourceColumns;
+        sourceColumns.clear();
+
+        //see if a entity with this ID exists
+        bool entFound = mLevelFile->ReturnEntityItemWithId(entity.getNextID(), &source);
+
+        if (entFound) {
+            sourceColumns = mLevelBlocks->ColumnsInRange(source->getCell().X, source->getCell().Y, w, h);
         }
 
-       case Entity::EntityType::TriggerCraft:
-       case Entity::EntityType::TriggerRocket: {
-            //TODO: AddTrigger(p_entity);
-            break;
-       }
+        // morph for this entity and its linked source
+        std::vector<Column*> targetColumns = mLevelBlocks->ColumnsInRange(entity.getCell().X, entity.getCell().Y, w, h);
 
-       case Entity::EntityType::TriggerTimed: {
-            //the stopwatch image is at index 1 of editorTex vector!
-            EditorEntity* newEntity = new EditorEntity(this, p_entity,  mTexLoader->editorTex.at(1));
-            mEntityVec.push_back(newEntity);
-            break;
-       }
+        //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
+        //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
+        //so that later we can put this cells into their own Meshbuffers/SceneNodes
 
-            case Entity::EntityType::MorphOnce:
-            case Entity::EntityType::MorphPermanent: {
-                    w = entity.getOffsetX() + 1.0f;
-                    h = entity.getOffsetY() + 1.0f;
-                    //box = new Box(0, 0, 0, w, 1, h, new Vector4(0.1f, 0.3f, 0.9f, 0.5f));
-                    //box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-                    //AddNode(box);
+        //Additional note 03.01.2025: We need to include a little bit more cells into the dynamic terrain around the
+        //initial morphing area defined in the level (+/- 5 cells as defined below), because otherwise when we run a
+        //morph there will be areas in the terrain at the seems between static & dynamic area that do not behave
+        //correctly (for example hole appear where the player can see through). But including slightly more area into the dynamic
+        //mesh this problem does not arise.
+        irr::u32 baseX = entity.getCell().X - 5;
+        irr::u32 baseY = entity.getCell().Y - 5;
 
-                    EntityItem* source;
+        irr::core::vector2di cellCoord;
+        for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
+            for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
+                cellCoord.set(idxX + baseX, idxY + baseY);
+                this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
 
-                    std::vector<Column*> sourceColumns;
-                    sourceColumns.clear();
-
-                    //see if a entity with this ID exists
-                    bool entFound = mLevelFile->ReturnEntityItemWithId(entity.getNextID(), &source);
-
-                    if (entFound) {
-                        sourceColumns = mLevelBlocks->ColumnsInRange(source->getCell().X, source->getCell().Y, w, h);
-                    }
-
-                    // morph for this entity and its linked source
-                    std::vector<Column*> targetColumns = mLevelBlocks->ColumnsInRange(entity.getCell().X , entity.getCell().Y, w, h);
-
-                    //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
-                    //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
-                    //so that later we can put this cells into their own Meshbuffers/SceneNodes
-
-                    //Additional note 03.01.2025: We need to include a little bit more cells into the dynamic terrain around the
-                    //initial morphing area defined in the level (+/- 5 cells as defined below), because otherwise when we run a
-                    //morph there will be areas in the terrain at the seems between static & dynamic area that do not behave
-                    //correctly (for example hole appear where the player can see through). But including slightly more area into the dynamic
-                    //mesh this problem does not arise.
-                    irr::u32 baseX = entity.getCell().X - 5;
-                    irr::u32 baseY = entity.getCell().Y - 5;
-
-                    irr::core::vector2di cellCoord;
-                    for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
-                        for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                            cellCoord.set(idxX+baseX, idxY+baseY);
-                            this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
-
-                            this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
-                        }
-                    }
-
-                    if (entFound) {
-                        baseX = source->getCell().X - 5;
-                        baseY = source->getCell().Y - 5;
-
-                        for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
-                            for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                                cellCoord.set(idxX + baseX, idxY + baseY);
-                                this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
-
-                                this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
-                            }
-                        }
-                    }
-
-                    // regular morph
-                    if (targetColumns.size() == sourceColumns.size())
-                    {
-                            for (unsigned int i = 0; i < targetColumns.size(); i++)
-                            {
-                                targetColumns[i]->MorphSource = sourceColumns[i];
-                                sourceColumns[i]->MorphSource = targetColumns[i];
-                            }
-                    }
-                    else
-                    {
-                        // permanent morphs dont destroy buildings, instead they morph the column based on terrain height
-                        if (entity.getEntityType() == Entity::EntityType::MorphPermanent)
-                        {
-                            // we need to update surrounding columns too because they could be affected (one side of them)
-                            // (problem comes from not using terrain height for all columns in realtime)
-                            targetColumns = mLevelBlocks->ColumnsInRange(entity.getCell().X - 1, entity.getCell().Y - 1, w + 1, h + 1);
-
-                            // create dummy morph source columns at source position
-                            std::vector<Column*>::iterator colIt;
-
-                            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                                vector3d<irr::f32> colPos(0.0f, 0.0f, 0.0f);
-                                colPos.X = source->getCell().X + ((*colIt)->Position.X - entity.getCell().X);
-                                colPos.Y = 0.0f;
-                                colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
-
-                                //Important: Do not create a special column here, this is a normal game map column!
-                                (*colIt)->MorphSource = new Column(mLevelTerrain, mLevelBlocks, (*colIt)->Definition, colPos, mLevelFile, false, nullptr);
-                            }
-
-                            sourceColumns.clear();
-                        }
-                        else
-                        {
-                            // in this case (MorphOnce) there are no target columns and
-                            // (target and source areas are swapped from game perspective)
-                            // and buildings have to be destroyed as soon as the morph starts
-                            std::vector<Column*>::iterator colIt;
-
-                            for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
-                                (*colIt)->DestroyOnMorph = true;
-                            }
-
-                            for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                                (*colIt)->DestroyOnMorph = true;
-                            }
-                        }
-                    }
-
-                    // create and collect morph instances
-                    Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h,
-                                             entity.getEntityType() == Entity::EntityType::MorphPermanent,
-                                             this->mLevelTerrain, this->mLevelBlocks);
-                    std::vector<Column*>::iterator colIt;
-
-                    for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
-                        morph->Columns.push_back(*colIt);
-                    }
-
-                    Morphs.push_back(morph);
-
-                    // source
-                    morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h,
-                                      entity.getEntityType() == Entity::EntityType::MorphPermanent,
-                                      this->mLevelTerrain, this->mLevelBlocks);
-                    for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
-                        morph->Columns.push_back(*colIt);
-                    }
-
-                    Morphs.push_back(morph);
-                    break;
+                this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
             }
+        }
 
-        case Entity::EntityType::MorphSource1:
-        case Entity::EntityType::MorphSource2: {
-            // no need to display morph sources since they are handled above by their targets
+        if (entFound) {
+            baseX = source->getCell().X - 5;
+            baseY = source->getCell().Y - 5;
 
-            w = entity.getOffsetX() + 1.0f;
-            h = entity.getOffsetY() + 1.0f;
-
-            //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
-            //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
-            //so that later we can put this cells into their own Meshbuffers/SceneNodes
-            irr::u32 baseX = entity.getCell().X - 5;
-            irr::u32 baseY = entity.getCell().Y - 5;
-
-            irr::core::vector2di cellCoord;
             for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
                 for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
-                    cellCoord.set(idxX+baseX, idxY+baseY);
+                    cellCoord.set(idxX + baseX, idxY + baseY);
                     this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
 
                     this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
                 }
             }
+        }
 
-            break;
-         }
+        // regular morph
+        if (targetColumns.size() == sourceColumns.size())
+        {
+            for (unsigned int i = 0; i < targetColumns.size(); i++)
+            {
+                targetColumns[i]->MorphSource = sourceColumns[i];
+                sourceColumns[i]->MorphSource = targetColumns[i];
+            }
+        }
+        else
+        {
+            // permanent morphs dont destroy buildings, instead they morph the column based on terrain height
+            if (entity.getEntityType() == Entity::EntityType::MorphPermanent)
+            {
+                // we need to update surrounding columns too because they could be affected (one side of them)
+                // (problem comes from not using terrain height for all columns in realtime)
+                targetColumns = mLevelBlocks->ColumnsInRange(entity.getCell().X - 1, entity.getCell().Y - 1, w + 1, h + 1);
 
-        case Entity::EntityType::Cone:
-        case Entity::EntityType::RecoveryTruck: {
-            /*TODO: Recovery *recov1 =
-                    new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, mInfra->mSmgr);
+                // create dummy morph source columns at source position
+                std::vector<Column*>::iterator colIt;
 
-            //remember all recovery vehicles in a vector for later use
-            this->recoveryVec->push_back(recov1);*/
-            irr::io::path modelFileName = GetModelForEntityType(type);
-            EditorEntity* newEntity;
+                for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
+                    vector3d<irr::f32> colPos(0.0f, 0.0f, 0.0f);
+                    colPos.X = source->getCell().X + ((*colIt)->Position.X - entity.getCell().X);
+                    colPos.Y = 0.0f;
+                    colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
 
-            if (modelFileName != "") {
-                newEntity = new EditorEntity(this, p_entity, modelFileName);
-
-                //for recovery vehicle we want to modify its position, so that it is not
-                //stuck in the terrain tiles
-                if (type == Entity::EntityType::RecoveryTruck) {
-                    newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerRecoveryVehicleFlyingHeight);
+                    //Important: Do not create a special column here, this is a normal game map column!
+                    (*colIt)->MorphSource = new Column(mLevelTerrain, mLevelBlocks, (*colIt)->Definition, colPos, mLevelFile, false, nullptr);
                 }
 
-                mEntityVec.push_back(newEntity);
+                sourceColumns.clear();
             }
-
-            break;
-        }
-
-        case Entity::EntityType::Checkpoint:     {
-            //30.05.2025: It seems in Level 7 the map
-            //designer made a mistake, and added a second
-            //checkpoint with value 4, but with DX = 0 and DY = 0
-            //This additional (faulty) checkpoint prevents my
-            //lap counting from working properly
-            //to fix this here make sure that if DX = 0 and DY = 0
-            //we do not add this fault checkpoint
-            if ((entity.getOffsetX() != 0.0f) || (entity.getOffsetY() != 0.0f))
-              {
-                //TODO:
-                //AddCheckPoint(entity);
-               }
-            break;
-        }
-
-        case Entity::EntityType::Camera: {
-            //the camera image is at index 1 of editorTex vector!
-            EditorEntity* newEntity = new EditorEntity(this, p_entity,  mTexLoader->editorTex.at(0));
-            mEntityVec.push_back(newEntity);
-            break;
-        }
-
-        case Entity::EntityType::Explosion: {
-            //For explosion entities use the Game Sprite number 4
-            EditorEntity* newEntity = new EditorEntity(this, p_entity,  mTexLoader->spriteTex.at(4));
-            mEntityVec.push_back(newEntity);
-            break;
-        }
-
-        //this are default collectable items from
-        //the map files
-        case Entity::EntityType::ExtraFuel:
-        case Entity::EntityType::FuelFull:
-        case Entity::EntityType::DoubleFuel:
-        case Entity::EntityType::ExtraAmmo:
-        case Entity::EntityType::AmmoFull:
-        case Entity::EntityType::DoubleAmmo:
-        case Entity::EntityType::ExtraShield:
-        case Entity::EntityType::ShieldFull:
-        case Entity::EntityType::DoubleShield:
-        case Entity::EntityType::BoosterUpgrade:
-        case Entity::EntityType::MissileUpgrade:
-        case Entity::EntityType::MinigunUpgrade:  {
-                    //if entity type is invalid for a collectable the function below will fallback
-                    //to sprite number 42, which is a sprite I did not know the purpose of
-                    irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
-
-                    //Point to the correct (billboard) texture
-                    //collectable = new Collectable(this->mParentEditor, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), false);
-                    //ENTCollectablesVec->push_back(collectable);
-
-                    EditorEntity* newEntity = new EditorEntity(this, p_entity,  mTexLoader->spriteTex.at(spriteNr));
-                    mEntityVec.push_back(newEntity);
-                    break;
-        }
-
-        case Entity::EntityType::UnknownShieldItem:
+            else
             {
-                   //uncomment the next 2 lines to show this items also to the player
-                   // collectable = new Collectable(41, entity.get_Center(), color, driver);
-                   // ENTCollectables_List.push_back(collectable);
-                    break;
+                // in this case (MorphOnce) there are no target columns and
+                // (target and source areas are swapped from game perspective)
+                // and buildings have to be destroyed as soon as the morph starts
+                std::vector<Column*>::iterator colIt;
+
+                for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
+                    (*colIt)->DestroyOnMorph = true;
+                }
+
+                for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
+                    (*colIt)->DestroyOnMorph = true;
+                }
             }
+        }
 
-        case Entity::EntityType::UnknownItem:
-        case Entity::EntityType::Unknown:
-            {
-                   //uncomment the next 2 lines to show this items also to the player
-                   // collectable = new Collectable(50, entity.get_Center(), color, driver);
-                   // ENTCollectables_List.push_back(collectable);
-                    break;
+        // create and collect morph instances
+        Morph* morph = new Morph(entity.get_ID(), source, p_entity, (int)w, (int)h,
+            entity.getEntityType() == Entity::EntityType::MorphPermanent,
+            this->mLevelTerrain, this->mLevelBlocks);
+        std::vector<Column*>::iterator colIt;
+
+        for (colIt = targetColumns.begin(); colIt != targetColumns.end(); ++colIt) {
+            morph->Columns.push_back(*colIt);
+        }
+
+        Morphs.push_back(morph);
+
+        // source
+        morph = new Morph(entity.get_ID(), p_entity, source, (int)w, (int)h,
+            entity.getEntityType() == Entity::EntityType::MorphPermanent,
+            this->mLevelTerrain, this->mLevelBlocks);
+        for (colIt = sourceColumns.begin(); colIt != sourceColumns.end(); ++colIt) {
+            morph->Columns.push_back(*colIt);
+        }
+
+        Morphs.push_back(morph);
+        break;
+    }
+
+    case Entity::EntityType::MorphSource1:
+    case Entity::EntityType::MorphSource2: {
+        EditorEntity* newEntity;
+
+        irr::core::vector3df scaleVal(p_entity->getOffsetX(), 1.0f, p_entity->getOffsetY());
+
+        irr::scene::IMesh* newCustomMesh;
+
+        newCustomMesh = CreateSelectionMeshBox(scaleVal,
+            DEF_EDITOR_ENTITYMANAGER_MORPHSOURCE_SELMESHBOXCOLOR);
+
+        //use the custom mesh created above
+        newEntity = new EditorEntity(this, p_entity, newCustomMesh);
+
+        mSelectionMeshVec.push_back(std::make_pair(newEntity, newCustomMesh));
+
+        //modify surrounding box position, so that it is not
+        //stuck in the terrain tiles
+        //newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+
+        //we additionally need to offset the Mesh position by half the OffsetX and OffsetY distance,
+        //so that the custom Selection Mesh for this item is displayed at the correct location
+        //X offset needs to be used in negative direction, as our universe is swapped at the X-Axis
+        newEntity->SetMeshPosOffset(irr::core::vector3df(-scaleVal.X * 0.5f, 0.5f, scaleVal.Z * 0.5f));
+
+        mEntityVec.push_back(newEntity);
+
+        w = entity.getOffsetX() + 1.0f;
+        h = entity.getOffsetY() + 1.0f;
+
+        //for morph optimization we want to keep the dynamic changing map parts in their own MeshBuffers and own SceneNodes
+        //for this I decided to mark the dynamic parts of the maps (morph cells) with a bool variable inside the terrain tile data
+        //so that later we can put this cells into their own Meshbuffers/SceneNodes
+        irr::u32 baseX = entity.getCell().X - 5;
+        irr::u32 baseY = entity.getCell().Y - 5;
+
+        irr::core::vector2di cellCoord;
+        for (irr::u32 idxX = 0; idxX < (w + 5); idxX++) {
+            for (irr::u32 idxY = 0; idxY < (h + 5); idxY++) {
+                cellCoord.set(idxX + baseX, idxY + baseY);
+                this->mLevelTerrain->ForceTileGridCoordRange(cellCoord);
+
+                this->mLevelTerrain->pTerrainTiles[cellCoord.X][cellCoord.Y].dynamicMesh = true;
             }
+        }
 
-        case Entity::EntityType::SteamStrong: {
-            EditorEntity* newEntity;
-            
-            //use the prepared SteamFountain Mesh
-            newEntity = new EditorEntity(this, p_entity, mSteamFountainMesh);
+        break;
+    }
 
-            //modify surrounding box position, so that it is not
+    case Entity::EntityType::Cone:
+    case Entity::EntityType::RecoveryTruck: {
+        /*TODO: Recovery *recov1 =
+                new Recovery(this, entity.getCenter().X, entity.getCenter().Y + 6.0f, entity.getCenter().Z, mInfra->mSmgr);
+
+        //remember all recovery vehicles in a vector for later use
+        this->recoveryVec->push_back(recov1);*/
+        irr::io::path modelFileName = GetModelForEntityType(type);
+        EditorEntity* newEntity;
+
+        if (modelFileName != "") {
+            newEntity = new EditorEntity(this, p_entity, modelFileName);
+
+            //for recovery vehicle we want to modify its position, so that it is not
             //stuck in the terrain tiles
-            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerSteamFountainBoxHeightDistance);
-
-            mEntityVec.push_back(newEntity);
-            mSteamFountainVec.push_back(newEntity);
-
-               //TODO:
-//               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-//               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 100);
-
-//               //only for first testing
-//               //sf->Activate();
-
-//               //it seems when SteamFountains are created the are not
-//               //active yet in the game, the are normally triggered to be
-//               //active by a craft trigger or similar
-
-//               //add new steam fontain to my list of fontains
-//               steamFountainVec->push_back(sf);
-               break;
-        }
-
-        case Entity::EntityType::SteamLight: {
-            EditorEntity* newEntity;
-
-            //use the prepared SteamFountain Mesh
-            newEntity = new EditorEntity(this, p_entity, mSteamFountainMesh);
-
-            //modify surrounding box position, so that it is not
-            //stuck in the terrain tiles
-            newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerSteamFountainBoxHeightDistance);
-
-            mEntityVec.push_back(newEntity);
-            mSteamFountainVec.push_back(newEntity);
-
-               //TODO:
-//               irr::core::vector3d<irr::f32> newlocation = entity.getCenter();
-//               SteamFountain *sf = new SteamFountain(this, p_entity, mInfra->mSmgr, driver, newlocation , 50);
-
-//               //only for first testing
-//               //sf->Activate();
-
-//               //it seems when SteamFountains are created the are not
-//               //active yet in the game, the are normally triggered to be
-//               //active by a craft trigger or similar
-
-//               //add new steam fontain to my list of fontains
-//               steamFountainVec->push_back(sf);
-               break;
-        }
-
-        default:
-            {
-                    boxSize = 0.98f;
-                    break;
+            if (type == Entity::EntityType::RecoveryTruck) {
+                newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerRecoveryVehicleFlyingHeight);
             }
+
+            mEntityVec.push_back(newEntity);
+        }
+
+        break;
+    }
+
+    case Entity::EntityType::Camera: {
+        //the camera image is at index 1 of editorTex vector!
+        EditorEntity* newEntity = new EditorEntity(this, p_entity, mTexLoader->editorTex.at(0));
+        mEntityVec.push_back(newEntity);
+        break;
+    }
+
+    case Entity::EntityType::Explosion: {
+        //For explosion entities use the Game Sprite number 4
+        EditorEntity* newEntity = new EditorEntity(this, p_entity, mTexLoader->spriteTex.at(4));
+        mEntityVec.push_back(newEntity);
+        break;
+    }
+
+                                      //this are default collectable items from
+                                      //the map files
+    case Entity::EntityType::ExtraFuel:
+    case Entity::EntityType::FuelFull:
+    case Entity::EntityType::DoubleFuel:
+    case Entity::EntityType::ExtraAmmo:
+    case Entity::EntityType::AmmoFull:
+    case Entity::EntityType::DoubleAmmo:
+    case Entity::EntityType::ExtraShield:
+    case Entity::EntityType::ShieldFull:
+    case Entity::EntityType::DoubleShield:
+    case Entity::EntityType::BoosterUpgrade:
+    case Entity::EntityType::MissileUpgrade:
+    case Entity::EntityType::MinigunUpgrade: {
+        //if entity type is invalid for a collectable the function below will fallback
+        //to sprite number 42, which is a sprite I did not know the purpose of
+        irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
+
+        //Point to the correct (billboard) texture
+        //collectable = new Collectable(this->mParentEditor, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), false);
+        //ENTCollectablesVec->push_back(collectable);
+
+        EditorEntity* newEntity = new EditorEntity(this, p_entity, mTexLoader->spriteTex.at(spriteNr));
+        mEntityVec.push_back(newEntity);
+        break;
+    }
+
+    case Entity::EntityType::UnknownShieldItem:
+    {
+        //uncomment the next 2 lines to show this items also to the player
+        // collectable = new Collectable(41, entity.get_Center(), color, driver);
+        // ENTCollectables_List.push_back(collectable);
+        break;
+    }
+
+    case Entity::EntityType::UnknownItem:
+    case Entity::EntityType::Unknown:
+    {
+        //uncomment the next 2 lines to show this items also to the player
+        // collectable = new Collectable(50, entity.get_Center(), color, driver);
+        // ENTCollectables_List.push_back(collectable);
+        break;
+    }
+
+    case Entity::EntityType::SteamStrong:
+    case Entity::EntityType::SteamLight:
+    {
+        EditorEntity* newEntity;
+
+        //use the prepared SteamFountain Mesh
+        newEntity = new EditorEntity(this, p_entity, mSteamFountainMesh);
+
+        //modify surrounding box position, so that it is not
+        //stuck in the terrain tiles
+        newEntity->SetNewHeight(newEntity->GetCurrentHeight() + EntityManagerSteamFountainBoxHeightDistance);
+
+        mEntityVec.push_back(newEntity);
+        mSteamFountainVec.push_back(newEntity);
+
+        break;
+    }
+
+    default:
+    {
+        boxSize = 0.98f;
+        break;
+    }
     }
 }
 
@@ -1173,6 +1269,31 @@ irr::video::ITexture* EntityManager::GetImageForEntityType(Entity::EntityType mE
                return mTexImageEmpty;
 
            return mTexImageRecoveryVehicle;
+        }
+
+        case Entity::EntityType::TriggerCraft: {
+            //If Render to Target Texture was not available
+            //return empty image
+            if (!mInfra->mBlockPreviewEnabled)
+                return mTexImageEmpty;
+
+            return mTexImageRaceVehicle;
+        }
+
+        case Entity::EntityType::TriggerRocket: {
+            return (mTexLoader->spriteTex.at(39));
+        }
+
+        case Entity::EntityType::MorphOnce:
+        case Entity::EntityType::MorphPermanent:
+        case Entity::EntityType::MorphSource1:
+        case Entity::EntityType::MorphSource2:
+        {
+            return (mTexLoader->spriteTex.at(42));
+        }
+
+        case Entity::EntityType::Checkpoint: {
+            return (mTexLoader->levelTex.at(121));
         }
 
         case Entity::EntityType::Cone: {
@@ -1563,11 +1684,16 @@ void EntityManager::CreateModelPictures() {
     mRenderToTargetTex = mInfra->mDriver->addRenderTargetTexture(mRenderToTargetTexImageSize, "RTT1");
 
     mTexImageRecoveryVehicle = mInfra->mDriver->addTexture(mRenderToTargetTexImageSize, "ModelPreviewRecoveryVehicle");
+    mTexImageRaceVehicle = mInfra->mDriver->addTexture(mRenderToTargetTexImageSize, "ModelPreviewRaceVehicle");
     mTexImageCone = mInfra->mDriver->addTexture(mRenderToTargetTexImageSize, "ModelPreviewCone");
 
     //Create image of recovery vehicle
     CreateModelPreview((char*)("extract/models/recov0-0.obj"), irr::core::vector3df(40.0f, -50.0f, 0.0f),
                      irr::core::vector3df(44.325f, -51.7125f, 4.925f), irr::core::vector3df(40.5f, -48.5f, 0.0f), *mTexImageRecoveryVehicle);
+
+    //Create image of a race vehicle
+    CreateModelPreview((char*)("extract/models/bike0-0.obj"), irr::core::vector3df(40.5f, -48.5f, 0.0f),
+        irr::core::vector3df(40.1f, -48.1f, -0.7f), irr::core::vector3df(40.5f, -48.5f, 0.0f), *mTexImageRaceVehicle);
 
     //Create image of cone
     CreateModelPreview((char*)("extract/models/cone0-0.obj"), irr::core::vector3df(40.0f, -50.0f, 0.0f),
@@ -1682,9 +1808,65 @@ void EntityManager::AddEntityAtCell(int x, int y, Entity::EntityType type) {
 
   logging::Info(infoMsg);
 
+  //if we create an entity that uses OffsetX and OffsetY we need to set initial
+  //values > 0, so that the new entity can be seen
+  if ((type == Entity::TriggerCraft) || (type == Entity::TriggerRocket)) {
+      newItem->setOffsetX(1.0f);
+      newItem->setOffsetY(1.0f);
+  }
+
+  if (type == Entity::Checkpoint) {
+      newItem->setOffsetX(1.0f);
+  }
+
   //Create also the higher level data for this
   //Entity
   CreateEntity(newItem);
+}
+
+void EntityManager::CleanupCustomMesh(EditorEntity* whichEntity) {
+    std::vector < std::pair<EditorEntity*, irr::scene::IMesh*>>::iterator it;
+    irr::scene::IMesh* meshPntr = nullptr;
+
+    for (it = mSelectionMeshVec.begin(); it != mSelectionMeshVec.end();) {
+        if ((*it).first == whichEntity) {
+            meshPntr = (*it).second;
+
+            it = mSelectionMeshVec.erase(it);
+
+            //get rid of the custom mesh from the Meshcache
+            mInfra->mSmgr->getMeshCache()->removeMesh(meshPntr);
+        }
+        else {
+            it++;
+        }
+    }
+}
+
+void EntityManager::UpdateCustomMesh(EditorEntity* whichEntity) {
+    std::vector < std::pair<EditorEntity*, irr::scene::IMesh*>>::iterator it;
+    irr::scene::IMesh* meshPntr = nullptr;
+
+    for (it = mSelectionMeshVec.begin(); it != mSelectionMeshVec.end(); ++it) {
+        if ((*it).first == whichEntity) {
+            meshPntr = (*it).second;
+            break;
+        }
+    }
+
+    if (meshPntr != nullptr) {
+        irr::scene::IMeshManipulator* meshManipulator = mInfra->mDriver->getMeshManipulator();
+
+        irr::core::vector3df currMeshSize = meshPntr->getBoundingBox().getExtent();
+
+        irr::core::vector3df scaleVal
+            (whichEntity->mEntityItem->getOffsetX() / currMeshSize.X, 
+             1.0f,
+             whichEntity->mEntityItem->getOffsetY() / currMeshSize.Z);
+        meshManipulator->scale(meshPntr, scaleVal);
+
+        whichEntity->UpdateBoundingBox();
+    }
 }
 
 void EntityManager::RemoveEntity(EditorEntity* removeItem) {
@@ -1765,6 +1947,9 @@ void EntityManager::RemoveEntity(EditorEntity* removeItem) {
             it++;
         }
     }
+
+    //if this entity has a custom Mesh make sure to clean it up too
+    CleanupCustomMesh(removeItem);
 
     /******************************************************************
      * Part 2: Modify low level map data                              *
@@ -1943,6 +2128,7 @@ void EntityManager::ChangeEntitiyOffsetX(EditorEntity* editorEntity, float newOf
         return;
 
     editorEntity->mEntityItem->setOffsetX(newOffsetXValue);
+    UpdateCustomMesh(editorEntity);
 }
 
 void EntityManager::ChangeEntitiyOffsetY(EditorEntity* editorEntity, float newOffsetYValue) {
@@ -1950,6 +2136,7 @@ void EntityManager::ChangeEntitiyOffsetY(EditorEntity* editorEntity, float newOf
         return;
 
     editorEntity->mEntityItem->setOffsetY(newOffsetYValue);
+    UpdateCustomMesh(editorEntity);
 }
 
 

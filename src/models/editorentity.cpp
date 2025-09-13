@@ -25,6 +25,8 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
     //therefore we need to add the height of the billboard to the Y coordinate
     mPosition = mEntityItem->getCenter();
 
+    mOffsetMeshPos.set(0.0f, 0.0f, 0.0f);
+
     mMesh = parentManager->mInfra->mSmgr->getMesh(modelFileName);
     mSceneNode = parentManager->mInfra->mSmgr->addMeshSceneNode(mMesh);
 
@@ -46,6 +48,8 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
     //therefore we need to add the height of the billboard to the Y coordinate
     mPosition = mEntityItem->getCenter();
 
+    mOffsetMeshPos.set(0.0f, 0.0f, 0.0f);
+
     //Special case for SteamFountain?
     if ((itemPntr->getEntityType() == Entity::SteamLight) || (itemPntr->getEntityType() == Entity::SteamStrong)) {
         //get the cloud sprite from the game
@@ -58,6 +62,20 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
             mPosition, 100);
 
         mSteamFountain->Activate();
+    }
+
+    //Special case for TriggerCraft, TriggerRocket, Morph or Checkpoint?
+    if ((itemPntr->getEntityType() == Entity::TriggerCraft) ||
+        (itemPntr->getEntityType() == Entity::TriggerRocket) ||
+        (itemPntr->getEntityType() == Entity::Checkpoint) ||
+        (itemPntr->getEntityType() == Entity::MorphOnce) ||
+        (itemPntr->getEntityType() == Entity::MorphPermanent) ||
+        (itemPntr->getEntityType() == Entity::MorphSource1) ||
+        (itemPntr->getEntityType() == Entity::MorphSource2)) {
+        //get the cloud sprite from the game
+        mSpriteTex = mParentManager->GetImageForEntityType(itemPntr->getEntityType());
+
+        mTransparentMesh = true;
     }
 
     mMesh = mesh;
@@ -86,6 +104,8 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
     //Position in the level file could be the bottom location at the surface
     //therefore we need to add the height of the billboard to the Y coordinate
     mPosition = itemPntr->getCenter();
+
+    mOffsetMeshPos.set(0.0f, 0.0f, 0.0f);
 
     //Note 27.12.2024: put a little bit higher,
     //so that it can be collected much more reliable
@@ -119,6 +139,16 @@ irr::core::vector2di EditorEntity::GetCellCoord() {
 void EditorEntity::Update(irr::f32 frameDeltaTime) {
     if (mSteamFountain != nullptr) {
         mSteamFountain->TriggerUpdate(frameDeltaTime);
+    }
+}
+
+void EditorEntity::SetMeshPosOffset(irr::core::vector3df newOffset) {
+    mOffsetMeshPos = newOffset;
+
+    if (mSceneNode != nullptr) {
+        mSceneNode->setPosition(mPosition + mOffsetMeshPos);
+
+        UpdateBoundingBox();
     }
 }
 
@@ -160,6 +190,18 @@ void EditorEntity::HideBoundingBox() {
     }
 }
 
+void EditorEntity::ShowEffect() {
+    if (mSteamFountain != nullptr) {
+        mSteamFountain->Show();
+    }
+}
+
+void EditorEntity::HideEffect() {
+    if (mSteamFountain != nullptr) {
+        mSteamFountain->Hide();
+    }
+}
+
 void EditorEntity::Hide() {
   if (mVisible) {
       mVisible = false;
@@ -170,10 +212,6 @@ void EditorEntity::Hide() {
 
       if (mBillSceneNode != nullptr) {
           mBillSceneNode->setVisible(false);
-      }
-
-      if (mSteamFountain != nullptr) {
-          mSteamFountain->Hide();
       }
   }
 }
@@ -188,11 +226,7 @@ void EditorEntity::Show() {
 
         if (mBillSceneNode != nullptr) {
             mBillSceneNode->setVisible(true);
-        }
-
-        if (mSteamFountain != nullptr) {
-            mSteamFountain->Show();
-        }
+        }       
     }
 }
 

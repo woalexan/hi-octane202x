@@ -354,6 +354,9 @@ bool EditorSession::LoadLevel() {
        return false;
    }
 
+   //do not show special Editor entity item (for example SteamFountain) selection boxes
+   mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, true);
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, true);
@@ -364,6 +367,7 @@ bool EditorSession::LoadLevel() {
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
    mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
+   mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
 
    //create my Item selector which allows the user to
    //select level items by moving the move cursor onto them
@@ -697,25 +701,82 @@ void EditorSession::SetMode(EditorMode* selMode) {
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, false);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+
+        //for special editor entities like SteamFountain, do not show the transparent
+        //selection boxes
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
     } else if ((selMode == mTextureMode) || (selMode == mColumnDesigner)) {
         //do only select cells and Blocks in Texture and Column Designer Mode
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+
+        //for special editor entities like SteamFountain, do not show the transparent
+        //selection boxes
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
     } else if (selMode == mTerraforming) {
         //do only select cells in Terraforming mode, the columns are modified depending
         //on the cells below them
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+
+        //for special editor entities like SteamFountain, do not show the transparent
+        //selection boxes
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
     } else if (selMode == mEntityMode) {
         //do select cells and entities in EntityMode
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, true);
+
+        //for special editor entities like SteamFountain, do show the transparent
+        //selection boxes in entity mode 
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(true);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, true);
     }
 
     //call OnEnter function
     mEditorMode->OnEnterMode();
 }
+
 

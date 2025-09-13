@@ -26,6 +26,14 @@
 #define DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS 6
 #define DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS 7
 #define DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS 8
+#define DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS 9
+
+#define DEF_EDITOR_ENTITYMANAGER_STEAMFOUNTAIN_SELMESHBOXCOLOR irr::video::SColor(100, 252, 221, 145)
+#define DEF_EDITOR_ENTITYMANAGER_CRAFTTRIGGER_SELMESHBOXCOLOR irr::video::SColor(100, 181, 247, 187)
+#define DEF_EDITOR_ENTITYMANAGER_MISSILETRIGGER_SELMESHBOXCOLOR irr::video::SColor(100, 255, 253, 87)
+#define DEF_EDITOR_ENTITYMANAGER_CHECKPOINT_SELMESHBOXCOLOR irr::video::SColor(100, 121, 185, 255)
+#define DEF_EDITOR_ENTITYMANAGER_MORPHTARGET_SELMESHBOXCOLOR irr::video::SColor(100, 236, 183, 252)
+#define DEF_EDITOR_ENTITYMANAGER_MORPHSOURCE_SELMESHBOXCOLOR irr::video::SColor(100, 189, 217, 235)
 
 //preset values, also used in
 //HiOctaneTools
@@ -86,6 +94,9 @@ private:
 
      irr::scene::IMesh* CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor);
 
+     void CleanupCustomMesh(EditorEntity* whichEntity);
+     void UpdateCustomMesh(EditorEntity* whichEntity);
+
      //Different defined colors for the cube Entities
 
      //If specified color is not available, returns a white cube
@@ -98,6 +109,8 @@ private:
      ColorStruct* GetColorForWayPointType(Entity::EntityType whichType);
 
      void SetVisibleEntityType(Entity::EntityType whichType, bool visible);
+    
+     bool mShowSpecialEditorEntityTransparentSelectionBoxes = false;
 
      bool mShowCollectibles = false;
      bool mShowRecoveryVehicles = false;
@@ -107,8 +120,13 @@ private:
      bool mShowTriggers = false;
      bool mShowCameras = false;
      bool mShowEffects = false;
+     bool mShowMorphs = false;
 
      std::vector<EditorEntity*> mSteamFountainVec;
+
+     IMesh* CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor);
+
+     std::vector<std::pair<EditorEntity*, irr::scene::IMesh*>> mSelectionMeshVec;
 
 public:
     EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
@@ -122,6 +140,8 @@ public:
 
     void SetVisible(irr::u8 whichEntityClass, bool visible);
     bool IsVisible(irr::u8 whichEntityClass);
+
+    void SetShowSpecialEditorEntityTransparentSelectionBoxes(bool visible);
 
     irr::f32 GetCollectableCenterHeight();
     irr::core::vector2df GetCollectableSize();
@@ -168,6 +188,9 @@ public:
 
     //Stores an image of a cone
     irr::video::ITexture* mTexImageCone = nullptr;
+
+    //Sotres an image of a race vehicle
+    irr::video::ITexture* mTexImageRaceVehicle = nullptr;
 
     //Stores an empty image
     irr::video::ITexture* mTexImageEmpty = nullptr;
