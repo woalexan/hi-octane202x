@@ -54,6 +54,7 @@ public:
     virtual void OnLeftMouseButtonDown();
     virtual void OnEditBoxEnterEvent(irr::s32 editBoxId);
     virtual void OnElementFocusLost(irr::s32 elementId);
+    virtual void OnTableSelected(irr::s32 elementId);
 
     virtual void OnNewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
 
@@ -61,6 +62,10 @@ public:
 
     void HideWindow();
     void ShowWindow();
+
+    //when called the EditorMode is able to
+    //draw primitives via DrawDebug
+    virtual void OnDraw();
 
     //is called when the editor mode
     //is exited. Can be used to disable features

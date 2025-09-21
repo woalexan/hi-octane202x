@@ -30,6 +30,7 @@
 #include "editor/terraforming.h"
 #include "editor/entitymode.h"
 #include "models/entitymanager.h"
+#include "editor/regionmode.h"
 
 EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mParentEditor = parentEditor;
@@ -42,6 +43,7 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
     mViewMode = new ViewMode(this);
     mTerraforming = new TerraformingMode(this);
     mEntityMode = new EntityMode(this);
+    mRegionMode = new RegionMode(this);
 
 //    //my vector of extended region data
 //    mExtRegionVec = new std::vector<ExtendedRegionInfoStruct*>;
@@ -169,6 +171,12 @@ EditorSession::~EditorSession() {
     {
         delete mColumnDesigner;
         mColumnDesigner = nullptr;
+    }
+
+    if (mRegionMode != nullptr)
+    {
+        delete mRegionMode;
+        mRegionMode = nullptr;
     }
 
     if (mViewMode != nullptr)
@@ -407,6 +415,182 @@ irr::s32 EditorSession::GetNextFreeGuiId() {
     return newId;
 }
 
+void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color) {
+    if (mSelVertex->SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+        return;
+
+    irr::core::vector3df markerPos;
+    irr::core::vector3df markerPos2;
+    irr::core::vector3df markerPos3;
+    irr::core::vector3df markerPos4;
+    irr::core::vector3df markerPos5;
+
+    irr::s32 xSel = mSelVertex->mCellCoordSelected.X;
+    irr::s32 ySel = mSelVertex->mCellCoordSelected.Y;
+
+    TerrainTileData* tile =
+            &mLevelTerrain->pTerrainTiles[xSel][ySel];
+
+    TerrainTileData* tile2 = nullptr;
+
+    int width = mLevelRes->Width();
+    int height = mLevelRes->Height();
+
+    if ((xSel + 1) < width) {
+        tile2 = &mLevelTerrain->pTerrainTiles[xSel + 1][ySel];
+    }
+
+    TerrainTileData* tile3 = nullptr;
+
+    if ((xSel - 1) >= 0) {
+        tile3 = &mLevelTerrain->pTerrainTiles[xSel - 1][ySel];
+    }
+
+    TerrainTileData* tile4 = nullptr;
+
+    if ((ySel + 1) < height) {
+        tile4 = &mLevelTerrain->pTerrainTiles[xSel][ySel + 1];
+    }
+
+    tile4 = &mLevelTerrain->pTerrainTiles[xSel][ySel + 1];
+
+    TerrainTileData* tile5 = nullptr;
+
+    if ((ySel - 1) >= 0) {
+        tile5 = &mLevelTerrain->pTerrainTiles[xSel][ySel - 1];
+    }
+
+    if ((tile == nullptr) || (tile2 == nullptr) || (tile3 == nullptr) || (tile4 == nullptr) || (tile5 == nullptr))
+        return;
+
+    switch (mSelVertex->mCellCoordVerticeNrSelected) {
+                case 1: {
+                    markerPos = tile->vert1->Pos;
+                    if (tile2->vert1 != nullptr) {
+                        markerPos2 = tile2->vert1->Pos;
+                    } else {
+                        markerPos2 = markerPos;
+                    }
+                    if (tile3->vert1 != nullptr) {
+                        markerPos3 = tile3->vert1->Pos;
+                    } else {
+                        markerPos3 = markerPos;
+                    }
+                    if (tile4->vert1 != nullptr) {
+                        markerPos4 = tile4->vert1->Pos;
+                    } else {
+                        markerPos4 = markerPos;
+                    }
+                    if (tile5->vert1 != nullptr) {
+                    markerPos5 = tile5->vert1->Pos;
+                    } else {
+                        markerPos5 = markerPos;
+                    }
+                    break;
+                }
+
+                case 2: {
+                    markerPos = tile->vert2->Pos;
+                    if (tile2->vert2 != nullptr) {
+                        markerPos2 = tile2->vert2->Pos;
+                    } else {
+                        markerPos2 = markerPos;
+                    }
+                    if (tile3->vert2 != nullptr) {
+                    markerPos3 = tile3->vert2->Pos;
+                    } else {
+                        markerPos3 = markerPos;
+                    }
+                    if (tile4->vert2 != nullptr) {
+                        markerPos4 = tile4->vert2->Pos;
+                    } else {
+                        markerPos4 = markerPos;
+                    }
+                    if (tile5->vert2 != nullptr) {
+                        markerPos5 = tile5->vert2->Pos;
+                    } else {
+                        markerPos5 = markerPos;
+                    }
+                    break;
+                }
+
+                case 3: {
+                    markerPos = tile->vert3->Pos;
+                    if (tile2->vert3 != nullptr) {
+                        markerPos2 = tile2->vert3->Pos;
+                    } else {
+                        markerPos2 = markerPos;
+                    }
+                    if (tile3->vert3 != nullptr) {
+                        markerPos3 = tile3->vert3->Pos;
+                    } else {
+                        markerPos3 = markerPos;
+                    }
+                    if (tile4->vert3 != nullptr) {
+                        markerPos4 = tile4->vert3->Pos;
+                    } else {
+                        markerPos4 = markerPos;
+                    }
+                    if (tile5->vert3 != nullptr) {
+                        markerPos5 = tile5->vert3->Pos;
+                    } else {
+                        markerPos5 = markerPos;
+                    }
+                    break;
+                }
+
+                case 4: {
+                    markerPos = tile->vert4->Pos;
+                    if (tile2->vert4 != nullptr) {
+                        markerPos2 = tile2->vert4->Pos;
+                    } else {
+                        markerPos2 = markerPos;
+                    }
+                    if (tile3->vert4 != nullptr) {
+                        markerPos3 = tile3->vert4->Pos;
+                    } else {
+                        markerPos3 = markerPos;
+                    }
+                    if (tile4->vert4 != nullptr) {
+                        markerPos4 = tile4->vert4->Pos;
+                    } else {
+                        markerPos4 = markerPos;
+                    }
+                    if (tile5->vert4 != nullptr) {
+                        markerPos5 = tile5->vert4->Pos;
+                    } else {
+                        markerPos5 = markerPos;
+                    }
+                    break;
+                }
+
+                default: {
+                   return;
+                }
+    }
+
+    markerPos.X = -markerPos.X;
+    markerPos.Y = -markerPos.Y + 0.05f;
+
+    markerPos2.X = -markerPos2.X;
+    markerPos2.Y = -markerPos2.Y + 0.05f;
+
+    markerPos3.X = -markerPos3.X;
+    markerPos3.Y = -markerPos3.Y + 0.05f;
+
+    markerPos4.X = -markerPos4.X;
+    markerPos4.Y = -markerPos4.Y + 0.05f;
+
+    markerPos5.X = -markerPos5.X;
+    markerPos5.Y = -markerPos5.Y + 0.05f;
+
+    //Draw the "cross" at the selected vertex
+    mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos2, color);
+    mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos3, color);
+    mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos4, color);
+    mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos5, color);
+}
+
 void EditorSession::Render() {
     //if we do not use XEffects we can simply render the sky
     //with XEffect this does not work, need a solution for this!
@@ -443,6 +627,12 @@ void EditorSession::Render() {
        //draw currently selected level item (item which the user
        //clicked the last time with the left mouse button)
        mEditorMode->OnDrawSelectedLevelItem(&mItemSelector->mCurrSelectedItem);
+    }
+
+    //call currently selected editor mode
+    //draw method
+    if (mEditorMode != nullptr) {
+       mEditorMode->OnDraw();
     }
 
      //mDrawDebug->Draw3DLine(mDbgRay.start , mDbgRay.end, mDrawDebug->cyan);
@@ -486,6 +676,17 @@ void EditorSession::Render() {
             }
         }*/
 
+}
+
+void EditorSession::MoveUserViewToLocation(irr::core::vector3df newCameraLookAtPnt, irr::f32 cameraDistance) {
+    irr::core::vector3df newCamLocation;
+
+    newCamLocation.X = newCameraLookAtPnt.X + sqrt(cameraDistance);
+    newCamLocation.Z = newCameraLookAtPnt.Z;
+    newCamLocation.Y = newCameraLookAtPnt.Y + sqrt(cameraDistance);
+
+    mCamera->setPosition(newCamLocation);
+    mCamera->setTarget(newCameraLookAtPnt);
 }
 
 void EditorSession::HandleBasicInput() {
@@ -635,6 +836,17 @@ void EditorSession::TrackActiveDialog() {
         }
     }
 
+    if (mRegionMode != nullptr) {
+        if (mRegionMode->IsWindowOpen()) {
+           irr::core::rect<s32> windowPos = mRegionMode->GetWindowPosition();
+           if (windowPos.isPointInside(mCurrentMousePos)) {
+               //mouse cursor is currently inside
+               //Region mode window
+               mUserInDialogState = DEF_EDITOR_USERINREGIONMODEDIALOG;
+           }
+        }
+    }
+
     if (mLastUserInDialogState != mUserInDialogState) {
         if (mUserInDialogState == DEF_EDITOR_USERINTEXTUREDIALOG) {
             //std::cout << "Mouse cursor entered TextureMode window!" << std::endl;
@@ -773,6 +985,25 @@ void EditorSession::SetMode(EditorMode* selMode) {
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, true);
+    } else if (selMode == mRegionMode) {
+        //default do not select anything in RegionMode when we start this mode
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, false);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, false);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+
+        //for special editor entities like SteamFountain, do not show the transparent
+        //selection boxes
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
     }
 
     //call OnEnter function

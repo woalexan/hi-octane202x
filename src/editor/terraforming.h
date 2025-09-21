@@ -58,7 +58,6 @@ private:
     virtual void CreateWindow();
 
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
-    void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color);
     
 public:
     TerraformingMode(EditorSession* parentSession);

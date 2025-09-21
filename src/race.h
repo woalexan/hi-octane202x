@@ -386,8 +386,6 @@ private:
     void DrawSky();
     void DrawTestShape();
 
-    void IndicateMapRegions();
-
     void draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
          irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
          irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color);

@@ -102,6 +102,10 @@ public:
     std::vector<BlockDefinition*> BlockDefinitions;
     std::vector<ColumnDefinition*> ColumnDefinitions;
 
+    //if region with specified Id is not existing or not defined returns
+    //nullptr
+    MapTileRegionStruct* GetRegionStructForRegionId(irr::u8 regionId);
+
     std::vector<ColumnsStruct> Columns;
 
     //table starts at 0x00000000 offset until 0x00000017 offset, and is 24 bytes long
@@ -119,7 +123,7 @@ public:
     //table starts at 0x0001f1ec offset until 0x0003c5df offset, and is 119796 bytes long
     std::vector<uint8_t> unknownTable127468Data;
 
-    std::vector<uint8_t> unknownTable247264Data;  //this table has 340 bytes (contains region definitions)
+    std::vector<uint8_t> regionTable;  //this table has 680 bytes (contains region definitions for the level)
 
     //table starts at 0x0003c734 offset until 0x00062C8B offset, and is 157016 bytes long
     std::vector<uint8_t> unknownTable247604Data;
@@ -127,17 +131,12 @@ public:
     bool InvestigatePrintUnknownTableOffset3312();
     bool InvestigatePrintUnknownTableOffset102068();
     bool InvestigatePrintUnknownTableOffset127468();
-    bool InvestigatePrintUnknownTableOffset247264();
+    bool PrintRegionTable();
     bool InvestigatePrintUnknownTableOffset247604();
 
     //holds location info about the charging locations
     //and the map start region/location
     std::vector<MapTileRegionStruct*> *mMapRegionVec = nullptr;
-
-    //Helper function, Returns true if a certain tile has the specified textureId
-    //Returns false otherwise, or if the specified location on the tile map is invalid
-    bool CheckTileForTextureId(int posX, int posY, int textureId);
-    bool CanIFindTextureIdAroundCell(int posX, int posY, int textureId);
 
     //Makes sure a specified input Blockdefinition exists in the current levelfile.
     //If it does not exist yet it is newly created;
@@ -183,21 +182,17 @@ public:
     //if succesfull, returns the new index of the new entity in output parameter outIndex
     bool AddEntityAtCell(int x, int y, irr::f32 heightTerrain, Entity::EntityType ofType, irr::u32 &outIndex);
 
+    void RemoveRegion(MapTileRegionStruct* region);
+
+    //returns true if new region was created succesfully, False otherwise
+    bool AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2, irr::u8 newRegionType);
+
+    void ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType);
+
+    //returns true if changing location was succesfull, false otherwise
+    bool ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2);
+
 private:
-    void DetectAdditionalRegionsTextureId();
-    void VerifyRegionFound(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType);
-
-    //Helper function for finding charging stations in a third way (used in level 5 and 6)
-    //returns true if we find the defined texture at least once at this block of any of the faces
-    //if not returns false
-    bool CanIFindDefinedTextureAtBlock(BlockDefinition* blockPntr, int textureIdSymbol);
-
-    //Helper function for finding charging stations in a third way (used in level 5 and 6)
-    bool CanIFindColumnWithDefinedTextureOnItAtLocation(int posX, int posY, int textureIdSymbol);
-    bool CanIFindTextureIdAtColumnsAroundCell(int posX, int posY, int textureId);
-    void VerifyRegionFoundViaColumns(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType);
-    void DetectAdditionalRegionsBasedOnColumns();
-
     //returns true if a block definition object
     //contains exactly the specified input texture Ids and
     //texture modification values
@@ -233,6 +228,11 @@ private:
     bool AddColumnDefinition(int16_t newFloorTextureID, int16_t newUnknown1, int16_t newA, int16_t newB, int16_t newC, int16_t newD, int16_t newE, int16_t newF,
                                         int16_t newG, int16_t newH, irr::u32 &outIndex);
 
+    void RemovePOI(irr::u8 regionId);
+
+    //Returns true if succesfull created, false otherwise
+    bool AddPOI(MapTileRegionStruct* newRegion);
+
 protected:
      std::string m_Filename;
      std::string m_Name;
@@ -263,6 +263,7 @@ protected:
      bool saveEntitiesTable();
      bool saveColumnsTable();
      bool saveMap();
+     bool saveRegionTable();
      bool saveUnknownTables();
 };
 

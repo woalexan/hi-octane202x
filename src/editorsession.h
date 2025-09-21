@@ -23,6 +23,7 @@
 #define DEF_EDITOR_USERINTERRAFORMINGDIALOG 3
 #define DEF_EDITOR_USERINVIEWMODEDIALOG 4
 #define DEF_EDITOR_USERINENTITYMODEDIALOG 5
+#define DEF_EDITOR_USERINREGIONMODEDIALOG 6
 
 /************************
  * Forward declarations *
@@ -48,6 +49,8 @@ class TerraformingMode;
 class EditorEntity;
 class EntityMode;
 class EntityManager;
+class RegionMode;
+class CurrentlySelectedEditorItemInfoStruct;
 
 /* GUI Elements
 */
@@ -114,6 +117,7 @@ public:
     ViewMode* mViewMode = nullptr;
     TerraformingMode* mTerraforming = nullptr;
     EntityMode* mEntityMode = nullptr;
+    RegionMode* mRegionMode = nullptr;
 
     irr::s32 GetNextFreeGuiId();
     void HideWindow();
@@ -131,6 +135,10 @@ public:
     bool IsIlluminationEnabled();
 
     void RemoveEverythingFromLevel();
+
+    void MoveUserViewToLocation(irr::core::vector3df newCameraLookAtPnt, irr::f32 cameraDistance);
+
+    void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color);
 
 private:
 
