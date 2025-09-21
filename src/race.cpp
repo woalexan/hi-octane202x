@@ -3269,7 +3269,7 @@ void Race::Render() {
                                            this->mGame->mDrawDebug->pink);
                 }
 
-                IndicateMapRegions();
+                mLevelTerrain->DrawMapRegions();
         }
      /*
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt1, this->mDrawDebug->red);
@@ -3353,7 +3353,7 @@ void Race::Render() {
             IndicateTriggerRegions();
         }
 
-       /* if (mChargingStationVec->size() > 0) {
+      /*  if (mChargingStationVec->size() > 0) {
             std::vector<ChargingStation*>::iterator it;
             for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
                 (*it)->DebugDraw();
@@ -3399,47 +3399,6 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
 
        Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);   
     }
-}
-
-void Race::IndicateMapRegions() {
-    std::vector<MapTileRegionStruct*>::iterator it;
-    irr::core::vector3df pos1;
-    irr::core::vector3df pos2;
-    irr::core::vector3df pos3;
-    irr::core::vector3df pos4;
-    irr::core::vector2di cell;
-
-    ColorStruct *color = this->mGame->mDrawDebug->red;
-
-    for (it = this->mLevelRes->mMapRegionVec->begin(); it != this->mLevelRes->mMapRegionVec->end(); ++it) {
-       pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
-       pos1.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmin]->m_Height;
-       pos1.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
-
-       pos2.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
-       pos2.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmax]->m_Height;
-       pos2.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
-
-       pos3.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
-       pos3.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmax]->m_Height;
-       pos3.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
-
-       pos4.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
-       pos4.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmin]->m_Height;
-       pos4.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
-
-       if ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) {
-           color = this->mGame->mDrawDebug->blue;
-       } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_SHIELD) {
-           color = this->mGame->mDrawDebug->green;
-       } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_AMMO) {
-           color = this->mGame->mDrawDebug->orange;
-       } else if ((*it)->regionType == LEVELFILE_REGION_START) {
-           color = this->mGame->mDrawDebug->red;
-       }
-
-       mGame->mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
-   }
 }
 
 void Race::IndicateTriggerRegions() {

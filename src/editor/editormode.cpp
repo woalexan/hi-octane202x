@@ -67,6 +67,14 @@ void EditorMode::CreateWindow() {
       mGuiWindowId = this->mParentSession->GetNextFreeGuiId();
 }
 
+//when called the EditorMode is able to
+//draw primitives via DrawDebug
+void EditorMode::OnDraw() {
+}
+
+void EditorMode::OnTableSelected(irr::s32 elementId) {
+}
+
 void EditorMode::OnButtonClicked(irr::s32 buttonGuiId) {
 }
 

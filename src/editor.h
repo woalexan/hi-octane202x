@@ -39,6 +39,7 @@ enum
     GUI_ID_MODE_COLUMNDESIGN,
     GUI_ID_MODE_TERRAFORMING,
     GUI_ID_MODE_ENTITYMODE,
+    GUI_ID_MODE_REGION,
 
     GUI_ID_VIEWMODE_TERRAIN,
     GUI_ID_VIEW_TERRAIN_OFF,
@@ -91,6 +92,12 @@ enum
     GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX,
     GUI_ID_ENTITYMODEWINDOW_GROUP_EDITBOX,
 
+    GUI_ID_REGIONMODEWINDOW_REGIONTABLE,
+    GUI_ID_REGIONMODEWINDOW_APPLYBUTTON,
+    GUI_ID_REGIONMODEWINDOW_SELECTCOORD1BUTTON,
+    GUI_ID_REGIONMODEWINDOW_SELECTCOORD2BUTTON,
+    GUI_ID_REGIONMODEWINDOW_TYPE_COMBOBOX,
+
     GUI_ID_TESTBUTTON,
     GUI_ID_SCROLLBAR,
     GUI_ID_TREE
@@ -104,6 +111,7 @@ class Logger;
 class EditorSession;
 class EditorMode;
 class NumberEditBox;
+class UiConversion;
 
 class Editor : public InfrastructureBase {
 private:
@@ -144,6 +152,7 @@ private:
     void OnCheckBoxChanged(irr::s32 checkBoxId);
     void OnEditBoxEnterEvent(IGUIEditBox* editBox);
     void OnElementFocusLost(irr::s32 elementId);
+    void OnTableSelected(irr::s32 elementId);
 
     //if function returns true the close action should be interrupted
     bool OnElementClose(irr::s32 elementId);
@@ -184,6 +193,8 @@ private:
 
 public:
     irr::video::ITexture* backgnd = nullptr;
+
+    UiConversion* mUiConversion = nullptr;
 
     // We'll create a struct to record info on the mouse state
     struct SMouseState {

@@ -42,6 +42,7 @@ public:
     ColorStruct* cyan = nullptr;
     ColorStruct* orange = nullptr;
     ColorStruct* grey = nullptr;
+    ColorStruct* black = nullptr;
 
     ColorStruct* colorShieldCharger = nullptr;
     ColorStruct* colorFuelCharger = nullptr;

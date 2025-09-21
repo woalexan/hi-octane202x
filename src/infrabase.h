@@ -69,6 +69,8 @@ public:
 
   IGUIEnvironment* mGuienv = nullptr;
 
+  gui::IGUIFont* guiFont = nullptr;
+
   MyEventReceiver* mEventReceiver = nullptr;
 
   //my drawDebug object

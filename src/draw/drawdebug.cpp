@@ -16,6 +16,7 @@ DrawDebug::DrawDebug(irr::video::IVideoDriver *driver) {
     red = AddColor(255,255,0,0);
     green = AddColor(255,0,255,0);
     blue = AddColor(255,0,0,255);
+    black = AddColor(255,0,0,0);
     white = AddColor(255,255,255,255);
     pink = AddColor(255, 255, 0, 255);
     brown = AddColor(255, 128, 64, 0);
@@ -90,6 +91,7 @@ DrawDebug::~DrawDebug() {
     delete origin;
 
     CleanUpColor(white);
+    CleanUpColor(black);
     CleanUpColor(blue);
     CleanUpColor(green);
     CleanUpColor(red);

@@ -28,6 +28,8 @@
 #include "editor/entitymode.h"
 #include "input/numbereditbox.h"
 #include "models/entitymanager.h"
+#include "editor/regionmode.h"
+#include "editor/uiconversion.h"
 
 //fully initializes the remaining editor
 //components
@@ -68,6 +70,8 @@ bool Editor::InitEditorStep2() {
     //set Gui dialog transparency
     //between 0 and 255
     setSkinTransparency(200, mGuienv->getSkin());
+
+    //mGuienv->getSkin()->setFont(guiFont);
 
     return true;
 }
@@ -146,6 +150,7 @@ void Editor::CreateMenue() {
     submenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
     submenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
     submenu->addItem(L"Entity", GUI_ID_MODE_ENTITYMODE, true, false);
+    submenu->addItem(L"Region", GUI_ID_MODE_REGION, true, false);
 
     /*************************************
      * Submenue View                     *
@@ -358,6 +363,13 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
            break;
         }
 
+        case GUI_ID_MODE_REGION: {
+           if (mCurrentSession != nullptr) {
+               mCurrentSession->SetMode((EditorMode*)mCurrentSession->mRegionMode);
+           }
+           break;
+        }
+
         case GUI_ID_MODE_ENTITYMODE: {
            if (mCurrentSession != nullptr) {
                mCurrentSession->SetMode((EditorMode*)mCurrentSession->mEntityMode);
@@ -420,8 +432,8 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
-                mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
-                //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
+                //mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
+                mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
             }
             break;
         }
@@ -462,6 +474,10 @@ void Editor::OnButtonClicked(irr::s32 buttonId) {
         mCurrentSession->mColumnDesigner->OnButtonClicked(buttonId);
     }
 
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINREGIONMODEDIALOG) {
+        mCurrentSession->mRegionMode->OnButtonClicked(buttonId);
+    }
+
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTERRAFORMINGDIALOG) {
         mCurrentSession->mTerraforming->OnButtonClicked(buttonId);
     }
@@ -490,6 +506,10 @@ void Editor::OnCheckBoxChanged(irr::s32 checkBoxId) {
         mCurrentSession->mColumnDesigner->OnCheckBoxChanged(checkBoxId);
     }
 
+    if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINREGIONMODEDIALOG) {
+        mCurrentSession->mRegionMode->OnCheckBoxChanged(checkBoxId);
+    }
+
     if (mCurrentSession->mUserInDialogState == DEF_EDITOR_USERINTERRAFORMINGDIALOG) {
         mCurrentSession->mTerraforming->OnCheckBoxChanged(checkBoxId);
     }
@@ -511,6 +531,12 @@ void Editor::OnElementFocused(irr::s32 elementId) {
 void Editor::OnElementFocusLost(irr::s32 elementId) {
   //std::cout << "Element Focus " << elementId << std::endl;
   CheckForNumberEditBoxEvent(elementId);
+
+  if (mCurrentSession != nullptr) {
+        if (mCurrentSession->mEditorMode != nullptr) {
+                mCurrentSession->mEditorMode->OnElementFocusLost(elementId);
+        }
+   }
 }
 
 void Editor::OnElementHovered(irr::s32 elementId) {
@@ -519,6 +545,16 @@ void Editor::OnElementHovered(irr::s32 elementId) {
     if (mCurrentSession != nullptr) {
           if (mCurrentSession->mEditorMode != nullptr) {
                   mCurrentSession->mEditorMode->OnElementHovered(elementId);
+          }
+     }
+}
+
+void Editor::OnTableSelected(irr::s32 elementId) {
+   //std::cout << "Table selection changed " << elementId << std::endl;
+
+   if (mCurrentSession != nullptr) {
+          if (mCurrentSession->mEditorMode != nullptr) {
+                  mCurrentSession->mEditorMode->OnTableSelected(elementId);
           }
      }
 }
@@ -568,6 +604,10 @@ void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
 
   if (comboBox->getID() == GUI_ID_ENTITYCATEGORYCOMBOBOX) {
       mCurrentSession->mEntityMode->EntityCategoryChanged(val);
+  }
+
+  if (comboBox->getID() == GUI_ID_REGIONMODEWINDOW_TYPE_COMBOBOX) {
+      mCurrentSession->mRegionMode->OnRegionTypeComboBoxChanged(val);
   }
 }
 
@@ -686,6 +726,12 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
         case EGET_COMBO_BOX_CHANGED: {
             //user changed a combobox selection
             OnComboBoxChanged((IGUIComboBox*)event.GUIEvent.Caller);
+            break;
+        }
+
+        case EGET_TABLE_CHANGED: {
+            //user changed selection in a table
+            OnTableSelected(id);
             break;
         }
 
@@ -1169,6 +1215,8 @@ Editor::Editor() {
     swprintf(mCurrentStatusBarText, 390, L"");
 
     mRegisteredNumberEditBoxes.clear();
+
+    mUiConversion = new UiConversion(this);
 }
 
 Editor::~Editor() {
@@ -1190,5 +1238,10 @@ Editor::~Editor() {
 
     if (mCurrentStatusBarText != nullptr) {
            delete[] mCurrentStatusBarText;
+    }
+
+    if (mUiConversion != nullptr) {
+        delete mUiConversion;
+        mUiConversion = nullptr;
     }
 }

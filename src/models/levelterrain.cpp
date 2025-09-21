@@ -65,6 +65,57 @@ void LevelTerrain::ResetTerrainTileData() {
     }
 }
 
+void LevelTerrain::DrawRegionOutline(MapTileRegionStruct* whichRegion, ColorStruct* whichColor) {
+    if (whichRegion == nullptr)
+        return;
+
+    irr::core::vector3df pos1;
+    irr::core::vector3df pos2;
+    irr::core::vector3df pos3;
+    irr::core::vector3df pos4;
+    irr::core::vector2di cell;
+
+    pos1.X = -whichRegion->tileXmin * DEF_SEGMENTSIZE;
+    pos1.Z = whichRegion->tileYmin * DEF_SEGMENTSIZE;
+    //increase Y coordinate slightly, too not get flicker effect between
+    //drawn lines and terrain tiles itself
+    pos1.Y = GetCurrentTerrainHeightForWorldCoordinate(pos1.X, pos1.Z, cell) + 0.1f;
+
+    pos2.X = -whichRegion->tileXmax * DEF_SEGMENTSIZE;
+    pos2.Z = whichRegion->tileYmax * DEF_SEGMENTSIZE;
+    pos2.Y = GetCurrentTerrainHeightForWorldCoordinate(pos2.X, pos2.Z, cell) + 0.1f;
+
+    pos3.X = -whichRegion->tileXmin * DEF_SEGMENTSIZE;
+    pos3.Z = whichRegion->tileYmax * DEF_SEGMENTSIZE;
+    pos3.Y = GetCurrentTerrainHeightForWorldCoordinate(pos3.X, pos3.Z, cell) + 0.1f;
+
+    pos4.X = -whichRegion->tileXmax * DEF_SEGMENTSIZE;
+    pos4.Z = whichRegion->tileYmin * DEF_SEGMENTSIZE;
+    pos4.Y = GetCurrentTerrainHeightForWorldCoordinate(pos4.X, pos4.Z, cell) + 0.1f;
+
+    mInfra->mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, whichColor);
+}
+
+void LevelTerrain::DrawMapRegions() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+
+    ColorStruct *color = mInfra->mDrawDebug->red;
+
+    for (it = levelRes->mMapRegionVec->begin(); it != levelRes->mMapRegionVec->end(); ++it) {
+           if ((*it)->regionType == LEVELFILE_REGION_CHARGER_FUEL) {
+               color = mInfra->mDrawDebug->colorFuelCharger;
+           } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_SHIELD) {
+               color = mInfra->mDrawDebug->colorShieldCharger;
+           } else if ((*it)->regionType == LEVELFILE_REGION_CHARGER_AMMO) {
+               color = mInfra->mDrawDebug->colorAmmoCharger;
+           } else if ((*it)->regionType == LEVELFILE_REGION_START) {
+               color = mInfra->mDrawDebug->red;
+           }
+
+           DrawRegionOutline((*it), color);
+   }
+}
+
 std::vector<irr::core::vector3df> LevelTerrain::GetPlayerRaceTrackStartLocations() {
   //first we need to get the "region" in which the player start points are located
   //There are two different ways for me to get them (maybe because I do not know the whole story
@@ -190,6 +241,19 @@ bool LevelTerrain::CheckPosInsideRegion(int posX, int posY, MapTileRegionStruct*
 
     //we are inside region, return true
     return true;
+}
+
+//returns true if two specified regions (r1x1, r1y1, r1x2, r1y2) and (r2x1, r2y1, r2x2, r2y2) are overlapping
+//false otherwise
+bool LevelTerrain::Overlapping(irr::u8 r1x1, irr::u8 r1y1, irr::u8 r1x2, irr::u8 r1y2,
+                               irr::u8 r2x1, irr::u8 r2y1, irr::u8 r2x2, irr::u8 r2y2) {
+    if (r1x1 > r2x2 || r2x1 > r1x2)
+          return false;
+
+    if (r1y1 > r2y2 || r2y1 > r1y2)
+          return false;
+
+      return true;
 }
 
 void LevelTerrain::CheckPosInsideChargingRegion(int posX, int posY, bool &chargeShield, bool &chargeFuel, bool &chargeAmmo) {
@@ -2378,6 +2442,24 @@ void LevelTerrain::CheckAndUpdateVertexColorExistingColumn(int xTile, int yTile)
         //we found a column, modify its vertex colors
         columnPntr->UpdateIllumination();
     }
+}
+
+irr::core::vector3df LevelTerrain::GetRegionMiddleWorldCoordinate(MapTileRegionStruct* region) {
+    irr::core::vector3df pos(0.0f, 0.0f, 0.0f);
+
+    if (region == nullptr)
+        return pos;
+
+    irr::core::vector2di midCell = region->regionCenterTileCoord;
+
+    pos.X = -midCell.X * DEF_SEGMENTSIZE - 0.5f;
+    pos.Z = midCell.Y * DEF_SEGMENTSIZE + 0.5f;
+
+    irr::core::vector2di outCell;
+
+    pos.Y = GetCurrentTerrainHeightForWorldCoordinate(pos.X, pos.Z, outCell);
+
+    return pos;
 }
 
 /***********************************************************************

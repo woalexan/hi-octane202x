@@ -52,6 +52,9 @@ bool InfrastructureBase::InitIrrlicht() {
     //create a DrawDebug object
     mDrawDebug = new DrawDebug(mDriver);
 
+    //load gui font
+    //guiFont = mGuienv->getFont("media/fontlucida.png");
+
     //get game root dir, is an absolute path
     mGameRootDir = mDevice->getFileSystem()->getWorkingDirectory();
 

@@ -346,6 +346,10 @@ add_executable(hi-editor
     src/editor/terraforming.cpp
     src/editor/entitymode.h
     src/editor/entitymode.cpp
+    src/editor/regionmode.h
+    src/editor/regionmode.cpp
+    src/editor/uiconversion.h
+    src/editor/uiconversion.cpp
 
     src/definitions.h
     src/infrabase.h

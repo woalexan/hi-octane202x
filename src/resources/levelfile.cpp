@@ -48,12 +48,6 @@ LevelFile::LevelFile(std::string filename) {
     fileSize = ifile.tellg();
     ifile.seekg(0, std::ios::beg);
 
-    // read the data:
-    //std::vector<uint8_t> fileData(fileSize);
-    //ifile.read(reinterpret_cast<char*>(fileData.data()), fileData.size());
-
-    //this->m_bytes = fileData;
-
     //read the data
     this->m_bytes.resize(fileSize);
     ifile.read(reinterpret_cast<char*>(this->m_bytes.data()), this->m_bytes.size());
@@ -114,15 +108,11 @@ LevelFile::LevelFile(std::string filename) {
     this->m_wBytes.resize(this->m_bytes.size());
     std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_bytes.size(), 0x55);
 
-    //detect additional map regions
-    DetectAdditionalRegionsTextureId();
-    DetectAdditionalRegionsBasedOnColumns();
-
     if (false) {
         InvestigatePrintUnknownTableOffset3312();
         InvestigatePrintUnknownTableOffset102068();
         InvestigatePrintUnknownTableOffset127468();
-        InvestigatePrintUnknownTableOffset247264();
+        PrintRegionTable();
         InvestigatePrintUnknownTableOffset247604();
     }
 
@@ -150,23 +140,6 @@ LevelFile::LevelFile(std::string filename) {
     }
 
     SaveUnknownTableOffset358222();*/
-}
-
-//Helper function, Returns true if a certain tile has the specified textureId
-//Returns false otherwise, or if the specified location on the tile map is invalid
-bool LevelFile::CheckTileForTextureId(int posX, int posY, int textureId) {
-    if ((posX < 0) || (posY < 0))
-        return false;
-
-    if ((posX >= this->Width()) || (posY >= this->Height()))
-        return false;
-
-    if (this->pMap[posX][posY]->m_TextureId != textureId)
-        return false;
-
-    //tile has the specified textureId
-    //return true;
-    return true;
 }
 
 LevelFile::~LevelFile() {
@@ -423,7 +396,8 @@ bool LevelFile::loadMap() {
              std::cout << "Unexpected difference in written MapEntry data!" << std::endl << std::flush;
          }*/
 
-         // check for points of interest
+         // check for points of interest, this POI then point into the region definition table
+         //there we find the size of each region in number of cells and of what type this region is
         int16_t poiValue = (this->m_bytes.at(i + 7) << 8) | this->m_bytes.at(i + 6);
         if (poiValue > 0) {
             poi.Value = poiValue;
@@ -447,6 +421,8 @@ bool LevelFile::Save(std::string filename) {
    //overwrite other data afterwards again at wrong spots
    saveUnknownTables();
 
+   saveRegionTable();
+
    //copy initial read level data to write level data
    //array, to make sure that all data makes sense we do not
    //yet know what it means
@@ -465,50 +441,32 @@ bool LevelFile::Save(std::string filename) {
    return(true);
 }
 
-/*******************************************************************************
- * Important note: In the first 2 or 3 levels of the game (I forgot exactly)   *
- * This "region" information inside this level table is working perfectly, and *
- * helps to tell where we need to charge something, and where the player start *
- * locations are. Problem is in the higher level number levels of the game the *
- * charge areas and start location is not properly defined anymore in this     *
- * table. I believe what happend is, that during the first less complex levels *
- * (less number charges etc..) this system worked great, but later the levels  *
- * got more complex and the four entries in this table were far not enough     *
- * anymore. I believe the game developers did not care/were not able to change *
- * this table, and I (at least believe) the game falls back to use the         *
- * textureID in the level data to find out where stuff happens, or where the   *
- * start locations are exactly. At least this is what I will do. Problem: the  *
- * texture ID solution alone does also not work, because for example there     *
- * is a level (I believe level 2) where the shield charger has not the correct *
- * TextureID places in the level and therefore we also rely on the table data  *
- * below in the level file. So we have to use both solutions in parallel to    *
- * make it work. And there is even a third case in levels 5 and 6 (see further *
- * below)                                                                      *
- *******************************************************************************/
-//The function below reads the available "region" data table inside the level file
-//and uses this information to define first regions
+//The function below reads the region definition table inside the level file
+//and uses this information to define the regions in the map
+//it seems maximum number of possible regions is 8, which leaves space for up to 7 charging
+//areas and one race starting location
 bool LevelFile::loadMapRegions() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 247264;
+    int baseOffset = 246924;
 
     startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table (later found out it is for map region definition) has 4 entries with each 85 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 4 * 85;
-    unknownTable247264Data.assign(startslice, endslice);
+    //map region definition table has 8 entries with each 85 bytes
+    endslice = this->m_bytes.begin()+ baseOffset + 8 * 85;
+    regionTable.assign(startslice, endslice);
 
-    //also extract data we already know from this "unknown" table
-    for (int i = 0; i < 4; i++) {
+    //extract region definition information
+    for (int i = 0; i < 8; i++) {
         //is there an entry? if so create a MapTileRegionStruct with info
         //we have an entry if byte 0 is unequal to 0
-        if (unknownTable247264Data.at(i * 85) != 0x0) {
+        if (regionTable.at(i * 85) != 0x0) {
             //create new entry
             MapTileRegionStruct* newRegion = new MapTileRegionStruct();
             newRegion->regionId = i;
 
             //Byte 0 defines the region type
-            newRegion->regionType = unknownTable247264Data.at(i * 85);
+            newRegion->regionType = regionTable.at(i * 85);
             //value 1 means Shield charger location
             //value 2 means Fuel charger location
             //value 3 means Ammo charger location
@@ -516,16 +474,16 @@ bool LevelFile::loadMapRegions() {
 
             //middle point of rectangle that defines region is stored
             //at byte location 25 and location 27 of this current table entry line
-            newRegion->regionCenterTileCoord.X = unknownTable247264Data.at(i * 85 + 25);
-            newRegion->regionCenterTileCoord.Y = unknownTable247264Data.at(i * 85 + 27);
+            newRegion->regionCenterTileCoord.X = regionTable.at(i * 85 + 25);
+            newRegion->regionCenterTileCoord.Y = regionTable.at(i * 85 + 27);
 
             //region size is specified in terms of tiles counted from
             //the middle point towards both axis directions
             //for "X-axis" the deltaX is stored at byte 46
-            irr::u8 deltaX = unknownTable247264Data.at(i * 85 + 46);
+            irr::u8 deltaX = regionTable.at(i * 85 + 46);
 
             //for "Y-axis" the deltaY is stored at byte 48
-            irr::u8 deltaY = unknownTable247264Data.at(i * 85 + 48);
+            irr::u8 deltaY = regionTable.at(i * 85 + 48);
 
             //now calculate region tile min/max for the later game code according
             //to all input information
@@ -571,555 +529,7 @@ bool LevelFile::loadMapRegions() {
     return true;
 }
 
-void LevelFile::VerifyRegionFound(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType) {
-    //look around the startCell into all directions wo see how far the region
-    //described by the foundTextureId does extend
-    irr::u16 tileXmin;
-    irr::u16 tileXmax;
-    irr::u16 tileYmin;
-    irr::u16 tileYmax;
-    irr::u16 currCoord;
-
-    bool mapEndHit = false;
-    bool texFnd;
-
-    currCoord = startCell.X;
-
-    do {
-        texFnd = this->CanIFindTextureIdAroundCell(currCoord, startCell.Y, foundTextureId);
-
-        currCoord -= 1;
-
-        if (currCoord < 0)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-        tileXmin = currCoord + 1;
-    } else {
-        tileXmin = currCoord;
-    }
-
-    currCoord = startCell.X;
-    mapEndHit = false;
-
-    do {
-        texFnd = this->CanIFindTextureIdAroundCell(currCoord, startCell.Y, foundTextureId);
-        currCoord += 1;
-
-        if (currCoord >= LEVELFILE_WIDTH)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-        tileXmax = currCoord - 1;
-    } else {
-      tileXmax = currCoord;
-    }
-
-    currCoord = startCell.Y;
-    mapEndHit = false;
-
-    do {
-        texFnd = this->CanIFindTextureIdAroundCell(startCell.X, currCoord, foundTextureId);
-        currCoord -= 1;
-
-        if (currCoord < 0)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-        tileYmin = currCoord + 1;
-    } else {
-        tileYmin = currCoord;
-    }
-
-    currCoord = startCell.Y;
-    mapEndHit = false;
-
-    do {
-        texFnd = this->CanIFindTextureIdAroundCell(startCell.X, currCoord, foundTextureId);
-        currCoord += 1;
-
-        if (currCoord >= LEVELFILE_HEIGHT)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-     tileYmax = currCoord - 1;
-    } else {
-      tileYmax = currCoord;
-    }
-
-    irr::u16 midCoordX;
-    irr::u16 midCoordY;
-
-    //calculate region middle cell
-    midCoordX = ((tileXmax - tileXmin) / 2) + tileXmin;
-    midCoordY = ((tileYmax - tileYmin) / 2) + tileYmin;
-
-    irr::s16 deltaCoordX;
-    irr::s16 deltaCoordY;
-    bool regionAlreadyFound = false;
-
-    //is there already a region defined close to this middle point
-    //could be that this charger is already defined by the "region" data table
-    //inside the levelfile, if so skip adding this region a second time
-    std::vector<MapTileRegionStruct*>::iterator it;
-
-    for (it = this->mMapRegionVec->begin(); it != this->mMapRegionVec->end(); ++it) {
-        deltaCoordX = (*it)->regionCenterTileCoord.X - midCoordX;
-        deltaCoordY = (*it)->regionCenterTileCoord.Y - midCoordY;
-
-        if ((abs(deltaCoordX) < 3) && (abs(deltaCoordY) < 3)) {
-            //we found possible region match
-            if ((*it)->regionType == expectedRegionType) {
-                //yes match
-                regionAlreadyFound = true;
-                break;
-            }
-        }
-    }
-
-    //have we found a match, if not add this region
-    if (!regionAlreadyFound) {
-        //calculate remaining stuff
-        MapTileRegionStruct *newRegion = new MapTileRegionStruct();
-
-        newRegion->regionId = (irr::u8)(mMapRegionVec->size());
-        newRegion->regionType = expectedRegionType;
-        newRegion->tileXmin = tileXmin;
-        newRegion->tileXmax = tileXmax;
-        newRegion->tileYmin = tileYmin;
-        newRegion->tileYmax = tileYmax;
-        newRegion->regionCenterTileCoord.set(midCoordX, midCoordY);
-
-        //add the new region to the region vector
-        this->mMapRegionVec->push_back(newRegion);
-    }
-}
-
-//The second function below takes the TextureID information from the level file
-//and tries to locate additional regions that were initially not stored in the
-//"region" data table of the level file (because table did not have enough space or
-//whatever reason there was, see description above)
-void LevelFile::DetectAdditionalRegionsTextureId() {
-    //the point of Interest table in the level File also point
-    //towards the start area / chargers in all levels
-    //we can use this information as well to detect more regions
-    std::list<MapPointOfInterest>::iterator it;
-
-    bool fuelChargerFnd;
-    bool shieldChargerFnd;
-    bool ammoChargerFnd;
-    bool startPointFnd;
-    irr::core::vector3df pos3D;
-    irr::core::vector2di cell;
-
-    for (it = this->PointsOfInterest.begin(); it !=this->PointsOfInterest.end(); ++it) {
-         pos3D = (*it).Position;
-
-         cell.X = (irr::s32)(-pos3D.X / DEF_SEGMENTSIZE);
-         cell.Y = (irr::s32)(pos3D.Z / DEF_SEGMENTSIZE);
-
-         //shield charger has texture ID #51
-         //ammo charger has texture ID #47
-         //fuel charger has texture ID #43
-         //a start point has texture ID #122
-         fuelChargerFnd = CanIFindTextureIdAroundCell(cell.X, cell.Y, 43);
-         shieldChargerFnd = CanIFindTextureIdAroundCell(cell.X, cell.Y, 51);
-         ammoChargerFnd = CanIFindTextureIdAroundCell(cell.X, cell.Y, 47);
-         startPointFnd = CanIFindTextureIdAroundCell(cell.X, cell.Y, 122);
-
-         //do we only find one type of charger or region? if so continue
-         if (fuelChargerFnd && (!shieldChargerFnd) && (!ammoChargerFnd) && (!startPointFnd)) {
-             //we could have found a fuel charger
-             VerifyRegionFound(cell, 43, LEVELFILE_REGION_CHARGER_FUEL);
-         }
-
-         if ((!fuelChargerFnd) && shieldChargerFnd && (!ammoChargerFnd) && (!startPointFnd)) {
-             //we could have found a shield charger
-             VerifyRegionFound(cell, 51, LEVELFILE_REGION_CHARGER_SHIELD);
-         }
-
-         if ((!fuelChargerFnd) && (!shieldChargerFnd) && ammoChargerFnd && (!startPointFnd)) {
-             //we could have found an ammo charger
-             VerifyRegionFound(cell, 47, LEVELFILE_REGION_CHARGER_AMMO);
-         }
-
-         if ((!fuelChargerFnd) && (!shieldChargerFnd) && (!ammoChargerFnd) && startPointFnd) {
-             //we could have found a start location
-             VerifyRegionFound(cell, 122, LEVELFILE_REGION_START);
-         }
-    }
-}
-
-//Helper function for finding charging stations in a third way (used in level 5 and 6)
-//returns true if we find the defined texture at least once at this block of any of the faces
-//if not returns false
-bool LevelFile::CanIFindDefinedTextureAtBlock(BlockDefinition* blockPntr, int textureIdSymbol) {
-    if (blockPntr != nullptr) {
-        //check all textures of all faces of this block if the are the same as the
-        //defined texture ID
-        if (blockPntr->get_N() == (uint8_t)(textureIdSymbol))
-            return true;
-
-        if (blockPntr->get_E() == (uint8_t)(textureIdSymbol))
-            return true;
-
-        if (blockPntr->get_S() == (uint8_t)(textureIdSymbol))
-            return true;
-
-        if (blockPntr->get_W() == (uint8_t)(textureIdSymbol))
-            return true;
-
-        if (blockPntr->get_B() == (uint8_t)(textureIdSymbol))
-            return true;
-
-        if (blockPntr->get_T() == (uint8_t)(textureIdSymbol))
-            return true;
-    }
-
-    return false;
-}
-
-//Helper function for finding charging stations in a third way (used in level 5 and 6)
-bool LevelFile::CanIFindColumnWithDefinedTextureOnItAtLocation(int posX, int posY, int textureIdSymbol) {
-    //is there even a column at this location
-    MapEntry* entry = this->pMap[posX][posY];
-
-    if (entry->get_Column() != nullptr) {
-        //there is a column
-        ColumnDefinition* columnPntr = entry->get_Column();
-        BlockDefinition* blockPntr;
-        std::vector<int> blockIDs;
-        blockIDs.clear();
-
-        //we are only accepting columns as charging stations where the lowest
-        //"cube/box" is not present, so that the driver can driver below it
-        if (columnPntr->mInCollisionMesh.at(0) == -1) {
-            //collision in lowest block not active, not existing => ok
-            //now check all symbol textures at this column if we find the
-            //defined textureID on it
-
-            //we need to check this block
-            if (columnPntr->get_B() != 0) {
-               blockIDs.push_back(columnPntr->get_B());
-            }
-            if (columnPntr->get_C() != 0) {
-               blockIDs.push_back(columnPntr->get_C());
-            }
-            if (columnPntr->get_D() != 0) {
-               blockIDs.push_back(columnPntr->get_D());
-            }
-            if (columnPntr->get_E() != 0) {
-               blockIDs.push_back(columnPntr->get_E());
-            }
-            if (columnPntr->get_F() != 0) {
-               blockIDs.push_back(columnPntr->get_F());
-            }
-            if (columnPntr->get_G() != 0) {
-               blockIDs.push_back(columnPntr->get_G());
-            }
-            if (columnPntr->get_H() != 0) {
-               blockIDs.push_back(columnPntr->get_H());
-            }
-
-         //now we have a vector of all block IDs of block definitions we need to check for the
-         //defined texture ID
-         std::vector<int>::iterator it;
-         for (it = blockIDs.begin(); it != blockIDs.end(); ++it) {
-             //find block with this block ID
-             std::vector<BlockDefinition*>::iterator itBlock;
-             blockPntr = nullptr;
-
-             for (itBlock = this->BlockDefinitions.begin(); itBlock != this->BlockDefinitions.end(); ++itBlock) {
-                 if ((*itBlock)->get_ID() == (*it)) {
-                     blockPntr = (*itBlock);
-                     break;
-                 }
-             }
-
-             //did we find the correct block definition, if so continue
-             if (CanIFindDefinedTextureAtBlock(blockPntr, textureIdSymbol)) {
-                 //we found the textureID at one of the faces of the block
-                 //we can exit here
-                 return true;
-             }
-         }
-       }
-    }
-
-    //we did not find the textureID we were looking
-    //for
-    return false;
-}
-
-//Helper function for finding charging stations // start points in a second way
-bool LevelFile::CanIFindTextureIdAroundCell(int posX, int posY, int textureId) {
-    //should return true if below or one tile around the specified cell
-    //we find the specified texture Id, false otherwise
-    if (this->CheckTileForTextureId(posX, posY, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX - 1, posY, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX + 1, posY, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX, posY - 1, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX, posY + 1, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX - 1, posY - 1, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX + 1, posY + 1, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX + 1, posY - 1, textureId))
-        return true;
-
-    if (this->CheckTileForTextureId(posX - 1, posY + 1, textureId))
-        return true;
-
-    //nothing found, return false
-    return false;
-}
-
-//Helper function for finding charging stations // start points in a third way
-bool LevelFile::CanIFindTextureIdAtColumnsAroundCell(int posX, int posY, int textureId) {
-    //should return true if a column at and around (checks also all columns next to this cell)
-    //a specified cell has at least a face with a certain defined textureId on it
-    //false otherwise
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX, posY, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX - 1, posY, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX + 1, posY, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX, posY - 1, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX, posY + 1, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX - 1, posY - 1, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX + 1, posY + 1, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX + 1, posY - 1, textureId))
-        return true;
-
-    if (this->CanIFindColumnWithDefinedTextureOnItAtLocation(posX - 1, posY + 1, textureId))
-        return true;
-
-    //nothing found, return false
-    return false;
-}
-
-void LevelFile::VerifyRegionFoundViaColumns(irr::core::vector2di startCell, int foundTextureId, irr::u8 expectedRegionType) {
-    //look around the startCell into all directions to see how far the region
-    //described by the foundTextureId does extend based on existing columns
-    irr::u16 tileXmin;
-    irr::u16 tileXmax;
-    irr::u16 tileYmin;
-    irr::u16 tileYmax;
-    irr::u16 currCoord;
-
-    bool mapEndHit = false;
-    bool texFnd;
-
-    currCoord = startCell.X;
-
-    do {
-        texFnd = this->CanIFindTextureIdAtColumnsAroundCell(currCoord, startCell.Y, foundTextureId);
-
-        currCoord -= 1;
-
-        if (currCoord < 0)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-        tileXmin = currCoord + 1;
-    } else {
-        tileXmin = currCoord;
-    }
-
-    currCoord = startCell.X;
-    mapEndHit = false;
-
-    do {
-        texFnd = this->CanIFindTextureIdAtColumnsAroundCell(currCoord, startCell.Y, foundTextureId);
-        currCoord += 1;
-
-        if (currCoord >= LEVELFILE_WIDTH)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-        tileXmax = currCoord - 1;
-    } else {
-      tileXmax = currCoord;
-    }
-
-    currCoord = startCell.Y;
-    mapEndHit = false;
-
-    do {
-        texFnd = this->CanIFindTextureIdAtColumnsAroundCell(startCell.X, currCoord, foundTextureId);
-        currCoord -= 1;
-
-        if (currCoord < 0)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-        tileYmin = currCoord + 1;
-    } else {
-        tileYmin = currCoord;
-    }
-
-    currCoord = startCell.Y;
-    mapEndHit = false;
-
-    do {
-        texFnd = this->CanIFindTextureIdAtColumnsAroundCell(startCell.X, currCoord, foundTextureId);
-        currCoord += 1;
-
-        if (currCoord >= LEVELFILE_HEIGHT)
-            mapEndHit = true;
-    } while ((!mapEndHit) && texFnd);
-
-    if (!texFnd) {
-     tileYmax = currCoord - 1;
-    } else {
-      tileYmax = currCoord;
-    }
-
-    irr::u16 midCoordX;
-    irr::u16 midCoordY;
-
-    //calculate region middle cell
-    midCoordX = ((tileXmax - tileXmin) / 2) + tileXmin;
-    midCoordY = ((tileYmax - tileYmin) / 2) + tileYmin;
-
-    irr::s16 deltaCoordX;
-    irr::s16 deltaCoordY;
-    bool regionAlreadyFound = false;
-
-    //is there already a region defined close to this middle point
-    //could be that this charger is already defined by the "region" data table
-    //inside the levelfile, if so skip adding this region a second time
-    std::vector<MapTileRegionStruct*>::iterator it;
-
-    for (it = this->mMapRegionVec->begin(); it != this->mMapRegionVec->end(); ++it) {
-        deltaCoordX = (*it)->regionCenterTileCoord.X - midCoordX;
-        deltaCoordY = (*it)->regionCenterTileCoord.Y - midCoordY;
-
-        if ((abs(deltaCoordX) < 3) && (abs(deltaCoordY) < 3)) {
-            //we found possible region match
-            if ((*it)->regionType == expectedRegionType) {
-                //yes match
-                regionAlreadyFound = true;
-                break;
-            }
-        }
-    }
-
-    //have we found a match, if not add this region
-    if (!regionAlreadyFound) {
-        //calculate remaining stuff
-        MapTileRegionStruct *newRegion = new MapTileRegionStruct();
-
-        newRegion->regionId = (irr::u8)(mMapRegionVec->size());
-        newRegion->regionType = expectedRegionType;
-        newRegion->tileXmin = tileXmin;
-        newRegion->tileXmax = tileXmax;
-        newRegion->tileYmin = tileYmin;
-        newRegion->tileYmax = tileYmax;
-        newRegion->regionCenterTileCoord.set(midCoordX, midCoordY);
-
-        //add the new region to the region vector
-        this->mMapRegionVec->push_back(newRegion);
-    }
-}
-
-/********************************************************
- * Above I already mentioned detection of charging      *
- * areas (fuel, ammo, shield) via a "region" table      *
- * map inside the level file (only allows max. 4        *
- * entries, the detection via Texture ID of the level   *
- * file heightmap. Until level 5 and 6 I thought this   *
- * should solve all my issues regarding this topic.     *
- * But in level 5 and 6 there are at least two charging *
- * areas where there is no entry in the "region" table  *
- * and no correct TextureID visible at this locations   *
- * Only way to tell that there is something special is  *
- * a PointOfInterest marker in the levelfile we already *
- * read, and columns above the player with the          *
- * charging station type symbol. I believe this is all  *
- * we can use here. Therefore I need also a third       *
- * kind of charging station detection, detection via    *
- * column symbols around PointOfInterest locations      *
- * The function below will execute this task.           *
- ********************************************************/
-
-void LevelFile::DetectAdditionalRegionsBasedOnColumns() {
-    //the point of Interest table in the level File also point
-    //towards the start area / chargers in all levels
-    //we can use this information as well to detect more regions
-    std::list<MapPointOfInterest>::iterator it;
-
-    bool fuelChargerFnd;
-    bool shieldChargerFnd;
-    bool ammoChargerFnd;
-
-    irr::core::vector3df pos3D;
-    irr::core::vector2di cell;
-
-    for (it = this->PointsOfInterest.begin(); it !=this->PointsOfInterest.end(); ++it) {
-         pos3D = (*it).Position;
-
-         cell.X = (irr::s32)(-pos3D.X / DEF_SEGMENTSIZE);
-         cell.Y = (irr::s32)(pos3D.Z / DEF_SEGMENTSIZE);
-
-         //TextureIDs interesting for column charger station symbols
-         //Fuel = 42
-         //Ammo = 46
-         //Shield = 50
-
-         fuelChargerFnd = CanIFindTextureIdAtColumnsAroundCell(cell.X, cell.Y, 42);
-         shieldChargerFnd = CanIFindTextureIdAtColumnsAroundCell(cell.X, cell.Y, 50);
-         ammoChargerFnd = CanIFindTextureIdAtColumnsAroundCell(cell.X, cell.Y, 46);
-
-         if (fuelChargerFnd) {
-             //we could have found a fuel charger
-             VerifyRegionFoundViaColumns(cell, 42, LEVELFILE_REGION_CHARGER_FUEL);
-         }
-
-         if (shieldChargerFnd) {
-             //we could have found a shield charger
-             VerifyRegionFoundViaColumns(cell, 50, LEVELFILE_REGION_CHARGER_SHIELD);
-         }
-
-         if (ammoChargerFnd) {
-             //we could have found an ammo charger
-             VerifyRegionFoundViaColumns(cell, 46, LEVELFILE_REGION_CHARGER_AMMO);
-         }
-    }
-}
-
-bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
+bool LevelFile::PrintRegionTable() {
     std::vector<uint8_t>::iterator it;
 
     int cnt = 0;
@@ -1127,7 +537,7 @@ bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
     char finalpath[100];
 
     strcpy(finalpath, this->get_Filename().c_str());
-    strcat(finalpath, "-table247264.txt");
+    strcat(finalpath, "-regionTable.txt");
 
     //now we have our output filename
     FILE* oFile = fopen(finalpath, "w");
@@ -1135,10 +545,10 @@ bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
        return false;
     }
 
-    //unknown table has 4 entries with each 85 bytes
-    for (int tableNr = 0; tableNr < 4; tableNr++) {
-        it = this->unknownTable247264Data.begin() + tableNr * 85;
-        for (; it != this->unknownTable247264Data.end();++it) {
+    //Region table has 8 entries with each 85 bytes
+    for (int tableNr = 0; tableNr < 8; tableNr++) {
+        it = this->regionTable.begin() + tableNr * 85;
+        for (; it != this->regionTable.end();++it) {
             if (cnt == (tableNr + 1) * 85)
                 break;
 
@@ -1159,8 +569,6 @@ bool LevelFile::InvestigatePrintUnknownTableOffset247264() {
 
 bool LevelFile::InvestigatePrintUnknownTableOffset127468() {
     std::vector<uint8_t>::iterator it;
-
-    int cnt = 0;
 
     char finalpath[100];
 
@@ -1189,8 +597,6 @@ bool LevelFile::InvestigatePrintUnknownTableOffset127468() {
 bool LevelFile::InvestigatePrintUnknownTableOffset247604() {
     std::vector<uint8_t>::iterator it;
 
-    int cnt = 0;
-
     char finalpath[100];
 
     strcpy(finalpath, this->get_Filename().c_str());
@@ -1218,8 +624,6 @@ bool LevelFile::InvestigatePrintUnknownTableOffset247604() {
 bool LevelFile::InvestigatePrintUnknownTableOffset102068() {
     std::vector<uint8_t>::iterator it;
 
-    int cnt = 0;
-
     char finalpath[100];
 
     strcpy(finalpath, this->get_Filename().c_str());
@@ -1246,8 +650,6 @@ bool LevelFile::InvestigatePrintUnknownTableOffset102068() {
 
 bool LevelFile::InvestigatePrintUnknownTableOffset3312() {
     std::vector<uint8_t>::iterator it;
-
-    int cnt = 0;
 
     char finalpath[100];
 
@@ -1290,37 +692,6 @@ bool LevelFile::IsAColumnAtCoordinates(int x, int y) {
     //there is a column
     return true;
 }
-
-/*
-bool LevelFile::SaveUnknownTableOffset247264() {
-
-    int baseOffset = 247264;
-
-    char* ByteArray;
-    ByteArray = new char[this->unknownTable247264Data.size()];
-
-    FILE* oFile = nullptr;
-
-    oFile = fopen(this->m_Filename.c_str(), "r+b");
-    if (oFile == nullptr) {
-       return false;
-    }
-
-    std::vector<uint8_t>::iterator it;
-    unsigned long pos = 0;
-
-    for (it = this->unknownTable247264Data.begin(); it != this->unknownTable247264Data.end(); ++it) {
-        ByteArray[pos] = (*it);
-        pos++;
-    }
-
-    fseek(oFile, baseOffset, SEEK_SET);
-    fwrite(&ByteArray[0], 1, this->unknownTable247264Data.size(), oFile);
-
-    fclose(oFile);
-
-    return true;
-}*/
 
 /*bool LevelFile::SaveUnknownTableOffset358222() {
 
@@ -1434,6 +805,255 @@ bool LevelFile::loadUnknownTableOffset127468() {
     unknownTable127468Data.assign(startslice, endslice);
 
     return true;
+}
+
+//if region with specified Id is not existing or not defined returns
+//nullptr
+MapTileRegionStruct* LevelFile::GetRegionStructForRegionId(irr::u8 regionId) {
+    std::vector<MapTileRegionStruct*>::iterator it;
+
+    for (it = mMapRegionVec->begin(); it != mMapRegionVec->end(); ++it) {
+        if ((*it)->regionId == regionId) {
+            //region Id was found
+            if ((*it)->regionType != LEVELFILE_REGION_UNDEFINED) {
+              return (*it);
+            } else {
+              return nullptr;
+            }
+        }
+    }
+
+    //region Id not found, return nullptr
+    return nullptr;
+}
+
+void LevelFile::RemoveRegion(MapTileRegionStruct* region) {
+    if (region == nullptr)
+        return;
+
+    //overwrite bytes for this region entry with 0 bytes
+    std::vector<uint8_t>::iterator startadr;
+    std::vector<uint8_t>::iterator endadr;
+
+    //each entry has 85 bytes
+    startadr = this->regionTable.begin() + (region->regionId * 85);
+    endadr = this->regionTable.begin() + (region->regionId * 85) + 85;
+
+    //set to all 0 bytes
+    std::fill(startadr, endadr, 0);
+
+    //now remove this region from the region vector
+    std::vector<MapTileRegionStruct*>::iterator it;
+    MapTileRegionStruct* pntr = nullptr;
+
+    for (it = mMapRegionVec->begin(); it != mMapRegionVec->end(); ) {
+        if ((*it) == region) {
+            pntr = (*it);
+
+            //remove the POI data in level file
+            //as well
+            RemovePOI(pntr->regionId);
+
+            it = mMapRegionVec->erase(it);
+
+            //delete the struct itself
+            delete pntr;
+        } else {
+            it++;
+        }
+    }
+}
+
+void LevelFile::ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType) {
+    //if whichRegionId is invalid return
+     if (whichRegionId > 7)
+         return;
+
+     //if at the specified regionId there is no existing region
+     //return
+     MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
+
+     if (pntr == nullptr)
+         return;
+
+     //if new region type does not make sense for this operation exit here
+     if ((newRegionType == LEVELFILE_REGION_UNDEFINED) || (newRegionType == LEVELFILE_REGION_TRIGGERCRAFT) ||
+             (newRegionType == LEVELFILE_REGION_TRIGGERMISSILE))
+         return;
+
+     //change the region type inside of our region info struct
+     pntr->regionType = newRegionType;
+
+     //also modify the low level level file data itself
+
+     //Byte 0 defines the region type
+     regionTable.at(whichRegionId * 85) = (uint8_t)(newRegionType);
+     //value 1 means Shield charger location
+     //value 2 means Fuel charger location
+     //value 3 means Ammo charger location
+     //value 4 means map start location
+}
+
+//returns true if changing location was succesfull, false otherwise
+bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2) {
+    //if whichRegionId is invalid return
+     if (whichRegionId > 7)
+         return false;
+
+     //if at the specified regionId there is no existing region
+     //return
+     MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
+
+     if (pntr == nullptr)
+         return false;
+
+     irr::u8 storeType = pntr->regionType;
+
+     //remove existing region
+     RemoveRegion(pntr);
+
+     //Add new region back, but with the new location
+     return (AddRegion(whichRegionId, coord1, coord2, storeType));
+}
+
+//returns true if new region was created succesfully, False otherwise
+bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2, irr::u8 newRegionType) {
+   //if whichRegionId is invalid return
+    if (whichRegionId > 7)
+        return false;
+
+   //if at the specified regionId there is already an existing region
+   //fail creation and return
+   MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
+
+   if (pntr != nullptr)
+       return false;
+
+   //if new region type is not specified or invalid return
+   if ((newRegionType == LEVELFILE_REGION_UNDEFINED) || (newRegionType == LEVELFILE_REGION_TRIGGERCRAFT) ||
+           (newRegionType == LEVELFILE_REGION_TRIGGERMISSILE))
+       return false;
+
+   //region with this Id does not yet exist
+   //calculate middle cell
+   irr::f32 midX = (((irr::f32)(coord2.X) - (irr::f32)(coord1.X)) / 2.0f) + (irr::f32)(coord1.X);
+   irr::f32 midY = (((irr::f32)(coord2.Y) - (irr::f32)(coord1.Y)) / 2.0f) + (irr::f32)(coord1.Y);
+
+   //round towards next integer
+   pntr = new MapTileRegionStruct();
+   pntr->regionId = whichRegionId;
+   pntr->tileXmax = coord2.X;
+   pntr->tileYmax = coord2.Y;
+   pntr->tileXmin = coord1.X;
+   pntr->tileYmin = coord1.Y;
+   pntr->regionCenterTileCoord.set((irr::s32)(irr::core::round32(midX)), (irr::s32)(irr::core::round32(midY)));
+   pntr->regionType = newRegionType;
+
+   //add the new region to the vector of defined regions
+   mMapRegionVec->push_back(pntr);
+
+   //Byte 0 defines the region type
+   regionTable.at(whichRegionId * 85) = (uint8_t)(newRegionType);
+   //value 1 means Shield charger location
+   //value 2 means Fuel charger location
+   //value 3 means Ammo charger location
+   //value 4 means map start location
+
+   //middle point of rectangle that defines region is stored
+   //at byte location 25 and location 27 of this current table entry line
+   regionTable.at(whichRegionId * 85 + 25) = (irr::u8)(pntr->regionCenterTileCoord.X);
+   regionTable.at(whichRegionId * 85 + 27) = (irr::u8)(pntr->regionCenterTileCoord.Y);
+
+   irr::u8 deltaX = pntr->tileXmax - pntr->regionCenterTileCoord.X;
+   irr::u8 deltaY = pntr->tileYmax - pntr->regionCenterTileCoord.Y;
+
+   //region size is specified in terms of tiles counted from
+   //the middle point towards both axis directions
+   //for "X-axis" the deltaX is stored at byte 46
+   regionTable.at(whichRegionId * 85 + 46) = deltaX;
+
+   //for "Y-axis" the deltaY is stored at byte 48
+   regionTable.at(whichRegionId * 85 + 48) = deltaY;
+
+   //we also need to add the POI (point of interest) pointing onto this
+   //new region
+   return (AddPOI(pntr));
+}
+
+//Returns true if succesfull created, false otherwise
+bool LevelFile::AddPOI(MapTileRegionStruct* newRegion) {
+    if (newRegion == nullptr)
+        return false;
+
+    int16_t POIValToAdd = 992 + newRegion->regionId;
+
+    MapEntry* entry = pMap[newRegion->regionCenterTileCoord.X][newRegion->regionCenterTileCoord.Y];
+
+    if (entry == nullptr)
+        return false;
+
+    //set new POI value at the cell in the middle
+    //of the new region
+    entry->mPointOfInterest = POIValToAdd;
+
+    MapPointOfInterest newPointOfInterest;
+    newPointOfInterest.Value = POIValToAdd;
+    newPointOfInterest.Position.X = - newRegion->regionCenterTileCoord.X * DEF_SEGMENTSIZE - 0.5f;
+    newPointOfInterest.Position.Z =  newRegion->regionCenterTileCoord.Y * DEF_SEGMENTSIZE + 0.5f;
+    newPointOfInterest.Position.Y = entry->m_Height;
+    newPointOfInterest.cellCoord.set(newRegion->regionCenterTileCoord.X, newRegion->regionCenterTileCoord.Y);
+
+    //add new POI to list
+    PointsOfInterest.push_back(newPointOfInterest);
+
+    return true;
+}
+
+void LevelFile::RemovePOI(irr::u8 regionId) {
+    //visit every cell and make sure that the specified POI
+    //value (depends on regionId) is not linked anywhere anymore
+    MapEntry* entry;
+
+    //Linking of POI to level file offset for
+    //region with specific regionId
+    /*
+    POI level file offset RegionId
+    992	246924              0
+    993	247009              1
+    994	247094              2
+    995	247179              3
+    996	247264              4
+    997	247349              5
+    998	247434              6
+    999	247519              7
+    */
+
+    int16_t POIToFind = 992 + regionId;
+
+    for (int y = 0; y < Height(); y++) {
+         for (int x = 0; x < Width(); x++) {
+
+             entry = this->pMap[x][y];
+
+             if (entry != nullptr) {
+                 if (entry->mPointOfInterest == POIToFind) {
+                     //we need to erase this link to this POI from this cell
+                     entry->mPointOfInterest = 0;
+                 }
+             }
+         }
+    }
+
+    //Delete this POI from the PointsOfInterest vector as well
+    std::list<MapPointOfInterest>::iterator listIt;
+
+    for (listIt = PointsOfInterest.begin(); listIt != PointsOfInterest.end(); ) {
+        if ((*listIt).Value == POIToFind) {
+            listIt = PointsOfInterest.erase(listIt);
+        } else {
+            listIt++;
+        }
+    }
 }
 
 /*************************************************************
@@ -1977,6 +1597,14 @@ bool LevelFile::saveMap() {
    return(true);
 }
 
+bool LevelFile::saveRegionTable() {
+    //region table, starts at file offset 246924
+    std::copy(this->regionTable.begin(), regionTable.end(), this->m_wBytes.begin()
+              + 246924);
+
+    return true;
+}
+
 bool LevelFile::saveUnknownTables() {
     //third table Offset0
     std::copy(this->unknownTable0Data.begin(), unknownTable0Data.end(), this->m_wBytes.begin()
@@ -2002,13 +1630,10 @@ bool LevelFile::saveUnknownTables() {
     std::copy(this->unknownTable127468Data.begin(), unknownTable127468Data.end(), this->m_wBytes.begin()
               + 127468);
 
-    //first Table Offset247264
-    std::copy(this->unknownTable247264Data.begin(), unknownTable247264Data.end(), this->m_wBytes.begin()
-              + 247264);
-
     //11th table Offset247604
     std::copy(this->unknownTable247604Data.begin(), unknownTable247604Data.end(), this->m_wBytes.begin()
               + 247604);
 
     return true;
 }
+
