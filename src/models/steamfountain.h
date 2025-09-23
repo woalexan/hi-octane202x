@@ -54,6 +54,8 @@ public:
     void Hide();
     void Show();
 
+    bool IsActivated();
+
 private:
     irr::core::vector3d<irr::f32> mPosition;
     bool mVisible;

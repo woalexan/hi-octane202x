@@ -23,6 +23,9 @@
 #define EDITOR_ENTITYCAT_WAYPOINTS 3003
 #define EDITOR_ENTITYCAT_UNUSED 3004
 
+#define EDITOR_ENTITY_OPMODE_DEFAULT 0
+#define EDITOR_ENTITY_OPMODE_SETMOVETARGET 1
+
 /************************
  * Forward declarations *
  ************************/
@@ -31,6 +34,7 @@ class EditorSession;
 class EntityMode;
 class NumberEditBox;
 struct GUIEntityModeEntityCategoryDataStruct;
+class EditorEntity;
 
 class EntityModeEntityCategory {
 private:
@@ -90,6 +94,7 @@ struct GUIEntityMode
     irr::gui::IGUIStaticText* LabelEntityCategory;
 
     irr::gui::IGUIButton* RemoveEntityButton;
+    irr::gui::IGUIButton* MoveEntityButton;
 
     /* Extra Ui Elements for Configuration of default Collectibles */
     irr::gui::IGUICheckBox* CollectibleCreateAtStart;
@@ -116,6 +121,9 @@ private:
 
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
 
+    //returns true if move is succesfull, false otherwise
+    bool EntityMoveTargetCellSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
+
     void AddEntityTypeCategory(const wchar_t* categoryName, irr::u8 categoryNr, irr::gui::IGUIComboBox* comboBoxPntr);
     void AddDefaultCollectable(EntityModeEntityCategory* catPntr, Entity::EntityType type);
 
@@ -138,6 +146,10 @@ private:
     void UpdateUiDefaultSettings();
 
     void ChangeCreateAtStart(bool newValue);
+
+    irr::u8 mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
+
+    EditorEntity* mLastSelectedEditorEntity = nullptr;
 
 public:
     EntityMode(EditorSession* parentSession);

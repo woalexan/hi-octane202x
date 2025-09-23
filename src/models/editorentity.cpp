@@ -20,9 +20,6 @@ EditorEntity::EditorEntity(EntityManager* parentManager, EntityItem* itemPntr, i
     mEntityItem = itemPntr;
     mModelFileName = modelFileName;
 
-    //Position is the center of the BillboardSceneNode
-    //Position in the level file could be the bottom location at the surface
-    //therefore we need to add the height of the billboard to the Y coordinate
     mPosition = mEntityItem->getCenter();
 
     mOffsetMeshPos.set(0.0f, 0.0f, 0.0f);
@@ -150,6 +147,54 @@ void EditorEntity::SetMeshPosOffset(irr::core::vector3df newOffset) {
 
         UpdateBoundingBox();
     }
+}
+
+//does a position update of the higher level model
+//based on the low level map EntityItem data
+void EditorEntity::UpdatePosition() {
+    if (mBillSceneNode != nullptr) {
+            //Position is the center of the BillboardSceneNode
+            //Position in the level file could be the bottom location at the surface
+            //therefore we need to add the height of the billboard to the Y coordinate
+            mPosition = this->mEntityItem->getCenter();
+
+            mOffsetMeshPos.set(0.0f, 0.0f, 0.0f);
+
+            //Note 27.12.2024: put a little bit higher,
+            //so that it can be collected much more reliable
+            //with bounding box
+            mPosition.Y += mParentManager->GetCollectableCenterHeight();
+
+            mBillSceneNode->setPosition(mPosition);
+    }
+
+    if (mSceneNode != nullptr) {
+        mPosition = mEntityItem->getCenter();
+
+        mOffsetMeshPos.set(0.0f, 0.0f, 0.0f);
+
+        mSceneNode->setPosition(mPosition);
+
+        //Special case for SteamFountain?
+        if ((mEntityItem->getEntityType() == Entity::SteamLight) || (mEntityItem->getEntityType() == Entity::SteamStrong)) {
+            bool currActivated = mSteamFountain->IsActivated();
+
+            //remove the old SteamFountain
+            delete mSteamFountain;
+
+            //Create a new SteamFountain for visible effect
+            //at the new location
+            mSteamFountain = new SteamFountain(mSpriteTex, mEntityItem, mParentManager->mInfra->mSmgr, mParentManager->mInfra->mDriver,
+                mPosition, 100);
+
+            //activate the new mSteamFountain again
+            if (currActivated) {
+                mSteamFountain->Activate();
+            }
+        }
+    }
+
+    UpdateBoundingBox();
 }
 
 void EditorEntity::UpdateBoundingBox() {

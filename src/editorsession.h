@@ -140,6 +140,13 @@ public:
 
     void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color);
 
+    //BillboardSceneNode which contains a white arrow
+    //to indicate to the user that a move operation is currently ongoing
+    irr::scene::IBillboardSceneNode *mArrowRightBillSceneNode = nullptr;
+
+    void ShowArrowPointingRightAtCell(irr::core::vector2di cellCoord);
+    void HideArrowPointingRight();
+
 private:
 
     bool LoadLevel();

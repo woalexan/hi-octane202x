@@ -1764,6 +1764,79 @@ bool EntityManager::IsEntityItemAtCellCoord(int x, int y, EditorEntity **returnP
     return false;
 }
 
+//returns true if move operation was succesfull, false otherwise
+bool EntityManager::MoveEntityToCell(EditorEntity* itemToMove, int targetCellX, int targetCellY) {
+    if (itemToMove == nullptr)
+        return false;
+
+    EditorEntity* existingEntity = nullptr;
+
+    //Is there already an entity Item at the target location?
+    //if so simply exit
+    if (IsEntityItemAtCellCoord(targetCellX, targetCellY, &existingEntity)) {
+        return false;
+    }
+
+    //change low level map data position
+    irr::core::vector3df newCenterPos;
+    irr::core::vector2di outCell;
+
+    newCenterPos.X = - (irr::f32)(targetCellX) * DEF_SEGMENTSIZE - 0.5f;
+    newCenterPos.Z = (irr::f32)(targetCellY) * DEF_SEGMENTSIZE + 0.5f;
+    newCenterPos.Y = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(newCenterPos.X, newCenterPos.Z, outCell);
+
+    itemToMove->mEntityItem->setCenter(newCenterPos);
+
+    //update higher level model position
+    //as well
+    itemToMove->UpdatePosition();
+
+    //for certain types of entities we need to further adjust
+    //scenenode position
+    Entity::EntityType type = itemToMove->mEntityItem->getEntityType();
+
+    switch (type) {
+        case Entity::EntityType::WaypointAmmo:
+        case Entity::EntityType::WaypointFuel:
+        case Entity::EntityType::WaypointShield:
+        case Entity::EntityType::WaypointFast:
+        case Entity::EntityType::WaypointShortcut:
+        case Entity::EntityType::WaypointSpecial1:
+        case Entity::EntityType::WaypointSpecial2:
+        case Entity::EntityType::WaypointSpecial3:
+        case Entity::EntityType::WaypointSlow:
+        case Entity::EntityType::WallSegment: {
+            //modify cube position, so that it is not
+            //stuck in the terrain tiles
+            itemToMove->SetNewHeight(itemToMove->GetCurrentHeight() + EntityManagerCubeHeightDistance);
+
+            break;
+        }
+
+        case Entity::EntityType::RecoveryTruck: {
+            itemToMove->SetNewHeight(itemToMove->GetCurrentHeight() + EntityManagerRecoveryVehicleFlyingHeight);
+
+            break;
+        }
+
+        case Entity::EntityType::SteamStrong:
+        case Entity::EntityType::SteamLight:
+        {
+            //modify surrounding box position, so that it is not
+            //stuck in the terrain tiles
+            itemToMove->SetNewHeight(itemToMove->GetCurrentHeight() + EntityManagerSteamFountainBoxHeightDistance);
+
+            break;
+        }
+
+        default: {
+            break;
+        }
+    }
+
+    return true;
+}
+
 void EntityManager::AddEntityAtCell(int x, int y, Entity::EntityType type) {
   EditorEntity* itemFound = nullptr;
 

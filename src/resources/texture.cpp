@@ -135,6 +135,9 @@ void TextureLoader::LoadEditorTextures() {
     LoadEditorTexture("media/editor/stopwatch-small.png", true);
     LoadEditorTexture("media/editor/speedo-slow-small.png", true);
     LoadEditorTexture("media/editor/speedo-fast-small.png", true);
+
+    //image of original game: white arrow pointing to the right
+    LoadEditorTexture("extract/hud1player/panel0-1-0308.bmp", true);
 }
 
 TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, char* levelTexFilePath,  char* spriteTexFilePath,

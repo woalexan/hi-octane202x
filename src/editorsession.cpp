@@ -71,7 +71,6 @@ EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
 //    //for the start of the race we want to trigger
 //    //target group 1 once
 //    mPendingTriggerTargetGroups.push_back(1);
-
 }
 
 void EditorSession::UpdateMorphs(irr::f32 frameDeltaTime) {
@@ -195,6 +194,12 @@ EditorSession::~EditorSession() {
     {
         delete mEntityMode;
         mEntityMode = nullptr;
+    }
+
+    if (mArrowRightBillSceneNode != nullptr) {
+        mArrowRightBillSceneNode->remove();
+
+        mArrowRightBillSceneNode = nullptr;
     }
 }
 
@@ -396,7 +401,38 @@ bool EditorSession::LoadLevel() {
   //location testing
   mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
 
+  //create an additional BillboardSceneNode which shows an white arrow
+  //to show the user that currently a move action is going on
+  mArrowRightBillSceneNode = mParentEditor->mSmgr->addBillboardSceneNode();
+  mArrowRightBillSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR);
+  mArrowRightBillSceneNode->setMaterialTexture(0, mTexLoader->editorTex.at(4));
+
+  //Important: let collectables (Billboards) unaffected by lightning
+  mArrowRightBillSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+  mArrowRightBillSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
+
+  mArrowRightBillSceneNode->setSize(mEntityManager->GetCollectableSize());
+  mArrowRightBillSceneNode->setVisible(false);
+
   return true;
+}
+
+void EditorSession::ShowArrowPointingRightAtCell(irr::core::vector2di cellCoord) {
+    irr::core::vector3df pos(0.0f, 0.0f, 0.0f);
+
+    pos.X = -cellCoord.X * DEF_SEGMENTSIZE - 0.5f;
+    pos.Z = cellCoord.Y * DEF_SEGMENTSIZE + 0.5f;
+
+    irr::core::vector2di outCell;
+
+    pos.Y = mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(pos.X, pos.Z, outCell) + 0.2f;
+
+    mArrowRightBillSceneNode->setPosition(pos);
+    mArrowRightBillSceneNode->setVisible(true);
+}
+
+void EditorSession::HideArrowPointingRight() {
+    mArrowRightBillSceneNode->setVisible(false);
 }
 
 void EditorSession::SetIllumination(bool enabled) {
