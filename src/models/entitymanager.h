@@ -152,6 +152,11 @@ public:
     void CreateLevelEntities();
 
     void AddEntityAtCell(int x, int y, Entity::EntityType type);
+    void RemoveEntity(EditorEntity* removeItem);
+
+    //returns true if move operation was succesfull, false otherwise
+    bool MoveEntityToCell(EditorEntity* itemToMove, int targetCellX, int targetCellY);
+
     void ChangeEntitiyGroup(EditorEntity* editorEntity, int16_t newGroupValue);
     void ChangeEntitiyTargetGroup(EditorEntity* editorEntity, int16_t newTargetGroupValue);
     void ChangeEntitiyNextId(EditorEntity* editorEntity, int16_t newNextIdValue);
@@ -205,8 +210,6 @@ public:
     bool AreModelImagesAvailable();
 
     void DebugWriteEntityTableToCsvFile(char* debugOutPutFileName);
-
-    void RemoveEntity(EditorEntity* removeItem);
 };
 
 #endif // ENTITYMANAGER_H

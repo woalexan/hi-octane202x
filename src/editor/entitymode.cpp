@@ -204,7 +204,7 @@ void EntityMode::OnElementLeft(irr::s32 leftGuiId) {
 }
 
 EntityMode::EntityMode(EditorSession* parentSession) : EditorMode(parentSession) {
-    mEntityCategoryVec.clear();
+    mEntityCategoryVec.clear();    
 }
 
 EntityMode::~EntityMode() {
@@ -305,6 +305,12 @@ void EntityMode::CreateWindow() {
 
     mGuiEntityMode.RemoveEntityButton->setEnabled(false);
     mGuiEntityMode.RemoveEntityButton->setVisible(false);
+
+    mGuiEntityMode.MoveEntityButton
+            = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 25, mx + 100, my + 40), Window, GUI_ID_ENTITYWINDOW_BUTTONMOVEENTITY, L"Move Entity");
+
+    mGuiEntityMode.MoveEntityButton->setEnabled(false);
+    mGuiEntityMode.MoveEntityButton->setVisible(false);
 
     irr::s32 dx = mCurrentSelectedEntitySpriteLocation.X;
     irr::s32 dy = mCurrentSelectedEntitySpriteLocation.Y;
@@ -522,6 +528,33 @@ void EntityMode::UpdateUiDefaultSettings() {
     mGuiEntityMode.OffsetYEditBox->SetValue(offsetY);
 }
 
+//returns true if move is succesfull, false otherwise
+bool EntityMode::EntityMoveTargetCellSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
+    //check again, if there is already an entity item at the target location
+    //return here, and interrupt operation
+    if (newItemSelected.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+        return false;
+
+    EditorEntity* existingEntity = nullptr;
+
+    //Is there already an entity Item at the target location?
+    //if so simply exit
+    if (mParentSession->mEntityManager->IsEntityItemAtCellCoord(newItemSelected.mCellCoordSelected.X,
+                                                                newItemSelected.mCellCoordSelected.Y,
+                                                                &existingEntity)) {
+        return false;
+    }
+
+    //mLastSelectedEditorEntity contains the EditorEntity item
+    //that needs to be moved
+    if (mLastSelectedEditorEntity == nullptr)
+        return false;
+
+    return (mParentSession->mEntityManager->MoveEntityToCell(mLastSelectedEditorEntity,
+                                                     newItemSelected.mCellCoordSelected.X,
+                                                     newItemSelected.mCellCoordSelected.Y));
+}
+
 void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
     //did the user select a cell with an existing entityItem on top of it?
     //if so we actually want to select the existing entityItem itself
@@ -539,6 +572,8 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
                 //overwrite our local copy of the currently selected object, with the new one
                 //otherwise the code below does not what it is supposed to do
                 newItemSelected = mParentSession->mItemSelector->mCurrSelectedItem;
+
+                mLastSelectedEditorEntity = newItemSelected.mEntitySelected;
         }
     }
 
@@ -590,6 +625,12 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
             mGuiEntityMode.RemoveEntityButton->setEnabled(true);
             mGuiEntityMode.RemoveEntityButton->setVisible(true);
 
+            //show mode entity button
+            mGuiEntityMode.MoveEntityButton->setEnabled(true);
+            mGuiEntityMode.MoveEntityButton->setVisible(true);
+
+            mLastSelectedEditorEntity = newItemSelected.mEntitySelected;
+
             ShowUiDefaultSettings(true);
 
             //Hide all entity "Add buttons"
@@ -615,8 +656,14 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
         mGuiEntityMode.RemoveEntityButton->setEnabled(false);
         mGuiEntityMode.RemoveEntityButton->setVisible(false);
 
+        //Hide move entity button
+        mGuiEntityMode.MoveEntityButton->setEnabled(false);
+        mGuiEntityMode.MoveEntityButton->setVisible(false);
+
         mGuiEntityMode.LabelCurrentlySelected->setEnabled(false);
         mGuiEntityMode.LabelCurrentlySelected->setVisible(false);
+
+        mLastSelectedEditorEntity = nullptr;
 
         ShowUiDefaultSettings(false);
 
@@ -801,6 +848,11 @@ void EntityMode::EntityCategoryChanged(irr::u32 newSelectedGuiId) {
 }
 
 void EntityMode::OnExitMode() {
+    //make sure we return in Default OP Mode the next
+    //time
+    mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
+
+    mParentSession->HideArrowPointingRight();
 }
 
 //is called when the editor mode
@@ -868,6 +920,28 @@ void EntityMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruc
                     &mCurrHighlightedItem->mEntitySelected->mBoundingBox, mParentSession->mParentEditor->mDrawDebug->white);
     } else if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
+
+        //if user tries to currently move an entity item, show an additional arrow symbol above the currently
+        //highlighted cell
+        if (mOpMode == EDITOR_ENTITY_OPMODE_SETMOVETARGET) {
+            //If there is currently already an entity item at the selected target
+            //cell then do not show the target movement arrow symbol
+            //otherwise show the symbol
+            EditorEntity* pntrItem = nullptr;
+
+            //Returns true if there is currently an entity item at the specified cell
+            //coordinates. Pointer to existing item is also returned via reference parameter returnPntr
+            //Returns false if there is no Entity item right now
+            if (!mParentSession->mEntityManager->IsEntityItemAtCellCoord(mCurrHighlightedItem->mCellCoordSelected.X,
+                                                                         mCurrHighlightedItem->mCellCoordSelected.Y, &pntrItem)) {
+                //There is currently no entity item at the selected cell
+                mParentSession->ShowArrowPointingRightAtCell(mCurrHighlightedItem->mCellCoordSelected);
+            } else {
+                //there is already an entity item at the currently selected cell
+                //Hide the arrow symbol
+                mParentSession->HideArrowPointingRight();
+            }
+        }
     }
 }
 
@@ -888,9 +962,17 @@ void EntityMode::OnUserChangedToNewEntity(GUIEntityModeEntityCategoryDataStruct*
 void EntityMode::OnLeftMouseButtonDown() {
     switch (mParentSession->mUserInDialogState) {
          case DEF_EDITOR_USERINNODIALOG: {
-            //new entity selected
-            NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
-            break;
+            if (mOpMode == EDITOR_ENTITY_OPMODE_DEFAULT) {
+                //new entity selected
+                NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+            } else if (mOpMode == EDITOR_ENTITY_OPMODE_SETMOVETARGET) {
+                EntityMoveTargetCellSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+
+                mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
+
+                mParentSession->mArrowRightBillSceneNode->setVisible(false);
+             }
+             break;
          }
 
          case DEF_EDITOR_USERINENTITYMODEDIALOG: {
@@ -928,9 +1010,21 @@ void EntityMode::OnButtonClicked(irr::s32 buttonGuiId) {
                     mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y);
 
                 NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+
+                mLastSelectedEditorEntity = nullptr;
              }
 
              break;
+        }
+
+        case GUI_ID_ENTITYWINDOW_BUTTONMOVEENTITY: {
+            if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+                //change to internal operation mode where we have to set a new
+                //target cell for this entity (a move target)
+                mOpMode = EDITOR_ENTITY_OPMODE_SETMOVETARGET;
+            }
+
+            break;
         }
     }
 }

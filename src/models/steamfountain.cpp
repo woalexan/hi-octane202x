@@ -91,6 +91,10 @@ void SteamFountain::Show() {
     Activate();
 }
 
+bool SteamFountain::IsActivated() {
+    return mActivated;
+}
+
 SteamFountain::SteamFountain(irr::video::ITexture* steamTex, EntityItem* entityItem, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::core::vector3d<irr::f32> location,
                              irr::u32 nrMaxParticles) {
     mSmgr = smgr;
