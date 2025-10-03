@@ -90,8 +90,22 @@ enum
     GUI_ID_ENTITYCATEGORYCOMBOBOX,
     GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY,
     GUI_ID_ENTITYWINDOW_BUTTONMOVEENTITY,
+    GUI_ID_ENTITYWINDOW_BUTTONLINKENTITY,
+    GUI_ID_ENTITYWINDOW_BUTTONUNLINKENTITY,
     GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX,
     GUI_ID_ENTITYMODEWINDOW_GROUP_EDITBOX,
+    GUI_ID_ENTITYMODEWINDOW_ENTITYTABLE,
+
+    GUI_ID_ENTITYMODEWINDOW_LIST_COLLECTIBLES_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_WAYPOINTS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_WALLSEGMENTS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_RECOVERY_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_CONES_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_MORPHS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_CAMERAS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_TRIGGERS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_EXPLOSIONS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_CHECKPOINTS_CHECKBOX,
 
     GUI_ID_REGIONMODEWINDOW_REGIONTABLE,
     GUI_ID_REGIONMODEWINDOW_APPLYBUTTON,
@@ -113,6 +127,7 @@ class EditorSession;
 class EditorMode;
 class NumberEditBox;
 class UiConversion;
+class FontManager;
 
 class Editor : public InfrastructureBase {
 private:
@@ -132,6 +147,7 @@ private:
     void EditorLoopSession(irr::f32 frameDeltaTime);
     
     EditorSession* mCurrentSession = nullptr;
+    FontManager* mFontManager = nullptr;
 
     void RenderDataExtractionScreen();
     bool LoadBackgroundImage();
@@ -191,6 +207,8 @@ private:
     void UpdateEntityVisibilityMenueEntry(irr::u8 whichEntityClass, irr::s32 commandIdMenueEntry);
 
     gui::IGUIContextMenu* mMenu = nullptr;
+
+    IGUIFont* fontAndika;
 
 public:
     irr::video::ITexture* backgnd = nullptr;

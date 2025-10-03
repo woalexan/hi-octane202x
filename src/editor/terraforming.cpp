@@ -18,6 +18,7 @@
 //#include <iostream>
 
 TerraformingMode::TerraformingMode(EditorSession* parentSession) : EditorMode(parentSession) {
+     mModeNameStr.append(L"Terraforming");
 }
 
 TerraformingMode::~TerraformingMode() {
@@ -30,10 +31,13 @@ void TerraformingMode::CreateWindow() {
     if (font)
         env->getSkin()->setFont(font);*/
 
-    irr::core::dimension2d<irr::u32> dim ( 600, 500 );
+    irr::core::dimension2d<irr::u32> dim ( 300, 250 );
 
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Terraforming", 0, mGuiWindowId);
+
+    //move window to a better start location
+    Window->move(irr::core::vector2d<irr::s32>(950,200));
 
    /* mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
                                       rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, Window, -1, false );

@@ -23,6 +23,8 @@
 
 ColumnDesigner::ColumnDesigner(EditorSession* parentSession) : EditorMode(parentSession) {
     mColumnDefComboBoxEntryVec.clear();
+
+    mModeNameStr.append(L"Columndesign");
 }
 
 ColumnDesigner::~ColumnDesigner() {
@@ -175,9 +177,9 @@ void ColumnDesigner::CreateWindow() {
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Column Designer", 0, mGuiWindowId);
 
     mParentSession->mParentEditor->mGuienv->addStaticText ( L"Column Definitions:",
-                                      rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, Window, -1, false );
+                                      rect<s32>( dim.Width - 400, 25, dim.Width - 290, 50 ),false, false, Window, -1, false );
 
-    mGuiColumnDesigner.selColumnDefinition = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ),
+    mGuiColumnDesigner.selColumnDefinition = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 280, 24, dim.Width - 10, 49 ),
                                                                                                  Window, GUI_ID_COLUMNDEFSELECTIONCOMBOBOX);
 
     mGuiColumnDesigner.selColumnDefinition->setToolTipText ( L"Select from existing Column definitions" );
@@ -325,34 +327,37 @@ void ColumnDesigner::CreateWindow() {
                                                   newPos, true, Window, blockHImageBackId);
 
     mGuiColumnDesigner.CurrentSelectedCellInfo = mParentSession->mParentEditor->mGuienv->addStaticText ( L"",
-                                      rect<s32>( dim.Width - 400 , 55, dim.Width - 200, 65 ),false, false, Window, -1, false );
+                                      rect<s32>( dim.Width - 400 , 55, dim.Width - 200, 80 ),false, false, Window, -1, false );
 
     mGuiColumnDesigner.CurrentSelectedColumnDefId = mParentSession->mParentEditor->mGuienv->addStaticText ( L"",
-                                      rect<s32>( dim.Width - 400 , 65, dim.Width - 200, 75 ),false, false, Window, -1, false );
+                                      rect<s32>( dim.Width - 400 , 90, dim.Width - 200, 115 ),false, false, Window, -1, false );
 
     irr::s32 mx = dim.Width - 400;
-    irr::s32 my = 90;
+    irr::s32 my = 130;
 
     mGuiColumnDesigner.MoveUpColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 15), Window, GUI_ID_COLUMNDESIGNER_BUTTON_MOVEUPCOLUMN, L"Move up");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 85, my + 25), Window, GUI_ID_COLUMNDESIGNER_BUTTON_MOVEUPCOLUMN, L"Move up");
 
     mGuiColumnDesigner.MoveDownColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 30, mx + 85, my + 45), Window, GUI_ID_COLUMNDESIGNER_BUTTON_MOVEDOWNCOLUMN, L"Move down");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 50, mx + 85, my + 75), Window, GUI_ID_COLUMNDESIGNER_BUTTON_MOVEDOWNCOLUMN, L"Move down");
 
     mGuiColumnDesigner.AddColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 60, mx + 85, my + 75), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN, L"Add column");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 100, mx + 85, my + 125), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN, L"Add column");
 
     mGuiColumnDesigner.RemoveColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 60, mx + 85, my + 75), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN, L"Remove column");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 100, mx + 85, my + 125), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN, L"Remove column");
 
     mGuiColumnDesigner.ReplaceColumnButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 90, mx + 85, my + 105), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REPLACECOLUMN, L"Replace column");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 150, mx + 85, my + 175), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REPLACECOLUMN, L"Replace column");
 
     mGuiColumnDesigner.AddBlockButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 120, mx + 85, my + 135), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDBLOCK, L"Add block");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 200, mx + 85, my + 225), Window, GUI_ID_COLUMNDESIGNER_BUTTON_ADDBLOCK, L"Add block");
 
     mGuiColumnDesigner.RemoveBlockButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 120, mx + 85, my + 135), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVEBLOCK, L"Remove block");
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 200, mx + 85, my + 225), Window, GUI_ID_COLUMNDESIGNER_BUTTON_REMOVEBLOCK, L"Remove block");
+
+    //move window to a better start location
+    Window->move(irr::core::vector2d<irr::s32>(650,200));
 }
 
 void ColumnDesigner::UpdateBlockPreviewGuiImages(Column* selColumn) {

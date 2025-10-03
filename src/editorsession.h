@@ -176,6 +176,9 @@ private:
     bool mRunMorphs = false;
     irr::f32 absTimeMorph = 0.0f;
 
+    irr::gui::IGUIStaticText* mModeInfoText = nullptr;
+    irr::gui::IGUIStaticText* mControlInfoText = nullptr;
+
 public:
     EditorSession(Editor* parentEditor, irr::u8 loadLevelNr);
     ~EditorSession();

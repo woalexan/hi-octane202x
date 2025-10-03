@@ -201,6 +201,9 @@ EditorSession::~EditorSession() {
 
         mArrowRightBillSceneNode = nullptr;
     }
+
+    mModeInfoText->remove();
+    mControlInfoText->remove();
 }
 
 void EditorSession::Init() {
@@ -247,6 +250,23 @@ void EditorSession::Init() {
     mCamera2->setPosition(irr::core::vector3df(0.0f, 0.0f, 0.0f));
 
     mParentEditor->mSmgr->setActiveCamera(mCamera);
+
+    //create the current mode output info text
+    this->mModeInfoText = mParentEditor->mGuienv->addStaticText(L"",
+           irr::core::rect<irr::s32>(1150, 50, 1250, 75), false, true, nullptr, -1, true);
+
+    this->mModeInfoText->setWordWrap(false);
+    this->mModeInfoText->setVisible(true);
+
+    this->mControlInfoText = mParentEditor->mGuienv->addStaticText(L"",
+           irr::core::rect<irr::s32>(1150, 85, 1250, 110), false, true, nullptr, -1, true);
+
+    this->mControlInfoText->setWordWrap(false);
+    this->mControlInfoText->setVisible(true);
+
+    this->mControlInfoText->setText(L"Freefly Mode");
+
+    mParentEditor->UpdateStatusbarText(L"Press Space to change between FreeFyling Mode and Edit Mode/Using the UI");
 
     //create the object for path finding and services
     //mPath = new Path(this, mDrawDebug);
@@ -809,6 +829,17 @@ void EditorSession::HandleBasicInput() {
                  if (camera)
                     {
                         camera->setInputReceiverEnabled( !camera->isInputReceiverEnabled() );
+                        if (camera->isInputReceiverEnabled()) {
+                              this->mControlInfoText->setText(L"Freefly Mode");
+                              if (mEditorMode != nullptr) {
+                                  mEditorMode->HideWindow();
+                              }
+                        } else {
+                              this->mControlInfoText->setText(L"Edit Mode");
+                                if (mEditorMode != nullptr) {
+                                    mEditorMode->ShowWindow();
+                                }
+                        }
                     }
               }
 }
@@ -941,6 +972,9 @@ void EditorSession::SetMode(EditorMode* selMode) {
 
     //set new Editor mode
     mEditorMode = selMode;
+
+    //update editor mode name info text
+    this->mModeInfoText->setText(mEditorMode->mModeNameStr.c_str());
 
     //control what ItemSelector is actually
     //Selecting dependent on the new Editor Mode

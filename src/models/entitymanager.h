@@ -104,8 +104,6 @@ private:
      void DrawWayPointLinks();
      void DrawWallSegments();
 
-     bool EntityIsWayPoint(EditorEntity* entity);
-     bool EntityIsWallSegment(EditorEntity* entity);
      ColorStruct* GetColorForWayPointType(Entity::EntityType whichType);
 
      void SetVisibleEntityType(Entity::EntityType whichType, bool visible);
@@ -149,10 +147,16 @@ public:
     std::string GetNameForEntityType(Entity::EntityType mEntityType);
     irr::video::ITexture* GetImageForEntityType(Entity::EntityType mEntityType);
 
+    bool EntityIsWayPoint(EditorEntity* entity);
+    bool EntityIsWallSegment(EditorEntity* entity);
+    bool EntityIsPowerUpCollectible(EditorEntity* entity);
+
     void CreateLevelEntities();
 
     void AddEntityAtCell(int x, int y, Entity::EntityType type);
     void RemoveEntity(EditorEntity* removeItem);
+    void UnlinkEntity(EditorEntity* whichItem);
+    void LinkEntity(EditorEntity* whichItem, EditorEntity* nextItem);
 
     //returns true if move operation was succesfull, false otherwise
     bool MoveEntityToCell(EditorEntity* itemToMove, int targetCellX, int targetCellY);

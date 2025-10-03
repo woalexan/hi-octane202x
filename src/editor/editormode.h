@@ -78,6 +78,8 @@ public:
     virtual void OnEnterMode();
     
     EditorSession* mParentSession = nullptr;
+
+    irr::core::stringw mModeNameStr;
 };
 
 #endif // EDITORMODE_H

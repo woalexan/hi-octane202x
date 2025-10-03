@@ -30,6 +30,7 @@
 #include "models/entitymanager.h"
 #include "editor/regionmode.h"
 #include "editor/uiconversion.h"
+#include "font/font_manager.h"
 
 //fully initializes the remaining editor
 //components
@@ -71,7 +72,12 @@ bool Editor::InitEditorStep2() {
     //between 0 and 255
     setSkinTransparency(200, mGuienv->getSkin());
 
-    //mGuienv->getSkin()->setFont(guiFont);
+    fontAndika = mFontManager->GetTtFont(mDriver, mDevice->getFileSystem(),
+                     "media/andika/Andika-R.ttf", 12, true, true);
+
+    if (fontAndika) {
+         mGuienv->getSkin()->setFont(fontAndika);
+    }
 
     return true;
 }
@@ -556,7 +562,7 @@ void Editor::OnTableSelected(irr::s32 elementId) {
           if (mCurrentSession->mEditorMode != nullptr) {
                   mCurrentSession->mEditorMode->OnTableSelected(elementId);
           }
-     }
+   }
 }
 
 void Editor::OnElementLeft(irr::s32 elementId) {
@@ -1217,6 +1223,7 @@ Editor::Editor() {
     mRegisteredNumberEditBoxes.clear();
 
     mUiConversion = new UiConversion(this);
+    mFontManager = new FontManager();
 }
 
 Editor::~Editor() {
@@ -1243,5 +1250,10 @@ Editor::~Editor() {
     if (mUiConversion != nullptr) {
         delete mUiConversion;
         mUiConversion = nullptr;
+    }
+
+    if (mFontManager != nullptr) {
+        delete mFontManager;
+        mFontManager = nullptr;
     }
 }

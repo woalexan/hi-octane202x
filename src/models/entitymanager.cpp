@@ -236,6 +236,34 @@ bool EntityManager::IsVisible(irr::u8 whichEntityClass) {
     }
 }
 
+bool EntityManager::EntityIsPowerUpCollectible(EditorEntity* entity) {
+    Entity::EntityType type = entity->mEntityItem->getEntityType();
+
+    switch (type) {
+        case Entity::EntityType::ExtraFuel:
+        case Entity::EntityType::FuelFull:
+        case Entity::EntityType::DoubleFuel:
+
+        case Entity::EntityType::ExtraAmmo:
+        case Entity::EntityType::AmmoFull:
+        case Entity::EntityType::DoubleAmmo:
+
+        case Entity::EntityType::ExtraShield:
+        case Entity::EntityType::ShieldFull:
+        case Entity::EntityType::DoubleShield:
+
+        case Entity::EntityType::BoosterUpgrade:
+        case Entity::EntityType::MissileUpgrade:
+        case Entity::EntityType::MinigunUpgrade:  {
+            return true;
+        }
+
+        default: {
+           return false;
+        }
+    }
+}
+
 void EntityManager::SetVisible(irr::u8 whichEntityClass, bool visible) {
     switch (whichEntityClass) {
         case DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES: {
@@ -435,6 +463,21 @@ void EntityManager::DrawWallSegments() {
         }
      }
    }
+}
+
+void EntityManager::UnlinkEntity(EditorEntity* whichItem) {
+    if (whichItem == nullptr)
+        return;
+
+    //nextID = 0 means not linked
+    whichItem->mEntityItem->setNextID(0);
+}
+
+void EntityManager::LinkEntity(EditorEntity* whichItem, EditorEntity* nextItem) {
+    if ((whichItem == nullptr) || (nextItem == nullptr))
+        return;
+
+    whichItem->mEntityItem->setNextID(nextItem->mEntityItem->get_ID());
 }
 
 //returns nullpntr in case EditorEntity with the specified ID

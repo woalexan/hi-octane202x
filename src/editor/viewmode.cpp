@@ -13,6 +13,7 @@
 #include <iostream>
 
 ViewMode::ViewMode(EditorSession* parentSession) : EditorMode(parentSession) {
+     mModeNameStr.append(L"Viewmode");
 }
 
 ViewMode::~ViewMode() {
@@ -31,14 +32,17 @@ void ViewMode::CreateWindow() {
 
     //create the checkbox which allows to disable/enable running
     //Morphs
-    mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 30, dim.Width - 10, 50),
+    mGuiViewMode.RunMorphsCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 30, dim.Width - 10, 55),
                                                                                          Window, GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX, L"Run Morphs");
 
-    mGuiViewMode.FogCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 45, dim.Width - 10, 75),
+    mGuiViewMode.FogCheckbox = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, 65, dim.Width - 10, 90),
                                                                                          Window, GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX, L"Fog");
 
-    mGuiViewMode.IlluminationCheckBox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 100, dim.Width - 10, 130),
+    mGuiViewMode.IlluminationCheckBox = mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( 10, 100, dim.Width - 10, 125),
                                                                                             Window, GUI_ID_VIEWMODEWINDOW_ILLUMINATION_CHECKBOX, L"Illumination");
+
+    //move window to a better start location
+    Window->move(irr::core::vector2d<irr::s32>(1080,200));
 }
 
 void ViewMode::OnExitMode() {

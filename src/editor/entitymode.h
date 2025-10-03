@@ -25,6 +25,7 @@
 
 #define EDITOR_ENTITY_OPMODE_DEFAULT 0
 #define EDITOR_ENTITY_OPMODE_SETMOVETARGET 1
+#define EDITOR_ENTITY_OPMODE_CREATELINKSELNEXTITEM 2
 
 /************************
  * Forward declarations *
@@ -85,16 +86,28 @@ struct GUIEntityMode
         memset ( this, 0, sizeof ( *this ) );
     }
 
+    /***************
+     * Edit Tab    *
+     ***************/
+
     irr::gui::IGUIComboBox* EntityItemTypeCategoryList;
 
     irr::gui::IGUIImage* CurrentSelectedEntitySprite;
 
+    irr::gui::IGUIStaticText* CurrentSelectedEntityId;
     irr::gui::IGUIStaticText* CurrentlySelectedEntityTypeStr;
     irr::gui::IGUIStaticText* LabelCurrentlySelected;
     irr::gui::IGUIStaticText* LabelEntityCategory;
 
     irr::gui::IGUIButton* RemoveEntityButton;
     irr::gui::IGUIButton* MoveEntityButton;
+
+    irr::gui::IGUIButton* LinkEntityButton;
+    irr::gui::IGUIButton* UnlinkEntityButton;
+
+    irr::gui::IGUITabControl* tabCntrl;
+    irr::gui::IGUITab* EditTab;
+    irr::gui::IGUITab* ListTab;
 
     /* Extra Ui Elements for Configuration of default Collectibles */
     irr::gui::IGUICheckBox* CollectibleCreateAtStart;
@@ -113,6 +126,23 @@ struct GUIEntityMode
     NumberEditBox* Unknown1EditBox;
     NumberEditBox* Unknown2EditBox;
     NumberEditBox* Unknown3EditBox;
+
+    irr::gui::IGUICheckBox* ListWaypoints;
+    irr::gui::IGUICheckBox* ListWallsegments;
+    irr::gui::IGUICheckBox* ListRecoveryvehicles;
+    irr::gui::IGUICheckBox* ListCones;
+    irr::gui::IGUICheckBox* ListCollectibles;
+    irr::gui::IGUICheckBox* ListMorphs;
+    irr::gui::IGUICheckBox* ListCameras;
+    irr::gui::IGUICheckBox* ListTriggers;
+    irr::gui::IGUICheckBox* ListExplosions;
+    irr::gui::IGUICheckBox* ListCheckpoints;
+
+    /***************
+     * List Tab    *
+     ***************/
+
+     irr::gui::IGUITable* EntityTable;
 };
 
 class EntityMode : public EditorMode {
@@ -151,6 +181,28 @@ private:
 
     EditorEntity* mLastSelectedEditorEntity = nullptr;
 
+    void AddEntityTableEntry(EditorEntity* whichEntity);
+    void UpdateEntitiesTable();
+
+    bool mListWaypoints = true;
+    bool mListWallsegments = true;
+    bool mListRecoveryvehicles = true;
+    bool mListCones = true;
+    bool mListCollectibles = true;
+    bool mListMorphs = true;
+    bool mListCameras = true;
+    bool mListTriggers = true;
+    bool mListExplosions = true;
+    bool mListCheckpoints = true;
+
+    bool DoListEntityItem(EditorEntity* item);
+
+    int16_t mLastSelectedTableEntityNr = -1;
+
+    void HighlightEntityTableRow(EditorEntity* whichEntity);
+
+    void UpdateUiDialog();
+
 public:
     EntityMode(EditorSession* parentSession);
     virtual ~EntityMode();
@@ -173,6 +225,7 @@ public:
     virtual void OnLeftMouseButtonDown();
 
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
+    virtual void OnTableSelected(irr::s32 elementId);
 
     virtual void OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
 

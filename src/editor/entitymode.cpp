@@ -20,6 +20,7 @@
 #include "../models/levelterrain.h"
 #include <locale.h>
 #include "../input/numbereditbox.h"
+#include "uiconversion.h"
 
 EntityModeEntityCategory::EntityModeEntityCategory(EntityMode* parent) {
     mParent = parent;
@@ -95,7 +96,7 @@ void EntityModeEntityCategory::AddEntityType(irr::video::ITexture* texture, Enti
                                    newPos.Y + this->mParent->mEntityTypeSelectionImageDimension);
 
     newStruct->guiElement =
-               mParent->mParentSession->mParentEditor->mGuienv->addImage(imageLocation, mParent->Window, newStruct->guiElementId,
+               mParent->mParentSession->mParentEditor->mGuienv->addImage(imageLocation, mParent->mGuiEntityMode.EditTab, newStruct->guiElementId,
                                                 L"", true);
 
     newStruct->guiElement->setScaleImage(true);
@@ -205,6 +206,8 @@ void EntityMode::OnElementLeft(irr::s32 leftGuiId) {
 
 EntityMode::EntityMode(EditorSession* parentSession) : EditorMode(parentSession) {
     mEntityCategoryVec.clear();    
+
+    mModeNameStr.append(L"Entitymode");
 }
 
 EntityMode::~EntityMode() {
@@ -227,16 +230,29 @@ void EntityMode::CreateWindow() {
     if (font)
         env->getSkin()->setFont(font);*/
 
-    irr::core::dimension2d<irr::u32> dim ( 450, 400 );
+    irr::core::dimension2d<irr::u32> dim ( 520, 500 );
 
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Entity Mode", 0, mGuiWindowId);
 
-    mGuiEntityMode.LabelEntityCategory = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Entity Category:",
-                                      rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, Window, -1, false );
+    //lets create two tabs in the entity window, one for editing of entity
+    //items
+    //and the other one to list existing entities
+    mGuiEntityMode.tabCntrl = mParentSession->mParentEditor->mGuienv->addTabControl(
+            core::rect<s32>(1, 20, dim.Width - 2 , dim.Height - 2), Window, true, true);
 
-    mGuiEntityMode.EntityItemTypeCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ),
-                                                                                          Window, GUI_ID_ENTITYCATEGORYCOMBOBOX);
+    mGuiEntityMode.EditTab = mGuiEntityMode.tabCntrl->addTab(L"Edit");
+    mGuiEntityMode.ListTab = mGuiEntityMode.tabCntrl->addTab(L"List");
+
+    /***************
+     * Edit Tab    *
+     ***************/
+
+    mGuiEntityMode.LabelEntityCategory = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Entity Category:",
+                                      rect<s32>( dim.Width - 400, 25, dim.Width - 310, 50 ),false, false, mGuiEntityMode.EditTab, -1, false );
+
+    mGuiEntityMode.EntityItemTypeCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 49 ),
+                                                                                          mGuiEntityMode.EditTab, GUI_ID_ENTITYCATEGORYCOMBOBOX);
 
     AddEntityTypeCategory(L"PowerUp", (irr::u8)(EDITOR_ENTITYCAT_POWERUPS), mGuiEntityMode.EntityItemTypeCategoryList);
     AddEntityTypeCategory(L"Models", (irr::u8)(EDITOR_ENTITYCAT_MODELS), mGuiEntityMode.EntityItemTypeCategoryList);
@@ -249,7 +265,7 @@ void EntityMode::CreateWindow() {
     //configure area in dialog where the possible entity categories are
     //shown
     //dimEntityTypeSelectionArea.UpperLeftCorner.set(10, 110);
-    dimEntityTypeSelectionArea.UpperLeftCorner.set(10, 60);
+    dimEntityTypeSelectionArea.UpperLeftCorner.set(10, 70);
     dimEntityTypeSelectionArea.LowerRightCorner.set(dim.Width - 10, dim.Height - 40);
 
     irr::core::dimension2d dimEntityTypeSelectionSize = dimEntityTypeSelectionArea.getSize();
@@ -271,22 +287,22 @@ void EntityMode::CreateWindow() {
 
     mGuiEntityMode.LabelCurrentlySelected = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Current Selected:",
           rect<s32>( mCurrentSelectedEntitySpriteLocation.X,
-                     mCurrentSelectedEntitySpriteLocation.Y - 15,
-                     mCurrentSelectedEntitySpriteLocation.X + 70,
-                     mCurrentSelectedEntitySpriteLocation.Y - 5),false, false, Window, -1, false );
+                     mCurrentSelectedEntitySpriteLocation.Y - 23,
+                     mCurrentSelectedEntitySpriteLocation.X + 120,
+                     mCurrentSelectedEntitySpriteLocation.Y + 2),false, false, mGuiEntityMode.EditTab, -1, false );
 
     mGuiEntityMode.CurrentlySelectedEntityTypeStr =
             mParentSession->mParentEditor->mGuienv->addStaticText ( L"", rect<s32>( mCurrentSelectedEntitySpriteLocation.X,
                                                                                     mCurrentSelectedEntitySpriteLocation.Y + 5 + spriteDimension.Height,
                                                                                     mCurrentSelectedEntitySpriteLocation.X + 120,
-                                                                                    mCurrentSelectedEntitySpriteLocation.Y + 20 + spriteDimension.Height),false, false, Window, -1, false );
+                                                                                    mCurrentSelectedEntitySpriteLocation.Y + 30 + spriteDimension.Height),false, false, mGuiEntityMode.EditTab, -1, false );
 
     mGuiEntityMode.CurrentSelectedEntitySprite =
             mParentSession->mParentEditor->mGuienv->addImage(rect<s32>( mCurrentSelectedEntitySpriteLocation.X,
                                                                         mCurrentSelectedEntitySpriteLocation.Y,
                                                                         mCurrentSelectedEntitySpriteLocation.X + spriteDimension.Width,
                                                                         mCurrentSelectedEntitySpriteLocation.Y + spriteDimension.Height),
-                                                                        Window, -1);
+                                                                        mGuiEntityMode.EditTab, -1);
 
     mGuiEntityMode.CurrentSelectedEntitySprite->setScaleImage(true);
 
@@ -297,23 +313,44 @@ void EntityMode::CreateWindow() {
     mGuiEntityMode.LabelCurrentlySelected->setEnabled(false);
     mGuiEntityMode.LabelCurrentlySelected->setVisible(false);
 
+    mGuiEntityMode.CurrentSelectedEntityId =
+            mParentSession->mParentEditor->mGuienv->addStaticText ( L"", rect<s32>( mCurrentSelectedEntitySpriteLocation.X,
+                                                                                    mCurrentSelectedEntitySpriteLocation.Y + 25 + spriteDimension.Height,
+                                                                                    mCurrentSelectedEntitySpriteLocation.X + 120,
+                                                                                    mCurrentSelectedEntitySpriteLocation.Y + 50 + spriteDimension.Height),false, false, mGuiEntityMode.EditTab, -1, false );
+
+    mGuiEntityMode.CurrentSelectedEntityId->setEnabled(false);
+    mGuiEntityMode.CurrentSelectedEntityId->setVisible(false);
+
     irr::s32 mx = mCurrentSelectedEntitySpriteLocation.X + spriteDimension.Width + 30;
     irr::s32 my = mCurrentSelectedEntitySpriteLocation.Y + 10;
 
     mGuiEntityMode.RemoveEntityButton
-            = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 100, my + 15), Window, GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY, L"Remove Entity");
+            = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 80, my, mx + 180, my + 25), mGuiEntityMode.EditTab, GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY, L"Remove Entity");
 
     mGuiEntityMode.RemoveEntityButton->setEnabled(false);
     mGuiEntityMode.RemoveEntityButton->setVisible(false);
 
     mGuiEntityMode.MoveEntityButton
-            = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my + 25, mx + 100, my + 40), Window, GUI_ID_ENTITYWINDOW_BUTTONMOVEENTITY, L"Move Entity");
+            = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 80, my + 40, mx + 180, my + 65), mGuiEntityMode.EditTab, GUI_ID_ENTITYWINDOW_BUTTONMOVEENTITY, L"Move Entity");
 
     mGuiEntityMode.MoveEntityButton->setEnabled(false);
     mGuiEntityMode.MoveEntityButton->setVisible(false);
 
+    mGuiEntityMode.LinkEntityButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 205, my, mx + 305, my + 25), mGuiEntityMode.EditTab, GUI_ID_ENTITYWINDOW_BUTTONLINKENTITY, L"Link Entity");
+
+    mGuiEntityMode.UnlinkEntityButton =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 205, my + 40, mx + 305, my + 65), mGuiEntityMode.EditTab, GUI_ID_ENTITYWINDOW_BUTTONUNLINKENTITY, L"Unlink Entity");
+
+    mGuiEntityMode.LinkEntityButton->setEnabled(false);
+    mGuiEntityMode.LinkEntityButton->setVisible(false);
+
+    mGuiEntityMode.UnlinkEntityButton->setEnabled(false);
+    mGuiEntityMode.UnlinkEntityButton->setVisible(false);
+
     irr::s32 dx = mCurrentSelectedEntitySpriteLocation.X;
-    irr::s32 dy = mCurrentSelectedEntitySpriteLocation.Y;
+    irr::s32 dy = mCurrentSelectedEntitySpriteLocation.Y + 30;
 
     /********************************************
      * Group Edit Box and Create At Start       *
@@ -323,15 +360,15 @@ void EntityMode::CreateWindow() {
     mGuiEntityMode.CollectibleCreateAtStart =
             mParentSession->mParentEditor->mGuienv->addCheckBox(true, rect<s32> ( dx, dy + 25 + spriteDimension.Height,
                                                                                   dx + 120, dy + 40 + spriteDimension.Height),
-                                                                         Window, GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX, L"Create at Start");
+                                                                         mGuiEntityMode.EditTab, GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX, L"Create at Start");
 
-    mGuiEntityMode.GroupEditBox = new NumberEditBox(this, L"1", rect<s32> ( dx + 55, dy + 55 + spriteDimension.Height,
-                                                                             dx + 115, dy + 70 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.GroupEditBox = new NumberEditBox(this, L"1", rect<s32> ( dx + 80, dy + 55 + spriteDimension.Height,
+                                                                             dx + 140, dy + 70 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.GroupEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.GroupEditBox->AddLabel(L"Group:",
-                                          rect<s32>( dx, dy + 58 + spriteDimension.Height,
+                                          rect<s32>( dx, dy + 52 + spriteDimension.Height,
                                                      dx + 70,
                                                      dy + 73 + spriteDimension.Height));
 
@@ -339,13 +376,13 @@ void EntityMode::CreateWindow() {
      * Target Group Edit Box                    *
      ********************************************/
 
-    mGuiEntityMode.TargetGroupEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 55, dy + 82 + spriteDimension.Height,
-                                                                             dx + 115, dy + 97 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.TargetGroupEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 80, dy + 82 + spriteDimension.Height,
+                                                                             dx + 140, dy + 97 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.TargetGroupEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.TargetGroupEditBox->AddLabel(L"TargetGroup:",
-                                          rect<s32>( dx, dy + 85 + spriteDimension.Height,
+                                          rect<s32>( dx, dy + 79 + spriteDimension.Height,
                                                      dx + 70,
                                                      dy + 100 + spriteDimension.Height));
 
@@ -353,97 +390,341 @@ void EntityMode::CreateWindow() {
      * NextId Edit Box                          *
      ********************************************/
 
-    mGuiEntityMode.NextIdEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + spriteDimension.Height,
-                                                                             dx + 230, dy + 70 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.NextIdEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + spriteDimension.Height,
+                                                                             dx + 290, dy + 70 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.NextIdEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.NextIdEditBox->AddLabel(L"NextId:",
-                                          rect<s32>( dx + 130, dy + 58 + spriteDimension.Height,
-                                                     dx + 200,
+                                          rect<s32>( dx + 170, dy + 52 + spriteDimension.Height,
+                                                     dx + 210,
                                                      dy + 73 + spriteDimension.Height));
 
     /********************************************
      * Value Edit Box                           *
      ********************************************/
 
-    mGuiEntityMode.ValueEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + 28 + spriteDimension.Height,
-                                                                             dx + 230, dy + 70 + 28 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.ValueEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + 28 + spriteDimension.Height,
+                                                                             dx + 290, dy + 70 + 28 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.ValueEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.ValueEditBox->AddLabel(L"Value:",
-                                          rect<s32>( dx + 130, dy + 58 + 28 + spriteDimension.Height,
-                                                     dx + 200,
+                                          rect<s32>( dx + 170, dy + 52 + 28 + spriteDimension.Height,
+                                                     dx + 230,
                                                      dy + 73 + 28 + spriteDimension.Height));
 
     /********************************************
      * OffsetX Edit Box                         *
      ********************************************/
 
-    mGuiEntityMode.OffsetXEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + 56 + spriteDimension.Height,
-                                                                             dx + 230, dy + 70 + 56 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.OffsetXEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + 56 + spriteDimension.Height,
+                                                                             dx + 290, dy + 70 + 56 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.OffsetXEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.OffsetXEditBox->AddLabel(L"Offset X:",
-                                          rect<s32>( dx + 130, dy + 58 + 56 + spriteDimension.Height,
-                                                     dx + 200,
+                                          rect<s32>( dx + 170, dy + 52 + 56 + spriteDimension.Height,
+                                                     dx + 230,
                                                      dy + 73 + 56 + spriteDimension.Height));
 
     /********************************************
      * OffsetY Edit Box                         *
      ********************************************/
 
-    mGuiEntityMode.OffsetYEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 170, dy + 55 + 56 + 28 + spriteDimension.Height,
-                                                                             dx + 230, dy + 70 + 56 + 28 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.OffsetYEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + 56 + 28 + spriteDimension.Height,
+                                                                             dx + 290, dy + 70 + 56 + 28 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.OffsetYEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.OffsetYEditBox->AddLabel(L"Offset Y:",
-                                          rect<s32>( dx + 130, dy + 58 + 56 + 28 + spriteDimension.Height,
-                                                     dx + 200,
+                                          rect<s32>( dx + 170, dy + 52 + 56 + 28 + spriteDimension.Height,
+                                                     dx + 230,
                                                      dy + 73 + 56 + 28 + spriteDimension.Height));
 
     /********************************************
      * Unknown Edit Boxes                       *
      ********************************************/
 
-    mGuiEntityMode.Unknown1EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 300, dy + 55 + spriteDimension.Height,
-                                                                               dx + 360, dy + 70 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.Unknown1EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 400, dy + 55 + spriteDimension.Height,
+                                                                               dx + 460, dy + 70 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.Unknown1EditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.Unknown1EditBox->AddLabel(L"Unknown1:",
-                                          rect<s32>( dx + 250, dy + 58 + spriteDimension.Height,
-                                                     dx + 320,
+                                          rect<s32>( dx + 320, dy + 52 + spriteDimension.Height,
+                                                     dx + 380,
                                                      dy + 73 + spriteDimension.Height));
 
-    mGuiEntityMode.Unknown2EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 300, dy + 55 + 28 + spriteDimension.Height,
-                                                                               dx + 360, dy + 70 + 28 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.Unknown2EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 400, dy + 55 + 28 + spriteDimension.Height,
+                                                                               dx + 460, dy + 70 + 28 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.Unknown2EditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.Unknown2EditBox->AddLabel(L"Unknown2:",
-                                          rect<s32>( dx + 250, dy + 58 + 28 + spriteDimension.Height,
-                                                     dx + 320,
+                                          rect<s32>( dx + 320, dy + 52 + 28 + spriteDimension.Height,
+                                                     dx + 380,
                                                      dy + 73 + 28 + spriteDimension.Height));
 
-    mGuiEntityMode.Unknown3EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 300, dy + 55 + 57 + spriteDimension.Height,
-                                                                               dx + 360, dy + 70 + 57 + spriteDimension.Height), true,
-                                                                              Window);
+    mGuiEntityMode.Unknown3EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 400, dy + 55 + 57 + spriteDimension.Height,
+                                                                               dx + 460, dy + 70 + 57 + spriteDimension.Height), true,
+                                                                              mGuiEntityMode.EditTab);
 
     mGuiEntityMode.Unknown3EditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.Unknown3EditBox->AddLabel(L"Unknown3:",
-                                          rect<s32>( dx + 250, dy + 58 + 57 + spriteDimension.Height,
-                                                     dx + 320,
+                                          rect<s32>( dx + 320, dy + 52 + 57 + spriteDimension.Height,
+                                                     dx + 380,
                                                      dy + 73 + 57 + spriteDimension.Height));
 
+    /***************
+     * List Tab    *
+     ***************/
+
+    mGuiEntityMode.EntityTable =
+            mParentSession->mParentEditor->mGuienv->addTable( rect<s32>( 10, 30, 478, dim.Height - 120), mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_ENTITYTABLE);
+
+    mGuiEntityMode.EntityTable->addColumn ( L"Id", 0 );
+    mGuiEntityMode.EntityTable->addColumn ( L"Type", 1 );
+    mGuiEntityMode.EntityTable->addColumn ( L"NextId", 2 );
+    mGuiEntityMode.EntityTable->addColumn ( L"CellX", 3 );
+    mGuiEntityMode.EntityTable->addColumn ( L"CellY", 4 );
+    mGuiEntityMode.EntityTable->addColumn ( L"OffsetX", 5 );
+    mGuiEntityMode.EntityTable->addColumn ( L"OffsetY", 6 );
+    mGuiEntityMode.EntityTable->addColumn ( L"Group", 7 );
+    mGuiEntityMode.EntityTable->addColumn ( L"Value", 8 );
+
+    mGuiEntityMode.EntityTable->setColumnWidth ( 0, 40 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 1, 110 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 2, 40 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 3, 40 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 4, 40 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 5, 30 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 6, 30 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 7, 40 );
+    mGuiEntityMode.EntityTable->setColumnWidth ( 8, 40 );
+    mGuiEntityMode.EntityTable->setToolTipText ( L"Shows all existing Entities");
+
+    mGuiEntityMode.ListCollectibles = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, dim.Height - 75 - 30, 90, dim.Height - 55 - 30),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_COLLECTIBLES_CHECKBOX, L"Collectibles");
+
+    mGuiEntityMode.ListWaypoints = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 105, dim.Height - 75 - 30, 210, dim.Height - 55 - 30),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_WAYPOINTS_CHECKBOX, L"Waypoints");
+
+    mGuiEntityMode.ListWallsegments = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 200, dim.Height - 75 - 30, 300, dim.Height - 55 - 30),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_WALLSEGMENTS_CHECKBOX, L"Wallsegments");
+
+    mGuiEntityMode.ListRecoveryvehicles = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 315, dim.Height - 75 - 30, 400, dim.Height - 55 - 30),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_RECOVERY_CHECKBOX, L"Recovery");
+
+    mGuiEntityMode.ListCones = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 410, dim.Height - 75 - 30, 515, dim.Height - 55 - 30),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_CONES_CHECKBOX, L"Cones");
+
+    mGuiEntityMode.ListMorphs = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, dim.Height - 45 - 35, 90, dim.Height - 25 - 35),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_MORPHS_CHECKBOX, L"Morphs");
+
+    mGuiEntityMode.ListCameras = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 105, dim.Height - 45 - 35, 210, dim.Height - 25 - 35),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_CAMERAS_CHECKBOX, L"Cameras");
+
+    mGuiEntityMode.ListTriggers = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 200, dim.Height - 45 - 35, 300, dim.Height - 25 - 35),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_TRIGGERS_CHECKBOX, L"Triggers");
+
+    mGuiEntityMode.ListExplosions = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 315, dim.Height - 45 - 35, 400, dim.Height - 25 - 35),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_EXPLOSIONS_CHECKBOX, L"Explosions");
+
+    mGuiEntityMode.ListCheckpoints = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 410, dim.Height - 45 - 35, 515, dim.Height - 25 - 35),
+                                                                                                   mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_CHECKPOINTS_CHECKBOX, L"Checkpoints");
+
+    mGuiEntityMode.ListCollectibles->setChecked(mListCollectibles);
+    mGuiEntityMode.ListWaypoints->setChecked(mListWaypoints);
+    mGuiEntityMode.ListWallsegments->setChecked(mListWallsegments);
+    mGuiEntityMode.ListRecoveryvehicles->setChecked(mListRecoveryvehicles);
+    mGuiEntityMode.ListCones->setChecked(mListCones);
+    mGuiEntityMode.ListMorphs->setChecked(mListMorphs);
+    mGuiEntityMode.ListCameras ->setChecked(mListCameras);
+    mGuiEntityMode.ListTriggers->setChecked(mListTriggers);
+    mGuiEntityMode.ListExplosions->setChecked(mListExplosions);
+    mGuiEntityMode.ListCheckpoints->setChecked(mListCheckpoints);
+
+    //move window to a better start location
+    Window->move(irr::core::vector2d<irr::s32>(700,200));
 
     ShowUiDefaultSettings(false);
+    UpdateUiDialog();
+}
+
+void EntityMode::HighlightEntityTableRow(EditorEntity* whichEntity) {
+    //-1 means no row (table entry) is hightlighted
+    irr::s32 rowIdx = -1;
+
+    irr::s32 rowCount = mGuiEntityMode.EntityTable->getRowCount();
+    irr::s32 columnCount = mGuiEntityMode.EntityTable->getColumnCount();
+
+    if (whichEntity != nullptr) {
+       //is the current item even shown or filtered?
+       if (DoListEntityItem(whichEntity)) {
+           //yes it is shown in the table
+           int16_t idEntry;
+           irr::u32 currIdValue;
+           int itemId = whichEntity->mEntityItem->get_ID();
+
+           //check every currently shown row in which row the correct selected
+           //Entity Item Id can be found?
+           for (irr::s32 idx = 0; idx < rowCount; idx++) {
+              if (mParentSession->mParentEditor->mUiConversion->GetUIntFromTableEntry(mGuiEntityMode.EntityTable, idx, 0, currIdValue)) {
+                  idEntry = (int16_t)(currIdValue);
+                  if (idEntry == itemId) {
+                      //we found the correct table entry row
+                      //we can exit this search
+                      rowIdx = idx;
+
+                      break;
+                  }
+              }
+           }
+       }
+    }
+
+    for (irr::s32 idx = 0; idx < rowCount; idx++) {
+        for (irr::s32 idx2 = 0; idx2 < columnCount; idx2++) {
+        if (idx == rowIdx) {
+            mGuiEntityMode.EntityTable->setCellColor(idx, idx2, *mParentSession->mParentEditor->mDrawDebug->white->color);
+        } else {
+            mGuiEntityMode.EntityTable->setCellColor(idx, idx2, *mParentSession->mParentEditor->mDrawDebug->black->color);
+        }
+      }
+    }
+}
+
+void EntityMode::AddEntityTableEntry(EditorEntity* whichEntity) {
+    if (whichEntity == nullptr) {
+        return;
+    }
+
+    irr::s32 nrRowIdx = mGuiEntityMode.EntityTable->getRowCount();
+
+    //create a new row
+    mGuiEntityMode.EntityTable->addRow(nrRowIdx);
+
+    irr::core::stringw typeStr(mParentSession->mEntityManager->GetNameForEntityType(whichEntity->GetEntityType()).c_str());
+    irr::core::stringw entryNrStr(whichEntity->mEntityItem->get_ID());
+
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 0, entryNrStr);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 1, typeStr);
+
+    irr::core::stringw nextId(whichEntity->mEntityItem->getNextID());
+    irr::core::stringw cellX(whichEntity->mEntityItem->getCell().X);
+    irr::core::stringw cellY(whichEntity->mEntityItem->getCell().Y);
+    irr::core::stringw offsetX((int)(whichEntity->mEntityItem->getOffsetX()));
+    irr::core::stringw offsetY((int)(whichEntity->mEntityItem->getOffsetY()));
+    irr::core::stringw group(whichEntity->mEntityItem->getGroup());
+    irr::core::stringw value(whichEntity->mEntityItem->getValue());
+
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 2, nextId);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 3, cellX);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 4, cellY);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 5, offsetX);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 6, offsetY);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 7, group);
+    mGuiEntityMode.EntityTable->setCellText(nrRowIdx, 8, value);
+}
+
+bool EntityMode::DoListEntityItem(EditorEntity* item) {
+    if (item == nullptr)
+        return false;
+
+    if (item->mEntityItem == nullptr)
+        return false;
+
+    if (mParentSession->mEntityManager->EntityIsPowerUpCollectible(item)) {
+        return mListCollectibles;
+    }
+
+    if (mParentSession->mEntityManager->EntityIsWayPoint(item)) {
+        return mListWaypoints;
+    }
+
+    switch (item->mEntityItem->getEntityType()) {
+        case Entity::EntityType::Cone: {
+           return mListCones;
+        }
+
+        case Entity::EntityType::Camera: {
+           return mListCameras;
+        }
+
+        case Entity::EntityType::Unknown:
+        case Entity::EntityType::UnknownItem:
+        case Entity::EntityType::UnknownShieldItem:
+        {
+            return true;
+        }
+
+        case Entity::EntityType::Explosion: {
+               return mListExplosions;
+        }
+
+        case Entity::EntityType::MorphOnce:
+        case Entity::EntityType::MorphSource1:
+        case Entity::EntityType::MorphSource2:
+        case Entity::EntityType::MorphPermanent: {
+            return mListMorphs;
+        }
+
+        case Entity::EntityType::WallSegment: {
+            return mListWallsegments;
+        }
+
+        case Entity::EntityType::RecoveryTruck: {
+            return mListRecoveryvehicles;
+        }
+
+        case Entity::EntityType::TriggerCraft:
+        case Entity::EntityType::TriggerTimed:
+        case Entity::EntityType::TriggerRocket: {
+            return mListTriggers;
+        }
+
+        case Entity::EntityType::Checkpoint: {
+            return mListCheckpoints;
+        }
+
+        case Entity::EntityType::SteamLight:
+        case Entity::EntityType::SteamStrong:
+        case Entity::EntityType::DamageCraft: {
+            return true;
+        }
+
+        default: {
+            return true;
+        }
+    }
+}
+
+void EntityMode::UpdateEntitiesTable() {
+    std::vector<EditorEntity*>::iterator it;
+
+    mGuiEntityMode.EntityTable->clearRows();
+
+    //add all existing EntityItems into the entity table
+    for (it = mParentSession->mEntityManager->mEntityVec.begin(); it != mParentSession->mEntityManager->mEntityVec.end(); ++it) {
+        //do we want to include this entity type in the table?
+        //depends on the user selected checkboxes
+        if (DoListEntityItem((*it))) {
+            AddEntityTableEntry((*it));
+        }
+    }
 }
 
 void EntityMode::ShowUiDefaultSettings(bool visible) {
+  mGuiEntityMode.CurrentSelectedEntityId->setEnabled(visible);
+  mGuiEntityMode.CurrentSelectedEntityId->setVisible(visible);
+
+  mGuiEntityMode.LinkEntityButton->setEnabled(visible);
+  mGuiEntityMode.LinkEntityButton->setVisible(visible);
+
+  mGuiEntityMode.UnlinkEntityButton->setEnabled(visible);
+  mGuiEntityMode.UnlinkEntityButton->setVisible(visible);
+
   mGuiEntityMode.CollectibleCreateAtStart->setVisible(visible);
   mGuiEntityMode.CollectibleCreateAtStart->setEnabled(visible);
 
@@ -478,6 +759,14 @@ void EntityMode::ShowUiDefaultSettings(bool visible) {
   if (visible) {
       UpdateUiDefaultSettings();
   }
+}
+
+void EntityMode::UpdateUiDialog() {
+    UpdateEntitiesTable();
+
+    //which line needs to be highlighted?
+    //for rowIdx = -1 all rows are "unhighlighted"
+    HighlightEntityTableRow(mLastSelectedEditorEntity);
 }
 
 void EntityMode::UpdateUiDefaultSettings() {
@@ -613,6 +902,13 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
             mGuiEntityMode.CurrentlySelectedEntityTypeStr->setText(selInfo);
             delete[] selInfo;
 
+            //update Id number with Id of currently selected element
+            wchar_t* idStrInfo = new wchar_t[20];
+
+            swprintf(idStrInfo, 17, L"Id: %d", newItemSelected.mEntitySelected->mEntityItem->get_ID());
+            mGuiEntityMode.CurrentSelectedEntityId->setText(idStrInfo);
+            delete[] idStrInfo;
+
             //update image of currently selected texture
             mGuiEntityMode.CurrentSelectedEntitySprite->setImage(mParentSession->mEntityManager->GetImageForEntityType(type));
             mGuiEntityMode.CurrentSelectedEntitySprite->setEnabled(true);
@@ -632,6 +928,8 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
             mLastSelectedEditorEntity = newItemSelected.mEntitySelected;
 
             ShowUiDefaultSettings(true);
+
+            UpdateUiDialog();
 
             //Hide all entity "Add buttons"
             ShowAllEntitiesAddButtons(false);
@@ -667,8 +965,45 @@ void EntityMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
 
         ShowUiDefaultSettings(false);
 
+        UpdateUiDialog();
+
         //give user the ability to see the "Add Entity" buttons
         ShowAllEntitiesAddButtons(true);
+    }
+}
+
+void EntityMode::OnTableSelected(irr::s32 elementId) {
+    if (elementId == GUI_ID_ENTITYMODEWINDOW_ENTITYTABLE) {
+        //another entry in the entity table was selected by the user
+        //which entity was selected?
+        irr::s32 rowSelected = mGuiEntityMode.EntityTable->getSelected();
+
+        if (rowSelected != -1) {
+            irr::u32 entityId;
+
+            if (mParentSession->mParentEditor->mUiConversion->GetUIntFromTableEntry(mGuiEntityMode.EntityTable, rowSelected, 0, entityId)) {
+                mLastSelectedTableEntityNr = (int16_t)(entityId);
+
+                EditorEntity* entityPntr = mParentSession->mEntityManager->GetEditorEntityWithId(mLastSelectedTableEntityNr);
+                if (entityPntr != nullptr) {
+                    //set user camera right to the selected EditorEntity item
+                    mParentSession->MoveUserViewToLocation(entityPntr->mPosition, 25.0f);
+                }
+
+                mLastSelectedEditorEntity = entityPntr;
+
+                irr::core::vector2di cellCoord = entityPntr->GetCellCoord();
+
+                mParentSession->mItemSelector->SelectEntityAtCellCoordinate(cellCoord.X, cellCoord.Y);
+            }
+
+            NewLevelItemSelected(mParentSession->mItemSelector->mCurrSelectedItem);
+
+            UpdateUiDefaultSettings();
+
+            //which line needs to be highlighted?
+            HighlightEntityTableRow(mLastSelectedEditorEntity);
+        }
     }
 }
 
@@ -890,17 +1225,37 @@ void EntityMode::OnCheckBoxChanged(irr::s32 checkboxId) {
     if (checkboxId == GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX) {
         //is the checkbox now checked or not?
         ChangeCreateAtStart(mGuiEntityMode.CollectibleCreateAtStart->isChecked());
-    } /*else if (checkboxId == GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX) {
-        //Fog enabled or disabled?
-        bool fogEnabled = mGuiViewMode.FogCheckbox->isChecked();
-
-        mParentSession->SetFog(fogEnabled);
-    } else if (checkboxId == GUI_ID_VIEWMODEWINDOW_ILLUMINATION_CHECKBOX) {
-        //Illumination enabled or disabled?
-        bool illuminationEnabled = mGuiViewMode.IlluminationCheckBox->isChecked();
-
-        mParentSession->SetIllumination(illuminationEnabled);
-    }*/
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_CONES_CHECKBOX) {
+        mListCones = !mListCones;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_MORPHS_CHECKBOX) {
+        mListMorphs = !mListMorphs;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_CAMERAS_CHECKBOX) {
+        mListCameras = !mListCameras;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_RECOVERY_CHECKBOX) {
+        mListRecoveryvehicles = !mListRecoveryvehicles;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_TRIGGERS_CHECKBOX) {
+        mListTriggers = !mListTriggers;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_WAYPOINTS_CHECKBOX) {
+        mListWaypoints = !mListWaypoints;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_EXPLOSIONS_CHECKBOX) {
+        mListExplosions = !mListExplosions;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_COLLECTIBLES_CHECKBOX) {
+        mListCollectibles = !mListCollectibles;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_WALLSEGMENTS_CHECKBOX) {
+        mListWallsegments = !mListWallsegments;
+        UpdateEntitiesTable();
+    } else if (checkboxId == GUI_ID_ENTITYMODEWINDOW_LIST_CHECKPOINTS_CHECKBOX) {
+        mListCheckpoints = !mListCheckpoints;
+        UpdateEntitiesTable();
+    }
 }
 
 void EntityMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem) {
@@ -911,6 +1266,21 @@ void EntityMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* 
     if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
         mParentSession->mParentEditor->mDrawDebug->DrawAround3DBoundingBox(
                     &mCurrSelectedItem->mEntitySelected->mBoundingBox, mParentSession->mParentEditor->mDrawDebug->cyan);
+
+        //highlight connection to linked entity item with a white arrow
+        int16_t linkedItemId = mCurrSelectedItem->mEntitySelected->mEntityItem->getNextID();
+
+        //if nextId is zero no item is linked
+        //otherwise there is a link
+        if (linkedItemId != 0) {
+            EditorEntity* linkedItem = mParentSession->mEntityManager->GetEditorEntityWithId(linkedItemId);
+
+            if (linkedItem != nullptr) {
+                mParentSession->mParentEditor->mDrawDebug->Draw3DArrow(
+                            mCurrSelectedItem->mEntitySelected->mPosition, linkedItem->mPosition,
+                            0.5f, mParentSession->mParentEditor->mDrawDebug->cyan, 0.1f);
+            }
+        }
     }
 }
 
@@ -970,8 +1340,37 @@ void EntityMode::OnLeftMouseButtonDown() {
 
                 mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
 
-                mParentSession->mArrowRightBillSceneNode->setVisible(false);
-             }
+                mParentSession->HideArrowPointingRight();
+             } else if (mOpMode == EDITOR_ENTITY_OPMODE_CREATELINKSELNEXTITEM) {
+                if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+                    //user selected the link target entity item
+                    //if user just selected the same item again as the link target cancel operation here
+                    if (mLastSelectedEditorEntity == mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected) {
+                        //user wants to link item on itself, cancel
+                        mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
+                    } else {
+                       //proper link needs to be established
+                       mParentSession->mEntityManager->LinkEntity(mLastSelectedEditorEntity,
+                                          mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected);
+
+                       //for the user it feels more intuitive when after linking the items
+                       //the initial item is selected again
+                       irr::core::vector2di coord = mLastSelectedEditorEntity->mEntityItem->getCell();
+
+                       mParentSession->mItemSelector->SelectEntityAtCellCoordinate(coord.X, coord.Y);
+
+                       UpdateUiDefaultSettings();
+
+                       mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
+                    }
+                } else {
+                    //user did not select the expected link target entity item,
+                    //but instead a cell
+                    //lets cancel this operation
+                    mOpMode = EDITOR_ENTITY_OPMODE_DEFAULT;
+                }
+            }
+
              break;
          }
 
@@ -1022,6 +1421,25 @@ void EntityMode::OnButtonClicked(irr::s32 buttonGuiId) {
                 //change to internal operation mode where we have to set a new
                 //target cell for this entity (a move target)
                 mOpMode = EDITOR_ENTITY_OPMODE_SETMOVETARGET;
+            }
+
+            break;
+        }
+
+        case GUI_ID_ENTITYWINDOW_BUTTONUNLINKENTITY: {
+            if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+                mParentSession->mEntityManager->UnlinkEntity(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected);
+
+                UpdateUiDefaultSettings();
+            }
+
+            break;
+        }
+
+        case GUI_ID_ENTITYWINDOW_BUTTONLINKENTITY: {
+            if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
+                //now user needs to select the next item to link to
+                mOpMode = EDITOR_ENTITY_OPMODE_CREATELINKSELNEXTITEM;
             }
 
             break;

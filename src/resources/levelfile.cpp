@@ -1479,18 +1479,27 @@ bool LevelFile::AddEntityAtCell(int x, int y, irr::f32 heightTerrain, Entity::En
 
     //it seems we should skip i = 0 here, in the original level the first
     //index i = 0 is still filled with zero bytes; better do the same
-    for (i = 1; i < 4000; i++) {
-        baseOffset = i * 24;
-        if (this->m_bytes.at(baseOffset) == 0) {
-            //we found a free space
-            break;
-        }
+    int icurrentMaxId = 0;
+
+    std::vector<EntityItem*>::iterator it;
+    for (it = Entities.begin(); it != Entities.end(); ++it) {
+       if ((*it)->get_ID() > icurrentMaxId) {
+           icurrentMaxId = (*it)->get_ID();
+       }
     }
+
+    //icurrentMaxId now contains the highest existing Entity Id used currently
+    //in this map
+    //next free Id is increment by 1
+    i = icurrentMaxId + 1;
 
     //no free space anymore?
     if (i == 4000) {
         return false;
     }
+
+    //we still have free space => create item
+    baseOffset = i * 24;
 
     //create the new Entity Item, use the alternative constructor
     //for the leveleditor for this
