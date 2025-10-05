@@ -11,7 +11,7 @@
 #include <string>
 #include "../utils/logging.h"
 
-void TextureLoader::LoadLevelTextures(char* filePath) {
+void TextureLoader::LoadLevelTextures(const char* filePath) {
     int currTexIdx = 0;
     char finalpath[70];
     char fname[20];
@@ -51,7 +51,7 @@ void TextureLoader::LoadLevelTextures(char* filePath) {
     }
 }
 
-void TextureLoader::LoadSpriteTextures(char* filePath, bool makeTransparent) {
+void TextureLoader::LoadSpriteTextures(const char* filePath, bool makeTransparent) {
     int currTexIdx = 0;
     char finalpath[70];
     char fname[20];
@@ -140,7 +140,7 @@ void TextureLoader::LoadEditorTextures() {
     LoadEditorTexture("extract/hud1player/panel0-1-0308.bmp", true);
 }
 
-TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, char* levelTexFilePath,  char* spriteTexFilePath,
+TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, const char* levelTexFilePath,  const char* spriteTexFilePath,
                              bool loadLevelEditorSprites) {
    m_driver = myDriver;
 

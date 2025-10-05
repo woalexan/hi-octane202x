@@ -49,6 +49,8 @@ public:
   InfrastructureBase();
   ~InfrastructureBase();
 
+  void CleanupAllSceneNodes();
+
   //get a random int in the range between min and max
   int randRangeInt(int min, int max);
 

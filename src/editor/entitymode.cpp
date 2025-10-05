@@ -211,6 +211,9 @@ EntityMode::EntityMode(EditorSession* parentSession) : EditorMode(parentSession)
 }
 
 EntityMode::~EntityMode() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
     //cleanup all data
     std::vector<EntityModeEntityCategory*>::iterator it;
     EntityModeEntityCategory* pntr;
@@ -222,14 +225,150 @@ EntityMode::~EntityMode() {
 
         delete pntr;
     }
+
+    if (mGuiEntityMode.EntityItemTypeCategoryList != nullptr) {
+        mGuiEntityMode.EntityItemTypeCategoryList->remove();
+    }
+
+    if (mGuiEntityMode.CurrentSelectedEntitySprite != nullptr) {
+        mGuiEntityMode.CurrentSelectedEntitySprite->remove();
+    }
+
+    if (mGuiEntityMode.CurrentSelectedEntityId != nullptr) {
+        mGuiEntityMode.CurrentSelectedEntityId->remove();
+    }
+
+    if (mGuiEntityMode.CurrentlySelectedEntityTypeStr != nullptr) {
+        mGuiEntityMode.CurrentlySelectedEntityTypeStr->remove();
+    }
+
+    if (mGuiEntityMode.LabelCurrentlySelected != nullptr) {
+        mGuiEntityMode.LabelCurrentlySelected->remove();
+    }
+
+    if (mGuiEntityMode.LabelEntityCategory != nullptr) {
+        mGuiEntityMode.LabelEntityCategory->remove();
+    }
+
+    if (mGuiEntityMode.RemoveEntityButton != nullptr) {
+        mGuiEntityMode.RemoveEntityButton->remove();
+    }
+
+    if (mGuiEntityMode.MoveEntityButton != nullptr) {
+        mGuiEntityMode.MoveEntityButton->remove();
+    }
+
+    if (mGuiEntityMode.LinkEntityButton != nullptr) {
+        mGuiEntityMode.LinkEntityButton->remove();
+    }
+
+    if (mGuiEntityMode.UnlinkEntityButton != nullptr) {
+        mGuiEntityMode.UnlinkEntityButton->remove();
+    }
+
+    if (mGuiEntityMode.CollectibleCreateAtStart != nullptr) {
+        mGuiEntityMode.CollectibleCreateAtStart->remove();
+    }
+
+    if (mGuiEntityMode.GroupEditBox != nullptr) {
+        delete mGuiEntityMode.GroupEditBox;
+    }
+
+    if (mGuiEntityMode.TargetGroupEditBox != nullptr) {
+        delete mGuiEntityMode.TargetGroupEditBox;
+    }
+
+    if (mGuiEntityMode.NextIdEditBox != nullptr) {
+        delete mGuiEntityMode.NextIdEditBox;
+    }
+
+    if (mGuiEntityMode.ValueEditBox != nullptr) {
+        delete mGuiEntityMode.ValueEditBox;
+    }
+
+    if (mGuiEntityMode.OffsetXEditBox != nullptr) {
+        delete mGuiEntityMode.OffsetXEditBox;
+    }
+
+    if (mGuiEntityMode.OffsetYEditBox != nullptr) {
+        delete mGuiEntityMode.OffsetYEditBox;
+    }
+
+    if (mGuiEntityMode.Unknown1EditBox != nullptr) {
+        delete mGuiEntityMode.Unknown1EditBox;
+    }
+
+    if (mGuiEntityMode.Unknown2EditBox != nullptr) {
+        delete mGuiEntityMode.Unknown2EditBox;
+    }
+
+    if (mGuiEntityMode.Unknown3EditBox != nullptr) {
+        delete mGuiEntityMode.Unknown3EditBox;
+    }
+
+    if (mGuiEntityMode.ListWaypoints != nullptr) {
+        mGuiEntityMode.ListWaypoints->remove();
+    }
+
+    if (mGuiEntityMode.ListWallsegments != nullptr) {
+        mGuiEntityMode.ListWallsegments->remove();
+    }
+
+    if (mGuiEntityMode.ListRecoveryvehicles != nullptr) {
+        mGuiEntityMode.ListRecoveryvehicles->remove();
+    }
+
+    if (mGuiEntityMode.ListCones != nullptr) {
+        mGuiEntityMode.ListCones->remove();
+    }
+
+    if (mGuiEntityMode.ListCollectibles != nullptr) {
+        mGuiEntityMode.ListCollectibles->remove();
+    }
+
+    if (mGuiEntityMode.ListMorphs != nullptr) {
+        mGuiEntityMode.ListMorphs->remove();
+    }
+
+    if (mGuiEntityMode.ListCameras != nullptr) {
+        mGuiEntityMode.ListCameras->remove();
+    }
+
+    if (mGuiEntityMode.ListTriggers != nullptr) {
+        mGuiEntityMode.ListTriggers->remove();
+    }
+
+    if (mGuiEntityMode.ListExplosions != nullptr) {
+        mGuiEntityMode.ListExplosions->remove();
+    }
+
+    if (mGuiEntityMode.ListCheckpoints != nullptr) {
+        mGuiEntityMode.ListCheckpoints->remove();
+    }
+
+    if (mGuiEntityMode.EntityTable != nullptr) {
+        mGuiEntityMode.EntityTable->remove();
+    }
+
+    if (mGuiEntityMode.EditTab != nullptr) {
+        mGuiEntityMode.EditTab->remove();
+    }
+
+    if (mGuiEntityMode.ListTab != nullptr) {
+        mGuiEntityMode.ListTab->remove();
+    }
+
+    if (mGuiEntityMode.tabCntrl != nullptr) {
+        mGuiEntityMode.tabCntrl->remove();
+    }
+
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
+    }
 }
 
 void EntityMode::CreateWindow() {
-    // set skin font
-    /*IGUIFont* font = env->getFont("fontlucida.png");
-    if (font)
-        env->getSkin()->setFont(font);*/
-
     irr::core::dimension2d<irr::u32> dim ( 520, 500 );
 
     //finally create the window

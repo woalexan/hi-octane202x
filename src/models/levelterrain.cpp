@@ -303,9 +303,7 @@ void LevelTerrain::FinishTerrainInitialization() {
     }
 
     if (SetupGeometry()) {
-         std::string infoMsg("HiOctane Terrain '");
-         infoMsg.append(mName);
-         infoMsg.append("' loaded: ");
+         std::string infoMsg("HiOctane Terrain loaded: ");
          char hlpstr[20];
 
          //add number vertices
@@ -335,18 +333,12 @@ void LevelTerrain::FinishTerrainInitialization() {
 
          logging::Info(infoMsg);
 
-         //std::cout << "HiOctane Terrain '" << mName << "' loaded ok"  << endl << std::flush;
          infoMsg.clear();
-         infoMsg.append("HiOctane Terrain '");
-         infoMsg.append(mName);
-         infoMsg.append("' loaded ok");
+         infoMsg.append("HiOctane Terrain loaded ok");
          logging::Info(infoMsg);
 
     } else {
-        //std::cout << "failed setting up game model '" << mName << "'" << endl << std::flush;
-        std::string errMsg("Failed setting up Terrain '");
-        errMsg.append(mName);
-        errMsg.append("'");
+        std::string errMsg("Failed setting up Terrain");
         logging::Error(errMsg);
         Terrain_ready = false;
     }
@@ -383,7 +375,7 @@ void LevelTerrain::SetLevelBlocks(LevelBlocks* levelBlocks) {
     mLevelBlocks = levelBlocks;
 }
 
-LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes,
+LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, LevelFile* levelRes,
                            TextureLoader* textureSource, bool optimizeMesh, bool enableLightning) {
    this->mInfra = infra;
    mEnableLightning = enableLightning;
@@ -401,8 +393,6 @@ LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char
    //level texture Id
    mIrrMeshBuf->InitializeMeshBufferInfoStructs(mStaticMeshBufferVec);
    mIrrMeshBuf->InitializeMeshBufferInfoStructs(mDynamicMeshBufferVec);
-
-   strcpy(mName, name);
 
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
 

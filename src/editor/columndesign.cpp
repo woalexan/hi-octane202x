@@ -28,8 +28,125 @@ ColumnDesigner::ColumnDesigner(EditorSession* parentSession) : EditorMode(parent
 }
 
 ColumnDesigner::~ColumnDesigner() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
     //cleanup all data
     CleanupCurrentDefComboBoxEntries();
+
+    //remove Gui elements
+    if (mGuiColumnDesigner.selColumnDefinition != nullptr) {
+        mGuiColumnDesigner.selColumnDefinition->remove();
+    }
+
+    if (mGuiColumnDesigner.CurrentSelectedCellInfo != nullptr) {
+        mGuiColumnDesigner.CurrentSelectedCellInfo->remove();
+    }
+
+    if (mGuiColumnDesigner.CurrentSelectedColumnDefId != nullptr) {
+        mGuiColumnDesigner.CurrentSelectedColumnDefId->remove();
+    }
+
+    if (mGuiColumnDesigner.ColumDefLabel != nullptr) {
+        mGuiColumnDesigner.ColumDefLabel->remove();
+    }
+
+    if (mGuiColumnDesigner.blockAImageFront != nullptr) {
+        mGuiColumnDesigner.blockAImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockBImageFront != nullptr) {
+        mGuiColumnDesigner.blockBImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockCImageFront != nullptr) {
+        mGuiColumnDesigner.blockCImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockDImageFront != nullptr) {
+        mGuiColumnDesigner.blockDImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockEImageFront != nullptr) {
+        mGuiColumnDesigner.blockEImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockFImageFront != nullptr) {
+        mGuiColumnDesigner.blockFImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockGImageFront != nullptr) {
+        mGuiColumnDesigner.blockGImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockHImageFront != nullptr) {
+        mGuiColumnDesigner.blockHImageFront->remove();
+    }
+
+    if (mGuiColumnDesigner.blockAImageBack != nullptr) {
+        mGuiColumnDesigner.blockAImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockBImageBack != nullptr) {
+        mGuiColumnDesigner.blockBImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockCImageBack != nullptr) {
+        mGuiColumnDesigner.blockCImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockDImageBack != nullptr) {
+        mGuiColumnDesigner.blockDImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockEImageBack != nullptr) {
+        mGuiColumnDesigner.blockEImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockFImageBack != nullptr) {
+        mGuiColumnDesigner.blockFImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockGImageBack != nullptr) {
+        mGuiColumnDesigner.blockGImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.blockHImageBack != nullptr) {
+        mGuiColumnDesigner.blockHImageBack->remove();
+    }
+
+    if (mGuiColumnDesigner.AddColumnButton != nullptr) {
+        mGuiColumnDesigner.AddColumnButton->remove();
+    }
+
+    if (mGuiColumnDesigner.RemoveColumnButton != nullptr) {
+        mGuiColumnDesigner.RemoveColumnButton->remove();
+    }
+
+    if (mGuiColumnDesigner.ReplaceColumnButton != nullptr) {
+        mGuiColumnDesigner.ReplaceColumnButton->remove();
+    }
+
+    if (mGuiColumnDesigner.MoveUpColumnButton != nullptr) {
+        mGuiColumnDesigner.MoveUpColumnButton->remove();
+    }
+
+    if (mGuiColumnDesigner.MoveDownColumnButton != nullptr) {
+        mGuiColumnDesigner.MoveDownColumnButton->remove();
+    }
+
+    if (mGuiColumnDesigner.RemoveBlockButton != nullptr) {
+        mGuiColumnDesigner.RemoveBlockButton->remove();
+    }
+
+    if (mGuiColumnDesigner.AddBlockButton != nullptr) {
+        mGuiColumnDesigner.AddBlockButton->remove();
+    }
+
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
+    }
 }
 
 void ColumnDesigner::OnColumnDefinitionComboBoxChanged(irr::u32 newSelectedGuiId) {
@@ -165,18 +282,12 @@ void ColumnDesigner::UpdateColumnDefComboBox() {
 }
 
 void ColumnDesigner::CreateWindow() {
-
-    // set skin font
-    /*IGUIFont* font = env->getFont("fontlucida.png");
-    if (font)
-        env->getSkin()->setFont(font);*/
-
     irr::core::dimension2d<irr::u32> dim ( 600, 600 );
 
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Column Designer", 0, mGuiWindowId);
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Column Definitions:",
+    mGuiColumnDesigner.ColumDefLabel = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Column Definitions:",
                                       rect<s32>( dim.Width - 400, 25, dim.Width - 290, 50 ),false, false, Window, -1, false );
 
     mGuiColumnDesigner.selColumnDefinition = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 280, 24, dim.Width - 10, 49 ),

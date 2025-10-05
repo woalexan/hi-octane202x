@@ -285,8 +285,6 @@ private:
     void InitiateExitRace();
     void HandleExitRace();
 
-    void CleanupAllSceneNodes();
-
     //the image for the base of the minimap
     //without the player location dots
     irr::video::ITexture* baseMiniMap = nullptr;

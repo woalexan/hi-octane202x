@@ -16,6 +16,7 @@
 #include "definitions.h"
 #include "resources/entityitem.h"
 #include "utils/ray.h"
+#include <string>
 
 #define DEF_EDITOR_USERINNODIALOG 0
 #define DEF_EDITOR_USERINTEXTUREDIALOG 1
@@ -83,7 +84,8 @@ struct GUI
 
 class EditorSession {
 public:
-    irr::u8 mLevelNrLoaded;
+    std::string mLevelRootPath;
+    std::string mLevelName;
 
     Editor* mParentEditor = nullptr;
 
@@ -147,6 +149,12 @@ public:
     void ShowArrowPointingRightAtCell(irr::core::vector2di cellCoord);
     void HideArrowPointingRight();
 
+    //Will ask the user if he is sure to close the
+    //EditorSession and to lose unsaved changes
+    //If answer is Yes, the MessageBox will create an Gui Event
+    //If Cancel is choosen, then Close operation will not commence
+    void TriggerClose();
+
 private:
 
     bool LoadLevel();
@@ -180,13 +188,12 @@ private:
     irr::gui::IGUIStaticText* mControlInfoText = nullptr;
 
 public:
-    EditorSession(Editor* parentEditor, irr::u8 loadLevelNr);
+    EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName);
     ~EditorSession();
 
     void Init();
     void Render();
     void HandleBasicInput();
-    void End();
 
     void SetMode(EditorMode* selMode);
 
@@ -204,7 +211,7 @@ public:
     int mCellCoordVerticeSelectedByMouse;*/
 
     bool ready;
-    bool exitEditorSession = false;
+    //bool exitEditorSession = false;
 
     void CheckForMeshUpdate();
 };

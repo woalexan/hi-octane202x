@@ -24,6 +24,16 @@
 #include <iterator>
 #include "../definitions.h"
 
+/* LevelFile Layout
+
+1. Offset 0          => Offset 96000   Entity-Table (stores 4000 Entities)
+2. Offset 98012      => Offset 124636  Column-Definitions (stores 1024 Column Definitions)
+3. Offset 124636     => Offset 141020  Block-Definitions  (stores 1024 Block Definitions)
+4. Offset 246924     => Offset 247604  Region-Definitions (stores 8 Region Definitions)
+5. Offset 404620     => Offset 896140  Tile-Data (256 x 160 Tiles)
+
+*/
+
 LevelFile::LevelFile(std::string filename) {
    this->m_Filename = filename;
    this->m_Ready = false;
@@ -51,6 +61,8 @@ LevelFile::LevelFile(std::string filename) {
     //read the data
     this->m_bytes.resize(fileSize);
     ifile.read(reinterpret_cast<char*>(this->m_bytes.data()), this->m_bytes.size());
+
+    ifile.close();
 
     char hlpstr[500];
     std::string msg("");
@@ -437,6 +449,8 @@ bool LevelFile::Save(std::string filename) {
    std::ofstream outputfile(filename, std::ios::out|std::ios::binary);
    std::copy(this->m_wBytes.cbegin(), this->m_wBytes.cend(),
           std::ostream_iterator<uint8_t>(outputfile));
+
+   outputfile.close();
 
    return(true);
 }

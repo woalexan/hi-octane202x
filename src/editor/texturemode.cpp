@@ -142,6 +142,9 @@ TextureMode::TextureMode(EditorSession* parentSession) : EditorMode(parentSessio
 }
 
 TextureMode::~TextureMode() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
     //cleanup all data
     std::vector<TextureModeTexCategory*>::iterator it;
     TextureModeTexCategory* pntr;
@@ -163,6 +166,76 @@ TextureMode::~TextureMode() {
         it2 = mTexModificationVec.erase(it2);
 
         delete pntr2;
+    }
+
+    if (mGuiTextureMode.texCategoryList != nullptr) {
+        mGuiTextureMode.texCategoryList->remove();
+    }
+
+    if (mGuiTextureMode.texModification != nullptr) {
+        mGuiTextureMode.texModification->remove();
+    }
+
+    if (mGuiTextureMode.CurrentSelectedTexture != nullptr) {
+        mGuiTextureMode.CurrentSelectedTexture->remove();
+    }
+
+    if (mGuiTextureMode.CurrentSelectedTextureIdText != nullptr) {
+        mGuiTextureMode.CurrentSelectedTextureIdText->remove();
+    }
+
+    if (mGuiTextureMode.texCategoryLabel != nullptr) {
+        mGuiTextureMode.texCategoryLabel->remove();
+    }
+
+    if (mGuiTextureMode.texModLabel != nullptr) {
+        mGuiTextureMode.texModLabel->remove();
+    }
+
+    if (mGuiTextureMode.currSelectedLabel != nullptr) {
+        mGuiTextureMode.currSelectedLabel->remove();
+    }
+
+    if (mGuiTextureMode.LabelSelectCubeFaces != nullptr) {
+        mGuiTextureMode.LabelSelectCubeFaces->remove();
+    }
+
+    if (mGuiTextureMode.SelNButton != nullptr) {
+        mGuiTextureMode.SelNButton->remove();
+    }
+
+    if (mGuiTextureMode.SelEButton != nullptr) {
+        mGuiTextureMode.SelEButton->remove();
+    }
+
+    if (mGuiTextureMode.SelSButton != nullptr) {
+        mGuiTextureMode.SelSButton->remove();
+    }
+
+    if (mGuiTextureMode.SelWButton != nullptr) {
+        mGuiTextureMode.SelWButton->remove();
+    }
+
+    if (mGuiTextureMode.SelTButton != nullptr) {
+        mGuiTextureMode.SelTButton->remove();
+    }
+
+    if (mGuiTextureMode.SelBButton != nullptr) {
+        mGuiTextureMode.SelBButton->remove();
+    }
+
+    if (mGuiTextureMode.SelColumnFloorTextureIdButton != nullptr) {
+        mGuiTextureMode.SelColumnFloorTextureIdButton->remove();
+    }
+
+    if (mGuiTextureMode.CurrentIlluminationValue != nullptr) {
+        mGuiTextureMode.CurrentIlluminationValue->remove();
+    }
+
+    //cleanup all data
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
     }
 }
 
@@ -226,7 +299,7 @@ void TextureMode::CreateWindow() {
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Texturing", 0, mGuiWindowId);
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
+    mGuiTextureMode.texCategoryLabel = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
                                       rect<s32>( dim.Width - 370, 27, dim.Width - 250, 52 ),false, false, Window, -1, false );
 
     mGuiTextureMode.texCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 250, 25, dim.Width - 10, 50 ),
@@ -249,7 +322,7 @@ void TextureMode::CreateWindow() {
 
     mGuiTextureMode.texCategoryList->setToolTipText ( L"Select Texture Category" );
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Modification:",
+    mGuiTextureMode.texModLabel = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Modification:",
                                       rect<s32>( dim.Width - 370, 62, dim.Width - 250, 87 ),false, false, Window, -1, false );
 
     mGuiTextureMode.texModification = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 250, 60, dim.Width - 10, 85 ),
@@ -289,7 +362,7 @@ void TextureMode::CreateWindow() {
 
     mCurrentSelectedTextureImageLocation.set(10, 50);
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Current Selected:",
+    mGuiTextureMode.currSelectedLabel = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Current Selected:",
           rect<s32>( mCurrentSelectedTextureImageLocation.X,
                      mCurrentSelectedTextureImageLocation.Y - 23,
                      mCurrentSelectedTextureImageLocation.X + 120,

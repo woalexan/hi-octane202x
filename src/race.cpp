@@ -144,21 +144,6 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     testcube->getMaterial(0).EmissiveColor = irr::video::SColor(255, 255, 0, 0);*/
 }
 
-void Race::CleanupAllSceneNodes() {
-    core::array<scene::ISceneNode*> outNodes;
-
-    //get list of all existing sceneNodes
-    mGame->mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
-
-    //remove all existing SceneNodes, only the root sceneNode is not removed
-    irr::u32 nodeCnt = outNodes.size();
-
-    for (irr::u32 idx = 0; idx < nodeCnt; idx++) {
-        //remove this sceneNode from the SceneManager
-        outNodes[idx]->remove();
-    }
-}
-
 void Race::IrrlichtStats(char* text) {
     //cout << "----- " << std::string(text) << "----- " << std::endl << std::flush;
     //cout << "Mesh count loaded: " << mInfra->mSmgr->getMeshCache()->getMeshCount() << std::endl << std::flush;
@@ -342,7 +327,7 @@ Race::~Race() {
     delete mTexLoader;
 
     //remove all remaining SceneNodes
-    CleanupAllSceneNodes();
+    mGame->CleanupAllSceneNodes();
 
     //IrrlichtStats((char*)("After race cleanup"));
 }
@@ -3591,9 +3576,6 @@ bool Race::LoadLevel(int loadLevelNr) {
     int load_texnr = loadLevelNr;
     if (loadLevelNr == 7) load_texnr = 1; // original game has this hardcoded too
 
-   /***********************************************************/
-   /* Load selected level file                                */
-   /***********************************************************/
    char levelfilename[50];
    char str[20];
 
@@ -3624,6 +3606,10 @@ bool Race::LoadLevel(int loadLevelNr) {
        return false;
    }
 
+   /***********************************************************/
+   /* Load selected level file                                */
+   /***********************************************************/
+
    //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
 
@@ -3633,17 +3619,11 @@ bool Race::LoadLevel(int loadLevelNr) {
        return false;
    }
 
-   char terrainname[50];
-   strcpy(terrainname, "Terrain1");
-
-   //Test map save
-   //this->mLevelRes->Save(std::string("mapsave.dat"));
-
    /***********************************************************/
    /* Prepare level terrain                                   */
    /***********************************************************/
    //for the game optimize the Terrain mesh!
-   this->mLevelTerrain = new LevelTerrain(mGame, false, terrainname, this->mLevelRes, mTexLoader, true,
+   this->mLevelTerrain = new LevelTerrain(mGame, false, this->mLevelRes, mTexLoader, true,
                                           this->mGame->enableLightning);
 
    /***********************************************************/

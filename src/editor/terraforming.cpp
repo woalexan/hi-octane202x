@@ -22,15 +22,17 @@ TerraformingMode::TerraformingMode(EditorSession* parentSession) : EditorMode(pa
 }
 
 TerraformingMode::~TerraformingMode() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
     //cleanup all data
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
+    }
 }
 
 void TerraformingMode::CreateWindow() {
-    // set skin font
-    /*IGUIFont* font = env->getFont("fontlucida.png");
-    if (font)
-        env->getSkin()->setFont(font);*/
-
     irr::core::dimension2d<irr::u32> dim ( 300, 250 );
 
     //finally create the window

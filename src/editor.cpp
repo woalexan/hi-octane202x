@@ -31,6 +31,28 @@
 #include "editor/regionmode.h"
 #include "editor/uiconversion.h"
 #include "font/font_manager.h"
+#include <fstream>
+#include "utils/fileutils.h"
+#include <sstream>
+#include <iomanip>
+
+//Returns true if user level maps folder
+//is available (or was succesfully created), False otherwise
+//(In case creation failed)
+bool Editor::PrepareUserMapsFolder() {
+    try {
+        PrepareSubDir("userdata");
+        PrepareSubDir("userdata/levels");
+
+        return true;
+    }
+    catch (const std::string &msg) {
+        std::string msgExt("Preparation of user custom level maps folder failed");
+        msgExt.append(msg);
+        logging::Error(msgExt);
+        return false;
+    }
+}
 
 //fully initializes the remaining editor
 //components
@@ -79,6 +101,13 @@ bool Editor::InitEditorStep2() {
          mGuienv->getSkin()->setFont(fontAndika);
     }
 
+    noEditorSessionText = mGuienv->addStaticText(L"No EditorSession",
+           rect<s32>(590,470,690,490), false, true, nullptr, -1, true);
+
+    noEditorSessionText->setVisible(false);
+
+    CreateMenue();
+
     return true;
 }
 
@@ -115,82 +144,180 @@ void Editor::RunEditor() {
         if (!InitEditorStep2()) {
             mEditorState = DEF_EDITORSTATE_ERROR;
         } else {
-            CreateMenue();
-            mEditorState = DEF_EDITORSTATE_LOADDATA;
+            UpdateMenueEntries();
+            mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
         }
     }
 
     EditorLoop();
 }
 
-void Editor::CreateMenue() {
-    // create menu
-    mMenu = mGuienv->addMenu();
-    mMenu->addItem(L"File", -1, true, true);
-    mMenu->addItem(L"Edit", -1, true, true);
-    mMenu->addItem(L"Mode", -1, true, true);
-    mMenu->addItem(L"View", -1, true, true);
+void Editor::UpdateMenueEntries() {
+    //before update, remove all menue items
+    //that are already existing, and refill
+    //menue again with currently available items
+    mMenu->removeAllItems();
 
+    mFileMenu = nullptr;
+    mEditMenu = nullptr;
+    mModeMenu = nullptr;
+    mViewMenu = nullptr;
+
+    //file menue is always existing
+    mMenu->addItem(L"File", -1, true, true);
+    mFileMenu = mMenu->getSubMenu(0);
+
+    //Edit/Mode and View only when currently an
+    //EditSession is open
+    if (mCurrentSession != nullptr) {
+        mMenu->addItem(L"Edit", -1, true, true);
+        mEditMenu = mMenu->getSubMenu(1);
+
+        mMenu->addItem(L"Mode", -1, true, true);
+        mModeMenu = mMenu->getSubMenu(2);
+
+        mMenu->addItem(L"View", -1, true, true);
+        mViewMenu = mMenu->getSubMenu(3);
+    }
+
+    PopulateFileMenueEntries();
+
+    if (mCurrentSession != nullptr) {
+        PopulateEditMenueEntries();
+        PopulateModeMenueEntries();
+        PopulateViewMenueEntries();
+    }
+
+    if (mCurrentSession == nullptr) {
+        UpdateStatusbarText(L"Please create or load a map");
+
+        noEditorSessionText->setVisible(true);
+        noEditorSessionText->setEnabled(true);
+    } else {
+        noEditorSessionText->setVisible(false);
+        noEditorSessionText->setEnabled(false);
+    }
+}
+
+void Editor::PopulateFileMenueEntries() {
     /*************************************
      * Submenue File                     *
      *************************************/
 
-    gui::IGUIContextMenu* submenu;
-    submenu = mMenu->getSubMenu(0);
-    submenu->addItem(L"New empty level", GUI_ID_NEWEMPTYLEVEL);
-    submenu->addItem(L"Open level", GUI_ID_OPEN_LEVEL);
-    submenu->addItem(L"Save level", GUI_ID_SAVE_LEVEL);
+    if (mFileMenu == nullptr)
+        return;
 
-    //submenu->addItem(L"Set Model Archive...", GUI_ID_SET_MODEL_ARCHIVE);
-    //submenu->addItem(L"Load as Octree", GUI_ID_LOAD_AS_OCTREE);
-    submenu->addSeparator();
-    submenu->addItem(L"Quit", GUI_ID_QUIT);
+    gui::IGUIContextMenu* submenu;
+
+    if (mCurrentSession == nullptr) {
+        mFileMenu->addItem(L"New empty level", GUI_ID_NEWEMPTYLEVEL, true, true);
+        mFileMenu->addItem(L"Open level", GUI_ID_OPEN_LEVEL);
+        mFileMenu->addItem(L"Original level", GUI_ID_ORIGINAL_LEVEL, true, true);
+
+        submenu = mFileMenu->getSubMenu(0);
+        if (submenu == nullptr)
+            return;
+
+        submenu->addItem(L"Rock", GUI_ID_NEWEMPTYLEVEL_ROCK);
+        submenu->addItem(L"Vegetation", GUI_ID_NEWEMPTYLEVEL_VEGETATION);
+        submenu->addItem(L"Snow", GUI_ID_NEWEMPTYLEVEL_SNOW);
+
+        submenu = mFileMenu->getSubMenu(2);
+        if (submenu == nullptr)
+            return;
+
+        submenu->addItem(L"Amazon Delta Turnpike", GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE);
+        submenu->addItem(L"Trans-Asia Interstate", GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE);
+        submenu->addItem(L"Shanghai Dragon", GUI_ID_ORIGINAL_SHANGHAI_DRAGON);
+        submenu->addItem(L"New Chernobyl Central", GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL);
+        submenu->addItem(L"Slam Canyon", GUI_ID_ORIGINAL_SLAM_CANYON);
+        submenu->addItem(L"Thrak City", GUI_ID_ORIGINAL_THRAK_CITY);
+
+        if (mExtendedGame) {
+            submenu->addSeparator();
+            submenu->addItem(L"Ancient Mine Town", GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN);
+            submenu->addItem(L"Arctic Land", GUI_ID_ORIGINAL_ARCTIC_LAND);
+            submenu->addItem(L"Death Match Arena", GUI_ID_ORIGINAL_DEATH_MATCH_ARENA);
+        }
+    }
+
+    if (mCurrentSession != nullptr) {
+        mFileMenu->addItem(L"Save level", GUI_ID_SAVE_LEVEL);
+        mFileMenu->addItem(L"Save as level", GUI_ID_SAVEAS_LEVEL);
+    }
+
+    mFileMenu->addSeparator();
+    if (mCurrentSession != nullptr) {
+        mFileMenu->addItem(L"Close level", GUI_ID_CLOSE_LEVEL);
+    }
+
+    mFileMenu->addItem(L"Quit", GUI_ID_QUIT);
+}
+
+void Editor::PopulateEditMenueEntries() {
+    if (mEditMenu == nullptr)
+        return;
+}
+
+void Editor::PopulateModeMenueEntries() {
+    if (mModeMenu == nullptr)
+        return;
 
     /*************************************
      * Mode View                         *
      *************************************/
 
-    submenu = mMenu->getSubMenu(2);
-    submenu->addItem(L"View", GUI_ID_MODE_VIEW, true, false);
-    submenu->addItem(L"Terraforming", GUI_ID_MODE_TERRAFORMING, true, false);
-    submenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
-    submenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
-    submenu->addItem(L"Entity", GUI_ID_MODE_ENTITYMODE, true, false);
-    submenu->addItem(L"Region", GUI_ID_MODE_REGION, true, false);
+    mModeMenu->addItem(L"View", GUI_ID_MODE_VIEW, true, false);
+    mModeMenu->addItem(L"Terraforming", GUI_ID_MODE_TERRAFORMING, true, false);
+    mModeMenu->addItem(L"Column Design", GUI_ID_MODE_COLUMNDESIGN, true, false);
+    mModeMenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
+    mModeMenu->addItem(L"Entity", GUI_ID_MODE_ENTITYMODE, true, false);
+    mModeMenu->addItem(L"Region", GUI_ID_MODE_REGION, true, false);
+}
+
+void Editor::PopulateViewMenueEntries() {
+    if (mViewMenu == nullptr)
+        return;
 
     /*************************************
      * Submenue View                     *
      *************************************/
 
-    submenu = mMenu->getSubMenu(3);
-    submenu->addItem(L"Collectibles", GUI_ID_VIEW_ENTITY_COLLECTIBLES, true, false, true, true);
-    submenu->addItem(L"Recovery vehicles", GUI_ID_VIEW_ENTITY_RECOVERY, true, false, true, true);
-    submenu->addItem(L"Cones", GUI_ID_VIEW_ENTITY_CONES, true, false, true, true);
-    submenu->addItem(L"Waypoints", GUI_ID_VIEW_ENTITY_WAYPOINTS, true, false, true, true);
-    submenu->addItem(L"Wallsegments", GUI_ID_VIEW_ENTITY_WALLSEGMENTS, true, false, true, true);
-    submenu->addItem(L"Triggers", GUI_ID_VIEW_ENTITY_TRIGGERS, true, false, true, true);
-    submenu->addItem(L"Cameras", GUI_ID_VIEW_ENTITY_CAMERAS, true, false, true, true);
-    submenu->addItem(L"Effects", GUI_ID_VIEW_ENTITY_EFFECTS, true, false, true, true);
-    submenu->addItem(L"Morphs", GUI_ID_VIEW_ENTITY_MORPHS, true, false, true, true);
+    mViewMenu->addItem(L"Collectibles", GUI_ID_VIEW_ENTITY_COLLECTIBLES, true, false, true, true);
+    mViewMenu->addItem(L"Recovery vehicles", GUI_ID_VIEW_ENTITY_RECOVERY, true, false, true, true);
+    mViewMenu->addItem(L"Cones", GUI_ID_VIEW_ENTITY_CONES, true, false, true, true);
+    mViewMenu->addItem(L"Waypoints", GUI_ID_VIEW_ENTITY_WAYPOINTS, true, false, true, true);
+    mViewMenu->addItem(L"Wallsegments", GUI_ID_VIEW_ENTITY_WALLSEGMENTS, true, false, true, true);
+    mViewMenu->addItem(L"Triggers", GUI_ID_VIEW_ENTITY_TRIGGERS, true, false, true, true);
+    mViewMenu->addItem(L"Cameras", GUI_ID_VIEW_ENTITY_CAMERAS, true, false, true, true);
+    mViewMenu->addItem(L"Effects", GUI_ID_VIEW_ENTITY_EFFECTS, true, false, true, true);
+    mViewMenu->addItem(L"Morphs", GUI_ID_VIEW_ENTITY_MORPHS, true, false, true, true);
 
-    submenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
-    submenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
+    mViewMenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
+    mViewMenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
 
-    submenu = mMenu->getSubMenu(3)->getSubMenu(9);
-    submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
-    submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
-    submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
-    submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
+    mViewMenu = mMenu->getSubMenu(3)->getSubMenu(9);
+    mViewMenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
+    mViewMenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
+    mViewMenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
+    mViewMenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
 
-    submenu = mMenu->getSubMenu(3)->getSubMenu(10);
-    submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
-    submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
-    submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
-    submenu->addItem(L"Normals", GUI_ID_VIEW_BLOCKS_NORMALS);
+    mViewMenu = mMenu->getSubMenu(3)->getSubMenu(10);
+    mViewMenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
+    mViewMenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
+    mViewMenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
+    mViewMenu->addItem(L"Normals", GUI_ID_VIEW_BLOCKS_NORMALS);
+}
+
+void Editor::CreateMenue() {
+    // create menu
+    mMenu = mGuienv->addMenu();
 
     // add a status line help text
     StatusLine = mGuienv->addStaticText( 0, rect<s32>( 5,  mScreenRes.Height - 30,  mScreenRes.Width - 5, mScreenRes.Height - 10),
                                 false, false, 0, -1, true);
+
+    UpdateMenueEntries();
 }
 
 //Routine setSkinTransparency taken from Irrlicht engine
@@ -324,23 +451,91 @@ void Editor::ChangeEntityVisibility(IGUIContextMenu* menu) {
     }
 }
 
+void Editor::OpenOriginalLevel(irr::s32 menueItemId) {
+    bool success;
+
+    switch (menueItemId) {
+        case GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE: {
+            success = CreateNewEditorSession("extract/", "level0-1");
+            break;
+        }
+
+        case GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE: {
+            success = CreateNewEditorSession("extract/", "level0-2");
+            break;
+        }
+
+        case GUI_ID_ORIGINAL_SHANGHAI_DRAGON: {
+            success = CreateNewEditorSession("extract/", "level0-3");
+            break;
+        }
+
+        case GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL: {
+            success = CreateNewEditorSession("extract/", "level0-4");
+            break;
+        }
+
+        case GUI_ID_ORIGINAL_SLAM_CANYON: {
+            success = CreateNewEditorSession("extract/", "level0-5");
+            break;
+        }
+
+        case GUI_ID_ORIGINAL_THRAK_CITY: {
+            success = CreateNewEditorSession("extract/", "level0-6");
+            break;
+        }
+
+        case GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN: {
+           if (mExtendedGame) {
+               success = CreateNewEditorSession("extract/", "level0-7");
+           } else {
+               success = false;
+           }
+
+           break;
+        }
+
+        case GUI_ID_ORIGINAL_ARCTIC_LAND: {
+           if (mExtendedGame) {
+               success = CreateNewEditorSession("extract/", "level0-8");
+           } else {
+               success = false;
+           }
+
+           break;
+        }
+
+        case GUI_ID_ORIGINAL_DEATH_MATCH_ARENA: {
+           if (mExtendedGame) {
+               success = CreateNewEditorSession("extract/", "level0-9");
+           } else {
+               success = false;
+           }
+
+           break;
+        }
+
+        default: {
+           success = false;
+           break;
+        }
+    }
+
+    if (!success) {
+        mEditorState = DEF_EDITORSTATE_ERROR;
+    } else {
+        UpdateMenueEntries();
+
+        mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
+    }
+}
+
 void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 {
     s32 id = menu->getItemCommandId(menu->getSelectedItem());
 
     switch(id)
     {
-     /*   case GUI_ID_OPEN_MODEL: // FilOnButtonSetScalinge -> Open Model
-            env->addFileOpenDialog(L"Please select a model file to open");
-            break;
-        case GUI_ID_SET_MODEL_ARCHIVE: // File -> Set Model Archive
-            env->addFileOpenDialog(L"Please select your game archive/directory");
-            break;
-        case GUI_ID_LOAD_AS_OCTREE: // File -> LoadAsOctree
-            Octree = !Octree;
-            menu->setItemChecked(menu->getSelectedItem(), Octree);
-            break;*/
-
         case GUI_ID_MODE_VIEW: {
            if (mCurrentSession != nullptr) {
                mCurrentSession->SetMode((EditorMode*)mCurrentSession->mViewMode);
@@ -438,22 +633,82 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
+                //mGuienv->addFileOpenDialog(L"Please select filename for Save");
+
                 mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
                 //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
             }
             break;
         }
 
-        case GUI_ID_NEWEMPTYLEVEL: {
+        case GUI_ID_SAVEAS_LEVEL: {
             if (mCurrentSession != nullptr) {
-               //mCurrentSession->RemoveEverythingFromLevel();
+                //Note: If the user selected a file Irrlicht
+                //will generate a GuiEvent that will be handled
+                //in the GuiEvent Handler function
+                //This means the file saving operation will happen somewhere else
+                /*mGuienv->addFileOpenDialog(L"Select Save As filename", true, nullptr, GUI_ID_EDITORSESSION_SAVEAS_FILEOPENDIALOG,
+                                           true, nullptr);*/
             }
             break;
         }
 
-        case GUI_ID_QUIT: // File -> Quit
+        case GUI_ID_CLOSE_LEVEL: {
+            if (mCurrentSession != nullptr) {
+                //This will trigger the close operation, a MessageBox will be shown
+                //to ask if the user really wants to Close the EditorSession and possibly
+                //lose unsaved data; The user answer will be returned in a Gui Event inside this Editor
+                //class
+                mCurrentSession->TriggerClose();
+            }
+
+            break;
+        }
+
+        case GUI_ID_NEWEMPTYLEVEL_ROCK: {
+            if (mCurrentSession == nullptr) {
+                 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_ROCK;
+                 mEditorState = DEF_EDITORSTATE_CREATENEWEMPTYLEVEL;
+            }
+            break;
+        }
+
+        case GUI_ID_NEWEMPTYLEVEL_VEGETATION: {
+            if (mCurrentSession == nullptr) {
+                 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_VEGETATION;
+                 mEditorState = DEF_EDITORSTATE_CREATENEWEMPTYLEVEL;
+            }
+            break;
+        }
+
+        case GUI_ID_NEWEMPTYLEVEL_SNOW: {
+            if (mCurrentSession == nullptr) {
+                 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_SNOW;
+                 mEditorState = DEF_EDITORSTATE_CREATENEWEMPTYLEVEL;
+            }
+            break;
+        }
+
+        // File -> Quit
+        case GUI_ID_QUIT: {
             ExitEditor = true;
             break;
+        }
+
+        case GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE:
+        case GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE:
+        case GUI_ID_ORIGINAL_SHANGHAI_DRAGON:
+        case GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL:
+        case GUI_ID_ORIGINAL_SLAM_CANYON:
+        case GUI_ID_ORIGINAL_THRAK_CITY:
+        case GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN:
+        case GUI_ID_ORIGINAL_ARCTIC_LAND:
+        case GUI_ID_ORIGINAL_DEATH_MATCH_ARENA:
+            {
+                mWhichMenueItemWasClicked = id;
+                mEditorState = DEF_EDITORSTATE_LOADDATA;
+                break;
+            }
     }
 }
 
@@ -590,6 +845,17 @@ bool Editor::OnElementClose(irr::s32 elementId) {
   }
 
   return false;
+}
+
+void Editor::OnMessageBoxYes(irr::s32 elementId) {
+  switch(elementId) {
+      case GUI_ID_EDITORSESSION_MSGBOX_SURECLOSE: {
+         //user pressed yes in the AreYouSureToCloseEditorSession
+         //Messagebox => we want to exit the current EditorSession
+         mEditorState = DEF_EDITORSTATE_CLOSECURRENTSESSION;
+         break;
+      }
+  }
 }
 
 void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
@@ -758,6 +1024,29 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
             break;
         }
 
+        case EGET_MESSAGEBOX_YES: {
+            //User pressed yes in a MessageBox
+            OnMessageBoxYes(id);
+            break;
+        }
+
+        case EGET_FILE_SELECTED: {
+            if (id == GUI_ID_EDITORSESSION_SAVEAS_FILEOPENDIALOG) {
+                if (mCurrentSession == nullptr)
+                    return false;
+
+                  //Save map under the filename selected in the SaveAs File dialog
+                  IGUIFileOpenDialog* dialog =
+                    (IGUIFileOpenDialog*)event.GUIEvent.Caller;
+
+                  std::string filename("");
+                  filename.append(core::stringc(dialog->getFileName()).c_str());
+                  mCurrentSession->mLevelRes->Save(filename);
+            }
+
+            break;
+        }
+
         default: {
                 break;
         }
@@ -809,7 +1098,9 @@ bool Editor::LoadBackgroundImage() {
     mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //first load background image for menue
-    backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
+
+    //backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
+    backgnd = mDriver->getTexture("extract/images/oscr0-1-x2.png");
 
     if (backgnd == nullptr) {
         //there was a texture loading error
@@ -820,12 +1111,12 @@ bool Editor::LoadBackgroundImage() {
     irr::core::dimension2d<irr::u32> backgndSize;
 
     backgndSize = backgnd->getSize();
-   /* if ((backgndSize.Width != mScreenRes.Width) ||
+    if ((backgndSize.Width != mScreenRes.Width) ||
         (backgndSize.Height != mScreenRes.Height)) {
         logging::Error("Background image does not fit with the selected screen resolution");
         //background texture size does not fit with selected screen resolution
         return false;
-    }*/
+    }
 
     mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
@@ -875,7 +1166,8 @@ void Editor::EditorLoopExtractData() {
                 mEditorState = DEF_EDITORSTATE_ERROR;
                 return;
             }
-            mEditorState = DEF_EDITORSTATE_LOADDATA;
+            UpdateMenueEntries();
+            mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
             return;
         }
     }
@@ -895,102 +1187,21 @@ void Editor::EditorLoopExtractData() {
 
     mDriver->endScene();
 }
-/*
-void Game::GameLoopTitleScreenLoadData() {
-    //we need to load additional images
-    if (!LoadAdditionalGameImages()) {
-        logging::Error("Loading of game tile and race loading images failed");
-        mGameState = DEF_GAMESTATE_ERROR;
-        return;
-    }
 
-    mInfra->mDriver->beginScene(true,true,
+void Editor::EditorLoopNoSessionOpen() {
+    mDriver->beginScene(true,true,
     video::SColor(255,100,101,140));
 
-    //first draw a black rectangle over the whole screen to make sure that the parts of the
-    //screen that are outside of the drawn image regions are black as well
-    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
+    //draw background picture
+    mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
+                         irr::core::recti(0, 0, mScreenRes.Width, mScreenRes.Height)
+                         , 0, irr::video::SColor(255,255,255,255), true);
 
-    //draw game tile screen
-    mInfra->mDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0,
-                     gameTitleSize.Width, gameTitleSize.Height)
-                     , 0, irr::video::SColor(255,255,255,255), true);
+    //draw Gui
+    mGuienv->drawAll();
 
-    mInfra->mDriver->endScene();
-
-    //now load data
-    if (!LoadGameData()) {
-        mGameState = DEF_GAMESTATE_ERROR;
-        return;
-    } else {
-        if (!mDebugRace && !mDebugDemoMode) {
-            //was succesfull, now continue to main menue
-            mGameState = DEF_GAMESTATE_MENUE;
-            MainMenue->ShowMainMenue();
-        } else if (mDebugRace) {
-            //we want to directly create a race for debugging
-            //of game mechanics and enter it
-            SetupDebugGame();
-        } else if (mDebugDemoMode) {
-            //we want to directly create a demo for debugging
-            SetupDebugDemo();
-        }
-    }
+    mDriver->endScene();
 }
-
-void Game::GameLoopLoadRaceScreen() {
-    mInfra->mDriver->beginScene(true,true,
-    video::SColor(255,100,101,140));
-
-    //first draw a black rectangle over the whole screen to make sure that the parts of the
-    //screen that are outside of the drawn image regions are black as well
-    mInfra->mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
-                   irr::core::rect<irr::s32>(0, 0, mInfra->mScreenRes.Width, mInfra->mScreenRes.Height));
-
-    //draw load race screen
-    mInfra->mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
-                     , 0, irr::video::SColor(255,255,255,255), true);
-
-    //at 190, 240 write "LOADING LEVEL"
-    mInfra->mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mInfra->mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
-
-    mInfra->mDriver->endScene();
-
-    if (mGameState == DEF_GAMESTATE_INITRACE) {
-        //player wants to start the race
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
-
-        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, false, mDebugRace)) {
-             mGameState = DEF_GAMESTATE_RACE;
-             CleanupPilotInfo(mPilotsNextRace);
-        } else {
-            CleanupPilotInfo(mPilotsNextRace);
-
-            mGameState = DEF_GAMESTATE_MENUE;
-
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
-        }
-    } else if (mGameState == DEF_GAMESTATE_INITDEMO) {
-        //for the demo do not add a human player, but add computer players
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(false, true);
-
-        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, true, mDebugRace)) {
-             mGameState = DEF_GAMESTATE_RACE;
-             CleanupPilotInfo(mPilotsNextRace);
-        } else {
-            CleanupPilotInfo(mPilotsNextRace);
-
-            mGameState = DEF_GAMESTATE_MENUE;
-
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
-        }
-    }
-}*/
 
 void Editor::UpdateStatusbarText(const wchar_t *text) {
     wcscpy(mCurrentStatusBarText, text);
@@ -1059,13 +1270,8 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
 
     mDriver->endScene();
 
-    //does the player want to end the race?
-    if (mCurrentSession->exitEditorSession) {
-        mCurrentSession->End();
-
-        //clean up current editor session data
-        delete mCurrentSession;
-        mCurrentSession = nullptr;
+    //does the user want to exit the LevelEditor?
+    if (false) {
 
         ExitEditor = true;
 
@@ -1109,12 +1315,16 @@ void Editor::EditorLoop() {
                 break;
             }
 
+            case DEF_EDITORSTATE_NOSESSIONACTIVE: {
+                //ParentEditor is ready for a session,
+                //but no session is loaded yet
+                EditorLoopNoSessionOpen();
+                break;
+            }
+
             case DEF_EDITORSTATE_LOADDATA: {
-                if (!CreateNewEditorSession(1)) {
-                    mEditorState = DEF_EDITORSTATE_ERROR;
-                } else {
-                    mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
-                }
+                //load original level
+                OpenOriginalLevel(mWhichMenueItemWasClicked);
                 break;
             }
 
@@ -1132,6 +1342,50 @@ void Editor::EditorLoop() {
 
             case DEF_EDITORSTATE_SESSIONACTIVE: {
                 EditorLoopSession(frameDeltaTime);
+                break;
+            }
+
+            case DEF_EDITORSTATE_CLOSECURRENTSESSION: {
+                //clean up current editor session data
+                delete mCurrentSession;
+                mCurrentSession = nullptr;
+
+                //make sure that TimeProfiler window is hidden
+                mTimeProfiler->HideWindow();
+
+                //make sure that Logger Window is hidden
+                mLogger->HideWindow();
+
+                UpdateMenueEntries();
+                mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
+
+                break;
+            }
+
+            case DEF_EDITORSTATE_CREATENEWEMPTYLEVEL: {
+                bool success;
+
+                if (CreateNewEmptyLevel(mNewLevelStyleSelector, "newlevel")) {
+                    //new level creation was succesfull
+                    logging::Info("New level creation was succesfull");
+
+                    //now load the new level
+                    success = CreateNewEditorSession("userdata/levels/", "newlevel");
+
+                    if (!success) {
+                        mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
+                        logging::Error("Failed to load new level");
+                        mGuienv->addMessageBox(L"Error", L"Failed to load new level", true, EMBF_OK, nullptr, -1, nullptr);
+                    } else {
+                        UpdateMenueEntries();
+
+                        mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
+                    }
+                } else {
+                    mGuienv->addMessageBox(L"Error", L"New level creation failed", true, EMBF_OK, nullptr, -1, nullptr);
+                    mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
+                }
+
                 break;
             }
 
@@ -1161,12 +1415,12 @@ void Editor::EditorLoop() {
    mDriver->drop();
 }
 
-bool Editor::CreateNewEditorSession(int load_levelnr) {
+bool Editor::CreateNewEditorSession(std::string levelRootPath, std::string levelName) {
     if (mCurrentSession != nullptr)
         return false;
 
     //create a new editor session
-    mCurrentSession = new EditorSession(this, load_levelnr);
+    mCurrentSession = new EditorSession(this, levelRootPath, levelName);
 
     mCurrentSession->Init();
 
@@ -1175,6 +1429,11 @@ bool Editor::CreateNewEditorSession(int load_levelnr) {
         logging::Error("EditorSession creation failed!");
         return false;
     }
+
+    //We first need to update the Menue-Entries
+    //so that the next command does not crash with nullptr
+    //reference
+    UpdateMenueEntries();
 
     //update current visible Entities
     UpdateEntityVisibilityMenueEntries();
@@ -1213,6 +1472,282 @@ void Editor::CheckForNumberEditBoxEvent(irr::s32 receivedGuiId) {
           return;
       }
    }
+}
+
+//Returns true in case of success, False otherwise
+bool Editor::CopyLevelTextures(std::string originMapFolder, std::string targetMapFolder) {
+    //if origin directory is not present, fail operation
+    if (IsDirectoryPresent(originMapFolder.c_str()) == -1) {
+        return false;
+    }
+
+    //if target directory is not present, fail operation
+    if (IsDirectoryPresent(targetMapFolder.c_str()) == -1) {
+        return false;
+    }
+
+    //there should be 256 texture files, one for each Texture Id
+    for (int tileIdx = 0; tileIdx < 256; tileIdx++) {
+        std::stringstream fpOrigin;
+        fpOrigin << originMapFolder << "tex" << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        std::string finalpathOrigin = fpOrigin.str();
+
+        std::stringstream fpTarget;
+        fpTarget << targetMapFolder << "tex" << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        std::string finalpathTarget = fpTarget.str();
+
+        //only execute operation if file exists, otherwise fail
+        if (FileExists(finalpathOrigin.c_str()) == 1) {
+            //origin file exists
+
+            //Returns 1 in case of unexpected error, 0 for success
+            if (copy_file(finalpathOrigin.c_str(), finalpathTarget.c_str()) == 1) {
+                //copy failed
+                return false;
+            }
+        } else {
+            //Expected origin file is missing, Fail
+            return false;
+        }
+    }
+
+    //copying of all textures was succesfull
+    return true;
+}
+
+//Returns true if succesfull, False otherwise
+//Note: outputMapName is not a folder path, instead a single word (name)
+//for the map
+bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapName) {
+    //Make sure user custom level map
+    //folder already exists
+    if (!PrepareUserMapsFolder()) {
+        return false;
+    }
+
+    std::string mapSubFolder("userdata/levels/");
+    mapSubFolder.append(outputMapName);
+
+    //create a sub directory for new level
+    try {
+        PrepareSubDir(mapSubFolder.c_str());
+    }
+    catch (const std::string &msg) {
+        std::string msgExt("Preparation of new map subfolder failed");
+        msgExt.append(msg);
+        logging::Error(msgExt);
+        return false;
+    }
+
+    //copy the level textures depending on the selected
+    //level graphics style
+    std::string originLevel("extract/");
+    std::string originLevelFile("extract/");
+
+    switch (newLevelStype) {
+       case DEF_EDITOR_NEWLEVELSTYLE_ROCK: {
+           originLevel.append("level0-1/");
+           originLevelFile.append("level0-1/level0-1-unpacked.dat");
+           break;
+       }
+
+       case DEF_EDITOR_NEWLEVELSTYLE_VEGETATION: {
+            originLevel.append("level0-2/");
+            originLevelFile.append("level0-2/level0-2-unpacked.dat");
+            break;
+       }
+
+        case DEF_EDITOR_NEWLEVELSTYLE_SNOW: {
+             originLevel.append("level0-3/");
+             originLevelFile.append("level0-3/level0-3-unpacked.dat");
+             break;
+        }
+
+        default: {
+           return false;
+        }
+    }
+
+    mapSubFolder.append("/");
+
+    //now copy the textures from Origin to Target (new level)
+    if (!CopyLevelTextures(originLevel, mapSubFolder)) {
+        logging::Error("CreateNewEmptyLevel: Copy of terrain textures failed");
+        return false;
+    }
+
+    std::string newLevelFileName("");
+    newLevelFileName.append(mapSubFolder);
+    newLevelFileName.append(outputMapName);
+    newLevelFileName.append("-unpacked.dat");
+
+    if (!CreateNewEmptyLevelFile(originLevelFile, newLevelFileName)) {
+        logging::Error("CreateNewEmptyLevel: Creation of new level map file failed");
+        return false;
+    }
+
+    //operation was succesfull
+    return true;
+}
+
+//Returns true if succesfull, False otherwise
+bool Editor::CreateNewEmptyLevelFile(std::string originFileName, std::string outputFileName) {
+    ifstream ifile;
+    std::streampos fileSize;
+
+    ifile.open(originFileName.c_str(), std::ifstream::binary);
+    if(ifile) {
+          logging::Info("CreateNewEmptyLevel: Origin file found and openend succesfully");
+       } else {
+           logging::Error("CreateNewEmptyLevel: Could not open Origin Level file");
+           return false;
+    }
+
+    // get its size:
+    ifile.seekg(0, std::ios::end);
+    fileSize = ifile.tellg();
+    ifile.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t>* bytesVec = new std::vector<uint8_t>();
+
+    //read the data
+    bytesVec->resize(fileSize);
+    ifile.read(reinterpret_cast<char*>(bytesVec->data()), bytesVec->size());
+
+    ifile.close();
+
+    char hlpstr[500];
+    std::string msg("");
+
+     if (ifile) {
+         msg.clear();
+         msg.append("Origin level file read succesfully (");
+         size_t fileSizet = fileSize;
+         snprintf(hlpstr, 500, "%zu", fileSizet);
+         msg.append(hlpstr);
+         msg.append(" bytes)");
+         logging::Info(msg);
+     }
+     else {
+         size_t fileReadsizet = ifile.gcount();
+         msg.clear();
+         msg.append("Origin level file read error: only ");
+         snprintf(hlpstr, 500, "%zu", fileReadsizet);
+         msg.append(hlpstr);
+         msg.append(" bytes could be read!");
+         logging::Error(msg);
+
+         delete bytesVec;
+
+         return false;
+   }
+
+   //first remove all entities
+   //there can be max 4000 entities,
+   //stored from file offset 0 up to 3999 * 24 + 24
+   std::vector<uint8_t>::iterator startIt;
+   std::vector<uint8_t>::iterator endIt;
+
+   startIt = bytesVec->begin();
+   endIt = bytesVec->begin() + 3999 * 24 + 24;
+
+   std::fill(startIt, endIt, 0);
+
+   //remove all column definitions
+   //there can be max 1024 of them
+   //stored from file offset 98012 up to 124636
+   startIt = bytesVec->begin() + 98012;
+   endIt = bytesVec->begin() + 98012 + 1023 * 26 + 26;
+
+   std::fill(startIt, endIt, 0);
+
+   //remove all block definitions
+   //there can be max 1024 of them
+   //stored from file offset 124636 up to 141020
+   startIt = bytesVec->begin() + 124636;
+   endIt = bytesVec->begin() + 124636 + 1023 * 16 + 16;
+
+   std::fill(startIt, endIt, 0);
+
+   //removes all region definitions
+   //there can be max 8 of them
+   //stored from file offset 246924 up to 247604
+   startIt = bytesVec->begin() + 246924;
+   endIt = bytesVec->begin() + 247604;
+
+   std::fill(startIt, endIt, 0);
+
+   //setup all tiles to the same texture and height
+   //there are 256 x 160 tiles;
+   //Tile data is from offset 404620 up to offset 896140
+
+   //Each tile has the following layout:
+
+   //each map entry is 12 bytes long
+   //Byte 0:  Cell Illumination value: This value controls how well illuminated a cell is
+   //Byte 1:  Cell Illumination value: This value controls how well illuminated a cell is
+   //Byte 2:  Height
+   //Byte 3:  Height
+   //Byte 4:  cid (cell id)
+   //Byte 5:  cid (cell id)
+   //Byte 6:  Point of Interest
+   //Byte 7:  Point of Interest
+   //Byte 8:  Reserved 1 (seems to be not used)
+   //Byte 9:  Reserved 1 (seems to be not used)
+   //Byte 10:  Texture Modification
+   //Byte 11:  Reserved 2 (seems to be not used)
+
+   //Reserved 1 & Reserved 2: For both values I checked in every level of the original
+   //game. Is not a single time non zero. Was maybe reserved for
+   //a future expansion, and never used (maybe reserved).
+   startIt = bytesVec->begin() + 404620;
+   endIt = bytesVec->begin() + 896140;
+
+   //first fill all tiles with all 0 bytes
+   std::fill(startIt, endIt, 0);
+
+   // entry is 12 bytes long, map is at end of file
+   int numBytes = 12 * LEVELFILE_WIDTH * LEVELFILE_HEIGHT;
+
+   int i = (int)(fileSize) - numBytes;
+
+   for (int y = 0; y < LEVELFILE_HEIGHT; y++) {
+    for (int x = 0; x < LEVELFILE_WIDTH; x++) {
+        //set all cells to default Illumination value of 9600
+        startIt = bytesVec->begin() + i;
+        (*startIt) = 128;
+
+        startIt = bytesVec->begin() + i + 1;
+        (*startIt) = 37;
+
+        //set all cells to height 8.0f
+        startIt = bytesVec->begin() + i + 2;
+        (*startIt) = 0;
+
+        startIt = bytesVec->begin() + i + 3;
+        (*startIt) = 8;
+
+        //set all cells to first TextureId 0
+        startIt = bytesVec->begin() + i + 4;
+        (*startIt) = 0;
+
+        startIt = bytesVec->begin() + i + 5;
+        (*startIt) = 0;
+
+        i += 12;
+   }
+  }
+
+  //write modified data to output map file
+  std::ofstream outputfile(outputFileName.c_str(), std::ios::out|std::ios::binary);
+  std::copy(bytesVec->cbegin(), bytesVec->cend(),
+         std::ostream_iterator<uint8_t>(outputfile));
+
+  outputfile.close();
+
+  delete bytesVec;
+
+  return true;
 }
 
 Editor::Editor() {

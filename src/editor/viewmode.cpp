@@ -17,14 +17,28 @@ ViewMode::ViewMode(EditorSession* parentSession) : EditorMode(parentSession) {
 }
 
 ViewMode::~ViewMode() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
+    if (mGuiViewMode.RunMorphsCheckbox != nullptr) {
+        mGuiViewMode.RunMorphsCheckbox->remove();
+    }
+
+    if (mGuiViewMode.FogCheckbox != nullptr) {
+        mGuiViewMode.FogCheckbox->remove();
+    }
+
+    if (mGuiViewMode.IlluminationCheckBox != nullptr) {
+        mGuiViewMode.IlluminationCheckBox->remove();
+    }
+
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
+    }
 }
 
 void ViewMode::CreateWindow() {
-    // set skin font
-    /*IGUIFont* font = env->getFont("fontlucida.png");
-    if (font)
-        env->getSkin()->setFont(font);*/
-
     irr::core::dimension2d<irr::u32> dim ( 150, 150 );
 
     //finally create the window

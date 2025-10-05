@@ -17,7 +17,8 @@
 #endif
 
 //source code example taken from https://markaicode.com/how-to-copy-file-contents-in-c/
-int copy_file(char* srcFileName, char* destFileName) {
+//Returns 1 in case of unexpected error, 0 for success
+int copy_file(const char* srcFileName, const char* destFileName) {
     FILE* sourceFile;
     FILE* destFile;
     char buffer[4096];
@@ -85,8 +86,7 @@ int FileExists(const char *fname)
         return (0); //is something else
 }
 
-//Returns 0 if directory was created succesfully
-//returns 1 if directory was not created due to problem
+//throws an Exception if the directory was not created
 void CreateDirectory(const char *dirPath) {
 #ifdef _MSC_VER
 

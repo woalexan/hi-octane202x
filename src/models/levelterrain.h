@@ -158,7 +158,7 @@ struct TerrainTileData {
 
 class LevelTerrain {
 public:
-    LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, char* name, LevelFile* levelRes, TextureLoader* textureSource,
+    LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, LevelFile* levelRes, TextureLoader* textureSource,
                  bool optimizeMesh, bool enableLightning);
     ~LevelTerrain();
 
@@ -348,8 +348,6 @@ private:
 
     bool mEnableLightning;
     bool mOptimizeMesh;
-
-    char mName[50];
 
     bool mLevelEditorMode;
 

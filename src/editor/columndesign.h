@@ -39,6 +39,7 @@ struct GUIColumnDesigner
 
     irr::gui::IGUIStaticText* CurrentSelectedCellInfo;
     irr::gui::IGUIStaticText* CurrentSelectedColumnDefId;
+    irr::gui::IGUIStaticText* ColumDefLabel;
 
     irr::gui::IGUIImage* blockAImageFront;
     irr::gui::IGUIImage* blockBImageFront;

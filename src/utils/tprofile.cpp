@@ -146,10 +146,7 @@ TimeProfiler::TimeProfiler(irr::gui::IGUIEnvironment* guienvPntr, irr::core::rec
     this->tProfileOutputWindow = mGuiEnv->addStaticText(L"",
            mCurrenttProfileOutputWindowPos, false, true, nullptr, -1, true);
 
-    //we need to deactivate word wrap because if we do not
-    //there seems to be an Irrlicht bug or problem
-    //that causes an unexpected malloc assert problems somehow
-    this->tProfileOutputWindow->setWordWrap(false);
+    this->tProfileOutputWindow->setWordWrap(true);
 
     //how many lines of time profiler results we can max show at a time
     //depends on the current logWindow size, and font height

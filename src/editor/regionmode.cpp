@@ -23,7 +23,54 @@ RegionMode::RegionMode(EditorSession* parentSession) : EditorMode(parentSession)
 }
 
 RegionMode::~RegionMode() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
     //cleanup all data
+    if (mGuiRegionMode.XMinBox != nullptr) {
+        delete mGuiRegionMode.XMinBox;
+    }
+
+    if (mGuiRegionMode.YMinBox != nullptr) {
+        delete mGuiRegionMode.YMinBox;
+    }
+
+    if (mGuiRegionMode.XMaxBox != nullptr) {
+        delete mGuiRegionMode.XMaxBox;
+    }
+
+    if (mGuiRegionMode.YMaxBox != nullptr) {
+        delete mGuiRegionMode.YMaxBox;
+    }
+
+    if (mGuiRegionMode.RegionTable != nullptr) {
+        mGuiRegionMode.RegionTable->remove();
+    }
+
+    if (mGuiRegionMode.ApplyButton != nullptr) {
+        mGuiRegionMode.ApplyButton->remove();
+    }
+
+    if (mGuiRegionMode.RegionTypeComboBoxLabel != nullptr) {
+        mGuiRegionMode.RegionTypeComboBoxLabel->remove();
+    }
+
+    if (mGuiRegionMode.RegionTypeComboBox != nullptr) {
+        mGuiRegionMode.RegionTypeComboBox->remove();
+    }
+
+    if (mGuiRegionMode.SelectCoord1Button != nullptr) {
+        mGuiRegionMode.SelectCoord1Button->remove();
+    }
+
+    if (mGuiRegionMode.SelectCoord2Button != nullptr) {
+        mGuiRegionMode.SelectCoord2Button->remove();
+    }
+
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
+    }
 }
 
 void RegionMode::AddRegionTableEntry(irr::u8 entryNr, MapTileRegionStruct* whichRegion) {
@@ -230,7 +277,6 @@ irr::s32 RegionMode::FindRegionTableRowIdxForMapTileRegionStruct(MapTileRegionSt
 }
 
 void RegionMode::CreateWindow() {
-
     irr::core::dimension2d<irr::u32> dim ( 400, 250 );
 
     //finally create the window

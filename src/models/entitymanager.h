@@ -96,6 +96,8 @@ private:
 
      void CleanupCustomMesh(EditorEntity* whichEntity);
      void UpdateCustomMesh(EditorEntity* whichEntity);
+     void CleanupAllCustomMesh();
+     void CleanupAllCubeMesh();
 
      //Different defined colors for the cube Entities
 
@@ -122,7 +124,7 @@ private:
 
      std::vector<EditorEntity*> mSteamFountainVec;
 
-     IMesh* CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor);
+     irr::scene::IMesh* CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor);
 
      std::vector<std::pair<EditorEntity*, irr::scene::IMesh*>> mSelectionMeshVec;
 

@@ -15,7 +15,7 @@
 //1 if item is a directory
 int IsDirectoryPresent(const char* dirPath);
 
-// throws an error message if the directory was not created
+// throws an Exception if the directory was not created
 void CreateDirectory(const char *dirPath);
 
 //-1 if item can not be accessed, means file does not exit
@@ -23,7 +23,8 @@ void CreateDirectory(const char *dirPath);
 //0 specified element is not a file, but something else
 int FileExists(const char *fname);
 
-int copy_file(char* srcFileName, char* destFileName);
+//Returns 1 in case of unexpected error, 0 for success
+int copy_file(const char* srcFileName, const char* destFileName);
 
 void PrepareSubDir(const char* dirName);
 

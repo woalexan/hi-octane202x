@@ -32,10 +32,11 @@
 #include "models/entitymanager.h"
 #include "editor/regionmode.h"
 
-EditorSession::EditorSession(Editor* parentEditor, irr::u8 loadLevelNr) {
+EditorSession::EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName) {
     mParentEditor = parentEditor;
 
-    mLevelNrLoaded = loadLevelNr;
+    mLevelRootPath = levelRootPath;
+    mLevelName = levelName;
     ready = false;
 
     mTextureMode = new TextureMode(this);
@@ -204,6 +205,18 @@ EditorSession::~EditorSession() {
 
     mModeInfoText->remove();
     mControlInfoText->remove();
+
+    //free lowlevel level data
+    delete mEntityManager;
+    delete mLevelBlocks;
+    delete mLevelTerrain;
+    delete mLevelRes;
+
+    //free all loaded textures
+    delete mTexLoader;
+
+    //remove all remaining SceneNodes
+    mParentEditor->CleanupAllSceneNodes();
 }
 
 void EditorSession::Init() {
@@ -215,13 +228,6 @@ void EditorSession::Init() {
     keyMap[2].Action=EKA_STRAFE_LEFT;    keyMap[2].KeyCode=KEY_KEY_A;
     keyMap[3].Action=EKA_STRAFE_RIGHT;   keyMap[3].KeyCode=KEY_KEY_D;
 
-    if (!LoadLevel()) {
-        //there was an error loading the level
-        return;
-    }
-
-    //level was loaded ok, we can continue setup
-
     //create a free moving camera that the user can use to
     //investigate the level/map, not used in actual game
     mCamera = mParentEditor->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
@@ -229,27 +235,19 @@ void EditorSession::Init() {
 
     mCamera->setPosition(irr::core::vector3df(0.0f, 0.0f, 0.0f));
 
-    //create a "dummy" Scenenode that we glue to the FPS camera
-    /*const IGeometryCreator * geom = this->mParentEditor->mSmgr->getGeometryCreator();
-
-    IMesh* cubeMesh = geom->createCubeMesh(irr::core::vector3df(5.2f, 5.2f, 5.2f));
-
-    //lets create a scenenode that is "glued" to FPS camera
-    mSceneNodeGluedToFPSCamera = mParentEditor->mSmgr->addMeshSceneNode(cubeMesh, mCamera, -1, irr::core::vector3df(0.0f, 0.0f, 0.0f));
-    cubeMesh->drop();
-
-    mSceneNodeGluedToFPSCamera->setMaterialTexture(0, this->mTexLoader->levelTex.at(0));
-    mSceneNodeGluedToFPSCamera->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-    mSceneNodeGluedToFPSCamera->setVisible(true);
-    mSceneNodeGluedToFPSCamera->setDebugDataVisible(EDS_BBOX);
-    mSceneNodeGluedToFPSCamera->setAutomaticCulling(false);*/
-
     mCamera2 = mParentEditor->mSmgr->addCameraSceneNodeFPS(0, 100.0f,0.05f ,-1 ,
                                             keyMap, 4, false, 0.0f);
 
     mCamera2->setPosition(irr::core::vector3df(0.0f, 0.0f, 0.0f));
 
     mParentEditor->mSmgr->setActiveCamera(mCamera);
+
+    if (!LoadLevel()) {
+        //there was an error loading the level
+        return;
+    }
+
+    //level was loaded ok, we can continue setup
 
     //create the current mode output info text
     this->mModeInfoText = mParentEditor->mGuienv->addStaticText(L"",
@@ -288,50 +286,67 @@ void EditorSession::Init() {
 }
 
 bool EditorSession::LoadLevel() {
-    if ((mLevelNrLoaded < 1) || (mLevelNrLoaded > 9)) {
-        logging::Error("Level number only possible from 1 up to 9!");
-        return false;
-    }
+//    if ((mLevelNrLoaded < 1) || (mLevelNrLoaded > 9)) {
+//        logging::Error("Level number only possible from 1 up to 9!");
+//        return false;
+//    }
 
-    int load_texnr = mLevelNrLoaded;
-    if (mLevelNrLoaded == 7) load_texnr = 1; // original game has this hardcoded too
+//    int load_texnr = mLevelNrLoaded;
+//    if (mLevelNrLoaded == 7) load_texnr = 1; // original game has this hardcoded too
 
-   /***********************************************************/
-   /* Load selected level file                                */
-   /***********************************************************/
-   char levelfilename[50];
-   char str[20];
+//   /***********************************************************/
+//   /* Load selected level file                                */
+//   /***********************************************************/
+//   char levelfilename[50];
+//   char str[20];
 
-   strcpy(levelfilename, "extract/level0-");
-   sprintf(str, "%d", mLevelNrLoaded);
-   strcat(levelfilename, str);
-   strcat(levelfilename, "/level0-");
-   strcat(levelfilename, str);
-   strcat(levelfilename, "-unpacked.dat");
+//   strcpy(levelfilename, "extract/level0-");
+//   sprintf(str, "%d", mLevelNrLoaded);
+//   strcat(levelfilename, str);
+//   strcat(levelfilename, "/level0-");
+//   strcat(levelfilename, str);
+//   strcat(levelfilename, "-unpacked.dat");
 
-   //only for debugging
-   //strcpy(levelfilename, "/home/wolfalex/hi/maps/level0-1.dat");
+//   //only for debugging
+//   //strcpy(levelfilename, "/home/wolfalex/hi/maps/level0-1.dat");
 
-   char texfilename[50];
-   strcpy(texfilename, "extract/level0-");
-   sprintf(str, "%d", load_texnr);
-   strcat(texfilename, str);
-   strcat(texfilename, "/tex");
+//   char texfilename[50];
+//   strcpy(texfilename, "extract/level0-");
+//   sprintf(str, "%d", load_texnr);
+//   strcat(texfilename, str);
+//   strcat(texfilename, "/tex");
 
-   char spritefilename[50];
-   strcpy(spritefilename, "extract/sprites/tmaps");
+   std::string levelfilename("");
+   std::string texfilename("");
+
+   texfilename.append(mLevelRootPath);
+   texfilename.append("/");
+   texfilename.append(mLevelName);
+
+   levelfilename.append(texfilename);
+   texfilename.append("/tex");
+
+   levelfilename.append("/");
+   levelfilename.append(mLevelName);
+   levelfilename.append("-unpacked.dat");
+
+   std::string spritefilename("extract/sprites/tmaps");
 
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
    //Note: We need to additional load the level editor textures!
-   mTexLoader = new TextureLoader(mParentEditor->mDriver, texfilename, spritefilename, true);
+   mTexLoader = new TextureLoader(mParentEditor->mDriver, texfilename.c_str(), spritefilename.c_str(), true);
 
    //was loading textures succesfull? if not interrupt
    if (!this->mTexLoader->mLoadSuccess) {
        logging::Error("EditorSession::LoadTextures failed, exiting");
        return false;
    }
+
+   /***********************************************************/
+   /* Load selected level file                                */
+   /***********************************************************/
 
    //load the level data itself
    this->mLevelRes = new LevelFile(levelfilename);
@@ -342,17 +357,11 @@ bool EditorSession::LoadLevel() {
        return false;
    }
 
-   char terrainname[50];
-   strcpy(terrainname, "Terrain1");
-
-   //Test map save
-   //this->mLevelRes->Save(std::string("mapsave.dat"));
-
    /***********************************************************/
    /* Prepare level terrain                                   */
    /***********************************************************/
    //for the level editor do not optimize the Terrain mesh!
-   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, true, terrainname, this->mLevelRes,
+   this->mLevelTerrain = new LevelTerrain(this->mParentEditor, true, this->mLevelRes,
                                           mTexLoader, false, false);
 
    /***********************************************************/
@@ -785,7 +794,7 @@ void EditorSession::HandleBasicInput() {
     }
 
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
-        this->exitEditorSession = true;
+        TriggerClose();
     }
 
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_M)) {
@@ -943,8 +952,9 @@ void EditorSession::SetFog(bool enabled) {
    //to later editor entities (models)
 }
 
-void EditorSession::End() {
-    //empty right now
+void EditorSession::TriggerClose() {
+   mParentEditor->mGuienv->addMessageBox(L"Question", L"Sure to close EditorSession and to lose unsaved data?",
+                                         true, EMBF_YES + EMBF_CANCEL, 0, GUI_ID_EDITORSESSION_MSGBOX_SURECLOSE, nullptr);
 }
 
 void EditorSession::RemoveEverythingFromLevel() {
