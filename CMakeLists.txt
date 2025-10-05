@@ -61,7 +61,7 @@ endif()
 
 ###########################
 
-find_package(Freetype REQUIRED)
+find_package(Freetype)
 
 if(Freetype_FOUND)
         MESSAGE(STATUS "FREETYPE_INCLUDE_DIRS = ${FREETYPE_INCLUDE_DIRS}")

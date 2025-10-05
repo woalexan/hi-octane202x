@@ -231,8 +231,8 @@ public:
 
     //returns true if two specified regions (r1x1, r1y1, r1x2, r1y2) and
     //(r2x1, r2y1, r2x2, r2y2) are overlapping, false otherwise
-    bool Overlapping(irr::u8 r1x1, irr::u8 r1y1, irr::u8 r1x2, irr::u8 r1y2,
-                     irr::u8 r2x1, irr::u8 r2y1, irr::u8 r2x2, irr::u8 r2y2);
+    bool Overlapping(irr::u16 r1x1, irr::u16 r1y1, irr::u16 r1x2, irr::u16 r1y2,
+                     irr::u16 r2x1, irr::u16 r2y1, irr::u16 r2x2, irr::u16 r2y2);
 
     //definition of road texture elements
     //most important textures for auto generation of

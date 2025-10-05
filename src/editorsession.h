@@ -51,7 +51,7 @@ class EditorEntity;
 class EntityMode;
 class EntityManager;
 class RegionMode;
-class CurrentlySelectedEditorItemInfoStruct;
+struct CurrentlySelectedEditorItemInfoStruct;
 
 /* GUI Elements
 */
@@ -122,7 +122,6 @@ public:
     RegionMode* mRegionMode = nullptr;
 
     irr::s32 GetNextFreeGuiId();
-    void HideWindow();
 
     void AdvanceTime(irr::f32 frameDeltaTime);
     void ActivateMorphs();
@@ -159,9 +158,6 @@ private:
 
     bool LoadLevel();
 
-    void AddCheckPoint(EntityItem entity);
-    void AddWayPoint(EntityItem *entity, EntityItem *next);
-
     //start at Id = 1000;
     irr::s32 mNextFreeGuiId = 1000;
 
@@ -174,8 +170,6 @@ private:
     bool DebugShowTriggerRegions = false;
 
     bool DebugShowLowLevelTriangleSelection = true;
-
-    void setActiveCamera(irr::scene::ICameraSceneNode* newActive);
 
     irr::u8 mLastUserInDialogState = DEF_EDITOR_USERINNODIALOG;
 
@@ -197,7 +191,6 @@ public:
 
     void SetMode(EditorMode* selMode);
 
-    void TestDialog();
     void TrackActiveDialog();
 
     EditorMode* mEditorMode = nullptr;

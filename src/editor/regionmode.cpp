@@ -396,7 +396,7 @@ void RegionMode::OnRegionTypeComboBoxChanged(irr::u32 newSelectedGuiId) {
 
 //returns true if the newly entered region coordinates in the Ui
 //pass the plausi check, false otherwise
-bool RegionMode::PlausiCheckCoordinates(irr::u8 XMin, irr::u8 YMin, irr::u8 XMax, irr::u8 YMax) {
+bool RegionMode::PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 XMax, irr::u16 YMax) {
     //any values outside of possible range?
     if ((XMin >= mParentSession->mLevelRes->Width()) || (XMax >= mParentSession->mLevelRes->Width())) {
             //show a messagebox with error
@@ -546,10 +546,10 @@ void RegionMode::ApplyChanges() {
             //simply continue execution below
       }
 
-      irr::u8 newXMin = (irr::u8)(mGuiRegionMode.XMinBox->GetValue());
-      irr::u8 newYMin = (irr::u8)(mGuiRegionMode.YMinBox->GetValue());
-      irr::u8 newXMax = (irr::u8)(mGuiRegionMode.XMaxBox->GetValue());
-      irr::u8 newYMax = (irr::u8)(mGuiRegionMode.YMaxBox->GetValue());
+      irr::u16 newXMin = (irr::u16)(mGuiRegionMode.XMinBox->GetValue());
+      irr::u16 newYMin = (irr::u16)(mGuiRegionMode.YMinBox->GetValue());
+      irr::u16 newXMax = (irr::u16)(mGuiRegionMode.XMaxBox->GetValue());
+      irr::u16 newYMax = (irr::u16)(mGuiRegionMode.YMaxBox->GetValue());
 
       //if some new entered coordinates fail plausi check exit
       if (!PlausiCheckCoordinates(newXMin, newYMin, newXMax, newYMax))

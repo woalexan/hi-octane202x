@@ -245,8 +245,8 @@ bool LevelTerrain::CheckPosInsideRegion(int posX, int posY, MapTileRegionStruct*
 
 //returns true if two specified regions (r1x1, r1y1, r1x2, r1y2) and (r2x1, r2y1, r2x2, r2y2) are overlapping
 //false otherwise
-bool LevelTerrain::Overlapping(irr::u8 r1x1, irr::u8 r1y1, irr::u8 r1x2, irr::u8 r1y2,
-                               irr::u8 r2x1, irr::u8 r2y1, irr::u8 r2x2, irr::u8 r2y2) {
+bool LevelTerrain::Overlapping(irr::u16 r1x1, irr::u16 r1y1, irr::u16 r1x2, irr::u16 r1y2,
+                               irr::u16 r2x1, irr::u16 r2y1, irr::u16 r2x2, irr::u16 r2y2) {
     if (r1x1 > r2x2 || r2x1 > r1x2)
           return false;
 
