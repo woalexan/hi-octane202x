@@ -213,10 +213,10 @@ void CGUITTGlyph::cache(u32 idx_, const CGUIFreetypeFont * freetypeFont)
 		u16 *texd16 = new u16[imgw16*imgh16];
 		memset(texd16,0,imgw16*imgh16*sizeof(u16));
 		u16 *texp16 = texd16;
-		for (int y = 0;y < bits.rows;y++)
+		for (unsigned int y = 0;y < bits.rows;y++)
 		{
 			u16 *rowp = texp16;
-			for (int x = 0;x < bits.width;x++)
+			for (unsigned int x = 0;x < bits.width;x++)
 			{
 				if (pt[y * bits.pitch + (x / 8)] & (0x80 >> (x % 8)))
 				{
