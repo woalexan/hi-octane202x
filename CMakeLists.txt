@@ -61,6 +61,13 @@ endif()
 
 ###########################
 
+find_package(Freetype)
+
+if(Freetype_FOUND)
+        MESSAGE(STATUS "FREETYPE_INCLUDE_DIRS = ${FREETYPE_INCLUDE_DIRS}")
+        INCLUDE_DIRECTORIES(${FREETYPE_INCLUDE_DIRS})
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -295,6 +302,13 @@ add_executable(hi-editor
     src/utils/ray.h
     src/utils/ray.cpp
 
+    src/font/CGUITTFont.h
+    src/font/CGUITTFont.cpp
+    src/font/font_manager.h
+    src/font/font_manager.cpp
+    src/font/gui_freetype_font.h
+    src/font/gui_freetype_font.cpp
+
     src/input/input.h
     src/input/input.cpp
     src/input/numbereditbox.h
@@ -366,6 +380,11 @@ TARGET_LINK_LIBRARIES(hi-octane202x ${ADLMIDI_LIBRARY})
 
 TARGET_LINK_LIBRARIES(hi-editor ${IRRLICHT_LIBRARY})
 TARGET_LINK_LIBRARIES(hi-editor ${SFML_LIBRARIES})
+
+if(Freetype_FOUND)
+    MESSAGE(STATUS "FREETYPE_LIBRARIES = ${FREETYPE_LIBRARIES}")
+    TARGET_LINK_LIBRARIES(hi-editor ${FREETYPE_LIBRARIES})
+endif()
 
 ###########################
 

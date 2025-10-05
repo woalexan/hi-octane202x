@@ -16,6 +16,7 @@
 #include "definitions.h"
 #include "resources/entityitem.h"
 #include "utils/ray.h"
+#include <string>
 
 #define DEF_EDITOR_USERINNODIALOG 0
 #define DEF_EDITOR_USERINTEXTUREDIALOG 1
@@ -50,7 +51,7 @@ class EditorEntity;
 class EntityMode;
 class EntityManager;
 class RegionMode;
-class CurrentlySelectedEditorItemInfoStruct;
+struct CurrentlySelectedEditorItemInfoStruct;
 
 /* GUI Elements
 */
@@ -83,7 +84,8 @@ struct GUI
 
 class EditorSession {
 public:
-    irr::u8 mLevelNrLoaded;
+    std::string mLevelRootPath;
+    std::string mLevelName;
 
     Editor* mParentEditor = nullptr;
 
@@ -120,7 +122,6 @@ public:
     RegionMode* mRegionMode = nullptr;
 
     irr::s32 GetNextFreeGuiId();
-    void HideWindow();
 
     void AdvanceTime(irr::f32 frameDeltaTime);
     void ActivateMorphs();
@@ -147,12 +148,15 @@ public:
     void ShowArrowPointingRightAtCell(irr::core::vector2di cellCoord);
     void HideArrowPointingRight();
 
+    //Will ask the user if he is sure to close the
+    //EditorSession and to lose unsaved changes
+    //If answer is Yes, the MessageBox will create an Gui Event
+    //If Cancel is choosen, then Close operation will not commence
+    void TriggerClose();
+
 private:
 
     bool LoadLevel();
-
-    void AddCheckPoint(EntityItem entity);
-    void AddWayPoint(EntityItem *entity, EntityItem *next);
 
     //start at Id = 1000;
     irr::s32 mNextFreeGuiId = 1000;
@@ -167,8 +171,6 @@ private:
 
     bool DebugShowLowLevelTriangleSelection = true;
 
-    void setActiveCamera(irr::scene::ICameraSceneNode* newActive);
-
     irr::u8 mLastUserInDialogState = DEF_EDITOR_USERINNODIALOG;
 
     GUI gui;
@@ -176,18 +178,19 @@ private:
     bool mRunMorphs = false;
     irr::f32 absTimeMorph = 0.0f;
 
+    irr::gui::IGUIStaticText* mModeInfoText = nullptr;
+    irr::gui::IGUIStaticText* mControlInfoText = nullptr;
+
 public:
-    EditorSession(Editor* parentEditor, irr::u8 loadLevelNr);
+    EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName);
     ~EditorSession();
 
     void Init();
     void Render();
     void HandleBasicInput();
-    void End();
 
     void SetMode(EditorMode* selMode);
 
-    void TestDialog();
     void TrackActiveDialog();
 
     EditorMode* mEditorMode = nullptr;
@@ -201,7 +204,7 @@ public:
     int mCellCoordVerticeSelectedByMouse;*/
 
     bool ready;
-    bool exitEditorSession = false;
+    //bool exitEditorSession = false;
 
     void CheckForMeshUpdate();
 };

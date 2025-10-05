@@ -552,6 +552,21 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
+void InfrastructureBase::CleanupAllSceneNodes() {
+    core::array<scene::ISceneNode*> outNodes;
+
+    //get list of all existing sceneNodes
+    mSmgr->getSceneNodesFromType(ESCENE_NODE_TYPE::ESNT_ANY, outNodes, 0);
+
+    //remove all existing SceneNodes, only the root sceneNode is not removed
+    irr::u32 nodeCnt = outNodes.size();
+
+    for (irr::u32 idx = 0; idx < nodeCnt; idx++) {
+        //remove this sceneNode from the SceneManager
+        outNodes[idx]->remove();
+    }
+}
+
 //Returns the number of bytes per pixel for a certain ECOLOR_FORMAT
 //returns 0 for an undefined ECOLOR_FORMAT
 irr::u32 InfrastructureBase::ReturnBytesPerPixel(irr::video::ECOLOR_FORMAT colFormat) {
@@ -730,7 +745,7 @@ void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fu
 
     logging::Info("Initial Game Resources initialized");
 
-    mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,200));
+    mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,300));
 
     mInitOk = true;
 }

@@ -21,8 +21,15 @@ using namespace gui;
 #define DEF_EDITORSTATE_EXTRACTDATA 1
 #define DEF_EDITORSTATE_LOADDATA 2
 #define DEF_EDITORSTATE_GAMETITLE 3
-#define DEF_EDITORSTATE_SESSIONACTIVE 4
-#define DEF_EDITORSTATE_ERROR 5
+#define DEF_EDITORSTATE_NOSESSIONACTIVE 4
+#define DEF_EDITORSTATE_SESSIONACTIVE 5
+#define DEF_EDITORSTATE_ERROR 6
+#define DEF_EDITORSTATE_CLOSECURRENTSESSION 7
+#define DEF_EDITORSTATE_CREATENEWEMPTYLEVEL 8
+
+#define DEF_EDITOR_NEWLEVELSTYLE_ROCK 0
+#define DEF_EDITOR_NEWLEVELSTYLE_VEGETATION 1
+#define DEF_EDITOR_NEWLEVELSTYLE_SNOW 2
 
 // Values used to identify individual GUI elements
 enum
@@ -30,8 +37,25 @@ enum
     GUI_ID_DIALOG_ROOT_WINDOW  = 0x20000,
 
     GUI_ID_NEWEMPTYLEVEL,
+    GUI_ID_NEWEMPTYLEVEL_ROCK,
+    GUI_ID_NEWEMPTYLEVEL_VEGETATION,
+    GUI_ID_NEWEMPTYLEVEL_SNOW,
+
     GUI_ID_OPEN_LEVEL,
     GUI_ID_SAVE_LEVEL,
+    GUI_ID_SAVEAS_LEVEL,
+    GUI_ID_ORIGINAL_LEVEL,
+    GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE,
+    GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE,
+    GUI_ID_ORIGINAL_SHANGHAI_DRAGON,
+    GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL,
+    GUI_ID_ORIGINAL_SLAM_CANYON,
+    GUI_ID_ORIGINAL_THRAK_CITY,
+    GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN,
+    GUI_ID_ORIGINAL_ARCTIC_LAND,
+    GUI_ID_ORIGINAL_DEATH_MATCH_ARENA,
+
+    GUI_ID_CLOSE_LEVEL,
     GUI_ID_QUIT,
 
     GUI_ID_MODE_VIEW,
@@ -90,14 +114,31 @@ enum
     GUI_ID_ENTITYCATEGORYCOMBOBOX,
     GUI_ID_ENTITYWINDOW_BUTTONREMOVEENTITY,
     GUI_ID_ENTITYWINDOW_BUTTONMOVEENTITY,
+    GUI_ID_ENTITYWINDOW_BUTTONLINKENTITY,
+    GUI_ID_ENTITYWINDOW_BUTTONUNLINKENTITY,
     GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX,
     GUI_ID_ENTITYMODEWINDOW_GROUP_EDITBOX,
+    GUI_ID_ENTITYMODEWINDOW_ENTITYTABLE,
+
+    GUI_ID_ENTITYMODEWINDOW_LIST_COLLECTIBLES_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_WAYPOINTS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_WALLSEGMENTS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_RECOVERY_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_CONES_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_MORPHS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_CAMERAS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_TRIGGERS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_EXPLOSIONS_CHECKBOX,
+    GUI_ID_ENTITYMODEWINDOW_LIST_CHECKPOINTS_CHECKBOX,
 
     GUI_ID_REGIONMODEWINDOW_REGIONTABLE,
     GUI_ID_REGIONMODEWINDOW_APPLYBUTTON,
     GUI_ID_REGIONMODEWINDOW_SELECTCOORD1BUTTON,
     GUI_ID_REGIONMODEWINDOW_SELECTCOORD2BUTTON,
     GUI_ID_REGIONMODEWINDOW_TYPE_COMBOBOX,
+
+    GUI_ID_EDITORSESSION_MSGBOX_SURECLOSE,
+    GUI_ID_EDITORSESSION_SAVEAS_FILEOPENDIALOG,
 
     GUI_ID_TESTBUTTON,
     GUI_ID_SCROLLBAR,
@@ -113,6 +154,7 @@ class EditorSession;
 class EditorMode;
 class NumberEditBox;
 class UiConversion;
+class FontManager;
 
 class Editor : public InfrastructureBase {
 private:
@@ -120,6 +162,8 @@ private:
     IGUIStaticText* dbgTimeProfiler = nullptr;
     IGUIStaticText* dbgText = nullptr;
     IGUIStaticText* dbgText2 = nullptr;
+
+    IGUIStaticText* noEditorSessionText = nullptr;
 
     bool ExitEditor = false;
 
@@ -132,18 +176,30 @@ private:
     void EditorLoopSession(irr::f32 frameDeltaTime);
     
     EditorSession* mCurrentSession = nullptr;
+    FontManager* mFontManager = nullptr;
 
     void RenderDataExtractionScreen();
     bool LoadBackgroundImage();
     void EditorLoopExtractData();
-    //void GameLoopTitleScreenLoadData();
-    //void GameLoopLoadRaceScreen();
     bool LoadAdditionalGameImages();
+    void EditorLoopNoSessionOpen();
 
     bool LoadGameData();
-    bool CreateNewEditorSession(int load_levelnr);
+    bool CreateNewEditorSession(std::string levelRootPath, std::string levelName);
+
+    void OpenOriginalLevel(irr::s32 menueItemId);
+
+    //Returns true if succesfull, False otherwise
+    bool CreateNewEmptyLevelFile(std::string originFileName, std::string outputFileName);
+
+    //Returns true if succesfull, False otherwise
+    //Note: outputMapName is not a folder path, instead a single word (name)
+    //for the map
+    bool CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapName);
 
     void CreateMenue();
+    void ChangeMenueToNoSessionOpen();
+
     void OnMenuItemSelected( IGUIContextMenu* menu );
     void OnButtonClicked(irr::s32 buttonId);
     void OnScrollbarMoved(irr::s32 scrollBarId);
@@ -154,6 +210,7 @@ private:
     void OnEditBoxEnterEvent(IGUIEditBox* editBox);
     void OnElementFocusLost(irr::s32 elementId);
     void OnTableSelected(irr::s32 elementId);
+    void OnMessageBoxYes(irr::s32 elementId);
 
     //if function returns true the close action should be interrupted
     bool OnElementClose(irr::s32 elementId);
@@ -192,6 +249,31 @@ private:
 
     gui::IGUIContextMenu* mMenu = nullptr;
 
+    gui::IGUIContextMenu* mFileMenu = nullptr;
+    gui::IGUIContextMenu* mEditMenu = nullptr;
+    gui::IGUIContextMenu* mModeMenu = nullptr;
+    gui::IGUIContextMenu* mViewMenu = nullptr;
+
+    irr::s32 mWhichMenueItemWasClicked;
+
+    void PopulateFileMenueEntries();
+    void PopulateEditMenueEntries();
+    void PopulateModeMenueEntries();
+    void PopulateViewMenueEntries();
+
+    void UpdateMenueEntries();
+
+    IGUIFont* fontAndika;
+
+    //Returns true if user level maps folder
+    //is available (or was succesfully created), False otherwise
+    //(In case creation failed)
+    bool PrepareUserMapsFolder();
+
+    //Returns true in case of success, False otherwise
+    bool CopyLevelTextures(std::string originMapFolder, std::string targetMapFolder);
+
+    irr::u32 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_ROCK;
 public:
     irr::video::ITexture* backgnd = nullptr;
 

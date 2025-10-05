@@ -3180,7 +3180,9 @@ void LevelBlocks::CreateBlockPreview(irr::video::ITexture& outputFrontTexture, i
      mInfra->mDriver->setRenderTarget(0, false, false, 0);
 
      //restore initial camera
-     this->mInfra->mSmgr->setActiveCamera(currCamera);
+     if (currCamera != nullptr) {
+        this->mInfra->mSmgr->setActiveCamera(currCamera);
+     }
 
      mInfra->mDriver->endScene();
 }

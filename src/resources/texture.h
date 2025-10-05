@@ -26,11 +26,12 @@ public:
     std::vector<irr::video::ITexture*> levelTex;
     std::vector<irr::video::ITexture*> spriteTex;
     std::vector<irr::video::ITexture*> editorTex;
-    TextureLoader(irr::video::IVideoDriver* myDriver,  char* levelTexFilePath, char* spriteTexFilePath, bool loadLevelEditorSprites = false);
+    TextureLoader(irr::video::IVideoDriver* myDriver,  const char* levelTexFilePath,
+                  const char* spriteTexFilePath, bool loadLevelEditorSprites = false);
     ~TextureLoader();
 
-    void LoadLevelTextures(char* filePath);
-    void LoadSpriteTextures(char* filePath, bool makeTransparent = false);
+    void LoadLevelTextures(const char* filePath);
+    void LoadSpriteTextures(const char* filePath, bool makeTransparent = false);
     void LoadEditorTextures();
 
     bool mLoadSuccess = true;

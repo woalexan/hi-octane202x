@@ -126,9 +126,6 @@ EntityItem::EntityItem(int x, int y, irr::f32 heightTerrain, int id, int offset,
 
    //fill out m_wBytes data
    WriteChanges();
-
-   //copy m_wBytes data into m_Bytes data vector
-   std::copy(this->m_wBytes.begin(), this->m_wBytes.end(), this->m_Bytes.begin());
 }
 
 EntityItem::~EntityItem() {

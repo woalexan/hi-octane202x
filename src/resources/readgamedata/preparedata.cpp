@@ -1072,6 +1072,9 @@ void PrepareData::ExtractSelectionScreenSVGA() {
          throw std::string("Could not locate the original games data file oscr0-1.dat");
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1.png", 640, 480, 1);
+
+    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960 (level editor for example needs this)
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1-x2.png", 640, 480, 2);
 }
 
 void PrepareData::ExtractSky(char skyNr) {

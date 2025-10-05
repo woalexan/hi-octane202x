@@ -19,10 +19,58 @@
 #include <iostream>
 
 RegionMode::RegionMode(EditorSession* parentSession) : EditorMode(parentSession) {
+       mModeNameStr.append(L"Regionmode");
 }
 
 RegionMode::~RegionMode() {
+    //make sure my window is hidden at the end
+    HideWindow();
+
     //cleanup all data
+    if (mGuiRegionMode.XMinBox != nullptr) {
+        delete mGuiRegionMode.XMinBox;
+    }
+
+    if (mGuiRegionMode.YMinBox != nullptr) {
+        delete mGuiRegionMode.YMinBox;
+    }
+
+    if (mGuiRegionMode.XMaxBox != nullptr) {
+        delete mGuiRegionMode.XMaxBox;
+    }
+
+    if (mGuiRegionMode.YMaxBox != nullptr) {
+        delete mGuiRegionMode.YMaxBox;
+    }
+
+    if (mGuiRegionMode.RegionTable != nullptr) {
+        mGuiRegionMode.RegionTable->remove();
+    }
+
+    if (mGuiRegionMode.ApplyButton != nullptr) {
+        mGuiRegionMode.ApplyButton->remove();
+    }
+
+    if (mGuiRegionMode.RegionTypeComboBoxLabel != nullptr) {
+        mGuiRegionMode.RegionTypeComboBoxLabel->remove();
+    }
+
+    if (mGuiRegionMode.RegionTypeComboBox != nullptr) {
+        mGuiRegionMode.RegionTypeComboBox->remove();
+    }
+
+    if (mGuiRegionMode.SelectCoord1Button != nullptr) {
+        mGuiRegionMode.SelectCoord1Button->remove();
+    }
+
+    if (mGuiRegionMode.SelectCoord2Button != nullptr) {
+        mGuiRegionMode.SelectCoord2Button->remove();
+    }
+
+    if (Window != nullptr) {
+        //remove the window of this Mode object
+        Window->remove();
+    }
 }
 
 void RegionMode::AddRegionTableEntry(irr::u8 entryNr, MapTileRegionStruct* whichRegion) {
@@ -153,7 +201,7 @@ void RegionMode::UpdateUiDialog() {
         mGuiRegionMode.SelectCoord2Button->setEnabled(true);
         mGuiRegionMode.SelectCoord2Button->setVisible(true);
 
-        //pdate region type checkbox
+        //update region type checkbox
         irr::u32 selNewEntry = mGuiRegionMode.RegionTypeComboBox->getIndexForItemData(mLastSelectedRegion->regionType);
         mGuiRegionMode.RegionTypeComboBox->setSelected(selNewEntry);
     }
@@ -229,13 +277,12 @@ irr::s32 RegionMode::FindRegionTableRowIdxForMapTileRegionStruct(MapTileRegionSt
 }
 
 void RegionMode::CreateWindow() {
-
     irr::core::dimension2d<irr::u32> dim ( 400, 250 );
 
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Region Definition", 0, mGuiWindowId);
 
-    mGuiRegionMode.RegionTable = mParentSession->mParentEditor->mGuienv->addTable( rect<s32>( 10, 30, 298, dim.Height - 90), Window, GUI_ID_REGIONMODEWINDOW_REGIONTABLE);
+    mGuiRegionMode.RegionTable = mParentSession->mParentEditor->mGuienv->addTable( rect<s32>( 10, 30, 345, dim.Height - 90), Window, GUI_ID_REGIONMODEWINDOW_REGIONTABLE);
     mGuiRegionMode.RegionTable->addColumn ( L"Region Nr", 0 );
     mGuiRegionMode.RegionTable->addColumn ( L"Type", 1 );
     mGuiRegionMode.RegionTable->addColumn ( L"XMin", 2 );
@@ -245,7 +292,7 @@ void RegionMode::CreateWindow() {
 
     //Width of table is 280 pixels overall
     mGuiRegionMode.RegionTable->setColumnWidth ( 0, 40 );
-    mGuiRegionMode.RegionTable->setColumnWidth ( 1, 80 );
+    mGuiRegionMode.RegionTable->setColumnWidth ( 1, 100 );
     mGuiRegionMode.RegionTable->setColumnWidth ( 2, 40 );
     mGuiRegionMode.RegionTable->setColumnWidth ( 3, 40 );
     mGuiRegionMode.RegionTable->setColumnWidth ( 4, 40 );
@@ -253,9 +300,9 @@ void RegionMode::CreateWindow() {
     mGuiRegionMode.RegionTable->setToolTipText ( L"Shows all defined regions" );
 
     mGuiRegionMode.RegionTypeComboBoxLabel = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Region Type:",
-                                      rect<s32>( 10, dim.Height - 80, 160, dim.Height - 65 ),false, false, Window, -1, false );
+                                      rect<s32>( 10, dim.Height - 85, 160, dim.Height - 60 ),false, false, Window, -1, false );
 
-    mGuiRegionMode.RegionTypeComboBox = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( 10, dim.Height - 65, 100, dim.Height - 49),
+    mGuiRegionMode.RegionTypeComboBox = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( 10, dim.Height - 65, 100, dim.Height - 40),
                                                                                           Window, GUI_ID_REGIONMODEWINDOW_TYPE_COMBOBOX);
 
     //possible types:
@@ -282,38 +329,41 @@ void RegionMode::CreateWindow() {
     irr::s32 mcy = dim.Height - 80;
 
     //add the coordinate entry fields
-    mGuiRegionMode.XMinBox = new NumberEditBox(this, L"0", rect<s32> ( mcx, mcy + 15, mcx + 35, mcy + 30), true, Window);
+    mGuiRegionMode.XMinBox = new NumberEditBox(this, L"0", rect<s32> ( mcx, mcy + 15, mcx + 35, mcy + 40), true, Window);
     mGuiRegionMode.XMinBox->SetValueLimit(0, mParentSession->mLevelRes->Width());
-    mGuiRegionMode.XMinBox->AddLabel(L"Xmin:", rect<s32>( mcx, mcy, mcx + 60, mcy + 15 ));
+    mGuiRegionMode.XMinBox->AddLabel(L"Xmin:", rect<s32>( mcx, mcy - 5, mcx + 60, mcy + 10 ));
     mGuiRegionMode.XMinBox->SetVisible(false);
 
-    mGuiRegionMode.YMinBox = new NumberEditBox(this, L"0", rect<s32> ( mcx + 45, mcy + 15, mcx + 35 + 45, mcy + 30), true, Window);
+    mGuiRegionMode.YMinBox = new NumberEditBox(this, L"0", rect<s32> ( mcx + 45, mcy + 15, mcx + 35 + 45, mcy + 40), true, Window);
     mGuiRegionMode.YMinBox->SetValueLimit(0, mParentSession->mLevelRes->Height());
-    mGuiRegionMode.YMinBox->AddLabel(L"Ymin:", rect<s32>( mcx + 45, mcy, mcx + 45 + 60, mcy + 15 ));
+    mGuiRegionMode.YMinBox->AddLabel(L"Ymin:", rect<s32>( mcx + 45, mcy - 5, mcx + 45 + 60, mcy + 10 ));
     mGuiRegionMode.YMinBox->SetVisible(false);
 
-    mGuiRegionMode.XMaxBox = new NumberEditBox(this, L"0", rect<s32> ( mcx + 90, mcy + 15, mcx + 35 + 90, mcy + 30), true, Window);
+    mGuiRegionMode.XMaxBox = new NumberEditBox(this, L"0", rect<s32> ( mcx + 90, mcy + 15, mcx + 35 + 90, mcy + 40), true, Window);
     mGuiRegionMode.XMaxBox->SetValueLimit(0, mParentSession->mLevelRes->Width());
-    mGuiRegionMode.XMaxBox->AddLabel(L"Xmax:", rect<s32>( mcx + 90, mcy, mcx + 90 + 60, mcy + 15 ));
+    mGuiRegionMode.XMaxBox->AddLabel(L"Xmax:", rect<s32>( mcx + 90, mcy - 5, mcx + 90 + 60, mcy + 10 ));
     mGuiRegionMode.XMaxBox->SetVisible(false);
 
-    mGuiRegionMode.YMaxBox = new NumberEditBox(this, L"0", rect<s32> ( mcx + 135, mcy + 15, mcx + 35 + 135, mcy + 30), true, Window);
+    mGuiRegionMode.YMaxBox = new NumberEditBox(this, L"0", rect<s32> ( mcx + 135, mcy + 15, mcx + 35 + 135, mcy + 40), true, Window);
     mGuiRegionMode.YMaxBox->SetValueLimit(0, mParentSession->mLevelRes->Height());
-    mGuiRegionMode.YMaxBox->AddLabel(L"Ymax:", rect<s32>( mcx + 135, mcy, mcx + 135 + 60, mcy + 15 ));
+    mGuiRegionMode.YMaxBox->AddLabel(L"Ymax:", rect<s32>( mcx + 135, mcy - 5, mcx + 135 + 60, mcy + 10 ));
     mGuiRegionMode.YMaxBox->SetVisible(false);
 
     irr::s32 mx = mcx + 200;
     irr::s32 my = dim.Height - 64;
-    mGuiRegionMode.ApplyButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 50, my + 15), Window, GUI_ID_REGIONMODEWINDOW_APPLYBUTTON, L"Apply");
+    mGuiRegionMode.ApplyButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx, my, mx + 50, my + 25), Window, GUI_ID_REGIONMODEWINDOW_APPLYBUTTON, L"Apply");
 
-    mGuiRegionMode.SelectCoord1Button = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mcx, mcy + 45, mcx + 50, mcy + 60), Window, GUI_ID_REGIONMODEWINDOW_SELECTCOORD1BUTTON, L"Set Coord1");
-    mGuiRegionMode.SelectCoord2Button = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mcx + 90, mcy + 45, mcx + 140, mcy + 60), Window, GUI_ID_REGIONMODEWINDOW_SELECTCOORD2BUTTON, L"Set Coord2");
+    mGuiRegionMode.SelectCoord1Button = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mcx + 1, mcy + 45, mcx + 81, mcy + 70), Window, GUI_ID_REGIONMODEWINDOW_SELECTCOORD1BUTTON, L"Set Coord1");
+    mGuiRegionMode.SelectCoord2Button = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mcx + 91, mcy + 45, mcx + 171, mcy + 70), Window, GUI_ID_REGIONMODEWINDOW_SELECTCOORD2BUTTON, L"Set Coord2");
 
     mGuiRegionMode.SelectCoord1Button->setEnabled(false);
     mGuiRegionMode.SelectCoord1Button->setVisible(false);
 
     mGuiRegionMode.SelectCoord2Button->setEnabled(false);
     mGuiRegionMode.SelectCoord2Button->setVisible(false);
+
+    //move window to a better start location
+    Window->move(irr::core::vector2d<irr::s32>(850,200));
 
     mLastSelectedRegion = nullptr;
     UpdateUiDialog();
@@ -346,7 +396,7 @@ void RegionMode::OnRegionTypeComboBoxChanged(irr::u32 newSelectedGuiId) {
 
 //returns true if the newly entered region coordinates in the Ui
 //pass the plausi check, false otherwise
-bool RegionMode::PlausiCheckCoordinates(irr::u8 XMin, irr::u8 YMin, irr::u8 XMax, irr::u8 YMax) {
+bool RegionMode::PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 XMax, irr::u16 YMax) {
     //any values outside of possible range?
     if ((XMin >= mParentSession->mLevelRes->Width()) || (XMax >= mParentSession->mLevelRes->Width())) {
             //show a messagebox with error
@@ -496,10 +546,10 @@ void RegionMode::ApplyChanges() {
             //simply continue execution below
       }
 
-      irr::u8 newXMin = (irr::u8)(mGuiRegionMode.XMinBox->GetValue());
-      irr::u8 newYMin = (irr::u8)(mGuiRegionMode.YMinBox->GetValue());
-      irr::u8 newXMax = (irr::u8)(mGuiRegionMode.XMaxBox->GetValue());
-      irr::u8 newYMax = (irr::u8)(mGuiRegionMode.YMaxBox->GetValue());
+      irr::u16 newXMin = (irr::u16)(mGuiRegionMode.XMinBox->GetValue());
+      irr::u16 newYMin = (irr::u16)(mGuiRegionMode.YMinBox->GetValue());
+      irr::u16 newXMax = (irr::u16)(mGuiRegionMode.XMaxBox->GetValue());
+      irr::u16 newYMax = (irr::u16)(mGuiRegionMode.YMaxBox->GetValue());
 
       //if some new entered coordinates fail plausi check exit
       if (!PlausiCheckCoordinates(newXMin, newYMin, newXMax, newYMax))

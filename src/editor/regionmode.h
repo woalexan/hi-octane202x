@@ -73,8 +73,7 @@ private:
 
     //returns true if the newly entered region coordinates in the Ui
     //pass the plausi check, false otherwise
-    bool PlausiCheckCoordinates(irr::u8 XMin, irr::u8 YMin, irr::u8 XMax, irr::u8 YMax);
-    bool Overlapping(irr::u8 r1x1, irr::u8 r1y1, irr::u8 r1x2, irr::u8 r1y2, irr::u8 r2x1, irr::u8 r2y1, irr::u8 r2x2, irr::u8 r2y2);
+    bool PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 XMax, irr::u16 YMax);
 
     MapTileRegionStruct* mLastSelectedRegion = nullptr;
 

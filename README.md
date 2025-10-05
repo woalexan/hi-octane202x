@@ -13,8 +13,9 @@ This source code will only run if the user does possess and supply it with the o
 - Irrlicht 1.8.5
 - SFML 2.6.2
 - libADLMIDI 1.5.1
+- freetype2 2.10.4
 
-The library versions listed above are known to result in successful compilation. Other library versions may work too.
+The library versions listed above are known to result in successful compilation. Other library versions may work too. Library freetype2 is only used by the level editor. If you have problems with this library or you do not want to use it you can comment out the define for `USE_FREETYPE` in file `definitions.h`. Only drawback will be that Irrlicht has to fall back on the integrated Gui font, which is very small and therefore could be difficult to read.
 
 #### Compile
 Change to the `build` directory and run
@@ -41,7 +42,15 @@ The one time I tried to run the project using Direct3D failed. I hope one day I 
 
 #### hi-editor
 
-The level editor is also part of this project and shares the lower level source code with the game itself. You can run the editor by invoking `./hi-editor` in the build directory. The editor is work in progress, and currently allows to change map textures (both Terrain and Columns), and to remove/add and modify columns in the level. All other functionality (terrain editing, Entities...) will be added over time. Also the user interface has only been started, and many functions are still not implemented.
+The level editor is also part of this project and shares the lower level source code with the game itself. You can run the editor by invoking `./hi-editor` in the build directory. The editor is still work in progress, and currently allows the following operations:
+
+- Change map textures (both Terrain and Columns)
+- Remove/add and modify columns in the level
+- Most basic terrain height modification (function will be extended in future)
+- Add/Remove/Move entities
+- Add/Remove/Change regions on the map (Charging stations, Position of race start location)
+
+The user interface has only been started, and many functions still need to either be implemented or improved.
 
 ![editorcolumndesigner](screenshots/editor-columndesigner.png)
 

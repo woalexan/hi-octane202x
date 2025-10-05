@@ -44,6 +44,21 @@
                     "name": "SFML_STATIC_LIBRARIES",
                     "value": "True",
                     "type": "BOOL"
+                },
+                {
+                    "name": "FREETYPE_LIBRARY_RELEASE",
+                    "value": "C:/Alex/freetype-2.10.4/objs/x64/Debug/freetype.lib",
+                    "type": "FILEPATH"
+                },
+                {
+                    "name": "FREETYPE_INCLUDE_DIR_freetype2",
+                    "value": "C:/Alex/freetype-2.10.4/include",
+                    "type": "PATH"
+                },
+                {
+                    "name": "FREETYPE_INCLUDE_DIR_ft2build",
+                    "value": "C:/Alex/freetype-2.10.4/include",
+                    "type": "PATH"
                 }
             ]
         }

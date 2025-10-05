@@ -10,6 +10,12 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
+//Please comment the following define out if you have problems with Freetype library, or you
+//simply do not want to use it. Only drawback is that the level editor will use the built in
+//font of Irrlicht Gui that is very small, and therefore difficult to read with the
+//higher resolutions. But the software should still compile and run like this.
+#define USE_FREETYPE
+
 //User setup start
 
 #define DEF_PLAYERCANGOBACKWARDS false

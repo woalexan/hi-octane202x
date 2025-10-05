@@ -64,6 +64,20 @@ IMesh* EntityManager::CreateSelectionMeshBox(irr::core::vector3df scaleFactors, 
     return mesh;
 }
 
+void EntityManager::CleanupAllCubeMesh() {
+    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>>::iterator it;
+    irr::scene::IMesh* meshPntr = nullptr;
+
+    for (it = mCubeMeshVec.begin(); it != mCubeMeshVec.end(); ) {
+           meshPntr = (*it).second;
+
+           it = mCubeMeshVec.erase(it);
+
+           //get rid of the custom mesh from the Meshcache
+           mInfra->mSmgr->getMeshCache()->removeMesh(meshPntr);
+    }
+}
+
 EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
                              TextureLoader* texLoader) {
     mInfra = infra;
@@ -122,7 +136,16 @@ EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, Lev
 EntityManager::~EntityManager() {
     CleanUpMorphs();
 
+    CleanupAllCustomMesh();
+    CleanupAllCubeMesh();
+
     CleanUpEntities();
+
+    if (mSteamFountainMesh != nullptr) {
+        //remove this Mesh from the Meshcache
+        mInfra->mSmgr->getMeshCache()->removeMesh(mSteamFountainMesh);
+        mSteamFountainMesh = nullptr;
+    }
 
     if (mRenderToTargetTex != nullptr) {
         mInfra->mDriver->removeTexture(mRenderToTargetTex);
@@ -232,6 +255,34 @@ bool EntityManager::IsVisible(irr::u8 whichEntityClass) {
 
         default: {
             return(false);
+        }
+    }
+}
+
+bool EntityManager::EntityIsPowerUpCollectible(EditorEntity* entity) {
+    Entity::EntityType type = entity->mEntityItem->getEntityType();
+
+    switch (type) {
+        case Entity::EntityType::ExtraFuel:
+        case Entity::EntityType::FuelFull:
+        case Entity::EntityType::DoubleFuel:
+
+        case Entity::EntityType::ExtraAmmo:
+        case Entity::EntityType::AmmoFull:
+        case Entity::EntityType::DoubleAmmo:
+
+        case Entity::EntityType::ExtraShield:
+        case Entity::EntityType::ShieldFull:
+        case Entity::EntityType::DoubleShield:
+
+        case Entity::EntityType::BoosterUpgrade:
+        case Entity::EntityType::MissileUpgrade:
+        case Entity::EntityType::MinigunUpgrade:  {
+            return true;
+        }
+
+        default: {
+           return false;
         }
     }
 }
@@ -435,6 +486,21 @@ void EntityManager::DrawWallSegments() {
         }
      }
    }
+}
+
+void EntityManager::UnlinkEntity(EditorEntity* whichItem) {
+    if (whichItem == nullptr)
+        return;
+
+    //nextID = 0 means not linked
+    whichItem->mEntityItem->setNextID(0);
+}
+
+void EntityManager::LinkEntity(EditorEntity* whichItem, EditorEntity* nextItem) {
+    if ((whichItem == nullptr) || (nextItem == nullptr))
+        return;
+
+    whichItem->mEntityItem->setNextID(nextItem->mEntityItem->get_ID());
 }
 
 //returns nullpntr in case EditorEntity with the specified ID
@@ -1657,7 +1723,9 @@ void EntityManager::CreateModelPreview(char* modelFileName, irr::core::vector3df
      mInfra->mDriver->setRenderTarget(0, false, false, 0);
 
      //restore initial camera
-     this->mInfra->mSmgr->setActiveCamera(currCamera);
+     if (currCamera != nullptr) {
+        this->mInfra->mSmgr->setActiveCamera(currCamera);
+     }
 
      mInfra->mDriver->endScene();
 
@@ -1913,6 +1981,20 @@ void EntityManager::CleanupCustomMesh(EditorEntity* whichEntity) {
         else {
             it++;
         }
+    }
+}
+
+void EntityManager::CleanupAllCustomMesh() {
+    std::vector < std::pair<EditorEntity*, irr::scene::IMesh*>>::iterator it;
+    irr::scene::IMesh* meshPntr = nullptr;
+
+    for (it = mSelectionMeshVec.begin(); it != mSelectionMeshVec.end(); ) {
+           meshPntr = (*it).second;
+
+           it = mSelectionMeshVec.erase(it);
+
+           //get rid of the custom mesh from the Meshcache
+           mInfra->mSmgr->getMeshCache()->removeMesh(meshPntr);
     }
 }
 

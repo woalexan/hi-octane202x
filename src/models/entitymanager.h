@@ -96,6 +96,8 @@ private:
 
      void CleanupCustomMesh(EditorEntity* whichEntity);
      void UpdateCustomMesh(EditorEntity* whichEntity);
+     void CleanupAllCustomMesh();
+     void CleanupAllCubeMesh();
 
      //Different defined colors for the cube Entities
 
@@ -104,8 +106,6 @@ private:
      void DrawWayPointLinks();
      void DrawWallSegments();
 
-     bool EntityIsWayPoint(EditorEntity* entity);
-     bool EntityIsWallSegment(EditorEntity* entity);
      ColorStruct* GetColorForWayPointType(Entity::EntityType whichType);
 
      void SetVisibleEntityType(Entity::EntityType whichType, bool visible);
@@ -124,7 +124,7 @@ private:
 
      std::vector<EditorEntity*> mSteamFountainVec;
 
-     IMesh* CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor);
+     irr::scene::IMesh* CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor);
 
      std::vector<std::pair<EditorEntity*, irr::scene::IMesh*>> mSelectionMeshVec;
 
@@ -149,10 +149,16 @@ public:
     std::string GetNameForEntityType(Entity::EntityType mEntityType);
     irr::video::ITexture* GetImageForEntityType(Entity::EntityType mEntityType);
 
+    bool EntityIsWayPoint(EditorEntity* entity);
+    bool EntityIsWallSegment(EditorEntity* entity);
+    bool EntityIsPowerUpCollectible(EditorEntity* entity);
+
     void CreateLevelEntities();
 
     void AddEntityAtCell(int x, int y, Entity::EntityType type);
     void RemoveEntity(EditorEntity* removeItem);
+    void UnlinkEntity(EditorEntity* whichItem);
+    void LinkEntity(EditorEntity* whichItem, EditorEntity* nextItem);
 
     //returns true if move operation was succesfull, false otherwise
     bool MoveEntityToCell(EditorEntity* itemToMove, int targetCellX, int targetCellY);

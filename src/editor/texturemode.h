@@ -99,6 +99,9 @@ struct GUITextureMode
 
     irr::gui::IGUIImage* CurrentSelectedTexture;
     irr::gui::IGUIStaticText* CurrentSelectedTextureIdText;
+    irr::gui::IGUIStaticText* texCategoryLabel;
+    irr::gui::IGUIStaticText* texModLabel;
+    irr::gui::IGUIStaticText* currSelectedLabel;
 
     irr::gui::IGUIStaticText* LabelSelectCubeFaces;
     irr::gui::IGUIButton* SelNButton;
