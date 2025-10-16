@@ -26,6 +26,10 @@ using namespace gui;
 #define DEF_EDITORSTATE_ERROR 6
 #define DEF_EDITORSTATE_CLOSECURRENTSESSION 7
 #define DEF_EDITORSTATE_CREATENEWEMPTYLEVEL 8
+#define DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM 9
+#define DEF_EDITORSTATE_OVERWRITE_EXISTING_LEVEL 10
+#define DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM_WAIT 11
+#define DEF_EDITORSTATE_SAVEAS_NEW 12
 
 #define DEF_EDITOR_NEWLEVELSTYLE_ROCK 0
 #define DEF_EDITOR_NEWLEVELSTYLE_VEGETATION 1
@@ -41,19 +45,19 @@ enum
     GUI_ID_NEWEMPTYLEVEL_VEGETATION,
     GUI_ID_NEWEMPTYLEVEL_SNOW,
 
+    GUI_ID_FILEOPERATIONDIALOG_WINDOWID,
+    GUI_ID_FILEOPERATIONDIALOG_GAMELEVELTABLE,
+    GUI_ID_FILEOPERATIONDIALOG_CUSTOMLEVELTABLE,
+    GUI_ID_FILEOPERATIONDIALOG_TABCNTRL,
+    GUI_ID_FILEOPERATIONDIALOG_TRIGGEROPERATIONBUTTON,
+    GUI_ID_FILEOPERATIONDIALOG_CANCELBUTTON,
+    GUI_ID_FILEOPERATIONDIALOG_NEWLEVELNAMEEDITBOX,
+    GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON,
+    GUI_ID_EDITOR_MSGBOX_CONFIRM_OVERWRITE,
+
     GUI_ID_OPEN_LEVEL,
     GUI_ID_SAVE_LEVEL,
     GUI_ID_SAVEAS_LEVEL,
-    GUI_ID_ORIGINAL_LEVEL,
-    GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE,
-    GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE,
-    GUI_ID_ORIGINAL_SHANGHAI_DRAGON,
-    GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL,
-    GUI_ID_ORIGINAL_SLAM_CANYON,
-    GUI_ID_ORIGINAL_THRAK_CITY,
-    GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN,
-    GUI_ID_ORIGINAL_ARCTIC_LAND,
-    GUI_ID_ORIGINAL_DEATH_MATCH_ARENA,
 
     GUI_ID_CLOSE_LEVEL,
     GUI_ID_QUIT,
@@ -155,6 +159,7 @@ class EditorMode;
 class NumberEditBox;
 class UiConversion;
 class FontManager;
+class FileOperationDialog;
 
 class Editor : public InfrastructureBase {
 private:
@@ -177,6 +182,7 @@ private:
     
     EditorSession* mCurrentSession = nullptr;
     FontManager* mFontManager = nullptr;
+    FileOperationDialog* mFileOperationDialog = nullptr;
 
     void RenderDataExtractionScreen();
     bool LoadBackgroundImage();
@@ -187,7 +193,15 @@ private:
     bool LoadGameData();
     bool CreateNewEditorSession(std::string levelRootPath, std::string levelName);
 
-    void OpenOriginalLevel(irr::s32 menueItemId);
+    //Returns true if succesfull, False otherwise
+    //Note: outputMapName is not a folder path, instead a single word (name)
+    //for the map
+    bool PrepareCustomLevelDirectory(std::string outputMapName);
+
+    void OpenLevel();
+
+    //Returns true in case of success, False otherwise
+    bool SaveAsLevel(bool saveAsNewLevel = false);
 
     //Returns true if succesfull, False otherwise
     bool CreateNewEmptyLevelFile(std::string originFileName, std::string outputFileName);
@@ -211,6 +225,8 @@ private:
     void OnElementFocusLost(irr::s32 elementId);
     void OnTableSelected(irr::s32 elementId);
     void OnMessageBoxYes(irr::s32 elementId);
+    void OnMessageBoxNo(irr::s32 elementId);
+    void OnTabChanged(irr::s32 elementId);
 
     //if function returns true the close action should be interrupted
     bool OnElementClose(irr::s32 elementId);
@@ -221,6 +237,8 @@ private:
     void ChangeViewModeBlocks(irr::u8 newViewMode);
     void OnLeftMouseButtonDown();
     void OnLeftMouseButtonUp();
+
+    void TriggerFileOperation(irr::s32 elementId);
 
     //Routine setSkinTransparency taken from Irrlicht engine
     //"Example 009 Mesh Viewer"
@@ -254,7 +272,7 @@ private:
     gui::IGUIContextMenu* mModeMenu = nullptr;
     gui::IGUIContextMenu* mViewMenu = nullptr;
 
-    irr::s32 mWhichMenueItemWasClicked;
+    LevelFolderInfoStruct* mSelLevelForFileOperation = nullptr;
 
     void PopulateFileMenueEntries();
     void PopulateEditMenueEntries();
@@ -274,10 +292,19 @@ private:
     bool CopyLevelTextures(std::string originMapFolder, std::string targetMapFolder);
 
     irr::u32 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_ROCK;
+
+    void CleanupExistingLevelData();
 public:
     irr::video::ITexture* backgnd = nullptr;
 
     UiConversion* mUiConversion = nullptr;
+
+    //if for the current EditorSession no level file is assigned yet
+    //(For example when a completely new level is created) then this
+    //variable is nullptr; If then the new level is Saved as a new level file
+    //this variable holds the currently assigned level save file;
+    //If an existing level is loaded this variable is set immediately
+    LevelFolderInfoStruct* mCurrLevelWhichIsEdited = nullptr;
 
     // We'll create a struct to record info on the mouse state
     struct SMouseState {
@@ -312,6 +339,11 @@ public:
 
     void RegisterNumberEditBox(NumberEditBox* whichBox, irr::s32 boxGuiId);
     void UnregisterNumberEditBox(irr::s32 boxGuiId);
+
+    std::vector<LevelFolderInfoStruct*> mGameLevelVec;
+    std::vector<LevelFolderInfoStruct*> mCustomLevelVec;
+
+    void FindExistingLevels();
 
     Editor();
     ~Editor();

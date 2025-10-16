@@ -74,6 +74,20 @@ EditorSession::EditorSession(Editor* parentEditor, std::string levelRootPath, st
 //    mPendingTriggerTargetGroups.push_back(1);
 }
 
+//Returns true in case of success, False otherwise
+bool EditorSession::SaveAs(std::string levelRootPath, std::string levelName) {
+    //set new path and file information
+    mLevelRootPath = levelRootPath;
+    mLevelName = levelName;
+
+    std::string newMapFileName(levelRootPath);
+    newMapFileName.append(levelName);
+    newMapFileName.append("-unpacked.dat");
+
+    //save the map file itself
+    return mLevelRes->Save(newMapFileName);
+}
+
 void EditorSession::UpdateMorphs(irr::f32 frameDeltaTime) {
     std::list<Morph*>::iterator itMorph;
 
@@ -205,6 +219,7 @@ EditorSession::~EditorSession() {
 
     mModeInfoText->remove();
     mControlInfoText->remove();
+    mAssignedLevelInfoText->remove();
 
     //free lowlevel level data
     delete mEntityManager;
@@ -217,6 +232,17 @@ EditorSession::~EditorSession() {
 
     //remove all remaining SceneNodes
     mParentEditor->CleanupAllSceneNodes();
+}
+
+void EditorSession::UpdateAssignedLevelInfoText() {
+    //is currently no level file assigned?
+    if (mParentEditor->mCurrLevelWhichIsEdited == nullptr) {
+        this->mAssignedLevelInfoText->setText(L"Project not saved!");
+    } else {
+        irr::core::stringw newLevelAssigenment(L"Level: ");
+        newLevelAssigenment.append(mParentEditor->mCurrLevelWhichIsEdited->levelName.c_str());
+        this->mAssignedLevelInfoText->setText(newLevelAssigenment.c_str());
+    }
 }
 
 void EditorSession::Init() {
@@ -263,6 +289,15 @@ void EditorSession::Init() {
     this->mControlInfoText->setVisible(true);
 
     this->mControlInfoText->setText(L"Freefly Mode");
+
+    //create the current assigned level file information text
+    this->mAssignedLevelInfoText = mParentEditor->mGuienv->addStaticText(L"",
+           irr::core::rect<irr::s32>(1150, 120, 1250, 145), false, true, nullptr, -1, true);
+
+    this->mAssignedLevelInfoText->setWordWrap(false);
+    this->mAssignedLevelInfoText->setVisible(true);
+
+    UpdateAssignedLevelInfoText();
 
     mParentEditor->UpdateStatusbarText(L"Press Space to change between FreeFyling Mode and Edit Mode/Using the UI");
 
@@ -320,13 +355,10 @@ bool EditorSession::LoadLevel() {
    std::string texfilename("");
 
    texfilename.append(mLevelRootPath);
-   texfilename.append("/");
-   texfilename.append(mLevelName);
+   levelfilename.append(mLevelRootPath);
 
-   levelfilename.append(texfilename);
-   texfilename.append("/tex");
+   texfilename.append("tex");
 
-   levelfilename.append("/");
    levelfilename.append(mLevelName);
    levelfilename.append("-unpacked.dat");
 
@@ -1089,5 +1121,4 @@ void EditorSession::SetMode(EditorMode* selMode) {
     //call OnEnter function
     mEditorMode->OnEnterMode();
 }
-
 

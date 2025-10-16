@@ -10,6 +10,8 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
+#include <stdlib.h>
+
 //-1 if item can not be accessed (unexpected error)
 //0 if item is not a directory
 //1 if item is a directory
@@ -22,6 +24,10 @@ void CreateDirectory(const char *dirPath);
 //1 if file exists
 //0 specified element is not a file, but something else
 int FileExists(const char *fname);
+
+//Returns file size in bytes, Returns 0 in case file does
+//not exist or can not be opened
+std::size_t GetFileSizeBytes(const char *fname);
 
 //Returns 1 in case of unexpected error, 0 for success
 int copy_file(const char* srcFileName, const char* destFileName);

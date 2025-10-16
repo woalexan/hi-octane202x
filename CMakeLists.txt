@@ -364,6 +364,8 @@ add_executable(hi-editor
     src/editor/regionmode.cpp
     src/editor/uiconversion.h
     src/editor/uiconversion.cpp
+    src/editor/fileoperationdialog.h
+    src/editor/fileoperationdialog.cpp
 
     src/definitions.h
     src/infrabase.h

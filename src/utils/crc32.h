@@ -31,6 +31,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.                                                                            */
 
+//Because the code was initially not working for me I did other changes to the source code as
+//well to make it work. Therefore this is not the 100% original source code of the author anymore
+
 #ifndef CRC32_H
 #define CRC32_H
 
@@ -44,13 +47,14 @@ void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<uint8_t> &bytes
 void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex, bool dividerHighByte = false);
 
 class Crc32 {
+private:
+    uint32_t m_table[CRC32_TABLELEN];
+
 public:
     Crc32();
+    ~Crc32();
 
-    unsigned int m_table[CRC32_TABLELEN];
-    unsigned int ComputeChecksum(std::vector<uint8_t> bytes);
-
-    //not implemented yet, maybe not needed public byte[] ComputeChecksumBytes(byte[] bytes);
+    uint32_t ComputeChecksum(std::vector<uint8_t> bytes);
 };
 
 #endif // CRC32_H

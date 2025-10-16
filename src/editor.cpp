@@ -30,6 +30,7 @@
 #include "models/entitymanager.h"
 #include "editor/regionmode.h"
 #include "editor/uiconversion.h"
+#include "editor/fileoperationdialog.h"
 #include "font/font_manager.h"
 #include <fstream>
 #include "utils/fileutils.h"
@@ -52,6 +53,42 @@ bool Editor::PrepareUserMapsFolder() {
         logging::Error(msgExt);
         return false;
     }
+}
+
+void Editor::CleanupExistingLevelData() {
+    std::vector<LevelFolderInfoStruct*>::iterator it;
+    LevelFolderInfoStruct* pntr;
+
+    if (mGameLevelVec.size() > 0) {
+        for (it = mGameLevelVec.begin(); it != mGameLevelVec.end(); ++it) {
+            pntr = (*it);
+
+            //delete the struct itself
+            delete pntr;
+        }
+    }
+
+    if (mCustomLevelVec.size() > 0) {
+        for (it = mCustomLevelVec.begin(); it != mCustomLevelVec.end(); ++it) {
+            pntr = (*it);
+
+            //delete the struct itself
+            delete pntr;
+        }
+    }
+}
+
+void Editor::FindExistingLevels() {
+    //first cleanup possible existing data
+    CleanupExistingLevelData();
+
+    //search existing levels of original game
+    //false parameter as this are not custom levels!
+    GetExistingLevelInfo(std::string("extract"), false, mGameLevelVec);
+
+    //search existing custom levels
+    //true parameter to mark found levels as user custom levels
+    GetExistingLevelInfo(std::string("userdata/levels"), true, mCustomLevelVec);
 }
 
 //fully initializes the remaining editor
@@ -212,7 +249,6 @@ void Editor::PopulateFileMenueEntries() {
     if (mCurrentSession == nullptr) {
         mFileMenu->addItem(L"New empty level", GUI_ID_NEWEMPTYLEVEL, true, true);
         mFileMenu->addItem(L"Open level", GUI_ID_OPEN_LEVEL);
-        mFileMenu->addItem(L"Original level", GUI_ID_ORIGINAL_LEVEL, true, true);
 
         submenu = mFileMenu->getSubMenu(0);
         if (submenu == nullptr)
@@ -221,24 +257,6 @@ void Editor::PopulateFileMenueEntries() {
         submenu->addItem(L"Rock", GUI_ID_NEWEMPTYLEVEL_ROCK);
         submenu->addItem(L"Vegetation", GUI_ID_NEWEMPTYLEVEL_VEGETATION);
         submenu->addItem(L"Snow", GUI_ID_NEWEMPTYLEVEL_SNOW);
-
-        submenu = mFileMenu->getSubMenu(2);
-        if (submenu == nullptr)
-            return;
-
-        submenu->addItem(L"Amazon Delta Turnpike", GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE);
-        submenu->addItem(L"Trans-Asia Interstate", GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE);
-        submenu->addItem(L"Shanghai Dragon", GUI_ID_ORIGINAL_SHANGHAI_DRAGON);
-        submenu->addItem(L"New Chernobyl Central", GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL);
-        submenu->addItem(L"Slam Canyon", GUI_ID_ORIGINAL_SLAM_CANYON);
-        submenu->addItem(L"Thrak City", GUI_ID_ORIGINAL_THRAK_CITY);
-
-        if (mExtendedGame) {
-            submenu->addSeparator();
-            submenu->addItem(L"Ancient Mine Town", GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN);
-            submenu->addItem(L"Arctic Land", GUI_ID_ORIGINAL_ARCTIC_LAND);
-            submenu->addItem(L"Death Match Arena", GUI_ID_ORIGINAL_DEATH_MATCH_ARENA);
-        }
     }
 
     if (mCurrentSession != nullptr) {
@@ -451,83 +469,91 @@ void Editor::ChangeEntityVisibility(IGUIContextMenu* menu) {
     }
 }
 
-void Editor::OpenOriginalLevel(irr::s32 menueItemId) {
-    bool success;
+void Editor::OpenLevel() {
+    if (mSelLevelForFileOperation == nullptr)
+        return;
 
-    switch (menueItemId) {
-        case GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE: {
-            success = CreateNewEditorSession("extract/", "level0-1");
-            break;
-        }
-
-        case GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE: {
-            success = CreateNewEditorSession("extract/", "level0-2");
-            break;
-        }
-
-        case GUI_ID_ORIGINAL_SHANGHAI_DRAGON: {
-            success = CreateNewEditorSession("extract/", "level0-3");
-            break;
-        }
-
-        case GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL: {
-            success = CreateNewEditorSession("extract/", "level0-4");
-            break;
-        }
-
-        case GUI_ID_ORIGINAL_SLAM_CANYON: {
-            success = CreateNewEditorSession("extract/", "level0-5");
-            break;
-        }
-
-        case GUI_ID_ORIGINAL_THRAK_CITY: {
-            success = CreateNewEditorSession("extract/", "level0-6");
-            break;
-        }
-
-        case GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN: {
-           if (mExtendedGame) {
-               success = CreateNewEditorSession("extract/", "level0-7");
-           } else {
-               success = false;
-           }
-
-           break;
-        }
-
-        case GUI_ID_ORIGINAL_ARCTIC_LAND: {
-           if (mExtendedGame) {
-               success = CreateNewEditorSession("extract/", "level0-8");
-           } else {
-               success = false;
-           }
-
-           break;
-        }
-
-        case GUI_ID_ORIGINAL_DEATH_MATCH_ARENA: {
-           if (mExtendedGame) {
-               success = CreateNewEditorSession("extract/", "level0-9");
-           } else {
-               success = false;
-           }
-
-           break;
-        }
-
-        default: {
-           success = false;
-           break;
-        }
-    }
+    bool success =
+            CreateNewEditorSession(std::string(mSelLevelForFileOperation->levelBaseDir.c_str()), mSelLevelForFileOperation->levelName);
 
     if (!success) {
+        mCurrLevelWhichIsEdited = nullptr;
+
         mEditorState = DEF_EDITORSTATE_ERROR;
     } else {
         UpdateMenueEntries();
 
+        mCurrLevelWhichIsEdited = mSelLevelForFileOperation;
+        mCurrentSession->UpdateAssignedLevelInfoText();
+
         mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
     }
+}
+
+//Returns true in case of success, False otherwise
+bool Editor::SaveAsLevel(bool saveAsNewLevel) {
+    if (mSelLevelForFileOperation == nullptr)
+        return false;
+
+    std::string currOpenLevelRootDir = mCurrentSession->mLevelRootPath;
+    std::string targetLevelRootDir("");
+
+    targetLevelRootDir.append(mSelLevelForFileOperation->levelBaseDir.c_str());
+
+    if (saveAsNewLevel) {
+        //create the level base dir if not existing
+        if (!PrepareCustomLevelDirectory(mSelLevelForFileOperation->levelName)) {
+            //user level folder preparation failed
+            return false;
+        }
+    }
+
+    //first copy all level terrain textures
+    //from current level to target level
+    bool success = CopyLevelTextures(currOpenLevelRootDir, targetLevelRootDir);
+
+    if (!success) {
+        logging::Error("SaveAsLevel: Level terrain texture copy operation failed");
+    } else {
+        logging::Info("SaveAsLevel: Level terrain texture copy operation was succesfull");
+    }
+
+    //Save the level file itself as well
+    success = success && mCurrentSession->SaveAs(targetLevelRootDir, mSelLevelForFileOperation->levelName);
+
+    //copy minimap file as well if it is existing already
+    irr::io::path miniMapNameTarget = GetMiniMapFileName(mSelLevelForFileOperation);
+    irr::io::path miniMapNameSource = GetMiniMapFileName(currOpenLevelRootDir);
+
+    if (FileExists(miniMapNameSource.c_str()) == 1) {
+        //minimap is also there, copy
+        logging::Info("SaveAsLevel: Copy also existing minimap image file");
+        if (copy_file(miniMapNameSource.c_str(), miniMapNameTarget.c_str()) != 0) {
+            success = false;
+
+            logging::Error("SaveAsLevel: Minimap file copy operation failed");
+        } else {
+            logging::Info("SaveAsLevel: Minimap file copy operation was succesfull");
+        }
+    }
+
+    //copy minimap calibration data file as well if it is existing already
+    irr::io::path miniMapCalTarget = GetMiniMapCalFileName(mSelLevelForFileOperation);
+    irr::io::path miniMapCalSource = GetMiniMapCalFileName(currOpenLevelRootDir);
+
+    if (FileExists(miniMapCalSource.c_str()) == 1) {
+        //minimap cal file is also there, copy
+        logging::Info("SaveAsLevel: Copy also existing minimap calibration value file");
+        if (copy_file(miniMapCalSource.c_str(), miniMapCalTarget.c_str()) != 0) {
+            success = false;
+
+            logging::Error("SaveAsLevel: Minimap calibration value file copy operation failed");
+        } else {
+            logging::Info("SaveAsLevel: Minimap calibration value file copy operation was succesfull");
+        }
+    }
+
+    return success;
 }
 
 void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
@@ -631,24 +657,33 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
             break;
         }
 
+        case GUI_ID_OPEN_LEVEL: {
+            if (mCurrentSession == nullptr) {
+                //mFileOperationDialog = new FileOperationDialog(this);
+                mFileOperationDialog->SelectLevelForLoad();
+            }
+
+            break;
+        }
+
         case GUI_ID_SAVE_LEVEL: {
             if (mCurrentSession != nullptr) {
-                //mGuienv->addFileOpenDialog(L"Please select filename for Save");
-
-                mCurrentSession->mLevelRes->Save("mlevel0-1.dat");
-                //mCurrentSession->mLevelRes->Save("/home/wolfalex/hi/maps/level0-1.dat");
+                //is there already a level file assigned, if so simply save to it
+                if (mCurrLevelWhichIsEdited != nullptr) {
+                    //save to the current existing level file
+                    mCurrentSession->mLevelRes->Save(mCurrLevelWhichIsEdited->levelFileName.c_str());
+                } else {
+                    //no level file assigned yet, this is our first save
+                    //Therefore we need to execute SaveAs
+                    mFileOperationDialog->SelectLevelForSaveAs();
+                }
             }
             break;
         }
 
         case GUI_ID_SAVEAS_LEVEL: {
             if (mCurrentSession != nullptr) {
-                //Note: If the user selected a file Irrlicht
-                //will generate a GuiEvent that will be handled
-                //in the GuiEvent Handler function
-                //This means the file saving operation will happen somewhere else
-                /*mGuienv->addFileOpenDialog(L"Select Save As filename", true, nullptr, GUI_ID_EDITORSESSION_SAVEAS_FILEOPENDIALOG,
-                                           true, nullptr);*/
+                mFileOperationDialog->SelectLevelForSaveAs();
             }
             break;
         }
@@ -694,25 +729,78 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
             ExitEditor = true;
             break;
         }
+    }
+}
 
-        case GUI_ID_ORIGINAL_AMAZON_DELTA_TURNPIKE:
-        case GUI_ID_ORIGINAL_TRANSASIA_INTERSTATE:
-        case GUI_ID_ORIGINAL_SHANGHAI_DRAGON:
-        case GUI_ID_ORIGINAL_NEW_CHERNOBYL_CENTRAL:
-        case GUI_ID_ORIGINAL_SLAM_CANYON:
-        case GUI_ID_ORIGINAL_THRAK_CITY:
-        case GUI_ID_ORIGINAL_ANCIENT_MINE_TOWN:
-        case GUI_ID_ORIGINAL_ARCTIC_LAND:
-        case GUI_ID_ORIGINAL_DEATH_MATCH_ARENA:
-            {
-                mWhichMenueItemWasClicked = id;
-                mEditorState = DEF_EDITORSTATE_LOADDATA;
-                break;
-            }
+void Editor::TriggerFileOperation(irr::s32 elementId) {
+    if (elementId == GUI_ID_FILEOPERATIONDIALOG_TRIGGEROPERATIONBUTTON) {
+        //Which Operation should we trigger
+        if (mFileOperationDialog->GetCurrentFileOperationMode() == FILEOP_MODE_LOAD) {
+            mSelLevelForFileOperation = mFileOperationDialog->GetCurrentSelectedLevel();
+
+            mEditorState = DEF_EDITORSTATE_LOADDATA;
+            return;
+        }
+
+        if (mFileOperationDialog->GetCurrentFileOperationMode() == FILEOP_MODE_SAVEAS) {
+            mSelLevelForFileOperation = mFileOperationDialog->GetCurrentSelectedLevel();
+
+            mEditorState = DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM;
+            return;
+        }
+    } else if (elementId == GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON) {
+        if (mFileOperationDialog->GetCurrentFileOperationMode() == FILEOP_MODE_SAVEAS_NEW) {
+            mSelLevelForFileOperation = mFileOperationDialog->GetCurrentSelectedLevel();
+
+            mEditorState = DEF_EDITORSTATE_SAVEAS_NEW;
+
+            //add new future level to list of existing
+            //user custom levels
+            this->mCustomLevelVec.push_back(mSelLevelForFileOperation);
+
+            return;
+        }
     }
 }
 
 void Editor::OnButtonClicked(irr::s32 buttonId) {
+    //is this an event for the FileOperationsDialog?
+    //first check if user wants to save Level as a new level
+    //for this we need to check if the user has supplied a correct
+    //new level name
+    if (buttonId == GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON) {
+             std::wstring result;
+
+             //Next command checks if entered new level name is valid
+             //if so this command returns true, and returns the new level name as
+             //a parameter; If the new level name is not valid then returns false,
+             //and the file operation dialog is not closed
+             if (!mFileOperationDialog->OnNewButtonClicked(result)) {
+                 //no valid name
+                  mGuienv->addMessageBox(L"Error", result.c_str(), true, EMBF_OK, nullptr, -1, nullptr);
+
+                  return;
+             }
+
+             //we have a valid new name
+             //next command simply hides the file operation dialog again
+             mFileOperationDialog->OnButtonClicked();
+
+             TriggerFileOperation(buttonId);
+
+             return;
+    }
+
+    if ((buttonId == GUI_ID_FILEOPERATIONDIALOG_TRIGGEROPERATIONBUTTON) ||
+        (buttonId == GUI_ID_FILEOPERATIONDIALOG_CANCELBUTTON)) {
+             //next command simply hides the file operation dialog again
+             mFileOperationDialog->OnButtonClicked();
+
+             TriggerFileOperation(buttonId);
+
+             return;
+    }
+
     //depending over which window the user mouse cursor
     //is currently, sent the button click Id to the correct
     //window
@@ -813,6 +901,14 @@ void Editor::OnElementHovered(irr::s32 elementId) {
 void Editor::OnTableSelected(irr::s32 elementId) {
    //std::cout << "Table selection changed " << elementId << std::endl;
 
+   //was a table in the FileOperationDialog selected?
+   if ((elementId == GUI_ID_FILEOPERATIONDIALOG_GAMELEVELTABLE) ||
+       (elementId == GUI_ID_FILEOPERATIONDIALOG_CUSTOMLEVELTABLE)) {
+       mFileOperationDialog->OnTableSelected(elementId);
+
+       return;
+   }
+
    if (mCurrentSession != nullptr) {
           if (mCurrentSession->mEditorMode != nullptr) {
                   mCurrentSession->mEditorMode->OnTableSelected(elementId);
@@ -854,6 +950,35 @@ void Editor::OnMessageBoxYes(irr::s32 elementId) {
          //Messagebox => we want to exit the current EditorSession
          mEditorState = DEF_EDITORSTATE_CLOSECURRENTSESSION;
          break;
+      }
+
+      case GUI_ID_EDITOR_MSGBOX_CONFIRM_OVERWRITE: {
+         //user pressed yes in the Messagebox for confirming
+         //overwriting existing level => we want to trigger SaveAs
+         //operation
+         mEditorState = DEF_EDITORSTATE_OVERWRITE_EXISTING_LEVEL;
+         break;
+      }
+  }
+}
+
+void Editor::OnMessageBoxNo(irr::s32 elementId) {
+  switch(elementId) {
+      case GUI_ID_EDITOR_MSGBOX_CONFIRM_OVERWRITE: {
+         //user pressed no in the Messagebox for confirming
+         //overwriting existing level => we want to cancel the SaveAs
+         //operation
+         mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
+         break;
+      }
+  }
+}
+
+void Editor::OnTabChanged(irr::s32 elementId) {
+  switch(elementId) {
+      case GUI_ID_FILEOPERATIONDIALOG_TABCNTRL: {
+        mFileOperationDialog->OnTabChanged(elementId);
+        break;
       }
   }
 }
@@ -1027,6 +1152,17 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
         case EGET_MESSAGEBOX_YES: {
             //User pressed yes in a MessageBox
             OnMessageBoxYes(id);
+            break;
+        }
+
+        case EGET_MESSAGEBOX_NO: {
+            //User pressed no in a MessageBox
+            OnMessageBoxNo(id);
+            break;
+        }
+
+        case EGET_TAB_CHANGED: {
+            OnTabChanged(id);
             break;
         }
 
@@ -1323,23 +1459,31 @@ void Editor::EditorLoop() {
             }
 
             case DEF_EDITORSTATE_LOADDATA: {
-                //load original level
-                OpenOriginalLevel(mWhichMenueItemWasClicked);
+                //load level
+                OpenLevel();
                 break;
             }
 
-          /*  //shows game title, loads game data
-            case DEF_GAMESTATE_GAMETITLE: {
-                   GameLoopTitleScreenLoadData();
-                   break;
+            case DEF_EDITORSTATE_SAVEAS_NEW: {
+                //save as new level
+                //Parameter true = Save as new level
+                if (!SaveAsLevel(true)) {
+                    mGuienv->addMessageBox(L"Error", L"Level SaveAs Operation Failed", true, EMBF_OK, nullptr, -1, nullptr);
+                    mCurrLevelWhichIsEdited = nullptr;
+                } else {
+                    mCurrLevelWhichIsEdited = mSelLevelForFileOperation;
+                }
+
+                mCurrentSession->UpdateAssignedLevelInfoText();
+
+                mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
+                break;
             }
 
-            case DEF_GAMESTATE_INITDEMO:
-            case DEF_GAMESTATE_INITRACE: {
-                   GameLoopLoadRaceScreen();
-                   break;
-            }*/
-
+            //Important note: We need to call the method EditorLoopSession for state
+            //DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM_WAIT too, otherwise Irrlicht
+            //engine will get stuck in this state as no rendering etc.. occurs anymore
+            case DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM_WAIT:
             case DEF_EDITORSTATE_SESSIONACTIVE: {
                 EditorLoopSession(frameDeltaTime);
                 break;
@@ -1359,6 +1503,8 @@ void Editor::EditorLoop() {
                 UpdateMenueEntries();
                 mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
 
+                mCurrLevelWhichIsEdited = nullptr;
+
                 break;
             }
 
@@ -1370,7 +1516,7 @@ void Editor::EditorLoop() {
                     logging::Info("New level creation was succesfull");
 
                     //now load the new level
-                    success = CreateNewEditorSession("userdata/levels/", "newlevel");
+                    success = CreateNewEditorSession("userdata/levels/newlevel/", "newlevel");
 
                     if (!success) {
                         mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
@@ -1380,12 +1526,34 @@ void Editor::EditorLoop() {
                         UpdateMenueEntries();
 
                         mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
+                        mCurrentSession->UpdateAssignedLevelInfoText();
                     }
                 } else {
                     mGuienv->addMessageBox(L"Error", L"New level creation failed", true, EMBF_OK, nullptr, -1, nullptr);
                     mEditorState = DEF_EDITORSTATE_NOSESSIONACTIVE;
                 }
 
+                break;
+            }
+
+            case DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM: {
+                mGuienv->addMessageBox(L"Confirm", L"Are you sure you want to overwrite the selected level?", true, EMBF_YES + EMBF_NO,
+                                       nullptr, GUI_ID_EDITOR_MSGBOX_CONFIRM_OVERWRITE, nullptr);
+
+                //Important note: We need to call the method EditorLoopSession here too, otherwise Irrlicht
+                //engine will get stuck as no rendering etc.. occurs anymore
+                EditorLoopSession(frameDeltaTime);
+                mEditorState = DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM_WAIT;
+                break;
+            }
+
+            case DEF_EDITORSTATE_OVERWRITE_EXISTING_LEVEL: {
+                if (!SaveAsLevel()) {
+                    mGuienv->addMessageBox(L"Error", L"Level SaveAs Operation Failed", true, EMBF_OK, nullptr, -1, nullptr);
+                }
+
+                mCurrentSession->UpdateAssignedLevelInfoText();
+                mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
                 break;
             }
 
@@ -1518,7 +1686,7 @@ bool Editor::CopyLevelTextures(std::string originMapFolder, std::string targetMa
 //Returns true if succesfull, False otherwise
 //Note: outputMapName is not a folder path, instead a single word (name)
 //for the map
-bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapName) {
+bool Editor::PrepareCustomLevelDirectory(std::string outputMapName) {
     //Make sure user custom level map
     //folder already exists
     if (!PrepareUserMapsFolder()) {
@@ -1536,6 +1704,21 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
         std::string msgExt("Preparation of new map subfolder failed");
         msgExt.append(msg);
         logging::Error(msgExt);
+        return false;
+    }
+
+    return true;
+}
+
+//Returns true if succesfull, False otherwise
+//Note: outputMapName is not a folder path, instead a single word (name)
+//for the map
+bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapName) {
+    std::string mapSubFolder("userdata/levels/");
+    mapSubFolder.append(outputMapName);
+
+    if (!PrepareCustomLevelDirectory(outputMapName)) {
+        //user level folder preparation failed
         return false;
     }
 
@@ -1569,6 +1752,9 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
     }
 
     mapSubFolder.append("/");
+
+    //since now no level file is assigned anymore
+    mCurrLevelWhichIsEdited = nullptr;
 
     //now copy the textures from Origin to Target (new level)
     if (!CopyLevelTextures(originLevel, mapSubFolder)) {
@@ -1759,6 +1945,7 @@ Editor::Editor() {
 
     mUiConversion = new UiConversion(this);
     mFontManager = new FontManager();
+    mFileOperationDialog = new FileOperationDialog(this);
 }
 
 Editor::~Editor() {
@@ -1791,4 +1978,11 @@ Editor::~Editor() {
         delete mFontManager;
         mFontManager = nullptr;
     }
+
+    if (mFileOperationDialog != nullptr) {
+        delete mFileOperationDialog;
+        mFileOperationDialog = nullptr;
+    }
+
+    CleanupExistingLevelData();
 }

@@ -1,6 +1,6 @@
 /* This source code was taken/translated to C++ by myself from the following website (original authors site)
  * // http://sanity-free.org/12/crc32_implementation_in_csharp.html
- 
+
  This website does not mention any license here. The original author has also created a Github
  project for Crc calculations, from which I have copied the license text here (even though my code
  is derived from the authors website and not from the Github project)
@@ -11,7 +11,7 @@
 // Author:
 //       steve whitley <steve@nullfx.com>
 //
-// Copyright (c) 2017 
+// Copyright (c) 2017
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,16 +31,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.                                                                            */
 
-//Note 22.03.2025: I also made some source code modifications below. This is not 100% original source code
-//of the original author below.
+//Because the code was initially not working for me I did other changes to the source code as
+//well to make it work. Therefore this is not the 100% original source code of the author anymore
 
 #include "crc32.h"
 
 Crc32::Crc32() {
-    unsigned int poly = 0xedb88320;
-    unsigned int temp = 0;
+    uint32_t poly = 0xedb88320;
+    uint32_t temp;
 
-    for (unsigned int i = 0; i < CRC32_TABLELEN; ++i) {
+    for (uint32_t i = 0; i < CRC32_TABLELEN; ++i) {
         temp = i;
         for (int j = 8; j > 0; --j) {
             if ((temp & 1) == 1) {
@@ -53,14 +53,17 @@ Crc32::Crc32() {
     }
 }
 
+Crc32::~Crc32() {
+}
+
 unsigned int Crc32::ComputeChecksum(std::vector<uint8_t> bytes) {
-  unsigned int crc = 0xffffffff;
+  uint32_t crc = 0xffffffff;
   size_t len = bytes.size();
-  unsigned char index;
+  uint8_t index;
 
   for (size_t i = 0; i < len; ++i) {
         index = (uint8_t)(((crc) & 0xff) ^ bytes.at(i));
-        crc = (uint8_t)((crc >> 8) ^ m_table[index]);
+        crc = ((crc >> 8) ^ m_table[index]);
     }
 
   return ~crc;
@@ -97,4 +100,3 @@ void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &byt
         bytes.at(writeIndex + 1) = rem;
     }
 }
-

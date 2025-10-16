@@ -281,6 +281,7 @@ public:
 private:
     int levelNr;
     bool useAutoGenMinimap;
+    bool mMiniMapInitOk;
 
     void InitiateExitRace();
     void HandleExitRace();
@@ -296,8 +297,6 @@ private:
 
     void SetupTopRaceTrackPointerOrigin();
 
-    void CalibrateMiniMap(irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP);
-
     //holds the pixels coordinates inside the minimap texture
     //image which are actually used by non transparent pixels
     irr::core::rect<irr::s32> miniMapImageUsedArea;
@@ -310,12 +309,15 @@ private:
     irr::f32 miniMapAbsTime = 0.0f;
     bool miniMapBlinkActive = false;
 
-    void InitMiniMap(irr::u32 levelNr);
+    //returns true in case of success, False otherwise
+    bool InitMiniMap(irr::u32 levelNr);
+
     irr::core::dimension2di CalcPlayerMiniMapPosition(Player* whichPlayer);
 
     //Initializes the games original
     //minimap
-    void InitMiniMapOriginal(irr::u32 levelNr);
+    //returns true for success, false otherwise
+    bool InitMiniMapOriginal(irr::u32 levelNr);
 
     //Searches for the used space inside the minimap picture
     //while removing unnecessary transparent columns of pixels

@@ -180,6 +180,7 @@ private:
 
     irr::gui::IGUIStaticText* mModeInfoText = nullptr;
     irr::gui::IGUIStaticText* mControlInfoText = nullptr;
+    irr::gui::IGUIStaticText* mAssignedLevelInfoText = nullptr;
 
 public:
     EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName);
@@ -190,6 +191,11 @@ public:
     void HandleBasicInput();
 
     void SetMode(EditorMode* selMode);
+
+    //Returns true in case of success, False otherwise
+    bool SaveAs(std::string levelRootPath, std::string levelName);
+
+    void UpdateAssignedLevelInfoText();
 
     void TrackActiveDialog();
 

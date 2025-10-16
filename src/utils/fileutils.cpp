@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <sys/stat.h>
 #include "../utils/logging.h"
+#include "stdio.h"
 
 #ifdef _MSC_VER
 #include <filesystem>
@@ -55,6 +56,30 @@ int copy_file(const char* srcFileName, const char* destFileName) {
     fclose(destFile);
 
     return 0;
+}
+
+//Returns file size in bytes, Returns 0 in case file does
+//not exist or can not be opened
+std::size_t GetFileSizeBytes(const char *fname) {
+   FILE* iFile;
+
+   iFile = fopen(fname, "rb");
+   if(iFile == nullptr) {
+          std::string errmsg("GetFileSizeBytes: Can not open file ");
+          errmsg.append(fname);
+          errmsg.append("!");
+
+          logging::Error(errmsg);
+          return 0;
+   }
+
+   // get its size:
+   fseek(iFile, 0, SEEK_END);
+   size_t fileSize = ftell(iFile);
+
+   fclose(iFile);
+
+   return fileSize;
 }
 
 //-1 if item can not be accessed (unexpected error)

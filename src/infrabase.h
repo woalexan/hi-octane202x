@@ -23,6 +23,13 @@ using namespace irr::video;
 using namespace irr::scene;
 using namespace irr::gui;
 
+#define INFRA_LEVEL_ORIGINALGAME_VANILLA 0
+#define INFRA_LEVEL_ORIGINALGAME_MODIFIED 1
+#define INFRA_LEVEL_CUSTOM 2
+
+//valid size of the unpacked level file in bytes
+#define INFRA_LEVEL_FILE_VALIDSIZE_BYTES 896140
+
 /************************
  * Forward declarations *
  ************************/
@@ -33,6 +40,7 @@ class GameText;
 class MyEventReceiver;
 class TimeProfiler;
 class DrawDebug;
+class Crc32;
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -42,6 +50,14 @@ struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* mapsFolder = nullptr;
     irr::io::IFileList* objectsFolder = nullptr;
     irr::io::IFileList* soundFolder = nullptr;
+};
+
+struct LevelFolderInfoStruct {
+    std::string levelName;
+    irr::io::path levelFileName;
+    irr::io::path levelBaseDir;
+    bool isCustomLevel;
+    std::string description;
 };
 
 class InfrastructureBase {
@@ -81,6 +97,7 @@ public:
   PrepareData* mPrepareData = nullptr;
   GameText* mGameTexts = nullptr;
   TimeProfiler* mTimeProfiler = nullptr;
+  Crc32* mCrc32 = nullptr;
 
   OriginalGameFolderInfoStruct* mOriginalGame = nullptr;
 
@@ -111,6 +128,37 @@ public:
   //Returns the number of bytes per pixel for a certain ECOLOR_FORMAT
   //returns 0 for an undefined ECOLOR_FORMAT
   irr::u32 ReturnBytesPerPixel(irr::video::ECOLOR_FORMAT colFormat);
+
+  //Returns true in case of success, False otherwise
+  bool WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP);
+
+  //Returns true in case of success, False otherwise
+  bool ReadMiniMapCalFile(std::string fileName, irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP);
+
+  irr::io::path GetMiniMapFileName(LevelFolderInfoStruct* whichLevel);
+  irr::io::path GetMiniMapFileName(std::string levelRootPath);
+
+  irr::io::path GetMiniMapCalFileName(LevelFolderInfoStruct* whichLevel);
+  irr::io::path GetMiniMapCalFileName(std::string levelRootPath);
+
+  //Returns a vector of existing levels in a specified root directory
+  void GetExistingLevelInfo(std::string rootDir, bool markAsCustomLevel, std::vector<LevelFolderInfoStruct*> &levelInfoVec);
+
+  std::string GetDescriptionLevel(io::path levelFilename);
+
+  //Returns true if specified unpacked level file seems to be valid
+  //False otherwise
+  bool IsUnpackedLevelFileValid(io::path levelFilename);
+
+  //Returns true if specified character is valid for a levelname
+  //False otherwise
+  //valid are a-z, A-Zm 0-9, _, - characters
+  bool IsValidCharForLevelName(wchar_t* whichChar);
+
+  //Returns true if specified level name is valid
+  //means only a-z, A-Zm 0-9, _, - characters
+  //False otherwise
+  bool CheckForValidLevelName(std::wstring levelName);
 
 private:
   //Irrlicht stuff

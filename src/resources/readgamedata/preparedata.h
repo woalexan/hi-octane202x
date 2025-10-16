@@ -26,9 +26,9 @@
 #define PREP_DATA_EXTRACTHUD 3
 #define PREP_DATA_EXTRACTSKIES 4
 #define PREP_DATA_EXTRACTSPRITES 5
-#define PREP_DATA_EXTRACTMINIMAPS 6
-#define PREP_DATA_EXTRACTTERRAINTEXTURES 7
-#define PREP_DATA_EXTRACTLEVELS 8
+#define PREP_DATA_EXTRACTTERRAINTEXTURES 6
+#define PREP_DATA_EXTRACTLEVELS 7
+#define PREP_DATA_EXTRACTMINIMAPS 8
 #define PREP_DATA_EXTRACTMODELS 9
 #define PREP_DATA_EXTRACTINTRO 10
 #define PREP_DATA_EXTRACTAUDIO 11
@@ -156,6 +156,11 @@ private:
     //helper function to stich the original games minimap
     //parts together
     void StitchMiniMaps();
+
+    //Write minimap cal values found to be working
+    //with the original vanilla levels of the game
+    //Returns true in case of success, False otherwise
+    bool PrepareMiniMapCalData();
 
     //void ReorganizeTerrainAtlas(char* targetFile, char* outputFileName);
 
