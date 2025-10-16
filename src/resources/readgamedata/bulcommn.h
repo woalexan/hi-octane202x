@@ -19,8 +19,10 @@
 //Dev-C++ IDE version, modifications:
 //Tomasz Lis
 
- //Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
- // I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+//Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
+// I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+
+//Note 08.10.2025: Added read_long_le_buf3 and read_long_le_buf4 function, as I needed it somewhere else
 
 // RNC compression magic identifier
 #define RNC_SIGNATURE_STR "RNC\001"
@@ -43,6 +45,8 @@ void write_long_le_buf (unsigned char *buff, uint32_t x);
 
 int32_t read_long_be_buf (unsigned char *buff);
 int32_t read_long_le_buf2 (unsigned char *buff);
+int32_t read_long_le_buf3 (unsigned char *buff);
+int32_t read_long_le_buf4 (unsigned char *buff);
 
 void write_short_be_buf (unsigned char *buff, uint16_t x);
 void write_long_be_buf (unsigned char *buff, uint32_t x);

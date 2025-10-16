@@ -17,6 +17,9 @@
 #include "utils/tprofile.h"
 #include "utils/fileutils.h"
 #include "draw/drawdebug.h"
+#include "resources/readgamedata/bulcommn.h"
+#include "utils/crc32.h"
+#include <cwctype>
 
 bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
@@ -69,6 +72,98 @@ bool InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
 }
 
 void InfrastructureBase::HandleMouseEvent(const irr::SEvent& event) {
+}
+
+irr::io::path InfrastructureBase::GetMiniMapCalFileName(LevelFolderInfoStruct* whichLevel) {
+    irr::io::path resultPath("");
+
+    if (whichLevel == nullptr)
+        return resultPath;
+
+    resultPath.append(whichLevel->levelBaseDir);
+    resultPath.append("minimapcalval.dat");
+    return resultPath;
+}
+
+irr::io::path InfrastructureBase::GetMiniMapCalFileName(std::string levelRootPath) {
+    irr::io::path miniMapFileName("");
+    miniMapFileName.append(levelRootPath.c_str());
+
+    miniMapFileName.append("minimapcalval.dat");
+    return miniMapFileName;
+}
+
+bool InfrastructureBase::WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP) {
+    FILE *oFile;
+
+    oFile = fopen(fileName.c_str(), "wb");
+    if (oFile == nullptr) {
+        return false;
+    }
+
+    unsigned char* buf = new unsigned char[16];
+    write_long_le_buf(&buf[0], startWP);
+    write_long_le_buf(&buf[4], endWP);
+    write_long_le_buf(&buf[8], startHP);
+    write_long_le_buf(&buf[12], endHP);
+
+    for (int idx = 0; idx < 16; idx++) {
+        fputc(buf[idx], oFile);
+    }
+
+    fclose(oFile);
+
+    delete[] buf;
+
+    return true;
+}
+
+bool InfrastructureBase::ReadMiniMapCalFile(std::string fileName, irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP) {
+    if (FileExists(fileName.c_str()) != 1) {
+        //File does not exist!
+        std::string errMsg("ReadMiniMapCalFile: File ");
+        errMsg.append(fileName);
+        errMsg.append("not found!");
+
+        logging::Error(errMsg);
+        return false;
+    }
+
+    FILE *iFile;
+
+    iFile = fopen(fileName.c_str(), "rb");
+    if (iFile == nullptr) {
+        std::string errMsg("ReadMiniMapCalFile: Can not open file ");
+        errMsg.append(fileName);
+        errMsg.append("!");
+
+        logging::Error(errMsg);
+        return false;
+    }
+
+    fseek(iFile, 0L, SEEK_END);
+    size_t size = ftell(iFile);
+    fseek(iFile, 0L, SEEK_SET);
+
+    unsigned char* buf = new unsigned char[size];
+
+    size_t counter = 0;
+
+    do {
+           buf[counter] = fgetc(iFile);
+           counter++;
+        } while (counter < size);
+
+    fclose(iFile);
+
+    startWP = (irr::u32)(read_long_le_buf(&buf[0]));
+    endWP = (irr::u32)(read_long_le_buf2(&buf[0]));
+    startHP = (irr::u32)(read_long_le_buf3(&buf[0]));
+    endHP = (irr::u32)(read_long_le_buf4(&buf[0]));
+
+    delete[] buf;
+
+    return true;
 }
 
 irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPath) {
@@ -552,6 +647,211 @@ bool InfrastructureBase::UpdateFileListSaveFolder() {
     return true;
 }
 
+//Returns true if specified character is valid for a levelname
+//False otherwise
+//valid are a-z, A-Zm 0-9, _, - characters
+bool InfrastructureBase::IsValidCharForLevelName(wchar_t* whichChar) {
+   //any alphanumeric character is valid
+   if (std::iswalpha(*whichChar) != 0)
+       return true;
+
+   //any number is valid
+   if (std::iswdigit(*whichChar) != 0)
+       return true;
+
+   if ((*whichChar == L'_') || (*whichChar == L'-'))
+       return true;
+
+   //all other characters are invalid
+   return false;
+}
+
+//Returns true if specified level name is valid
+//means only a-z, A-Zm 0-9, _, - characters
+//False otherwise
+bool InfrastructureBase::CheckForValidLevelName(std::wstring levelName) {
+   size_t strLen = levelName.size();
+   wchar_t ch;
+
+   for (size_t index = 0; index < strLen; index++) {
+       ch = levelName.at(index);
+       if (!IsValidCharForLevelName(&ch)) {
+           //found an invalid character
+           //stop and return invalid result
+           return false;
+       }
+   }
+
+   //all characters valid
+   return true;
+}
+
+std::string InfrastructureBase::GetDescriptionLevel(io::path levelFilename) {
+    //unfortunetly we need to read the whole level data again to be able to
+    //calculate the Crc
+    ifstream ifile;
+    std::streampos fileSize;
+
+    ifile.open(levelFilename.c_str(), std::ifstream::binary);
+
+    // get its size:
+    ifile.seekg(0, std::ios::end);
+    fileSize = ifile.tellg();
+    ifile.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> *m_bytes = new std::vector<uint8_t>();
+
+    //read the data
+    m_bytes->resize(fileSize);
+    ifile.read(reinterpret_cast<char*>(m_bytes->data()), m_bytes->size());
+
+    ifile.close();
+
+    //calculate the Crc32 checksum of the level file to be able
+    //to detect which level we load from the original game levels
+    //or to see if we have a custom/user modified level
+    uint32_t cs = mCrc32->ComputeChecksum(*m_bytes);
+
+    //use crc to find out which map was loaded
+    std::string description("");
+    if (mExtendedGame) {
+        switch (cs) {
+          case 3308913189: description.append("Amazon Delta Turnpike"); break;
+          case 2028380229: description.append("Trans-Asia Interstate"); break;
+          case 3087166776: description.append("Shanghai Dragon"); break;
+          case 1401140937: description.append("New Chernobyl Central"); break;
+          case 4215346212: description.append("Slam Canyon"); break;
+          case 3809451489: description.append("Thrak City"); break;
+          case 3062313907: description.append("Ancient Mine Town"); break;
+          case 3081898808: description.append("Arctic Land"); break;
+          case 540505443: description.append("Death Match Arena"); break;
+          default: description.append("Custom (modified)"); break;
+        }
+    } else {
+        //non extended game version, here we have other Crc32 values
+        //because the game levels were also modified/extended in the
+        //extended game version, so the Crc32 checksum of the files has changed
+        //as well
+        switch (cs) {
+          case 2413984012: description.append("Amazon Delta Turnpike"); break;
+          case 641962188: description.append("Trans-Asia Interstate"); break;
+          case 4059358834: description.append("Shanghai Dragon"); break;
+          case 2106663236: description.append("New Chernobyl Central"); break;
+          case 2386808163: description.append("Slam Canyon"); break;
+          case 3362410748: description.append("Thrak City"); break;
+          default: description.append("Custom (modified)"); break;
+        }
+    }
+
+    delete m_bytes;
+
+    return description;
+}
+
+//Returns a vector of existing levels in a specified root directory
+void InfrastructureBase::GetExistingLevelInfo(std::string rootDir, bool markAsCustomLevel,
+                                              std::vector<LevelFolderInfoStruct*> &levelInfoVec) {
+    levelInfoVec.clear();
+
+    irr::io::IFileList* extractFolder = nullptr;
+    irr::io::path rootPath(rootDir.c_str());
+
+    extractFolder = CreateFileList(rootPath);
+
+    if (extractFolder == nullptr)
+        return;
+
+    irr::u32 listEntryCnt = extractFolder->getFileCount();
+    irr::io::path fname;
+    irr::io::path expectedLevelFileName;
+    irr::io::path levelBaseDir;
+    std::string description("");
+
+    for (irr::u32 idx = 0; idx < listEntryCnt; idx++) {
+        if (extractFolder->isDirectory(idx)) {
+            fname = extractFolder->getFileName(idx);
+
+            while (!levelBaseDir.empty()) {
+                levelBaseDir.erase(0);
+            }
+
+            levelBaseDir.append(rootDir.c_str());
+            levelBaseDir.append("/");
+            levelBaseDir.append(fname);
+            levelBaseDir.append("/");
+
+            //if this is a valid level directory (containing a map)
+            //we should find a file inside with the correct name
+            //"[DIRNAME]-unpacked.dat"
+            //First create the expected filename
+            while (!expectedLevelFileName.empty()) {
+                expectedLevelFileName.erase(0);
+            }
+
+            expectedLevelFileName.append(levelBaseDir);
+            expectedLevelFileName.append(fname);
+            expectedLevelFileName.append("-unpacked.dat");
+
+            description.clear();
+
+            //does this file exist, and is it a valid level file?
+            if (IsUnpackedLevelFileValid(expectedLevelFileName)) {
+                //find description for the level we found
+                description.append(GetDescriptionLevel(expectedLevelFileName));
+
+                //yes, is a valid level file, add to our vector
+                LevelFolderInfoStruct* newEntry = new LevelFolderInfoStruct();
+                newEntry->levelName = std::string(fname.c_str());
+                newEntry->levelFileName = expectedLevelFileName;
+                newEntry->isCustomLevel = (markAsCustomLevel || (description.compare("Custom") == 0));
+                newEntry->levelBaseDir = levelBaseDir;
+                newEntry->description = description;
+
+                levelInfoVec.push_back(newEntry);
+            }
+        }
+    }
+
+    //cleanup the fileList object again
+    extractFolder->drop();
+}
+
+irr::io::path InfrastructureBase::GetMiniMapFileName(LevelFolderInfoStruct* whichLevel) {
+    irr::io::path resultPath("");
+
+    if (whichLevel == nullptr)
+        return resultPath;
+
+    resultPath.append(whichLevel->levelBaseDir);
+    resultPath.append("minimap.bmp");
+    return resultPath;
+}
+
+irr::io::path InfrastructureBase::GetMiniMapFileName(std::string levelRootPath) {
+    irr::io::path resultPath("");
+
+    resultPath.append(levelRootPath.c_str());
+    resultPath.append("minimap.bmp");
+    return resultPath;
+}
+
+//Returns true if specified unpacked level file seems to be valid
+//False otherwise
+bool InfrastructureBase::IsUnpackedLevelFileValid(io::path levelFilename) {
+    if (FileExists(levelFilename.c_str()) == 1) {
+          //this file does exist
+          //check if size is valid
+          size_t fileSize = GetFileSizeBytes(levelFilename.c_str());
+
+          if (fileSize == INFRA_LEVEL_FILE_VALIDSIZE_BYTES) {
+              //level file size is valid
+              return true;
+          }
+    }
+
+    return false;
+}
+
 void InfrastructureBase::CleanupAllSceneNodes() {
     core::array<scene::ISceneNode*> outNodes;
 
@@ -747,6 +1047,8 @@ void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fu
 
     mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,300));
 
+    mCrc32 = new Crc32();
+
     mInitOk = true;
 }
 
@@ -761,6 +1063,8 @@ InfrastructureBase::~InfrastructureBase() {
     delete mTimeProfiler;
 
     delete mDrawDebug;
+
+    delete mCrc32;
 
     //cleanup the original game folder information
     if (mOriginalGame != nullptr) {

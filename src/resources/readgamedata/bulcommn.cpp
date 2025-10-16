@@ -16,8 +16,10 @@
 //Dev-C++ IDE version, modifications:
 //Tomasz Lis
 
- //Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
- // I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+//Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
+// I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+
+//Note 08.10.2025: Added read_long_le_buf3 and read_long_le_buf4 function, as I needed it somewhere else
 
 #include "bulcommn.h"
 #include "../../utils/logging.h"
@@ -78,6 +80,26 @@ int32_t read_long_le_buf2 (unsigned char *buff)
     l += buff[5]<<8;
     l += buff[6]<<16;
     l += buff[7]<<24;
+    return l;
+}
+
+int32_t read_long_le_buf3 (unsigned char *buff)
+{
+    int32_t l;
+    l = buff[8];
+    l += buff[9]<<8;
+    l += buff[10]<<16;
+    l += buff[11]<<24;
+    return l;
+}
+
+int32_t read_long_le_buf4 (unsigned char *buff)
+{
+    int32_t l;
+    l = buff[12];
+    l += buff[13]<<8;
+    l += buff[14]<<16;
+    l += buff[15]<<24;
     return l;
 }
 

@@ -16,7 +16,6 @@
 #include "../utils/logging.h"
 #include <iostream>
 #include <fstream>
-#include "../utils/crc32.h"
 #include "blockdefinition.h"
 #include "columndefinition.h"
 #include "mapentry.h"
@@ -87,7 +86,7 @@ LevelFile::LevelFile(std::string filename) {
         return;
     }
 
-    Crc32 crc;
+    /*Crc32 crc;
     unsigned int cs = crc.ComputeChecksum(this->m_bytes);
 
     //use crc to find out which map was loaded
@@ -108,7 +107,7 @@ LevelFile::LevelFile(std::string filename) {
     msg.clear();
     msg.append("found map = ");
     msg.append(mapname);
-    logging::Info(msg);
+    logging::Info(msg);*/
 
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMap() && loadEntitiesTable() &&
             loadMapRegions() && loadUnknownTableOffset0() && loadUnknownTableOffset3168() &&

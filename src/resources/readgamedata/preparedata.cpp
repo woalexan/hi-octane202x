@@ -89,17 +89,9 @@ bool PrepareData::ExecuteNextStep() {
 
         case PREP_DATA_EXTRACTSPRITES: {
              ExtractSprites();
-             mCurrentStep = PREP_DATA_EXTRACTMINIMAPS;
-             currentStepDescription.clear();
-             currentStepDescription.append("GAME MINIMAPS");
-             break;
-        }
-
-        case PREP_DATA_EXTRACTMINIMAPS: {
-             ExtractMiniMaps();
              mCurrentStep = PREP_DATA_EXTRACTTERRAINTEXTURES;
              currentStepDescription.clear();
-             currentStepDescription.append("GAME TERRAIN TEXTURES");
+             currentStepDescription.append("GAME MINIMAPS");
              break;
         }
 
@@ -113,11 +105,19 @@ bool PrepareData::ExecuteNextStep() {
 
         case PREP_DATA_EXTRACTLEVELS: {
             ExtractLevels();
-            mCurrentStep = PREP_DATA_EXTRACTMISC;
+            mCurrentStep = PREP_DATA_EXTRACTMINIMAPS;
             currentStepDescription.clear();
             currentStepDescription.append("GAME MISC");
             break;
         }
+
+    case PREP_DATA_EXTRACTMINIMAPS: {
+         ExtractMiniMaps();
+         mCurrentStep = PREP_DATA_EXTRACTMISC;
+         currentStepDescription.clear();
+         currentStepDescription.append("GAME TERRAIN TEXTURES");
+         break;
+    }
 
         case PREP_DATA_EXTRACTMISC: {
             ExtractEditor();
@@ -299,11 +299,61 @@ void PrepareData::ExtractSprites() {
     ExtractTmaps();
 }
 
+//Write minimap cal values found to be working
+//with the original vanilla levels of the game
+//Returns true in case of success, False otherwise
+bool PrepareData::PrepareMiniMapCalData() {
+    //bool InfrastructureBase::WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP)
+
+    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-1/minimapcalval.dat"),
+                                0, 58, 2, 125))
+        return false;
+
+    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-2/minimapcalval.dat"),
+                                26, 134, 0, 127))
+        return false;
+
+    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-3/minimapcalval.dat"),
+                                0, 117, 5, 119))
+        return false;
+
+    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-4/minimapcalval.dat"),
+                                0, 73, 5, 134))
+        return false;
+
+    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-5/minimapcalval.dat"),
+                                0, 92, 5, 145))
+        return false;
+
+    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-6/minimapcalval.dat"),
+                                0, 98, 0, 103))
+        return false;
+
+    if (mInfra->mExtendedGame) {
+        if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-7/minimapcalval.dat"),
+                                    9, 103, 20, 154))
+            return false;
+
+        if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-8/minimapcalval.dat"),
+                                    12, 101, 17, 105))
+            return false;
+
+        if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-9/minimapcalval.dat"),
+                                    0, 36, 0, 116))
+            return false;
+    }
+
+    return true;
+}
+
 void PrepareData::ExtractMiniMaps() {
     logging::Info("Extracting minimaps...");
     PrepareSubDir("extract/minimaps");
     ExtractMiniMapsSVGA();
     StitchMiniMaps();
+    if (!PrepareMiniMapCalData()) {
+         throw std::string("Failed to write minimap calibration value files!");
+    }
 }
 
 void PrepareData::ExtractTerrainTextures() {
@@ -710,30 +760,32 @@ void PrepareData::StitchMiniMaps() {
     track1.insert_image(0, 0, "extract/minimaps/track0-1-0000.bmp");
     track1.insert_image(6, 120, "extract/minimaps/track0-1-0001.bmp");
     track1.probe_transparent(0, 0, 0);
-    track1.finalize("extract/minimaps/track0-1.png");
+    track1.finalize("extract/level0-1/minimap.bmp");
 
     MinimapStitcher track2(mInfra->mDevice, mInfra->mDriver);
     track2.insert_image(0, 0, "extract/minimaps/track0-1-0002.bmp");
     track2.insert_image(120, 5, "extract/minimaps/track0-1-0003.bmp");
     track2.insert_image(74, 120, "extract/minimaps/track0-1-0004.bmp");
     track2.probe_transparent(0, 0, 0);
-    track2.finalize("extract/minimaps/track0-2.png");
+    track2.finalize("extract/level0-2/minimap.bmp");
 
     // track3 minimap is fully contained in file track0-1-0005.bmp -> no need for stitching
+    copy_file("extract/minimaps/track0-1-0005.bmp", "extract/level0-3/minimap.bmp");
 
     MinimapStitcher track4(mInfra->mDevice, mInfra->mDriver);
     track4.insert_image(0, 0, "extract/minimaps/track0-1-0006.bmp");
     track4.insert_image(27, 120, "extract/minimaps/track0-1-0007.bmp");
     track4.probe_transparent(0, 0, 0);
-    track4.finalize("extract/minimaps/track0-4.png");
+    track4.finalize("extract/level0-4/minimap.bmp");
 
     MinimapStitcher track5(mInfra->mDevice, mInfra->mDriver);
     track5.insert_image(0, 0, "extract/minimaps/track0-1-0008.bmp");
     track5.insert_image(18, 120, "extract/minimaps/track0-1-0009.bmp");
     track5.probe_transparent(0, 0, 0);
-    track5.finalize("extract/minimaps/track0-5.png");
+    track5.finalize("extract/level0-5/minimap.bmp");
 
     // track6 minimap is fully contained in file track0-1-0010.bmp -> no need for stitching
+    copy_file("extract/minimaps/track0-1-0010.bmp", "extract/level0-6/minimap.bmp");
 
     //if we have the extended game version, we also need to stich the remaining
     //maps as well
@@ -742,10 +794,13 @@ void PrepareData::StitchMiniMaps() {
         track7.insert_image(0, 0, "extract/minimaps/track0-1-0011.bmp");
         track7.insert_image(6, 126, "extract/minimaps/track0-1-0012.bmp");
         track7.probe_transparent(0, 0, 0);
-        track7.finalize("extract/minimaps/track0-7.png");
+        track7.finalize("extract/level0-7/minimap.bmp");
 
         // track8 minimap is fully contained in file track0-1-0013.bmp -> no need for stitching
+        copy_file("extract/minimaps/track0-1-0013.bmp", "extract/level0-8/minimap.bmp");
+
         // track9 minimap is fully contained in file track0-1-0014.bmp -> no need for stitching
+        copy_file("extract/minimaps/track0-1-0014.bmp", "extract/level0-9/minimap.bmp");
     }
 }
 
@@ -1261,6 +1316,17 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
     //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
 
     char texNr = levelNr - 1;  // looks like levels start with 1 but texture atlases start with 0
+
+    //For level 7 use Terrain Textures of level 1
+    //original game has this hardcoded too
+    //It seems original Level 7 should have been an Icy level as well
+    //Maybe developers changed their mind last minute, and linked to Textures
+    //of level 1 instead
+    if (levelNr == '7') {
+        //for level 7 use textures of level 1
+        //which is stored in file with index 0 in name
+        texNr = '0';
+    }
 
     std::string extract_dir = "extract/";
 
