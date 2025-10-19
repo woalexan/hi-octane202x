@@ -86,29 +86,6 @@ LevelFile::LevelFile(std::string filename) {
         return;
     }
 
-    /*Crc32 crc;
-    unsigned int cs = crc.ComputeChecksum(this->m_bytes);
-
-    //use crc to find out which map was loaded
-    std::string mapname("");
-    switch (cs) {
-      case 3308913189: mapname.append("Amazon Delta Turnpike"); break;
-      case 2028380229: mapname.append("Trans-Asia Interstate"); break;
-      case 3087166776: mapname.append("Shanghai Dragon"); break;
-      case 1401140937: mapname.append("New Chernobyl Central"); break;
-      case 4215346212: mapname.append("Slam Canyon"); break;
-      case 3809451489: mapname.append("Thrak City"); break;
-      case 3062313907: mapname.append("Ancient Mine Town"); break;
-      case 3081898808: mapname.append("Arctic Land"); break;
-      case 540505443: mapname.append("Death Match Arena"); break;
-      default: mapname.append("unknown/Custom"); break;
-    }
-
-    msg.clear();
-    msg.append("found map = ");
-    msg.append(mapname);
-    logging::Info(msg);*/
-
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMap() && loadEntitiesTable() &&
             loadMapRegions() && loadUnknownTableOffset0() && loadUnknownTableOffset3168() &&
             loadUnknownTableOffset3312() && loadUnknownTableOffset102068() && loadUnknownTableOffset127468() && loadUnknownTableOffset247604();
@@ -484,6 +461,23 @@ bool LevelFile::loadMapRegions() {
             //value 2 means Fuel charger location
             //value 3 means Ammo charger location
             //value 4 means map start location
+
+            //Byte 2 seems to only contain value 1, if entry is used, not interesting to read, but we need to write it like that
+            //Byte 3 & 4 always contain a fixed predefined value according to number of entry from 224 up to 231 (do not read, but write)
+            //Byte 5 seems to only contain value 3 if entry is used, not interesting to read, but we need to write it like that
+            //Byte 12 always contain a fixed predefined value according to number of entry from 200 up to 207 (do not read, but write)
+            //Byte 13 seems to only contain value 7 if entry is used, not interesting to read, but we need to write it like that
+            //Byte 16 seem to always have the same value as Byte 4
+            //Byte 17 seem to always have the same value as Byte 5
+            //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
+            //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
+            //for the other levels), and the extended version of the game has (compared with non extended game another)
+            //the same value for all levels, except level 7 which is an exception).
+            //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
+            //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
+            //the value used for almost all levels in extended version of the game.
+            //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+            //(anti cheat mechanism?)
 
             //middle point of rectangle that defines region is stored
             //at byte location 25 and location 27 of this current table entry line
@@ -905,6 +899,11 @@ void LevelFile::ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType) {
      //value 2 means Fuel charger location
      //value 3 means Ammo charger location
      //value 4 means map start location
+
+     //byte offset 69 also includes the region type information a second time
+     //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+     //(anti cheat mechanism?)
+     regionTable.at(whichRegionId * 85 + 69) = (uint8_t)(245)+(uint8_t)(newRegionType);
 }
 
 //returns true if changing location was succesfull, false otherwise
@@ -972,6 +971,35 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
    //value 3 means Ammo charger location
    //value 4 means map start location
 
+   //Byte 2 seems to only contain value 1, if entry is used, not interesting to read, but we need to write it like that
+   regionTable.at(whichRegionId * 85 + 2) = (uint8_t)(1);
+
+   //Byte 3 & 4 always contain a fixed predefined value according to number of entry from 224 up to 231 (do not read, but write)
+   uint8_t valDependentRegionId = (uint8_t)(224) + (uint8_t)(whichRegionId);
+   regionTable.at(whichRegionId * 85 + 3) = valDependentRegionId;
+   regionTable.at(whichRegionId * 85 + 4) = valDependentRegionId;
+
+   //Byte 5 seems to only contain value 3 if entry is used, not interesting to read, but we need to write it like that
+   regionTable.at(whichRegionId * 85 + 5) = (uint8_t)(3);
+
+   //Byte 12 always contain a fixed predefined value according to number of entry from 200 up to 207 (do not read, but write)
+   uint8_t valDependentRegionId2 = (uint8_t)(200) + (uint8_t)(whichRegionId);
+   regionTable.at(whichRegionId * 85 + 12) = valDependentRegionId2;
+
+   //Byte 13 seems to only contain value 7 if entry is used, not interesting to read, but we need to write it like that
+   regionTable.at(whichRegionId * 85 + 13) = (uint8_t)(7);
+
+   //Byte 16 seem to always have the same value as Byte 4
+   uint8_t val = regionTable.at(whichRegionId * 85 + 4);
+   regionTable.at(whichRegionId * 85 + 16) = val;
+
+   //Byte 17 seem to always have the same value as Byte 5
+   val = regionTable.at(whichRegionId * 85 + 5);
+   regionTable.at(whichRegionId * 85 + 17) = val;
+
+   //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
+   regionTable.at(whichRegionId * 85 + 18) = (uint8_t)(1);
+
    //middle point of rectangle that defines region is stored
    //at byte location 25 and location 27 of this current table entry line
    regionTable.at(whichRegionId * 85 + 25) = (irr::u8)(pntr->regionCenterTileCoord.X);
@@ -980,6 +1008,15 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
    irr::u8 deltaX = pntr->tileXmax - pntr->regionCenterTileCoord.X;
    irr::u8 deltaY = pntr->tileYmax - pntr->regionCenterTileCoord.Y;
 
+   //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
+   //for the other levels), and the extended version of the game has (compared with non extended game another)
+   //the same value for all levels, except level 7 which is an exception).
+   //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
+   //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
+   //the value used for almost all levels in extended version of the game.
+   regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(232);
+   regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(54);
+
    //region size is specified in terms of tiles counted from
    //the middle point towards both axis directions
    //for "X-axis" the deltaX is stored at byte 46
@@ -987,6 +1024,10 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
 
    //for "Y-axis" the deltaY is stored at byte 48
    regionTable.at(whichRegionId * 85 + 48) = deltaY;
+
+   //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+   //(anti cheat mechanism?)
+   regionTable.at(whichRegionId * 85 + 69) = (uint8_t)(245)+(uint8_t)(newRegionType);
 
    //we also need to add the POI (point of interest) pointing onto this
    //new region

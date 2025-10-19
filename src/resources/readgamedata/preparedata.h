@@ -165,7 +165,7 @@ private:
     //void ReorganizeTerrainAtlas(char* targetFile, char* outputFileName);
 
     //throws an error message in case of unexpected problem
-    void ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName);
+    void ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName, int scaleFactor = 1);
 
     // extract the Terrain Texture (Texture Atlas) for one level
     void ExtractTerrainTexture(char levelNr);
