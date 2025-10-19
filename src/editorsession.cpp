@@ -1121,4 +1121,3 @@ void EditorSession::SetMode(EditorMode* selMode) {
     //call OnEnter function
     mEditorMode->OnEnterMode();
 }
-

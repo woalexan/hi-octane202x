@@ -1212,7 +1212,7 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 //this would lead to awful flickering lines on the border between different terrain tiles
 //Therefore we need to read all tiles and export them to singulated picture files, which we can later
 //use to load the textures
-void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName) {
+void PrepareData::ExportTerrainTextures(const char* targetFile, const char* exportDir, const char* outputFileName, int scaleFactor) {
     //first open target image again
     irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(targetFile);
     irr::video::IImage* origAtlas = mInfra->mDriver->createImageFromFile(targetFile);
@@ -1225,6 +1225,8 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
     int numberTiles = (origDimension.Height / origDimension.Width);
 
     int tileSize = origDimension.Width;
+
+    irr::video::IImage* imgUp;
 
     //now export one tile after each other
     for (int tileIdx = 0; tileIdx < numberTiles; tileIdx++) {
@@ -1241,9 +1243,31 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
         fp << exportDir << outputFileName << std::setw(4) << std::setfill('0') << tileIdx << ".png";
         std::string finalpath = fp.str();
 
+        //should the image be upscaled?
+        if (scaleFactor != 1.0) {
+             //create an empty image with upscaled dimension
+            imgUp = mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(tileSize * scaleFactor, tileSize * scaleFactor));
+
+            //get the pointers to the raw image data
+            uint32_t *imageDataUp = (uint32_t*)imgUp->lock();
+            uint32_t *imageData = (uint32_t*)imgNew->lock();
+
+            xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], tileSize, tileSize, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, tileSize);
+
+            //release the pointers, we do not need them anymore
+            imgNew->unlock();
+            imgUp->unlock();
+          }
+
         // write image to file
         irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(finalpath.c_str(), false);
-        mInfra->mDriver->writeImageToFile(imgNew, outputPic);
+        if (scaleFactor != 1.0) {
+            //write upscaled terrain texture image
+            mInfra->mDriver->writeImageToFile(imgUp, outputPic);
+        } else {
+            //write original terrain texture image
+            mInfra->mDriver->writeImageToFile(imgNew, outputPic);
+        }
         outputPic->drop();
     }
 

@@ -36,11 +36,15 @@ int main()
     //try to init most basic
     //game components, so that we
     //can show a first graphical screen
-    if (!mEditor->InitEditorStep1())
+    if (!mEditor->InitEditorStep1()) {
+       delete mEditor;
        return 1;
+    }
 
     //run the editor
     mEditor->RunEditor();
+
+    delete mEditor;
 
     return 0;
 }
