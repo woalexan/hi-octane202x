@@ -62,8 +62,22 @@ struct LevelFolderInfoStruct {
 
 class InfrastructureBase {
 public:
-  InfrastructureBase();
+  InfrastructureBase(int pArgc, char **pArgv);
   ~InfrastructureBase();
+
+  //decoded command line parameter
+  //information
+  void ParseCommandLineInformation(int pArgc, char **pArgv);
+
+  //Parsed command line information
+  //first entry always contains the absolute path
+  //to this executable
+  std::vector<std::string> mCLIVec;
+
+  bool mWriteLogFile = false;
+
+  //native desktop resolution
+  core::dimension2d<u32> mNativeResolution;
 
   void CleanupAllSceneNodes();
 
@@ -162,7 +176,6 @@ public:
 
 private:
   //Irrlicht stuff
-
   bool mEnableShadows;
   bool mFullscreen;
   bool mInitOk = false;

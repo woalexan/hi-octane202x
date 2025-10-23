@@ -161,7 +161,7 @@ public:
     void StartTime();
     void AdvanceFrame(irr::s32 advanceFrameCount);
 
-    Game();
+    Game(int argc, char **argv);
     ~Game();
 };
 

@@ -28,10 +28,10 @@ class Editor; //Forward declaration
 
 Editor* mEditor = nullptr;
 
-int main()
+int main(int argc, char **argv)
 {
     //create new editor object
-    mEditor = new Editor();
+    mEditor = new Editor(argc, argv);
 
     //try to init most basic
     //game components, so that we

@@ -1221,7 +1221,7 @@ void Game::CleanUpRace() {
         return;
 }
 
-Game::Game() {
+Game::Game(int argc, char **argv) : InfrastructureBase(argc, argv) {
 }
 
 Game::~Game() {

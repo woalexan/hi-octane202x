@@ -6,6 +6,9 @@
 #define LOGGING_H
 
 #include <iostream>
+#include <fstream>
+#include <ios>
+#include "irrlicht.h"
 
 namespace logging {
     inline const char* RED = "\033[0;31m";
@@ -15,11 +18,44 @@ namespace logging {
     inline const char* GREY = "\033[0;90m";
     inline const char* NORMAL = "\033[0m";
 
+    inline std::ofstream LogFile;
+    inline bool LogFileExists = false;
+
     inline void Message(const char* level, const char* color, const char* message) {
         std::cout << color << level << message << NORMAL << std::endl;
+
+        if (LogFileExists) {
+            LogFile << level << message << std::endl;
+        }
     }
     inline void Message(const char* level, const char* color, const std::string &message) {
         std::cout << color << level << message << NORMAL << std::endl;
+        if (LogFileExists) {
+            LogFile << level << message << std::endl;
+        }
+    }
+
+    inline void StartLogFile(const char* logFileName) {
+        if (LogFileExists)
+            return;
+
+        //first built the filename
+        LogFile.open(logFileName, std::ios_base::out);
+
+        //if logfile was succesfully created remember
+        //that we are logging now
+        //otherwise do not start logging
+        if (!LogFile.fail()) {
+            LogFileExists = true;
+        }
+    }
+
+    inline void StopLogFile() {
+        if (!LogFileExists)
+            return;
+
+        LogFileExists = false;
+        LogFile.close();
     }
 
     template<typename T>
