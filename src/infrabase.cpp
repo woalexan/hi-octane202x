@@ -20,11 +20,66 @@
 #include "resources/readgamedata/bulcommn.h"
 #include "utils/crc32.h"
 #include <cwctype>
+#include <sstream>
+#include <iomanip>
 
 bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
     /************** Init Irrlicht stuff *************/
     /************************************************/
+
+    //first get native screen resolution
+    //for this we can use the Null device
+    IrrlichtDevice *nullDev = createDevice(video::EDT_NULL);
+
+    mNativeResolution = nullDev->getVideoModeList()->getDesktopResolution();
+
+    if (mWriteLogFile) {
+        //use the null Device to get the current system date and time
+        ITimer::RealTimeDate dateTime = nullDev->getTimer()->getRealTimeAndDate();
+
+        //create log file name based on current system date and time
+        std::string logFileName("logfile-");
+
+        std::ostringstream hlper;
+        hlper << std::setfill('0') << std::setw(2) << dateTime.Year   << std::setfill('0') << std::setw(2) << dateTime.Month <<
+                 std::setfill('0') << std::setw(2) << dateTime.Day    << std::setfill('0') << std::setw(2) << dateTime.Hour <<
+                 std::setfill('0') << std::setw(2) << dateTime.Minute << std::setfill('0') << std::setw(2) << dateTime.Second << ".txt";
+
+        logFileName.append(hlper.str());
+
+        //start logging into logfile
+        logging::StartLogFile(logFileName.c_str());
+    }
+
+    //delete the null device again
+    nullDev->drop();
+
+    if (mCLIVec.size() > 0) {
+        std::ostringstream executable;
+        executable << "Executable: " << mCLIVec.at(0);
+
+        logging::Info(executable.str());
+
+        //if there were additional command line parameters also
+        //list them here
+        if (mCLIVec.size() > 1) {
+            std::ostringstream parameters;
+            parameters << "Command line parameters: ";
+
+            std::vector<std::string>::iterator it;
+            for (it = mCLIVec.begin() + 1; it != mCLIVec.end(); ++it) {
+                parameters << (*it) << " ";
+            }
+
+            logging::Info(parameters.str());
+        }
+    }
+
+    std::ostringstream nativeResolution;
+    nativeResolution << "Native screen resolution is " << mNativeResolution.Width << " x " << mNativeResolution.Height;
+
+    logging::Info(nativeResolution.str());
 
     // create event receiver
     mEventReceiver = new MyEventReceiver(this);
@@ -981,7 +1036,6 @@ void InfrastructureBase::FillTexture(irr::video::ITexture* target, unsigned char
 }
 
 void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
-
     mScreenRes = resolution;
     mFullscreen = fullScreen;
     mEnableShadows = enableShadows;
@@ -1052,8 +1106,37 @@ void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fu
     mInitOk = true;
 }
 
-InfrastructureBase::InfrastructureBase() {
+InfrastructureBase::InfrastructureBase(int pArgc, char **pArgv) {
+    ParseCommandLineInformation(pArgc, pArgv);
+
     mInitOk = false;
+}
+
+void InfrastructureBase::ParseCommandLineInformation(int pArgc, char **pArgv) {
+    mCLIVec.clear();
+
+    mWriteLogFile = false;
+
+    for (int idx = 0; idx < pArgc; idx++) {
+        std::string newString(pArgv[idx]);
+
+        //make string lower case
+        std::transform(newString.begin(), newString.end(), newString.begin(),
+                         [](unsigned char c){ return std::tolower(c); });
+
+        mCLIVec.push_back(newString);
+    }
+
+    std::vector<std::string>::iterator it;
+    std::string substr("logfile");
+
+    for (it = mCLIVec.begin(); it != mCLIVec.end(); ++it) {
+        //if one parameter contains substring "logfile" lets
+        //enable writing of log file
+        if ((*it).find(substr) != std::string::npos) {
+            mWriteLogFile = true;
+        }
+    }
 }
 
 InfrastructureBase::~InfrastructureBase() {
@@ -1111,4 +1194,10 @@ InfrastructureBase::~InfrastructureBase() {
     delete xAxisDirVector;
     delete yAxisDirVector;
     delete zAxisDirVector;
+
+    //if we did logging into a log file before
+    //stop it
+    if (mWriteLogFile) {
+        logging::StopLogFile();
+    }
 }

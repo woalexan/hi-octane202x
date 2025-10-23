@@ -1936,7 +1936,7 @@ bool Editor::CreateNewEmptyLevelFile(std::string originFileName, std::string out
   return true;
 }
 
-Editor::Editor() {
+Editor::Editor(int argc, char **argv) : InfrastructureBase(argc, argv) {
     //allocate memory for current editor statusbar text
     mCurrentStatusBarText = new wchar_t[400];
     swprintf(mCurrentStatusBarText, 390, L"");

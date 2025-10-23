@@ -43,10 +43,10 @@ class Game; //Forward declaration
 
 Game* mGame = nullptr;
 
-int main()
+int main(int argc, char **argv)
 {
     //create new game object
-    mGame = new Game();
+    mGame = new Game(argc, argv);
 
     //try to init most basic
     //game components, so that we

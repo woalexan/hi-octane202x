@@ -345,7 +345,7 @@ public:
 
     void FindExistingLevels();
 
-    Editor();
+    Editor(int argc, char **argv);
     virtual ~Editor();
 };
 
