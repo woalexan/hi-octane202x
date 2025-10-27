@@ -54,11 +54,11 @@ struct MapPointOfInterest {
 struct MapTileRegionStruct {
     irr::u8 regionId;
     irr::u8 regionType = LEVELFILE_REGION_UNDEFINED;
-    irr::u16 tileXmin;
-    irr::u16 tileXmax;
-    irr::u16 tileYmin;
-    irr::u16 tileYmax;
-    irr::core::vector2di regionCenterTileCoord;
+    irr::f32 tileXmin;
+    irr::f32 tileXmax;
+    irr::f32 tileYmin;
+    irr::f32 tileYmax;
+    irr::core::vector2df regionCenterTileCoord;
 
     //allows to store trigger target group for
     //craft trigger regions and missile triggers
@@ -107,9 +107,6 @@ public:
     MapTileRegionStruct* GetRegionStructForRegionId(irr::u8 regionId);
 
     std::vector<ColumnsStruct> Columns;
-
-    //table starts at 0x00000000 offset until 0x00000017 offset, and is 24 bytes long
-    std::vector<uint8_t> unknownTable0Data;
 
     //table starts at 0x00000c60 offset until 0x00000ca7 offset, and is 72 bytes long
     std::vector<uint8_t> unknownTable3168Data;
@@ -185,12 +182,12 @@ public:
     void RemoveRegion(MapTileRegionStruct* region);
 
     //returns true if new region was created succesfully, False otherwise
-    bool AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2, irr::u8 newRegionType);
+    bool AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType);
 
     void ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType);
 
     //returns true if changing location was succesfull, false otherwise
-    bool ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2);
+    bool ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2);
 
 private:
     //returns true if a block definition object

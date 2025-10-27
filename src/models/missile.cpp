@@ -327,7 +327,8 @@ void Missile::CheckForHitOfMissileTrigger(irr::core::vector3df explodedAtLocatio
         //only check for regions which are missile trigger region
         if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
             //did the missile explosion hit this area?
-            if (cellHit ==  (*itRegion)->regionCenterTileCoord) {
+            if ((cellHit.X == (int)((*itRegion)->regionCenterTileCoord.X)) &&
+                (cellHit.Y == (int)((*itRegion)->regionCenterTileCoord.Y))) {
                 //yes, missile hit
 
                 //is it a one time trigger? if so only trigger if we have not triggered before

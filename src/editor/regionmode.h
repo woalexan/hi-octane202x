@@ -37,6 +37,7 @@ struct GUIRegionMode
     }
 
     irr::gui::IGUITable* RegionTable;
+    irr::gui::IGUIScrollBar* RegionTableVertScrollBar;
 
     irr::gui::IGUIButton* ApplyButton;
 
@@ -73,7 +74,7 @@ private:
 
     //returns true if the newly entered region coordinates in the Ui
     //pass the plausi check, false otherwise
-    bool PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 XMax, irr::u16 YMax);
+    bool PlausiCheckCoordinates(irr::f32 XMin, irr::f32 YMin, irr::f32 XMax, irr::f32 YMax);
 
     MapTileRegionStruct* mLastSelectedRegion = nullptr;
 

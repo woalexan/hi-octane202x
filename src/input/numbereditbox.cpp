@@ -11,8 +11,7 @@
 #include "../editor/editormode.h"
 #include "../editorsession.h"
 #include "../editor.h"
-#include <cwctype>
-#include <cwchar>
+#include "../editor/uiconversion.h"
 
 NumberEditBox::NumberEditBox(EditorMode* parentMode, const wchar_t* text, const irr::core::rect<irr::s32>& rectangle,
                              bool border, irr::gui::IGUIElement* parent) {
@@ -120,17 +119,10 @@ void NumberEditBox::SetValueLimit(irr::s32 minValidValue, irr::s32 maxValidValue
 bool NumberEditBox::InterpretValue(irr::s32& readNumber) {
    stringw text = mEditBox->getText();
 
-   irr::u32 textLen = text.size();
-
-   wint_t currwChar;
-
-   for (irr::u32 idx = 0; idx < textLen; idx++) {
-       currwChar = (wint_t)(text[idx]);
-
-       if (std::iswdigit(currwChar) == 0) {
-           //non numeric char found! => invalid
-           return false;
-       }
+   //Does text contain a number?
+   if (!mParentMode->mParentSession->mParentEditor->mUiConversion->StringContainsNumber(text, false)) {
+       //no, some other characters as well
+       return false;
    }
 
    //we only have digits => good, try to get number out of it
@@ -193,5 +185,3 @@ void NumberEditBox::OnEditBoxEditEndedEvent() {
    //user finished to enter/edit number (text)
    UpdateWithNewValue();
 }
-
-

@@ -98,6 +98,12 @@ void RegionMode::AddRegionTableEntry(irr::u8 entryNr, MapTileRegionStruct* which
     irr::core::stringw XMax(whichRegion->tileXmax);
     irr::core::stringw YMax(whichRegion->tileYmax);
 
+    //only show one decimal place after a possible radix
+    irr::core::stringw XMinLimited = mParentSession->mParentEditor->mUiConversion->NumberStringLimitDecimalPlaces(XMin, 1);
+    irr::core::stringw YMinLimited = mParentSession->mParentEditor->mUiConversion->NumberStringLimitDecimalPlaces(YMin, 1);
+    irr::core::stringw XMaxLimited = mParentSession->mParentEditor->mUiConversion->NumberStringLimitDecimalPlaces(XMax, 1);
+    irr::core::stringw YMaxLimited = mParentSession->mParentEditor->mUiConversion->NumberStringLimitDecimalPlaces(YMax, 1);
+
     switch (whichRegion->regionType) {
         case LEVELFILE_REGION_CHARGER_SHIELD: {
             typeStr.append(L"Shield Charger");
@@ -127,14 +133,25 @@ void RegionMode::AddRegionTableEntry(irr::u8 entryNr, MapTileRegionStruct* which
 
     mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 0, regionNr);
     mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 1, typeStr);
-    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 2, XMin);
-    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 3, YMin);
-    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 4, XMax);
-    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 5, YMax);
+    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 2, XMinLimited);
+    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 3, YMinLimited);
+    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 4, XMaxLimited);
+    mGuiRegionMode.RegionTable->setCellText(nrRowIdx, 5, YMaxLimited);
 }
 
 void RegionMode::UpdateRegionTable() {
     MapTileRegionStruct* regionPntr;
+    irr::s32 currScrollBarPos;
+    bool setScrollBarBack = false;
+
+    //if a table entry was selected before the table update, make sure it is
+    //selected afterwards again
+    irr::s32 selectedRow = mGuiRegionMode.RegionTable->getSelected();
+
+    if (mGuiRegionMode.RegionTableVertScrollBar->isVisible()) {
+        currScrollBarPos = mGuiRegionMode.RegionTableVertScrollBar->getPos();
+        setScrollBarBack = true;
+    }
 
     mGuiRegionMode.RegionTable->clearRows();
 
@@ -145,6 +162,14 @@ void RegionMode::UpdateRegionTable() {
         regionPntr = mParentSession->mLevelRes->GetRegionStructForRegionId(entryIdx);
 
         AddRegionTableEntry(entryIdx, regionPntr);
+    }
+
+    if (selectedRow != -1) {
+        mGuiRegionMode.RegionTable->setSelected(selectedRow);
+    }
+
+    if (setScrollBarBack) {
+       mGuiRegionMode.RegionTableVertScrollBar->setPos(currScrollBarPos);
     }
 }
 
@@ -282,7 +307,7 @@ void RegionMode::CreateWindow() {
     //finally create the window
     Window = mParentSession->mParentEditor->mGuienv->addWindow ( rect<s32> ( 0, 0, dim.Width, dim.Height ), false, L"Region Definition", 0, mGuiWindowId);
 
-    mGuiRegionMode.RegionTable = mParentSession->mParentEditor->mGuienv->addTable( rect<s32>( 10, 30, 345, dim.Height - 90), Window, GUI_ID_REGIONMODEWINDOW_REGIONTABLE);
+    mGuiRegionMode.RegionTable = mParentSession->mParentEditor->mGuienv->addTable( rect<s32>( 10, 30, 385, dim.Height - 90), Window, GUI_ID_REGIONMODEWINDOW_REGIONTABLE);
     mGuiRegionMode.RegionTable->addColumn ( L"Region Nr", 0 );
     mGuiRegionMode.RegionTable->addColumn ( L"Type", 1 );
     mGuiRegionMode.RegionTable->addColumn ( L"XMin", 2 );
@@ -290,14 +315,23 @@ void RegionMode::CreateWindow() {
     mGuiRegionMode.RegionTable->addColumn ( L"XMax", 4 );
     mGuiRegionMode.RegionTable->addColumn ( L"YMax", 5 );
 
-    //Width of table is 280 pixels overall
+    //Width of table is 320 pixels overall
     mGuiRegionMode.RegionTable->setColumnWidth ( 0, 40 );
     mGuiRegionMode.RegionTable->setColumnWidth ( 1, 100 );
-    mGuiRegionMode.RegionTable->setColumnWidth ( 2, 40 );
-    mGuiRegionMode.RegionTable->setColumnWidth ( 3, 40 );
-    mGuiRegionMode.RegionTable->setColumnWidth ( 4, 40 );
-    mGuiRegionMode.RegionTable->setColumnWidth ( 5, 40 );
+    mGuiRegionMode.RegionTable->setColumnWidth ( 2, 50 );
+    mGuiRegionMode.RegionTable->setColumnWidth ( 3, 50 );
+    mGuiRegionMode.RegionTable->setColumnWidth ( 4, 50 );
+    mGuiRegionMode.RegionTable->setColumnWidth ( 5, 50 );
     mGuiRegionMode.RegionTable->setToolTipText ( L"Shows all defined regions" );
+
+    //get the vertical Scrollbar from the region table
+    //for later usage
+    const core::list<IGUIElement*> RegionTableChilds = mGuiRegionMode.RegionTable->getChildren();
+
+    if (!RegionTableChilds.empty()) {
+        IGUIElement* elementPntr = *RegionTableChilds.begin();
+        mGuiRegionMode.RegionTableVertScrollBar = (irr::gui::IGUIScrollBar*)(elementPntr);
+    }
 
     mGuiRegionMode.RegionTypeComboBoxLabel = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Region Type:",
                                       rect<s32>( 10, dim.Height - 85, 160, dim.Height - 60 ),false, false, Window, -1, false );
@@ -396,7 +430,7 @@ void RegionMode::OnRegionTypeComboBoxChanged(irr::u32 newSelectedGuiId) {
 
 //returns true if the newly entered region coordinates in the Ui
 //pass the plausi check, false otherwise
-bool RegionMode::PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 XMax, irr::u16 YMax) {
+bool RegionMode::PlausiCheckCoordinates(irr::f32 XMin, irr::f32 YMin, irr::f32 XMax, irr::f32 YMax) {
     //any values outside of possible range?
     if ((XMin >= mParentSession->mLevelRes->Width()) || (XMax >= mParentSession->mLevelRes->Width())) {
             //show a messagebox with error
@@ -428,9 +462,9 @@ bool RegionMode::PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 X
 
     //if width or height of region is not at least 3 cells
     //fail this verification
-    irr::u8 width = XMax - XMin;
+    irr::f32 width = XMax - XMin;
 
-    if (width < 3) {
+    if (width < 3.0f) {
         //show a messagebox with error
         mParentSession->mParentEditor->mGuienv->addMessageBox(
                         L"Issue", L"Please make the region at least 3 cells wide in Y direction", true, EMBF_OK,
@@ -439,9 +473,9 @@ bool RegionMode::PlausiCheckCoordinates(irr::u16 XMin, irr::u16 YMin, irr::u16 X
         return false;
     }
 
-    irr::u8 height = YMax - YMin;
+    irr::f32 height = YMax - YMin;
 
-    if (height < 3) {
+    if (height < 3.0f) {
         //show a messagebox with error
         mParentSession->mParentEditor->mGuienv->addMessageBox(
                         L"Issue", L"Please make the region at least 3 cells wide in X direction", true, EMBF_OK,
@@ -546,17 +580,17 @@ void RegionMode::ApplyChanges() {
             //simply continue execution below
       }
 
-      irr::u16 newXMin = (irr::u16)(mGuiRegionMode.XMinBox->GetValue());
-      irr::u16 newYMin = (irr::u16)(mGuiRegionMode.YMinBox->GetValue());
-      irr::u16 newXMax = (irr::u16)(mGuiRegionMode.XMaxBox->GetValue());
-      irr::u16 newYMax = (irr::u16)(mGuiRegionMode.YMaxBox->GetValue());
+      irr::f32 newXMin = (irr::f32)(mGuiRegionMode.XMinBox->GetValue());
+      irr::f32 newYMin = (irr::f32)(mGuiRegionMode.YMinBox->GetValue());
+      irr::f32 newXMax = (irr::f32)(mGuiRegionMode.XMaxBox->GetValue());
+      irr::f32 newYMax = (irr::f32)(mGuiRegionMode.YMaxBox->GetValue());
 
       //if some new entered coordinates fail plausi check exit
       if (!PlausiCheckCoordinates(newXMin, newYMin, newXMax, newYMax))
           return;
 
-      irr::core::vector2di coord1(newXMin, newYMin);
-      irr::core::vector2di coord2(newXMax, newYMax);
+      irr::core::vector2df coord1(newXMin, newYMin);
+      irr::core::vector2df coord2(newXMax, newYMax);
 
       //if mLastSelectedRegion == nullptr we want to add a new region
       if (mLastSelectedRegion == nullptr) {
@@ -584,8 +618,8 @@ void RegionMode::ApplyChanges() {
       }
 
       //if we need to change the location
-      if ((mLastSelectedRegion->tileXmin != newXMin) || (mLastSelectedRegion->tileYmin != newYMin) ||
-         (mLastSelectedRegion->tileXmax != newXMax) || (mLastSelectedRegion->tileYmax != newYMax)) {
+      if ((fabs(mLastSelectedRegion->tileXmin - newXMin) > 0.1f) || (fabs(mLastSelectedRegion->tileYmin - newYMin) > 0.1f) ||
+         (fabs(mLastSelectedRegion->tileXmax - newXMax) > 0.1f) || (fabs(mLastSelectedRegion->tileYmax - newYMax) > 0.1f)) {
           if (!mParentSession->mLevelRes->ChangeRegionLocation(mLastSelectedTableRegionNr, coord1, coord2)) {
               //failed to change Region location
               mParentSession->mParentEditor->mGuienv->addMessageBox(

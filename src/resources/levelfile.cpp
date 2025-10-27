@@ -26,9 +26,12 @@
 /* LevelFile Layout
 
 1. Offset 0          => Offset 96000   Entity-Table (stores 4000 Entities)
+   Offset 96001      => Offset 98011   Unknown data (I believe not used, contains value that just increases)
 2. Offset 98012      => Offset 124636  Column-Definitions (stores 1024 Column Definitions)
 3. Offset 124636     => Offset 141020  Block-Definitions  (stores 1024 Block Definitions)
+   Offset 141021     => Offset 246923  Unknown data
 4. Offset 246924     => Offset 247604  Region-Definitions (stores 8 Region Definitions)
+   Offset 247605     => Offset 404619  Unknown data
 5. Offset 404620     => Offset 896140  Tile-Data (256 x 160 Tiles)
 
 */
@@ -87,7 +90,7 @@ LevelFile::LevelFile(std::string filename) {
     }
 
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMap() && loadEntitiesTable() &&
-            loadMapRegions() && loadUnknownTableOffset0() && loadUnknownTableOffset3168() &&
+            loadMapRegions() && loadUnknownTableOffset3168() &&
             loadUnknownTableOffset3312() && loadUnknownTableOffset102068() && loadUnknownTableOffset127468() && loadUnknownTableOffset247604();
     this->m_Ready = ready_result;
 
@@ -480,17 +483,37 @@ bool LevelFile::loadMapRegions() {
             //(anti cheat mechanism?)
 
             //middle point of rectangle that defines region is stored
-            //at byte location 25 and location 27 of this current table entry line
-            newRegion->regionCenterTileCoord.X = regionTable.at(i * 85 + 25);
-            newRegion->regionCenterTileCoord.Y = regionTable.at(i * 85 + 27);
+            //at byte location 24 & 25 and location 26 & 27 of this current table entry line
+            newRegion->regionCenterTileCoord.X = (irr::f32)(regionTable.at(i * 85 + 25));
+            newRegion->regionCenterTileCoord.Y = (irr::f32)(regionTable.at(i * 85 + 27));
+
+            //Byte at offset 24 seems to only use values 0 and 128 (128 means add 0.5f)
+            if (regionTable.at(i * 85 + 24) == 128) {
+               newRegion->regionCenterTileCoord.X += 0.5f;
+            }
+
+            //Byte at offset 26 seems to only use values 0 and 128 (128 means add 0.5f)
+            if (regionTable.at(i * 85 + 26) == 128) {
+               newRegion->regionCenterTileCoord.Y += 0.5f;
+            }
 
             //region size is specified in terms of tiles counted from
             //the middle point towards both axis directions
-            //for "X-axis" the deltaX is stored at byte 46
-            irr::u8 deltaX = regionTable.at(i * 85 + 46);
+            //for "X-axis" the deltaX is stored at byte 45 & 46
+            irr::f32 deltaX = (irr::f32)(regionTable.at(i * 85 + 46));
 
-            //for "Y-axis" the deltaY is stored at byte 48
-            irr::u8 deltaY = regionTable.at(i * 85 + 48);
+            //Byte at offset 45 seems to only use values 0 and 128 (128 means add 0.5f)
+            if (regionTable.at(i * 85 + 45) == 128) {
+               deltaX += 0.5f;
+            }
+
+            //for "Y-axis" the deltaY is stored at byte 47 & 48
+            irr::f32 deltaY = (irr::f32)(regionTable.at(i * 85 + 48));
+
+            //Byte at offset 47 seems to only use values 0 and 128 (128 means add 0.5f)
+            if (regionTable.at(i * 85 + 47) == 128) {
+               deltaY += 0.5f;
+            }
 
             //now calculate region tile min/max for the later game code according
             //to all input information
@@ -498,34 +521,34 @@ bool LevelFile::loadMapRegions() {
             newRegion->tileXmax = newRegion->regionCenterTileCoord.X + deltaX;
 
             if (newRegion->tileXmin < 0)
-                newRegion->tileXmin = 0;
+                newRegion->tileXmin = 0.0f;
 
             if (newRegion->tileXmin >= this->Width()) {
-                newRegion->tileXmin = this->Width() - 1;
+                newRegion->tileXmin = (irr::f32)(this->Width()) - 1.0f;
             }
 
             if (newRegion->tileXmax < 0)
-                newRegion->tileXmax = 0;
+                newRegion->tileXmax = 0.0f;
 
             if (newRegion->tileXmax >= this->Width()) {
-                newRegion->tileXmax = this->Width() - 1;
+                newRegion->tileXmax = (irr::f32)(this->Width()) - 1.0f;
             }
 
             newRegion->tileYmin = newRegion->regionCenterTileCoord.Y - deltaY;
             newRegion->tileYmax = newRegion->regionCenterTileCoord.Y + deltaY;
 
             if (newRegion->tileYmin < 0)
-                newRegion->tileYmin = 0;
+                newRegion->tileYmin = 0.0f;
 
             if (newRegion->tileYmin >= this->Height()) {
-                newRegion->tileYmin = this->Height() - 1;
+                newRegion->tileYmin = (irr::f32)(this->Height()) - 1.0f;
             }
 
             if (newRegion->tileYmax < 0)
                 newRegion->tileYmax = 0;
 
             if (newRegion->tileYmax >= this->Height()) {
-                newRegion->tileYmax = this->Height() - 1;
+                newRegion->tileYmax = (irr::f32)(this->Height()) - 1.0f;
             }
 
             //add new region to my region vector
@@ -744,20 +767,6 @@ bool LevelFile::loadUnknownTableOffset247604() {
     return true;
 }
 
-bool LevelFile::loadUnknownTableOffset0() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 0;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 24 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 24;
-    unknownTable0Data.assign(startslice, endslice);
-
-    return true;
-}
-
 bool LevelFile::loadUnknownTableOffset3168() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
@@ -907,7 +916,7 @@ void LevelFile::ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType) {
 }
 
 //returns true if changing location was succesfull, false otherwise
-bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2) {
+bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2) {
     //if whichRegionId is invalid return
      if (whichRegionId > 7)
          return false;
@@ -929,7 +938,7 @@ bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2di
 }
 
 //returns true if new region was created succesfully, False otherwise
-bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, irr::core::vector2di coord2, irr::u8 newRegionType) {
+bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType) {
    //if whichRegionId is invalid return
     if (whichRegionId > 7)
         return false;
@@ -948,8 +957,8 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
 
    //region with this Id does not yet exist
    //calculate middle cell
-   irr::f32 midX = (((irr::f32)(coord2.X) - (irr::f32)(coord1.X)) / 2.0f) + (irr::f32)(coord1.X);
-   irr::f32 midY = (((irr::f32)(coord2.Y) - (irr::f32)(coord1.Y)) / 2.0f) + (irr::f32)(coord1.Y);
+   irr::f32 midX = ((coord2.X - coord1.X) / 2.0f) + coord1.X;
+   irr::f32 midY = ((coord2.Y - coord1.Y) / 2.0f) + coord1.Y;
 
    //round towards next integer
    pntr = new MapTileRegionStruct();
@@ -958,7 +967,7 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
    pntr->tileYmax = coord2.Y;
    pntr->tileXmin = coord1.X;
    pntr->tileYmin = coord1.Y;
-   pntr->regionCenterTileCoord.set((irr::s32)(irr::core::round32(midX)), (irr::s32)(irr::core::round32(midY)));
+   pntr->regionCenterTileCoord.set(midX, midY);
    pntr->regionType = newRegionType;
 
    //add the new region to the vector of defined regions
@@ -1002,11 +1011,33 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
 
    //middle point of rectangle that defines region is stored
    //at byte location 25 and location 27 of this current table entry line
-   regionTable.at(whichRegionId * 85 + 25) = (irr::u8)(pntr->regionCenterTileCoord.X);
-   regionTable.at(whichRegionId * 85 + 27) = (irr::u8)(pntr->regionCenterTileCoord.Y);
+   irr::u8 intX = (irr::u8)(pntr->regionCenterTileCoord.X); //truncate down to integer number
+   irr::u8 intY = (irr::u8)(pntr->regionCenterTileCoord.Y); //truncate down to integer number
 
-   irr::u8 deltaX = pntr->tileXmax - pntr->regionCenterTileCoord.X;
-   irr::u8 deltaY = pntr->tileYmax - pntr->regionCenterTileCoord.Y;
+   regionTable.at(whichRegionId * 85 + 25) = (irr::u8)(intX);
+   regionTable.at(whichRegionId * 85 + 27) = (irr::u8)(intY);
+
+   //what is the remaining value?
+   irr::f32 remainX = pntr->regionCenterTileCoord.X - (irr::f32)(intX);
+   if (remainX > 0.5f) {
+       //this byte only used values 0 or 128; add 0.5f (value 128)
+       regionTable.at(whichRegionId * 85 + 24) = (uint8_t)(128);
+   } else {
+       //do not add 0.5f (value 0)
+       regionTable.at(whichRegionId * 85 + 24) = (uint8_t)(0);
+   }
+
+   irr::f32 remainY = pntr->regionCenterTileCoord.Y - (irr::f32)(intY);
+   if (remainY > 0.5f) {
+       //this byte only used values 0 or 128; add 0.5f (value 128)
+       regionTable.at(whichRegionId * 85 + 26) = (uint8_t)(128);
+   } else {
+       //do not add 0.5f (value 0)
+       regionTable.at(whichRegionId * 85 + 26) = (uint8_t)(0);
+   }
+
+   irr::f32 deltaX = pntr->tileXmax - pntr->regionCenterTileCoord.X;
+   irr::f32 deltaY = pntr->tileYmax - pntr->regionCenterTileCoord.Y;
 
    //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
    //for the other levels), and the extended version of the game has (compared with non extended game another)
@@ -1017,13 +1048,35 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2di coord1, ir
    regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(232);
    regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(54);
 
+   irr::u8 intDeltaX = (irr::u8)(deltaX); //truncate down to integer number
+   irr::u8 intDeltaY = (irr::u8)(deltaY); //truncate down to integer number
+
    //region size is specified in terms of tiles counted from
    //the middle point towards both axis directions
    //for "X-axis" the deltaX is stored at byte 46
-   regionTable.at(whichRegionId * 85 + 46) = deltaX;
+   regionTable.at(whichRegionId * 85 + 46) = intDeltaX;
 
    //for "Y-axis" the deltaY is stored at byte 48
-   regionTable.at(whichRegionId * 85 + 48) = deltaY;
+   regionTable.at(whichRegionId * 85 + 48) = intDeltaY;
+
+   //what is the remaining value?
+   irr::f32 remainDeltaX = deltaX - (irr::f32)(intDeltaX);
+   if (remainDeltaX > 0.5f) {
+       //this byte only used values 0 or 128; add 0.5f (value 128)
+       regionTable.at(whichRegionId * 85 + 45) = (uint8_t)(128);
+   } else {
+       //do not add 0.5f (value 0)
+       regionTable.at(whichRegionId * 85 + 45) = (uint8_t)(0);
+   }
+
+   irr::f32 remainDeltaY = deltaY - (irr::f32)(intDeltaY);
+   if (remainDeltaY > 0.5f) {
+       //this byte only used values 0 or 128; add 0.5f (value 128)
+       regionTable.at(whichRegionId * 85 + 47) = (uint8_t)(128);
+   } else {
+       //do not add 0.5f (value 0)
+       regionTable.at(whichRegionId * 85 + 47) = (uint8_t)(0);
+   }
 
    //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
    //(anti cheat mechanism?)
@@ -1041,7 +1094,7 @@ bool LevelFile::AddPOI(MapTileRegionStruct* newRegion) {
 
     int16_t POIValToAdd = 992 + newRegion->regionId;
 
-    MapEntry* entry = pMap[newRegion->regionCenterTileCoord.X][newRegion->regionCenterTileCoord.Y];
+    MapEntry* entry = pMap[(irr::u8)(newRegion->regionCenterTileCoord.X)][(irr::u8)(newRegion->regionCenterTileCoord.Y)];
 
     if (entry == nullptr)
         return false;
@@ -1055,7 +1108,7 @@ bool LevelFile::AddPOI(MapTileRegionStruct* newRegion) {
     newPointOfInterest.Position.X = - newRegion->regionCenterTileCoord.X * DEF_SEGMENTSIZE - 0.5f;
     newPointOfInterest.Position.Z =  newRegion->regionCenterTileCoord.Y * DEF_SEGMENTSIZE + 0.5f;
     newPointOfInterest.Position.Y = entry->m_Height;
-    newPointOfInterest.cellCoord.set(newRegion->regionCenterTileCoord.X, newRegion->regionCenterTileCoord.Y);
+    newPointOfInterest.cellCoord.set((irr::s32)(newRegion->regionCenterTileCoord.X), (irr::s32)(newRegion->regionCenterTileCoord.Y));
 
     //add new POI to list
     PointsOfInterest.push_back(newPointOfInterest);
@@ -1669,10 +1722,6 @@ bool LevelFile::saveRegionTable() {
 }
 
 bool LevelFile::saveUnknownTables() {
-    //third table Offset0
-    std::copy(this->unknownTable0Data.begin(), unknownTable0Data.end(), this->m_wBytes.begin()
-              + 0);
-
     //third table Offset3168
     std::copy(this->unknownTable3168Data.begin(), unknownTable3168Data.end(), this->m_wBytes.begin()
               + 3168);
