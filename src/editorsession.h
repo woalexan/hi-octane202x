@@ -121,6 +121,8 @@ public:
     EntityMode* mEntityMode = nullptr;
     RegionMode* mRegionMode = nullptr;
 
+    bool mFreeFlyMode;
+
     irr::s32 GetNextFreeGuiId();
 
     void AdvanceTime(irr::f32 frameDeltaTime);

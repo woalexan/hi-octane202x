@@ -47,6 +47,7 @@ public:
     virtual void OnElementLeft(irr::s32 leftGuiId);
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
     virtual void OnCheckBoxChanged(irr::s32 checkboxId);
+    virtual void OnKeyPressedInWindow(irr::EKEY_CODE whichKeyPressed);
 
     virtual void OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem);
     virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);

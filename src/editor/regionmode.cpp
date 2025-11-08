@@ -215,10 +215,10 @@ void RegionMode::UpdateUiDialog() {
         mGuiRegionMode.YMaxBox->SetVisible(true);
 
         //update all NumberEditBoxes with region coordinate entry
-        mGuiRegionMode.XMinBox->SetValue(mLastSelectedRegion->tileXmin);
-        mGuiRegionMode.YMinBox->SetValue(mLastSelectedRegion->tileYmin);
-        mGuiRegionMode.XMaxBox->SetValue(mLastSelectedRegion->tileXmax);
-        mGuiRegionMode.YMaxBox->SetValue(mLastSelectedRegion->tileYmax);
+        mGuiRegionMode.XMinBox->SetValue((irr::s32)(mLastSelectedRegion->tileXmin));
+        mGuiRegionMode.YMinBox->SetValue((irr::s32)(mLastSelectedRegion->tileYmin));
+        mGuiRegionMode.XMaxBox->SetValue((irr::s32)(mLastSelectedRegion->tileXmax));
+        mGuiRegionMode.YMaxBox->SetValue((irr::s32)(mLastSelectedRegion->tileYmax));
 
         mGuiRegionMode.SelectCoord1Button->setEnabled(true);
         mGuiRegionMode.SelectCoord1Button->setVisible(true);
@@ -363,31 +363,28 @@ void RegionMode::CreateWindow() {
     irr::s32 mcy = dim.Height - 80;
 
     //add the coordinate entry fields
-    //float type NumberEditBox with 1 allowed decimal number
-    mGuiRegionMode.XMinBox = new NumberEditBox(this, 1, rect<s32> ( mcx, mcy + 15, mcx + 35, mcy + 40), true, Window);
-    mGuiRegionMode.XMinBox->SetValue(0.0f);
-    mGuiRegionMode.XMinBox->SetValueLimit(0.0f, (irr::f32)(mParentSession->mLevelRes->Width()));
+    //NumberEditBox for integer number, we do not need a decimal place here
+    mGuiRegionMode.XMinBox = new NumberEditBox(this, 0, rect<s32> ( mcx, mcy + 15, mcx + 35, mcy + 40), true, Window);
+    mGuiRegionMode.XMinBox->SetValue(0);
+    mGuiRegionMode.XMinBox->SetValueLimit(0, mParentSession->mLevelRes->Width());
     mGuiRegionMode.XMinBox->AddLabel(L"Xmin:", rect<s32>( mcx, mcy - 5, mcx + 60, mcy + 10 ));
     mGuiRegionMode.XMinBox->SetVisible(false);
 
-    //float type NumberEditBox with 1 allowed decimal number
-    mGuiRegionMode.YMinBox = new NumberEditBox(this, 1, rect<s32> ( mcx + 45, mcy + 15, mcx + 35 + 45, mcy + 40), true, Window);
-    mGuiRegionMode.YMinBox->SetValue(0.0f);
-    mGuiRegionMode.YMinBox->SetValueLimit(0.0f, (irr::f32)(mParentSession->mLevelRes->Height()));
+    mGuiRegionMode.YMinBox = new NumberEditBox(this, 0, rect<s32> ( mcx + 45, mcy + 15, mcx + 35 + 45, mcy + 40), true, Window);
+    mGuiRegionMode.YMinBox->SetValue(0);
+    mGuiRegionMode.YMinBox->SetValueLimit(0, mParentSession->mLevelRes->Height());
     mGuiRegionMode.YMinBox->AddLabel(L"Ymin:", rect<s32>( mcx + 45, mcy - 5, mcx + 45 + 60, mcy + 10 ));
     mGuiRegionMode.YMinBox->SetVisible(false);
 
-    //float type NumberEditBox with 1 allowed decimal number
-    mGuiRegionMode.XMaxBox = new NumberEditBox(this, 1, rect<s32> ( mcx + 90, mcy + 15, mcx + 35 + 90, mcy + 40), true, Window);
-    mGuiRegionMode.XMaxBox->SetValue(0.0f);
-    mGuiRegionMode.XMaxBox->SetValueLimit(0.0f, (irr::f32)(mParentSession->mLevelRes->Width()));
+    mGuiRegionMode.XMaxBox = new NumberEditBox(this, 0, rect<s32> ( mcx + 90, mcy + 15, mcx + 35 + 90, mcy + 40), true, Window);
+    mGuiRegionMode.XMaxBox->SetValue(0);
+    mGuiRegionMode.XMaxBox->SetValueLimit(0, mParentSession->mLevelRes->Width());
     mGuiRegionMode.XMaxBox->AddLabel(L"Xmax:", rect<s32>( mcx + 90, mcy - 5, mcx + 90 + 60, mcy + 10 ));
     mGuiRegionMode.XMaxBox->SetVisible(false);
 
-    //float type NumberEditBox with 1 allowed decimal number
-    mGuiRegionMode.YMaxBox = new NumberEditBox(this, 1, rect<s32> ( mcx + 135, mcy + 15, mcx + 35 + 135, mcy + 40), true, Window);
-    mGuiRegionMode.YMaxBox->SetValue(0.0f);
-    mGuiRegionMode.YMaxBox->SetValueLimit(0.0f, (irr::f32)(mParentSession->mLevelRes->Height()));
+    mGuiRegionMode.YMaxBox = new NumberEditBox(this, 0, rect<s32> ( mcx + 135, mcy + 15, mcx + 35 + 135, mcy + 40), true, Window);
+    mGuiRegionMode.YMaxBox->SetValue(0);
+    mGuiRegionMode.YMaxBox->SetValueLimit(0, mParentSession->mLevelRes->Height());
     mGuiRegionMode.YMaxBox->AddLabel(L"Ymax:", rect<s32>( mcx + 135, mcy - 5, mcx + 135 + 60, mcy + 10 ));
     mGuiRegionMode.YMaxBox->SetVisible(false);
 
@@ -415,10 +412,10 @@ void RegionMode::OnRegionTypeComboBoxChanged(irr::u32 newSelectedGuiId) {
     //if currently a new region is defined, we need to reset value of Coordinate Entry boxes
     //and show them
     if (mLastSelectedRegion == nullptr) {
-        mGuiRegionMode.XMinBox->SetValue(0.0f);
-        mGuiRegionMode.YMinBox->SetValue(0.0f);
-        mGuiRegionMode.XMaxBox->SetValue(0.0f);
-        mGuiRegionMode.YMaxBox->SetValue(0.0f);
+        mGuiRegionMode.XMinBox->SetValue(0);
+        mGuiRegionMode.YMinBox->SetValue(0);
+        mGuiRegionMode.XMaxBox->SetValue(0);
+        mGuiRegionMode.YMaxBox->SetValue(0);
 
         mGuiRegionMode.XMinBox->SetVisible(true);
         mGuiRegionMode.YMinBox->SetVisible(true);
@@ -588,10 +585,10 @@ void RegionMode::ApplyChanges() {
             //simply continue execution below
       }
 
-      irr::f32 newXMin = mGuiRegionMode.XMinBox->GetValueFloat();
-      irr::f32 newYMin = mGuiRegionMode.YMinBox->GetValueFloat();
-      irr::f32 newXMax = mGuiRegionMode.XMaxBox->GetValueFloat();
-      irr::f32 newYMax = mGuiRegionMode.YMaxBox->GetValueFloat();
+      irr::f32 newXMin = (irr::f32)(mGuiRegionMode.XMinBox->GetValueInt());
+      irr::f32 newYMin = (irr::f32)(mGuiRegionMode.YMinBox->GetValueInt());
+      irr::f32 newXMax = (irr::f32)(mGuiRegionMode.XMaxBox->GetValueInt());
+      irr::f32 newYMax = (irr::f32)(mGuiRegionMode.YMaxBox->GetValueInt());
 
       //if some new entered coordinates fail plausi check exit
       if (!PlausiCheckCoordinates(newXMin, newYMin, newXMax, newYMax))
@@ -637,6 +634,8 @@ void RegionMode::ApplyChanges() {
               return;
           }
       }
+
+      mLastSelectedRegion = mParentSession->mLevelRes->GetRegionStructForRegionId(mLastSelectedTableRegionNr);
 
       UpdateUiDialog();
 
@@ -687,8 +686,8 @@ void RegionMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
                 cellCoord.Y += 1;
             }
 
-            mGuiRegionMode.XMinBox->SetValue((irr::f32)(cellCoord.X));
-            mGuiRegionMode.YMinBox->SetValue((irr::f32)(cellCoord.Y));
+            mGuiRegionMode.XMinBox->SetValue(cellCoord.X);
+            mGuiRegionMode.YMinBox->SetValue(cellCoord.Y);
 
             mParentSession->mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, false);
             mOpMode = DEF_REGION_OPMODE_DEFAULT;
@@ -708,8 +707,8 @@ void RegionMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newI
                 cellCoord.Y += 1;
             }
 
-            mGuiRegionMode.XMaxBox->SetValue((irr::f32)(cellCoord.X));
-            mGuiRegionMode.YMaxBox->SetValue((irr::f32)(cellCoord.Y));
+            mGuiRegionMode.XMaxBox->SetValue(cellCoord.X);
+            mGuiRegionMode.YMaxBox->SetValue(cellCoord.Y);
 
             mParentSession->mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, false);
             mOpMode = DEF_REGION_OPMODE_DEFAULT;
@@ -776,8 +775,6 @@ void RegionMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruc
             if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
                 //Draw the "cross" at the currently highlighted vertex
                 mParentSession->DrawCellVertexCross(mCurrHighlightedItem, mParentSession->mParentEditor->mDrawDebug->green);
-
-                //mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
             }
      }
 }

@@ -872,17 +872,35 @@ void EditorSession::HandleBasicInput() {
                         camera->setInputReceiverEnabled( !camera->isInputReceiverEnabled() );
                         if (camera->isInputReceiverEnabled()) {
                               this->mControlInfoText->setText(L"Freefly Mode");
+                              mFreeFlyMode = true;
                               if (mEditorMode != nullptr) {
                                   mEditorMode->HideWindow();
                               }
                         } else {
                               this->mControlInfoText->setText(L"Edit Mode");
+                              mFreeFlyMode = false;
                                 if (mEditorMode != nullptr) {
                                     mEditorMode->ShowWindow();
                                 }
                         }
                     }
               }
+
+    //in editing mode, when user is in an active editor mode, and in the editor
+    //mode dialog window, forward certain keypresses to be able to control editor mode window
+    if (!mFreeFlyMode) {
+        if (mUserInDialogState != DEF_EDITOR_USERINNODIALOG) {
+               if (mEditorMode != nullptr) {
+                    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_UP)) {
+                         mEditorMode->OnKeyPressedInWindow(irr::KEY_UP);
+                    }
+
+                    if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN)) {
+                         mEditorMode->OnKeyPressedInWindow(irr::KEY_DOWN);
+                    }
+               }
+        }
+    }
 }
 
 void EditorSession::TrackActiveDialog() {

@@ -143,6 +143,7 @@ struct GUIEntityMode
      ***************/
 
      irr::gui::IGUITable* EntityTable;
+     irr::gui::IGUIScrollBar* EntityTableVertScrollBar;
 };
 
 class EntityMode : public EditorMode {
@@ -184,6 +185,8 @@ private:
     void AddEntityTableEntry(EditorEntity* whichEntity);
     void UpdateEntitiesTable();
 
+    void ChangePositionEntitiesTable(irr::s32 deltaPositionCnt);
+
     bool mListWaypoints = true;
     bool mListWallsegments = true;
     bool mListRecoveryvehicles = true;
@@ -200,6 +203,10 @@ private:
     int16_t mLastSelectedTableEntityNr = -1;
 
     void HighlightEntityTableRow(EditorEntity* whichEntity);
+
+    //Returns -1 if invalid specified editor entity item, or item is currently
+    //not shown in the table at all
+    irr::s32 GetTableRowForEditorEntityItem(EditorEntity* whichEntity);
 
     void UpdateUiDialog();
 
@@ -228,6 +235,8 @@ public:
     virtual void OnTableSelected(irr::s32 elementId);
 
     virtual void OnIntNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
+
+    virtual void OnKeyPressedInWindow(irr::EKEY_CODE whichKeyPressed);
 
     //the entity category selection dialog needs all hover events
     //to be able to properly select the category
