@@ -70,7 +70,7 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
     }
 
     this->m_TextureId = cid;
-    this->m_TextureModification = (bytes.at(10) >> 4);
+    this->m_TextureModification = (uint8_t)(bytes.at(10));
 
     mPointOfInterest = ConvertByteArray_ToInt16(bytes, 6);
 
@@ -83,6 +83,34 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
 }
 
 MapEntry::~MapEntry() {
+}
+
+int8_t MapEntry::GetTextureModification() {
+    int8_t result = (int8_t)((m_TextureModification >> 4));
+
+    return result;
+}
+
+void MapEntry::SetTextureModification(int8_t newValue) {
+    //We do not want to get negative values!
+    if (newValue < 0) {
+        return;
+    }
+
+    //Wolf 08.11.2025: clear current texture modification value bits
+    //but keep other lowest 4 bits intact!
+    m_TextureModification &= 0b1111;
+
+    uint8_t newModBits = ((uint8_t)(newValue) << 4);
+
+    //or in the new texture modification bits
+    m_TextureModification |= newModBits;
+}
+
+uint8_t MapEntry::GetTextureModificationLowerNibble() {
+    uint8_t result = (uint8_t)((m_TextureModification & 0b1111));
+
+    return result;
 }
 
 void MapEntry::set_Column(ColumnDefinition* newColumnDefinition) {
@@ -135,7 +163,7 @@ bool MapEntry::WriteChanges() {
         ConvertAndWriteInt16ToByteArray(m_TextureId, this->m_wBytes, 4);
     }
 
-    this->m_wBytes.at(10) = (uint8_t)(this->m_TextureModification << 4);
+    this->m_wBytes.at(10) = (uint8_t)(this->m_TextureModification);
 
     ConvertAndWriteInt16ToByteArray(mPointOfInterest, this->m_wBytes, 6);
 

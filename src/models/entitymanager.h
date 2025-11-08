@@ -143,6 +143,8 @@ public:
 
     void SetShowSpecialEditorEntityTransparentSelectionBoxes(bool visible);
 
+    void SetFog(bool enabled);
+
     irr::f32 GetCollectableCenterHeight();
     irr::core::vector2df GetCollectableSize();
     irr::u16 GetCollectableSpriteNumber(Entity::EntityType mEntityType);

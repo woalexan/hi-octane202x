@@ -245,8 +245,8 @@ bool LevelTerrain::CheckPosInsideRegion(int posX, int posY, MapTileRegionStruct*
 
 //returns true if two specified regions (r1x1, r1y1, r1x2, r1y2) and (r2x1, r2y1, r2x2, r2y2) are overlapping
 //false otherwise
-bool LevelTerrain::Overlapping(irr::u16 r1x1, irr::u16 r1y1, irr::u16 r1x2, irr::u16 r1y2,
-                               irr::u16 r2x1, irr::u16 r2y1, irr::u16 r2x2, irr::u16 r2y2) {
+bool LevelTerrain::Overlapping(irr::f32 r1x1, irr::f32 r1y1, irr::f32 r1x2, irr::f32 r1y2,
+                               irr::f32 r2x1, irr::f32 r2y1, irr::f32 r2x2, irr::f32 r2y2) {
     if (r1x1 > r2x2 || r2x1 > r1x2)
           return false;
 
@@ -1422,7 +1422,7 @@ int LevelTerrain::TerrainOptimization_compareCells(MapEntry *MiddleCell, MapEntr
      opti_cnt_result++;
   } else {
             //height is the same, now we want to check the uv information if the are identical
-            if ((MiddleCell->m_TextureId) != (Neighborcell->m_TextureId) || (MiddleCell->m_TextureModification != Neighborcell->m_TextureModification)) {
+            if ((MiddleCell->m_TextureId) != (Neighborcell->m_TextureId) || (MiddleCell->GetTextureModification() != Neighborcell->GetTextureModification())) {
                 //Texture seems to be different, we are done
                 opti_cnt_result++;
             }
@@ -1701,7 +1701,7 @@ bool LevelTerrain::SetupGeometry() {
         tile->currTileHeight = GetAveragedTileHeight(x, z);
 
         //texture atlas 4 UVs
-        newuvs = MakeUVs(a->m_TextureModification);
+        newuvs = MakeUVs(a->GetTextureModification());
 
         tile->vert1->TCoords = newuvs[0];
         tile->vert1UVcoord = newuvs[0];
@@ -2053,10 +2053,10 @@ void LevelTerrain::ApplyMorph(Morph& morph)
                   if (updateUVs && (dx > 0) && (dz > 0))
                   {
                       //create updated texture coordinates
-                      if (a->m_TextureModification != e->m_TextureModification) {
+                      if (a->GetTextureModification() != e->GetTextureModification()) {
                                uvs = sourceEnabled && !morph.Permanent ?
-                                  MakeUVs(a->m_TextureModification) :
-                                  MakeUVs(e->m_TextureModification);
+                                  MakeUVs(a->GetTextureModification()) :
+                                  MakeUVs(e->GetTextureModification());
 
                                updatedUVS = true;
 
@@ -2440,7 +2440,7 @@ irr::core::vector3df LevelTerrain::GetRegionMiddleWorldCoordinate(MapTileRegionS
     if (region == nullptr)
         return pos;
 
-    irr::core::vector2di midCell = region->regionCenterTileCoord;
+    irr::core::vector2df midCell = region->regionCenterTileCoord;
 
     pos.X = -midCell.X * DEF_SEGMENTSIZE - 0.5f;
     pos.Z = midCell.Y * DEF_SEGMENTSIZE + 0.5f;
@@ -2875,7 +2875,7 @@ void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newText
         return;
 
     //set new texture modifier value in lowlevel map data
-    entry->m_TextureModification = newTextureModifier;
+    entry->SetTextureModification(newTextureModifier);
 
     /******************************************************************
      * Part 2: According to new texture modify Irrlicht Terrain Mesh  *

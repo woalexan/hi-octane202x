@@ -227,7 +227,7 @@ public:
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
     virtual void OnTableSelected(irr::s32 elementId);
 
-    virtual void OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
+    virtual void OnIntNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
 
     //the entity category selection dialog needs all hover events
     //to be able to properly select the category

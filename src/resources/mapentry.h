@@ -32,7 +32,6 @@ public:
 
     float m_Height;
     int16_t m_TextureId;
-    int8_t m_TextureModification;
 
     int get_X();
     int get_Z();
@@ -42,6 +41,11 @@ public:
     ColumnDefinition* get_Column();
 
     bool WriteChanges() override;
+
+    void SetTextureModification(int8_t newValue);
+    int8_t GetTextureModification();
+
+    uint8_t GetTextureModificationLowerNibble();
 
     int16_t mPointOfInterest;
 
@@ -63,6 +67,8 @@ protected:
     int m_Z;
 
     ColumnDefinition* m_Column = nullptr;
+
+    uint8_t m_TextureModification;
 };
 
 #endif // MAPENTRY_H

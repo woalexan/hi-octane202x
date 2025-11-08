@@ -58,7 +58,8 @@ public:
 
     virtual void OnNewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
 
-    virtual void OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
+    virtual void OnIntNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue);
+    virtual void OnFloatNumberEditBoxNewValue(NumberEditBox* whichBox, irr::f32& newValue);
 
     void HideWindow();
     void ShowWindow();

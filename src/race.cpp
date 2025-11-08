@@ -3298,38 +3298,17 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
 
 void Race::IndicateTriggerRegions() {
     std::vector<MapTileRegionStruct*>::iterator it;
-    irr::core::vector3df pos1;
-    irr::core::vector3df pos2;
-    irr::core::vector3df pos3;
-    irr::core::vector3df pos4;
-    irr::core::vector2di cell;
-
-    ColorStruct *color = this->mGame->mDrawDebug->red;
 
     for (it = this->mTriggerRegionVec.begin(); it != this->mTriggerRegionVec.end(); ++it) {
-       pos1.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
-       pos1.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmin]->m_Height;
-       pos1.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
+        ColorStruct *color = this->mGame->mDrawDebug->red;
 
-       pos2.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
-       pos2.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmax]->m_Height;
-       pos2.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
+        if ((*it)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
+            color = this->mGame->mDrawDebug->cyan;
+        } else if ((*it)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
+            color = this->mGame->mDrawDebug->orange;
+        }
 
-       pos3.X = -(*it)->tileXmin * DEF_SEGMENTSIZE;
-       pos3.Y = this->mLevelRes->pMap[(*it)->tileXmin][(*it)->tileYmax]->m_Height;
-       pos3.Z = (*it)->tileYmax * DEF_SEGMENTSIZE;
-
-       pos4.X = -(*it)->tileXmax * DEF_SEGMENTSIZE;
-       pos4.Y = this->mLevelRes->pMap[(*it)->tileXmax][(*it)->tileYmin]->m_Height;
-       pos4.Z = (*it)->tileYmin * DEF_SEGMENTSIZE;
-
-       if ((*it)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
-           color = this->mGame->mDrawDebug->cyan;
-       } else if ((*it)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
-           color = this->mGame->mDrawDebug->orange;
-       }
-
-       mGame->mDrawDebug->Draw3DRectangle(pos1, pos3, pos2, pos4, color);
+       mLevelTerrain->DrawRegionOutline((*it), color);
    }
 }
 

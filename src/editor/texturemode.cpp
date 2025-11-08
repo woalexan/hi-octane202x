@@ -695,7 +695,7 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
 
         if (entry != nullptr) {
             int16_t texId = entry->m_TextureId;
-            int8_t texMod = entry->m_TextureModification;
+            int8_t texMod = entry->GetTextureModification();
 
             //update image of currently selected texture
             mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(texId));

@@ -149,6 +149,16 @@ void EditorEntity::SetMeshPosOffset(irr::core::vector3df newOffset) {
     }
 }
 
+void EditorEntity::SetFog(bool enabled) {
+    if (mBillSceneNode != nullptr) {
+        mBillSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
+    }
+
+    if (mSceneNode != nullptr) {
+        mSceneNode->setMaterialFlag(EMF_FOG_ENABLE, enabled);
+    }
+}
+
 //does a position update of the higher level model
 //based on the low level map EntityItem data
 void EditorEntity::UpdatePosition() {

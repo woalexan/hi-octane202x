@@ -41,6 +41,7 @@ Recovery::Recovery(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::I
 
     Recovery_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     Recovery_node->setMaterialFlag(irr::video::EMF_LIGHTING, mRace->mGame->enableLightning);
+    Recovery_node->setMaterialFlag(irr::video::EMF_FOG_ENABLE, true);
 
     if (this->mRace->mGame->enableShadows) {
         // add shadow

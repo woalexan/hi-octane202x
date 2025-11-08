@@ -58,6 +58,8 @@ public:
 
     void UpdateBoundingBox();
 
+    void SetFog(bool enabled);
+
     //does a position update of the higher level model
     //based on the low level map EntityItem data
     void UpdatePosition();

@@ -105,7 +105,10 @@ void EditorMode::OnEditBoxEnterEvent(irr::s32 editBoxId) {
 void EditorMode::OnElementFocusLost(irr::s32 elementId) {
 }
 
-void EditorMode::OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
+void EditorMode::OnIntNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
+}
+
+void EditorMode::OnFloatNumberEditBoxNewValue(NumberEditBox* whichBox, irr::f32& newValue) {
 }
 
 //is called when the editor mode

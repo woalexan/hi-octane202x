@@ -27,6 +27,14 @@ public:
     //Returns true if conversion was succesfull, False otherwise
     //The value is returned in reference parameter value
     bool GetUIntFromTableEntry(irr::gui::IGUITable* table, irr::s32 rowIdx, irr::s32 columnIdx, irr::u32 &value);
+
+    //For any unexpected error (for example string is not a number and contains other characters as well) the
+    //this function will return an empty string
+    irr::core::stringw NumberStringLimitDecimalPlaces(irr::core::stringw inputStr, irr::u8 nrDecimalPlaces);
+
+    //Returns true in case the input string contains a number, False if there are any other characters
+    //that are no digits;
+    bool StringContainsNumber(irr::core::stringw inputStr, bool allowDecimalNumber = false);
     
 private:
     Editor* mParentEditor = nullptr;

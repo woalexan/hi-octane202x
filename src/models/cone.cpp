@@ -30,6 +30,7 @@ Cone::Cone(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::ISceneMan
     cone_node->setPosition(Position);
     cone_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     cone_node->setMaterialFlag(irr::video::EMF_LIGHTING, mRace->mGame->enableLightning);
+    cone_node->setMaterialFlag(irr::video::EMF_FOG_ENABLE, true);
 
     irr::core::aabbox3df coneBox = cone_node->getTransformedBoundingBox();
     irr::core::vector3df coneExtend = coneBox.getExtent();
