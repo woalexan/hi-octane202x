@@ -979,9 +979,7 @@ bool EditorSession::IsMorphingRunning() {
 void EditorSession::SetFog(bool enabled) {
    mLevelBlocks->SetFog(enabled);
    mLevelTerrain->SetFog(enabled);
-
-   //09.08.2025: TODO: also add fog control
-   //to later editor entities (models)
+   mEntityManager->SetFog(enabled);
 }
 
 void EditorSession::TriggerClose() {

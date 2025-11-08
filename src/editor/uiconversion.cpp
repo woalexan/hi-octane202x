@@ -100,12 +100,13 @@ irr::core::stringw UiConversion::NumberStringLimitDecimalPlaces(irr::core::strin
 
     size_t lastCharPos = (size_t)(radixPos) + (size_t)(nrDecimalPlaces) + 1;
 
-    //is the input string long enough?
-    if (lastCharPos >= inputStr.size()) {
-        //no, its not, return empty string
-        return resultStr;
+    //is the input string too long?
+    if (inputStr.size() <= lastCharPos) {
+        //no, its not, return full input string
+        return inputStr;
     }
 
+    //need to truncate
     resultStr = inputStr.subString(0, lastCharPos);
     return resultStr;
 }

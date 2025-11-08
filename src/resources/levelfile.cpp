@@ -25,13 +25,15 @@
 
 /* LevelFile Layout
 
-1. Offset 0          => Offset 96000   Entity-Table (stores 4000 Entities)
-   Offset 96001      => Offset 98011   Unknown data (I believe not used, contains value that just increases)
-2. Offset 98012      => Offset 124636  Column-Definitions (stores 1024 Column Definitions)
-3. Offset 124636     => Offset 141020  Block-Definitions  (stores 1024 Block Definitions)
-   Offset 141021     => Offset 246923  Unknown data
-4. Offset 246924     => Offset 247604  Region-Definitions (stores 8 Region Definitions)
-   Offset 247605     => Offset 404619  Unknown data
+   Offset 0          => Offset 23      Unknown data (24 Bytes)
+1. Offset 24         => Offset 95999   Entity-Table (stores 3999 Entities)
+   Offset 96000      => Offset 98037   Unknown data (I believe not used, contains value that just increases), 2037 bytes
+2. Offset 98038      => Offset 124635  Column-Definitions (stores 1023 Column Definitions)
+3. Offset 124636     => Offset 124651  Unknown data (16 Bytes)
+   Offset 124652     => Offset 141019  Block-Definitions  (stores 1023 Block Definitions)
+   Offset 141020     => Offset 246923  Unknown data (105904 bytes)
+4. Offset 246924     => Offset 247603  Region-Definitions (stores 8 Region Definitions)
+   Offset 247604     => Offset 404619  Unknown data (157016 bytes)
 5. Offset 404620     => Offset 896140  Tile-Data (256 x 160 Tiles)
 
 */
@@ -89,9 +91,16 @@ LevelFile::LevelFile(std::string filename) {
         return;
     }
 
-    ready_result = loadBlockTexTable() && loadColumnsTable() && loadMap() && loadEntitiesTable() &&
-            loadMapRegions() && loadUnknownTableOffset3168() &&
-            loadUnknownTableOffset3312() && loadUnknownTableOffset102068() && loadUnknownTableOffset127468() && loadUnknownTableOffset247604();
+    ready_result = loadBlockTexTable() && loadColumnsTable() && loadMapEntries() && loadEntitiesTable() &&
+            loadMapRegions();
+
+    //also load unknown table data
+    ready_result &= loadUnknownTableAtOffset(0, 24, unknownTable0Data);
+    ready_result &= loadUnknownTableAtOffset(96000, 2038, unknownTable96000Data);
+    ready_result &= loadUnknownTableAtOffset(124636, 16, unknownTable124636Data);
+    ready_result &= loadUnknownTableAtOffset(141020, 105904, unknownTable141020Data);
+    ready_result &= loadUnknownTableAtOffset(247604, 157016, unknownTable247604Data);
+
     this->m_Ready = ready_result;
 
     //for debugging of level save functionality
@@ -100,37 +109,15 @@ LevelFile::LevelFile(std::string filename) {
     std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_bytes.size(), 0x55);
 
     if (false) {
-        InvestigatePrintUnknownTableOffset3312();
-        InvestigatePrintUnknownTableOffset102068();
-        InvestigatePrintUnknownTableOffset127468();
         PrintRegionTable();
-        InvestigatePrintUnknownTableOffset247604();
+        PrintUnknownTableAtOffset(0, unknownTable0Data);
+        PrintUnknownTableAtOffset(96000, unknownTable96000Data);
+        PrintUnknownTableAtOffset(124636, unknownTable124636Data);
+        PrintUnknownTableAtOffset(141020, unknownTable141020Data);
+        PrintUnknownTableAtOffset(247604, unknownTable247604Data);
     }
 
     //DebugWriteCellInfoToCsvFile((char*)("dbgcellInfo.csv"));
-
-    /*std::vector<unsigned char>::iterator it;
-    unsigned int pos = 0;
-    for (it = unknownTable247264Data.begin(); it != unknownTable247264Data.end(); ++it) {
-        (*it) = 0;
-
-        pos++;
-    }*/
-
-    //unknownTable247264Data.at(48 + 2 * 85) = 4;
-
-    //SaveUnknownTableOffset247264();
-/*
-    pos = 0;
-
-    for (it = unknownTable358222Data.begin(); it != unknownTable358222Data.end(); ++it) {
-       // if (pos > 84) {
-            (*it) = 0;
-      //  }
-        pos++;
-    }
-
-    SaveUnknownTableOffset358222();*/
 }
 
 LevelFile::~LevelFile() {
@@ -256,7 +243,8 @@ bool LevelFile::loadEntitiesTable() {
 
     this->Entities.clear();
 
-    for (int i = 0; i < 4000; i++) {
+    //index starts at i = 1, Entry i = 0 is not used
+    for (int i = 1; i < 4000; i++) {
         int baseOffset = i * 24;
         if (this->m_bytes.at(baseOffset) == 0) continue;
 
@@ -289,7 +277,8 @@ bool LevelFile::loadBlockTexTable() {
 
     //BlockDefinitions = new OrderedDictionary<int, BlockDefinition>();
 
-    for (int i = 0; i < 1024; i++) {
+    //index starts at i = 1, Entry i = 0 is not used
+    for (int i = 1; i < 1024; i++) {
         int baseOffset = 124636 + i * 16;
         if (this->m_bytes.at(baseOffset) == 0) continue;
 
@@ -319,9 +308,8 @@ bool LevelFile::loadColumnsTable() {
 
     this->ColumnDefinitions.clear();
 
-    //ColumnDefinitions = new OrderedDictionary<int, ColumnDefinition>();
-
-    for (int i = 0; i < 1024; i++) {
+    //index starts at i = 1, Entry i = 0 is not used
+    for (int i = 1; i < 1024; i++) {
         int baseOffset = 98012 + i * 26;
         if (this->m_bytes.at(baseOffset) == 0) continue;
 
@@ -344,7 +332,7 @@ bool LevelFile::loadColumnsTable() {
  return(true);
 }
 
-bool LevelFile::loadMap() {
+bool LevelFile::loadMapEntries() {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
     std::vector<uint8_t> dataslice;
@@ -419,7 +407,7 @@ bool LevelFile::Save(std::string filename) {
    //yet know what it means
   // std::copy(this->m_bytes.begin(), this->m_bytes.end(), this->m_wBytes.begin());
 
-   saveMap();
+   saveMapEntries();
    saveColumnsTable();
    saveBlockTexTable();
    saveEntitiesTable();
@@ -479,7 +467,8 @@ bool LevelFile::loadMapRegions() {
             //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
             //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
             //the value used for almost all levels in extended version of the game.
-            //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+            //Byte offset 49 seems to be always value 128 for each existing entry
+            //Byte 69 contains value 244 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
             //(anti cheat mechanism?)
 
             //middle point of rectangle that defines region is stored
@@ -597,105 +586,26 @@ bool LevelFile::PrintRegionTable() {
     return true;
 }
 
-bool LevelFile::InvestigatePrintUnknownTableOffset127468() {
+bool LevelFile::PrintUnknownTableAtOffset(size_t offset, std::vector<uint8_t> &sourceTable) {
     std::vector<uint8_t>::iterator it;
 
     char finalpath[100];
+    char offsetStr[20];
+
+    snprintf(offsetStr, 19, "%d", (int)(offset));
 
     strcpy(finalpath, this->get_Filename().c_str());
-    strcat(finalpath, "-table127468.txt");
+    strcat(finalpath, "-table");
+    strcat(finalpath, offsetStr);
 
     //now we have our output filename
-    //FILE* oFile = fopen(finalpath, "w");
     FILE* oFile = fopen(finalpath, "w+b");
     if (oFile == nullptr) {
        return false;
     }
 
-    it = this->unknownTable127468Data.begin();
-    for (; it != this->unknownTable127468Data.end();++it) {
-       //fprintf(oFile, "; %u ", (*it));
-       fprintf(oFile, "%c", (*it));
-    }
-
-    //close file
-    fclose(oFile);
-
-    return true;
-}
-
-bool LevelFile::InvestigatePrintUnknownTableOffset247604() {
-    std::vector<uint8_t>::iterator it;
-
-    char finalpath[100];
-
-    strcpy(finalpath, this->get_Filename().c_str());
-    strcat(finalpath, "-table247604.txt");
-
-    //now we have our output filename
-    //FILE* oFile = fopen(finalpath, "w");
-    FILE* oFile = fopen(finalpath, "w+b");
-    if (oFile == nullptr) {
-       return false;
-    }
-
-    it = this->unknownTable247604Data.begin();
-    for (; it != this->unknownTable247604Data.end();++it) {
-       //fprintf(oFile, "; %u ", (*it));
-       fprintf(oFile, "%c", (*it));
-    }
-
-    //close file
-    fclose(oFile);
-
-    return true;
-}
-
-bool LevelFile::InvestigatePrintUnknownTableOffset102068() {
-    std::vector<uint8_t>::iterator it;
-
-    char finalpath[100];
-
-    strcpy(finalpath, this->get_Filename().c_str());
-    strcat(finalpath, "-table102068.txt");
-
-    //now we have our output filename
-    //FILE* oFile = fopen(finalpath, "w");
-    FILE* oFile = fopen(finalpath, "w+b");
-    if (oFile == nullptr) {
-       return false;
-    }
-
-    it = this->unknownTable102068Data.begin();
-    for (; it != this->unknownTable102068Data.end();++it) {
-       //fprintf(oFile, "; %u ", (*it));
-       fprintf(oFile, "%c", (*it));
-    }
-
-    //close file
-    fclose(oFile);
-
-    return true;
-}
-
-bool LevelFile::InvestigatePrintUnknownTableOffset3312() {
-    std::vector<uint8_t>::iterator it;
-
-    char finalpath[100];
-
-    strcpy(finalpath, this->get_Filename().c_str());
-    strcat(finalpath, "-table3312.txt");
-
-    //now we have our output filename
-    //FILE* oFile = fopen(finalpath, "w");
-    FILE* oFile = fopen(finalpath, "w+b");
-    if (oFile == nullptr) {
-       return false;
-    }
-
-    it = this->unknownTable3312Data.begin();
-    for (; it != this->unknownTable3312Data.end();++it) {
-       //fprintf(oFile, "; %u ", (*it));
+    it = sourceTable.begin();
+    for (; it != sourceTable.end();++it) {
        fprintf(oFile, "%c", (*it));
     }
 
@@ -723,102 +633,13 @@ bool LevelFile::IsAColumnAtCoordinates(int x, int y) {
     return true;
 }
 
-/*bool LevelFile::SaveUnknownTableOffset358222() {
-
-    int baseOffset = 358222;
-
-    char* ByteArray;
-    ByteArray = new char[this->unknownTable358222Data.size()];
-
-    FILE* oFile = nullptr;
-
-    oFile = fopen(this->m_Filename.c_str(), "r+b");
-    if (oFile == nullptr) {
-       return false;
-    }
-
-    std::vector<uint8_t>::iterator it;
-    unsigned long pos = 0;
-
-    for (it = this->unknownTable358222Data.begin(); it != this->unknownTable358222Data.end(); ++it) {
-        ByteArray[pos] = (*it);
-        pos++;
-    }
-
-    fseek(oFile, baseOffset, SEEK_SET);
-    fwrite(&ByteArray[0], 1, this->unknownTable358222Data.size(), oFile);
-
-    fclose(oFile);
-
-    return true;
-}*/
-
-bool LevelFile::loadUnknownTableOffset247604() {
+bool LevelFile::loadUnknownTableAtOffset(size_t offset, size_t bytes, std::vector<uint8_t> &targetTable) {
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 247604;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 157016 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 157016;
-    unknownTable247604Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset3168() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 3168;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 72 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 72;
-    unknownTable3168Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset3312() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 3312;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 94736 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 94736;
-    unknownTable3312Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset102068() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 102068;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 22584 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 22584;
-    unknownTable102068Data.assign(startslice, endslice);
-
-    return true;
-}
-
-bool LevelFile::loadUnknownTableOffset127468() {
-    std::vector<uint8_t>::const_iterator startslice;
-    std::vector<uint8_t>::const_iterator endslice;
-
-    int baseOffset = 127468;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //unknown table has 119796 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 119796;
-    unknownTable127468Data.assign(startslice, endslice);
+    startslice = this->m_bytes.begin() + offset;
+    endslice = this->m_bytes.begin() + offset + bytes;
+    targetTable.assign(startslice, endslice);
 
     return true;
 }
@@ -960,7 +781,6 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    irr::f32 midX = ((coord2.X - coord1.X) / 2.0f) + coord1.X;
    irr::f32 midY = ((coord2.Y - coord1.Y) / 2.0f) + coord1.Y;
 
-   //round towards next integer
    pntr = new MapTileRegionStruct();
    pntr->regionId = whichRegionId;
    pntr->tileXmax = coord2.X;
@@ -1019,7 +839,7 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
 
    //what is the remaining value?
    irr::f32 remainX = pntr->regionCenterTileCoord.X - (irr::f32)(intX);
-   if (remainX > 0.5f) {
+   if (remainX >= 0.5f) {
        //this byte only used values 0 or 128; add 0.5f (value 128)
        regionTable.at(whichRegionId * 85 + 24) = (uint8_t)(128);
    } else {
@@ -1028,7 +848,7 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    }
 
    irr::f32 remainY = pntr->regionCenterTileCoord.Y - (irr::f32)(intY);
-   if (remainY > 0.5f) {
+   if (remainY >= 0.5f) {
        //this byte only used values 0 or 128; add 0.5f (value 128)
        regionTable.at(whichRegionId * 85 + 26) = (uint8_t)(128);
    } else {
@@ -1036,8 +856,8 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
        regionTable.at(whichRegionId * 85 + 26) = (uint8_t)(0);
    }
 
-   irr::f32 deltaX = pntr->tileXmax - pntr->regionCenterTileCoord.X;
-   irr::f32 deltaY = pntr->tileYmax - pntr->regionCenterTileCoord.Y;
+   irr::f32 deltaX = (pntr->tileXmax - pntr->tileXmin) * 0.5f;
+   irr::f32 deltaY = (pntr->tileYmax - pntr->tileYmin) * 0.5f;
 
    //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
    //for the other levels), and the extended version of the game has (compared with non extended game another)
@@ -1061,7 +881,7 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
 
    //what is the remaining value?
    irr::f32 remainDeltaX = deltaX - (irr::f32)(intDeltaX);
-   if (remainDeltaX > 0.5f) {
+   if (remainDeltaX >= 0.5f) {
        //this byte only used values 0 or 128; add 0.5f (value 128)
        regionTable.at(whichRegionId * 85 + 45) = (uint8_t)(128);
    } else {
@@ -1070,7 +890,7 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    }
 
    irr::f32 remainDeltaY = deltaY - (irr::f32)(intDeltaY);
-   if (remainDeltaY > 0.5f) {
+   if (remainDeltaY >= 0.5f) {
        //this byte only used values 0 or 128; add 0.5f (value 128)
        regionTable.at(whichRegionId * 85 + 47) = (uint8_t)(128);
    } else {
@@ -1078,9 +898,12 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
        regionTable.at(whichRegionId * 85 + 47) = (uint8_t)(0);
    }
 
-   //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+   //Byte offset 49 seems to be always value 128 for each existing entry
+   regionTable.at(whichRegionId * 85 + 49) = (uint8_t)(128);
+
+   //Byte 69 contains value 244 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
    //(anti cheat mechanism?)
-   regionTable.at(whichRegionId * 85 + 69) = (uint8_t)(245)+(uint8_t)(newRegionType);
+   regionTable.at(whichRegionId * 85 + 69) = (uint8_t)(244)+(uint8_t)(newRegionType);
 
    //we also need to add the POI (point of interest) pointing onto this
    //new region
@@ -1557,17 +1380,17 @@ void LevelFile::DebugWriteCellInfoToCsvFile(char* debugOutPutFileName) {
    MapEntry* entry;
 
    //write a header
-   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;POI;Illumination;Reserved1;Reserved2\n");
+   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;TexModLowNibble;POI;Illumination;Reserved1;Reserved2\n");
    for (int x = 0; x < LEVELFILE_WIDTH; x++) {
        for (int y = 0; y < LEVELFILE_HEIGHT; y++) {
            entry = pMap[x][y];
 
            if (entry != nullptr) {
                //write the next entry
-               fprintf(debugOutputFile, "%d;%d;%lf;%d;%d;%d;%d;%d;%d\n",
+               fprintf(debugOutputFile, "%d;%d;%lf;%d;%d;%u;%d;%d;%d;%d\n",
                     x, y, entry->m_Height, entry->m_TextureId,
-                    entry->m_TextureModification, entry->mPointOfInterest,
-                     entry->mIllumination, entry->mReserved1, entry->mReserved2);
+                    entry->GetTextureModification(), entry->GetTextureModificationLowerNibble(),
+                     entry->mPointOfInterest, entry->mIllumination, entry->mReserved1, entry->mReserved2);
             }
       }
    }
@@ -1642,6 +1465,9 @@ bool LevelFile::AddEntityAtCell(int x, int y, irr::f32 heightTerrain, Entity::En
 bool LevelFile::saveBlockTexTable() {
     std::vector<BlockDefinition*>::iterator it;
 
+    //fill overall block texture table with zero bytes
+    std::fill(m_wBytes.begin() + 124652, m_wBytes.begin() + 141020, 0);
+
     //iterate overall all existing block definitions and
     //collect data
     for (it = BlockDefinitions.begin(); it != BlockDefinitions.end(); ++it) {
@@ -1658,6 +1484,9 @@ bool LevelFile::saveBlockTexTable() {
 
 bool LevelFile::saveEntitiesTable() {
     std::vector<EntityItem*>::iterator it;
+
+    //fill overall entity table with zero bytes
+    std::fill(m_wBytes.begin() + 24, m_wBytes.begin() + 96000, 0);
 
     //iterate overall all existing Entities and
     //collect data
@@ -1676,6 +1505,9 @@ bool LevelFile::saveEntitiesTable() {
 bool LevelFile::saveColumnsTable() {
     std::vector<ColumnDefinition*>::iterator it;
 
+    //fill overall columns table with zero bytes
+    std::fill(m_wBytes.begin() + 98038, m_wBytes.begin() + 124636, 0);
+
     //iterate overall all existing Column Definitions and
     //collect data
     for (it = ColumnDefinitions.begin(); it != ColumnDefinitions.end(); ++it) {
@@ -1690,7 +1522,7 @@ bool LevelFile::saveColumnsTable() {
    return(true);
 }
 
-bool LevelFile::saveMap() {
+bool LevelFile::saveMapEntries() {
     MapEntry* mapEntry;
 
     //iterate overall all existing map entries and
@@ -1722,30 +1554,24 @@ bool LevelFile::saveRegionTable() {
 }
 
 bool LevelFile::saveUnknownTables() {
-    //third table Offset3168
-    std::copy(this->unknownTable3168Data.begin(), unknownTable3168Data.end(), this->m_wBytes.begin()
-              + 3168);
+    //first unknown data table
+    std::copy(this->unknownTable0Data.begin(), unknownTable0Data.end(), this->m_wBytes.begin());
 
-    //fourth table Offset3312
-    std::copy(this->unknownTable3312Data.begin(), unknownTable3312Data.end(), this->m_wBytes.begin()
-              + 3312);
+    //2nd unknown data table
+    std::copy(this->unknownTable96000Data.begin(), unknownTable96000Data.end(), this->m_wBytes.begin()
+              + 96000);
 
-    //fourth table Offset102068
-    std::copy(this->unknownTable102068Data.begin(), unknownTable102068Data.end(), this->m_wBytes.begin()
-              + 102068);
+    //3rd unknown data table
+    std::copy(this->unknownTable124636Data.begin(), unknownTable124636Data.end(), this->m_wBytes.begin()
+              + 124636);
 
-    //std::fill(this->unknownTable247604Data.begin(), unknownTable247604Data.end(), 0);
+    //4th unknown table
+    std::copy(this->unknownTable141020Data.begin(), unknownTable141020Data.end(), this->m_wBytes.begin()
+              + 141020);
 
-    //std::fill(this->unknownTable127468Data.begin(), unknownTable127468Data.end(), 0);
-
-    //12th table Offset127468
-    std::copy(this->unknownTable127468Data.begin(), unknownTable127468Data.end(), this->m_wBytes.begin()
-              + 127468);
-
-    //11th table Offset247604
+    //5th unknown table
     std::copy(this->unknownTable247604Data.begin(), unknownTable247604Data.end(), this->m_wBytes.begin()
               + 247604);
 
     return true;
 }
-

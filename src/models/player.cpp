@@ -482,6 +482,7 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
 
     Player_node->setScale(irr::core::vector3d<irr::f32>(1,1,1));
     Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
+    Player_node->setMaterialFlag(irr::video::EMF_FOG_ENABLE, true);
 
     if (this->mRace->mGame->enableShadows) {
        // add shadow

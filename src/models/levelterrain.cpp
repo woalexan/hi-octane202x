@@ -1422,7 +1422,7 @@ int LevelTerrain::TerrainOptimization_compareCells(MapEntry *MiddleCell, MapEntr
      opti_cnt_result++;
   } else {
             //height is the same, now we want to check the uv information if the are identical
-            if ((MiddleCell->m_TextureId) != (Neighborcell->m_TextureId) || (MiddleCell->m_TextureModification != Neighborcell->m_TextureModification)) {
+            if ((MiddleCell->m_TextureId) != (Neighborcell->m_TextureId) || (MiddleCell->GetTextureModification() != Neighborcell->GetTextureModification())) {
                 //Texture seems to be different, we are done
                 opti_cnt_result++;
             }
@@ -1701,7 +1701,7 @@ bool LevelTerrain::SetupGeometry() {
         tile->currTileHeight = GetAveragedTileHeight(x, z);
 
         //texture atlas 4 UVs
-        newuvs = MakeUVs(a->m_TextureModification);
+        newuvs = MakeUVs(a->GetTextureModification());
 
         tile->vert1->TCoords = newuvs[0];
         tile->vert1UVcoord = newuvs[0];
@@ -2053,10 +2053,10 @@ void LevelTerrain::ApplyMorph(Morph& morph)
                   if (updateUVs && (dx > 0) && (dz > 0))
                   {
                       //create updated texture coordinates
-                      if (a->m_TextureModification != e->m_TextureModification) {
+                      if (a->GetTextureModification() != e->GetTextureModification()) {
                                uvs = sourceEnabled && !morph.Permanent ?
-                                  MakeUVs(a->m_TextureModification) :
-                                  MakeUVs(e->m_TextureModification);
+                                  MakeUVs(a->GetTextureModification()) :
+                                  MakeUVs(e->GetTextureModification());
 
                                updatedUVS = true;
 
@@ -2875,7 +2875,7 @@ void LevelTerrain::SetCellTextureModification(int posX, int posY, int8_t newText
         return;
 
     //set new texture modifier value in lowlevel map data
-    entry->m_TextureModification = newTextureModifier;
+    entry->SetTextureModification(newTextureModifier);
 
     /******************************************************************
      * Part 2: According to new texture modify Irrlicht Terrain Mesh  *

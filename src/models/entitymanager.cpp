@@ -855,6 +855,14 @@ void EntityManager::UpdateSteamFoutains(irr::f32 frameDeltaTime) {
     }
 }
 
+void EntityManager::SetFog(bool enabled) {
+    std::vector <EditorEntity*>::iterator it;
+
+    for (it = mEntityVec.begin(); it != mEntityVec.end(); ++it) {
+        (*it)->SetFog(enabled);
+    }
+}
+
 void EntityManager::CreateEntity(EntityItem* p_entity) {
     //Line line;
     irr::f32 w, h;

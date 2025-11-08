@@ -501,10 +501,12 @@ void EntityMode::CreateWindow() {
                                                                                   dx + 120, dy + 40 + spriteDimension.Height),
                                                                          mGuiEntityMode.EditTab, GUI_ID_ENTITYMODEWINDOW_CREATEATSTART_CHECKBOX, L"Create at Start");
 
-    mGuiEntityMode.GroupEditBox = new NumberEditBox(this, L"1", rect<s32> ( dx + 80, dy + 55 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.GroupEditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 80, dy + 55 + spriteDimension.Height,
                                                                              dx + 140, dy + 70 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.GroupEditBox->SetValue(1);
     mGuiEntityMode.GroupEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.GroupEditBox->AddLabel(L"Group:",
                                           rect<s32>( dx, dy + 52 + spriteDimension.Height,
@@ -515,10 +517,12 @@ void EntityMode::CreateWindow() {
      * Target Group Edit Box                    *
      ********************************************/
 
-    mGuiEntityMode.TargetGroupEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 80, dy + 82 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.TargetGroupEditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 80, dy + 82 + spriteDimension.Height,
                                                                              dx + 140, dy + 97 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.TargetGroupEditBox->SetValue(0);
     mGuiEntityMode.TargetGroupEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.TargetGroupEditBox->AddLabel(L"TargetGroup:",
                                           rect<s32>( dx, dy + 79 + spriteDimension.Height,
@@ -529,24 +533,28 @@ void EntityMode::CreateWindow() {
      * NextId Edit Box                          *
      ********************************************/
 
-    mGuiEntityMode.NextIdEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.NextIdEditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 230, dy + 55 + spriteDimension.Height,
                                                                              dx + 290, dy + 70 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.NextIdEditBox->SetValue(0);
     mGuiEntityMode.NextIdEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.NextIdEditBox->AddLabel(L"NextId:",
                                           rect<s32>( dx + 170, dy + 52 + spriteDimension.Height,
                                                      dx + 210,
                                                      dy + 73 + spriteDimension.Height));
 
-    /********************************************
+    /********************************************  //Integer Type NumberEditBox
      * Value Edit Box                           *
      ********************************************/
 
-    mGuiEntityMode.ValueEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + 28 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.ValueEditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 230, dy + 55 + 28 + spriteDimension.Height,
                                                                              dx + 290, dy + 70 + 28 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.ValueEditBox->SetValue(0);
     mGuiEntityMode.ValueEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.ValueEditBox->AddLabel(L"Value:",
                                           rect<s32>( dx + 170, dy + 52 + 28 + spriteDimension.Height,
@@ -557,10 +565,12 @@ void EntityMode::CreateWindow() {
      * OffsetX Edit Box                         *
      ********************************************/
 
-    mGuiEntityMode.OffsetXEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + 56 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.OffsetXEditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 230, dy + 55 + 56 + spriteDimension.Height,
                                                                              dx + 290, dy + 70 + 56 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.OffsetXEditBox->SetValue(0);
     mGuiEntityMode.OffsetXEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.OffsetXEditBox->AddLabel(L"Offset X:",
                                           rect<s32>( dx + 170, dy + 52 + 56 + spriteDimension.Height,
@@ -571,10 +581,12 @@ void EntityMode::CreateWindow() {
      * OffsetY Edit Box                         *
      ********************************************/
 
-    mGuiEntityMode.OffsetYEditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 230, dy + 55 + 56 + 28 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.OffsetYEditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 230, dy + 55 + 56 + 28 + spriteDimension.Height,
                                                                              dx + 290, dy + 70 + 56 + 28 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.OffsetYEditBox->SetValue(0);
     mGuiEntityMode.OffsetYEditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.OffsetYEditBox->AddLabel(L"Offset Y:",
                                           rect<s32>( dx + 170, dy + 52 + 56 + 28 + spriteDimension.Height,
@@ -585,30 +597,36 @@ void EntityMode::CreateWindow() {
      * Unknown Edit Boxes                       *
      ********************************************/
 
-    mGuiEntityMode.Unknown1EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 400, dy + 55 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.Unknown1EditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 400, dy + 55 + spriteDimension.Height,
                                                                                dx + 460, dy + 70 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.Unknown1EditBox->SetValue(0);
     mGuiEntityMode.Unknown1EditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.Unknown1EditBox->AddLabel(L"Unknown1:",
                                           rect<s32>( dx + 320, dy + 52 + spriteDimension.Height,
                                                      dx + 380,
                                                      dy + 73 + spriteDimension.Height));
 
-    mGuiEntityMode.Unknown2EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 400, dy + 55 + 28 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.Unknown2EditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 400, dy + 55 + 28 + spriteDimension.Height,
                                                                                dx + 460, dy + 70 + 28 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.Unknown2EditBox->SetValue(0);
     mGuiEntityMode.Unknown2EditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.Unknown2EditBox->AddLabel(L"Unknown2:",
                                           rect<s32>( dx + 320, dy + 52 + 28 + spriteDimension.Height,
                                                      dx + 380,
                                                      dy + 73 + 28 + spriteDimension.Height));
 
-    mGuiEntityMode.Unknown3EditBox = new NumberEditBox(this, L"0", rect<s32> ( dx + 400, dy + 55 + 57 + spriteDimension.Height,
+    //Integer Type NumberEditBox
+    mGuiEntityMode.Unknown3EditBox = new NumberEditBox(this, 0, rect<s32> ( dx + 400, dy + 55 + 57 + spriteDimension.Height,
                                                                                dx + 460, dy + 70 + 57 + spriteDimension.Height), true,
                                                                               mGuiEntityMode.EditTab);
 
+    mGuiEntityMode.Unknown3EditBox->SetValue(0);
     mGuiEntityMode.Unknown3EditBox->SetValueLimit(-1, 32767);
     mGuiEntityMode.Unknown3EditBox->AddLabel(L"Unknown3:",
                                           rect<s32>( dx + 320, dy + 52 + 57 + spriteDimension.Height,
@@ -1586,7 +1604,7 @@ void EntityMode::OnButtonClicked(irr::s32 buttonGuiId) {
     }
 }
 
-void EntityMode::OnNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
+void EntityMode::OnIntNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
     if (whichBox == mGuiEntityMode.GroupEditBox) {
         if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) {
              mParentSession->mEntityManager->ChangeEntitiyGroup(mParentSession->mItemSelector->mCurrSelectedItem.mEntitySelected, (int16_t)(newValue));

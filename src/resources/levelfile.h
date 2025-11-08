@@ -108,28 +108,25 @@ public:
 
     std::vector<ColumnsStruct> Columns;
 
-    //table starts at 0x00000c60 offset until 0x00000ca7 offset, and is 72 bytes long
-    std::vector<uint8_t> unknownTable3168Data;
+    //table starts at 0 offset until 23 offset, and is 24 bytes long
+    std::vector<uint8_t> unknownTable0Data;
 
-    //table starts at 0x00000cf0 offset until 0x00017eff offset, and is 94736 bytes long
-    std::vector<uint8_t> unknownTable3312Data;
+    //table starts at 96000 offset until 98037 offset, and is 2037 bytes long
+    std::vector<uint8_t> unknownTable96000Data;
 
-    //table starts at 0x00018EB4 offset until 0x0001e6eb offset, and is 22584 bytes long
-    std::vector<uint8_t> unknownTable102068Data;
+    //table starts at 124636 offset until 124651 offset, and is 15 bytes long
+    std::vector<uint8_t> unknownTable124636Data;
 
-    //table starts at 0x0001f1ec offset until 0x0003c5df offset, and is 119796 bytes long
-    std::vector<uint8_t> unknownTable127468Data;
+    //table starts at 141020 offset until 246923 offset, and is 105903 bytes long
+    std::vector<uint8_t> unknownTable141020Data;
 
     std::vector<uint8_t> regionTable;  //this table has 680 bytes (contains region definitions for the level)
 
-    //table starts at 0x0003c734 offset until 0x00062C8B offset, and is 157016 bytes long
+    //table starts at 247604 offset until 404619 offset, and is 157015 bytes long
     std::vector<uint8_t> unknownTable247604Data;
 
-    bool InvestigatePrintUnknownTableOffset3312();
-    bool InvestigatePrintUnknownTableOffset102068();
-    bool InvestigatePrintUnknownTableOffset127468();
+    bool PrintUnknownTableAtOffset(size_t offset, std::vector<uint8_t> &sourceTable);
     bool PrintRegionTable();
-    bool InvestigatePrintUnknownTableOffset247604();
 
     //holds location info about the charging locations
     //and the map start region/location
@@ -245,21 +242,16 @@ protected:
      bool loadEntitiesTable();
      bool loadBlockTexTable();
      bool loadColumnsTable();
-     bool loadMap();
+     bool loadMapEntries();
 
      bool loadMapRegions();
-     bool loadUnknownTableOffset0();
-     bool loadUnknownTableOffset3168();
-     bool loadUnknownTableOffset3312();
-     bool loadUnknownTableOffset102068();
-     bool loadUnknownTableOffset127468();
-     bool loadUnknownTableOffset247604();
+     bool loadUnknownTableAtOffset(size_t offset, size_t bytes, std::vector<uint8_t> &targetTable);
 
      //for levelEditor functionality
      bool saveBlockTexTable();
      bool saveEntitiesTable();
      bool saveColumnsTable();
-     bool saveMap();
+     bool saveMapEntries();
      bool saveRegionTable();
      bool saveUnknownTables();
 };

@@ -327,7 +327,7 @@ public:
 
     //during development I like to disable the block preview
     //temporarily. This makes the leveleditor start some seconds faster
-    bool enableBlockPreview = false;
+    bool enableBlockPreview = true;
 
     //Returns true for success, false for error occured
     bool InitEditorStep1();
