@@ -661,6 +661,15 @@ void EntityMode::CreateWindow() {
     mGuiEntityMode.EntityTable->setColumnWidth ( 8, 40 );
     mGuiEntityMode.EntityTable->setToolTipText ( L"Shows all existing Entities");
 
+    //get the vertical Scrollbar from the Entity list table
+    //for later usage
+    const core::list<IGUIElement*> EntityTableChilds = mGuiEntityMode.EntityTable->getChildren();
+
+    if (!EntityTableChilds.empty()) {
+        IGUIElement* elementPntr = *EntityTableChilds.begin();
+        mGuiEntityMode.EntityTableVertScrollBar = (irr::gui::IGUIScrollBar*)(elementPntr);
+    }
+
     mGuiEntityMode.ListCollectibles = mParentSession->mParentEditor->mGuienv->addCheckBox(false, rect<s32> ( 10, dim.Height - 75 - 30, 90, dim.Height - 55 - 30),
                                                                                                    mGuiEntityMode.ListTab, GUI_ID_ENTITYMODEWINDOW_LIST_COLLECTIBLES_CHECKBOX, L"Collectibles");
 
@@ -709,12 +718,13 @@ void EntityMode::CreateWindow() {
     UpdateUiDialog();
 }
 
-void EntityMode::HighlightEntityTableRow(EditorEntity* whichEntity) {
+//Returns -1 if invalid specified editor entity item, or item is currently
+//not shown in the table at all
+irr::s32 EntityMode::GetTableRowForEditorEntityItem(EditorEntity* whichEntity) {
     //-1 means no row (table entry) is hightlighted
     irr::s32 rowIdx = -1;
 
     irr::s32 rowCount = mGuiEntityMode.EntityTable->getRowCount();
-    irr::s32 columnCount = mGuiEntityMode.EntityTable->getColumnCount();
 
     if (whichEntity != nullptr) {
        //is the current item even shown or filtered?
@@ -740,6 +750,17 @@ void EntityMode::HighlightEntityTableRow(EditorEntity* whichEntity) {
            }
        }
     }
+
+    return rowIdx;
+}
+
+void EntityMode::HighlightEntityTableRow(EditorEntity* whichEntity) {
+    //-1 means the current selected editor entity item is currently not
+    //shown in the entity table
+    irr::s32 rowIdx = GetTableRowForEditorEntityItem(whichEntity);
+
+    irr::s32 rowCount = mGuiEntityMode.EntityTable->getRowCount();
+    irr::s32 columnCount = mGuiEntityMode.EntityTable->getColumnCount();
 
     for (irr::s32 idx = 0; idx < rowCount; idx++) {
         for (irr::s32 idx2 = 0; idx2 < columnCount; idx2++) {
@@ -860,6 +881,14 @@ bool EntityMode::DoListEntityItem(EditorEntity* item) {
 void EntityMode::UpdateEntitiesTable() {
     std::vector<EditorEntity*>::iterator it;
 
+    irr::s32 currScrollBarPos;
+    bool setScrollBarBack = false;
+
+    if (mGuiEntityMode.EntityTableVertScrollBar->isVisible()) {
+        currScrollBarPos = mGuiEntityMode.EntityTableVertScrollBar->getPos();
+        setScrollBarBack = true;
+    }
+
     mGuiEntityMode.EntityTable->clearRows();
 
     //add all existing EntityItems into the entity table
@@ -868,6 +897,30 @@ void EntityMode::UpdateEntitiesTable() {
         //depends on the user selected checkboxes
         if (DoListEntityItem((*it))) {
             AddEntityTableEntry((*it));
+        }
+    }
+
+    //-1 means the current selected editor entity item is currently not
+    //shown in the entity table
+    irr::s32 rowIdx = GetTableRowForEditorEntityItem(mLastSelectedEditorEntity);
+
+    mGuiEntityMode.EntityTable->setSelected(rowIdx);
+
+    if (rowIdx == -1) {
+       if (setScrollBarBack) {
+            mGuiEntityMode.EntityTableVertScrollBar->setPos(currScrollBarPos);
+       }
+    } else {
+        if (mGuiEntityMode.EntityTableVertScrollBar->isVisible()) {
+            //calculate new scrollbar position for the selected item
+            irr::s32 maxValScrollbar = mGuiEntityMode.EntityTableVertScrollBar->getMax();
+            irr::s32 minValScrollbar = mGuiEntityMode.EntityTableVertScrollBar->getMin();
+
+            irr::s32 rowCount = mGuiEntityMode.EntityTable->getRowCount();
+            irr::f32 posFloat = ((irr::f32)(rowIdx) / (irr::f32)(rowCount));
+            irr::s32 newValScrollbar = (irr::s32)(posFloat * (irr::f32)(maxValScrollbar - minValScrollbar));
+
+            mGuiEntityMode.EntityTableVertScrollBar->setPos(newValScrollbar);
         }
     }
 }
@@ -1550,6 +1603,41 @@ void EntityMode::OnLeftMouseButtonDown() {
 
         default: {
            break;
+        }
+    }
+}
+
+void EntityMode::ChangePositionEntitiesTable(irr::s32 deltaPositionCnt) {
+    irr::s32 currSelRow = mGuiEntityMode.EntityTable->getSelected();
+
+    if (currSelRow != -1) {
+        currSelRow += deltaPositionCnt;
+
+        if (currSelRow < 0) {
+            currSelRow = 0;
+        }
+
+        if (currSelRow >= mGuiEntityMode.EntityTable->getRowCount()) {
+            currSelRow = mGuiEntityMode.EntityTable->getRowCount() - 1;
+        }
+
+        mGuiEntityMode.EntityTable->setSelected(currSelRow);
+
+        //use this method call to process request further
+        OnTableSelected(GUI_ID_ENTITYMODEWINDOW_ENTITYTABLE);
+    }
+}
+
+void EntityMode::OnKeyPressedInWindow(irr::EKEY_CODE whichKeyPressed) {
+    //if we are currently on the entity table tab, if an up or down
+    //key is pressed advance in the table (select other item)
+    if (mGuiEntityMode.tabCntrl->getActiveTab() == 1) {
+        if (whichKeyPressed == irr::KEY_UP) {
+           ChangePositionEntitiesTable(-1);
+        }
+
+        if (whichKeyPressed == irr::KEY_DOWN) {
+           ChangePositionEntitiesTable(1);
         }
     }
 }

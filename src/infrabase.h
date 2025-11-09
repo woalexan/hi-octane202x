@@ -41,6 +41,7 @@ class MyEventReceiver;
 class TimeProfiler;
 class DrawDebug;
 class Crc32;
+class Attribution;
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -112,6 +113,7 @@ public:
   GameText* mGameTexts = nullptr;
   TimeProfiler* mTimeProfiler = nullptr;
   Crc32* mCrc32 = nullptr;
+  Attribution* mAttribution = nullptr;
 
   OriginalGameFolderInfoStruct* mOriginalGame = nullptr;
 

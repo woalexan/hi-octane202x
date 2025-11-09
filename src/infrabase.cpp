@@ -22,6 +22,7 @@
 #include <cwctype>
 #include <sstream>
 #include <iomanip>
+#include "draw/attribution.h"
 
 bool InfrastructureBase::InitIrrlicht() {
     /************************************************/
@@ -1103,6 +1104,8 @@ void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fu
 
     mCrc32 = new Crc32();
 
+    mAttribution = new Attribution(this, 800, true);
+
     mInitOk = true;
 }
 
@@ -1188,6 +1191,11 @@ InfrastructureBase::~InfrastructureBase() {
 
         delete mOriginalGame;
         mOriginalGame = nullptr;
+    }
+
+    if (mAttribution != nullptr) {
+        delete mAttribution;
+        mAttribution = nullptr;
     }
 
     //delete my axis direction vectors

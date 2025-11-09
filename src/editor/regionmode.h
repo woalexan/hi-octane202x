@@ -83,6 +83,8 @@ private:
 
     void UpdateUiDialog();
 
+    void ChangePositionRegionTable(irr::s32 deltaPositionCnt);
+
     irr::u8 mOpMode = DEF_REGION_OPMODE_DEFAULT;
     
 public:
@@ -95,6 +97,8 @@ public:
     virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
 
     void OnRegionTypeComboBoxChanged(irr::u32 newSelectedGuiId);
+
+    virtual void OnKeyPressedInWindow(irr::EKEY_CODE whichKeyPressed);
 
     //is called when the editor mode
     //is entered (becomes active)

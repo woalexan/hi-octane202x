@@ -105,6 +105,9 @@ void EditorMode::OnEditBoxEnterEvent(irr::s32 editBoxId) {
 void EditorMode::OnElementFocusLost(irr::s32 elementId) {
 }
 
+void EditorMode::OnKeyPressedInWindow(irr::EKEY_CODE whichKeyPressed) {
+}
+
 void EditorMode::OnIntNumberEditBoxNewValue(NumberEditBox* whichBox, irr::s32& newValue) {
 }
 

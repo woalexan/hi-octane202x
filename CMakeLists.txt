@@ -129,6 +129,8 @@ add_executable(hi-octane202x
     src/draw/menue.cpp
     src/draw/introplayer.h
     src/draw/introplayer.cpp
+    src/draw/attribution.h
+    src/draw/attribution.cpp
 
     src/input/input.h
     src/input/input.cpp
@@ -272,6 +274,8 @@ add_executable(hi-editor
     src/draw/drawdebug.cpp
     src/draw/gametext.h
     src/draw/gametext.cpp
+    src/draw/attribution.h
+    src/draw/attribution.cpp
 
     src/models/column.h
     src/models/column.cpp
