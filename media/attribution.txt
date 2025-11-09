@@ -1,0 +1,102 @@
+This project would never have been possible without the great effort of many individuals before me.
+
+My first attribution needs to go towards the great people once working at "Bullfrog Productions Ltd"
+for development of this great game in the first place. And to "Electronic Arts Ltd" for once
+publishing this game. A list of individuals making the original game possible will follow below.
+
+<lineseperator>
+
+I especially need to thank the following individuals for their reverse engineering work of the
+different used original game file formats long before I started this project: (in alphabetical order)
+
+Aybe
+Malvineous
+movAX13h
+srtuss
+
+Especially the DOS Game Modding Wiki at "moddingwiki.shikadi.net" has proven to be a valueable source of information for this project.
+
+<lineseperator>
+
+Extraction of the original games data would not have been possible without the available information about RNC compression,
+TAB/DAT file format and various tools (for example FLI files fixer) available at the Syndicate series unofficial fan site at "syndicate.lubiki.pl"
+This resources were only available to me thanks to:
+
+Tomasz Lis
+Jon Skeet
+Andrew Sampson
+
+<lineseperator>
+
+Reading the original games FLI intro was only possible because of the "Aseprite FLIC Library" at "github.com/aseprite/flic".
+I want to thank Igara Studio S.A. and David Capello for this important resource.
+
+For upscaling the resolution of the original games intro frames and certain other images I use the xBRZ project. I want to thank
+the following individual for this really helpful project:
+
+Zenju
+
+<lineseperator>
+
+This project would never have been started without finding the great "HiOctaneTools" at "github.com/movAX13h/HiOctaneTools"
+one day. This C# open source project really gave me a headstart regarding reading the original games level data files, and especially
+also explained howto extract the original games 3D model DAT files. I really need to thank movAX13h for his great work!
+
+<lineseperator>
+
+This project uses the Irrlicht Engine for output window creation, game control, drawing and 3D rendering. Many individuals
+contributed to this wonderful project, but unfortunetly I am not able to mention everybody below. I want to thank
+everybody that contributed to this project in the past, and especially:
+
+Nikolaus Gebhardt
+Michael Zeilfelder (cutealien)
+Thomas Alten (burningwater)
+Yoran Bosman (Yoran)
+Christian Stehno (hybrid)
+Patryk Nadrowski (Nadro)
+Gareth Davidson (bitplane)
+Luke P. Hoschke (luke)
+Colin MacDonald (rogerborg)
+Ahmed Hilali (blindside)
+Dean Wadsworth (varmint)
+Alvaro F. Celis (afecelis) 
+John Goewert (Saigumi)
+Jam
+
+The Irrlicht engine is also based in parts on the work of Independent JPEG Group, the zlib, and libpng.
+
+<lineseperator>
+
+This project uses the SFML (Simple and Fast Multimedia Library) for sound output and timer functionality. I tried multiple different
+libraries for audio output and SFML was the perfect fit for my purpose. A big thank you to Laurent Gomila and all other contributors of
+this great library. External libraries used by SFML: freetype, libjpeg, stb_image, OpenAL Soft, libogg, libvorbis, libflac, minimp3
+
+<lineseperator>
+
+For TTF Font output under Irrlicht this project uses the freetype library, as well as some additional helper classes
+by the following individuals: (Thank you!)
+
+John Norman
+Michael Zeilfelder
+
+This project uses the Andika TTF Font as its default font. The Andika and Andika Basic fonts are maintained by SIL International.
+For more information please visit "scripts.sil.org/andika".
+
+<lineseperator>
+
+Original game music output is only possible thanks to combining multiple great Opensource projects/libraries:
+
+- libADLMIDI is a free Software MIDI synthesizer library with OPL3 emulation, A big thank goes to:
+Original ADLMIDI code: Joel Yliluoma
+ADLMIDI Library API: Vitaly Novichkov
+
+- OPL Bank Editor by Wohlstand, a free tool for music bank editing
+Vitaly Novichkov
+
+- Wohlstand's OPL3 Bank File - a bank format to store OPL3 timbre data and setup
+Vitaly Novichkov
+
+- foo_midi is a foobar2000 component that adds playback of MIDI files to foobar2000.
+Peter Stuer
+Christopher Snowhill
+

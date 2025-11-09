@@ -280,6 +280,38 @@ void RegionMode::OnTableSelected(irr::s32 elementId) {
     }
 }
 
+void RegionMode::ChangePositionRegionTable(irr::s32 deltaPositionCnt) {
+    irr::s32 currSelRow = mGuiRegionMode.RegionTable->getSelected();
+
+    if (currSelRow != -1) {
+        currSelRow += deltaPositionCnt;
+
+        if (currSelRow < 0) {
+            currSelRow = 0;
+        }
+
+        if (currSelRow >= mGuiRegionMode.RegionTable->getRowCount()) {
+            currSelRow = mGuiRegionMode.RegionTable->getRowCount() - 1;
+        }
+
+        mGuiRegionMode.RegionTable->setSelected(currSelRow);
+
+        //use this method call to process request further
+        OnTableSelected(GUI_ID_REGIONMODEWINDOW_REGIONTABLE);
+    }
+}
+
+void RegionMode::OnKeyPressedInWindow(irr::EKEY_CODE whichKeyPressed) {
+    //if an up or down key is pressed advance in the table (select other item)
+    if (whichKeyPressed == irr::KEY_UP) {
+          ChangePositionRegionTable(-1);
+    }
+
+    if (whichKeyPressed == irr::KEY_DOWN) {
+          ChangePositionRegionTable(1);
+    }
+}
+
 //Returns -1 if specified region is not found
 irr::s32 RegionMode::FindRegionTableRowIdxForMapTileRegionStruct(MapTileRegionStruct* whichRegion) {
     if (whichRegion == nullptr)

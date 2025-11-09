@@ -13,6 +13,7 @@
 
 #include "editor.h"
 #include "draw/gametext.h"
+#include "draw/attribution.h"
 #include "editorsession.h"
 #include "editor/editormode.h"
 #include "editor/viewmode.h"
@@ -270,11 +271,18 @@ void Editor::PopulateFileMenueEntries() {
     }
 
     mFileMenu->addItem(L"Quit", GUI_ID_QUIT);
+
+    //mFileMenu->addItem(L"Attribution", GUI_ID_EDIT_TESTATTRIBUTION, true, false);
+    //mFileMenu->addItem(L"StopAtt", GUI_ID_EDIT_STOPATTRIBUTION, true, false);
 }
 
 void Editor::PopulateEditMenueEntries() {
     if (mEditMenu == nullptr)
         return;
+
+    /*************************************
+     * Edit View                         *
+     *************************************/
 }
 
 void Editor::PopulateModeMenueEntries() {
@@ -562,6 +570,16 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
     switch(id)
     {
+        case GUI_ID_EDIT_TESTATTRIBUTION: {
+            mAttribution->Init();
+            mAttribution->Start();
+            break;
+        }
+        case GUI_ID_EDIT_STOPATTRIBUTION: {
+           mAttribution->Stop();
+           break;
+        }
+
         case GUI_ID_MODE_VIEW: {
            if (mCurrentSession != nullptr) {
                mCurrentSession->SetMode((EditorMode*)mCurrentSession->mViewMode);
@@ -1324,7 +1342,7 @@ void Editor::EditorLoopExtractData() {
     mDriver->endScene();
 }
 
-void Editor::EditorLoopNoSessionOpen() {
+void Editor::EditorLoopNoSessionOpen(irr::f32 frameDeltaTime) {
     mDriver->beginScene(true,true,
     video::SColor(255,100,101,140));
 
@@ -1332,6 +1350,8 @@ void Editor::EditorLoopNoSessionOpen() {
     mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
                          irr::core::recti(0, 0, mScreenRes.Width, mScreenRes.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
+
+    //mAttribution->Update(frameDeltaTime);
 
     //draw Gui
     mGuienv->drawAll();
@@ -1454,7 +1474,7 @@ void Editor::EditorLoop() {
             case DEF_EDITORSTATE_NOSESSIONACTIVE: {
                 //ParentEditor is ready for a session,
                 //but no session is loaded yet
-                EditorLoopNoSessionOpen();
+                EditorLoopNoSessionOpen(frameDeltaTime);
                 break;
             }
 

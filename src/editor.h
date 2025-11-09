@@ -62,6 +62,9 @@ enum
     GUI_ID_CLOSE_LEVEL,
     GUI_ID_QUIT,
 
+    GUI_ID_EDIT_TESTATTRIBUTION,
+    GUI_ID_EDIT_STOPATTRIBUTION,
+
     GUI_ID_MODE_VIEW,
     GUI_ID_MODE_TEXTURING,
     GUI_ID_MODE_COLUMNDESIGN,
@@ -188,7 +191,7 @@ private:
     bool LoadBackgroundImage();
     void EditorLoopExtractData();
     bool LoadAdditionalGameImages();
-    void EditorLoopNoSessionOpen();
+    void EditorLoopNoSessionOpen(irr::f32 frameDeltaTime);
 
     bool LoadGameData();
     bool CreateNewEditorSession(std::string levelRootPath, std::string levelName);
