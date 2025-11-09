@@ -44,7 +44,7 @@ also explained howto extract the original games 3D model DAT files. I really nee
 
 <lineseperator>
 
-This project uses the Irrlicht Engine for output window creation, game control, drawing and 3D rendering. Many individuals
+This project uses the Irrlicht Engine for output window creation, game control, drawing and 3D rendering. Many individuals   <image>media/irrlichtlogo.bmp;150;70</image>
 contributed to this wonderful project, but unfortunetly I am not able to mention everybody below. I want to thank
 everybody that contributed to this project in the past, and especially:
 
@@ -67,7 +67,7 @@ The Irrlicht engine is also based in parts on the work of Independent JPEG Group
 
 <lineseperator>
 
-This project uses the SFML (Simple and Fast Multimedia Library) for sound output and timer functionality. I tried multiple different
+This project uses the SFML (Simple and Fast Multimedia Library) for sound output and timer functionality. I tried multiple different   <image>media/sfml-logo-small.png;150;70</image>
 libraries for audio output and SFML was the perfect fit for my purpose. A big thank you to Laurent Gomila and all other contributors of
 this great library. External libraries used by SFML: freetype, libjpeg, stb_image, OpenAL Soft, libogg, libvorbis, libflac, minimp3
 

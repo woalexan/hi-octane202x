@@ -13,27 +13,54 @@
 #include "../utils/logging.h"
 #include "../infrabase.h"
 
-Attribution::Attribution(InfrastructureBase* infra) {
+Attribution::Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, bool enableFading) {
     mInfra = infra;
     mScreenRes = mInfra->mScreenRes;
-    mWidthRender = 800;
+    mWidthRender = widthRenderPixel;
+    mFading = enableFading;
 
-    mTextLineCnt = 0;
-
-    mAttrData.clear();
+    mScrollStep.set(0, -1);
 }
 
 Attribution::~Attribution() {
+    if (mScrolling) {
+        Stop();
+    }
+}
+
+void Attribution::SetFadingParameters(irr::s32 fadeBarHeightPixels, irr::f32 minFadingFactor, irr::f32 maxFadingFactor) {
+    mMinFadingFactor = minFadingFactor;
+    mMaxFadingFactor = maxFadingFactor;
+    mFadeBarHeightPixels = fadeBarHeightPixels;
+}
+
+void Attribution::SetFading(bool enable) {
+    mFading = enable;
+}
+
+void Attribution::SetScrollSpeed(irr::u32 speedValue) {
+    mScrollStep.set(0, -speedValue);
 }
 
 void Attribution::Init() {
+    mAttrData.clear();
+    mEmbeddedImageVec.clear();
+
+    mTextLineCnt = 0;
+
     mSuccessText = ReadAttributionInfo();
 
     if (mSuccessText) {
         mTextLineCnt = mAttrData.size();
     }
 
-    mSuccessImages = LoadResourceImages();
+    mSuccessImages = LoadLineSeperatorImages();
+
+    if (mSuccessText && mSuccessImages) {
+        mState = DEF_ATTR_STATE_READY;
+    } else {
+        mState = DEF_ATTR_STATE_INITERROR;
+    }
 }
 
 //Returns nullptr in case of a texture loading problem
@@ -72,14 +99,12 @@ irr::video::ITexture* Attribution::LoadResourceImage(std::string filename, irr::
 }
 
 //Return true in case of success, False otherwise
-bool Attribution::LoadResourceImages() {
+bool Attribution::LoadLineSeperatorImages() {
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     std::string texFile1("extract/hud1player/panel0-1-0197.bmp");
     std::string texFile2("extract/hud1player/panel0-1-0199.bmp");
     std::string texFile3("extract/hud1player/panel0-1-0198.bmp");
-    std::string texFileIrrlichtLogo("media/irrlichtlogo.bmp");
-    std::string texFileSFMLLogo("media/sfml-logo-small.png");
 
     texSeperatorLine1 = LoadResourceImage(texFile1, texSeperatorLine1Width, texSeperatorLineHeight);
 
@@ -108,33 +133,63 @@ bool Attribution::LoadResourceImages() {
         return false;
     }
 
-    texIrrlichtLogo = LoadResourceImage(texFileIrrlichtLogo, texIrrlichtLogoWidth, texIrrlichtLogoHeight);
-
-    if (texIrrlichtLogo == nullptr) {
-        //There was an issue loading this texture
-        mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
-
-        return false;
-    }
-
-    texSFMLLogo = LoadResourceImage(texFileSFMLLogo, texSFMLLogoWidth, texSFMLLogoHeight);
-
-    if (texSFMLLogo == nullptr) {
-        //There was an issue loading this texture
-        mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
-
-        return false;
-    }
-
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
     return true;
 }
 
+void Attribution::CheckForNewEmbeddedImage(irr::core::rect<irr::s32> newPosition) {
+    std::vector<AttrEmbeddedImageStruct*>::iterator it;
+
+    for (it = mEmbeddedImageVec.begin(); it != mEmbeddedImageVec.end(); ++it) {
+        if ((*it)->InsertAtLineNr == mNextTextLineNr) {
+            //if image was not properly loaded skip this item
+            if (!(*it)->imageTexLoaded) {
+                continue;
+            }
+
+            //define new image location
+            (*it)->ImagePos.UpperLeftCorner.X = newPosition.UpperLeftCorner.X + mWidthRender + 20;
+            (*it)->ImagePos.UpperLeftCorner.Y = newPosition.UpperLeftCorner.Y;
+            (*it)->ImagePos.LowerRightCorner.X = (*it)->ImagePos.UpperLeftCorner.X + (*it)->TargetImageSize.Width;
+            (*it)->ImagePos.LowerRightCorner.Y = (*it)->ImagePos.UpperLeftCorner.Y + (*it)->TargetImageSize.Height;
+
+            (*it)->imageAlreadyPresented = true;
+
+            //yes, there is a new image we need to show
+            irr::gui::IGUIImage* newEmbeddedImage =
+                 mInfra->mGuienv->addImage((*it)->ImagePos, 0, -1, 0, true);
+
+            newEmbeddedImage->setScaleImage(true);
+            newEmbeddedImage->setImage((*it)->imageTex);
+
+            mImageElementVec.push_back(newEmbeddedImage);
+        }
+    }
+
+    //have we presented all images now?
+    bool allPicturesDone = true;
+
+    for (it = mEmbeddedImageVec.begin(); it != mEmbeddedImageVec.end(); ++it) {
+        if (!(*it)->imageAlreadyPresented) {
+            allPicturesDone = false;
+            break;
+        }
+    }
+
+    mNoMoreImagesAvailable = allPicturesDone;
+}
+
 void Attribution::AddTextElement(irr::core::rect<irr::s32> newPosition) {
+    //verify if we need to add an additional embedded image
+    //at this line number
+    CheckForNewEmbeddedImage(newPosition);
+
     if (mNextTextLineNr >= mTextLineCnt) {
         //we are done, no more text lines available
         //simply return
+        mNoMoreTextAvailable = true;
+
         return;
     }
 
@@ -192,10 +247,11 @@ void Attribution::AddLineSeperator(irr::core::rect<irr::s32> newPosition) {
 }
 
 void Attribution::Start() {
-    if ((mSuccessText == false) || (mSuccessImages == false))
+    if ((mState != DEF_ATTR_STATE_READY) && (mState != DEF_ATTR_STATE_PRESENTATIONDONE))
         return;
 
     mScrolling = true;
+    mState = DEF_ATTR_STATE_PRESENTING;
 
     mAbsTime = 0.0f;
 
@@ -204,41 +260,21 @@ void Attribution::Start() {
 
     mNextTextLineNr = 0;
 
-    mScrollStep.set(0,-1);
-
     irr::s32 midX = mScreenRes.Width / 2;
 
+    std::vector<AttrEmbeddedImageStruct*>::iterator it;
+
+    for (it = mEmbeddedImageVec.begin(); it != mEmbeddedImageVec.end(); ++it) {
+        (*it)->imageAlreadyPresented = false;
+    }
+
+    mNoMoreTextAvailable = false;
+    mNoMoreImagesAvailable = false;
+
     AddTextElement(irr::core::rect<irr::s32>(midX - mWidthRender / 2, mScreenRes.Height + 10, midX + mWidthRender / 2, mScreenRes.Height + 32));
-
-    irr::s32 logoWidth = 120;
-    irr::s32 logoHeight = 50;
-
-    irr::core::rect<irr::s32> IrrlichtLogoPos(midX - mWidthRender / 2 - 20 - logoWidth,
-                             mScreenRes.Height - 20 - logoHeight, midX - mWidthRender / 2 - 20,
-                              mScreenRes.Height - 20);
-
-    IrrlichtLogo = mInfra->mGuienv->addImage(IrrlichtLogoPos, 0, -1, L"", true);
-    IrrlichtLogo->setImage(texIrrlichtLogo);
-    IrrlichtLogo->setScaleImage(true);
-
-    irr::core::rect<irr::s32> SFMLLogoPos(midX + mWidthRender / 2 + 20,
-                             mScreenRes.Height - 20 - logoHeight, midX + mWidthRender / 2 + 20 + logoWidth,
-                              mScreenRes.Height - 20);
-
-    SFMLLogo = mInfra->mGuienv->addImage(SFMLLogoPos, 0, -1, L"", true);
-    SFMLLogo->setImage(texSFMLLogo);
-    SFMLLogo->setScaleImage(true);
 }
 
 void Attribution::CleanupItems() {
-    if (IrrlichtLogo != nullptr) {
-        IrrlichtLogo->remove();
-    }
-
-    if (SFMLLogo != nullptr) {
-        SFMLLogo->remove();
-    }
-
     std::vector<irr::gui::IGUIStaticText*>::iterator it;
     irr::gui::IGUIStaticText* txtPntr;
 
@@ -263,7 +299,49 @@ void Attribution::CleanupItems() {
 void Attribution::Stop() {
     mScrolling = false;
 
+    if (mState != DEF_ATTR_STATE_PRESENTATIONDONE) {
+        mState = DEF_ATTR_STATE_READY;
+    }
+
     CleanupItems();
+}
+
+irr::u8 Attribution::GetState() {
+    return mState;
+}
+
+irr::f32 Attribution::GetFadingFactor(irr::core::rect<irr::s32> currPos) {
+    irr::f32 fadingFactor = mMaxFadingFactor;
+
+    irr::s32 fadeBorder = (irr::s32)(mScreenRes.Height) - mFadeBarHeightPixels;
+
+    //are we in the bar at the bottom of the screen?
+    if (currPos.UpperLeftCorner.Y >= fadeBorder) {
+        //when the image scrolls upwards from the bottom of the screen, it starts faded out with minFadingFactor,
+        //and then fades in until it hits the upper end of the bar with height fadeBarWidthPixels pixels
+        irr::f32 kFade = ((mMaxFadingFactor - mMinFadingFactor) / ((irr::f32)(mFadeBarHeightPixels)));
+        irr::f32 madeDistance = (irr::f32)(mScreenRes.Height - currPos.UpperLeftCorner.Y);
+
+        fadingFactor = mMinFadingFactor + madeDistance * kFade;
+    }
+
+    fadeBorder = (irr::s32)(mFadeBarHeightPixels);
+
+    if (currPos.UpperLeftCorner.Y < 0) {
+        fadingFactor = mMinFadingFactor;
+    } else
+
+    //are we in the bar at the top of the screen?
+    if (currPos.UpperLeftCorner.Y <= fadeBorder) {
+        //when the image scrolls upwards at the top of the screen, it starts faded in completely,
+        //and then fades out until it hits minFadingFactor at the top of the screen
+        irr::f32 kFade = -((mMaxFadingFactor - mMinFadingFactor) / ((irr::f32)(mFadeBarHeightPixels)));
+        irr::f32 madeDistance = (irr::f32)(mFadeBarHeightPixels - currPos.UpperLeftCorner.Y);
+
+        fadingFactor = mMaxFadingFactor + madeDistance * kFade;
+    }
+
+    return (fadingFactor);
 }
 
 void Attribution::ControlTextFading(irr::gui::IGUIStaticText* whichTextElement) {
@@ -272,45 +350,31 @@ void Attribution::ControlTextFading(irr::gui::IGUIStaticText* whichTextElement) 
     irr::f32 alpaValText;
     irr::f32 alpaValBackground;
 
-    irr::s32 fadeBarWidthPixels = 100;
-    irr::f32 fadingFactor = 1.0f;
-    irr::f32 minFadingFactor = 0.0f;
-
     currPos = whichTextElement->getAbsolutePosition();
 
-    irr::s32 fadeBorder = (irr::s32)(mScreenRes.Height) - fadeBarWidthPixels;
-
-    //are we in the bar at the bottom of the screen?
-    if (currPos.UpperLeftCorner.Y >= fadeBorder) {
-        //when text scrolls upwards from the bottom of the screen, it starts faded out with minFadingFactor,
-        //and then fades in until it hits the upper end of the bar with height fadeBarWidthPixels pixels
-        irr::f32 kFade = ((1.0f - minFadingFactor) / ((irr::f32)(fadeBarWidthPixels)));
-        irr::f32 madeDistance = (irr::f32)(mScreenRes.Height - currPos.UpperLeftCorner.Y);
-
-        fadingFactor = minFadingFactor + madeDistance * kFade;
-    }
-
-    fadeBorder = (irr::s32)(fadeBarWidthPixels);
-
-    if (currPos.UpperLeftCorner.Y < 0) {
-        fadingFactor = minFadingFactor;
-    } else
-
-    //are we in the bar at the top of the screen?
-    if (currPos.UpperLeftCorner.Y <= fadeBorder) {
-        //when text scrolls upwards at the top of the screen, it starts faded in completely,
-        //and then fades out until it hits minFadingFactor at the top of the screen
-        irr::f32 kFade = -((1.0f - minFadingFactor) / ((irr::f32)(fadeBarWidthPixels)));
-        irr::f32 madeDistance = (irr::f32)(fadeBarWidthPixels - currPos.UpperLeftCorner.Y);
-
-        fadingFactor = 1.0f + madeDistance * kFade;
-    }
+    irr::f32 fadingFactor = GetFadingFactor(currPos);
 
     alpaValText = 255.0f * fadingFactor;
     alpaValBackground = 230.0f * fadingFactor;
 
     whichTextElement->setOverrideColor(irr::video::SColor((irr::u32)(alpaValText), 255, 255, 255));
     whichTextElement->setBackgroundColor(irr::video::SColor((irr::u32)(alpaValBackground), 0, 0, 0));
+}
+
+void Attribution::ControlImageFading(irr::gui::IGUIImage* whichImage) {
+    irr::core::rect<irr::s32> currPos;
+
+    irr::f32 alpaValText;
+    irr::f32 alpaValBackground;
+
+    currPos = whichImage->getAbsolutePosition();
+
+    irr::f32 fadingFactor = GetFadingFactor(currPos);
+
+    alpaValText = 255.0f * fadingFactor;
+    alpaValBackground = 230.0f * fadingFactor;
+
+    whichImage->setColor(irr::video::SColor((irr::u32)(alpaValText), 255, 255, 255));
 }
 
 void Attribution::UpdateTexts() {
@@ -322,7 +386,9 @@ void Attribution::UpdateTexts() {
     for (it = mTextElementVec.begin(); it != mTextElementVec.end(); ++it) {
         (*it)->move(mScrollStep);
 
-        ControlTextFading(*it);
+        if (mFading) {
+            ControlTextFading(*it);
+        }
     }
 
     for (it = mTextElementVec.begin(); it != mTextElementVec.end(); ) {
@@ -362,6 +428,10 @@ void Attribution::UpdateImages() {
 
     for (it = mImageElementVec.begin(); it != mImageElementVec.end(); ++it) {
         (*it)->move(mScrollStep);
+
+        if (mFading) {
+            ControlImageFading(*it);
+        }
     }
 
     for (it = mImageElementVec.begin(); it != mImageElementVec.end(); ) {
@@ -401,15 +471,142 @@ void Attribution::UpdateImages() {
 }
 
 void Attribution::Update(irr::f32 frameDeltaTime) {
-    if (mScrolling) {
+    if (mScrolling) { 
         mAbsTime += frameDeltaTime;
         if (mAbsTime > 0.02f) {
             mAbsTime = 0.0f;
 
             UpdateTexts();
             UpdateImages();
+
+            //are we done with presentation?
+            if (mNoMoreTextAvailable && mNoMoreImagesAvailable) {
+                if ((mTextElementVec.size() == 0) && (mImageElementVec.size() == 0)) {
+                    //we are completely done, call stop
+                    mState = DEF_ATTR_STATE_PRESENTATIONDONE;
+                    Stop();
+                }
+            }
         }
     }
+}
+
+void Attribution::ProcessEmbeddedImageData(irr::u32 currLineNr, std::string& inputLine) {
+    //does the current input line contain
+    //an embededded image command?
+    size_t startPos = inputLine.find("<image>");
+
+    if (startPos == std::string::npos) {
+        //no added image command string found
+        //just return, do not modify inputLine
+        return;
+    }
+
+    size_t endPos = inputLine.find("</image>");
+
+    if (endPos == std::string::npos) {
+        //something is wrong, we did find a start
+        //command for an embededd image, but no end
+        //ignore this image command, and output warning
+        std::string::iterator startRemove = inputLine.begin() + startPos;
+        std::string::iterator endRemove = inputLine.end();
+
+        inputLine.erase(startRemove, endRemove);
+        logging::Warning("Attribution: Ignore malformed image input command");
+
+        return;
+    }
+
+    //copy imageCmd String out
+    std::string imageCmd("");
+    imageCmd.append(inputLine.substr(startPos, endPos - startPos));
+
+    //remove image command from the inputLine
+    std::string::iterator startRemove = inputLine.begin() + startPos;
+    std::string::iterator endRemove = inputLine.end();
+
+    inputLine.erase(startRemove, endRemove);
+
+    //now process the image command string data
+    //remove the <image> part
+    startPos = imageCmd.find('<');
+    endPos = imageCmd.find('>');
+
+    if ((startPos == std::string::npos) || (endPos == std::string::npos)) {
+        //something went wrong, stop command processing
+        logging::Warning("Attribution: Ignore malformed image input command, can not remove <image>");
+        return;
+    }
+
+    startRemove = imageCmd.begin() + startPos;
+    endRemove = imageCmd.begin() + endPos + 1;
+
+    imageCmd.erase(startRemove, endRemove);
+
+    //find image path by finding first ';' character
+    endPos = imageCmd.find(';');
+
+    if (endPos == std::string::npos) {
+        logging::Warning("Attribution: Ignore malformed image input command, can not find first ';' character");
+        return;
+    }
+
+    std::string imagePath("");
+    imagePath.append(imageCmd.substr(0, endPos));
+
+    //try to load this image
+    irr::s32 newImageWidth;
+    irr::s32 newImageHeight;
+
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+
+    //Returns nullptr in case of a texture loading problem
+    irr::video::ITexture* newImagePntr = LoadResourceImage(imagePath, newImageWidth, newImageHeight);
+
+    mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+
+    if (newImagePntr == nullptr) {
+        //image loading issue, interrupt here
+        return;
+    }
+
+    std::string logIngo("Succesfully loaded image '");
+    logIngo.append(imagePath.c_str());
+    logIngo.append("'");
+    logging::Info(logIngo.c_str());
+
+    std::string targetSizeStr("");
+    targetSizeStr.append(imageCmd.substr(endPos + 1, imageCmd.size() - endPos));
+
+    //now parse specified target size information
+    //there needs to be another ';' character in there
+    startPos = targetSizeStr.find(';');
+
+    if (startPos == std::string::npos) {
+        logging::Warning("Attribution: Ignore malformed image input command, can not find ';' character in target image size string");
+        return;
+    }
+
+    std::string xSizeStr("");
+    xSizeStr.append(targetSizeStr.substr(0, startPos));
+
+    std::string ySizeStr("");
+    ySizeStr.append(targetSizeStr.substr(startPos + 1, targetSizeStr.size() - startPos));
+
+    irr::u32 targetXsize;
+    irr::u32 targetYsize;
+
+    std::sscanf(xSizeStr.c_str(), "%u", &targetXsize);
+    std::sscanf(ySizeStr.c_str(), "%u", &targetYsize);
+
+    //image data parsing succesfull
+    AttrEmbeddedImageStruct* newImageInfo = new AttrEmbeddedImageStruct();
+    newImageInfo->InsertAtLineNr = currLineNr;
+    newImageInfo->imageTexLoaded = true;
+    newImageInfo->TargetImageSize.set(targetXsize, targetYsize);
+    newImageInfo->imageTex = newImagePntr;
+
+    mEmbeddedImageVec.push_back(newImageInfo);
 }
 
 //Return true in case of success, False otherwise
@@ -425,9 +622,18 @@ bool Attribution::ReadAttributionInfo() {
     std::ifstream attrFile("media/attribution.txt");
 
     std::string line;
+    irr::u32 currLineNr = 0;
+
     if (attrFile.is_open()) {
           while (getline(attrFile, line)) {
+              //check for data of embedded images
+              //process and then remove this additional
+              //file info text
+              ProcessEmbeddedImageData(currLineNr, line);
+
               mAttrData.push_back(irr::core::stringw(line.c_str()));
+
+              currLineNr++;
           }
 
           //close the file again

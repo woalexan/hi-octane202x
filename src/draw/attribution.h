@@ -14,22 +14,46 @@
 #include <vector>
 #include <string>
 
+#define DEF_ATTR_STATE_UNINITIALIZED 0
+#define DEF_ATTR_STATE_INITERROR 1
+#define DEF_ATTR_STATE_READY 2
+#define DEF_ATTR_STATE_PRESENTING 3
+#define DEF_ATTR_STATE_PRESENTATIONDONE 4
+
 class InfrastructureBase; //Forward declaration
+
+struct AttrEmbeddedImageStruct {
+    irr::u32 InsertAtLineNr;
+    irr::core::dimension2d<irr::u32> TargetImageSize;
+    irr::core::rect<irr::s32> ImagePos;
+    irr::video::ITexture* imageTex = nullptr;
+    bool imageTexLoaded = false;
+    bool imageAlreadyPresented = false;
+};
 
 class Attribution {
 public:
-    Attribution(InfrastructureBase* infra);
+    Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, bool enableFading);
     ~Attribution();
 
     void Init();
+
+    void SetFadingParameters(irr::s32 fadeBarHeightPixels, irr::f32 minFadingFactor, irr::f32 maxFadingFactor);
+    void SetFading(bool enable);
+
+    void SetScrollSpeed(irr::u32 speedValue);
 
     void Update(irr::f32 frameDeltaTime);
 
     void Start();
     void Stop();
-   
+
+    irr::u8 GetState();
+
 private:
     InfrastructureBase* mInfra = nullptr;
+
+    irr::u8 mState = DEF_ATTR_STATE_UNINITIALIZED;
 
     irr::core::dimension2d<irr::u32> mScreenRes;
     irr::s32 mWidthRender;
@@ -37,11 +61,13 @@ private:
     //Return true in case of success, False otherwise
     bool ReadAttributionInfo();
 
+    void ProcessEmbeddedImageData(irr::u32 currLineNr, std::string& inputLine);
+
     //Returns nullptr in case of a texture loading problem
     irr::video::ITexture* LoadResourceImage(std::string filename, irr::s32& texWidth, irr::s32& texHeight);
 
     //Return true in case of success, False otherwise
-    bool LoadResourceImages();
+    bool LoadLineSeperatorImages();
 
     void AddTextElement(irr::core::rect<irr::s32> newPosition);
     irr::u32 mNextTextLineNr;
@@ -49,7 +75,10 @@ private:
 
     std::vector<irr::core::stringw> mAttrData;
 
+    irr::f32 GetFadingFactor(irr::core::rect<irr::s32> currPos);
     void ControlTextFading(irr::gui::IGUIStaticText* whichTextElement);
+    void ControlImageFading(irr::gui::IGUIImage* whichImage);
+
     void UpdateTexts();
 
     bool mSuccessText = false;
@@ -80,18 +109,26 @@ private:
 
     bool mWaitForLineSeperatorEnd = false;
 
-    irr::video::ITexture* texIrrlichtLogo = nullptr;
-    irr::s32 texIrrlichtLogoWidth;
-    irr::s32 texIrrlichtLogoHeight;
+    void CheckForNewEmbeddedImage(irr::core::rect<irr::s32> newPosition);
 
-    irr::video::ITexture* texSFMLLogo = nullptr;
-    irr::s32 texSFMLLogoWidth;
-    irr::s32 texSFMLLogoHeight;
-
-    irr::gui::IGUIImage* IrrlichtLogo;
-    irr::gui::IGUIImage* SFMLLogo;
+    std::vector<AttrEmbeddedImageStruct*> mEmbeddedImageVec;
 
     void CleanupItems();
+
+    //if true text and images are fading in and out at
+    //the bottom/top of the screen
+    bool mFading;
+
+    //we following variables control the fading
+    irr::f32 mMinFadingFactor = 0.0f;
+    irr::f32 mMaxFadingFactor = 1.0f;
+
+    //height of "fading" bar in pixels in which
+    //fade in/out occurs
+    irr::s32 mFadeBarHeightPixels = 200;
+
+    bool mNoMoreTextAvailable;
+    bool mNoMoreImagesAvailable;
 };
 
 #endif // ATTRIBUTION_H

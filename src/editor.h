@@ -30,6 +30,7 @@ using namespace gui;
 #define DEF_EDITORSTATE_OVERWRITE_EXISTING_LEVEL 10
 #define DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM_WAIT 11
 #define DEF_EDITORSTATE_SAVEAS_NEW 12
+#define DEF_EDITORSTATE_ATTRIBUTION 13
 
 #define DEF_EDITOR_NEWLEVELSTYLE_ROCK 0
 #define DEF_EDITOR_NEWLEVELSTYLE_VEGETATION 1
@@ -62,9 +63,6 @@ enum
     GUI_ID_CLOSE_LEVEL,
     GUI_ID_QUIT,
 
-    GUI_ID_EDIT_TESTATTRIBUTION,
-    GUI_ID_EDIT_STOPATTRIBUTION,
-
     GUI_ID_MODE_VIEW,
     GUI_ID_MODE_TEXTURING,
     GUI_ID_MODE_COLUMNDESIGN,
@@ -93,6 +91,9 @@ enum
     GUI_ID_VIEW_ENTITY_CAMERAS,
     GUI_ID_VIEW_ENTITY_EFFECTS,
     GUI_ID_VIEW_ENTITY_MORPHS,
+
+    GUI_ID_INFO_ATTRIBUTION,
+    GUI_ID_INFO_ABOUT,
 
     GUI_ID_VIEWMODEWINDOW_RUNMORPH_CHECKBOX,
     GUI_ID_VIEWMODEWINDOW_FOG_CHECKBOX,
@@ -191,7 +192,9 @@ private:
     bool LoadBackgroundImage();
     void EditorLoopExtractData();
     bool LoadAdditionalGameImages();
-    void EditorLoopNoSessionOpen(irr::f32 frameDeltaTime);
+    void EditorLoopNoSessionOpen();
+
+    void ShowAboutWindow();
 
     bool LoadGameData();
     bool CreateNewEditorSession(std::string levelRootPath, std::string levelName);
@@ -216,6 +219,11 @@ private:
 
     void CreateMenue();
     void ChangeMenueToNoSessionOpen();
+
+    irr::u8 mInitialEditorState;
+
+    void StartAttribution();
+    void AttributionEnded();
 
     void OnMenuItemSelected( IGUIContextMenu* menu );
     void OnButtonClicked(irr::s32 buttonId);
@@ -274,6 +282,7 @@ private:
     gui::IGUIContextMenu* mEditMenu = nullptr;
     gui::IGUIContextMenu* mModeMenu = nullptr;
     gui::IGUIContextMenu* mViewMenu = nullptr;
+    gui::IGUIContextMenu* mInfoMenu = nullptr;
 
     LevelFolderInfoStruct* mSelLevelForFileOperation = nullptr;
 
@@ -281,6 +290,7 @@ private:
     void PopulateEditMenueEntries();
     void PopulateModeMenueEntries();
     void PopulateViewMenueEntries();
+    void PopulateInfoMenueEntries();
 
     void UpdateMenueEntries();
 

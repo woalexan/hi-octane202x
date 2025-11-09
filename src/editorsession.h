@@ -188,6 +188,9 @@ public:
     EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName);
     ~EditorSession();
 
+    void HideUIElements();
+    void UnhideUIElements();
+
     void Init();
     void Render();
     void HandleBasicInput();

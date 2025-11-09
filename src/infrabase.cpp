@@ -1104,7 +1104,7 @@ void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fu
 
     mCrc32 = new Crc32();
 
-    mAttribution = new Attribution(this);
+    mAttribution = new Attribution(this, 800, true);
 
     mInitOk = true;
 }

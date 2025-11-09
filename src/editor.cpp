@@ -32,6 +32,7 @@
 #include "editor/regionmode.h"
 #include "editor/uiconversion.h"
 #include "editor/fileoperationdialog.h"
+#include "input/input.h"
 #include "font/font_manager.h"
 #include <fstream>
 #include "utils/fileutils.h"
@@ -200,6 +201,7 @@ void Editor::UpdateMenueEntries() {
     mEditMenu = nullptr;
     mModeMenu = nullptr;
     mViewMenu = nullptr;
+    mInfoMenu = nullptr;
 
     //file menue is always existing
     mMenu->addItem(L"File", -1, true, true);
@@ -216,6 +218,12 @@ void Editor::UpdateMenueEntries() {
 
         mMenu->addItem(L"View", -1, true, true);
         mViewMenu = mMenu->getSubMenu(3);
+
+        mMenu->addItem(L"Info", -1, true, true);
+        mInfoMenu = mMenu->getSubMenu(4);
+    } else {
+        mMenu->addItem(L"Info", -1, true, true);
+        mInfoMenu = mMenu->getSubMenu(1);
     }
 
     PopulateFileMenueEntries();
@@ -225,6 +233,8 @@ void Editor::UpdateMenueEntries() {
         PopulateModeMenueEntries();
         PopulateViewMenueEntries();
     }
+
+    PopulateInfoMenueEntries();
 
     if (mCurrentSession == nullptr) {
         UpdateStatusbarText(L"Please create or load a map");
@@ -271,9 +281,6 @@ void Editor::PopulateFileMenueEntries() {
     }
 
     mFileMenu->addItem(L"Quit", GUI_ID_QUIT);
-
-    //mFileMenu->addItem(L"Attribution", GUI_ID_EDIT_TESTATTRIBUTION, true, false);
-    //mFileMenu->addItem(L"StopAtt", GUI_ID_EDIT_STOPATTRIBUTION, true, false);
 }
 
 void Editor::PopulateEditMenueEntries() {
@@ -333,6 +340,18 @@ void Editor::PopulateViewMenueEntries() {
     mViewMenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
     mViewMenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
     mViewMenu->addItem(L"Normals", GUI_ID_VIEW_BLOCKS_NORMALS);
+}
+
+void Editor::PopulateInfoMenueEntries() {
+    if (mInfoMenu == nullptr)
+        return;
+
+    /*************************************
+     * Submenue Info                     *
+     *************************************/
+
+    mInfoMenu->addItem(L"Attribution", GUI_ID_INFO_ATTRIBUTION, true, false);
+    mInfoMenu->addItem(L"About", GUI_ID_INFO_ABOUT, true, false);
 }
 
 void Editor::CreateMenue() {
@@ -570,14 +589,14 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
     switch(id)
     {
-        case GUI_ID_EDIT_TESTATTRIBUTION: {
-            mAttribution->Init();
-            mAttribution->Start();
+        case GUI_ID_INFO_ATTRIBUTION: {
+            StartAttribution();
             break;
         }
-        case GUI_ID_EDIT_STOPATTRIBUTION: {
-           mAttribution->Stop();
-           break;
+
+        case GUI_ID_INFO_ABOUT: {
+            ShowAboutWindow();
+            break;
         }
 
         case GUI_ID_MODE_VIEW: {
@@ -1001,6 +1020,11 @@ void Editor::OnTabChanged(irr::s32 elementId) {
   }
 }
 
+void Editor::ShowAboutWindow() {
+    mGuienv->addMessageBox(L"About Hi-Editor", L"Hi-Octane Level editor, Contributors: Wolf Alexander (woalexan), mbillingr",
+                       true, EMBF_OK, 0, -1, nullptr);
+}
+
 void Editor::OnComboBoxChanged(IGUIComboBox* comboBox) {
   u32 val = comboBox->getItemData ( comboBox->getSelected() );
   //std::cout << "ComboBox changed " << val << std::endl;
@@ -1342,7 +1366,7 @@ void Editor::EditorLoopExtractData() {
     mDriver->endScene();
 }
 
-void Editor::EditorLoopNoSessionOpen(irr::f32 frameDeltaTime) {
+void Editor::EditorLoopNoSessionOpen() {
     mDriver->beginScene(true,true,
     video::SColor(255,100,101,140));
 
@@ -1350,8 +1374,6 @@ void Editor::EditorLoopNoSessionOpen(irr::f32 frameDeltaTime) {
     mDriver->draw2DImage(backgnd, irr::core::vector2di(0, 0),
                          irr::core::recti(0, 0, mScreenRes.Width, mScreenRes.Height)
                          , 0, irr::video::SColor(255,255,255,255), true);
-
-    //mAttribution->Update(frameDeltaTime);
 
     //draw Gui
     mGuienv->drawAll();
@@ -1371,10 +1393,15 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->StartOfGameLoop();
 
-    mCurrentSession->AdvanceTime(frameDeltaTime);
+    //skip the next commands if we start an attribution
+    //during EditorSession. So that we do not mess something
+    //up in the background
+    if (mEditorState != DEF_EDITORSTATE_ATTRIBUTION) {
+        mCurrentSession->AdvanceTime(frameDeltaTime);
 
-    mCurrentSession->HandleBasicInput();
-    mCurrentSession->TrackActiveDialog();
+        mCurrentSession->HandleBasicInput();
+        mCurrentSession->TrackActiveDialog();
+    }
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
@@ -1450,6 +1477,86 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
     }
 }
 
+void Editor::StartAttribution() {
+    if (mAttribution == nullptr)
+        return;
+
+    irr::u8 state = mAttribution->GetState();
+
+    if (state == DEF_ATTR_STATE_PRESENTING) {
+        return;
+    }
+
+    if (state == DEF_ATTR_STATE_UNINITIALIZED) {
+       mAttribution->Init();
+    }
+
+    state = mAttribution->GetState();
+
+    if (state == DEF_ATTR_STATE_INITERROR) {
+        return;
+    }
+
+    if ((state != DEF_ATTR_STATE_READY) && (state != DEF_ATTR_STATE_PRESENTATIONDONE)) {
+        return;
+    }
+
+    if (mCurrentSession != nullptr) {
+        if (mCurrentSession->mEditorMode != nullptr) {
+            mCurrentSession->mEditorMode->HideWindow();
+        }
+
+        //Hide additional Ui elements that would
+        //disturb attribution
+        mCurrentSession->HideUIElements();
+    }
+
+    //Remember/Store the current (initial) editor
+    //state. So that we can restore it later again
+    mInitialEditorState = mEditorState;
+
+    mEditorState = DEF_EDITORSTATE_ATTRIBUTION;
+
+    //deactivate main menue
+    //hide everything that would disturb
+    mMenu->setEnabled(false);
+    mMenu->setVisible(false);
+
+    StatusLine->setEnabled(false);
+    StatusLine->setVisible(false);
+
+    noEditorSessionText->setEnabled(false);
+    noEditorSessionText->setVisible(false);
+
+    mAttribution->SetScrollSpeed(2);
+    mAttribution->SetFadingParameters(200, 0.0f, 1.0f);
+    mAttribution->Start();
+}
+
+void Editor::AttributionEnded() {
+    if (mCurrentSession != nullptr) {
+        if (mCurrentSession->mEditorMode != nullptr) {
+            mCurrentSession->mEditorMode->ShowWindow();
+        }
+
+        mCurrentSession->UnhideUIElements();
+    }
+
+    mMenu->setEnabled(true);
+    mMenu->setVisible(true);
+
+    StatusLine->setEnabled(true);
+    StatusLine->setVisible(true);
+
+    if (mCurrentSession == nullptr) {
+        noEditorSessionText->setEnabled(true);
+        noEditorSessionText->setVisible(true);
+    }
+
+    //restore the initial editor state again
+    mEditorState = mInitialEditorState;
+}
+
 void Editor::EditorLoop() {
 
     // In order to do framerate independent movement, we have to know
@@ -1471,10 +1578,32 @@ void Editor::EditorLoop() {
                 break;
             }
 
+            case DEF_EDITORSTATE_ATTRIBUTION: {
+                mAttribution->Update(frameDeltaTime);
+
+                if (mAttribution->GetState() == DEF_ATTR_STATE_PRESENTATIONDONE) {
+                    //presentation is finished
+                    AttributionEnded();
+                }
+
+                //Does user want to interrupt the presentation?
+                 if(mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+                     mAttribution->Stop();
+
+                     AttributionEnded();
+
+                     //Note: Keep this break here, it is important!
+                     break;
+                 }
+
+                //Important note 09.11.2025: Never ever put
+                //a break here; It is not here by purpose, I want to
+                //fall through to DEF_EDITORSTATE_NOSESSIONACTIVE case below!
+            }
             case DEF_EDITORSTATE_NOSESSIONACTIVE: {
                 //ParentEditor is ready for a session,
                 //but no session is loaded yet
-                EditorLoopNoSessionOpen(frameDeltaTime);
+                EditorLoopNoSessionOpen();
                 break;
             }
 

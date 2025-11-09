@@ -163,6 +163,40 @@ void EditorSession::DeactivateMorphs() {
     mRunMorphs = false;
 }
 
+void EditorSession::HideUIElements() {
+    if (mModeInfoText != nullptr) {
+        mModeInfoText->setVisible(false);
+        mModeInfoText->setEnabled(false);
+    }
+
+    if (mControlInfoText != nullptr) {
+        mControlInfoText->setVisible(false);
+        mControlInfoText->setEnabled(false);
+    }
+
+    if (mAssignedLevelInfoText != nullptr) {
+        mAssignedLevelInfoText->setVisible(false);
+        mAssignedLevelInfoText->setEnabled(false);
+    }
+}
+
+void EditorSession::UnhideUIElements() {
+    if (mModeInfoText != nullptr) {
+        mModeInfoText->setVisible(true);
+        mModeInfoText->setEnabled(true);
+    }
+
+    if (mControlInfoText != nullptr) {
+        mControlInfoText->setVisible(true);
+        mControlInfoText->setEnabled(true);
+    }
+
+    if (mAssignedLevelInfoText != nullptr) {
+        mAssignedLevelInfoText->setVisible(true);
+        mAssignedLevelInfoText->setEnabled(true);
+    }
+}
+
 void EditorSession::CheckForMeshUpdate() {
     mLevelTerrain->CheckForMeshUpdate();
     mLevelBlocks->CheckForMeshUpdate();
