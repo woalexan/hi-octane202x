@@ -222,6 +222,252 @@ bool InfrastructureBase::ReadMiniMapCalFile(std::string fileName, irr::u32 &star
     return true;
 }
 
+//The original game executable contains the Credits for the overall game development team; Unfortunetly when writting this
+//credit information a mistake was made, and instead of a single 0 value byte between two names at one location two zero
+//value bytes in a row were used. Unfortunetly this throws my simpler parsing solution off, and some names get lost
+//To fix this issue this workaround method below makes sure that even though this happens we still get all the names
+//of the team
+//Workaround is to check if between the first two detected 0 value bytes in a row, and the next two 0 value bytes in a row
+//we also find the necessary ':' character at the end of the role string; If not clearly no new role was started, and we have
+//the mistake in front of us (which we then ignore). If we find the ':' character inbetween we know a new role was
+//started, and everything is ok
+//To get also the last role/name (this one is missing the ':' character at the end), we can use the '!'
+//right at the end, to also accept this one
+//Method below returns true in case a ':' character was found inbetween, which means a new role was started
+//Returns false in case no ':' character was found inbetween, we have the mistake in front of use, and need to continue
+//collecting names
+bool InfrastructureBase::ParseOriginalGameCreditsWorkaround(std::vector<uint8_t> mGameCreditsInformation, size_t startIdx) {
+    size_t byteVal0Cnter = 0;
+    size_t currIdx;
+    size_t lastIdx = mGameCreditsInformation.size();
+
+    for (currIdx = startIdx; currIdx < lastIdx; currIdx++) {
+        if ((mGameCreditsInformation.at(currIdx) == ':') || (mGameCreditsInformation.at(currIdx) == '!')) {
+            return true;
+        }
+
+        //search for next two 0x0 bytes in a row
+        if (mGameCreditsInformation.at(currIdx) == 0x0) {
+            byteVal0Cnter++;
+
+            if (byteVal0Cnter == 2) {
+                if (mGameCreditsInformation.at(currIdx + 1) == '!') {
+                    //so that we also accept the final role/name
+                    return true;
+                }
+
+                return false;
+            }
+        } else {
+            byteVal0Cnter = 0;
+        }
+    }
+
+    return false;
+}
+
+//Returns true in case of success, False otherwise
+bool InfrastructureBase::ParseOriginalGameCredits(std::vector<OriginalGameCreditStruct*>& originalGameCredits) {
+    //First locate hioctane.exe file
+    irr::io::path gameExeFile =
+            LocateFileInFileList(mOriginalGame->execFolder, irr::core::string<fschar_t>("hioctane.exe"));
+
+    if (gameExeFile.empty()) {
+        //exe file not found!
+         throw std::string("Could not locate the original game exe file hioctane.exe");
+    }
+
+    //open file and search for the credits information
+    bool foundStart = false;
+    bool foundEnd = false;
+    irr::u32 fndPosStart = 0;
+    irr::u32 fndPosEnd = 0;
+
+    /* try to open file to read */
+    ifstream ifile;
+    std::streampos fileSize;
+
+    ifile.open(gameExeFile.c_str(), std::ifstream::binary);
+       if(!ifile) {
+           logging::Error("Could not open hioctane.exe file!");
+           return false;
+       }
+
+     // get its size:
+     ifile.seekg(0, std::ios::end);
+     fileSize = ifile.tellg();
+     ifile.seekg(0, std::ios::beg);
+
+     std::vector<uint8_t> *fileData = new std::vector<uint8_t>(fileSize);
+
+     ifile.read(reinterpret_cast<char*>(fileData->data()), fileData->size());
+
+     if (!ifile) {
+         size_t fileReadsizet = ifile.gcount();
+         char hlpstr[500];
+         std::string msg("hioctane.exe file read error: only ");
+         snprintf(hlpstr, 500, "%zu", fileReadsizet);
+         msg.append(hlpstr);
+         msg.append(" bytes could be read!");
+         logging::Error(msg);
+
+         delete fileData;
+         return false;
+     }
+
+     std::vector<uint8_t>::iterator it;
+     std::vector<uint8_t> compareStrStart ({0x46, 0x4F, 0x52, 0x20, 0x42, 0x55, 0x4C,
+                                           0x4C, 0x46, 0x52, 0x4F, 0x47, 0x20, 0x50, 0x52, 0x4F, 0x44, 0x55, 0x43, 0x54,
+                                           0x49, 0x4F, 0x4E, 0x53, 0x20, 0x4C, 0x54, 0x44, 0x2E, 0x00});
+
+     std::vector<uint8_t> compareStrEnd ({0x24, 0x53, 0x31, 0x20, 0x25, 0x73, 0x25, 0x73, 0x00,
+                                         0x25, 0x73, 0x25, 0x73, 0x00});
+
+     irr::u32 currCmpPosStart = 0;
+     irr::u32 currCmpPosEnd = 0;
+     irr::u32 idx = 0;
+
+     for (it = fileData->begin(); it != fileData->end(); ++it) {
+
+         if (!foundStart) {
+             if ((*it) == compareStrStart.at(currCmpPosStart)) {
+                 //first character found, check for the next one
+                 currCmpPosStart++;
+
+                 //did we find the overall search string?
+                 if (currCmpPosStart >= compareStrStart.size()) {
+                     foundStart = true;
+                     fndPosStart = idx;
+                 }
+             } else {
+                 //start again from first character
+                 currCmpPosStart = 0;
+             }
+         }
+
+         if (!foundEnd) {
+             if ((*it) == compareStrEnd.at(currCmpPosEnd)) {
+                 //first character found, check for the next one
+                 currCmpPosEnd++;
+
+                 //did we find the overall search string?
+                 if (currCmpPosEnd >= compareStrEnd.size()) {
+                     foundEnd = true;
+                     fndPosEnd = idx;
+                 }
+             } else {
+                 //start again from first character
+                 currCmpPosEnd = 0;
+             }
+         }
+
+         idx++;
+
+         if (foundStart && foundEnd) {
+             break;
+         }
+     }
+
+    if (!foundStart || !foundEnd) {
+        logging::Error("hioctane.exe credits information not found!");
+        delete fileData;
+        return false;
+    }
+
+    std::vector<uint8_t> mGameCreditsInformation;
+
+    mGameCreditsInformation.clear();
+
+    std::vector<uint8_t>::iterator start = fileData->begin() + fndPosStart + 1;
+    std::vector<uint8_t>::iterator end = fileData->begin() + fndPosEnd - (compareStrEnd.size() - 1);
+    uint8_t currChar;
+
+    for (it = start; it != end; ++it) {
+        currChar = (*it);
+    /*    if (currChar == 0) {
+            currChar = ' ';
+        }*/
+
+        mGameCreditsInformation.push_back(currChar);
+    }
+
+    delete fileData;
+
+    //now begin to further parse the collected
+    //credits information
+    originalGameCredits.clear();
+
+    size_t currIdx = 0;
+    size_t lastIdx = mGameCreditsInformation.size();
+    size_t byteVal0Cnter = 0;
+    std::string currRole("");
+    std::string currName("");
+
+    std::vector<std::string> currNames;
+
+    bool roleStarted = false;
+    bool namesStarted = false;
+
+    //Before each new role the executable information contains two
+    //Bytes with value 0x0; Therefore we simply search for two 0x0 bytes
+    //in a row, and then we can start to collect a new role; Each role
+    //ends with a ':' character, after the role there are the names,
+    //each seperated with a single byte with value 0x0
+    for (currIdx = 0; currIdx < lastIdx; currIdx++) {
+        if (namesStarted && (mGameCreditsInformation.at(currIdx) != 0x0)) {
+            currName.push_back(mGameCreditsInformation.at(currIdx));
+        }
+
+        if (roleStarted) {
+            if (mGameCreditsInformation.at(currIdx) == ':') {
+                roleStarted = false;
+                namesStarted = true;
+                currName.clear();
+                currNames.clear();
+            }
+
+            currRole.push_back(mGameCreditsInformation.at(currIdx));
+        }
+
+        //search for two 0x0 bytes in a row
+        if (mGameCreditsInformation.at(currIdx) == 0x0) {
+            byteVal0Cnter++;
+
+            if ((namesStarted) && (byteVal0Cnter == 1)) {
+                //a new name is ready
+                if (currName.size() > 0) {
+                    currNames.push_back(currName);
+                }
+
+                currName.clear();
+            }
+
+            if ((byteVal0Cnter == 2) && ParseOriginalGameCreditsWorkaround(mGameCreditsInformation, currIdx)) {
+                if (namesStarted) {
+                    //a role was completely finished
+                    //start working at the next role
+                    OriginalGameCreditStruct* newStruct = new OriginalGameCreditStruct();
+                    newStruct->role = currRole;
+                    newStruct->individualsVec = currNames;
+
+                    //store the new gained information
+                    originalGameCredits.push_back(newStruct);
+
+                    namesStarted = false;
+                }
+
+                //we found the beginning of a new role
+                currRole.clear();
+                roleStarted = true;
+            }
+        } else {
+            byteVal0Cnter = 0;
+        }
+    }
+
+    return true;
+}
+
 irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPath) {
     //set current working directory
     if (!mDevice->getFileSystem()->changeWorkingDirectoryTo(whichAbsPath)) {

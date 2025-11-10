@@ -61,6 +61,9 @@ private:
     //Return true in case of success, False otherwise
     bool ReadAttributionInfo();
 
+    //Return true in case of success, False otherwise
+    bool AddOriginalGameCredits();
+
     void ProcessEmbeddedImageData(irr::u32 currLineNr, std::string& inputLine);
 
     //Returns nullptr in case of a texture loading problem
