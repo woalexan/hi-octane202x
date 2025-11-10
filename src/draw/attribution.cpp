@@ -49,6 +49,7 @@ void Attribution::Init() {
     mTextLineCnt = 0;
 
     mSuccessText = ReadAttributionInfo();
+    mSuccessText &= AddOriginalGameCredits();
 
     if (mSuccessText) {
         mTextLineCnt = mAttrData.size();
@@ -645,4 +646,67 @@ bool Attribution::ReadAttributionInfo() {
 
      logging::Warning("Unable to open file 'media/attribution.txt'");
      return false;
+}
+
+//Returns true in case of success, False otherwise
+bool Attribution::AddOriginalGameCredits() {
+  std::vector<OriginalGameCreditStruct*> originalGameCredits;
+
+  bool success =
+      mInfra->ParseOriginalGameCredits(originalGameCredits);
+
+  if (!success) {
+      return false;
+  }
+
+  mAttrData.push_back("<lineseperator>");
+  mAttrData.push_back("Contributors to the original game at 'Bullfrog Productions Ltd':");
+  mAttrData.push_back("");
+
+  std::string imageStr("  <image>extract/puzzle/puzzle.png;112;96</image>");
+  ProcessEmbeddedImageData(mAttrData.size(), imageStr);
+
+  std::vector<OriginalGameCreditStruct*>::iterator it;
+  std::vector<std::string>::iterator itStr;
+
+  for (it = originalGameCredits.begin(); it != originalGameCredits.end(); ++it) {
+      if ((*it)->role.find("ELECTRONIC") != std::string::npos) {
+          ++it;
+          break;
+      }
+
+      mAttrData.push_back((*it)->role.c_str());
+      mAttrData.push_back("");
+
+      for (itStr = (*it)->individualsVec.begin(); itStr != (*it)->individualsVec.end(); ++itStr) {
+            mAttrData.push_back((*itStr).c_str());
+      }
+
+      mAttrData.push_back("");
+  }
+
+  mAttrData.push_back("");
+  mAttrData.push_back("<lineseperator>");
+  mAttrData.push_back("Contributors to the original game at 'Electronic Arts Ltd':");
+  mAttrData.push_back("");
+
+  for ( ; it != originalGameCredits.end(); ++it) {
+      mAttrData.push_back((*it)->role.c_str());
+      mAttrData.push_back("");
+
+      for (itStr = (*it)->individualsVec.begin(); itStr != (*it)->individualsVec.end(); ++itStr) {
+            mAttrData.push_back((*itStr).c_str());
+      }
+
+      mAttrData.push_back("");
+  }
+
+  mAttrData.push_back("");
+  mAttrData.push_back("<lineseperator>");
+  mAttrData.push_back("And last but not least thank you very much for your interest in this project.");
+  mAttrData.push_back("It really means a lot to me.");
+  mAttrData.push_back("<lineseperator>");
+  mAttrData.push_back("");
+
+  return true;
 }

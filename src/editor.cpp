@@ -147,6 +147,10 @@ bool Editor::InitEditorStep2() {
 
     CreateMenue();
 
+    std::vector<OriginalGameCreditStruct*> credits;
+
+    this->ParseOriginalGameCredits(credits);
+
     return true;
 }
 

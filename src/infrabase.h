@@ -61,6 +61,11 @@ struct LevelFolderInfoStruct {
     std::string description;
 };
 
+struct OriginalGameCreditStruct {
+    std::string role;
+    std::vector<std::string> individualsVec;
+};
+
 class InfrastructureBase {
 public:
   InfrastructureBase(int pArgc, char **pArgv);
@@ -176,6 +181,9 @@ public:
   //False otherwise
   bool CheckForValidLevelName(std::wstring levelName);
 
+  //Returns true in case of success, False otherwise
+  bool ParseOriginalGameCredits(std::vector<OriginalGameCreditStruct*>& originalGameCredits);
+
 private:
   //Irrlicht stuff
   bool mEnableShadows;
@@ -199,6 +207,8 @@ private:
   //Returns true for success, false for error occured
   bool InitIrrlicht();
   bool InitGameResourcesInitialStep();
+
+  bool ParseOriginalGameCreditsWorkaround(std::vector<uint8_t> mGameCreditsInformation, size_t startIdx);
 };
 
 
