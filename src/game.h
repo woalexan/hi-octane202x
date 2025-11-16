@@ -15,7 +15,7 @@
 
 #define DEF_GAMESTATE_AFTERINIT 0
 #define DEF_GAMESTATE_EXTRACTDATA 1
-#define DEF_GAMESTATE_LOADDATA 2
+#define DEF_GAMESTATE_INITSTEP2 2
 #define DEF_GAMESTATE_INTRO 3
 #define DEF_GAMESTATE_GAMETITLE 4
 #define DEF_GAMESTATE_MENUE 5
@@ -95,7 +95,9 @@ private:
     Race* mCurrentRace = nullptr;
     bool mTimeStopped = false;
 
-    bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace);
+    bool CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, irr::u8 nrLaps, bool demoMode, bool debugRace);
+    bool CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> pilotInfo,
+                             irr::u8 nrLaps, bool demoMode, bool debugRace);
 
     void RenderDataExtractionScreen();
     bool LoadBackgroundImage();
@@ -103,6 +105,7 @@ private:
     void GameLoopTitleScreenLoadData();
     void GameLoopLoadRaceScreen();
     bool LoadAdditionalGameImages();
+    void GameLoopInitStep2();
 
     bool LoadGameData();
 
@@ -127,6 +130,12 @@ private:
     irr::core::dimension2d<irr::u32> raceLoadingScrSize;
 
     int nextRaceLevelNr = 1;
+
+    //Returns false if game should exit, False otherwise
+    bool ParseCommandLineForGame();
+
+    bool mTestMapMode = false;
+    std::string mTestTargetLevel;
 
 public:
     irr::video::ITexture* backgnd = nullptr;
@@ -162,7 +171,7 @@ public:
     void AdvanceFrame(irr::s32 advanceFrameCount);
 
     Game(int argc, char **argv);
-    ~Game();
+    virtual ~Game();
 };
 
 #endif // GAME_H

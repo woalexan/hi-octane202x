@@ -201,6 +201,7 @@ void Editor::UpdateMenueEntries() {
     mEditMenu = nullptr;
     mModeMenu = nullptr;
     mViewMenu = nullptr;
+    mTestMenu = nullptr;
     mInfoMenu = nullptr;
 
     //file menue is always existing
@@ -219,8 +220,11 @@ void Editor::UpdateMenueEntries() {
         mMenu->addItem(L"View", -1, true, true);
         mViewMenu = mMenu->getSubMenu(3);
 
+        mMenu->addItem(L"Test", -1, true, true);
+        mTestMenu = mMenu->getSubMenu(4);
+
         mMenu->addItem(L"Info", -1, true, true);
-        mInfoMenu = mMenu->getSubMenu(4);
+        mInfoMenu = mMenu->getSubMenu(5);
     } else {
         mMenu->addItem(L"Info", -1, true, true);
         mInfoMenu = mMenu->getSubMenu(1);
@@ -232,6 +236,7 @@ void Editor::UpdateMenueEntries() {
         PopulateEditMenueEntries();
         PopulateModeMenueEntries();
         PopulateViewMenueEntries();
+        PopulateTestMenueEntries();
     }
 
     PopulateInfoMenueEntries();
@@ -306,6 +311,17 @@ void Editor::PopulateModeMenueEntries() {
     mModeMenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
     mModeMenu->addItem(L"Entity", GUI_ID_MODE_ENTITYMODE, true, false);
     mModeMenu->addItem(L"Region", GUI_ID_MODE_REGION, true, false);
+}
+
+void Editor::PopulateTestMenueEntries() {
+    if (mTestMenu == nullptr)
+        return;
+
+    /*************************************
+     * Submenue Test                     *
+     *************************************/
+
+    mTestMenu->addItem(L"Test in hi-octane20xx", GUI_ID_TEST_TESTHIOCTANCE20XX, true, false);
 }
 
 void Editor::PopulateViewMenueEntries() {
@@ -583,6 +599,9 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
     return success;
 }
 
+void Editor::TestMapinHioctance20XX() {
+}
+
 void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 {
     s32 id = menu->getItemCommandId(menu->getSelectedItem());
@@ -597,6 +616,11 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
         case GUI_ID_INFO_ABOUT: {
             ShowAboutWindow();
             break;
+        }
+
+        case GUI_ID_TEST_TESTHIOCTANCE20XX: {
+           TestMapinHioctance20XX();
+           break;
         }
 
         case GUI_ID_MODE_VIEW: {

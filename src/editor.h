@@ -92,6 +92,8 @@ enum
     GUI_ID_VIEW_ENTITY_EFFECTS,
     GUI_ID_VIEW_ENTITY_MORPHS,
 
+    GUI_ID_TEST_TESTHIOCTANCE20XX,
+
     GUI_ID_INFO_ATTRIBUTION,
     GUI_ID_INFO_ABOUT,
 
@@ -286,6 +288,7 @@ private:
     gui::IGUIContextMenu* mEditMenu = nullptr;
     gui::IGUIContextMenu* mModeMenu = nullptr;
     gui::IGUIContextMenu* mViewMenu = nullptr;
+    gui::IGUIContextMenu* mTestMenu = nullptr;
     gui::IGUIContextMenu* mInfoMenu = nullptr;
 
     LevelFolderInfoStruct* mSelLevelForFileOperation = nullptr;
@@ -294,6 +297,7 @@ private:
     void PopulateEditMenueEntries();
     void PopulateModeMenueEntries();
     void PopulateViewMenueEntries();
+    void PopulateTestMenueEntries();
     void PopulateInfoMenueEntries();
 
     void UpdateMenueEntries();
@@ -311,6 +315,8 @@ private:
     irr::u32 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_ROCK;
 
     void CleanupExistingLevelData();
+
+    void TestMapinHioctance20XX();
 public:
     irr::video::ITexture* backgnd = nullptr;
 

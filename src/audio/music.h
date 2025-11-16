@@ -35,7 +35,7 @@ public:
 
     //loads an original game XMID file (extended midi file)
     //returns true in case of success, false otherwise
-    bool loadGameMusicFile(char* fileName);
+    bool loadGameMusicFile(const char* fileName);
 
     bool StartPlay();
     bool StopPlay();
