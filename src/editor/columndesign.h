@@ -141,7 +141,6 @@ public:
 
     //we need the following two Gui events
     virtual void OnElementHovered(irr::s32 hoveredGuiId);
-    virtual void OnElementLeft(irr::s32 leftGuiId);
 
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
 

@@ -13,9 +13,8 @@
 #include "itemselector.h"
 #include "../draw/drawdebug.h"
 #include "../models/levelterrain.h"
-//#include "../resources/levelfile.h"
-//#include "../resources/mapentry.h"
-//#include <iostream>
+#include "../input/numbereditbox.h"
+#include "../editor/uiconversion.h"
 
 TerraformingMode::TerraformingMode(EditorSession* parentSession) : EditorMode(parentSession) {
      mModeNameStr.append(L"Terraforming");
@@ -25,11 +24,73 @@ TerraformingMode::~TerraformingMode() {
     //make sure my window is hidden at the end
     HideWindow();
 
+    if (mGuiTerraformingMode.LblSelection != nullptr) {
+        mGuiTerraformingMode.LblSelection->remove();
+    }
+
+    if (mGuiTerraformingMode.ButtonSelCell != nullptr) {
+        mGuiTerraformingMode.ButtonSelCell->remove();
+    }
+
+    if (mGuiTerraformingMode.ButtonSelVertices != nullptr) {
+        mGuiTerraformingMode.ButtonSelVertices->remove();
+    }
+
+    if (mGuiTerraformingMode.Vertice1NEB != nullptr) {
+        delete mGuiTerraformingMode.Vertice1NEB;
+    }
+
+    if (mGuiTerraformingMode.Vertice2NEB != nullptr) {
+        delete mGuiTerraformingMode.Vertice2NEB;
+    }
+
+    if (mGuiTerraformingMode.Vertice3NEB != nullptr) {
+        delete mGuiTerraformingMode.Vertice3NEB;
+    }
+
+    if (mGuiTerraformingMode.Vertice4NEB != nullptr) {
+        delete mGuiTerraformingMode.Vertice4NEB;
+    }
+
+    if (mGuiTerraformingMode.CellNEB != nullptr) {
+        delete mGuiTerraformingMode.CellNEB;
+    }
+
+    if (mGuiTerraformingMode.LblStepSize != nullptr) {
+        mGuiTerraformingMode.LblStepSize->remove();
+    }
+
+    if (mGuiTerraformingMode.ComboBoxStepSize != nullptr) {
+        mGuiTerraformingMode.ComboBoxStepSize->remove();
+    }
+
+    if (mGuiTerraformingMode.LblVertice1HeightInfo != nullptr) {
+        mGuiTerraformingMode.LblVertice1HeightInfo->remove();
+    }
+
+    if (mGuiTerraformingMode.LblVertice2HeightInfo != nullptr) {
+        mGuiTerraformingMode.LblVertice2HeightInfo->remove();
+    }
+
+    if (mGuiTerraformingMode.LblVertice3HeightInfo != nullptr) {
+        mGuiTerraformingMode.LblVertice3HeightInfo->remove();
+    }
+
+    if (mGuiTerraformingMode.LblVertice4HeightInfo != nullptr) {
+        mGuiTerraformingMode.LblVertice4HeightInfo->remove();
+    }
+
     //cleanup all data
     if (Window != nullptr) {
         //remove the window of this Mode object
         Window->remove();
     }
+}
+
+//is called when the editor mode
+//is entered (becomes active)
+void TerraformingMode::OnEnterMode() {
+    mParentSession->mParentEditor->UpdateStatusbarText(L"Press '+' key to increase selected cell/vertice height, '-' key to decrease it");
 }
 
 void TerraformingMode::CreateWindow() {
@@ -41,151 +102,193 @@ void TerraformingMode::CreateWindow() {
     //move window to a better start location
     Window->move(irr::core::vector2d<irr::s32>(950,200));
 
-   /* mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Category:",
-                                      rect<s32>( dim.Width - 400, 24, dim.Width - 310, 40 ),false, false, Window, -1, false );
+    mGuiTerraformingMode.LblSelection = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Select:",
+                                                                                               rect<s32>( 20, 30, 80, 55 ), false, false, Window, -1, false );
 
-    mGuiTextureMode.texCategoryList = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 24, dim.Width - 10, 40 ),
-                                                                                          Window, GUI_ID_TEXCATEGORYCOMBOBOX);
+    mGuiTerraformingMode.ButtonSelCell =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(90, 30, 140, 55), Window, GUI_ID_TERRAFORMING_WINDOW_BUTTONSELCELLS, L"Cells");
 
-    AddTextureCategory(L"Terrain", (irr::u8)(EDITOR_TEXCAT_TERRAIN), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Rock", (irr::u8)(EDITOR_TEXCAT_ROCK), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Grass", (irr::u8)(EDITOR_TEXCAT_GRASS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Water", (irr::u8)(EDITOR_TEXCAT_WATER), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Dirtroad", (irr::u8)(EDITOR_TEXCAT_DIRTROAD), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Road", (irr::u8)(EDITOR_TEXCAT_ROAD), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Roadmarkers", (irr::u8)(EDITOR_TEXCAT_ROADMARKERS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Fence", (irr::u8)(EDITOR_TEXCAT_FENCE), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Chargingstation", (irr::u8)(EDITOR_TEXCAT_CHARGINGSTATION), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Column", (irr::u8)(EDITOR_TEXCAT_COLUMN), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Buildings", (irr::u8)(EDITOR_TEXCAT_BUILDINGS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Signs", (irr::u8)(EDITOR_TEXCAT_SIGNS), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Wall", (irr::u8)(EDITOR_TEXCAT_WALL), mGuiTextureMode.texCategoryList);
-    AddTextureCategory(L"Technical", (irr::u8)(EDITOR_TEXCAT_TECHNICAL), mGuiTextureMode.texCategoryList);
+    mGuiTerraformingMode.ButtonSelVertices =
+            mParentSession->mParentEditor->mGuienv->addButton(core::recti(160, 30, 230, 55), Window, GUI_ID_TERRAFORMING_WINDOW_BUTTONSELVERTICES, L"Vertices");
 
-    mGuiTextureMode.texCategoryList->setToolTipText ( L"Select Texture Category" );
+    mGuiTerraformingMode.LblStepSize= mParentSession->mParentEditor->mGuienv->addStaticText ( L"Stepsize:",
+                                      rect<s32>( 185, dim.Height - 98, 160 + 185, dim.Height - 73 ),false, false, Window, -1, false );
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Texture Modification:",
-                                      rect<s32>( dim.Width - 400, 50, dim.Width - 310, 66 ),false, false, Window, -1, false );
+    mGuiTerraformingMode.ComboBoxStepSize = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( 185, dim.Height - 73, 100 + 185, dim.Height - 53),
+                                                                                          Window, GUI_ID_TERRAFORMING_WINDOW_STEPSIZE_COMBOBOX);
 
-    mGuiTextureMode.texModification = mParentSession->mParentEditor->mGuienv->addComboBox(rect<s32>( dim.Width - 300, 50, dim.Width - 10, 66 ),
-                                                                                          Window, GUI_ID_TEXMODIFICATIONCOMBOBOX);
+    mGuiTerraformingMode.ComboBoxStepSize->addItem(L" 1", 1);
+    mGuiTerraformingMode.ComboBoxStepSize->addItem(L" 2", 2);
+    mGuiTerraformingMode.ComboBoxStepSize->addItem(L" 5", 5);
+    mGuiTerraformingMode.ComboBoxStepSize->addItem(L"10", 10);
+    mGuiTerraformingMode.ComboBoxStepSize->addItem(L"20", 20);
+    mGuiTerraformingMode.ComboBoxStepSize->addItem(L"50", 50);
 
-    AddTextureModification(L"Default", 0, mGuiTextureMode.texModification);
-    AddTextureModification(L"RotateNoneFlipX", 1, mGuiTextureMode.texModification);
-    AddTextureModification(L"RotateNoneFlipY", 2, mGuiTextureMode.texModification);
-    AddTextureModification(L"Rotate180FlipNone", 3, mGuiTextureMode.texModification);
-    AddTextureModification(L"Rotate270FlipY", 4, mGuiTextureMode.texModification);
-    AddTextureModification(L"Rotate90FlipNone", 5, mGuiTextureMode.texModification);
-    AddTextureModification(L"Rotate270FlipNone", 6, mGuiTextureMode.texModification);
-    AddTextureModification(L"Rotate90FlipY", 7, mGuiTextureMode.texModification);
+    //default select "5"
+    mGuiTerraformingMode.ComboBoxStepSize->setSelected(2);
 
-    mGuiTextureMode.texModification->setToolTipText ( L"Select Texture Modification" );
+    mGuiTerraformingMode.ComboBoxStepSize->setEnabled(true);
+    mGuiTerraformingMode.ComboBoxStepSize->setVisible(true);
+    mGuiTerraformingMode.LblStepSize->setEnabled(true);
+    mGuiTerraformingMode.LblStepSize->setVisible(true);
 
-    //configure area in dialog where the possible textures are
-    //shown
-    dimTexSelectionArea.UpperLeftCorner.set(10, 80);
-    dimTexSelectionArea.LowerRightCorner.set(dim.Width - 10, dim.Height - 40);
+    irr::s32 dx = 20;
+    irr::s32 dy = 70;
 
-    irr::core::dimension2d dimTexSelectionSize = dimTexSelectionArea.getSize();
+    //Float Type NumberEditBox Vertice 1
+    mGuiTerraformingMode.Vertice1NEB = new NumberEditBox(this, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES, rect<s32> ( dx + 35, dy, dx + 100, dy + 25), true, Window);
 
-    //how much texture pictures do we fit into the available texture picture selection area, round down
-    //all textures have the same dimension, just take the dimension from the first one
-    irr::core::dimension2d texDimension = this->mParentSession->mTexLoader->levelTex.at(0)->getSize();
+    mGuiTerraformingMode.Vertice1NEB->SetValue(0.0f);
+    mGuiTerraformingMode.Vertice1NEB->SetValueLimit(-20.0f, 20.0f);
+    mGuiTerraformingMode.Vertice1NEB->AddLabel(L"V1:", rect<s32>( dx, dy + 2, dx + 25, dy + 27));
+    mGuiTerraformingMode.Vertice1NEB->SetVisible(false);
 
-    mTexDimension = texDimension.Width;
+    //in Cell Selection mode instead place a label containing the current
+    //vertice 1 height information
+    mGuiTerraformingMode.LblVertice1HeightInfo = mParentSession->mParentEditor->mGuienv->addStaticText ( L"V1 h:",
+                                      rect<s32>( dx, dy + 2, dx + 125, dy + 27 ),false, false, Window, -1, false );
 
-    mNrTexWidth = dimTexSelectionSize.Width / texDimension.Width;
-    mNrTexHeight = dimTexSelectionSize.Height / texDimension.Height;
+    mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice1HeightInfo->setEnabled(true);
 
-    DefineAllTextures();
+    dx += 130;
 
-    //preselect the Terrain textures in the dialog
-    SelectTextureModeTexCategory(FindTextureCategory((irr::u8)(EDITOR_TEXCAT_TERRAIN)));
+    //Float Type NumberEditBox CellNEB
+    mGuiTerraformingMode.CellNEB = new NumberEditBox(this, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES, rect<s32> ( dx + 55, dy, dx + 120, dy + 25), true, Window);
 
-    mCurrentSelectedTextureImageLocation.set(10, 50);
+    mGuiTerraformingMode.CellNEB->SetValue(0.0f);
+    mGuiTerraformingMode.CellNEB->SetValueLimit(-20.0f, 20.0f);
+    mGuiTerraformingMode.CellNEB->AddLabel(L"Cell avg:", rect<s32>( dx, dy + 2, dx + 50, dy + 27));
+    mGuiTerraformingMode.CellNEB->SetVisible(false);
 
-    mParentSession->mParentEditor->mGuienv->addStaticText ( L"Current Selected:",
-          rect<s32>( mCurrentSelectedTextureImageLocation.X,
-                     mCurrentSelectedTextureImageLocation.Y - 15,
-                     mCurrentSelectedTextureImageLocation.X + 70,
-                     mCurrentSelectedTextureImageLocation.Y - 5),false, false, Window, -1, false );
+    dx -= 130;
 
-    mGuiTextureMode.CurrentSelectedTexture = mParentSession->mParentEditor->mGuienv->addImage(mParentSession->mTexLoader->levelTex.at(0),
-                                                                      mCurrentSelectedTextureImageLocation, true, Window, -1);
+    //Float Type NumberEditBox Vertice 2
+    dy += 35;
 
-    //until user first selects something hide the current texture selection image
-    mGuiTextureMode.CurrentSelectedTexture->setEnabled(false);
-    mGuiTextureMode.CurrentSelectedTexture->setVisible(false);
+    mGuiTerraformingMode.Vertice2NEB = new NumberEditBox(this, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES, rect<s32> ( dx + 35, dy, dx + 100, dy + 25), true, Window);
 
-    //first set empty text, only update with texture Id when first cell is clicked by the user
-    mGuiTextureMode.CurrentSelectedTextureIdText =
-            mParentSession->mParentEditor->mGuienv->addStaticText ( L"", rect<s32>( mCurrentSelectedTextureImageLocation.X,
-                                                                         mCurrentSelectedTextureImageLocation.Y + 68,
-                                                                         mCurrentSelectedTextureImageLocation.X + 70,
-                                                                         mCurrentSelectedTextureImageLocation.Y + 80),
-                                                                         false, false, Window, -1, false );
+    mGuiTerraformingMode.Vertice2NEB->SetValue(0.0f);
+    mGuiTerraformingMode.Vertice2NEB->SetValueLimit(-20.0f, 20.0f);
+    mGuiTerraformingMode.Vertice2NEB->AddLabel(L"V2:", rect<s32>( dx, dy + 2, dx + 25, dy + 27));
+    mGuiTerraformingMode.Vertice2NEB->SetVisible(false);
 
-    mGuiTextureMode.CurrentIlluminationValue = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Illumination:",
-                                                                                                       rect<s32>( 80, mCurrentSelectedTextureImageLocation.Y + 68, 160, mCurrentSelectedTextureImageLocation.Y + 80),
-                                                                                                       false, false, Window, -1, false );
+    //in Cell Selection mode instead place a label containing the current
+    //vertice 2 height information
+    mGuiTerraformingMode.LblVertice2HeightInfo = mParentSession->mParentEditor->mGuienv->addStaticText ( L"V2 h:",
+                                      rect<s32>( dx, dy + 2, dx + 125, dy + 27 ),false, false, Window, -1, false );
 
-    mGuiTextureMode.LabelSelectCubeFaces = mParentSession->mParentEditor->mGuienv->addStaticText ( L"Select Cubefaces:",
-                                      rect<s32>( 105 , 35, 180, 45 ),false, false, Window, -1, false );
+    mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice2HeightInfo->setEnabled(true);
 
-    irr::s32 mx = 0;
-    irr::s32 my = 22;
-    mGuiTextureMode.SelNButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 30, mx + 145, my + 45), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTN, L"N");
-    mGuiTextureMode.SelWButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 105, my + 50, mx + 125, my + 65), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTW, L"W");
-    mGuiTextureMode.SelEButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 50, mx + 165, my + 65), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTE, L"E");
-    mGuiTextureMode.SelSButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 125, my + 70, mx + 145, my + 85), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTS, L"S");
-    mGuiTextureMode.SelTButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 30, mx + 165, my + 45), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTT, L"T");
-    mGuiTextureMode.SelBButton = mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 145, my + 70, mx + 165, my + 85), Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTB, L"B");
+    //Float Type NumberEditBox Vertice 3
+    dy += 35;
 
-    mGuiTextureMode.SelColumnFloorTextureIdButton =
-            mParentSession->mParentEditor->mGuienv->addButton(core::recti(mx + 190, my + 70, mx + 300, my + 85),
-                                                              Window, GUI_ID_TEXTUREWINDOW_BUTTONSELECTCOLUMNFLOORTEXID, L"Select Column FloorTex Id");*/
+    mGuiTerraformingMode.Vertice3NEB = new NumberEditBox(this, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES, rect<s32> ( dx + 35, dy, dx + 100, dy + 25), true, Window);
+
+    mGuiTerraformingMode.Vertice3NEB->SetValue(0.0f);
+    mGuiTerraformingMode.Vertice3NEB->SetValueLimit(-20.0f, 20.0f);
+    mGuiTerraformingMode.Vertice3NEB->AddLabel(L"V3:", rect<s32>( dx, dy + 2, dx + 25, dy + 27));
+    mGuiTerraformingMode.Vertice3NEB->SetVisible(false);
+
+    //in Cell Selection mode instead place a label containing the current
+    //vertice 3 height information
+    mGuiTerraformingMode.LblVertice3HeightInfo = mParentSession->mParentEditor->mGuienv->addStaticText ( L"V3 h:",
+                                      rect<s32>( dx, dy + 2, dx + 125, dy + 27 ),false, false, Window, -1, false );
+
+    mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice3HeightInfo->setEnabled(true);
+
+    //Float Type NumberEditBox Vertice 4
+    dy += 35;
+
+    mGuiTerraformingMode.Vertice4NEB = new NumberEditBox(this, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES, rect<s32> ( dx + 35, dy, dx + 100, dy + 25), true, Window);
+
+    mGuiTerraformingMode.Vertice4NEB->SetValue(0.0f);
+    mGuiTerraformingMode.Vertice4NEB->SetValueLimit(-20.0f, 20.0f);
+    mGuiTerraformingMode.Vertice4NEB->AddLabel(L"V4:", rect<s32>( dx, dy + 2, dx + 25, dy + 27));
+    mGuiTerraformingMode.Vertice4NEB->SetVisible(false);
+
+    //in Cell Selection mode instead place a label containing the current
+    //vertice 4 height information
+    mGuiTerraformingMode.LblVertice4HeightInfo = mParentSession->mParentEditor->mGuienv->addStaticText ( L"V4 h:",
+                                      rect<s32>( dx, dy + 2, dx + 125, dy + 27 ),false, false, Window, -1, false );
+
+    mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice4HeightInfo->setEnabled(true);
 }
 
 void TerraformingMode::OnButtonClicked(irr::s32 buttonGuiId) {
-   /* switch (buttonGuiId) {
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTN: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACENORTH);
+    switch (buttonGuiId) {
+        case GUI_ID_TERRAFORMING_WINDOW_BUTTONSELVERTICES: {
+             mOpMode = EDITOR_TERRAFORMING_OPMODE_SELVERTICES;
+             mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(false);
+             mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
+             mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(false);
+             mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(false);
              break;
         }
 
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTE: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACEEAST);
+        case GUI_ID_TERRAFORMING_WINDOW_BUTTONSELCELLS: {
+             mOpMode = EDITOR_TERRAFORMING_OPMODE_SELCELLS;
+
+             mGuiTerraformingMode.Vertice1NEB->SetVisible(false);
+             mGuiTerraformingMode.Vertice2NEB->SetVisible(false);
+             mGuiTerraformingMode.Vertice3NEB->SetVisible(false);
+             mGuiTerraformingMode.Vertice4NEB->SetVisible(false);
+
+             mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(true);
+             mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(true);
+             mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(true);
+             mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(true);
              break;
         }
 
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTS: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACESOUTH);
-             break;
-        }
-
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTW: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACEWEST);
-             break;
-        }
-
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTT: {
-             SelectOtherBlockFace(DEF_SELBLOCK_FACETOP);
-             break;
-        }
-
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTB: {
-            SelectOtherBlockFace(DEF_SELBLOCK_FACEBOTTOM);
-            break;
-        }
-
-        case GUI_ID_TEXTUREWINDOW_BUTTONSELECTCOLUMNFLOORTEXID: {
-            SelectColumnFloorTexture();
-            break;
-        }
         default: {
             break;
         }
-    }*/
+    }
+}
+
+void TerraformingMode::UpdateUiEditNumberboxes(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
+    mGuiTerraformingMode.Vertice1NEB->SetVisible(false);
+    mGuiTerraformingMode.Vertice2NEB->SetVisible(false);
+    mGuiTerraformingMode.Vertice3NEB->SetVisible(false);
+    mGuiTerraformingMode.Vertice4NEB->SetVisible(false);
+    mGuiTerraformingMode.CellNEB->SetVisible(false);
+
+    mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(false);
+    mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(false);
+
+    if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+        if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+            //only show the EditBox for the selected Vertex
+            if (newItemSelected.mCellCoordVerticeNrSelected == 1) {
+                mGuiTerraformingMode.Vertice1NEB->SetVisible(true);
+            }
+
+            if (newItemSelected.mCellCoordVerticeNrSelected == 2) {
+                mGuiTerraformingMode.Vertice2NEB->SetVisible(true);
+            }
+
+            if (newItemSelected.mCellCoordVerticeNrSelected == 3) {
+                mGuiTerraformingMode.Vertice3NEB->SetVisible(true);
+            }
+
+            if (newItemSelected.mCellCoordVerticeNrSelected == 4) {
+                mGuiTerraformingMode.Vertice4NEB->SetVisible(true);
+            }
+        } else if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+                mGuiTerraformingMode.CellNEB->SetVisible(true);
+
+                mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(true);
+                mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(true);
+                mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(true);
+                mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(true);
+        }
+    }
 }
 
 void TerraformingMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
@@ -194,82 +297,77 @@ void TerraformingMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruc
         //if not open it
         ShowWindow();
 
-        //a cell was selected
-        //which texture Id does this cell have
-      /*  MapEntry* entry;
-        entry = this->mParentSession->mLevelTerrain->levelRes->pMap[newItemSelected.mCellCoordSelected.X][newItemSelected.mCellCoordSelected.Y];
+        UpdateUiEditNumberboxes(newItemSelected);
 
-        wchar_t* selInfo = new wchar_t[200];
+        irr::s32 coordX = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X;
+        irr::s32 coordY = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y;
 
-        swprintf(selInfo, 190, L"Selected Cell X = %d, Y = %d", newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y);
-        mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+        //Y-coordinate from original map has flipped sign in this project
+        irr::f32 currV1h = -mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert1CurrPositionY;
+        irr::f32 currV2h = -mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert2CurrPositionY;
+        irr::f32 currV3h = -mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert3CurrPositionY;
+        irr::f32 currV4h = -mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert4CurrPositionY;
 
-        delete[] selInfo;
+        //Update the labels showing vertice height
+        UpdateHeightLbl(1, currV1h);
+        UpdateHeightLbl(2, currV2h);
+        UpdateHeightLbl(3, currV3h);
+        UpdateHeightLbl(4, currV4h);
 
-        if (entry != nullptr) {
-            int16_t texId = entry->m_TextureId;
-            int8_t texMod = entry->m_TextureModification;
-
-            //update image of currently selected texture
-            mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(texId));
-            mGuiTextureMode.CurrentSelectedTexture->setEnabled(true);
-            mGuiTextureMode.CurrentSelectedTexture->setVisible(true);
-
-            wchar_t* textTextureID = new wchar_t[50];
-            swprintf(textTextureID, 50, L"Texture Id: %d", (int)(texId));
-            mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
-            delete[] textTextureID;
-
-            wchar_t* illuminationInfo = new wchar_t[50];
-            swprintf(illuminationInfo, 45, L"Illumination: %d", entry->mIllumination);
-
-            mGuiTextureMode.CurrentIlluminationValue->setText(illuminationInfo);
-            delete[] illuminationInfo;
-
-            SelectTextureModification(texMod);*/
+        if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+            mGuiTerraformingMode.Vertice1NEB->SetValue(currV1h);
+            mGuiTerraformingMode.Vertice2NEB->SetValue(currV2h);
+            mGuiTerraformingMode.Vertice3NEB->SetValue(currV3h);
+            mGuiTerraformingMode.Vertice4NEB->SetValue(currV4h);
+        } else {
+           irr::f32 avgVh = (currV1h + currV2h + currV3h + currV4h) / 4.0f;
+           mGuiTerraformingMode.CellNEB->SetValue(avgVh);
         }
-    /*} else if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        //is our dialog already open?
-        //if not open it
-        ShowWindow();
+    }
+}
 
-        //for a selected block unhide the window block
-        //options (gui elements)
-        WindowControlBlockOptions(true);
+void TerraformingMode::UpdateHeightLbl(irr::u32 verticeNr, irr::f32 newValue) {
+    stringw newLblTxt("");
 
-        //a block face was selected
-        //which texture Id does this face have
-        int16_t currTextureId;
-        uint8_t currTextureMod;
+    if (verticeNr == 1) {
+        newLblTxt.append(L"V1 h: ");
+    }
 
-        wchar_t* selInfo = new wchar_t[200];
+    if (verticeNr == 2) {
+        newLblTxt.append(L"V2 h: ");
+    }
 
-        swprintf(selInfo, 190, L"Selected Column at Cell X = %d, Y = %d", newItemSelected.mCellCoordSelected.X, newItemSelected.mCellCoordSelected.Y);
-        mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+    if (verticeNr == 3) {
+        newLblTxt.append(L"V3 h: ");
+    }
 
-        delete[] selInfo;
+    if (verticeNr == 4) {
+        newLblTxt.append(L"V4 h: ");
+    }
 
-        if (newItemSelected.mColumnSelected != nullptr) {
-            if (mParentSession->mLevelBlocks->GetTextureInfoSelectedBlock(newItemSelected.mColumnSelected,
-                                                                          newItemSelected.mSelBlockNrStartingFromBase,
-                                                                          newItemSelected.mSelBlockFaceDirection,
-                                                                          currTextureId,
-                                                                          currTextureMod)) {
-                    //we received the block face information
-                   //update image of currently selected texture
-                   mGuiTextureMode.CurrentSelectedTexture->setImage(mParentSession->mTexLoader->levelTex.at(currTextureId));
-                   mGuiTextureMode.CurrentSelectedTexture->setEnabled(true);
-                   mGuiTextureMode.CurrentSelectedTexture->setVisible(true);
+    stringw newValueStr(newValue);
 
-                   wchar_t* textTextureID = new wchar_t[50];
-                   swprintf(textTextureID, 50, L"Texture Id: %d", (int)(currTextureId));
-                   mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
-                   delete[] textTextureID;
+    //limit number of shown decimal places
+    stringw newValueStrLimited(
+                mParentSession->mParentEditor->mUiConversion->NumberStringLimitDecimalPlaces(newValueStr, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES));
 
-                   SelectTextureModification(currTextureMod);
-            }
-        }
-    }*/
+    newLblTxt.append(newValueStrLimited);
+
+    if (verticeNr == 1) {
+        mGuiTerraformingMode.LblVertice1HeightInfo->setText(newLblTxt.c_str());
+    }
+
+    if (verticeNr == 2) {
+        mGuiTerraformingMode.LblVertice2HeightInfo->setText(newLblTxt.c_str());
+    }
+
+    if (verticeNr == 3) {
+        mGuiTerraformingMode.LblVertice3HeightInfo->setText(newLblTxt.c_str());
+    }
+
+    if (verticeNr == 4) {
+        mGuiTerraformingMode.LblVertice4HeightInfo->setText(newLblTxt.c_str());
+    }
 }
 
 void TerraformingMode::OnLeftMouseButtonDown() {
@@ -284,64 +382,14 @@ void TerraformingMode::OnLeftMouseButtonDown() {
             break;
          }
 
-      /*  case DEF_EDITOR_USERINTEXTUREDIALOG: {
-            //are we hovering right now over exactly one of my
-            //texture selection images?
-            if (mCurrShownTexCategory != nullptr) {
-                //returns nullptr if no texture image in the dialog
-                //is currently hovered with the mouse
-                GUITextureModeTexDataStruct* pntr = mCurrShownTexCategory->FoundCurrentlyHoveredTexture();
-                if (pntr != nullptr) {
-                    //some new texture image was selected
-                    //handle action inside this function call
-                    OnUserChangedToNewTexture(mParentSession->mItemSelector->mCurrSelectedItem, pntr->textureId);
-                }
-            }
-
+        case DEF_EDITOR_USERINTERRAFORMINGDIALOG: {
            break;
-        }*/
+        }
 
         default: {
            break;
         }
     }
-}
-
-void TerraformingMode::OnElementHovered(irr::s32 hoveredGuiId) {
-    /*if (mCurrShownTexCategory == nullptr)
-        return;
-
-    if (mParentSession->mUserInDialogState != DEF_EDITOR_USERINTEXTUREDIALOG)
-        return;
-
-    //which texture was hovered?
-
-    //returns nullptr if no texture is found
-    GUITextureModeTexDataStruct* pntr =  mCurrShownTexCategory->SearchTextureById(hoveredGuiId);
-
-    if (pntr == nullptr)
-        return;
-
-    //we found the newly hovered texture image in the
-    //dialog
-    pntr->currHovered = true;*/
-}
-
-void TerraformingMode::OnElementLeft(irr::s32 leftGuiId) {
-   /* if (mCurrShownTexCategory == nullptr)
-        return;
-
-    //which texture image was left?
-
-    //returns nullptr if no texture is found
-    GUITextureModeTexDataStruct* pntr =  mCurrShownTexCategory->SearchTextureById(leftGuiId);
-
-    if (pntr == nullptr)
-        return;
-
-    //we found the new left texture image in the
-    //dialog
-    pntr->currHovered = false;*/
 }
 
 void TerraformingMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem) {
@@ -349,26 +397,26 @@ void TerraformingMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoSt
         return;
 
     if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        //Draw the whole selected cell
-        //mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->cyan);
+        //Are we editiing vertices right now?
+        //if so draw the currently selected vertice
+        if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+            //Draw the whole selected cell
+            mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
 
-        //Draw the "cross" at the currently selected vertex
-        mParentSession->DrawCellVertexCross(mCurrSelectedItem, mParentSession->mParentEditor->mDrawDebug->cyan);
+            //Draw the "cross" at the currently selected vertex
+            mParentSession->DrawCellVertexCross(mCurrSelectedItem, mParentSession->mParentEditor->mDrawDebug->cyan);
+        }
+
+        //If we currently do select/edit based on cells, draw the currently
+        //selected cell itself
+        if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+            //Draw the whole selected cell
+            mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->cyan);
+        }
     }
-
-  /*  //mark the currently user selected item for texturing mode
-    if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->blue);
-    } else if (mCurrSelectedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        mParentSession->mLevelBlocks->DrawOutlineSelectedColumn(mCurrSelectedItem->mColumnSelected,
-                                                         mCurrSelectedItem->mSelBlockNrStartingFromBase,
-                                                         mParentSession->mParentEditor->mDrawDebug->white,
-                                                         mParentSession->mParentEditor->mDrawDebug->blue,
-                                                         mCurrSelectedItem->mSelBlockFaceDirection);
-    }*/
 }
 
-void TerraformingMode::OnSelectedVertexUp() {
+void TerraformingMode::OnSelectedVertexModifyHeight(irr::f32 deltaH) {
     if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
@@ -383,23 +431,31 @@ void TerraformingMode::OnSelectedVertexUp() {
 
     switch (mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected) {
         case 1: {
-            newH = currV1h - 0.2f;
-            break;
+          newH = currV1h - deltaH;
+          mGuiTerraformingMode.Vertice1NEB->SetValue(-newH);
+          UpdateHeightLbl(1, -newH);
+          break;
         }
         case 2: {
-            newH = currV2h - 0.2f;
-            break;
+          newH = currV2h - deltaH;
+          mGuiTerraformingMode.Vertice2NEB->SetValue(-newH);
+          UpdateHeightLbl(2, -newH);
+          break;
         }
         case 3: {
-            newH = currV3h - 0.2f;
-            break;
+          newH = currV3h - deltaH;
+          mGuiTerraformingMode.Vertice3NEB->SetValue(-newH);
+          UpdateHeightLbl(3, -newH);
+          break;
         }
         case 4: {
-            newH = currV4h - 0.2f;
-            break;
+          newH = currV4h - deltaH;
+          mGuiTerraformingMode.Vertice4NEB->SetValue(-newH);
+          UpdateHeightLbl(4, -newH);
+          break;
         }
         default: {
-            return;
+          return;
         }
     }
 
@@ -408,7 +464,7 @@ void TerraformingMode::OnSelectedVertexUp() {
     mParentSession->CheckForMeshUpdate();
 }
 
-void TerraformingMode::OnSelectedVertexDown() {
+void TerraformingMode::OnSelectedCellModifyHeight(irr::f32 deltaH) {
     if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
@@ -420,67 +476,159 @@ void TerraformingMode::OnSelectedVertexDown() {
     irr::f32 currV3h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert3CurrPositionY;
     irr::f32 currV4h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert4CurrPositionY;
     irr::f32 newH = 0.0f;
+    irr::f32 avgH = 0.0f;
 
-    switch (mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected) {
-        case 1: {
-            newH = currV1h + 0.2f;
-            break;
-        }
-        case 2: {
-            newH = currV2h + 0.2f;
-            break;
-        }
-        case 3: {
-            newH = currV3h + 0.2f;
-            break;
-        }
-        case 4: {
-            newH = currV4h + 0.2f;
-            break;
-        }
-        default: {
-            return;
-        }
+    newH = currV1h - deltaH;
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 1, newH);
+    UpdateHeightLbl(1, -newH);
+
+    avgH += -newH;
+
+    newH = currV2h - deltaH;
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 2, newH);
+    UpdateHeightLbl(2, -newH);
+
+    avgH += -newH;
+
+    newH = currV3h - deltaH;
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 3, newH);
+    UpdateHeightLbl(3, -newH);
+
+    avgH += -newH;
+
+    newH = currV4h - deltaH;
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 4, newH);
+    UpdateHeightLbl(4, -newH);
+
+    avgH += -newH;
+    avgH = avgH / 4.0f;
+
+    mGuiTerraformingMode.CellNEB->SetValue(avgH);
+
+    mParentSession->CheckForMeshUpdate();
+}
+
+irr::f32 TerraformingMode::GetCurrentStepSize() {
+    irr::s32 selStepSize = mGuiTerraformingMode.ComboBoxStepSize->getSelected();
+
+    if (selStepSize == -1) {
+        return 0.0f;
     }
 
-    //After the next command we need to ourself trigger a Mesh update!
-    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected, newH);
-    mParentSession->CheckForMeshUpdate();
+    irr::u32 stepSize = (irr::u32)(mGuiTerraformingMode.ComboBoxStepSize->getItemData(selStepSize));
+
+    return (EDITOR_TERRAFORMING_MINDELTA * (irr::f32)(stepSize));
+}
+
+void TerraformingMode::OnSelectedItemUp() {
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+        OnSelectedVertexModifyHeight(GetCurrentStepSize());
+    }
+
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+        OnSelectedCellModifyHeight(GetCurrentStepSize());
+    }
+}
+
+void TerraformingMode::OnSelectedItemDown() {
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+        OnSelectedVertexModifyHeight(-GetCurrentStepSize());
+    }
+
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+        OnSelectedCellModifyHeight(-GetCurrentStepSize());
+    }
 }
 
 void TerraformingMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem) {
-    //Draw terrain grid
-    //we can only draw the grid in a limited area below
-    //the users camera, because otherwise the drawing performance
-    //would go down way to much
-    /*mParentSession->mLevelTerrain->DrawTerrainGrid(mCurrHighlightedItem->mCellCoordSelected.X, mCurrHighlightedItem->mCellCoordSelected.Y, 10,
-                                                   mParentSession->mParentEditor->mDrawDebug->white);*/
+    //Do we want to select vertices?
+    //If so draw the terrain grid
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+            //Draw terrain grid
+            //we can only draw the grid in a limited area below
+            //the users camera, because otherwise the drawing performance
+            //would go down way to much
+            irr::core::vector3df userCamPos = this->mParentSession->mCamera->getPosition();
 
-    irr::core::vector3df userCamPos = this->mParentSession->mCamera->getPosition();
+            irr::core::vector2di cellPosBelowUserCamera;
 
-    irr::core::vector2di cellPosBelowUserCamera;
+            cellPosBelowUserCamera.X = (irr::s32)(-userCamPos.X / DEF_SEGMENTSIZE);
+            cellPosBelowUserCamera.Y = (irr::s32)(userCamPos.Z / DEF_SEGMENTSIZE);
 
-    cellPosBelowUserCamera.X = (irr::s32)(-userCamPos.X / DEF_SEGMENTSIZE);
-    cellPosBelowUserCamera.Y = (irr::s32)(userCamPos.Z / DEF_SEGMENTSIZE);
+            mParentSession->mLevelTerrain->DrawTerrainGrid(cellPosBelowUserCamera.X, cellPosBelowUserCamera.Y, 20,
+                                                                   mParentSession->mParentEditor->mDrawDebug->white);
 
-    mParentSession->mLevelTerrain->DrawTerrainGrid(cellPosBelowUserCamera.X, cellPosBelowUserCamera.Y, 20,
-                                                           mParentSession->mParentEditor->mDrawDebug->white);
+            //09.08.2025: Keep the same order, first the BLOCK code below, then AFTERWARDS the
+            //if for the Cell, Important!
+            if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+                   int xCoord = mCurrHighlightedItem->mCellCoordSelected.X;
+                   int yCoord = mCurrHighlightedItem->mCellCoordSelected.Y;
 
-    //09.08.2025: Keep the same order, first the BLOCK code below, then AFTERWARDS the
-    //if for the Cell, Important!
-    if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-           int xCoord = mCurrHighlightedItem->mCellCoordSelected.X;
-           int yCoord = mCurrHighlightedItem->mCellCoordSelected.Y;
+                   //Force selection of the terrain cell instead of the block the user has highlighted
+                   //right now
+                   mParentSession->mItemSelector->SelectSpecifiedCellAtCoordinate(xCoord, yCoord);
+            }
 
-           //Force selection of the terrain cell instead of the block the user has highlighted
-           //right now
-           mParentSession->mItemSelector->SelectSpecifiedCellAtCoordinate(xCoord, yCoord);
+            if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+                //Draw the "cross" at the currently highlighted vertex
+                mParentSession->DrawCellVertexCross(mCurrHighlightedItem, mParentSession->mParentEditor->mDrawDebug->green);
+
+                //mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
+            }
     }
 
-    if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {       
-        //Draw the "cross" at the currently highlighted vertex
-        mParentSession->DrawCellVertexCross(mCurrHighlightedItem, mParentSession->mParentEditor->mDrawDebug->green);
-
-        //mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
+    //if we select cells then outline the currently selected cell
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+        if (mCurrHighlightedItem->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+            mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrHighlightedItem->mCellCoordSelected,
+                           mParentSession->mParentEditor->mDrawDebug->white);
+        }
     }
+}
+
+void TerraformingMode::OnFloatNumberEditBoxNewValue(NumberEditBox* whichBox, irr::f32& newValue) {
+    if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+        return;
+
+    irr::s32 coordX = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X;
+    irr::s32 coordY = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y;
+
+    if (whichBox == mGuiTerraformingMode.Vertice1NEB) {
+        //Y-coordinate from original map has flipped sign in this project
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 1, -newValue);
+        UpdateHeightLbl(1, -newValue);
+    }
+
+    if (whichBox == mGuiTerraformingMode.Vertice2NEB) {
+        //Y-coordinate from original map has flipped sign in this project
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 2, -newValue);
+        UpdateHeightLbl(2, -newValue);
+    }
+
+    if (whichBox == mGuiTerraformingMode.Vertice3NEB) {
+        //Y-coordinate from original map has flipped sign in this project
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 3, -newValue);
+        UpdateHeightLbl(3, -newValue);
+    }
+
+    if (whichBox == mGuiTerraformingMode.Vertice4NEB) {
+        //Y-coordinate from original map has flipped sign in this project
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 4, -newValue);
+        UpdateHeightLbl(4, -newValue);
+    }
+
+    if (whichBox == mGuiTerraformingMode.CellNEB) {
+        //Y-coordinate from original map has flipped sign in this project
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 1, -newValue);
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 2, -newValue);
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 3, -newValue);
+        mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 4, -newValue);
+
+        UpdateHeightLbl(1, -newValue);
+        UpdateHeightLbl(2, -newValue);
+        UpdateHeightLbl(3, -newValue);
+        UpdateHeightLbl(4, -newValue);
+    }
+
+    mParentSession->CheckForMeshUpdate();
 }

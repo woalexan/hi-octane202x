@@ -16,6 +16,14 @@
 #include <vector>
 #include <cstdint>
 
+#define EDITOR_TERRAFORMING_OPMODE_SELVERTICES 0
+#define EDITOR_TERRAFORMING_OPMODE_SELCELLS 1
+
+//Height resolution in the levelfile for vertices/tile height is (1.0f / 256.0f)
+#define EDITOR_TERRAFORMING_MINDELTA 0.00390625f
+
+#define EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES 5
+
 /************************
  * Forward declarations *
  ************************/
@@ -33,38 +41,45 @@ struct GUITerraformingMode
         memset ( this, 0, sizeof ( *this ) );
     }
 
-    /*irr::gui::IGUIComboBox* texCategoryList;
-    irr::gui::IGUIComboBox* texModification;
+    irr::gui::IGUIButton* ButtonSelCell;
+    irr::gui::IGUIButton* ButtonSelVertices;
 
-    irr::gui::IGUIImage* CurrentSelectedTexture;
-    irr::gui::IGUIStaticText* CurrentSelectedTextureIdText;
+    irr::gui::IGUIStaticText* LblSelection;
+    irr::gui::IGUIStaticText* LblStepSize;
+    irr::gui::IGUIComboBox* ComboBoxStepSize;
 
-    irr::gui::IGUIStaticText* LabelSelectCubeFaces;
-    irr::gui::IGUIButton* SelNButton;
-    irr::gui::IGUIButton* SelEButton;
-    irr::gui::IGUIButton* SelSButton;
-    irr::gui::IGUIButton* SelWButton;
-    irr::gui::IGUIButton* SelTButton;
-    irr::gui::IGUIButton* SelBButton;
+    NumberEditBox* Vertice1NEB;
+    NumberEditBox* Vertice2NEB;
+    NumberEditBox* Vertice3NEB;
+    NumberEditBox* Vertice4NEB;
 
-    irr::gui::IGUIButton* SelColumnFloorTextureIdButton;
+    NumberEditBox* CellNEB;
 
-    irr::gui::IGUIStaticText* CurrentIlluminationValue;*/
+    irr::gui::IGUIStaticText* LblVertice1HeightInfo;
+    irr::gui::IGUIStaticText* LblVertice2HeightInfo;
+    irr::gui::IGUIStaticText* LblVertice3HeightInfo;
+    irr::gui::IGUIStaticText* LblVertice4HeightInfo;
 };
 
 class TerraformingMode : public EditorMode {
 private:
+
+    irr::u8 mOpMode = EDITOR_TERRAFORMING_OPMODE_SELVERTICES;
     
     virtual void CreateWindow();
 
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
-    
+    void UpdateUiEditNumberboxes(CurrentlySelectedEditorItemInfoStruct newItemSelected);
+    void UpdateHeightLbl(irr::u32 verticeNr, irr::f32 newValue);
+
+    void OnSelectedVertexModifyHeight(irr::f32 deltaH);
+    void OnSelectedCellModifyHeight(irr::f32 deltaH);
+
+    irr::f32 GetCurrentStepSize();
+
 public:
     TerraformingMode(EditorSession* parentSession);
     virtual ~TerraformingMode();
-
-    virtual void OnElementHovered(irr::s32 hoveredGuiId);
-    virtual void OnElementLeft(irr::s32 leftGuiId);
 
     virtual void OnButtonClicked(irr::s32 buttonGuiId);
 
@@ -73,8 +88,14 @@ public:
     virtual void OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem);
     virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
 
-    void OnSelectedVertexUp();
-    void OnSelectedVertexDown();
+    virtual void OnFloatNumberEditBoxNewValue(NumberEditBox* whichBox, irr::f32& newValue);
+
+    void OnSelectedItemUp();
+    void OnSelectedItemDown();
+
+    //is called when the editor mode
+    //is entered (becomes active)
+    virtual void OnEnterMode();
 
     GUITerraformingMode mGuiTerraformingMode;
 };

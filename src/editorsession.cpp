@@ -878,7 +878,7 @@ void EditorSession::HandleBasicInput() {
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_PLUS)) {
         if (mEditorMode != nullptr) {
             if (mEditorMode == mTerraforming) {
-                mTerraforming->OnSelectedVertexUp();
+                mTerraforming->OnSelectedItemUp();
             }
         }
     }
@@ -886,7 +886,7 @@ void EditorSession::HandleBasicInput() {
     if (mParentEditor->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_MINUS)) {
         if (mEditorMode != nullptr) {
             if (mEditorMode == mTerraforming) {
-                mTerraforming->OnSelectedVertexDown();
+                mTerraforming->OnSelectedItemDown();
             }
         }
     }
