@@ -291,7 +291,7 @@ bool NumberEditBox::InterpretValueFloat(irr::f32& readNumber) {
    return true;
 }
 
-void NumberEditBox::OnElementFocused() {
+void NumberEditBox::OnElementFocused() { 
    //When the user clicks into the EditBox
    //remember the current valid entered number
    if (mNrDecimalPlaces == 0) {

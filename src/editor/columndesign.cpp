@@ -986,9 +986,6 @@ void ColumnDesigner::OnElementHovered(irr::s32 hoveredGuiId) {
     mBlockPreviewCurrentlyHovered = FindCurrentlyHoveredBlockPreviewImage(hoveredGuiId);
 }
 
-void ColumnDesigner::OnElementLeft(irr::s32 leftGuiId) {
-}
-
 void ColumnDesigner::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrSelectedItem) {
     if (mCurrSelectedItem == nullptr)
         return;
