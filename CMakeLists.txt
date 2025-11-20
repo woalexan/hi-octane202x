@@ -68,6 +68,8 @@ if(Freetype_FOUND)
         INCLUDE_DIRECTORIES(${FREETYPE_INCLUDE_DIRS})
 endif()
 
+find_package(Threads REQUIRED)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -305,6 +307,8 @@ add_executable(hi-editor
     src/utils/logging.h
     src/utils/ray.h
     src/utils/ray.cpp
+    src/utils/tiny-process-library/process.hpp
+    src/utils/tiny-process-library/process.cpp
 
     src/font/CGUITTFont.h
     src/font/CGUITTFont.cpp
@@ -380,6 +384,16 @@ add_executable(hi-editor
     src/editorsession.cpp
     src/maineditor.cpp)
 
+if(WIN32)
+    target_sources(hi-editor PRIVATE
+        src/utils/tiny-process-library/process_win.cpp)
+endif()
+
+if(UNIX)
+    target_sources(hi-editor PRIVATE
+        src/utils/tiny-process-library/process_unix.cpp)
+endif()
+
 TARGET_LINK_LIBRARIES(hi-octane202x ${IRRLICHT_LIBRARY})
 TARGET_LINK_LIBRARIES(hi-octane202x ${SFML_LIBRARIES})
 TARGET_LINK_LIBRARIES(hi-octane202x ${ADLMIDI_LIBRARY})
@@ -410,5 +424,7 @@ target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 # SFML-Game-Development-Book End
 
 ###########################
+
+target_link_libraries(hi-editor ${CMAKE_THREAD_LIBS_INIT})
 
 file(COPY media DESTINATION ${CMAKE_BINARY_DIR})

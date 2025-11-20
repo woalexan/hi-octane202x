@@ -717,11 +717,12 @@ void Game::GameLoopLoadRaceScreen() {
     mDriver->endScene();
 
     if (mGameState == DEF_GAMESTATE_INITRACE) {
-        //player wants to start the race
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
-
         if (!mTestMapMode) {
             //Default game mode
+
+            //player wants to start the race
+            mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
+
             if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, mGameAssets->mRaceTrackVec->at(nextRaceLevelNr-1)->currSelNrLaps,
                                     false, mDebugRace)) {
                  mGameState = DEF_GAMESTATE_RACE;
@@ -737,6 +738,10 @@ void Game::GameLoopLoadRaceScreen() {
             }
         } else {
             //Test map mode via Command-line
+
+            //let the command line parameters define if computer players are added or not
+            mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, !mTestMapModeNoCpuPlayers);
+
             if (this->CreateNewRace(mTestTargetLevel, mPilotsNextRace, 10, false, mDebugRace)) {
                  mGameState = DEF_GAMESTATE_RACE;
                  CleanupPilotInfo(mPilotsNextRace);
@@ -1311,6 +1316,7 @@ void Game::CleanUpRace() {
 bool Game::ParseCommandLineForGame() {
     std::vector<std::string>::iterator it;
     std::string substr("test");
+    std::string subStr2("nocpu");
     irr::u8 currIdx = 0;
 
     for (it = mCLIVec.begin(); it != mCLIVec.end(); ++it) {
@@ -1330,11 +1336,22 @@ bool Game::ParseCommandLineForGame() {
                 logMessage.append(mTestTargetLevel);
 
                 logging::Info(logMessage);
+
+                //In this special testMode only print
+                //Warning/Errors to the log window
+                logging::PrintOnlyIssues = true;
             } else {
                 //we are missing the target level information
                 logging::Error("Command Line parameter 'test' additional needs target map information! Exit game");
                 return false;
             }
+        }
+
+        //if one parameter contains substring "nocpu" lets
+        //disable computer players during test map mode
+        if ((*it).find(subStr2) != std::string::npos) {
+               mTestMapModeNoCpuPlayers = true;
+               logging::Info("Disabled Cpu Players during map test mode");
         }
 
         currIdx++;

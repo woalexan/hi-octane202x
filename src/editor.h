@@ -92,6 +92,7 @@ enum
     GUI_ID_VIEW_ENTITY_EFFECTS,
     GUI_ID_VIEW_ENTITY_MORPHS,
 
+    GUI_ID_TEST_ADDNOCPUPLAYERS,
     GUI_ID_TEST_TESTHIOCTANCE20XX,
 
     GUI_ID_INFO_ATTRIBUTION,
@@ -254,6 +255,8 @@ private:
     void ChangeViewModeBlocks(irr::u8 newViewMode);
     void OnLeftMouseButtonDown();
     void OnLeftMouseButtonUp();
+    void OnRightMouseButtonDown();
+    void OnRightMouseButtonUp();
 
     void TriggerFileOperation(irr::s32 elementId);
 
@@ -316,6 +319,7 @@ private:
 
     void CleanupExistingLevelData();
 
+    bool mTestMapNoCpuPlayer = true;
     void TestMapinHioctance20XX();
 public:
     irr::video::ITexture* backgnd = nullptr;
@@ -333,7 +337,8 @@ public:
     struct SMouseState {
        core::position2di Position;
        bool LeftButtonDown;
-       SMouseState() : LeftButtonDown(false) { }
+       bool RightButtonDown;
+       SMouseState() : LeftButtonDown(false), RightButtonDown(false) { }
     } MouseState;
 
     //overwrite HandleGuiEvent method for Editor

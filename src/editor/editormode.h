@@ -53,6 +53,7 @@ public:
     virtual void OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem);
     
     virtual void OnLeftMouseButtonDown();
+    virtual void OnRightMouseButtonDown();
     virtual void OnEditBoxEnterEvent(irr::s32 editBoxId);
     virtual void OnElementFocusLost(irr::s32 elementId);
     virtual void OnTableSelected(irr::s32 elementId);

@@ -36,6 +36,7 @@
 #include "font/font_manager.h"
 #include <fstream>
 #include "utils/fileutils.h"
+#include "utils/tiny-process-library/process.hpp"
 #include <sstream>
 #include <iomanip>
 
@@ -321,6 +322,13 @@ void Editor::PopulateTestMenueEntries() {
      * Submenue Test                     *
      *************************************/
 
+    mTestMenu->addItem(L"No Cpu Players", GUI_ID_TEST_ADDNOCPUPLAYERS, true, false, true, true);
+    if (mTestMapNoCpuPlayer) {
+       mTestMenu->setItemChecked(0, true);
+    } else {
+        mTestMenu->setItemChecked(0, false);
+    }
+
     mTestMenu->addItem(L"Test in hi-octane20xx", GUI_ID_TEST_TESTHIOCTANCE20XX, true, false);
 }
 
@@ -600,6 +608,33 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
 }
 
 void Editor::TestMapinHioctance20XX() {
+    cout << "Call to hi-octance20XX" << endl;
+    std::string cmdStr("");
+    cmdStr.append("./hi-octane202x ");
+
+    //Test command line option is used to directly load a
+    //level in hi-octane202x
+    if (mTestMapNoCpuPlayer) {
+      //if we do not want to include cpu players
+      //simply state option nocpu
+      cmdStr.append("nocpu ");
+    }
+
+    cmdStr.append("test ");
+    cmdStr.append(mCurrentSession->mLevelRootPath);
+    cmdStr.erase(cmdStr.begin() + cmdStr.size() - 1);
+
+    TinyProcessLib::Process hiprocess(cmdStr.c_str(), "", [](const char *bytes, size_t n) {
+      cout << "Output from stdout: " << std::string(bytes, n);
+    }, [](const char *bytes, size_t n) {
+      cout << "Output from stderr: " << std::string(bytes, n);
+      //add a newline for prettier output on some platforms:
+      if(bytes[n-1]!='\n')
+        cout << endl;
+    });
+    auto exit_status=hiprocess.get_exit_status();
+    cout << "hi-octane202x returned: " << exit_status << " (" << (exit_status==0?"success":"failure") << ")" << endl;
+    //this_thread::sleep_for(chrono::seconds(5));
 }
 
 void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
@@ -620,6 +655,11 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 
         case GUI_ID_TEST_TESTHIOCTANCE20XX: {
            TestMapinHioctance20XX();
+           break;
+        }
+
+        case GUI_ID_TEST_ADDNOCPUPLAYERS: {
+           mTestMapNoCpuPlayer = !mTestMapNoCpuPlayer;
            break;
         }
 
@@ -1105,6 +1145,20 @@ void Editor::OnLeftMouseButtonUp() {
     MouseState.LeftButtonDown = false;
 }
 
+void Editor::OnRightMouseButtonDown() {
+    MouseState.RightButtonDown = true;
+
+    if (mCurrentSession != nullptr) {
+        if (mCurrentSession->mEditorMode != nullptr) {
+            mCurrentSession->mEditorMode->OnRightMouseButtonDown();
+        }
+    }
+}
+
+void Editor::OnRightMouseButtonUp() {
+    MouseState.RightButtonDown = false;
+}
+
 //overwrite HandleMouseEvent method for Editor
 void Editor::HandleMouseEvent(const irr::SEvent& event) {
     switch(event.MouseInput.Event)
@@ -1115,6 +1169,14 @@ void Editor::HandleMouseEvent(const irr::SEvent& event) {
 
       case EMIE_LMOUSE_LEFT_UP:
             OnLeftMouseButtonUp();
+            break;
+
+      case EMIE_RMOUSE_PRESSED_DOWN:
+            OnRightMouseButtonDown();
+            break;
+
+      case EMIE_RMOUSE_LEFT_UP:
+            OnRightMouseButtonUp();
             break;
 
       case EMIE_MOUSE_MOVED:

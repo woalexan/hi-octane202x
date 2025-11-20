@@ -136,6 +136,7 @@ private:
 
     bool mTestMapMode = false;
     std::string mTestTargetLevel;
+    bool mTestMapModeNoCpuPlayers = false;
 
 public:
     irr::video::ITexture* backgnd = nullptr;

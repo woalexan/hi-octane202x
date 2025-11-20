@@ -20,19 +20,30 @@ namespace logging {
 
     inline std::ofstream LogFile;
     inline bool LogFileExists = false;
+    inline bool PrintOnlyIssues = false;
 
-    inline void Message(const char* level, const char* color, const char* message) {
-        std::cout << color << level << message << NORMAL << std::endl;
-
+    inline void Message(const char* level, const char* color, bool isIssue, const char* message) {
         if (LogFileExists) {
             LogFile << level << message << std::endl;
         }
+
+        if (PrintOnlyIssues && !isIssue) {
+            return;
+        }
+
+        std::cout << color << level << message << NORMAL << std::endl;
     }
-    inline void Message(const char* level, const char* color, const std::string &message) {
-        std::cout << color << level << message << NORMAL << std::endl;
+
+    inline void Message(const char* level, const char* color, bool isIssue, const std::string &message) {
         if (LogFileExists) {
             LogFile << level << message << std::endl;
         }
+
+        if (PrintOnlyIssues && !isIssue) {
+            return;
+        }
+
+        std::cout << color << level << message << NORMAL << std::endl;
     }
 
     inline void StartLogFile(const char* logFileName) {
@@ -60,27 +71,27 @@ namespace logging {
 
     template<typename T>
     void Error(T message) {
-        Message("ERROR: ", RED, message);
+        Message("ERROR: ", RED, true, message);
     }
 
     template<typename T>
     void Warning(T message) {
-        Message("WARNING: ", YELLOW, message);
+        Message("WARNING: ", YELLOW, true, message);
     }
 
     template<typename T>
     void Info(T message) {
-        Message("INFO: ", GREEN, message);
+        Message("INFO: ", GREEN, false, message);
     }
 
     template<typename T>
     void Detail(T message) {
-        Message("DETAIL: ", CYAN, message);
+        Message("DETAIL: ", CYAN, false, message);
     }
 
     template<typename T>
     void Debug(T message) {
-        Message("DEBUG: ", GREY, message);
+        Message("DEBUG: ", GREY, false, message);
     }
 }
 
