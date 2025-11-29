@@ -87,6 +87,8 @@ public:
 
   void CleanupAllSceneNodes();
 
+  std::string WStringToStdString(std::wstring inputStr);
+
   //get a random int in the range between min and max
   int randRangeInt(int min, int max);
 

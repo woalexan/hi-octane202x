@@ -60,7 +60,7 @@ int copy_file(const char* srcFileName, const char* destFileName) {
 
 //Returns file size in bytes, Returns 0 in case file does
 //not exist or can not be opened
-std::size_t GetFileSizeBytes(const char *fname) {
+size_t GetFileSizeBytes(const char *fname) {
    FILE* iFile;
 
    iFile = fopen(fname, "rb");

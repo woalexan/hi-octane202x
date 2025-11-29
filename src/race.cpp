@@ -1295,7 +1295,7 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
     std::vector <LAPTIMEENTRY>::iterator itLap;
     irr::u32 sumLapTimes;
     bool firstLapTime;
-    irr::u16 minLapTime;
+    irr::u16 minLapTime = 0;
     int fndIdx;
     bool entryFound;
 
@@ -4401,10 +4401,10 @@ void Race::AddTrigger(EntityItem *entity) {
 
     newTriggerRegion->regionId = (irr::u8)(mTriggerRegionVec.size());
     newTriggerRegion->regionType = regionType;
-    newTriggerRegion->tileXmin = tileMin.X;
-    newTriggerRegion->tileYmin = tileMin.Y;
-    newTriggerRegion->tileXmax = tileMax.X;
-    newTriggerRegion->tileYmax = tileMax.Y;
+    newTriggerRegion->tileXmin = (irr::f32)(tileMin.X);
+    newTriggerRegion->tileYmin = (irr::f32)(tileMin.Y);
+    newTriggerRegion->tileXmax = (irr::f32)(tileMax.X);
+    newTriggerRegion->tileYmax = (irr::f32)(tileMax.Y);
 
     irr::u16 midCoordX;
     irr::u16 midCoordY;

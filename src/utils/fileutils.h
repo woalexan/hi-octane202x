@@ -27,7 +27,7 @@ int FileExists(const char *fname);
 
 //Returns file size in bytes, Returns 0 in case file does
 //not exist or can not be opened
-std::size_t GetFileSizeBytes(const char *fname);
+size_t GetFileSizeBytes(const char *fname);
 
 //Returns 1 in case of unexpected error, 0 for success
 int copy_file(const char* srcFileName, const char* destFileName);

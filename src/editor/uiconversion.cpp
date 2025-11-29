@@ -107,6 +107,7 @@ irr::core::stringw UiConversion::NumberStringLimitDecimalPlaces(irr::core::strin
     }
 
     //need to truncate
-    resultStr = inputStr.subString(0, lastCharPos);
+    resultStr = inputStr.subString(0, (irr::s32)(lastCharPos));
     return resultStr;
 }
+

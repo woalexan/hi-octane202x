@@ -23,7 +23,7 @@
 class InfrastructureBase; //Forward declaration
 
 struct AttrEmbeddedImageStruct {
-    irr::u32 InsertAtLineNr;
+    size_t InsertAtLineNr;
     irr::core::dimension2d<irr::u32> TargetImageSize;
     irr::core::rect<irr::s32> ImagePos;
     irr::video::ITexture* imageTex = nullptr;
@@ -64,7 +64,7 @@ private:
     //Return true in case of success, False otherwise
     bool AddOriginalGameCredits();
 
-    void ProcessEmbeddedImageData(irr::u32 currLineNr, std::string& inputLine);
+    void ProcessEmbeddedImageData(size_t currLineNr, std::string& inputLine);
 
     //Returns nullptr in case of a texture loading problem
     irr::video::ITexture* LoadResourceImage(std::string filename, irr::s32& texWidth, irr::s32& texHeight);
@@ -73,8 +73,8 @@ private:
     bool LoadLineSeperatorImages();
 
     void AddTextElement(irr::core::rect<irr::s32> newPosition);
-    irr::u32 mNextTextLineNr;
-    irr::u32 mTextLineCnt;
+    size_t mNextTextLineNr;
+    size_t mTextLineCnt;
 
     std::vector<irr::core::stringw> mAttrData;
 
