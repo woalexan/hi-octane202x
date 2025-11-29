@@ -116,7 +116,7 @@ struct ColorStruct;
 class Race {
 public:
     Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
-         int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart, bool useAutoGenMiniMapParam = false);
+         std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode, bool skipStart);
 
     ~Race();
 
@@ -279,8 +279,12 @@ public:
     std::vector<ChargingStation*>* mChargingStationVec = nullptr;
 
 private:
-    int levelNr;
-    bool useAutoGenMinimap;
+    std::string mLevelRootPath;
+    std::string mLevelName;
+
+    std::string mSkyFileName;
+    std::string mMusicFileName;
+
     bool mMiniMapInitOk;
 
     void InitiateExitRace();
@@ -309,15 +313,12 @@ private:
     irr::f32 miniMapAbsTime = 0.0f;
     bool miniMapBlinkActive = false;
 
-    //returns true in case of success, False otherwise
-    bool InitMiniMap(irr::u32 levelNr);
-
     irr::core::dimension2di CalcPlayerMiniMapPosition(Player* whichPlayer);
 
     //Initializes the games original
     //minimap
     //returns true for success, false otherwise
-    bool InitMiniMapOriginal(irr::u32 levelNr);
+    bool InitMiniMap();
 
     //Searches for the used space inside the minimap picture
     //while removing unnecessary transparent columns of pixels
@@ -377,11 +378,12 @@ private:
     bool DebugShowTriggerEvents = false;
     bool AllowStartMorphsPerKey = false;
 
+    bool LoadLevelConfigData();
+
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
-    bool LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
-    bool LoadLevel(int loadLevelNr);
+    bool LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
+    bool LoadLevel();
     void createLevelEntities();
-    void getPlayerStartPosition(int levelNr, irr::core::vector3d<irr::f32> &startPos, irr::core::vector3d<irr::f32> &startDirection);
 
     void DrawSky();
     void DrawTestShape();
@@ -493,7 +495,6 @@ private:
     void CheckRaceFinished(irr::f32 deltaTime);
 
     //Audio related stuff
-    void DeliverMusicFileName(unsigned int levelNr, char *musicFileName);
     void StopMusic();
     void StopAllSounds();
 

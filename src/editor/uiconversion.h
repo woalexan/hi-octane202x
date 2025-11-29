@@ -35,7 +35,7 @@ public:
     //Returns true in case the input string contains a number, False if there are any other characters
     //that are no digits;
     bool StringContainsNumber(irr::core::stringw inputStr, bool allowDecimalNumber = false);
-    
+ 
 private:
     Editor* mParentEditor = nullptr;
 };

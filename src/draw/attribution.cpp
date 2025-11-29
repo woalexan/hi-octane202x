@@ -19,6 +19,19 @@ Attribution::Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, b
     mWidthRender = widthRenderPixel;
     mFading = enableFading;
 
+    texSeperatorLine1Width = 0;
+    texSeperatorLine2Width = 0;
+    texSeperatorLine3Width = 0;
+    texSeperatorLineHeight = 0;
+
+    mTextLineCnt = 0;
+    mAbsTime = 0.0f;
+
+    mNextTextLineNr = 0;
+
+    mNoMoreTextAvailable = false;
+    mNoMoreImagesAvailable = false;
+
     mScrollStep.set(0, -1);
 }
 
@@ -39,7 +52,7 @@ void Attribution::SetFading(bool enable) {
 }
 
 void Attribution::SetScrollSpeed(irr::u32 speedValue) {
-    mScrollStep.set(0, -speedValue);
+    mScrollStep.set(0, -(irr::s32)(speedValue));
 }
 
 void Attribution::Init() {
@@ -492,7 +505,7 @@ void Attribution::Update(irr::f32 frameDeltaTime) {
     }
 }
 
-void Attribution::ProcessEmbeddedImageData(irr::u32 currLineNr, std::string& inputLine) {
+void Attribution::ProcessEmbeddedImageData(size_t currLineNr, std::string& inputLine) {
     //does the current input line contain
     //an embededded image command?
     size_t startPos = inputLine.find("<image>");

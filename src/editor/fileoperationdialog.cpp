@@ -322,8 +322,10 @@ bool FileOperationDialog::OnNewButtonClicked(std::wstring& result) {
    LevelFolderInfoStruct* newStruct = new LevelFolderInfoStruct();
    newStruct->isCustomLevel = true;
 
+   std::string newLevelName = mParentEditor->WStringToStdString(std::wstring(newName.c_str()));
+
    std::wstring strhlper(newName.c_str());
-   newStruct->levelName.append(strhlper.begin(), strhlper.end());
+   newStruct->levelName = newLevelName;
    newStruct->description.append("Custom (modified)");
    newStruct->levelBaseDir.append("userdata/levels/");;
    newStruct->levelBaseDir.append(strhlper.c_str());

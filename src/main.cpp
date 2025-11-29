@@ -58,5 +58,7 @@ int main(int argc, char **argv)
     //run the game
     mGame->RunGame();
 
+    delete mGame;
+
     return 0;
 }

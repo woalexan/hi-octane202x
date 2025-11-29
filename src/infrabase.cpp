@@ -1388,6 +1388,27 @@ void InfrastructureBase::ParseCommandLineInformation(int pArgc, char **pArgv) {
     }
 }
 
+std::string InfrastructureBase::WStringToStdString(std::wstring inputStr) {
+    std::string resultStr("");
+
+    //How many bytes does MultiByte Char string need?
+    size_t newStrLen = wcstombs(nullptr, inputStr.c_str(), 0) + 1;
+
+    //create new buffer for multibyte string
+    char* buffer = new char[newStrLen];
+
+    //convert to multibyte char string
+    wcstombs(buffer, inputStr.c_str(), newStrLen);
+
+    // Creating std::string from char buffer
+    resultStr.append(buffer);
+
+    //delete buffer again
+    delete[] buffer;
+
+    return resultStr;
+}
+
 InfrastructureBase::~InfrastructureBase() {
     //cleanup game texts
     delete mGameTexts;

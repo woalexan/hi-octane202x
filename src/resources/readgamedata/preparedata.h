@@ -201,6 +201,9 @@ private:
 
     void ExtractSmallFontSVGA();
 
+    void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
+    void PrepareMapConfigData();
+
     void ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
     bool DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
             char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf);

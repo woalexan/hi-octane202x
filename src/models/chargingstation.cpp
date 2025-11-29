@@ -164,10 +164,10 @@ bool ChargingStation::IdentifyUsableArea() {
     //of the usable race track, this would lead to stalls that are not
     //reachable by craft, we need to figure out which area is usable first,
     //and remove the other areas
-    usableTileXmin = mRegionStruct->tileXmin;
-    usableTileXmax = mRegionStruct->tileXmax;
-    usableTileYmin = mRegionStruct->tileYmin;
-    usableTileYmax = mRegionStruct->tileYmax;
+    usableTileXmin = (irr::u16)(mRegionStruct->tileXmin);
+    usableTileXmax = (irr::u16)(mRegionStruct->tileXmax);
+    usableTileYmin = (irr::u16)(mRegionStruct->tileYmin);
+    usableTileYmax = (irr::u16)(mRegionStruct->tileYmax);
 
     irr::u16 currYcoord;
     irr::u16 currXcoord;
@@ -190,11 +190,11 @@ bool ChargingStation::IdentifyUsableArea() {
          *************************************************************/
 
         //first we need to find a "line" of Ycoord tiles that are at least >75% charging tiles
-        for (currYcoord = mRegionStruct->tileYmin; currYcoord <= mRegionStruct->tileYmax; currYcoord++) {
+        for (currYcoord = (irr::u16)(mRegionStruct->tileYmin); currYcoord <= (irr::u16)(mRegionStruct->tileYmax); currYcoord++) {
             tileCnt = 0;
             tileCntCharging = 0;
 
-            for (currXcoord = mRegionStruct->tileXmin; currXcoord <= mRegionStruct->tileXmax; currXcoord++) {
+            for (currXcoord = (irr::u16)(mRegionStruct->tileXmin); currXcoord <= (irr::u16)(mRegionStruct->tileXmax); currXcoord++) {
                 tileCnt++;
                 mapEntry = this->mRace->mLevelTerrain->GetMapEntry(currXcoord, currYcoord);
                 texture = mapEntry->m_TextureId;
@@ -233,11 +233,11 @@ bool ChargingStation::IdentifyUsableArea() {
 
         //continue to search for end
         //means last line where we have > 75% charging tiles
-        for (currYcoord = startLineY; currYcoord <= mRegionStruct->tileYmax; currYcoord++) {
+        for (currYcoord = startLineY; currYcoord <= (irr::u16)(mRegionStruct->tileYmax); currYcoord++) {
             tileCnt = 0;
             tileCntCharging = 0;
 
-            for (currXcoord = mRegionStruct->tileXmin; currXcoord <= mRegionStruct->tileXmax; currXcoord++) {
+            for (currXcoord = (irr::u16)(mRegionStruct->tileXmin); currXcoord <= (irr::u16)(mRegionStruct->tileXmax); currXcoord++) {
                 tileCnt++;
                 mapEntry = this->mRace->mLevelTerrain->GetMapEntry(currXcoord, currYcoord);
                 texture = mapEntry->m_TextureId;
@@ -279,7 +279,7 @@ bool ChargingStation::IdentifyUsableArea() {
          *************************************************************/
 
         //first we need to find a "line" of Xcoord tiles that are at least >75% charging tiles
-        for (currXcoord = mRegionStruct->tileXmin; currXcoord <= mRegionStruct->tileXmax; currXcoord++) {
+        for (currXcoord = (irr::u16)(mRegionStruct->tileXmin); currXcoord <= (irr::u16)(mRegionStruct->tileXmax); currXcoord++) {
             tileCnt = 0;
             tileCntCharging = 0;
 
@@ -322,7 +322,7 @@ bool ChargingStation::IdentifyUsableArea() {
 
         //continue to search for end
         //means last line where we have > 75% charging tiles
-        for (currXcoord = startLineX; currXcoord <= mRegionStruct->tileXmax; currXcoord++) {
+        for (currXcoord = startLineX; currXcoord <= (irr::u16)(mRegionStruct->tileXmax); currXcoord++) {
             tileCnt = 0;
             tileCntCharging = 0;
 
@@ -373,11 +373,11 @@ bool ChargingStation::IdentifyUsableArea() {
     *************************************************************/
 
     //first we need to find a "line" of Xcoord tiles that are at least >75% charging tiles
-    for (currXcoord = mRegionStruct->tileXmin; currXcoord <= mRegionStruct->tileXmax; currXcoord++) {
+    for (currXcoord = (irr::u16)(mRegionStruct->tileXmin); currXcoord <= (irr::u16)(mRegionStruct->tileXmax); currXcoord++) {
        tileCnt = 0;
        tileCntCharging = 0;
 
-       for (currYcoord = mRegionStruct->tileYmin; currYcoord <= mRegionStruct->tileYmax; currYcoord++) {
+       for (currYcoord = (irr::u16)(mRegionStruct->tileYmin); currYcoord <= (irr::u16)(mRegionStruct->tileYmax); currYcoord++) {
            tileCnt++;
            mapEntry = this->mRace->mLevelTerrain->GetMapEntry(currXcoord, currYcoord);
            texture = mapEntry->m_TextureId;
@@ -416,11 +416,11 @@ bool ChargingStation::IdentifyUsableArea() {
 
     //continue to search for end
     //means last line where we have > 75% charging tiles
-    for (currXcoord = startLineX; currXcoord <= mRegionStruct->tileXmax; currXcoord++) {
+    for (currXcoord = startLineX; currXcoord <= (irr::u16)(mRegionStruct->tileXmax); currXcoord++) {
         tileCnt = 0;
         tileCntCharging = 0;
 
-        for (currYcoord = mRegionStruct->tileYmin; currYcoord <= mRegionStruct->tileYmax; currYcoord++) {
+        for (currYcoord = (irr::u16)(mRegionStruct->tileYmin); currYcoord <= (irr::u16)(mRegionStruct->tileYmax); currYcoord++) {
             tileCnt++;
             mapEntry = this->mRace->mLevelTerrain->GetMapEntry(currXcoord, currYcoord);
             texture = mapEntry->m_TextureId;
@@ -462,7 +462,7 @@ bool ChargingStation::IdentifyUsableArea() {
      *************************************************************/
 
     //first we need to find a "line" of Ycoord tiles that are at least >75% charging tiles
-    for (currYcoord = mRegionStruct->tileYmin; currYcoord <= mRegionStruct->tileYmax; currYcoord++) {
+    for (currYcoord = (irr::u16)(mRegionStruct->tileYmin); currYcoord <= (irr::u16)(mRegionStruct->tileYmax); currYcoord++) {
         tileCnt = 0;
         tileCntCharging = 0;
 
@@ -505,7 +505,7 @@ bool ChargingStation::IdentifyUsableArea() {
 
     //continue to search for end
     //means last line where we have > 75% charging tiles
-    for (currYcoord = startLineY; currYcoord <= mRegionStruct->tileYmax; currYcoord++) {
+    for (currYcoord = startLineY; currYcoord <= (irr::u16)(mRegionStruct->tileYmax); currYcoord++) {
         tileCnt = 0;
         tileCntCharging = 0;
 

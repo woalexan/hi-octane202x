@@ -63,7 +63,7 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
 
                 case irr::ELOG_LEVEL::ELL_INFORMATION:
                 default: {
-                    logging::Message("", logging::NORMAL, event.LogEvent.Text);
+                    logging::Message("", logging::NORMAL, false, event.LogEvent.Text);
                     break;
                 }
         }

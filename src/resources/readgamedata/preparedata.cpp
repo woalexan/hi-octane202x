@@ -299,6 +299,82 @@ void PrepareData::ExtractSprites() {
     ExtractTmaps();
 }
 
+void PrepareData::PrepareMapConfigData() {
+    if (!mInfra->mExtendedGame) {
+        //non extended game version
+        PrepareMapConfigDataFile("extract/level0-1/mapconfig.txt", "extract/sky/modsky0-0.png",
+                          "extract/music/TGAME1.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-2/mapconfig.txt", "extract/sky/modsky0-1.png",
+                          "extract/music/TGAME2.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-3/mapconfig.txt", "extract/sky/modsky0-2.png",
+                          "extract/music/TGAME3.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-4/mapconfig.txt", "extract/sky/modsky0-3.png",
+                          "extract/music/TGAME4.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-5/mapconfig.txt", "extract/sky/modsky0-4.png",
+                          "extract/music/TGAME1.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-6/mapconfig.txt", "extract/sky/modsky0-5.png",
+                          "extract/music/TGAME2.XMI");
+    } else {
+        //extended game version
+        //here always two level in a row share the same music file
+        //level 9 is the exception, it has the same music as the
+        //other two levels before
+        PrepareMapConfigDataFile("extract/level0-1/mapconfig.txt", "extract/sky/modsky0-0.png",
+                          "extract/music/TGAME1.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-2/mapconfig.txt", "extract/sky/modsky0-1.png",
+                          "extract/music/TGAME1.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-3/mapconfig.txt", "extract/sky/modsky0-2.png",
+                          "extract/music/TGAME2.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-4/mapconfig.txt", "extract/sky/modsky0-3.png",
+                          "extract/music/TGAME2.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-5/mapconfig.txt", "extract/sky/modsky0-4.png",
+                          "extract/music/TGAME3.XMI");
+
+        PrepareMapConfigDataFile("extract/level0-6/mapconfig.txt", "extract/sky/modsky0-5.png",
+                          "extract/music/TGAME3.XMI");
+
+        //Level 7 uses sky0
+        PrepareMapConfigDataFile("extract/level0-7/mapconfig.txt", "extract/sky/modsky0-0.png",
+                          "extract/music/TGAME4.XMI");
+
+        //Level 8 uses sky0
+        PrepareMapConfigDataFile("extract/level0-8/mapconfig.txt", "extract/sky/modsky0-0.png",
+                          "extract/music/TGAME4.XMI");
+
+        //Level 9 uses sky0
+        PrepareMapConfigDataFile("extract/level0-9/mapconfig.txt", "extract/sky/modsky0-0.png",
+                          "extract/music/TGAME4.XMI");
+    }
+}
+
+void PrepareData::PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath) {
+    FILE* outFile = nullptr;
+
+    outFile = fopen(targetFileName, "w");
+    if (targetFileName == nullptr) {
+           std::string errStr("Can not create file ");
+           errStr.append(targetFileName);
+           throw errStr;
+    }
+
+    //write file path for target sky
+    fprintf(outFile, "%s\n", targetSkyFilePath);
+
+    //write file path for target music
+    fprintf(outFile, "%s\n", targetMusicFilePath);
+
+    fclose(outFile);
+}
+
 //Write minimap cal values found to be working
 //with the original vanilla levels of the game
 //Returns true in case of success, False otherwise
@@ -468,6 +544,9 @@ void PrepareData::ExtractLevels() {
         PrepareSubDir("extract/level0-9");
         UnpackDataFile(inputLevelFile.c_str(), "extract/level0-9/level0-9-unpacked.dat");
     }
+
+    //Create additional original map config data
+    PrepareMapConfigData();
 }
 
 void PrepareData::ExtractEditor() {

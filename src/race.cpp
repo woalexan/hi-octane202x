@@ -60,8 +60,7 @@
 #include "race.h"
 
 Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
-           SoundEngine* soundEngine, int loadLevelNr, irr::u8 nrLaps, bool demoMode, bool skipStart,
-           bool useAutoGenMiniMapParam) {
+           SoundEngine* soundEngine, std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode, bool skipStart) {
     this->mMusicPlayer = gameMusicPlayerParam;
     this->mSoundEngine = soundEngine;
     this->mDemoMode = demoMode;
@@ -74,9 +73,10 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
         this->mCurrentPhase = DEF_RACE_PHASE_START;
     }
 
-    levelNr = loadLevelNr;
+    mLevelRootPath = levelRootPath;
+    mLevelName = levelName;
+
     ready = false;
-    useAutoGenMinimap = useAutoGenMiniMapParam;
     mGame = parentGame;
 
     //IrrlichtStats((char*)("before Race constructor"));
@@ -814,91 +814,6 @@ void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageT
     }
 }
 
-void Race::DeliverMusicFileName(unsigned int levelNr, char *musicFileName) {
-    //which music is player in which level depends if the game is extended
-    //or not
-    if (!mGame->mExtendedGame) {
-            //game version without the extension
-            switch (levelNr) {
-                case 1: {
-                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
-                    break;
-                }
-                case 2: {
-                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
-                    break;
-                }
-                case 3: {
-                    strcpy(musicFileName, "extract/music/TGAME3.XMI");
-                    break;
-                }
-                case 4: {
-                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
-                    break;
-                }
-                case 5: {
-                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
-                    break;
-                }
-                case 6: {
-                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
-                    break;
-                }
-                default: {
-                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
-                    break;
-                }
-            }
-    } else {
-         //extended game version
-         //here always two level in a row share the same music file
-         //level 9 is the exception, it has the same music as the
-         //other two levels before
-         switch (levelNr) {
-                case 1: {
-                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
-                    break;
-                }
-                case 2: {
-                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
-                    break;
-                }
-                case 3: {
-                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
-                    break;
-                }
-                case 4: {
-                    strcpy(musicFileName, "extract/music/TGAME2.XMI");
-                    break;
-                }
-                case 5: {
-                    strcpy(musicFileName, "extract/music/TGAME3.XMI");
-                    break;
-                }
-                case 6: {
-                    strcpy(musicFileName, "extract/music/TGAME3.XMI");
-                    break;
-                }
-                case 7: {
-                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
-                    break;
-                }
-                case 8: {
-                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
-                    break;
-                }
-                case 9: {
-                    strcpy(musicFileName, "extract/music/TGAME4.XMI");
-                    break;
-                }
-                default: {
-                    strcpy(musicFileName, "extract/music/TGAME1.XMI");
-                    break;
-                }
-         }
-    }
-}
-
 //Stage 3 of player race ranking sorting: Sort by ascending remaining distance to next checkpoint
 void Race::UpdatePlayerRacePositionRankingHelper3(vector< pair <irr::f32, Player*> > vecRemainingDistanceToNextCheckpoint) {
 
@@ -1380,7 +1295,7 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
     std::vector <LAPTIMEENTRY>::iterator itLap;
     irr::u32 sumLapTimes;
     bool firstLapTime;
-    irr::u16 minLapTime;
+    irr::u16 minLapTime = 0;
     int fndIdx;
     bool entryFound;
 
@@ -1483,19 +1398,20 @@ irr::core::dimension2di Race::CalcPlayerMiniMapPosition(Player* whichPlayer) {
 //Initializes the games original
 //minimap
 //returns true for success, false otherwise
-bool Race::InitMiniMapOriginal(irr::u32 levelNr) {
+bool Race::InitMiniMap() {
     //first define correct filename to load image
-    //of minimap based on level number
-    char mapFilename[50];
+    //of minimap
+    std::string miniMapPicFile("");
+    miniMapPicFile.append(mLevelRootPath);
+    miniMapPicFile.append("minimap.bmp");
 
-    snprintf(mapFilename, 49, "extract/level0-%d/minimap.bmp", levelNr);
-    if (FileExists(mapFilename) != 1) {
+    if (FileExists(miniMapPicFile.c_str()) != 1) {
         //minimap image file does not exist!
-        std::string errMsg("InitMiniMapOriginal: Can not find minimap file ");
-        errMsg.append(mapFilename);
-        errMsg.append("!");
+        std::string warningMsg("InitMiniMap: Can not find minimap file '");
+        warningMsg.append(miniMapPicFile);
+        warningMsg.append("'! Will disable minimap");
 
-        logging::Error(errMsg);
+        logging::Warning(warningMsg);
         return false;
     }
 
@@ -1504,42 +1420,20 @@ bool Race::InitMiniMapOriginal(irr::u32 levelNr) {
     //need the autogenerated picture at the end
     //irr::video::IImage* baseMiniMapPic = mLevelTerrain->CreateMiniMapInfo(miniMapStartW, miniMapEndW, miniMapStartH, miniMapEndH);
 
-    char mapCalValueFilename[50];
-    snprintf(mapCalValueFilename, 49, "extract/level0-%d/minimapcalval.dat", levelNr);
-    std::string stdStrHelp(mapCalValueFilename);
+    std::string miniMapCalFilename("");
+    miniMapCalFilename.append(mLevelRootPath);
+    miniMapCalFilename.append("minimapcalval.dat");
 
-    if (!mGame->ReadMiniMapCalFile(stdStrHelp, miniMapStartW, miniMapEndW, miniMapStartH, miniMapEndH)) {
+    if (!mGame->ReadMiniMapCalFile(miniMapCalFilename, miniMapStartW, miniMapEndW, miniMapStartH, miniMapEndH)) {
         return false;
     }
-
-    /* Dbg start */
-    /*
-    irr::f32 hlpFloat = DEF_SEGMENTSIZE;
-
-    dbgMiniMapPnt1.X = -(float)(miniMapStartW) * hlpFloat;
-    dbgMiniMapPnt1.Z = (float)(miniMapStartH) * hlpFloat;
-    dbgMiniMapPnt1.Y = 0.0f;
-
-    dbgMiniMapPnt2.X = -(float)(miniMapStartW) * hlpFloat;
-    dbgMiniMapPnt2.Z = (float)(miniMapEndH) * hlpFloat;
-    dbgMiniMapPnt2.Y = 0.0f;
-
-    dbgMiniMapPnt3.X = -(float)(miniMapEndW) * hlpFloat;
-    dbgMiniMapPnt3.Z = (float)(miniMapEndH) * hlpFloat;
-    dbgMiniMapPnt3.Y = 0.0f;
-
-    dbgMiniMapPnt4.X = -(float)(miniMapEndW) * hlpFloat;
-    dbgMiniMapPnt4.Z = (float)(miniMapStartH) * hlpFloat;
-    dbgMiniMapPnt4.Y = 0.0f;
-    */
-    /*Dbg end */
 
     //just drop picture again, we do not need it
     //baseMiniMapPic->drop();
 
     //load original games mini map
     mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
-    baseMiniMap = mGame->mDriver->getTexture(mapFilename);
+    baseMiniMap = mGame->mDriver->getTexture(miniMapPicFile.c_str());
 
     if (baseMiniMap == nullptr) {
         return false;
@@ -1746,7 +1640,7 @@ irr::core::rect<irr::s32> Race::FindMiniMapImageUsedArea(irr::video::ITexture* m
 }
 
 //returns true in case of success, False otherwise
-bool Race::InitMiniMap(irr::u32 levelNr) {
+/*bool Race::InitMiniMap(irr::u32 levelNr) {
     //we need to write base minimap image to disk so that we can
     //load it as texture again. As stupid as this sounds
     char outputFilename[50];
@@ -1821,7 +1715,7 @@ bool Race::InitMiniMap(irr::u32 levelNr) {
 
     //minimap init was succesfull
     return true;
-}
+}*/
 
 void Race::HandleCraftHeightMapCollisions(irr::f32 deltaTime, PhysicsObject* whichObj) {
     std::vector<Player*>::iterator itPlayer;
@@ -1851,7 +1745,7 @@ void Race::Init() {
 
     //mCamera->setFOV(PI / 2.5);
 
-    if (!LoadLevel(levelNr)) {
+    if (!LoadLevel()) {
         //there was an error loading the level
         return;
     }
@@ -1870,16 +1764,16 @@ void Race::Init() {
     mMiniMapMarkerColors.push_back(new irr::video::SColor(255,  57,  77, 145)); //player 7 marker color
     mMiniMapMarkerColors.push_back(new irr::video::SColor(255,   4,   6,   8)); //player 8 marker color
 
-    if (useAutoGenMinimap) {
+   /* if (useAutoGenMinimap) {
         //try to auto generate a own minimap
         //based on the level file
         //is not perfect
         mMiniMapInitOk = InitMiniMap(levelNr);
-    } else {
-        //use the original game supplied minimap
-        //drawings
-        mMiniMapInitOk = InitMiniMapOriginal(levelNr);
-    }
+    } else {*/
+
+    //use the original game supplied minimap
+    //drawings
+    mMiniMapInitOk = InitMiniMap();
 
     /***********************************************************/
     /* Init single player HUD                                  */
@@ -1976,12 +1870,7 @@ void Race::Init() {
     testBezier = new Bezier(mLevelTerrain, mGame->mDrawDebug);
 
     //load the correct music file for this level
-    char musicFileName[60];
-
-    //make assigement level number to music file
-    DeliverMusicFileName(levelNr, musicFileName);
-
-    if (!mMusicPlayer->loadGameMusicFile(musicFileName)) {
+    if (!mMusicPlayer->loadGameMusicFile(mMusicFileName.c_str())) {
         logging::Error("Music load failed");
         return;
     } else {
@@ -3355,32 +3244,11 @@ void Race::DebugDrawHeightMapTileOutline(int x, int z, ColorStruct* color) {
 }
 
 //returns true if succesfull, false otherwise
-bool Race::LoadSkyImage(int levelNr, irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution) {
-    char filename[50];
-
-    strcpy(filename, (char*)"extract/sky/");
-
-    //which sky to load for which level?
-    switch (levelNr) {
-        case 1: {strcat(filename, (char*)"modsky0-0.png"); break;}
-        case 2: {strcat(filename, (char*)"modsky0-1.png"); break;}
-        case 3: {strcat(filename, (char*)"modsky0-2.png"); break;}
-        case 4: {strcat(filename, (char*)"modsky0-3.png"); break;}
-        case 5: {strcat(filename, (char*)"modsky0-4.png"); break;}
-        case 6: {strcat(filename, (char*)"modsky0-5.png"); break;}
-        case 7: {strcat(filename, (char*)"modsky0-0.png"); break;} //Level 7 uses sky0
-        case 8: {strcat(filename, (char*)"modsky0-0.png"); break;} //Level 8 also uses sky0
-        case 9: {strcat(filename, (char*)"modsky0-0.png"); break;} //Level 9 also uses sky0
-        default: {
-            //unknown levelNr
-            return false;
-        }
-    }
-
+bool Race::LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution) {
     driver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //load sky image
-    mSkyImage = driver->getTexture(filename);
+    mSkyImage = driver->getTexture(mSkyFileName.c_str());
 
     if (mSkyImage == nullptr) {
         //there was a texture loading error
@@ -3456,38 +3324,86 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
     }
 }
 
-bool Race::LoadLevel(int loadLevelNr) {
-    if ((loadLevelNr < 1) || (loadLevelNr > 9)) {
-        logging::Error("Level number only possible from 1 up to 9!");
+bool Race::LoadLevelConfigData() {
+    std::string expConfigFileName("");
+
+    expConfigFileName.append(mLevelRootPath);
+    expConfigFileName.append("mapconfig.txt");
+
+    if (FileExists(expConfigFileName.c_str()) != 1) {
+        //Problem with this file
+        std::string logErr("Can not read file '");
+        logErr.append(expConfigFileName);
+        logErr.append("'!");
+
+        logging::Error(logErr);
         return false;
     }
 
-    int load_texnr = loadLevelNr;
-    if (loadLevelNr == 7) load_texnr = 1; // original game has this hardcoded too
+    //open map config text file
+    //and read line by line
+    std::ifstream configFile(expConfigFileName);
 
-   char levelfilename[50];
-   char str[20];
+    std::string line;
+    irr::u32 currLineNr = 0;
 
-   strcpy(levelfilename, "extract/level0-");
-   sprintf(str, "%d", loadLevelNr);
-   strcat(levelfilename, str);
-   strcat(levelfilename, "/level0-");
-   strcat(levelfilename, str);
-   strcat(levelfilename, "-unpacked.dat");
+    mSkyFileName.clear();
+    mMusicFileName.clear();
 
-   char texfilename[50];
-   strcpy(texfilename, "extract/level0-");
-   sprintf(str, "%d", load_texnr);
-   strcat(texfilename, str);
-   strcat(texfilename, "/tex");
+    if (configFile.is_open()) {
+          while (getline(configFile, line)) {
+              if (currLineNr == 0) {
+                  mSkyFileName.append(line);
+              } else if (currLineNr == 1) {
+                  mMusicFileName.append(line);
+              }
 
-   char spritefilename[50];
-   strcpy(spritefilename, "extract/sprites/tmaps");
+              currLineNr++;
+          }
+
+          //close the file again
+          configFile.close();
+
+          std::string logStr("Succesfully read file '");
+          logStr.append(expConfigFileName);
+          logStr.append("'");
+
+          logging::Info(logStr);
+
+          return true;
+     }
+
+     std::string logStr("Unable to open file '");
+     logStr.append(expConfigFileName);
+     logStr.append("'!");
+
+     logging::Error(logStr);
+
+     return false;
+}
+
+bool Race::LoadLevel() {
+   std::string levelfilename("");
+   std::string texfilename("");
+
+   texfilename.append(mLevelRootPath);
+   levelfilename.append(mLevelRootPath);
+
+   texfilename.append("tex");
+
+   levelfilename.append(mLevelName);
+   levelfilename.append("-unpacked.dat");
+
+   std::string spritefilename("extract/sprites/tmaps");
+
+   if (!LoadLevelConfigData()) {
+       return false;
+   }
 
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
-   mTexLoader = new TextureLoader(mGame->mDriver, texfilename, spritefilename);
+   mTexLoader = new TextureLoader(mGame->mDriver, texfilename.c_str(), spritefilename.c_str());
 
    //was loading textures succesfull? if not interrupt
    if (!this->mTexLoader->mLoadSuccess) {
@@ -3562,7 +3478,7 @@ bool Race::LoadLevel(int loadLevelNr) {
    }
 
    //load sky image for selected level
-   if (!LoadSkyImage(loadLevelNr, mGame->mDriver, mGame->mScreenRes)) {
+   if (!LoadSkyImage(mGame->mDriver, mGame->mScreenRes)) {
        //error loading sky image, do something about it!
        return false;
    }
@@ -4485,10 +4401,10 @@ void Race::AddTrigger(EntityItem *entity) {
 
     newTriggerRegion->regionId = (irr::u8)(mTriggerRegionVec.size());
     newTriggerRegion->regionType = regionType;
-    newTriggerRegion->tileXmin = tileMin.X;
-    newTriggerRegion->tileYmin = tileMin.Y;
-    newTriggerRegion->tileXmax = tileMax.X;
-    newTriggerRegion->tileYmax = tileMax.Y;
+    newTriggerRegion->tileXmin = (irr::f32)(tileMin.X);
+    newTriggerRegion->tileYmin = (irr::f32)(tileMin.Y);
+    newTriggerRegion->tileXmax = (irr::f32)(tileMax.X);
+    newTriggerRegion->tileYmax = (irr::f32)(tileMax.Y);
 
     irr::u16 midCoordX;
     irr::u16 midCoordY;

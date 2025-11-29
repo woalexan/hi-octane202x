@@ -231,11 +231,7 @@ void Game::RunGame() {
     if (!mPrepareData->GameDataAvailable()) {
         mGameState = DEF_GAMESTATE_EXTRACTDATA;
     } else {
-        if (!InitGameStep2()) {
-            mGameState = DEF_GAMESTATE_ERROR;
-        } else {
-            mGameState = DEF_GAMESTATE_INTRO;
-        }
+        mGameState = DEF_GAMESTATE_INITSTEP2;
     }
 
     GameLoop();
@@ -620,13 +616,8 @@ void Game::GameLoopExtractData() {
     //returns true if data extraction process is finished
     try {
         if (mPrepareData->ExecuteNextStep()) {
-            //data extraction is finished
-            //continue game initialization (audio, assets)
-            if (!InitGameStep2()) {
-                mGameState = DEF_GAMESTATE_ERROR;
-                return;
-            }
-            mGameState = DEF_GAMESTATE_INTRO;
+            //continue initialization step2 (Audio, ...)
+            mGameState = DEF_GAMESTATE_INITSTEP2;
             return;
         }
     }
@@ -676,6 +667,23 @@ void Game::GameLoopTitleScreenLoadData() {
         return;
     } else {
         if (!mDebugRace && !mDebugDemoMode) {
+            if (mTestMapMode) {
+                //set craft for main player
+                //value 0 means KD1 Speeder (default selection at first start)
+                //value 1 means Berserker
+                //value 2 means Jugga
+                //value 3 means Vampyr
+                //value 4 means Outrider
+                //value 5 means Flexiwing
+                mGameAssets->SetNewMainPlayerSelectedCraft(0);
+
+                //add computer players?
+                mGameAssets->SetComputerPlayersEnabled(true);
+
+                mGameState = DEF_GAMESTATE_INITRACE;
+                return;
+            }
+
             //was succesfull, now continue to main menue
             mGameState = DEF_GAMESTATE_MENUE;
             MainMenue->ShowMainMenue();
@@ -709,26 +717,50 @@ void Game::GameLoopLoadRaceScreen() {
     mDriver->endScene();
 
     if (mGameState == DEF_GAMESTATE_INITRACE) {
-        //player wants to start the race
-        mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
+        if (!mTestMapMode) {
+            //Default game mode
 
-        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, false, mDebugRace)) {
-             mGameState = DEF_GAMESTATE_RACE;
-             CleanupPilotInfo(mPilotsNextRace);
+            //player wants to start the race
+            mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, mGameAssets->GetComputerPlayersEnabled());
+
+            if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, mGameAssets->mRaceTrackVec->at(nextRaceLevelNr-1)->currSelNrLaps,
+                                    false, mDebugRace)) {
+                 mGameState = DEF_GAMESTATE_RACE;
+                 CleanupPilotInfo(mPilotsNextRace);
+            } else {
+                CleanupPilotInfo(mPilotsNextRace);
+
+                mGameState = DEF_GAMESTATE_MENUE;
+
+                //there was an error while creating the race
+                //Go back to top of main menue
+                MainMenue->ShowMainMenue();
+            }
         } else {
-            CleanupPilotInfo(mPilotsNextRace);
+            //Test map mode via Command-line
 
-            mGameState = DEF_GAMESTATE_MENUE;
+            //let the command line parameters define if computer players are added or not
+            mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(true, !mTestMapModeNoCpuPlayers);
 
-            //there was an error while creating the race
-            //Go back to top of main menue
-            MainMenue->ShowMainMenue();
+            if (this->CreateNewRace(mTestTargetLevel, mPilotsNextRace, 10, false, mDebugRace)) {
+                 mGameState = DEF_GAMESTATE_RACE;
+                 CleanupPilotInfo(mPilotsNextRace);
+            } else {
+                CleanupPilotInfo(mPilotsNextRace);
+
+                mGameState = DEF_GAMESTATE_MENUE;
+
+                //there was an error while creating the race
+                //Go back to top of main menue
+                MainMenue->ShowMainMenue();
+            }
         }
     } else if (mGameState == DEF_GAMESTATE_INITDEMO) {
         //for the demo do not add a human player, but add computer players
         mPilotsNextRace = mGameAssets->GetPilotInfoNextRace(false, true);
 
-        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, true, mDebugRace)) {
+        if (this->CreateNewRace(nextRaceLevelNr, mPilotsNextRace, mGameAssets->mRaceTrackVec->at(nextRaceLevelNr-1)->currSelNrLaps,
+                                true, mDebugRace)) {
              mGameState = DEF_GAMESTATE_RACE;
              CleanupPilotInfo(mPilotsNextRace);
         } else {
@@ -982,9 +1014,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         delete mCurrentRace;
         mCurrentRace = nullptr;
 
-        //if we were in game debugging mode simply skip
+        //if we were in game debugging mode or map test mode simply skip
         //main menue, and exit game immediately
-        if (mDebugRace || mDebugDemoMode) {
+        if (mDebugRace || mDebugDemoMode || mTestMapMode) {
             ExitGame = true;
         } else {
             mGameState = DEF_GAMESTATE_MENUE;
@@ -1083,6 +1115,20 @@ void Game::GameLoopIntro(irr::f32 frameDeltaTime) {
     }
 }
 
+void Game::GameLoopInitStep2() {
+    if (!InitGameStep2()) {
+        mGameState = DEF_GAMESTATE_ERROR;
+        return;
+    } else {
+        if (!ParseCommandLineForGame()) {
+           mGameState = DEF_GAMESTATE_ERROR;
+           return;
+        }
+
+        mGameState = DEF_GAMESTATE_INTRO;
+    }
+}
+
 void Game::GameLoop() {
 
     // In order to do framerate independent movement, we have to know
@@ -1102,6 +1148,11 @@ void Game::GameLoop() {
             case DEF_GAMESTATE_EXTRACTDATA: {
                 GameLoopExtractData();
                 break;
+            }
+
+            case DEF_GAMESTATE_INITSTEP2: {
+               GameLoopInitStep2();
+               break;
             }
 
             case DEF_GAMESTATE_INTRO: {
@@ -1178,13 +1229,28 @@ void Game::CleanupPilotInfo(std::vector<PilotInfoStruct*> &pilotInfo) {
     }
 }
 
-bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, bool demoMode, bool debugRace) {
+bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> pilotInfo,
+                         irr::u8 nrLaps, bool demoMode, bool debugRace) {
     if (mCurrentRace != nullptr)
         return false;
 
+    std::string levelRootDir("");
+    std::string levelName("");
+
+    size_t splitCharPos = targetLevel.find("/");
+    if (splitCharPos == std::string::npos) {
+        //split char not found, something wrong!
+        logging::Error("Specified target level string invalid, no '/' found, race creation failed!");
+        return false;
+    }
+
+    levelRootDir.append(targetLevel);
+    levelRootDir.append("/");
+
+    levelName.append(targetLevel.substr(splitCharPos + 1, targetLevel.size() - splitCharPos));
+
     //create a new Race
-    mCurrentRace = new Race(this, gameMusicPlayer, gameSoundEngine, load_levelnr,
-                            mGameAssets->mRaceTrackVec->at(load_levelnr-1)->currSelNrLaps, demoMode, debugRace, false);
+    mCurrentRace = new Race(this, gameMusicPlayer, gameSoundEngine, levelRootDir, levelName, nrLaps, demoMode, debugRace);
 
     mCurrentRace->Init();
 
@@ -1216,9 +1282,82 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
     return true;
 }
 
+bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotInfo, irr::u8 nrLaps, bool demoMode, bool debugRace) {
+    if (mCurrentRace != nullptr)
+        return false;
+
+    if (mExtendedGame) {
+        if ((load_levelnr < 1) || (load_levelnr > 9)) {
+            logging::Error("CreateNewRace: Level number only possible from 1 up to 9!");
+            return false;
+        }
+    } else {
+        if ((load_levelnr < 1) || (load_levelnr > 6)) {
+            logging::Error("CreateNewRace: Level number only possible from 1 up to 6!");
+            return false;
+        }
+    }
+
+    std::string targetLevel("extract/level0-");
+    char nrStr[10];
+
+    snprintf(nrStr, 9, "%d", load_levelnr);
+    targetLevel.append(nrStr);
+
+    return (CreateNewRace(targetLevel, pilotInfo, nrLaps, demoMode, debugRace));
+}
+
 void Game::CleanUpRace() {
     if (mCurrentRace == nullptr)
         return;
+}
+
+//Returns false if game should exit, False otherwise
+bool Game::ParseCommandLineForGame() {
+    std::vector<std::string>::iterator it;
+    std::string substr("test");
+    std::string subStr2("nocpu");
+    irr::u8 currIdx = 0;
+
+    for (it = mCLIVec.begin(); it != mCLIVec.end(); ++it) {
+        //if one parameter contains substring "test" lets
+        //enable map test mode which skips menue and
+        //everything, and directly goes into a specified target
+        //map
+        if ((*it).find(substr) != std::string::npos) {
+            mTestMapMode = true;
+            //in this case we need another command line field that
+            //specifies the target level/map we should enter
+            if ((currIdx + 1) < mCLIVec.size()) {
+                mTestTargetLevel.clear();
+                mTestTargetLevel.append(mCLIVec.at(currIdx + 1));
+
+                std::string logMessage("Activate map test mode with map ");
+                logMessage.append(mTestTargetLevel);
+
+                logging::Info(logMessage);
+
+                //In this special testMode only print
+                //Warning/Errors to the log window
+                logging::PrintOnlyIssues = true;
+            } else {
+                //we are missing the target level information
+                logging::Error("Command Line parameter 'test' additional needs target map information! Exit game");
+                return false;
+            }
+        }
+
+        //if one parameter contains substring "nocpu" lets
+        //disable computer players during test map mode
+        if ((*it).find(subStr2) != std::string::npos) {
+               mTestMapModeNoCpuPlayers = true;
+               logging::Info("Disabled Cpu Players during map test mode");
+        }
+
+        currIdx++;
+    }
+
+    return true;
 }
 
 Game::Game(int argc, char **argv) : InfrastructureBase(argc, argv) {

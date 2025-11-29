@@ -84,6 +84,9 @@ void EditorMode::OnNewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct ne
 void EditorMode::OnLeftMouseButtonDown() {
 }
 
+void EditorMode::OnRightMouseButtonDown() {
+}
+
 void EditorMode::OnElementHovered(irr::s32 hoveredGuiId) {
 }
 

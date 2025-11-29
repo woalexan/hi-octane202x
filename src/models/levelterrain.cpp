@@ -142,8 +142,8 @@ std::vector<irr::core::vector3df> LevelTerrain::GetPlayerRaceTrackStartLocations
       //we found starting region using way 1
       //but we want to find the actual location of the starting locations
       //on the map
-      for (int j = startRegion.tileYmin; j <= startRegion.tileYmax; j++) {
-         for (int i = startRegion.tileXmin; i <= startRegion.tileXmax ; i++) {
+      for (int j = (int)(startRegion.tileYmin); j <= (int)(startRegion.tileYmax); j++) {
+         for (int i = (int)(startRegion.tileXmin); i <= (int)(startRegion.tileXmax); i++) {
               //textureId value 122 is the starting position for
               //all kind of race track textures
               if (this->levelRes->pMap[i][j]->m_TextureId == 122) {

@@ -227,7 +227,7 @@ MyMusicStream::MyMusicStream(Game* gamePnter, unsigned int sampleRate) {
 
 //loads an original game XMID file (extended midi file)
 //returns true in case of success, false otherwise
-bool MyMusicStream::loadGameMusicFile(char* fileName) {
+bool MyMusicStream::loadGameMusicFile(const char* fileName) {
     /* Open the MIDI (or MUS, IMF or CMF) file to play */
     if (adl_openFile(midi_player, fileName) < 0)
         {
