@@ -1137,6 +1137,25 @@ irr::io::path InfrastructureBase::GetMiniMapFileName(std::string levelRootPath) 
     return resultPath;
 }
 
+irr::io::path InfrastructureBase::GetMapConfigFileName(LevelFolderInfoStruct* whichLevel) {
+    irr::io::path resultPath("");
+
+    if (whichLevel == nullptr)
+        return resultPath;
+
+    resultPath.append(whichLevel->levelBaseDir);
+    resultPath.append("mapconfig.txt");
+    return resultPath;
+}
+
+irr::io::path InfrastructureBase::GetMapConfigFileName(std::string levelRootPath) {
+    irr::io::path resultPath("");
+
+    resultPath.append(levelRootPath.c_str());
+    resultPath.append("mapconfig.txt");
+    return resultPath;
+}
+
 //Returns true if specified unpacked level file seems to be valid
 //False otherwise
 bool InfrastructureBase::IsUnpackedLevelFileValid(io::path levelFilename) {

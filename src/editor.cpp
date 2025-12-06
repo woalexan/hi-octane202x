@@ -32,6 +32,7 @@
 #include "editor/regionmode.h"
 #include "editor/uiconversion.h"
 #include "editor/fileoperationdialog.h"
+#include "resources/readgamedata/preparedata.h"
 #include "input/input.h"
 #include "font/font_manager.h"
 #include <fstream>
@@ -322,11 +323,14 @@ void Editor::PopulateTestMenueEntries() {
      * Submenue Test                     *
      *************************************/
 
+
+    mTestMenu->addItem(L"Modify Map File", GUI_ID_TEST_MODIFYMAPFILE, true, false);
+
     mTestMenu->addItem(L"No Cpu Players", GUI_ID_TEST_ADDNOCPUPLAYERS, true, false, true, true);
     if (mTestMapNoCpuPlayer) {
-       mTestMenu->setItemChecked(0, true);
+       mTestMenu->setItemChecked(1, true);
     } else {
-        mTestMenu->setItemChecked(0, false);
+        mTestMenu->setItemChecked(1, false);
     }
 
     mTestMenu->addItem(L"Test in hi-octane20xx", GUI_ID_TEST_TESTHIOCTANCE20XX, true, false);
@@ -353,17 +357,19 @@ void Editor::PopulateViewMenueEntries() {
     mViewMenu->addItem(L"Terrain", GUI_ID_VIEWMODE_TERRAIN, true, true);
     mViewMenu->addItem(L"Blocks", GUI_ID_VIEWMODE_BLOCKS, true, true);
 
-    mViewMenu = mMenu->getSubMenu(3)->getSubMenu(9);
-    mViewMenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
-    mViewMenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
-    mViewMenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
-    mViewMenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
+    gui::IGUIContextMenu* submenu;
 
-    mViewMenu = mMenu->getSubMenu(3)->getSubMenu(10);
-    mViewMenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
-    mViewMenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
-    mViewMenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
-    mViewMenu->addItem(L"Normals", GUI_ID_VIEW_BLOCKS_NORMALS);
+    submenu = mMenu->getSubMenu(3)->getSubMenu(9);
+    submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
+    submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
+    submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
+    submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
+
+    submenu = mMenu->getSubMenu(3)->getSubMenu(10);
+    submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
+    submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
+    submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
+    submenu->addItem(L"Normals", GUI_ID_VIEW_BLOCKS_NORMALS);
 }
 
 void Editor::PopulateInfoMenueEntries() {
@@ -373,6 +379,20 @@ void Editor::PopulateInfoMenueEntries() {
     /*************************************
      * Submenue Info                     *
      *************************************/
+
+    if (mCurrentSession != nullptr) {
+        mInfoMenu->addItem(L"Write table", GUI_ID_INFO_WRITETABLE, true, true, false, false);
+
+        gui::IGUIContextMenu* submenu;
+
+        submenu = mInfoMenu->getSubMenu(0);
+        submenu->addItem(L"Cells", GUI_ID_INFO_WRITETABLE_CELLS);
+        submenu->addItem(L"Entities", GUI_ID_INFO_WRITETABLE_ENTITIES);
+        submenu->addItem(L"Block Definitions", GUI_ID_INFO_WRITETABLE_BLOCKDEF);
+        submenu->addItem(L"Column Definitions", GUI_ID_INFO_WRITETABLE_COLUMNDEF);
+        submenu->addItem(L"Columns", GUI_ID_INFO_WRITETABLE_COLUMNS);
+        submenu->addItem(L"Regions", GUI_ID_INFO_WRITETABLE_REGIONS);
+    }
 
     mInfoMenu->addItem(L"Attribution", GUI_ID_INFO_ATTRIBUTION, true, false);
     mInfoMenu->addItem(L"About", GUI_ID_INFO_ABOUT, true, false);
@@ -604,6 +624,22 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
         }
     }
 
+    //copy map config file as well if it is existing already
+    irr::io::path mapConfigFileTarget = GetMapConfigFileName(mSelLevelForFileOperation);
+    irr::io::path mapConfigFileSource = GetMapConfigFileName(currOpenLevelRootDir);
+
+    if (FileExists(mapConfigFileSource.c_str()) == 1) {
+        //map config file is also there, copy
+        logging::Info("SaveAsLevel: Copy also existing mapconfig file");
+        if (copy_file(mapConfigFileSource.c_str(), mapConfigFileTarget.c_str()) != 0) {
+            success = false;
+
+            logging::Error("SaveAsLevel: Map config file copy operation failed");
+        } else {
+            logging::Info("SaveAsLevel: Map config file copy operation was succesfull");
+        }
+    }
+
     return success;
 }
 
@@ -637,6 +673,72 @@ void Editor::TestMapinHioctance20XX() {
     //this_thread::sleep_for(chrono::seconds(5));
 }
 
+void Editor::TestMapModification() {
+  //Commented out, only for testing purposes
+  //  ModifyMapFile(std::string("extract/level0-1/level0-1-unpacked.dat"), std::string("extract/level0-1/LEVEL0-1-step2-nocolumns.DAT"));
+}
+
+void Editor::DebugPrintTable(irr::s32 id) {
+    if (mCurrentSession == nullptr)
+        return;
+
+    std::string basePath("");
+
+    if (mCurrLevelWhichIsEdited != nullptr) {
+        basePath.append(mCurrLevelWhichIsEdited->levelBaseDir.c_str());
+    }
+
+    switch (id) {
+        case GUI_ID_INFO_WRITETABLE_CELLS: {
+           std::string finalName("");
+           finalName.append(basePath);
+           finalName.append("table-cells.csv");
+           mCurrentSession->mLevelRes->DebugWriteCellInfoToCsvFile(finalName.c_str());
+           break;
+        }
+
+        case GUI_ID_INFO_WRITETABLE_ENTITIES: {
+            std::string finalName("");
+            finalName.append(basePath);
+            finalName.append("table-entities.csv");
+            mCurrentSession->mEntityManager->DebugWriteEntityTableToCsvFile(finalName.c_str());
+            break;
+        }
+
+        case GUI_ID_INFO_WRITETABLE_BLOCKDEF: {
+            std::string finalName("");
+            finalName.append(basePath);
+            finalName.append("table-blockdefinitions.csv");
+            mCurrentSession->mLevelBlocks->DebugWriteBlockDefinitionTableToCsvFile(finalName.c_str());
+            break;
+        }
+
+        case GUI_ID_INFO_WRITETABLE_COLUMNDEF: {
+            std::string finalName("");
+            finalName.append(basePath);
+            finalName.append("table-columndefinitions.csv");
+            mCurrentSession->mLevelBlocks->DebugWriteColumnDefinitionTableToCsvFile(finalName.c_str());
+            break;
+        }
+
+        case GUI_ID_INFO_WRITETABLE_COLUMNS: {
+            std::string finalName("");
+            finalName.append(basePath);
+            finalName.append("table-columns.csv");
+            mCurrentSession->mLevelBlocks->DebugWriteDefinedColumnsTableToCsvFile(finalName.c_str());
+            break;
+        }
+
+        case GUI_ID_INFO_WRITETABLE_REGIONS: {
+            std::string finalName("");
+            finalName.append(basePath);
+            finalName.append("table-regions.csv");
+            mCurrentSession->mLevelRes->DebugPrintRegionTable(finalName.c_str());
+            break;
+        }
+    }
+}
+
 void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
 {
     s32 id = menu->getItemCommandId(menu->getSelectedItem());
@@ -651,6 +753,20 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
         case GUI_ID_INFO_ABOUT: {
             ShowAboutWindow();
             break;
+        }
+
+        case GUI_ID_INFO_WRITETABLE_CELLS:
+        case GUI_ID_INFO_WRITETABLE_ENTITIES:
+        case GUI_ID_INFO_WRITETABLE_BLOCKDEF:
+        case GUI_ID_INFO_WRITETABLE_COLUMNDEF:
+        case GUI_ID_INFO_WRITETABLE_COLUMNS:
+        case GUI_ID_INFO_WRITETABLE_REGIONS: {
+            DebugPrintTable(id);
+        }
+
+        case GUI_ID_TEST_MODIFYMAPFILE: {
+           TestMapModification();
+           break;
         }
 
         case GUI_ID_TEST_TESTHIOCTANCE20XX: {
@@ -1918,6 +2034,21 @@ bool Editor::CopyLevelTextures(std::string originMapFolder, std::string targetMa
     return true;
 }
 
+//Returns true in case of success, False otherwise
+bool Editor::CreateDefaultMapConfigFile(std::string targetMapFolder) {
+   irr::io::path configFilePath = GetMapConfigFileName(targetMapFolder);
+
+    try {
+        //Default use sky of first level, and music of first level
+        this->mPrepareData->PrepareMapConfigDataFile(configFilePath.c_str(), "extract/sky/modsky0-0.png",
+                      "extract/music/TGAME1.XMI");
+    } catch (const std::string &msg) {
+        return false;
+    }
+
+    return true;
+}
+
 //Returns true if succesfull, False otherwise
 //Note: outputMapName is not a folder path, instead a single word (name)
 //for the map
@@ -2004,6 +2135,12 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
 
     if (!CreateNewEmptyLevelFile(originLevelFile, newLevelFileName)) {
         logging::Error("CreateNewEmptyLevel: Creation of new level map file failed");
+        return false;
+    }
+
+    //Create a default mapconfig file
+    if (!CreateDefaultMapConfigFile(mapSubFolder)) {
+        logging::Error("Failed to create default mapconfig.txt file!");
         return false;
     }
 
@@ -2158,6 +2295,173 @@ bool Editor::CreateNewEmptyLevelFile(std::string originFileName, std::string out
         i += 12;
    }
   }
+
+  //write modified data to output map file
+  std::ofstream outputfile(outputFileName.c_str(), std::ios::out|std::ios::binary);
+  std::copy(bytesVec->cbegin(), bytesVec->cend(),
+         std::ostream_iterator<uint8_t>(outputfile));
+
+  outputfile.close();
+
+  delete bytesVec;
+
+  return true;
+}
+
+//Returns true if succesfull, False otherwise
+bool Editor::ModifyMapFile(std::string originFileName, std::string outputFileName) {
+    ifstream ifile;
+    std::streampos fileSize;
+
+    ifile.open(originFileName.c_str(), std::ifstream::binary);
+    if(ifile) {
+          logging::Info("ModifyMapFile: Origin file found and openend succesfully");
+       } else {
+           logging::Error("ModifyMapFile: Could not open Origin Level file");
+           return false;
+    }
+
+    // get its size:
+    ifile.seekg(0, std::ios::end);
+    fileSize = ifile.tellg();
+    ifile.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t>* bytesVec = new std::vector<uint8_t>();
+
+    //read the data
+    bytesVec->resize(fileSize);
+    ifile.read(reinterpret_cast<char*>(bytesVec->data()), bytesVec->size());
+
+    ifile.close();
+
+    char hlpstr[500];
+    std::string msg("");
+
+     if (ifile) {
+         msg.clear();
+         msg.append("Origin level file read succesfully (");
+         size_t fileSizet = fileSize;
+         snprintf(hlpstr, 500, "%zu", fileSizet);
+         msg.append(hlpstr);
+         msg.append(" bytes)");
+         logging::Info(msg);
+     }
+     else {
+         size_t fileReadsizet = ifile.gcount();
+         msg.clear();
+         msg.append("Origin level file read error: only ");
+         snprintf(hlpstr, 500, "%zu", fileReadsizet);
+         msg.append(hlpstr);
+         msg.append(" bytes could be read!");
+         logging::Error(msg);
+
+         delete bytesVec;
+
+         return false;
+   }
+
+   std::vector<uint8_t>::iterator startIt;
+   std::vector<uint8_t>::iterator endIt;
+
+   //first remove all entities
+   //there can be max 4000 entities,
+   //stored from file offset 0 up to 3999 * 24 + 24
+   if (false) {
+      startIt = bytesVec->begin();
+      endIt = bytesVec->begin() + 3999 * 24 + 24;
+
+      std::fill(startIt, endIt, 0);
+   }
+
+   //remove all column definitions
+   //there can be max 1024 of them
+   //stored from file offset 98012 up to 124636
+   startIt = bytesVec->begin() + 98012;
+   endIt = bytesVec->begin() + 98012 + 1023 * 26 + 26;
+
+   std::fill(startIt, endIt, 0);
+
+   //remove all block definitions
+   //there can be max 1024 of them
+   //stored from file offset 124636 up to 141020
+   startIt = bytesVec->begin() + 124636;
+   endIt = bytesVec->begin() + 124636 + 1023 * 16 + 16;
+
+   std::fill(startIt, endIt, 0);
+
+   //removes all region definitions
+   //there can be max 8 of them
+   //stored from file offset 246924 up to 247604
+   if (false) {
+     startIt = bytesVec->begin() + 246924;
+     endIt = bytesVec->begin() + 247604;
+
+     std::fill(startIt, endIt, 0);
+   }
+
+
+   if (false) {
+           //setup all tiles to the same texture and height
+           //there are 256 x 160 tiles;
+           //Tile data is from offset 404620 up to offset 896140
+
+           //Each tile has the following layout:
+
+           //each map entry is 12 bytes long
+           //Byte 0:  Cell Illumination value: This value controls how well illuminated a cell is
+           //Byte 1:  Cell Illumination value: This value controls how well illuminated a cell is
+           //Byte 2:  Height
+           //Byte 3:  Height
+           //Byte 4:  cid (cell id)
+           //Byte 5:  cid (cell id)
+           //Byte 6:  Point of Interest
+           //Byte 7:  Point of Interest
+           //Byte 8:  Reserved 1 (seems to be not used)
+           //Byte 9:  Reserved 1 (seems to be not used)
+           //Byte 10:  Texture Modification
+           //Byte 11:  Reserved 2 (seems to be not used)
+
+           //Reserved 1 & Reserved 2: For both values I checked in every level of the original
+           //game. Is not a single time non zero. Was maybe reserved for
+           //a future expansion, and never used (maybe reserved).
+           startIt = bytesVec->begin() + 404620;
+           endIt = bytesVec->begin() + 896140;
+
+           //first fill all tiles with all 0 bytes
+           std::fill(startIt, endIt, 0);
+
+           // entry is 12 bytes long, map is at end of file
+           int numBytes = 12 * LEVELFILE_WIDTH * LEVELFILE_HEIGHT;
+
+           int i = (int)(fileSize) - numBytes;
+
+           for (int y = 0; y < LEVELFILE_HEIGHT; y++) {
+            for (int x = 0; x < LEVELFILE_WIDTH; x++) {
+                //set all cells to default Illumination value of 9600
+                startIt = bytesVec->begin() + i;
+                (*startIt) = 128;
+
+                startIt = bytesVec->begin() + i + 1;
+                (*startIt) = 37;
+
+                //set all cells to height 8.0f
+                startIt = bytesVec->begin() + i + 2;
+                (*startIt) = 0;
+
+                startIt = bytesVec->begin() + i + 3;
+                (*startIt) = 8;
+
+                //set all cells to first TextureId 0
+                startIt = bytesVec->begin() + i + 4;
+                (*startIt) = 0;
+
+                startIt = bytesVec->begin() + i + 5;
+                (*startIt) = 0;
+
+                i += 12;
+           }
+        }
+   }
 
   //write modified data to output map file
   std::ofstream outputfile(outputFileName.c_str(), std::ios::out|std::ios::binary);

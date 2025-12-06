@@ -44,6 +44,7 @@ class BlockDefinition;
 class MapEntry;
 class EntityItem;
 class ColumnDefinition;
+class InfrastructureBase;
 
 struct MapPointOfInterest {
       irr::core::vector3d<float> Position;
@@ -75,7 +76,7 @@ struct ColumnsStruct {
 
 class LevelFile {
 public:
-    LevelFile(std::string filename);
+    LevelFile(InfrastructureBase* infra, std::string filename);
     ~LevelFile();
 
     int Width();
@@ -126,7 +127,7 @@ public:
     std::vector<uint8_t> unknownTable247604Data;
 
     bool PrintUnknownTableAtOffset(size_t offset, std::vector<uint8_t> &sourceTable);
-    bool PrintRegionTable();
+    bool DebugPrintRegionTable(const char* filename);
 
     //holds location info about the charging locations
     //and the map start region/location
@@ -164,7 +165,7 @@ public:
     //returns nullptr if a block definition with this Id is not found
     BlockDefinition* GetBlockDefinitionWithCertainId(int whichId);
 
-    void DebugWriteCellInfoToCsvFile(char* debugOutPutFileName);
+    void DebugWriteCellInfoToCsvFile(const char* debugOutPutFileName);
 
     //Returns true if there is a column at the specified location
     //False for no column
@@ -231,6 +232,8 @@ protected:
      std::string m_Filename;
      std::string m_Name;
      bool m_Ready;
+
+     InfrastructureBase* mInfra = nullptr;
 
      std::vector<uint8_t> m_bytes;
 

@@ -3325,15 +3325,12 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
 }
 
 bool Race::LoadLevelConfigData() {
-    std::string expConfigFileName("");
+    irr::io::path configFileName = mGame->GetMapConfigFileName(mLevelRootPath);
 
-    expConfigFileName.append(mLevelRootPath);
-    expConfigFileName.append("mapconfig.txt");
-
-    if (FileExists(expConfigFileName.c_str()) != 1) {
+    if (FileExists(configFileName.c_str()) != 1) {
         //Problem with this file
         std::string logErr("Can not read file '");
-        logErr.append(expConfigFileName);
+        logErr.append(configFileName.c_str());
         logErr.append("'!");
 
         logging::Error(logErr);
@@ -3342,7 +3339,7 @@ bool Race::LoadLevelConfigData() {
 
     //open map config text file
     //and read line by line
-    std::ifstream configFile(expConfigFileName);
+    std::ifstream configFile(configFileName.c_str());
 
     std::string line;
     irr::u32 currLineNr = 0;
@@ -3365,7 +3362,7 @@ bool Race::LoadLevelConfigData() {
           configFile.close();
 
           std::string logStr("Succesfully read file '");
-          logStr.append(expConfigFileName);
+          logStr.append(configFileName.c_str());
           logStr.append("'");
 
           logging::Info(logStr);
@@ -3374,7 +3371,7 @@ bool Race::LoadLevelConfigData() {
      }
 
      std::string logStr("Unable to open file '");
-     logStr.append(expConfigFileName);
+     logStr.append(configFileName.c_str());
      logStr.append("'!");
 
      logging::Error(logStr);
@@ -3416,7 +3413,7 @@ bool Race::LoadLevel() {
    /***********************************************************/
 
    //load the level data itself
-   this->mLevelRes = new LevelFile(levelfilename);
+   this->mLevelRes = new LevelFile(mGame, levelfilename);
 
    //was loading level data succesful? if not interrupt
    if (!this->mLevelRes->get_Ready()) {

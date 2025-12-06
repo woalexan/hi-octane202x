@@ -217,7 +217,7 @@ public:
 
     bool AreModelImagesAvailable();
 
-    void DebugWriteEntityTableToCsvFile(char* debugOutPutFileName);
+    void DebugWriteEntityTableToCsvFile(const char* debugOutPutFileName);
 };
 
 #endif // ENTITYMANAGER_H

@@ -1237,7 +1237,8 @@ bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> 
     std::string levelRootDir("");
     std::string levelName("");
 
-    size_t splitCharPos = targetLevel.find("/");
+    size_t splitCharPos = targetLevel.find_last_of("/");
+
     if (splitCharPos == std::string::npos) {
         //split char not found, something wrong!
         logging::Error("Specified target level string invalid, no '/' found, race creation failed!");
@@ -1324,7 +1325,7 @@ bool Game::ParseCommandLineForGame() {
         //enable map test mode which skips menue and
         //everything, and directly goes into a specified target
         //map
-        if ((*it).find(substr) != std::string::npos) {
+        if ((*it).find(substr) != std::string::npos && ((*it).size() == substr.size())) {
             mTestMapMode = true;
             //in this case we need another command line field that
             //specifies the target level/map we should enter
@@ -1349,7 +1350,7 @@ bool Game::ParseCommandLineForGame() {
 
         //if one parameter contains substring "nocpu" lets
         //disable computer players during test map mode
-        if ((*it).find(subStr2) != std::string::npos) {
+        if ((*it).find(subStr2) != std::string::npos && ((*it).size() == subStr2.size())) {
                mTestMapModeNoCpuPlayers = true;
                logging::Info("Disabled Cpu Players during map test mode");
         }

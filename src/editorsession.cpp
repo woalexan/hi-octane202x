@@ -415,7 +415,7 @@ bool EditorSession::LoadLevel() {
    /***********************************************************/
 
    //load the level data itself
-   this->mLevelRes = new LevelFile(levelfilename);
+   this->mLevelRes = new LevelFile(this->mParentEditor, levelfilename);
 
    //was loading level data succesful? if not interrupt
    if (!this->mLevelRes->get_Ready()) {

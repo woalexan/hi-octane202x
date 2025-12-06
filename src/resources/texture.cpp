@@ -138,6 +138,8 @@ void TextureLoader::LoadEditorTextures() {
 
     //image of original game: white arrow pointing to the right
     LoadEditorTexture("extract/hud1player/panel0-1-0308.bmp", true);
+
+    LoadEditorTexture("media/editor/stopsign-small.png", true);
 }
 
 TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, const char* levelTexFilePath,  const char* spriteTexFilePath,

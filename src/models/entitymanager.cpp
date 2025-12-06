@@ -1780,7 +1780,7 @@ bool EntityManager::AreModelImagesAvailable() {
     return (mInfra->mBlockPreviewEnabled);
 }
 
-void EntityManager::DebugWriteEntityTableToCsvFile(char* debugOutPutFileName) {
+void EntityManager::DebugWriteEntityTableToCsvFile(const char* debugOutPutFileName) {
    FILE* debugOutputFile = nullptr;
 
    debugOutputFile = fopen(debugOutPutFileName, "w");

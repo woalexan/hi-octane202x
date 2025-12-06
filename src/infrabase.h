@@ -164,6 +164,9 @@ public:
   irr::io::path GetMiniMapCalFileName(LevelFolderInfoStruct* whichLevel);
   irr::io::path GetMiniMapCalFileName(std::string levelRootPath);
 
+  irr::io::path GetMapConfigFileName(LevelFolderInfoStruct* whichLevel);
+  irr::io::path GetMapConfigFileName(std::string levelRootPath);
+
   //Returns a vector of existing levels in a specified root directory
   void GetExistingLevelInfo(std::string rootDir, bool markAsCustomLevel, std::vector<LevelFolderInfoStruct*> &levelInfoVec);
 
