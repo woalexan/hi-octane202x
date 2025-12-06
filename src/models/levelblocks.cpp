@@ -2673,7 +2673,7 @@ std::string LevelBlocks::CreateDbgShapeString(ColumnDefinition* colDef) {
     return resultStr;
 }
 
-void LevelBlocks::DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName) {
+void LevelBlocks::DebugWriteColumnDefinitionTableToCsvFile(const char* debugOutPutFileName) {
    FILE* debugOutputFile = nullptr;
 
    debugOutputFile = fopen(debugOutPutFileName, "w");
@@ -2697,7 +2697,7 @@ void LevelBlocks::DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFile
    fclose(debugOutputFile);
 }
 
-void LevelBlocks::DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName) {
+void LevelBlocks::DebugWriteBlockDefinitionTableToCsvFile(const char* debugOutPutFileName) {
    FILE* debugOutputFile = nullptr;
 
    debugOutputFile = fopen(debugOutPutFileName, "w");
@@ -2724,7 +2724,7 @@ void LevelBlocks::DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileN
    fclose(debugOutputFile);
 }
 
-void LevelBlocks::DebugWriteDefinedColumnsTableToCsvFile(char* debugOutPutFileName) {
+void LevelBlocks::DebugWriteDefinedColumnsTableToCsvFile(const char* debugOutPutFileName) {
    FILE* debugOutputFile = nullptr;
 
    debugOutputFile = fopen(debugOutPutFileName, "w");

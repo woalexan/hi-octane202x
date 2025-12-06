@@ -1329,6 +1329,7 @@ void EntityMode::DefineAllEntityItemTypes() {
        //first texture item in editorTex vector is camera image
        catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(0) , Entity::EntityType::Camera);
        catPntr->AddEntityType(mParentSession->mTexLoader->levelTex.at(121), Entity::EntityType::Checkpoint);
+       catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(5), Entity::EntityType::WallSegment);
        //second texture item in editorTex vector is StopWatch image I want
        //to use for Time Trigger
        catPntr->AddEntityType(mParentSession->mTexLoader->editorTex.at(1), Entity::EntityType::TriggerTimed);

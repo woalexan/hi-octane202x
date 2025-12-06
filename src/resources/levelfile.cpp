@@ -21,6 +21,7 @@
 #include "mapentry.h"
 #include "entityitem.h"
 #include <iterator>
+#include "../infrabase.h"
 #include "../definitions.h"
 
 /* LevelFile Layout
@@ -38,9 +39,11 @@
 
 */
 
-LevelFile::LevelFile(std::string filename) {
+LevelFile::LevelFile(InfrastructureBase* infra, std::string filename) {
    this->m_Filename = filename;
    this->m_Ready = false;
+   this->mInfra = infra;
+
    bool ready_result;
 
    mMapRegionVec = new std::vector<MapTileRegionStruct*>();
@@ -109,7 +112,6 @@ LevelFile::LevelFile(std::string filename) {
     std::fill(m_wBytes.begin(), m_wBytes.begin() + this->m_bytes.size(), 0x55);
 
     if (false) {
-        PrintRegionTable();
         PrintUnknownTableAtOffset(0, unknownTable0Data);
         PrintUnknownTableAtOffset(96000, unknownTable96000Data);
         PrintUnknownTableAtOffset(124636, unknownTable124636Data);
@@ -548,18 +550,12 @@ bool LevelFile::loadMapRegions() {
     return true;
 }
 
-bool LevelFile::PrintRegionTable() {
+bool LevelFile::DebugPrintRegionTable(const char* filename) {
     std::vector<uint8_t>::iterator it;
 
     int cnt = 0;
 
-    char finalpath[100];
-
-    strcpy(finalpath, this->get_Filename().c_str());
-    strcat(finalpath, "-regionTable.txt");
-
-    //now we have our output filename
-    FILE* oFile = fopen(finalpath, "w");
+    FILE* oFile = fopen(filename, "w");
     if (oFile == nullptr) {
        return false;
     }
@@ -829,6 +825,12 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
    regionTable.at(whichRegionId * 85 + 18) = (uint8_t)(1);
 
+   if (!mInfra->mExtendedGame) {
+       //Only for the original game (non-extended version):
+       //Byte 19 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
+       regionTable.at(whichRegionId * 85 + 19) = (uint8_t)(1);
+   }
+
    //middle point of rectangle that defines region is stored
    //at byte location 25 and location 27 of this current table entry line
    irr::u8 intX = (irr::u8)(pntr->regionCenterTileCoord.X); //truncate down to integer number
@@ -859,14 +861,20 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    irr::f32 deltaX = (pntr->tileXmax - pntr->tileXmin) * 0.5f;
    irr::f32 deltaY = (pntr->tileYmax - pntr->tileYmin) * 0.5f;
 
-   //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
-   //for the other levels), and the extended version of the game has (compared with non extended game another)
-   //the same value for all levels, except level 7 which is an exception).
-   //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
-   //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
-   //the value used for almost all levels in extended version of the game.
-   regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(232);
-   regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(54);
+   if (mInfra->mExtendedGame) {
+       //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
+       //for the other levels), and the extended version of the game has (compared with non extended game another)
+       //the same value for all levels, except level 7 which is an exception).
+       //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
+       //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
+       //the value used for almost all levels in extended version of the game.
+       regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(232);
+       regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(54);
+   } else {
+       //I use the values for level 1 in the original game
+       regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(118);
+       regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(0);
+   }
 
    irr::u8 intDeltaX = (irr::u8)(deltaX); //truncate down to integer number
    irr::u8 intDeltaY = (irr::u8)(deltaY); //truncate down to integer number
@@ -1369,7 +1377,7 @@ bool LevelFile::RequestColumnDefinition(int16_t pFloorTextureID, int16_t pUnknow
     return true;
 }
 
-void LevelFile::DebugWriteCellInfoToCsvFile(char* debugOutPutFileName) {
+void LevelFile::DebugWriteCellInfoToCsvFile(const char* debugOutPutFileName) {
    FILE* debugOutputFile = nullptr;
 
    debugOutputFile = fopen(debugOutPutFileName, "w");

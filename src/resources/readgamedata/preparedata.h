@@ -74,6 +74,8 @@ public:
     //false otherwise if further extraction is needed
     bool GameDataAvailable();
 
+    void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
+
 private:
     InfrastructureBase* mInfra = nullptr;
 
@@ -201,7 +203,6 @@ private:
 
     void ExtractSmallFontSVGA();
 
-    void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
     void PrepareMapConfigData();
 
     void ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);

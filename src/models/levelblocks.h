@@ -131,9 +131,9 @@ public:
     std::vector<irr::u32> GetBlockDefinitionUsageCount();
     std::vector<irr::u32> GetColumnDefinitionUsageCount();
 
-    void DebugWriteColumnDefinitionTableToCsvFile(char* debugOutPutFileName);
-    void DebugWriteBlockDefinitionTableToCsvFile(char* debugOutPutFileName);
-    void DebugWriteDefinedColumnsTableToCsvFile(char* debugOutPutFileName);
+    void DebugWriteColumnDefinitionTableToCsvFile(const char* debugOutPutFileName);
+    void DebugWriteBlockDefinitionTableToCsvFile(const char* debugOutPutFileName);
+    void DebugWriteDefinedColumnsTableToCsvFile(const char* debugOutPutFileName);
 
     void ChangeMeshCubeHeight(BlockInfoStruct* whichCube, irr::f32 newV1y, irr::f32 newV2y, irr::f32 newV3y, irr::f32 newV4y);
 

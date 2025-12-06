@@ -92,9 +92,17 @@ enum
     GUI_ID_VIEW_ENTITY_EFFECTS,
     GUI_ID_VIEW_ENTITY_MORPHS,
 
+    GUI_ID_TEST_MODIFYMAPFILE,
     GUI_ID_TEST_ADDNOCPUPLAYERS,
     GUI_ID_TEST_TESTHIOCTANCE20XX,
 
+    GUI_ID_INFO_WRITETABLE,
+    GUI_ID_INFO_WRITETABLE_CELLS,
+    GUI_ID_INFO_WRITETABLE_ENTITIES,
+    GUI_ID_INFO_WRITETABLE_BLOCKDEF,
+    GUI_ID_INFO_WRITETABLE_COLUMNDEF,
+    GUI_ID_INFO_WRITETABLE_COLUMNS,
+    GUI_ID_INFO_WRITETABLE_REGIONS,
     GUI_ID_INFO_ATTRIBUTION,
     GUI_ID_INFO_ABOUT,
 
@@ -321,6 +329,13 @@ private:
 
     bool mTestMapNoCpuPlayer = true;
     void TestMapinHioctance20XX();
+
+    void TestMapModification();
+
+    void DebugPrintTable(irr::s32 id);
+
+    //Returns true in case of success, False otherwise
+    bool CreateDefaultMapConfigFile(std::string targetMapFolder);
 public:
     irr::video::ITexture* backgnd = nullptr;
 
@@ -372,6 +387,7 @@ public:
     std::vector<LevelFolderInfoStruct*> mCustomLevelVec;
 
     void FindExistingLevels();
+    bool ModifyMapFile(std::string originFileName, std::string outputFileName);
 
     Editor(int argc, char **argv);
     virtual ~Editor();
