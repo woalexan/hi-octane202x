@@ -45,33 +45,6 @@ EditorSession::EditorSession(Editor* parentEditor, std::string levelRootPath, st
     mTerraforming = new TerraformingMode(this);
     mEntityMode = new EntityMode(this);
     mRegionMode = new RegionMode(this);
-
-//    //my vector of extended region data
-//    mExtRegionVec = new std::vector<ExtendedRegionInfoStruct*>;
-//    mExtRegionVec->clear();
-
-//    //my vector of charging stations
-//    mChargingStationVec = new std::vector<ChargingStation*>;
-//    mChargingStationVec->clear();
-
-//    mCollectableSpawnerVec.clear();
-
-//    //my vector of player that need help
-//    //of a recovery vehicle and are currently waiting
-//    //for it
-//    mPlayerWaitForRecoveryVec = new std::vector<Player*>;
-//    mPlayerWaitForRecoveryVec->clear();
-
-//    mPlayerVec.clear();
-//    mPlayerPhysicObjVec.clear();
-//    playerRaceFinishedVec.clear();
-//    mTriggerRegionVec.clear();
-//    mPendingTriggerTargetGroups.clear();
-//    mType2CollectableForCleanupLater.clear();
-
-//    //for the start of the race we want to trigger
-//    //target group 1 once
-//    mPendingTriggerTargetGroups.push_back(1);
 }
 
 //Returns true in case of success, False otherwise
@@ -116,11 +89,6 @@ void EditorSession::AdvanceTime(irr::f32 frameDeltaTime) {
         //Trigger Mesh update
         CheckForMeshUpdate();
      }
-
-     //if (!AllowStartMorphsPerKey) {
-     //        //update level morphs
-     //        UpdateMorphs(frameDeltaTime);
-     //}
 
      mParentEditor->mTimeProfiler->Profile(mParentEditor->mTimeProfiler->tIntMorphing);
 
@@ -335,56 +303,10 @@ void EditorSession::Init() {
 
     mParentEditor->UpdateStatusbarText(L"Press Space to change between FreeFyling Mode and Edit Mode/Using the UI");
 
-    //create the object for path finding and services
-    //mPath = new Path(this, mDrawDebug);
-
-    //get player start locations from the level file
-    /*mPlayerStartLocations =
-        this->mLevelTerrain->GetPlayerRaceTrackStartLocations();*/
-
-    //SetupTopRaceTrackPointerOrigin();
-
-    //create a new Bezier object for testing
-    //testBezier = new Bezier(mLevelTerrain, mDrawDebug);
-
     ready = true;
-
-    //only to test if we can save a levelfile properly!
-    //std::string testsaveName("testsave.dat");
-    //this->mLevelRes->Save(testsaveName);
 }
 
 bool EditorSession::LoadLevel() {
-//    if ((mLevelNrLoaded < 1) || (mLevelNrLoaded > 9)) {
-//        logging::Error("Level number only possible from 1 up to 9!");
-//        return false;
-//    }
-
-//    int load_texnr = mLevelNrLoaded;
-//    if (mLevelNrLoaded == 7) load_texnr = 1; // original game has this hardcoded too
-
-//   /***********************************************************/
-//   /* Load selected level file                                */
-//   /***********************************************************/
-//   char levelfilename[50];
-//   char str[20];
-
-//   strcpy(levelfilename, "extract/level0-");
-//   sprintf(str, "%d", mLevelNrLoaded);
-//   strcat(levelfilename, str);
-//   strcat(levelfilename, "/level0-");
-//   strcat(levelfilename, str);
-//   strcat(levelfilename, "-unpacked.dat");
-
-//   //only for debugging
-//   //strcpy(levelfilename, "/home/wolfalex/hi/maps/level0-1.dat");
-
-//   char texfilename[50];
-//   strcpy(texfilename, "extract/level0-");
-//   sprintf(str, "%d", load_texnr);
-//   strcat(texfilename, str);
-//   strcat(texfilename, "/tex");
-
    std::string levelfilename("");
    std::string texfilename("");
 
@@ -482,15 +404,6 @@ bool EditorSession::LoadLevel() {
    this->mItemSelector = new ItemSelector(this);
 
   // driver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 100, 250, .03f, false, true);
-
-  //Final data calculation for all checkpoints
-  //Find for each waypoint normal direction of race
-  //so that we know if the player passes checkpoints
-  //in forwards or reverse direction
-  //CheckPointPostProcessing();
-
-  //create existing charging stations
-  //CreateChargingStations();
 
   //create a bounding box for valid player
   //location testing
@@ -742,13 +655,6 @@ void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* m
 }
 
 void EditorSession::Render() {
-    //if we do not use XEffects we can simply render the sky
-    //with XEffect this does not work, need a solution for this!
-//    if (!mInfra->mUseXEffects) {
-//        //we need to draw sky image first, the remaining scene will be drawn on top of it
-//        DrawSky();
-//    }
-
     //draw 3D world coordinate axis with arrows
     mParentEditor->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
@@ -795,48 +701,6 @@ void EditorSession::Render() {
     if (mEditorMode != nullptr) {
        mEditorMode->OnDraw();
     }
-
-     //mDrawDebug->Draw3DLine(mDbgRay.start , mDbgRay.end, mDrawDebug->cyan);
-   //   mDrawDebug->Draw3DLine(*mDrawDebug->origin, dbgRayEnd, mDrawDebug->blue);
-
-        //mDrawDebug->Draw3DLine(dbgRayStart, dbgRayEnd, mDrawDebug->blue);
-
-          //mDrawDebug->Draw3DRectangle(dbgRayStart, dbgRayEnd, -dbgRayStart, -dbgRayEnd, mDrawDebug->blue);
-
-    /*if (mCellSelectedByMouse) {
-        DrawOutlineSelectedCell(mCellCoordSelectedByMouse, mDrawDebug->white);
-    }*/
-
-//    if (DebugShowCheckpoints) {
-//          //draw all checkpoint lines for debugging purposes
-//          mInfra->mDriver->setMaterial(*mDrawDebug->blue);
-//          for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
-//              mInfra->mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
-//          }
-//    }
-
-//        if (DebugShowRegionsAndPointOfInterest) {
-//                std::list<MapPointOfInterest>::iterator it;
-
-//                for (it = this->mLevelRes->PointsOfInterest.begin(); it != this->mLevelRes->PointsOfInterest.end(); ++it) {
-//                    mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
-//                                           this->mDrawDebug->pink);
-//                }
-
-//                IndicateMapRegions();
-//        }
-
-//        if (DebugShowTriggerRegions) {
-//            IndicateTriggerRegions();
-//        }
-
-       /* if (mChargingStationVec->size() > 0) {
-            std::vector<ChargingStation*>::iterator it;
-            for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
-                (*it)->DebugDraw();
-            }
-        }*/
-
 }
 
 void EditorSession::MoveUserViewToLocation(irr::core::vector3df newCameraLookAtPnt, irr::f32 cameraDistance) {
@@ -1202,8 +1066,8 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //selection boxes in entity mode 
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(true);
 
-        //do allow multiple selection, but not for multiple vertices or multiple block faces
-        mItemSelector->SetAllowMultipleSelections(true);
+        //do not allow multiple selection, does not really make sense
+        mItemSelector->SetAllowMultipleSelections(false);
         mItemSelector->SetEnaMultipleBlockFacesSelection(false);
         mItemSelector->SetEnaMultipleVerticeSelection(false);
 
