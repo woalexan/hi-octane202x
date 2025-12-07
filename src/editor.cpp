@@ -206,30 +206,37 @@ void Editor::UpdateMenueEntries() {
     mTestMenu = nullptr;
     mInfoMenu = nullptr;
 
+    irr::u32 idx;
+
     //file menue is always existing
-    mMenu->addItem(L"File", -1, true, true);
-    mFileMenu = mMenu->getSubMenu(0);
+    idx = mMenu->addItem(L"File", -1, true, true);
+    mFileMenu = mMenu->getSubMenu(idx);
 
     //Edit/Mode and View only when currently an
     //EditSession is open
     if (mCurrentSession != nullptr) {
-        mMenu->addItem(L"Edit", -1, true, true);
-        mEditMenu = mMenu->getSubMenu(1);
+        idx = mMenu->addItem(L"Edit", -1, true, true);
+        mEditMenu = mMenu->getSubMenu(idx);
 
-        mMenu->addItem(L"Mode", -1, true, true);
-        mModeMenu = mMenu->getSubMenu(2);
+        idx = mMenu->addItem(L"Mode", -1, true, true);
+        mModeMenu = mMenu->getSubMenu(idx);
 
-        mMenu->addItem(L"View", -1, true, true);
-        mViewMenu = mMenu->getSubMenu(3);
+        idx = mMenu->addItem(L"View", -1, true, true);
+        mViewMenu = mMenu->getSubMenu(idx);
 
-        mMenu->addItem(L"Test", -1, true, true);
-        mTestMenu = mMenu->getSubMenu(4);
+        idx = mMenu->addItem(L"Test", -1, true, true);
+        mTestMenu = mMenu->getSubMenu(idx);
 
-        mMenu->addItem(L"Info", -1, true, true);
-        mInfoMenu = mMenu->getSubMenu(5);
+        idx = mMenu->addItem(L"Info", -1, true, true);
+        mInfoMenu = mMenu->getSubMenu(idx);
     } else {
-        mMenu->addItem(L"Info", -1, true, true);
-        mInfoMenu = mMenu->getSubMenu(1);
+        idx = mMenu->addItem(L"Info", -1, true, true);
+        mInfoMenu = mMenu->getSubMenu(idx);
+
+        mEditMenu = nullptr;
+        mModeMenu = nullptr;
+        mViewMenu = nullptr;
+        mTestMenu = nullptr;
     }
 
     PopulateFileMenueEntries();
@@ -323,7 +330,6 @@ void Editor::PopulateTestMenueEntries() {
      * Submenue Test                     *
      *************************************/
 
-
     mTestMenu->addItem(L"Modify Map File", GUI_ID_TEST_MODIFYMAPFILE, true, false);
 
     mTestMenu->addItem(L"No Cpu Players", GUI_ID_TEST_ADDNOCPUPLAYERS, true, false, true, true);
@@ -359,13 +365,13 @@ void Editor::PopulateViewMenueEntries() {
 
     gui::IGUIContextMenu* submenu;
 
-    submenu = mMenu->getSubMenu(3)->getSubMenu(9);
+    submenu = mViewMenu->getSubMenu(9);
     submenu->addItem(L"Off", GUI_ID_VIEW_TERRAIN_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_TERRAIN_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_TERRAIN_DEFAULT);
     submenu->addItem(L"Normals", GUI_ID_VIEW_TERRAIN_NORMALS);
 
-    submenu = mMenu->getSubMenu(3)->getSubMenu(10);
+    submenu = mViewMenu->getSubMenu(10);
     submenu->addItem(L"Off", GUI_ID_VIEW_BLOCKS_OFF);
     submenu->addItem(L"Wireframe", GUI_ID_VIEW_BLOCKS_WIREFRAME);
     submenu->addItem(L"Default", GUI_ID_VIEW_BLOCKS_DEFAULT);
@@ -438,18 +444,16 @@ void Editor::ChangeViewModeBlocks(irr::u8 newViewMode) {
 }
 
 void Editor::UpdateEntityVisibilityMenueEntry(irr::u8 whichEntityClass, irr::s32 commandIdMenueEntry) {
-    gui::IGUIContextMenu* subMenu = mMenu->getSubMenu(3);
-
     bool visible = mCurrentSession->mEntityManager->IsVisible(whichEntityClass);
 
-    s32 idxMenuePnt = subMenu->findItemWithCommandId(commandIdMenueEntry, 0);
+    s32 idxMenuePnt = mViewMenu->findItemWithCommandId(commandIdMenueEntry, 0);
 
     if (idxMenuePnt == -1) {
         //menue entry not found
         return;
     }
 
-    subMenu->setItemChecked(idxMenuePnt, visible);
+    mViewMenu->setItemChecked(idxMenuePnt, visible);
 }
 
 void Editor::UpdateEntityVisibilityMenueEntries() {
@@ -457,6 +461,9 @@ void Editor::UpdateEntityVisibilityMenueEntries() {
         return;
 
     if (mCurrentSession->mEntityManager == nullptr)
+        return;
+
+    if (mViewMenu == nullptr)
         return;
 
     UpdateEntityVisibilityMenueEntry(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, GUI_ID_VIEW_ENTITY_COLLECTIBLES);
@@ -552,7 +559,13 @@ void Editor::OpenLevel() {
 
         mEditorState = DEF_EDITORSTATE_ERROR;
     } else {
+        //We first need to update the Menue-Entries
+        //so that the next command does not crash with nullptr
+        //reference
         UpdateMenueEntries();
+
+        //update current visible Entities
+        UpdateEntityVisibilityMenueEntries();
 
         mCurrLevelWhichIsEdited = mSelLevelForFileOperation;
         mCurrentSession->UpdateAssignedLevelInfoText();
@@ -1874,7 +1887,13 @@ void Editor::EditorLoop() {
                         logging::Error("Failed to load new level");
                         mGuienv->addMessageBox(L"Error", L"Failed to load new level", true, EMBF_OK, nullptr, -1, nullptr);
                     } else {
+                        //We first need to update the Menue-Entries
+                        //so that the next command does not crash with nullptr
+                        //reference
                         UpdateMenueEntries();
+
+                        //update current visible Entities
+                        UpdateEntityVisibilityMenueEntries();
 
                         mEditorState = DEF_EDITORSTATE_SESSIONACTIVE;
                         mCurrentSession->UpdateAssignedLevelInfoText();
@@ -1948,14 +1967,6 @@ bool Editor::CreateNewEditorSession(std::string levelRootPath, std::string level
         logging::Error("EditorSession creation failed!");
         return false;
     }
-
-    //We first need to update the Menue-Entries
-    //so that the next command does not crash with nullptr
-    //reference
-    UpdateMenueEntries();
-
-    //update current visible Entities
-    UpdateEntityVisibilityMenueEntries();
 
     //start in ViewMode
     mCurrentSession->SetMode((EditorMode*)(mCurrentSession->mViewMode));

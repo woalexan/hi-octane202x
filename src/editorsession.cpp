@@ -758,6 +758,17 @@ void EditorSession::Render() {
        //draw currently selected level item (item which the user
        //clicked the last time with the left mouse button)
        mEditorMode->OnDrawSelectedLevelItem(&mItemSelector->mCurrSelectedItem);
+
+       //Additional items selected?
+       if (mItemSelector->mAdditionalSelectedItemCnt > 0) {
+               //draw additional currently selected level items
+               std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator itItem;
+
+               for (itItem = mItemSelector->mAdditionalSelectedItemVec.begin();
+                    itItem != mItemSelector->mAdditionalSelectedItemVec.end(); ++itItem) {
+                      mEditorMode->OnDrawSelectedLevelItem(*itItem);
+               }
+       }
     }
 
     //call currently selected editor mode
@@ -1089,8 +1100,8 @@ void EditorSession::SetMode(EditorMode* selMode) {
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
-    } else if ((selMode == mTextureMode) || (selMode == mColumnDesigner)) {
-        //do only select cells and Blocks in Texture and Column Designer Mode
+    } else if (selMode == mTextureMode) {
+        //do only select cells and Blocks in Texture Mode
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
@@ -1098,6 +1109,35 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //for special editor entities like SteamFountain, do not show the transparent
         //selection boxes
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        //do allow multiple selection of blockfaces, but not of multiple vertices
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(true);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
+    } else if (selMode == mColumnDesigner) {
+        //do only select cells and Blocks in Column Designer Mode
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+
+        //for special editor entities like SteamFountain, do not show the transparent
+        //selection boxes
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        //do allow multiple selection, but not of multiple blockfaces or not multiple vertices
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
 
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
@@ -1119,6 +1159,11 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //selection boxes
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
 
+        //do allow multiple selection, but only multiple vertices, and not for multiple blockfaces
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(true);
+
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
@@ -1137,6 +1182,11 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //for special editor entities like SteamFountain, do show the transparent
         //selection boxes in entity mode 
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(true);
+
+        //do allow multiple selection, but not for multiple vertices or multiple block faces
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
 
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, true);
@@ -1157,6 +1207,11 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //selection boxes
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
 
+        //do not allow multiple selections
+        mItemSelector->SetAllowMultipleSelections(false);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
+
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
@@ -1167,6 +1222,9 @@ void EditorSession::SetMode(EditorMode* selMode) {
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
     }
+
+    //it is safer to deselect current selected items
+    mItemSelector->DeselectAll();
 
     //call OnEnter function
     mEditorMode->OnEnterMode();

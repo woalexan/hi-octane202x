@@ -16,6 +16,7 @@
 #include "../editor.h"
 #include "../draw/drawdebug.h"
 #include "../models/column.h"
+#include "../input/input.h"
 #include "../models/entitymanager.h"
 #include "../models/editorentity.h"
 
@@ -25,7 +26,7 @@ ItemSelector::ItemSelector(EditorSession* parent) {
     mRayTerrain = new Ray(mParent->mParentEditor->mDrawDebug);
     mRayColumns = new Ray(mParent->mParentEditor->mDrawDebug);
 
-    createTriangleSelectors();
+    CreateTriangleSelectors();
 
     //Add triangle selector of terrain to rayTarget mesh so that we can figure out
     //at which terrain cells the users mouse it pointing at currently
@@ -64,7 +65,7 @@ void ItemSelector::UpdateTrianglesSelectors() {
 
     //Create the new triangle selectors
     //based on the new Meshes
-    createTriangleSelectors();
+    CreateTriangleSelectors();
 
     mRayTerrain->AddRayTargetMesh(this->triangleSelectorStaticTerrain);
     mRayTerrain->AddRayTargetMesh(this->triangleSelectorDynamicTerrain);
@@ -110,6 +111,10 @@ void ItemSelector::SelectSpecifiedCellAtCoordinate(int x, int y) {
         return;
     }
 
+    //make sure to deselect all other currently
+    //selected items
+    DeselectAllAdditionalItems();
+
     mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_CELL;
     mCurrSelectedItem.mCellCoordSelected.set(x, y);
 
@@ -137,6 +142,9 @@ void ItemSelector::SelectEntityAtCellCoordinate(int x, int y) {
 
     if (mParent->mEntityManager->IsEntityItemAtCellCoord(x, y, &entityItem)) {
         if (entityItem != nullptr) {
+            //force only one selected item for this case
+            DeselectAllAdditionalItems();
+
             mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_ENTITY;
             mCurrSelectedItem.mEntitySelected = entityItem;
 
@@ -571,7 +579,7 @@ void ItemSelector::Update() {
 //creates final TriangleSelectors to be able to do ray
 //intersection from user mouse pointer to level environment
 //for object selection
-void ItemSelector::createTriangleSelectors() {
+void ItemSelector::CreateTriangleSelectors() {
    triangleSelectorColumnswCollision = mParent->mParentEditor->mSmgr->createOctreeTriangleSelector(
                 mParent->mLevelBlocks->blockMeshForCollision, mParent->mLevelBlocks->BlockCollisionSceneNode, 128);
    mParent->mLevelBlocks->BlockCollisionSceneNode->setTriangleSelector(triangleSelectorColumnswCollision);
@@ -598,9 +606,63 @@ void ItemSelector::OnLeftMouseButtonDown() {
     //if an element was highlighted when the user pressed down the
     //left mouse button => select this item now
     if (mCurrHighlightedItem.SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
+        //is it currently allowed to select multiple items?
+        if (mEnaMultipleSelection) {
+                //If Strg key is pressed at the same time, select another item
+                //Otherwise only select the newly selected item, and deselect everything else
+                if (mParent->mParentEditor->mEventReceiver->StrgPressed) {
+                    if (mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
+                        //is this item already selected? if so deselect it again instead
+                        if (ItemAlreadySelected(mCurrHighlightedItem)) {
+                            DeselectSpecificItem(mCurrHighlightedItem);
+                            return;
+                        } else {
+                            //Add the before selected to the vector of additional selected items
+                            SelectAdditionalItem(mCurrSelectedItem);
+                        }
+                    }
+                } else {
+                    //Deselect possible other additional selected items
+                    DeselectAllAdditionalItems();
+                }
+        }
+
         //copy all the information
         mCurrSelectedItem = mCurrHighlightedItem;
     }
+}
+
+void ItemSelector::SetAllowMultipleSelections(bool multipleSelectionsOn) {
+    mEnaMultipleSelection = multipleSelectionsOn;
+
+    if (!mEnaMultipleSelection) {
+       //when we switch of multiple selections
+       //make sure to delect all currently selected
+       //items
+       DeselectAllAdditionalItems();
+    }
+}
+
+//allows to enable or disable selection of multiple vertices
+//Does only work if SetAllowMultipleSelections was called with true
+//before, so that multiple selections are enabled globally in the first
+//place
+void ItemSelector::SetEnaMultipleVerticeSelection(bool multipleVerticeSelectionOn) {
+    mEnaMultipleVerticeSelection = multipleVerticeSelectionOn;
+}
+
+//allows to enable or disable selection of multiple block faces
+//Does only work if SetAllowMultipleSelections was called with true
+//before, so that multiple selections are enabled globally in the first
+//place
+void ItemSelector::SetEnaMultipleBlockFacesSelection(bool multipleBlockFacesSelectionOn) {
+    mEnaMultipleBlockFaceSelection = multipleBlockFacesSelectionOn;
+}
+
+void ItemSelector::DeselectAll() {
+    mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_NONE;
+
+    DeselectAllAdditionalItems();
 }
 
 void ItemSelector::SetStateFrozen(bool frozen) {
@@ -609,6 +671,260 @@ void ItemSelector::SetStateFrozen(bool frozen) {
 
 bool ItemSelector::GetStateFrozen() {
     return mFrozen;
+}
+
+void ItemSelector::SelectAdditionalItem(CurrentlySelectedEditorItemInfoStruct additionalItem) {
+  CurrentlySelectedEditorItemInfoStruct* newItem = new CurrentlySelectedEditorItemInfoStruct();
+  *newItem = additionalItem;
+
+  //Add information about the additional selected item at
+  //then end of the vector of all currently selected items
+  mAdditionalSelectedItemVec.push_back(newItem);
+
+  mAdditionalSelectedItemCnt++;
+}
+
+void ItemSelector::DeselectAllAdditionalItems() {
+   //first cleanup information about all additional selected
+   //items
+   std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+   CurrentlySelectedEditorItemInfoStruct* pntr;
+
+   for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ) {
+       pntr = (*it);
+       it = mAdditionalSelectedItemVec.erase(it);
+
+       //delete the struct
+       delete pntr;
+   }
+
+   mAdditionalSelectedItemCnt = 0;
+}
+
+size_t ItemSelector::GetNumberSelectedItems() {
+    size_t sum = (size_t)(mAdditionalSelectedItemCnt);
+
+    if (mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
+        sum++;
+    }
+
+    return sum;
+}
+
+size_t ItemSelector::GetNumberSelectedTextureSurfaces() {
+    size_t sum = 0;
+
+    if ((mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) ||
+        (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK)) {
+         sum++;
+    }
+
+    std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+
+    for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ++it) {
+        if (((*it)->SelectedItemType == DEF_EDITOR_SELITEM_CELL) ||
+            ((*it)->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK)) {
+             sum++;
+        }
+    }
+
+    return sum;
+}
+
+size_t ItemSelector::GetNumberSelectedColumns() {
+    size_t sum = 0;
+
+    if ((mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) ||
+        (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK)) {
+         if (mCurrSelectedItem.mColumnSelected != nullptr) {
+           sum++;
+         }
+    }
+
+    std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+
+    for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ++it) {
+        if (((*it)->SelectedItemType == DEF_EDITOR_SELITEM_CELL) ||
+            ((*it)->SelectedItemType == DEF_EDITOR_SELITEM_BLOCK)) {
+             if ((*it)->mColumnSelected != nullptr) {
+                sum++;
+             }
+        }
+    }
+
+    return sum;
+}
+
+void ItemSelector::DeleteSpecificAdditionalItem(CurrentlySelectedEditorItemInfoStruct whichItem) {
+   std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+   CurrentlySelectedEditorItemInfoStruct* pntr;
+
+   for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ) {
+       if (ItemTheSame(whichItem, *(*it))) {
+            pntr = (*it);
+
+            it = mAdditionalSelectedItemVec.erase(it);
+
+            //delete the struct
+            delete pntr;
+
+            if (mAdditionalSelectedItemCnt > 0) {
+                mAdditionalSelectedItemCnt--;
+            }
+       } else {
+           it++;
+       }
+   }
+}
+
+//Returns true if two specified selected items are actually the same cell/block/entity item
+bool ItemSelector::ItemTheSame(CurrentlySelectedEditorItemInfoStruct item1, CurrentlySelectedEditorItemInfoStruct item2) {
+   //if type is different, can not be the same item
+   if (item1.SelectedItemType != item2.SelectedItemType) {
+       return false;
+   }
+
+   //if we compare entity items, return false if the two items are
+   //not the same object
+   if ((item1.SelectedItemType == DEF_EDITOR_SELITEM_ENTITY) &&
+      (item1.mEntitySelected != item2.mEntitySelected)) {
+        return false;
+   }
+
+   //if we compare two cells, return false if the two cells are
+   //different, which means the have a different cell coordinate
+   if (item1.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+       if (!mEnaMultipleVerticeSelection) {
+           //only operate on select cell level, we do not differentiate in
+           //different corners/vertices of the cells
+           if ((item1.mCellCoordSelected.X != item2.mCellCoordSelected.X) ||
+               (item1.mCellCoordSelected.Y != item2.mCellCoordSelected.Y)) {
+                return false;
+           }
+       } else {
+           //differentiate between different vertices, that means a cell (coordinate)
+           //can actually be selected more times, but with different selected
+           //vertices
+           irr::s32 item1X = item1.mCellCoordSelected.X;
+           irr::s32 item1Y = item1.mCellCoordSelected.Y;
+
+           if ((item1.mCellCoordVerticeNrSelected == 3) ||
+              (item1.mCellCoordVerticeNrSelected == 2)) {
+               item1X += 1;
+           }
+
+           if ((item1.mCellCoordVerticeNrSelected == 3) ||
+              (item1.mCellCoordVerticeNrSelected == 4)) {
+               item1Y += 1;
+           }
+
+           irr::s32 item2X = item2.mCellCoordSelected.X;
+           irr::s32 item2Y = item2.mCellCoordSelected.Y;
+
+           if ((item2.mCellCoordVerticeNrSelected == 3) ||
+              (item2.mCellCoordVerticeNrSelected == 2)) {
+               item2X += 1;
+           }
+
+           if ((item2.mCellCoordVerticeNrSelected == 3) ||
+              (item2.mCellCoordVerticeNrSelected == 4)) {
+               item2Y += 1;
+           }
+
+           if ((item1X != item2X) ||
+               (item1Y != item2Y)) {
+                return false;
+           }
+       }
+   }
+
+   //if we compare two blocks, return false if the are different blocks
+   if (item1.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+      //a block can not be the same block, if it is in a different column
+       if (item1.mColumnSelected != item2.mColumnSelected) {
+           return false;
+       }
+
+       //compare the block number, identical block needs to have the same
+       //number
+       if (item1.mSelBlockNrStartingFromBase != item2.mSelBlockNrStartingFromBase) {
+           return false;
+       }
+
+       if (mEnaMultipleBlockFaceSelection) {
+           //If we allow to select multiples (different) block faces of the same
+           //block at the same time, add another check for difference
+           if (item1.mSelBlockFaceDirection != item2.mSelBlockFaceDirection) {
+               return false;
+           }
+       }
+   }
+
+   //item is the same
+   return true;
+}
+
+bool ItemSelector::ItemAlreadySelected(CurrentlySelectedEditorItemInfoStruct whichItem) {
+    //first compare item with last selected item
+    if (mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
+        if (ItemTheSame(whichItem, mCurrSelectedItem)) {
+            //Item already selected in mCurrSelectedItem
+            return true;
+        }
+    }
+
+    //now compare with all other (possibly) additionally currently selected items
+    std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+
+    for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ++it) {
+        if ((*it)->SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
+            if (ItemTheSame(whichItem, *(*it))) {
+                //Item already selected in mAdditionalSelectedItemVec
+                return true;
+            }
+        }
+    }
+
+    //item is not yet selected
+    return false;
+}
+
+void ItemSelector::DeselectSpecificItem(CurrentlySelectedEditorItemInfoStruct whichItem) {
+    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_NONE)
+        return;
+
+    if (ItemTheSame(whichItem, mCurrSelectedItem)) {
+        //specified item is contained in mCurrSelecedItem:
+        // 1, Move one item from mAdditionalSelectedItemVec into mCurrSelectedItem
+        // 2, Delete the moved item from mAdditionalSelectedItemVec, so that we do not have
+        //    it two times selected
+
+        if (mAdditionalSelectedItemVec.size() > 0) {
+            //take the first element of mAdditionalSelectedItemVec
+            mCurrSelectedItem = *(mAdditionalSelectedItemVec.at(0));
+            DeleteSpecificAdditionalItem(mCurrSelectedItem);
+        } else {
+            //no other item remaining to select otherwise
+            //deselect mCurrSelectedItem
+            mCurrSelectedItem.SelectedItemType = DEF_EDITOR_SELITEM_NONE;
+        }
+
+        return;
+    }
+
+    //now verify for all other (possibly) additionally currently selected items
+    std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+
+    for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ++it) {
+        if ((*it)->SelectedItemType != DEF_EDITOR_SELITEM_NONE) {
+            if (ItemTheSame(whichItem, *(*it))) {
+                //Item found in mAdditionalSelectedItemVec
+                DeleteSpecificAdditionalItem(whichItem);
+
+                return;
+            }
+        }
+    }
 }
 
 void ItemSelector::Draw() {

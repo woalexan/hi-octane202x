@@ -92,8 +92,6 @@ public:
     //my texture loader
     TextureLoader* mTexLoader = nullptr;
 
-    EntityItem* mCurrSelEntityItem = nullptr;
-
     //handles the file data structure of the
     //level
     LevelFile *mLevelRes = nullptr;

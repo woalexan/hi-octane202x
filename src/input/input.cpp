@@ -24,6 +24,9 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
     //in level editor, and not the game itself
     if (event.EventType == irr::EET_MOUSE_INPUT_EVENT)
     {
+        StrgPressed = event.MouseInput.Control;
+        ShiftPressed = event.MouseInput.Shift;
+
         //Forward this event to my parent
         //Infrastructure object
         mInfra->HandleMouseEvent(event);
@@ -32,6 +35,9 @@ bool MyEventReceiver::OnEvent(const SEvent& event)
     // Remember whether each key is down or up
     if (event.EventType == irr::EET_KEY_INPUT_EVENT) {
         KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
+
+        StrgPressed = event.KeyInput.Control;
+        ShiftPressed = event.KeyInput.Shift;
 
         //is the key currently locked, and the key was released?
         //if so we need to clear current locked condition

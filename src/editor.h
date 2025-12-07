@@ -290,7 +290,6 @@ private:
     void CheckForNumberEditBoxEvent(irr::s32 receivedGuiId);
 
     void ChangeEntityVisibility(IGUIContextMenu* menu);
-    void UpdateEntityVisibilityMenueEntries();
     void UpdateEntityVisibilityMenueEntry(irr::u8 whichEntityClass, irr::s32 commandIdMenueEntry);
 
     gui::IGUIContextMenu* mMenu = nullptr;
@@ -370,13 +369,15 @@ public:
 
     //during development I like to disable the block preview
     //temporarily. This makes the leveleditor start some seconds faster
-    bool enableBlockPreview = true;
+    bool enableBlockPreview = false;
 
     //Returns true for success, false for error occured
     bool InitEditorStep1();
     bool InitEditorStep2();
 
     void UpdateStatusbarText(const wchar_t *text);
+
+    void UpdateEntityVisibilityMenueEntries();
 
     void RunEditor();
 
