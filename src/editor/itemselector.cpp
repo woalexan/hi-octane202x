@@ -731,6 +731,24 @@ size_t ItemSelector::GetNumberSelectedTextureSurfaces() {
     return sum;
 }
 
+size_t ItemSelector::GetNumberSelectedCells() {
+    size_t sum = 0;
+
+    if (mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+         sum++;
+    }
+
+    std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+
+    for (it = mAdditionalSelectedItemVec.begin(); it != mAdditionalSelectedItemVec.end(); ++it) {
+        if ((*it)->SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+             sum++;
+        }
+    }
+
+    return sum;
+}
+
 size_t ItemSelector::GetNumberSelectedColumns() {
     size_t sum = 0;
 

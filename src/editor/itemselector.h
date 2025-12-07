@@ -179,6 +179,7 @@ public:
     size_t GetNumberSelectedItems();
     size_t GetNumberSelectedTextureSurfaces();
     size_t GetNumberSelectedColumns();
+    size_t GetNumberSelectedCells();
 
     void Draw();
 
