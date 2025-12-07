@@ -132,6 +132,9 @@ private:
     void SelectTextureModification(int8_t newSelectedTexModification);
 
     void OnUserChangedToNewTexture(CurrentlySelectedEditorItemInfoStruct whichItem, int16_t newTextureId);
+    void OnUserChangedToNewTextureModification(CurrentlySelectedEditorItemInfoStruct whichItem,
+                                                            GUITextureModificationDataStruct* pntr);
+
     void NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected);
 
     void SelectColumnFloorTexture();
@@ -243,6 +246,8 @@ private:
     std::vector<GUITextureModificationDataStruct*> mTexModificationVec;
 
     void WindowControlBlockOptions(bool newState);
+    void SetUiMultipleSelection();
+
     void SelectOtherBlockFace(irr::u8 newFaceSelection);
 
     virtual void CreateWindow();

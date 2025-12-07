@@ -45,33 +45,6 @@ EditorSession::EditorSession(Editor* parentEditor, std::string levelRootPath, st
     mTerraforming = new TerraformingMode(this);
     mEntityMode = new EntityMode(this);
     mRegionMode = new RegionMode(this);
-
-//    //my vector of extended region data
-//    mExtRegionVec = new std::vector<ExtendedRegionInfoStruct*>;
-//    mExtRegionVec->clear();
-
-//    //my vector of charging stations
-//    mChargingStationVec = new std::vector<ChargingStation*>;
-//    mChargingStationVec->clear();
-
-//    mCollectableSpawnerVec.clear();
-
-//    //my vector of player that need help
-//    //of a recovery vehicle and are currently waiting
-//    //for it
-//    mPlayerWaitForRecoveryVec = new std::vector<Player*>;
-//    mPlayerWaitForRecoveryVec->clear();
-
-//    mPlayerVec.clear();
-//    mPlayerPhysicObjVec.clear();
-//    playerRaceFinishedVec.clear();
-//    mTriggerRegionVec.clear();
-//    mPendingTriggerTargetGroups.clear();
-//    mType2CollectableForCleanupLater.clear();
-
-//    //for the start of the race we want to trigger
-//    //target group 1 once
-//    mPendingTriggerTargetGroups.push_back(1);
 }
 
 //Returns true in case of success, False otherwise
@@ -116,11 +89,6 @@ void EditorSession::AdvanceTime(irr::f32 frameDeltaTime) {
         //Trigger Mesh update
         CheckForMeshUpdate();
      }
-
-     //if (!AllowStartMorphsPerKey) {
-     //        //update level morphs
-     //        UpdateMorphs(frameDeltaTime);
-     //}
 
      mParentEditor->mTimeProfiler->Profile(mParentEditor->mTimeProfiler->tIntMorphing);
 
@@ -335,56 +303,10 @@ void EditorSession::Init() {
 
     mParentEditor->UpdateStatusbarText(L"Press Space to change between FreeFyling Mode and Edit Mode/Using the UI");
 
-    //create the object for path finding and services
-    //mPath = new Path(this, mDrawDebug);
-
-    //get player start locations from the level file
-    /*mPlayerStartLocations =
-        this->mLevelTerrain->GetPlayerRaceTrackStartLocations();*/
-
-    //SetupTopRaceTrackPointerOrigin();
-
-    //create a new Bezier object for testing
-    //testBezier = new Bezier(mLevelTerrain, mDrawDebug);
-
     ready = true;
-
-    //only to test if we can save a levelfile properly!
-    //std::string testsaveName("testsave.dat");
-    //this->mLevelRes->Save(testsaveName);
 }
 
 bool EditorSession::LoadLevel() {
-//    if ((mLevelNrLoaded < 1) || (mLevelNrLoaded > 9)) {
-//        logging::Error("Level number only possible from 1 up to 9!");
-//        return false;
-//    }
-
-//    int load_texnr = mLevelNrLoaded;
-//    if (mLevelNrLoaded == 7) load_texnr = 1; // original game has this hardcoded too
-
-//   /***********************************************************/
-//   /* Load selected level file                                */
-//   /***********************************************************/
-//   char levelfilename[50];
-//   char str[20];
-
-//   strcpy(levelfilename, "extract/level0-");
-//   sprintf(str, "%d", mLevelNrLoaded);
-//   strcat(levelfilename, str);
-//   strcat(levelfilename, "/level0-");
-//   strcat(levelfilename, str);
-//   strcat(levelfilename, "-unpacked.dat");
-
-//   //only for debugging
-//   //strcpy(levelfilename, "/home/wolfalex/hi/maps/level0-1.dat");
-
-//   char texfilename[50];
-//   strcpy(texfilename, "extract/level0-");
-//   sprintf(str, "%d", load_texnr);
-//   strcat(texfilename, str);
-//   strcat(texfilename, "/tex");
-
    std::string levelfilename("");
    std::string texfilename("");
 
@@ -483,15 +405,6 @@ bool EditorSession::LoadLevel() {
 
   // driver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 100, 250, .03f, false, true);
 
-  //Final data calculation for all checkpoints
-  //Find for each waypoint normal direction of race
-  //so that we know if the player passes checkpoints
-  //in forwards or reverse direction
-  //CheckPointPostProcessing();
-
-  //create existing charging stations
-  //CreateChargingStations();
-
   //create a bounding box for valid player
   //location testing
   mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
@@ -546,7 +459,8 @@ irr::s32 EditorSession::GetNextFreeGuiId() {
     return newId;
 }
 
-void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color) {
+void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color,
+                                        irr::f32 reduceCrossSizeFactor) {
     if (mSelVertex->SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
@@ -701,19 +615,37 @@ void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* m
     }
 
     markerPos.X = -markerPos.X;
-    markerPos.Y = -markerPos.Y + 0.05f;
+    markerPos.Y = -markerPos.Y + 0.08f;
 
     markerPos2.X = -markerPos2.X;
-    markerPos2.Y = -markerPos2.Y + 0.05f;
+    markerPos2.Y = -markerPos2.Y + 0.08f;
 
     markerPos3.X = -markerPos3.X;
-    markerPos3.Y = -markerPos3.Y + 0.05f;
+    markerPos3.Y = -markerPos3.Y + 0.08f;
 
     markerPos4.X = -markerPos4.X;
-    markerPos4.Y = -markerPos4.Y + 0.05f;
+    markerPos4.Y = -markerPos4.Y + 0.08f;
 
     markerPos5.X = -markerPos5.X;
-    markerPos5.Y = -markerPos5.Y + 0.05f;
+    markerPos5.Y = -markerPos5.Y + 0.08f;
+
+    if (reduceCrossSizeFactor > 0.05f) {
+        markerPos2.X -= (markerPos2.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos2.Y -= (markerPos2.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos2.Z -= (markerPos2.Z - markerPos.Z) * reduceCrossSizeFactor;
+
+        markerPos3.X -= (markerPos3.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos3.Y -= (markerPos3.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos3.Z -= (markerPos3.Z - markerPos.Z) * reduceCrossSizeFactor;
+
+        markerPos4.X -= (markerPos4.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos4.Y -= (markerPos4.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos4.Z -= (markerPos4.Z - markerPos.Z) * reduceCrossSizeFactor;
+
+        markerPos5.X -= (markerPos5.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos5.Y -= (markerPos5.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos5.Z -= (markerPos5.Z - markerPos.Z) * reduceCrossSizeFactor;
+    }
 
     //Draw the "cross" at the selected vertex
     mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos2, color);
@@ -723,13 +655,6 @@ void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* m
 }
 
 void EditorSession::Render() {
-    //if we do not use XEffects we can simply render the sky
-    //with XEffect this does not work, need a solution for this!
-//    if (!mInfra->mUseXEffects) {
-//        //we need to draw sky image first, the remaining scene will be drawn on top of it
-//        DrawSky();
-//    }
-
     //draw 3D world coordinate axis with arrows
     mParentEditor->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
@@ -758,6 +683,17 @@ void EditorSession::Render() {
        //draw currently selected level item (item which the user
        //clicked the last time with the left mouse button)
        mEditorMode->OnDrawSelectedLevelItem(&mItemSelector->mCurrSelectedItem);
+
+       //Additional items selected?
+       if (mItemSelector->mAdditionalSelectedItemCnt > 0) {
+               //draw additional currently selected level items
+               std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator itItem;
+
+               for (itItem = mItemSelector->mAdditionalSelectedItemVec.begin();
+                    itItem != mItemSelector->mAdditionalSelectedItemVec.end(); ++itItem) {
+                      mEditorMode->OnDrawSelectedLevelItem(*itItem);
+               }
+       }
     }
 
     //call currently selected editor mode
@@ -765,48 +701,6 @@ void EditorSession::Render() {
     if (mEditorMode != nullptr) {
        mEditorMode->OnDraw();
     }
-
-     //mDrawDebug->Draw3DLine(mDbgRay.start , mDbgRay.end, mDrawDebug->cyan);
-   //   mDrawDebug->Draw3DLine(*mDrawDebug->origin, dbgRayEnd, mDrawDebug->blue);
-
-        //mDrawDebug->Draw3DLine(dbgRayStart, dbgRayEnd, mDrawDebug->blue);
-
-          //mDrawDebug->Draw3DRectangle(dbgRayStart, dbgRayEnd, -dbgRayStart, -dbgRayEnd, mDrawDebug->blue);
-
-    /*if (mCellSelectedByMouse) {
-        DrawOutlineSelectedCell(mCellCoordSelectedByMouse, mDrawDebug->white);
-    }*/
-
-//    if (DebugShowCheckpoints) {
-//          //draw all checkpoint lines for debugging purposes
-//          mInfra->mDriver->setMaterial(*mDrawDebug->blue);
-//          for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
-//              mInfra->mDriver->draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B);
-//          }
-//    }
-
-//        if (DebugShowRegionsAndPointOfInterest) {
-//                std::list<MapPointOfInterest>::iterator it;
-
-//                for (it = this->mLevelRes->PointsOfInterest.begin(); it != this->mLevelRes->PointsOfInterest.end(); ++it) {
-//                    mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
-//                                           this->mDrawDebug->pink);
-//                }
-
-//                IndicateMapRegions();
-//        }
-
-//        if (DebugShowTriggerRegions) {
-//            IndicateTriggerRegions();
-//        }
-
-       /* if (mChargingStationVec->size() > 0) {
-            std::vector<ChargingStation*>::iterator it;
-            for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
-                (*it)->DebugDraw();
-            }
-        }*/
-
 }
 
 void EditorSession::MoveUserViewToLocation(irr::core::vector3df newCameraLookAtPnt, irr::f32 cameraDistance) {
@@ -1089,8 +983,8 @@ void EditorSession::SetMode(EditorMode* selMode) {
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
-    } else if ((selMode == mTextureMode) || (selMode == mColumnDesigner)) {
-        //do only select cells and Blocks in Texture and Column Designer Mode
+    } else if (selMode == mTextureMode) {
+        //do only select cells and Blocks in Texture Mode
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, true);
         mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
@@ -1098,6 +992,35 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //for special editor entities like SteamFountain, do not show the transparent
         //selection boxes
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        //do allow multiple selection of blockfaces, but not of multiple vertices
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(true);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
+
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WAYPOINTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_WALLSEGMENTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_TRIGGERS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CAMERAS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
+        mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
+    } else if (selMode == mColumnDesigner) {
+        //do only select cells and Blocks in Column Designer Mode
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENACELLS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENABLOCKS, true);
+        mItemSelector->SetEnableSelection(DEF_EDITOR_SELITEM_ENAENTITIES, false);
+
+        //for special editor entities like SteamFountain, do not show the transparent
+        //selection boxes
+        mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
+
+        //do allow multiple selection, but not of multiple blockfaces or not multiple vertices
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
 
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
@@ -1119,6 +1042,11 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //selection boxes
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
 
+        //do allow multiple selection, but only multiple vertices, and not for multiple blockfaces
+        mItemSelector->SetAllowMultipleSelections(true);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(true);
+
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
@@ -1137,6 +1065,11 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //for special editor entities like SteamFountain, do show the transparent
         //selection boxes in entity mode 
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(true);
+
+        //do not allow multiple selection, does not really make sense
+        mItemSelector->SetAllowMultipleSelections(false);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
 
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, true);
@@ -1157,6 +1090,11 @@ void EditorSession::SetMode(EditorMode* selMode) {
         //selection boxes
         mEntityManager->SetShowSpecialEditorEntityTransparentSelectionBoxes(false);
 
+        //do not allow multiple selections
+        mItemSelector->SetAllowMultipleSelections(false);
+        mItemSelector->SetEnaMultipleBlockFacesSelection(false);
+        mItemSelector->SetEnaMultipleVerticeSelection(false);
+
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_COLLECTIBLES, true);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_RECOVERY, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_CONES, false);
@@ -1167,6 +1105,9 @@ void EditorSession::SetMode(EditorMode* selMode) {
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_EFFECTS, false);
         mEntityManager->SetVisible(DEF_EDITOR_ENTITYMANAGER_SHOW_MORPHS, false);
     }
+
+    //it is safer to deselect current selected items
+    mItemSelector->DeselectAll();
 
     //call OnEnter function
     mEditorMode->OnEnterMode();

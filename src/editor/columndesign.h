@@ -122,6 +122,9 @@ private:
    void SelectBlockToEditFromBlockPreview(irr::gui::IGUIImage* currHoveredBlockPreviewImage);
 
    void OnSelectNewBlockForEditing(int newBlockSelectionForEditing);
+   void OnRemoveColumn(CurrentlySelectedEditorItemInfoStruct whichItem);
+   void OnAddColumn(CurrentlySelectedEditorItemInfoStruct whichItem, ColumnDefinition* addColDef);
+   void OnReplaceColumn(CurrentlySelectedEditorItemInfoStruct whichItem, ColumnDefinition* replaceWithColDef);
 
    Column* mSelectedColumnForEditing = nullptr;
    BlockDefinition* mSelectedBlockDefForEditing = nullptr;
@@ -132,6 +135,8 @@ private:
 
    //returns nullptr if no valid column definition is selected
    ColumnDefinition* GetComboBoxSelectedColumnDefinition();
+
+   void SetUiMultipleSelection(size_t nrColumnsSelected, size_t nrCellsSelected);
 
 public:
     ColumnDesigner(EditorSession* parentSession);

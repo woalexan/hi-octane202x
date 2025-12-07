@@ -275,20 +275,33 @@ void TextureMode::TextureCategoryChanged(irr::u32 newSelectedGuiId) {
     }
 }
 
+void TextureMode::OnUserChangedToNewTextureModification(CurrentlySelectedEditorItemInfoStruct whichItem,
+                                                        GUITextureModificationDataStruct* pntr) {
+    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+        mParentSession->mLevelTerrain->SetCellTextureModification(
+                   whichItem.mCellCoordSelected.X,
+                   whichItem.mCellCoordSelected.Y,
+                   pntr->texModValue);
+    } else if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
+        mParentSession->mLevelBlocks->SetCubeFaceTexture(whichItem.mColumnSelected,
+                                                         whichItem.mSelBlockNrStartingFromBase,
+                                                         whichItem.mSelBlockFaceDirection, false, 0, true, pntr->texModValue);
+    }
+}
+
 void TextureMode::TextureModificationChanged(irr::u32 newSelectedGuiId) {
     GUITextureModificationDataStruct* pntr = FindTextureModificationByGuiId(newSelectedGuiId);
 
     if (pntr != nullptr) {
         std::cout << "new tex modification value " << (int)(pntr->texModValue) << std::endl;
-        if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-            mParentSession->mLevelTerrain->SetCellTextureModification(
-                       mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
-                       mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
-                       pntr->texModValue);
-        } else if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-            mParentSession->mLevelBlocks->SetCubeFaceTexture(mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected,
-                                                             mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockNrStartingFromBase,
-                                                             mParentSession->mItemSelector->mCurrSelectedItem.mSelBlockFaceDirection, false, 0, true, pntr->texModValue);
+
+        //change texture modification value for every selected texture surface
+        OnUserChangedToNewTextureModification(mParentSession->mItemSelector->mCurrSelectedItem, pntr);
+
+        std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+        for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+             it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+               OnUserChangedToNewTextureModification(*(*it), pntr);
         }
     }
 }
@@ -671,12 +684,54 @@ void TextureMode::SelectColumnFloorTexture() {
      }
 }
 
-void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
-    if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        //is our dialog already open?
-        //if not open it
-        ShowWindow();
+void TextureMode::SetUiMultipleSelection() {
+    WindowControlBlockOptions(false);
 
+    wchar_t* selInfo = new wchar_t[200];
+
+    size_t nrSelectedItems = mParentSession->mItemSelector->GetNumberSelectedTextureSurfaces();
+
+    swprintf(selInfo, 190, L"%d texture surfaces selected", (int)(nrSelectedItems));
+    mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+
+    swprintf(selInfo, 190, L"%d texture surfaces", (int)(nrSelectedItems));
+    mGuiTextureMode.currSelectedLabel->setText(selInfo);
+
+    delete[] selInfo;
+
+    wchar_t* textTextureID = new wchar_t[50];
+    swprintf(textTextureID, 50, L"Texture Id: na");
+    mGuiTextureMode.CurrentSelectedTextureIdText->setText(textTextureID);
+    delete[] textTextureID;
+
+    wchar_t* illuminationInfo = new wchar_t[50];
+    swprintf(illuminationInfo, 45, L"Illumination: na");
+
+    mGuiTextureMode.CurrentIlluminationValue->setText(illuminationInfo);
+    delete[] illuminationInfo;
+
+    mGuiTextureMode.CurrentSelectedTexture->setVisible(false);
+    mGuiTextureMode.CurrentSelectedTexture->setEnabled(false);
+}
+
+void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
+    size_t nrSelTexSurfaces = mParentSession->mItemSelector->GetNumberSelectedTextureSurfaces();
+
+    if (nrSelTexSurfaces < 1)
+        return;
+
+    //is our dialog already open?
+    //if not open it
+    ShowWindow();
+
+    if (nrSelTexSurfaces > 1) {
+        SetUiMultipleSelection();
+        return;
+    }
+
+    //there is exactly one item selected
+    //show more information
+    if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         //for a selected cell hide the window block
         //options (gui elements)
         WindowControlBlockOptions(false);
@@ -692,6 +747,8 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
         mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
 
         delete[] selInfo;
+
+        mGuiTextureMode.currSelectedLabel->setText(L"Current Selected:");
 
         if (entry != nullptr) {
             int16_t texId = entry->m_TextureId;
@@ -716,10 +773,6 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
             SelectTextureModification(texMod);
         }
     } else if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) {
-        //is our dialog already open?
-        //if not open it
-        ShowWindow();
-
         //for a selected block unhide the window block
         //options (gui elements)
         WindowControlBlockOptions(true);
@@ -735,6 +788,8 @@ void TextureMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct new
         mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
 
         delete[] selInfo;
+
+        mGuiTextureMode.currSelectedLabel->setText(L"Current Selected:");
 
         if (newItemSelected.mColumnSelected != nullptr) {
             if (mParentSession->mLevelBlocks->GetTextureInfoSelectedBlock(newItemSelected.mColumnSelected,
@@ -780,8 +835,14 @@ void TextureMode::OnLeftMouseButtonDown() {
                 GUITextureModeTexDataStruct* pntr = mCurrShownTexCategory->FoundCurrentlyHoveredTexture();
                 if (pntr != nullptr) {
                     //some new texture image was selected
-                    //handle action inside this function call
+                    //change texture for every selected texture surface
                     OnUserChangedToNewTexture(mParentSession->mItemSelector->mCurrSelectedItem, pntr->textureId);
+
+                    std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+                    for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+                         it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+                           OnUserChangedToNewTexture(*(*it), pntr->textureId);
+                    }
                 }
             }
 

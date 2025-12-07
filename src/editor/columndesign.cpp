@@ -149,6 +149,76 @@ ColumnDesigner::~ColumnDesigner() {
     }
 }
 
+void ColumnDesigner::SetUiMultipleSelection(size_t nrColumnsSelected, size_t nrCellsSelected) {
+    ColumnDefinition* noDef = nullptr;
+
+    //deactivate block preview images
+    UpdateBlockPreviewGuiImages(noDef);
+
+    wchar_t* selInfo = new wchar_t[200];
+    std::wstring infoStr(L"");
+
+    if (nrColumnsSelected < 1) {
+        swprintf(selInfo, 190, L"No column selected, ");
+    } else {
+        swprintf(selInfo, 190, L"%d columns selected, ", (int)(nrColumnsSelected));
+    }
+
+    infoStr.append(selInfo);
+
+    if (nrCellsSelected < 1) {
+        swprintf(selInfo, 190, L"No cells selected");
+    } else {
+        swprintf(selInfo, 190, L"%d cells selected", (int)(nrCellsSelected));
+    }
+
+    infoStr.append(selInfo);
+
+    mParentSession->mParentEditor->UpdateStatusbarText(infoStr.c_str());
+    mGuiColumnDesigner.CurrentSelectedColumnDefId->setText(infoStr.c_str());
+
+    delete[] selInfo;
+
+    wchar_t* textSelCell = new wchar_t[150];
+    swprintf(textSelCell, 150, L"Cell X: na Y: na");
+    mGuiColumnDesigner.CurrentSelectedCellInfo->setText(textSelCell);
+    delete[] textSelCell;
+
+    mGuiColumnDesigner.AddColumnButton->setEnabled(false);
+    mGuiColumnDesigner.AddColumnButton->setVisible(false);
+
+    mGuiColumnDesigner.RemoveColumnButton->setEnabled(false);
+    mGuiColumnDesigner.RemoveColumnButton->setVisible(false);
+
+    mGuiColumnDesigner.ReplaceColumnButton->setEnabled(false);
+    mGuiColumnDesigner.ReplaceColumnButton->setVisible(false);
+
+    if (nrCellsSelected > 0) {
+        mGuiColumnDesigner.AddColumnButton->setEnabled(true);
+        mGuiColumnDesigner.AddColumnButton->setVisible(true);
+    }
+
+    if (nrColumnsSelected > 0) {
+        mGuiColumnDesigner.RemoveColumnButton->setEnabled(true);
+        mGuiColumnDesigner.RemoveColumnButton->setVisible(true);
+
+        mGuiColumnDesigner.ReplaceColumnButton->setEnabled(true);
+        mGuiColumnDesigner.ReplaceColumnButton->setVisible(true);
+    }
+
+    mGuiColumnDesigner.MoveUpColumnButton->setEnabled(false);
+    mGuiColumnDesigner.MoveUpColumnButton->setVisible(false);
+
+    mGuiColumnDesigner.MoveDownColumnButton->setEnabled(false);
+    mGuiColumnDesigner.MoveDownColumnButton->setVisible(false);
+
+    mGuiColumnDesigner.AddBlockButton->setEnabled(false);
+    mGuiColumnDesigner.AddBlockButton->setVisible(false);
+
+    mGuiColumnDesigner.RemoveBlockButton->setEnabled(false);
+    mGuiColumnDesigner.RemoveBlockButton->setVisible(false);
+}
+
 void ColumnDesigner::OnColumnDefinitionComboBoxChanged(irr::u32 newSelectedGuiId) {
     //which entry?
     ColumnDesignerColDefComboBoxEntry* entryPntr = FindColDefComboBoxEntry(newSelectedGuiId);
@@ -479,9 +549,6 @@ void ColumnDesigner::UpdateBlockPreviewGuiImages(Column* selColumn) {
 }
 
 void ColumnDesigner::UpdateBlockPreviewGuiImages(ColumnDefinition* selColumnDef) {
-    if (selColumnDef == nullptr)
-        return;
-
     //GetBlockPreviewImage function handles everything
     //it also returns automatically the preview image for no existing block at this column position
     //in case there is no block present currently
@@ -655,59 +722,94 @@ void ColumnDesigner::OnSelectNewBlockForEditing(int newBlockSelectionForEditing)
     mGuiColumnDesigner.RemoveBlockButton->setVisible(true);
 }
 
+void ColumnDesigner::OnRemoveColumn(CurrentlySelectedEditorItemInfoStruct whichItem) {
+    if ((whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) &&
+        (whichItem.mColumnSelected != nullptr)) {
+           mParentSession->mLevelBlocks->RemoveColumn(whichItem.mColumnSelected);
+    }
+}
+
+void ColumnDesigner::OnReplaceColumn(CurrentlySelectedEditorItemInfoStruct whichItem, ColumnDefinition* replaceWithColDef) {
+    if ((whichItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) &&
+        (whichItem.mColumnSelected != nullptr)) {
+            //first remove the existing column
+            mParentSession->mLevelBlocks->RemoveColumn(whichItem.mColumnSelected);
+
+            //add the new column back
+            mParentSession->mLevelBlocks->AddColumnAtCell(whichItem.mCellCoordSelected.X,
+                                                          whichItem.mCellCoordSelected.Y,
+                                                          replaceWithColDef);
+    }
+}
+
+void ColumnDesigner::OnAddColumn(CurrentlySelectedEditorItemInfoStruct whichItem, ColumnDefinition* addColDef) {
+    if (whichItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
+           mParentSession->mLevelBlocks->AddColumnAtCell(whichItem.mCellCoordSelected.X, whichItem.mCellCoordSelected.Y,
+                                                         addColDef);
+    }
+}
+
 void ColumnDesigner::OnButtonClicked(irr::s32 buttonGuiId) {
     switch (buttonGuiId) {
         case GUI_ID_COLUMNDESIGNER_BUTTON_REMOVECOLUMN: {
-             if ((mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) &&
-                 (mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected != nullptr)) {
-                    mParentSession->mLevelBlocks->RemoveColumn(mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected);
+                //apply action to all currently selected items (columns)
+                OnRemoveColumn(mParentSession->mItemSelector->mCurrSelectedItem);
 
-                    mParentSession->mItemSelector->UpdateTrianglesSelectors();
+                std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+                for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+                      it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end();
+                        ++it) {
+                            OnRemoveColumn(*(*it));
+                }
 
-                    UpdateColumnDefComboBox();
-             }
-             break;
+                mParentSession->mItemSelector->UpdateTrianglesSelectors();
+
+                UpdateColumnDefComboBox();
+                break;
         }
 
         case GUI_ID_COLUMNDESIGNER_BUTTON_REPLACECOLUMN: {
-             if ((mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_BLOCK) &&
-                 (mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected != nullptr)) {
-                    //which column definition is selected in the comboBox? to which column definition does the user want
-                    //to change to?
-                    ColumnDefinition* colDef = GetComboBoxSelectedColumnDefinition();
+               //which column definition is selected in the comboBox? to which column definition does the user want
+               //to change to?
+               ColumnDefinition* colDef = GetComboBoxSelectedColumnDefinition();
 
-                    //if nothing is selected skip the operation!
-                    if (colDef != nullptr) {
-                            //first remove the existing column
-                            mParentSession->mLevelBlocks->RemoveColumn(mParentSession->mItemSelector->mCurrSelectedItem.mColumnSelected);
+               //if nothing is selected skip the operation!
+               if (colDef != nullptr) {
+                       //apply action to all currently selected items (columns)
+                       OnReplaceColumn(mParentSession->mItemSelector->mCurrSelectedItem, colDef);
 
-                            //add the new column back
-                            mParentSession->mLevelBlocks->AddColumnAtCell(mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
-                                                                          mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
-                                                                          colDef);
+                       std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+                       for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+                             it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end();
+                               ++it) {
+                                   OnReplaceColumn(*(*it), colDef);
+                       }
 
-                            mParentSession->mItemSelector->UpdateTrianglesSelectors();
+                       mParentSession->mItemSelector->UpdateTrianglesSelectors();
 
-                            UpdateColumnDefComboBox();
-                    }
+                       UpdateColumnDefComboBox();
              }
              break;
         }
 
         case GUI_ID_COLUMNDESIGNER_BUTTON_ADDCOLUMN: {
-             if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-                    //which column definition is selected in the comboBox? what wants the user to add?
-                    ColumnDefinition* colDef = GetComboBoxSelectedColumnDefinition();
+              //which column definition is selected in the comboBox? what wants the user to add?
+              ColumnDefinition* colDef = GetComboBoxSelectedColumnDefinition();
 
-                    mParentSession->mLevelBlocks->AddColumnAtCell(mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X,
-                                                                  mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y,
-                                                                  colDef);
+              //apply action to all currently selected items (cells)
+              OnAddColumn(mParentSession->mItemSelector->mCurrSelectedItem, colDef);
 
-                    mParentSession->mItemSelector->UpdateTrianglesSelectors();
+              std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+              for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+                     it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end();
+                        ++it) {
+                           OnAddColumn(*(*it), colDef);
+              }
 
-                    UpdateColumnDefComboBox();
-             }
-             break;
+              mParentSession->mItemSelector->UpdateTrianglesSelectors();
+
+              UpdateColumnDefComboBox();
+              break;
         }
 
         case GUI_ID_COLUMNDESIGNER_BUTTON_MOVEUPCOLUMN: {
@@ -787,6 +889,23 @@ void ColumnDesigner::OnRemoveBlock() {
 }
 
 void ColumnDesigner::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
+    size_t nrSelColumns = mParentSession->mItemSelector->GetNumberSelectedColumns();
+    size_t nrSelCells = mParentSession->mItemSelector->GetNumberSelectedCells();
+
+    if ((nrSelColumns < 1) && (nrSelCells < 1))
+        return;
+
+    //is our dialog already open?
+    //if not open it
+    ShowWindow();
+
+    if ((nrSelColumns > 1) || (nrSelCells > 1)) {
+        SetUiMultipleSelection(nrSelColumns, nrSelCells);
+        return;
+    }
+
+    //exactly either one cell or one column is selected
+    //Show more details
     if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
         //is our dialog already open?
         //if not open it

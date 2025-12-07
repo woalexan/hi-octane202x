@@ -90,10 +90,17 @@ private:
     bool mEnaSelectBlocks = false;
     bool mEnaSelectEntities = false;
 
+    bool mEnaMultipleVerticeSelection = false;
+    bool mEnaMultipleBlockFaceSelection = false;
+
+    //global flag do enable or disable
+    //multiple item selection
+    bool mEnaMultipleSelection = false;
+
     //creates final TriangleSelectors to be able to do ray
     //intersection from user mouse pointer to level environment
     //for object selection
-    void createTriangleSelectors();
+    void CreateTriangleSelectors();
 
     //the necessary triangle selectors for ray intersecting onto columns of blocks
     irr::scene::ITriangleSelector* triangleSelectorColumnswCollision = nullptr;
@@ -118,6 +125,19 @@ private:
     //by the user, false otherwise
     bool CheckForEntitySelection(irr::core::line3df rayLine, EditorEntity** selectedEntityItem);
 
+    void SelectAdditionalItem(CurrentlySelectedEditorItemInfoStruct additionalItem);
+
+    void DeselectAllAdditionalItems();
+    void DeleteSpecificAdditionalItem(CurrentlySelectedEditorItemInfoStruct whichItem);
+
+    //Returns true if two specified selected items are actually the same cell/block/entity item
+    bool ItemTheSame(CurrentlySelectedEditorItemInfoStruct item1, CurrentlySelectedEditorItemInfoStruct item2);
+
+    //Returns true if a specified item is already selected
+    bool ItemAlreadySelected(CurrentlySelectedEditorItemInfoStruct whichItem);
+
+    void DeselectSpecificItem(CurrentlySelectedEditorItemInfoStruct whichItem);
+
 public:
     ItemSelector(EditorSession* parent);
     ~ItemSelector();
@@ -136,6 +156,9 @@ public:
     //button
     CurrentlySelectedEditorItemInfoStruct mCurrSelectedItem;
 
+    irr::u16 mAdditionalSelectedItemCnt = 0;
+    std::vector<CurrentlySelectedEditorItemInfoStruct*> mAdditionalSelectedItemVec;
+
     //update the itemSelector, which means
     //we cast a ray from the current camera to the
     //mouse pointer position, and figure out which
@@ -151,7 +174,29 @@ public:
     void SetStateFrozen(bool frozen);
     bool GetStateFrozen();
 
+    void DeselectAll();
+
+    size_t GetNumberSelectedItems();
+    size_t GetNumberSelectedTextureSurfaces();
+    size_t GetNumberSelectedColumns();
+    size_t GetNumberSelectedCells();
+
     void Draw();
+
+    //allows to globally enable or disable selection of multiple items
+    void SetAllowMultipleSelections(bool multipleSelectionsOn);
+
+    //allows to enable or disable selection of multiple vertices
+    //Does only work if SetAllowMultipleSelections was called with true
+    //before, so that multiple selections are enabled globally in the first
+    //place
+    void SetEnaMultipleVerticeSelection(bool multipleVerticeSelectionOn);
+
+    //allows to enable or disable selection of multiple block faces
+    //Does only work if SetAllowMultipleSelections was called with true
+    //before, so that multiple selections are enabled globally in the first
+    //place
+    void SetEnaMultipleBlockFacesSelection(bool multipleBlockFacesSelectionOn);
 
     //whichTypeItem = DEF_EDITOR_SELITEM_ENACELLS, DEF_EDITOR_SELITEM_ENABLOCKS, or
     //DEF_EDITOR_SELITEM_ENAENTITIES

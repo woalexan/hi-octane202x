@@ -47,6 +47,9 @@ public:
     // after the key was released first again
     bool IsKeyDownSingleEvent(EKEY_CODE keyCode);
 
+    bool StrgPressed = false;
+    bool ShiftPressed = false;
+
     MyEventReceiver(InfrastructureBase* infra);
 
 private:

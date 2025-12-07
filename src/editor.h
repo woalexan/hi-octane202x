@@ -290,7 +290,6 @@ private:
     void CheckForNumberEditBoxEvent(irr::s32 receivedGuiId);
 
     void ChangeEntityVisibility(IGUIContextMenu* menu);
-    void UpdateEntityVisibilityMenueEntries();
     void UpdateEntityVisibilityMenueEntry(irr::u8 whichEntityClass, irr::s32 commandIdMenueEntry);
 
     gui::IGUIContextMenu* mMenu = nullptr;
@@ -377,6 +376,8 @@ public:
     bool InitEditorStep2();
 
     void UpdateStatusbarText(const wchar_t *text);
+
+    void UpdateEntityVisibilityMenueEntries();
 
     void RunEditor();
 
