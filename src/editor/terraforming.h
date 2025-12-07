@@ -55,6 +55,8 @@ struct GUITerraformingMode
 
     NumberEditBox* CellNEB;
 
+    NumberEditBox* MultipleSelectionNEB;
+
     irr::gui::IGUIStaticText* LblVertice1HeightInfo;
     irr::gui::IGUIStaticText* LblVertice2HeightInfo;
     irr::gui::IGUIStaticText* LblVertice3HeightInfo;
@@ -72,10 +74,14 @@ private:
     void UpdateUiEditNumberboxes(CurrentlySelectedEditorItemInfoStruct newItemSelected);
     void UpdateHeightLbl(irr::u32 verticeNr, irr::f32 newValue);
 
-    void OnSelectedVertexModifyHeight(irr::f32 deltaH);
-    void OnSelectedCellModifyHeight(irr::f32 deltaH);
+    void OnSelectedVertexModifyHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 deltaH);
+    void OnSelectedCellModifyHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 deltaH);
+    void OnSelectedVertexSetHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 newH);
+    void OnSelectedCellSetHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 newH);
 
     irr::f32 GetCurrentStepSize();
+
+    void SetUiMultipleSelection();
 
 public:
     TerraformingMode(EditorSession* parentSession);

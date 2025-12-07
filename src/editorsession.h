@@ -139,7 +139,8 @@ public:
 
     void MoveUserViewToLocation(irr::core::vector3df newCameraLookAtPnt, irr::f32 cameraDistance);
 
-    void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color);
+    void DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color,
+                             irr::f32 reduceCrossSizeFactor = 0.0f);
 
     //BillboardSceneNode which contains a white arrow
     //to indicate to the user that a move operation is currently ongoing

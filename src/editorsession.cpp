@@ -546,7 +546,8 @@ irr::s32 EditorSession::GetNextFreeGuiId() {
     return newId;
 }
 
-void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color) {
+void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* mSelVertex, ColorStruct* color,
+                                        irr::f32 reduceCrossSizeFactor) {
     if (mSelVertex->SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
@@ -701,19 +702,37 @@ void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* m
     }
 
     markerPos.X = -markerPos.X;
-    markerPos.Y = -markerPos.Y + 0.05f;
+    markerPos.Y = -markerPos.Y + 0.08f;
 
     markerPos2.X = -markerPos2.X;
-    markerPos2.Y = -markerPos2.Y + 0.05f;
+    markerPos2.Y = -markerPos2.Y + 0.08f;
 
     markerPos3.X = -markerPos3.X;
-    markerPos3.Y = -markerPos3.Y + 0.05f;
+    markerPos3.Y = -markerPos3.Y + 0.08f;
 
     markerPos4.X = -markerPos4.X;
-    markerPos4.Y = -markerPos4.Y + 0.05f;
+    markerPos4.Y = -markerPos4.Y + 0.08f;
 
     markerPos5.X = -markerPos5.X;
-    markerPos5.Y = -markerPos5.Y + 0.05f;
+    markerPos5.Y = -markerPos5.Y + 0.08f;
+
+    if (reduceCrossSizeFactor > 0.05f) {
+        markerPos2.X -= (markerPos2.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos2.Y -= (markerPos2.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos2.Z -= (markerPos2.Z - markerPos.Z) * reduceCrossSizeFactor;
+
+        markerPos3.X -= (markerPos3.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos3.Y -= (markerPos3.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos3.Z -= (markerPos3.Z - markerPos.Z) * reduceCrossSizeFactor;
+
+        markerPos4.X -= (markerPos4.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos4.Y -= (markerPos4.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos4.Z -= (markerPos4.Z - markerPos.Z) * reduceCrossSizeFactor;
+
+        markerPos5.X -= (markerPos5.X - markerPos.X) * reduceCrossSizeFactor;
+        markerPos5.Y -= (markerPos5.Y - markerPos.Y) * reduceCrossSizeFactor;
+        markerPos5.Z -= (markerPos5.Z - markerPos.Z) * reduceCrossSizeFactor;
+    }
 
     //Draw the "cross" at the selected vertex
     mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos2, color);

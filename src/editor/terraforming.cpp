@@ -56,6 +56,10 @@ TerraformingMode::~TerraformingMode() {
         delete mGuiTerraformingMode.CellNEB;
     }
 
+    if (mGuiTerraformingMode.MultipleSelectionNEB != nullptr) {
+        delete mGuiTerraformingMode.MultipleSelectionNEB;
+    }
+
     if (mGuiTerraformingMode.LblStepSize != nullptr) {
         mGuiTerraformingMode.LblStepSize->remove();
     }
@@ -84,6 +88,38 @@ TerraformingMode::~TerraformingMode() {
     if (Window != nullptr) {
         //remove the window of this Mode object
         Window->remove();
+    }
+}
+
+void TerraformingMode::SetUiMultipleSelection() {
+    size_t selNrVertices = mParentSession->mItemSelector->GetNumberSelectedCells();
+
+    wchar_t* selInfo = new wchar_t[200];
+
+    if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+        swprintf(selInfo, 190, L"%d vertices selected", selNrVertices);
+    } else if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+        swprintf(selInfo, 190, L"%d cells selected", selNrVertices);
+    }
+
+    mParentSession->mParentEditor->UpdateStatusbarText(selInfo);
+
+    delete[] selInfo;
+
+    if (selNrVertices > 1) {
+        mGuiTerraformingMode.Vertice1NEB->SetVisible(false);
+        mGuiTerraformingMode.Vertice2NEB->SetVisible(false);
+        mGuiTerraformingMode.Vertice3NEB->SetVisible(false);
+        mGuiTerraformingMode.Vertice4NEB->SetVisible(false);
+        mGuiTerraformingMode.CellNEB->SetVisible(false);
+
+        mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(false);
+        mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
+        mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(false);
+        mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(false);
+
+        mGuiTerraformingMode.MultipleSelectionNEB->SetValue(0.0f);
+        mGuiTerraformingMode.MultipleSelectionNEB->SetVisible(true);
     }
 }
 
@@ -181,6 +217,18 @@ void TerraformingMode::CreateWindow() {
     mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
     mGuiTerraformingMode.LblVertice2HeightInfo->setEnabled(true);
 
+    dx += 130;
+
+    //Float Type NumberEditBox MultipleSelectionNEB
+    mGuiTerraformingMode.MultipleSelectionNEB = new NumberEditBox(this, EDITOR_TERRAFORMING_HEIGHT_SHOWNRDECIMALPLACES, rect<s32> ( dx + 55, dy, dx + 120, dy + 25), true, Window);
+
+    mGuiTerraformingMode.MultipleSelectionNEB->SetValue(0.0f);
+    mGuiTerraformingMode.MultipleSelectionNEB->SetValueLimit(-20.0f, 20.0f);
+    mGuiTerraformingMode.MultipleSelectionNEB->AddLabel(L"Set H:", rect<s32>( dx, dy + 2, dx + 50, dy + 27));
+    mGuiTerraformingMode.MultipleSelectionNEB->SetVisible(false);
+
+    dx -= 130;
+
     //Float Type NumberEditBox Vertice 3
     dy += 35;
 
@@ -226,6 +274,10 @@ void TerraformingMode::OnButtonClicked(irr::s32 buttonGuiId) {
              mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
              mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(false);
              mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(false);
+             mGuiTerraformingMode.MultipleSelectionNEB->SetVisible(false);
+
+             //Deselect all currently selected items
+             mParentSession->mItemSelector->DeselectAll();
              break;
         }
 
@@ -236,11 +288,15 @@ void TerraformingMode::OnButtonClicked(irr::s32 buttonGuiId) {
              mGuiTerraformingMode.Vertice2NEB->SetVisible(false);
              mGuiTerraformingMode.Vertice3NEB->SetVisible(false);
              mGuiTerraformingMode.Vertice4NEB->SetVisible(false);
+             mGuiTerraformingMode.MultipleSelectionNEB->SetVisible(false);
 
              mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(true);
              mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(true);
              mGuiTerraformingMode.LblVertice3HeightInfo->setVisible(true);
              mGuiTerraformingMode.LblVertice4HeightInfo->setVisible(true);
+
+             //Deselect all currently selected items
+             mParentSession->mItemSelector->DeselectAll();
              break;
         }
 
@@ -256,6 +312,7 @@ void TerraformingMode::UpdateUiEditNumberboxes(CurrentlySelectedEditorItemInfoSt
     mGuiTerraformingMode.Vertice3NEB->SetVisible(false);
     mGuiTerraformingMode.Vertice4NEB->SetVisible(false);
     mGuiTerraformingMode.CellNEB->SetVisible(false);
+    mGuiTerraformingMode.MultipleSelectionNEB->SetVisible(false);
 
     mGuiTerraformingMode.LblVertice1HeightInfo->setVisible(false);
     mGuiTerraformingMode.LblVertice2HeightInfo->setVisible(false);
@@ -292,10 +349,24 @@ void TerraformingMode::UpdateUiEditNumberboxes(CurrentlySelectedEditorItemInfoSt
 }
 
 void TerraformingMode::NewLevelItemSelected(CurrentlySelectedEditorItemInfoStruct newItemSelected) {
+    size_t nrSelCells = mParentSession->mItemSelector->GetNumberSelectedCells();
+
+    if (nrSelCells < 1)
+        return;
+
+    //is our dialog already open?
+    //if not open it
+    ShowWindow();
+
+    if (nrSelCells > 1) {
+        SetUiMultipleSelection();
+        return;
+    } else {
+       mParentSession->mParentEditor->UpdateStatusbarText(L"Press '+' key to increase selected cell/vertice height, '-' key to decrease it");
+    }
+
+    //Exactly one item is selected, show more details
     if (newItemSelected.SelectedItemType == DEF_EDITOR_SELITEM_CELL) {
-        //is our dialog already open?
-        //if not open it
-        ShowWindow();
 
         UpdateUiEditNumberboxes(newItemSelected);
 
@@ -400,11 +471,18 @@ void TerraformingMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoSt
         //Are we editiing vertices right now?
         //if so draw the currently selected vertice
         if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+            size_t nrSelCells = mParentSession->mItemSelector->GetNumberSelectedCells();
+
             //Draw the whole selected cell
             mParentSession->mLevelTerrain->DrawOutlineSelectedCell(mCurrSelectedItem->mCellCoordSelected, mParentSession->mParentEditor->mDrawDebug->white);
 
-            //Draw the "cross" at the currently selected vertex
-            mParentSession->DrawCellVertexCross(mCurrSelectedItem, mParentSession->mParentEditor->mDrawDebug->cyan);
+            if (nrSelCells > 1) {
+                //Draw the "cross" at the currently selected vertex with reduced size
+                mParentSession->DrawCellVertexCross(mCurrSelectedItem, mParentSession->mParentEditor->mDrawDebug->cyan, 0.6f);
+            } else {
+                //Draw the "cross" at the currently selected vertex, with normal size
+                mParentSession->DrawCellVertexCross(mCurrSelectedItem, mParentSession->mParentEditor->mDrawDebug->cyan);
+            }
         }
 
         //If we currently do select/edit based on cells, draw the currently
@@ -416,12 +494,12 @@ void TerraformingMode::OnDrawSelectedLevelItem(CurrentlySelectedEditorItemInfoSt
     }
 }
 
-void TerraformingMode::OnSelectedVertexModifyHeight(irr::f32 deltaH) {
-    if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+void TerraformingMode::OnSelectedVertexModifyHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 deltaH) {
+    if (whichItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
-    irr::s32 coordX = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X;
-    irr::s32 coordY = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y;
+    irr::s32 coordX = whichItem.mCellCoordSelected.X;
+    irr::s32 coordY = whichItem.mCellCoordSelected.Y;
 
     irr::f32 currV1h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert1CurrPositionY;
     irr::f32 currV2h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert2CurrPositionY;
@@ -429,7 +507,7 @@ void TerraformingMode::OnSelectedVertexModifyHeight(irr::f32 deltaH) {
     irr::f32 currV4h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert4CurrPositionY;
     irr::f32 newH = 0.0f;
 
-    switch (mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected) {
+    switch (whichItem.mCellCoordVerticeNrSelected) {
         case 1: {
           newH = currV1h - deltaH;
           mGuiTerraformingMode.Vertice1NEB->SetValue(-newH);
@@ -460,16 +538,52 @@ void TerraformingMode::OnSelectedVertexModifyHeight(irr::f32 deltaH) {
     }
 
     //After the next command we need to ourself trigger a Mesh update!
-    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordVerticeNrSelected, newH);
-    mParentSession->CheckForMeshUpdate();
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, whichItem.mCellCoordVerticeNrSelected, newH);
 }
 
-void TerraformingMode::OnSelectedCellModifyHeight(irr::f32 deltaH) {
-    if (mParentSession->mItemSelector->mCurrSelectedItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+void TerraformingMode::OnSelectedVertexSetHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 newH) {
+    if (whichItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
         return;
 
-    irr::s32 coordX = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.X;
-    irr::s32 coordY = mParentSession->mItemSelector->mCurrSelectedItem.mCellCoordSelected.Y;
+    irr::s32 coordX = whichItem.mCellCoordSelected.X;
+    irr::s32 coordY = whichItem.mCellCoordSelected.Y;
+
+    switch (whichItem.mCellCoordVerticeNrSelected) {
+        case 1: {
+          mGuiTerraformingMode.Vertice1NEB->SetValue(-newH);
+          UpdateHeightLbl(1, -newH);
+          break;
+        }
+        case 2: {
+          mGuiTerraformingMode.Vertice2NEB->SetValue(-newH);
+          UpdateHeightLbl(2, -newH);
+          break;
+        }
+        case 3: {
+          mGuiTerraformingMode.Vertice3NEB->SetValue(-newH);
+          UpdateHeightLbl(3, -newH);
+          break;
+        }
+        case 4: {
+          mGuiTerraformingMode.Vertice4NEB->SetValue(-newH);
+          UpdateHeightLbl(4, -newH);
+          break;
+        }
+        default: {
+          return;
+        }
+    }
+
+    //After the next command we need to ourself trigger a Mesh update!
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, whichItem.mCellCoordVerticeNrSelected, newH);
+}
+
+void TerraformingMode::OnSelectedCellModifyHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 deltaH) {
+    if (whichItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+        return;
+
+    irr::s32 coordX = whichItem.mCellCoordSelected.X;
+    irr::s32 coordY = whichItem.mCellCoordSelected.Y;
 
     irr::f32 currV1h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert1CurrPositionY;
     irr::f32 currV2h = mParentSession->mLevelTerrain->pTerrainTiles[coordX][coordY].vert2CurrPositionY;
@@ -504,8 +618,26 @@ void TerraformingMode::OnSelectedCellModifyHeight(irr::f32 deltaH) {
     avgH = avgH / 4.0f;
 
     mGuiTerraformingMode.CellNEB->SetValue(avgH);
+}
 
-    mParentSession->CheckForMeshUpdate();
+void TerraformingMode::OnSelectedCellSetHeight(CurrentlySelectedEditorItemInfoStruct whichItem, irr::f32 newH) {
+    if (whichItem.SelectedItemType != DEF_EDITOR_SELITEM_CELL)
+        return;
+
+    irr::s32 coordX = whichItem.mCellCoordSelected.X;
+    irr::s32 coordY = whichItem.mCellCoordSelected.Y;
+
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 1, newH);
+    UpdateHeightLbl(1, -newH);
+
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 2, newH);
+    UpdateHeightLbl(2, -newH);
+
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 3, newH);
+    UpdateHeightLbl(3, -newH);
+
+    mParentSession->mLevelTerrain->SetNewCellVertexHeight(coordX, coordY, 4, newH);
+    UpdateHeightLbl(4, -newH);
 }
 
 irr::f32 TerraformingMode::GetCurrentStepSize() {
@@ -522,22 +654,50 @@ irr::f32 TerraformingMode::GetCurrentStepSize() {
 
 void TerraformingMode::OnSelectedItemUp() {
     if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
-        OnSelectedVertexModifyHeight(GetCurrentStepSize());
+        OnSelectedVertexModifyHeight(mParentSession->mItemSelector->mCurrSelectedItem, GetCurrentStepSize());
+
+        std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+        for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+             it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+               OnSelectedVertexModifyHeight(*(*it), GetCurrentStepSize());
+        }
     }
 
     if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
-        OnSelectedCellModifyHeight(GetCurrentStepSize());
+        OnSelectedCellModifyHeight(mParentSession->mItemSelector->mCurrSelectedItem, GetCurrentStepSize());
+
+        std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+        for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+             it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+               OnSelectedCellModifyHeight(*(*it), GetCurrentStepSize());
+        }
     }
+
+    mParentSession->CheckForMeshUpdate();
 }
 
 void TerraformingMode::OnSelectedItemDown() {
     if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
-        OnSelectedVertexModifyHeight(-GetCurrentStepSize());
+        OnSelectedVertexModifyHeight(mParentSession->mItemSelector->mCurrSelectedItem, -GetCurrentStepSize());
+
+        std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+        for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+             it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+               OnSelectedVertexModifyHeight(*(*it), -GetCurrentStepSize());
+        }
     }
 
     if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
-        OnSelectedCellModifyHeight(-GetCurrentStepSize());
+        OnSelectedCellModifyHeight(mParentSession->mItemSelector->mCurrSelectedItem, -GetCurrentStepSize());
+
+        std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+        for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+             it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+               OnSelectedCellModifyHeight(*(*it), -GetCurrentStepSize());
+        }
     }
+
+    mParentSession->CheckForMeshUpdate();
 }
 
 void TerraformingMode::OnDrawHighlightedLevelItem(CurrentlySelectedEditorItemInfoStruct* mCurrHighlightedItem) {
@@ -628,6 +788,26 @@ void TerraformingMode::OnFloatNumberEditBoxNewValue(NumberEditBox* whichBox, irr
         UpdateHeightLbl(2, -newValue);
         UpdateHeightLbl(3, -newValue);
         UpdateHeightLbl(4, -newValue);
+    }
+
+    if (whichBox == mGuiTerraformingMode.MultipleSelectionNEB) {
+        if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
+            OnSelectedVertexSetHeight(mParentSession->mItemSelector->mCurrSelectedItem, -newValue);
+
+            std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+            for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+                 it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+                    OnSelectedVertexSetHeight(*(*it), -newValue);
+            }
+        } else if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
+            OnSelectedCellSetHeight(mParentSession->mItemSelector->mCurrSelectedItem, -newValue);
+
+            std::vector<CurrentlySelectedEditorItemInfoStruct*>::iterator it;
+            for (it = mParentSession->mItemSelector->mAdditionalSelectedItemVec.begin();
+                 it != mParentSession->mItemSelector->mAdditionalSelectedItemVec.end(); ++it) {
+                   OnSelectedCellSetHeight(*(*it), -newValue);
+            }
+        }
     }
 
     mParentSession->CheckForMeshUpdate();
