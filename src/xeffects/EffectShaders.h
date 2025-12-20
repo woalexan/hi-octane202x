@@ -1,3 +1,6 @@
+/* Note Wolf Alexander: The source code below is not 100% the original code from the
+ * initial author anymore, because I changed two lines of the shader code below. */
+
 #ifndef H_XEFFECTS_SHADERS
 #define H_XEFFECTS_SHADERS
 
@@ -17,6 +20,7 @@ const char* LIGHT_MODULATE_P[ESE_COUNT] = {"uniform sampler2D ColorMapSampler;\n
 "	vec4 finalCol = texture2D(ColorMapSampler, gl_TexCoord[0].xy);\n"
 "	vec4 lightCol = texture2D(ScreenMapSampler, gl_TexCoord[0].xy);\n"
 ""
+"   lightCol = max(lightCol, 0.65);\n"
 "	gl_FragColor = finalCol * lightCol;\n"
 "}"
 ,

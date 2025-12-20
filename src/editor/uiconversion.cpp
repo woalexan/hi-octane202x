@@ -43,42 +43,6 @@ bool UiConversion::GetUIntFromTableEntry(irr::gui::IGUITable* table, irr::s32 ro
     return true;
 }
 
-//Returns true in case the input string contains a number, False if there are any other characters
-//that are no digits;
-bool UiConversion::StringContainsNumber(irr::core::stringw inputStr, bool allowDecimalNumber) {
-    irr::u32 textLen = inputStr.size();
-
-    wint_t currwChar;
-    bool radixFound = false;
-
-    for (irr::u32 idx = 0; idx < textLen; idx++) {
-        currwChar = (wint_t)(inputStr[idx]);
-
-        if (std::iswdigit(currwChar) == 0) {
-            //non numeric char found! => invalid
-            //could be a float?
-            if (!allowDecimalNumber) {
-                //for a non decimal number
-                //we already can exit with invalid result
-                return false;
-            }
-
-            if (currwChar == L'.') {
-                //if we find a radix the second time we can
-                //also exit
-                if (radixFound) {
-                    return false;
-                }
-
-                //one radix is ok, continue search
-                radixFound = true;
-            }
-        }
-    }
-
-    return true;
-}
-
 //For any unexpected error (for example string is not a number and contains other characters as well) the
 //this function will return an empty string
 irr::core::stringw UiConversion::NumberStringLimitDecimalPlaces(irr::core::stringw inputStr, irr::u8 nrDecimalPlaces) {
@@ -86,7 +50,7 @@ irr::core::stringw UiConversion::NumberStringLimitDecimalPlaces(irr::core::strin
 
     //if we have a missformed input string
     //simply return with empty string
-    if (!StringContainsNumber(inputStr, true)) {
+    if (!mParentEditor->WStringContainsNumber(inputStr, true)) {
         return resultStr;
     }
 

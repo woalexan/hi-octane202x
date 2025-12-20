@@ -43,11 +43,6 @@ Recovery::Recovery(Race* race, irr::f32 x, irr::f32 y, irr::f32 z, irr::scene::I
     Recovery_node->setMaterialFlag(irr::video::EMF_LIGHTING, mRace->mGame->enableLightning);
     Recovery_node->setMaterialFlag(irr::video::EMF_FOG_ENABLE, true);
 
-    if (this->mRace->mGame->enableShadows) {
-        // add shadow
-        NodeShadow = Recovery_node->addShadowVolumeSceneNode();
-    }
-
     //first model position and orientation
     //update
     UpdateSceneNode();

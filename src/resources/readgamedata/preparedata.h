@@ -74,7 +74,7 @@ public:
     //false otherwise if further extraction is needed
     bool GameDataAvailable();
 
-    void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
+    //void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
 
 private:
     InfrastructureBase* mInfra = nullptr;
@@ -256,6 +256,21 @@ private:
 
     irr::video::IImage* loadRawImage(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey);
     void saveIrrImage(const char* outputFilename, irr::video::IImage* img);
+
+    void ModifyPixelForYellowSky(irr::f32 &red, irr::f32 &green, irr::f32 &blue);
+    void ModifyPixelForGreySky(irr::f32 &red, irr::f32 &green, irr::f32 &blue);
+    void ModifyPixelForBlackSky(irr::f32 &red, irr::f32 &green, irr::f32 &blue);
+
+    //Returns true in case of success, False otherwise
+    bool CreateMapConfigFile(const char* filename, irr::u8 levelNr);
+
+    //Creates other colored sky dome images (needed for improved sky, not vanilla)
+    //In case of an unexpected error this function returns false, True otherwise
+    //colorSelector == 1 => creates yellow sky
+    bool CreateColoredSkydomeImage(const char* srcImagePath, const char* targetImagePath,
+                                 int colorSelector);
+
+    void PrepareUpgradedSkyData();
 };
 
 #endif // PREPAREDATA_H

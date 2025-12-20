@@ -291,6 +291,9 @@ void PrepareData::ExtractSkies() {
     for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
         ExtractSky(skyNr);
     }
+
+    //prepare upgraded sky images (not from the original game)
+    PrepareUpgradedSkyData();
 }
 
 void PrepareData::ExtractSprites() {
@@ -299,80 +302,311 @@ void PrepareData::ExtractSprites() {
     ExtractTmaps();
 }
 
-void PrepareData::PrepareMapConfigData() {
-    if (!mInfra->mExtendedGame) {
-        //non extended game version
-        PrepareMapConfigDataFile("extract/level0-1/mapconfig.txt", "extract/sky/modsky0-0.png",
-                          "extract/music/TGAME1.XMI");
+//Returns true in case of success, False otherwise
+bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
+    MapConfigStruct newConfig;
 
-        PrepareMapConfigDataFile("extract/level0-2/mapconfig.txt", "extract/sky/modsky0-1.png",
-                          "extract/music/TGAME2.XMI");
+    switch (levelNr) {
+       case 1: {
+            newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
+            newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+            newConfig.MusicFile.append("extract/music/TGAME1.XMI");
 
-        PrepareMapConfigDataFile("extract/level0-3/mapconfig.txt", "extract/sky/modsky0-2.png",
-                          "extract/music/TGAME3.XMI");
+            newConfig.EnableLensFlare = true;
+            newConfig.lensflareLocation.set(0.0f,80.0f,-80.0f);
+            newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+            newConfig.cloudColorInner1.set(180, 180, 180, 180);
+            newConfig.cloudColorOuter1.set(0, 0, 0, 0);
 
-        PrepareMapConfigDataFile("extract/level0-4/mapconfig.txt", "extract/sky/modsky0-3.png",
-                          "extract/music/TGAME4.XMI");
+            newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+            newConfig.cloudColorInner2.set(180, 180, 180, 180);
+            newConfig.cloudColorOuter2.set(0, 0, 0, 0);
 
-        PrepareMapConfigDataFile("extract/level0-5/mapconfig.txt", "extract/sky/modsky0-4.png",
-                          "extract/music/TGAME1.XMI");
+            newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+            newConfig.cloudColorInner3.set(180, 180, 180, 180);
+            newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
-        PrepareMapConfigDataFile("extract/level0-6/mapconfig.txt", "extract/sky/modsky0-5.png",
-                          "extract/music/TGAME2.XMI");
-    } else {
-        //extended game version
-        //here always two level in a row share the same music file
-        //level 9 is the exception, it has the same music as the
-        //other two levels before
-        PrepareMapConfigDataFile("extract/level0-1/mapconfig.txt", "extract/sky/modsky0-0.png",
-                          "extract/music/TGAME1.XMI");
+            break;
+        }
 
-        PrepareMapConfigDataFile("extract/level0-2/mapconfig.txt", "extract/sky/modsky0-1.png",
-                          "extract/music/TGAME1.XMI");
+        case 2: {
+            if (!mInfra->mExtendedGame) {
+                //non extended game version
+                newConfig.MusicFile.append("extract/music/TGAME2.XMI");
+            } else {
+                //extended game version
+                //here always two level in a row share the same music file
+                //level 9 is the exception, it has the same music as the
+                //other two levels before
+                newConfig.MusicFile.append("extract/music/TGAME1.XMI");
+            }
 
-        PrepareMapConfigDataFile("extract/level0-3/mapconfig.txt", "extract/sky/modsky0-2.png",
-                          "extract/music/TGAME2.XMI");
+            newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-1.png");
+            newConfig.SkyImageFileUpgradedSky.append("media/sky/skydomegrey.png");
 
-        PrepareMapConfigDataFile("extract/level0-4/mapconfig.txt", "extract/sky/modsky0-3.png",
-                          "extract/music/TGAME2.XMI");
+            newConfig.EnableLensFlare = false;
+            newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+            newConfig.cloudColorCenter1.set(160, 160, 160, 160);
+            newConfig.cloudColorInner1.set(100, 100, 100, 100);
+            newConfig.cloudColorOuter1.set(0, 0, 0, 0);
 
-        PrepareMapConfigDataFile("extract/level0-5/mapconfig.txt", "extract/sky/modsky0-4.png",
-                          "extract/music/TGAME3.XMI");
+            newConfig.cloudColorCenter2.set(160, 160, 160, 160);
+            newConfig.cloudColorInner2.set(100, 100, 100, 100);
+            newConfig.cloudColorOuter2.set(0, 0, 0, 0);
 
-        PrepareMapConfigDataFile("extract/level0-6/mapconfig.txt", "extract/sky/modsky0-5.png",
-                          "extract/music/TGAME3.XMI");
+            newConfig.cloudColorCenter3.set(160, 160, 160, 160);
+            newConfig.cloudColorInner3.set(100, 100, 100, 100);
+            newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+            break;
+        }
+
+    case 3: {
+        if (!mInfra->mExtendedGame) {
+            //non extended game version
+            newConfig.MusicFile.append("extract/music/TGAME3.XMI");
+        } else {
+            //extended game version
+            //here always two level in a row share the same music file
+            //level 9 is the exception, it has the same music as the
+            //other two levels before
+            newConfig.MusicFile.append("extract/music/TGAME2.XMI");
+        }
+
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-2.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydomeblack.png");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(120, 60, 60, 60);
+        newConfig.cloudColorInner1.set(35, 35, 35, 35);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(120, 60, 60, 60);
+        newConfig.cloudColorInner2.set(35, 35, 35, 35);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(120, 60, 60, 60);
+        newConfig.cloudColorInner3.set(35, 35, 35, 35);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
+    }
+
+    case 4: {
+        if (!mInfra->mExtendedGame) {
+            //non extended game version
+            newConfig.MusicFile.append("extract/music/TGAME4.XMI");
+        } else {
+            //extended game version
+            //here always two level in a row share the same music file
+            //level 9 is the exception, it has the same music as the
+            //other two levels before
+            newConfig.MusicFile.append("extract/music/TGAME2.XMI");
+        }
+
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-3.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+        newConfig.cloudColorInner1.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+        newConfig.cloudColorInner2.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+        newConfig.cloudColorInner3.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
+    }
+
+    case 5: {
+        if (!mInfra->mExtendedGame) {
+            //non extended game version
+            newConfig.MusicFile.append("extract/music/TGAME1.XMI");
+        } else {
+            //extended game version
+            //here always two level in a row share the same music file
+            //level 9 is the exception, it has the same music as the
+            //other two levels before
+            newConfig.MusicFile.append("extract/music/TGAME3.XMI");
+        }
+
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-4.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+        newConfig.cloudColorInner1.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+        newConfig.cloudColorInner2.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+        newConfig.cloudColorInner3.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
+    }
+
+    case 6: {
+        if (!mInfra->mExtendedGame) {
+            //non extended game version
+            newConfig.MusicFile.append("extract/music/TGAME2.XMI");
+        } else {
+            //extended game version
+            //here always two level in a row share the same music file
+            //level 9 is the exception, it has the same music as the
+            //other two levels before
+            newConfig.MusicFile.append("extract/music/TGAME3.XMI");
+        }
+
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-5.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydomeyellow.png");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+        newConfig.cloudColorInner1.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+        newConfig.cloudColorInner2.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+        newConfig.cloudColorInner3.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
+    }
+
+    case 7: {
+        //exists only in extended game version
+        newConfig.MusicFile.append("extract/music/TGAME4.XMI");
 
         //Level 7 uses sky0
-        PrepareMapConfigDataFile("extract/level0-7/mapconfig.txt", "extract/sky/modsky0-0.png",
-                          "extract/music/TGAME4.XMI");
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+        newConfig.cloudColorInner1.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+        newConfig.cloudColorInner2.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+        newConfig.cloudColorInner3.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
+    }
+
+    case 8: {
+        //exists only in extended game version
+        newConfig.MusicFile.append("extract/music/TGAME4.XMI");
 
         //Level 8 uses sky0
-        PrepareMapConfigDataFile("extract/level0-8/mapconfig.txt", "extract/sky/modsky0-0.png",
-                          "extract/music/TGAME4.XMI");
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+        newConfig.cloudColorInner1.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+        newConfig.cloudColorInner2.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+        newConfig.cloudColorInner3.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
+    }
+
+    case 9:
+    default: {
+        //exists only in extended game version
+        newConfig.MusicFile.append("extract/music/TGAME4.XMI");
 
         //Level 9 uses sky0
-        PrepareMapConfigDataFile("extract/level0-9/mapconfig.txt", "extract/sky/modsky0-0.png",
-                          "extract/music/TGAME4.XMI");
+        newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
+        newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+
+        newConfig.EnableLensFlare = false;
+        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+        newConfig.cloudColorInner1.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+        newConfig.cloudColorInner2.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+        newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+        newConfig.cloudColorInner3.set(180, 180, 180, 180);
+        newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        break;
     }
+ }
+
+  return (mInfra->WriteMapConfigFile(std::string(filename), &newConfig));
 }
 
-void PrepareData::PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath) {
-    FILE* outFile = nullptr;
-
-    outFile = fopen(targetFileName, "w");
-    if (targetFileName == nullptr) {
-           std::string errStr("Can not create file ");
-           errStr.append(targetFileName);
-           throw errStr;
+void PrepareData::PrepareMapConfigData() {
+    if (!CreateMapConfigFile("extract/level0-1/mapconfig.xml", 1)) {
+         throw std::string("Failed to create mapconfig.xml file for level0-1!");
     }
 
-    //write file path for target sky
-    fprintf(outFile, "%s\n", targetSkyFilePath);
+    if (!CreateMapConfigFile("extract/level0-2/mapconfig.xml", 2)) {
+         throw std::string("Failed to create mapconfig.xml file for level0-2!");
+    }
 
-    //write file path for target music
-    fprintf(outFile, "%s\n", targetMusicFilePath);
+    if (!CreateMapConfigFile("extract/level0-3/mapconfig.xml", 3)) {
+         throw std::string("Failed to create mapconfig.xml file for level0-3!");
+    }
 
-    fclose(outFile);
+    if (!CreateMapConfigFile("extract/level0-4/mapconfig.xml", 4)) {
+         throw std::string("Failed to create mapconfig.xml file for level0-4!");
+    }
+
+    if (!CreateMapConfigFile("extract/level0-5/mapconfig.xml", 5)) {
+         throw std::string("Failed to create mapconfig.xml file for level0-5!");
+    }
+
+    if (!CreateMapConfigFile("extract/level0-6/mapconfig.xml", 6)) {
+         throw std::string("Failed to create mapconfig.xml file for level0-6!");
+    }
+
+    if (mInfra->mExtendedGame) {
+        if (!CreateMapConfigFile("extract/level0-7/mapconfig.xml", 7)) {
+             throw std::string("Failed to create mapconfig.xml file for level0-7!");
+        }
+
+        if (!CreateMapConfigFile("extract/level0-8/mapconfig.xml", 8)) {
+             throw std::string("Failed to create mapconfig.xml file for level0-8!");
+        }
+
+        if (!CreateMapConfigFile("extract/level0-9/mapconfig.xml", 9)) {
+             throw std::string("Failed to create mapconfig.xml file for level0-9!");
+        }
+    }
 }
 
 //Write minimap cal values found to be working
@@ -1284,6 +1518,161 @@ void PrepareData::ModifySkyImage(const char *origSkyFileName, const char* output
 
     //close the original picture file
     file->drop();
+}
+
+void PrepareData::ModifyPixelForYellowSky(irr::f32 &red, irr::f32 &green, irr::f32 &blue) {
+    //the following "conversion" gives a good yellow sky
+    irr::f32 inBlue = blue;
+
+    //assign new pixel value
+    //to shift blue colors to yellow
+    //color range
+    red = inBlue;
+    green = inBlue * 0.99f;
+    blue = inBlue * 0.5f;
+}
+
+void PrepareData::ModifyPixelForGreySky(irr::f32 &red, irr::f32 &green, irr::f32 &blue) {
+    //the following "conversion" gives a good grey sky
+    irr::f32 inBlue = blue;
+
+    //assign new pixel value
+    //to shift blue colors to grey
+    //color range
+    red = inBlue * 0.7216f;
+    green = inBlue * 0.7216f;
+    blue = inBlue * 0.7216f;
+}
+
+void PrepareData::ModifyPixelForBlackSky(irr::f32 &red, irr::f32 &green, irr::f32 &blue) {
+    //the following "conversion" gives a good black (thunderstorm like) sky
+    irr::f32 inBlue = blue;
+
+    //assign new pixel value
+    //to shift blue colors to very dark grey
+    //color range
+    red = inBlue * 0.5647f;
+    green = inBlue * 0.5647f;
+    blue = inBlue * 0.5647f;
+}
+
+//Creates other colored sky dome images (needed for improved sky, not vanilla)
+//In case of an unexpected error this function returns false, True otherwise
+//colorSelector == 1 => creates yellow sky
+//colorSelector == 2 => creates grey sky
+//colorSelector == 3 => creates very dark grey sky (thunderstorm like)
+bool PrepareData::CreateColoredSkydomeImage(const char* srcImagePath, const char* targetImagePath,
+                             int colorSelector) {
+
+ //we need to know the used pixel color format
+  //irr::video::ECOLOR_FORMAT format = image->getColorFormat();
+
+  //we can only handle this format right now
+  //if(irr::video::ECF_A8R8G8B8 == format)
+  //  {
+
+   if ((colorSelector != 1) && (colorSelector != 2) && (colorSelector != 3)) {
+       logging::Error("CreateColoredSkydomeImage: Unknown colorSelector value, Operation failed");
+       return false;
+   }
+
+    //first open source image
+    irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(srcImagePath);
+
+    irr::video::IImage* image = mInfra->mDriver->createImageFromFile(file);
+
+    //get source image dimension
+    irr::core::dimension2d<irr::u32> origDimension = image->getDimension();
+
+    //create the new empty image for the modified (target) file
+    irr::video::IImage* imgNew =
+        mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(origDimension.Width, origDimension.Height));
+
+    irr::video::SColor texel;
+    irr::video::SColor newColor;
+
+    //copy pixel data
+    image->lock();
+    imgNew->lock();
+
+    irr::f32 fred;
+    irr::f32 fgreen;
+    irr::f32 fblue;
+
+    //iterate through all pixels of the image
+    for (irr::u32 x = 0; x < origDimension.Width; x++) {
+        for (irr::u32 y = 0; y < origDimension.Height; y++) {
+              //texel is the pixel color at position x and y
+              texel = image->getPixel(x, y);
+
+              fblue = (irr::f32)(texel.getBlue());
+
+              switch (colorSelector) {
+                  case 1: {
+                     //create a yellow sky
+                     ModifyPixelForYellowSky(fred, fgreen, fblue);
+                    break;
+                  }
+
+                  case 2: {
+                    //create a grey sky
+                    ModifyPixelForGreySky(fred, fgreen, fblue);
+                    break;
+                  }
+
+                  case 3: {
+                    //create a dark grey sky
+                    ModifyPixelForBlackSky(fred, fgreen, fblue);
+                    break;
+                  }
+
+                  default: {
+                      break;
+                  }
+              }
+
+              newColor.setRed((irr::u32)(fred));
+              newColor.setGreen((irr::u32)(fgreen));
+              newColor.setBlue((irr::u32)(fblue));
+              newColor.setAlpha(255);
+
+              imgNew->setPixel(x,y, newColor);
+         }
+     }
+
+     image->unlock();
+     image->drop();
+
+     imgNew->unlock();
+
+     irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(targetImagePath, false);
+     mInfra->mDriver->writeImageToFile(imgNew, outputPic);
+
+     //close output file
+     outputPic->drop();
+     imgNew->drop();
+
+     return true;
+  /*} else {
+      //unsupported pixel color format!
+      //do not modify image and just return false
+      return false;
+  }*/
+}
+
+void PrepareData::PrepareUpgradedSkyData() {
+    //create a yellow skydome image
+    if (!CreateColoredSkydomeImage("media/sky/skydome.tga", "media/sky/skydomeyellow.png", 1)) {
+        throw std::string("PrepareUpgradedSkyData: Preparation of upgraded sky data failed");
+    }
+
+    if (!CreateColoredSkydomeImage("media/sky/skydome.tga", "media/sky/skydomegrey.png", 2)) {
+        throw std::string("PrepareUpgradedSkyData: Preparation of upgraded sky data failed");
+    }
+
+    if (!CreateColoredSkydomeImage("media/sky/skydome.tga", "media/sky/skydomeblack.png", 3)) {
+         throw std::string("PrepareUpgradedSkyData: Preparation of upgraded sky data failed");
+    }
 }
 
 //the original Terrain texture Atlas stored within the game has all tiles

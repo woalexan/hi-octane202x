@@ -163,7 +163,7 @@ bool Editor::InitEditorStep1() {
     targetResolution.set(1280,960);
 
     //initialize my infrastructure
-    this->InfrastructureInit(targetResolution, fullscreen, enableShadows);
+    this->InfrastructureInit(targetResolution, fullscreen);
     if (!GetInfrastructureInitOk())
         return false;
 
@@ -2049,11 +2049,28 @@ bool Editor::CopyLevelTextures(std::string originMapFolder, std::string targetMa
 bool Editor::CreateDefaultMapConfigFile(std::string targetMapFolder) {
    irr::io::path configFilePath = GetMapConfigFileName(targetMapFolder);
 
-    try {
-        //Default use sky of first level, and music of first level
-        this->mPrepareData->PrepareMapConfigDataFile(configFilePath.c_str(), "extract/sky/modsky0-0.png",
-                      "extract/music/TGAME1.XMI");
-    } catch (const std::string &msg) {
+    MapConfigStruct newConfig;
+
+    //Default use sky of first level, and music of first level
+    newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
+    newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+    newConfig.MusicFile.append("extract/music/TGAME1.XMI");
+
+    newConfig.EnableLensFlare = false;
+    newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+    newConfig.cloudColorCenter1.set(220, 220, 220, 220);
+    newConfig.cloudColorInner1.set(180, 180, 180, 180);
+    newConfig.cloudColorOuter1.set(0, 0, 0, 0);
+
+    newConfig.cloudColorCenter2.set(220, 220, 220, 220);
+    newConfig.cloudColorInner2.set(180, 180, 180, 180);
+    newConfig.cloudColorOuter2.set(0, 0, 0, 0);
+
+    newConfig.cloudColorCenter3.set(220, 220, 220, 220);
+    newConfig.cloudColorInner3.set(180, 180, 180, 180);
+    newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+    if (!WriteMapConfigFile(std::string(configFilePath.c_str()), &newConfig)) {
         return false;
     }
 
@@ -2151,7 +2168,7 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
 
     //Create a default mapconfig file
     if (!CreateDefaultMapConfigFile(mapSubFolder)) {
-        logging::Error("Failed to create default mapconfig.txt file!");
+        logging::Error("Failed to create default mapconfig.xml file!");
         return false;
     }
 

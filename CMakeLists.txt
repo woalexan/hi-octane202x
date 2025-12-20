@@ -210,6 +210,12 @@ add_executable(hi-octane202x
     src/models/chargingstation.h
     src/models/chargingstation.cpp
 
+    src/scenenodes/ILensFlareSceneNode.h
+    src/scenenodes/CLensFlareSceneNode.h
+    src/scenenodes/CLensFlareSceneNode.cpp
+    src/scenenodes/CloudSceneNode.h
+    src/scenenodes/CloudSceneNode.cpp
+
     src/utils/crc32.h
     src/utils/crc32.cpp
     src/utils/fileutils.h
@@ -428,3 +434,4 @@ target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 target_link_libraries(hi-editor ${CMAKE_THREAD_LIBS_INIT})
 
 file(COPY media DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY shaders DESTINATION ${CMAKE_BINARY_DIR})
