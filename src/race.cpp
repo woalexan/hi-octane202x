@@ -534,6 +534,11 @@ Race::~Race() {
     //remove all remaining SceneNodes
     mGame->CleanupAllSceneNodes();
 
+    if (mMapConfig != nullptr) {
+        delete mMapConfig;
+        mMapConfig = nullptr;
+    }
+
     //IrrlichtStats((char*)("After race cleanup"));
 }
 
@@ -3078,9 +3083,9 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
 }
 
 void Race::Render() {
-    //if we do not use XEffects we can simply render the sky
-    //with XEffect this does not work, need a solution for this!
-    if (!mGame->mUseXEffects) {
+    //if we do not use XEffects (and we have vanilla sky enabled) we can simply render the sky
+    //with XEffect this does not work, so here we have to use the upgraded skydome
+    if (!mGame->mGameConfig->useUpgradedSky) {
         //we need to draw sky image first, the remaining scene will be drawn on top of it
         DrawSky();
     }
@@ -3611,7 +3616,7 @@ bool Race::LoadLevelConfigData() {
 //Returns true in case of success, False
 //otherwise
 bool Race::SetupSky() {
-    if (mGame->mUseXEffects) {
+    if (mGame->mGameConfig->useUpgradedSky) {
         //We want to use the "upgraded" sky (not vanilla)
 
         //create sky box

@@ -24,16 +24,264 @@
 #include <iomanip>
 #include "draw/attribution.h"
 
-bool InfrastructureBase::InitIrrlicht() {
-    /************************************************/
-    /************** Init Irrlicht stuff *************/
-    /************************************************/
+//Returns true in case of success, False otherwise
+bool InfrastructureBase::WriteGameConfigXmlFile(IrrlichtDevice *device) {
+    std::string cfgFileName(mGameRootDir.c_str());
+    cfgFileName.append("/hi-octane202x.xml");
 
-    //first get native screen resolution
-    //for this we can use the Null device
-    IrrlichtDevice *nullDev = createDevice(video::EDT_NULL);
+    //create necessary XML writer
+    irr::io::IXMLWriter* writer = device->getFileSystem()->createXMLWriter( cfgFileName.c_str() );
+    if (!writer) {
+         std::string overallMsg("Failed to create game Xml config file ");
+         overallMsg.append(cfgFileName);
+         overallMsg.append("!");
+         logging::Error(overallMsg);
 
-    mNativeResolution = nullDev->getVideoModeList()->getDesktopResolution();
+         return false;
+     }
+
+     //we need exactly one XML header
+     writer->writeXMLHeader();
+
+     writer->writeElement(L"hi-octane202x");
+     writer->writeLineBreak();
+
+     //section for config
+     writer->writeElement(L"graphics");
+     writer->writeLineBreak();
+
+     writer->writeElement(L"setting",true, L"name", L"enableDoubleResolution" , L"value", BoolToXmlSettingStr(mGameConfig->enableDoubleResolution).c_str());
+     writer->writeLineBreak();
+
+     writer->writeElement(L"setting",true, L"name", L"enableVSync" , L"value", BoolToXmlSettingStr(mGameConfig->enableVSync).c_str());
+     writer->writeLineBreak();
+
+     writer->writeElement(L"setting",true, L"name", L"enableShadows" , L"value", BoolToXmlSettingStr(mGameConfig->enableShadows).c_str());
+     writer->writeLineBreak();
+
+     writer->writeElement(L"setting",true, L"name", L"useUpgradedSky" , L"value", BoolToXmlSettingStr(mGameConfig->useUpgradedSky).c_str());
+     writer->writeLineBreak();
+
+     //close config setup section
+     writer->writeClosingTag(L"graphics");
+     writer->writeLineBreak();
+
+     //section for music setup
+    /* writer->writeElement(L"music");
+     writer->writeLineBreak();
+
+     writer->writeElement(L"setting",true, L"name", L"musicFile" , L"value", irr::core::stringw(configStruct->MusicFile.c_str()).c_str());
+     writer->writeLineBreak();
+
+     //close music setup section
+     writer->writeClosingTag(L"music");
+     writer->writeLineBreak();*/
+
+     //end of hi-octane202x config
+     writer->writeClosingTag(L"hi-octane202x");
+
+     //remove Xml writer
+     writer->drop();
+
+     return true;
+}
+
+//Returns true in case of success, False otherwise
+bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
+    //does this file exist?
+    std::string cfgFileName(mGameRootDir.c_str());
+    cfgFileName.append("/hi-octane202x.xml");
+    if (!(FileExists(cfgFileName.c_str()) == 1)) {
+        //file does not exist
+        logging::Warning("Game configuration Xml file not found, recreate default configuration");
+
+        //default configuration
+        //use everything "vanilla"
+        mGameConfig->enableVSync = true;
+        mGameConfig->enableShadows = false;
+        mGameConfig->useUpgradedSky = false;
+        mGameConfig->enableDoubleResolution = false;
+
+        if (!WriteGameConfigXmlFile(device)) {
+            logging::Error("Writing new game configuration Xml file failed!");
+            return false;
+        }
+
+        return true;
+    }
+
+    //Config file exists, read the current settings
+    //create the Xml Reader
+    irr::io::IXMLReader* xmlReader = device->getFileSystem()->createXMLReader(cfgFileName.c_str());
+    if (!xmlReader) {
+        std::string overallMsg("Failed to read game Xml config file ");
+        overallMsg.append(cfgFileName);
+        overallMsg.append("!");
+        logging::Error(overallMsg);
+
+        return false;
+    }
+
+    const irr::core::stringw settingTag(L"setting");
+    const irr::core::stringw graphicsSetupTag(L"graphics");
+    //const irr::core::stringw musicSetupTag(L"music");
+
+    irr::core::stringw currentSection;
+
+    map<irr::core::stringw, irr::core::stringw> graphicsSetupMap;
+    //map<irr::core::stringw, irr::core::stringw> musicSetupMap;
+
+    //while there is more to read
+    while (xmlReader->read())
+    {
+        //check the node type
+        switch (xmlReader->getNodeType())
+        {
+            //we found a new element
+            case irr::io::EXN_ELEMENT:
+            {
+                 //we currently are in the empty or mapconfig section and find the sky setup tag so we set our current section to sky setup
+                 if (currentSection.empty() && graphicsSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                    {
+                        currentSection = graphicsSetupTag;
+                    }
+
+                 //we are in the graphics setup section and we find a setting to parse
+                 else if (currentSection.equals_ignore_case(graphicsSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                    {
+                       //read in the key
+                        irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                        //if there actually is a key to set
+                        if (!key.empty())
+                        {
+                            //set the setting in the map to the value,
+                            //the [] operator overrides values if they already exist or inserts a new key value
+                            //pair into the settings map if it was not defined yet
+                            graphicsSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                        }
+                    }
+
+                 /*
+                 //we currently are in the empty or mapconfig section and find the music setup tag so we set our current section to music setup
+                 if (currentSection.empty() && musicSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                    {
+                        currentSection = musicSetupTag;
+                    }
+
+                 //we are in the music setup section and we find a setting to parse
+                 else if (currentSection.equals_ignore_case(musicSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                    {
+                       //read in the key
+                        irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                        //if there actually is a key to set
+                        if (!key.empty())
+                        {
+                            //set the setting in the map to the value,
+                            //the [] operator overrides values if they already exist or inserts a new key value
+                            //pair into the settings map if it was not defined yet
+                            musicSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                        }
+                    }*/
+
+                break;
+          }
+
+          //we found the end of an element
+          case irr::io::EXN_ELEMENT_END: {
+              //we were at the end of the current setup section so we reset our tag
+                 currentSection=L"";
+                 break;
+          }
+       }
+   }
+
+   // don't forget to delete the xml reader
+   xmlReader->drop();
+
+   map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+
+   //get double resolution setting
+   nodePntr = graphicsSetupMap.find(L"enableDoubleResolution");
+
+   if (nodePntr == nullptr) {
+       logging::Error("ReadGameConfigXmlFile: Missing enableDoubleResolution field in game config Xml file");
+       return false;
+   } else {
+       bool outBool;
+       if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+           logging::Error("ReadGameConfigXmlFile: Missformed field value for enableDoubleResolution in game config Xml file");
+           return false;
+       }
+
+       mGameConfig->enableDoubleResolution = outBool;
+   }
+
+   //get enableVSync setting
+   nodePntr = graphicsSetupMap.find(L"enableVSync");
+
+   if (nodePntr == nullptr) {
+       logging::Error("ReadGameConfigXmlFile: Missing enableVSync field in game config Xml file");
+       return false;
+   } else {
+       bool outBool;
+       if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+           logging::Error("ReadGameConfigXmlFile: Missformed field value for enableVSync in game config Xml file");
+           return false;
+       }
+
+       mGameConfig->enableVSync = outBool;
+   }
+
+   //get enableShadows setting
+   nodePntr = graphicsSetupMap.find(L"enableShadows");
+
+   if (nodePntr == nullptr) {
+       logging::Error("ReadGameConfigXmlFile: Missing enableShadows field in game config Xml file");
+       return false;
+   } else {
+       bool outBool;
+       if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+           logging::Error("ReadGameConfigXmlFile: Missformed field value for enableShadows in game config Xml file");
+           return false;
+       }
+
+       mGameConfig->enableShadows = outBool;
+   }
+
+   //get useUpgradedSky setting
+   nodePntr = graphicsSetupMap.find(L"useUpgradedSky");
+
+   if (nodePntr == nullptr) {
+       logging::Error("ReadGameConfigXmlFile: Missing useUpgradedSky field in game config Xml file");
+       return false;
+   } else {
+       bool outBool;
+       if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+           logging::Error("ReadGameConfigXmlFile: Missformed field value for useUpgradedSky in game config Xml file");
+           return false;
+       }
+
+       mGameConfig->useUpgradedSky = outBool;
+   }
+
+   return true;
+}
+
+bool InfrastructureBase::InitStage1() {
+   //first initialization is done using the Nulldevice
+
+   //first get native screen resolution
+   //for this we can use the Null device
+   IrrlichtDevice *nullDev = createDevice(video::EDT_NULL);
+
+   if (nullDev == nullptr) {
+       return false;
+   }
+
+   mNativeResolution = nullDev->getVideoModeList()->getDesktopResolution();
+
+    //get game root dir, is an absolute path
+    mGameRootDir = nullDev->getFileSystem()->getWorkingDirectory();
 
     if (mWriteLogFile) {
         //use the null Device to get the current system date and time
@@ -51,6 +299,13 @@ bool InfrastructureBase::InitIrrlicht() {
 
         //start logging into logfile
         logging::StartLogFile(logFileName.c_str());
+    }
+
+    if (mRunningAs == INFRA_RUNNING_AS_GAME) {
+        //read the game configuration file
+        if (!ReadGameConfigXmlFile(nullDev)) {
+            return false;
+        }
     }
 
     //delete the null device again
@@ -85,14 +340,38 @@ bool InfrastructureBase::InitIrrlicht() {
     // create event receiver
     mEventReceiver = new MyEventReceiver(this);
 
-    mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 32, mFullscreen, false, false, mEventReceiver);
-    
-    //22.03.2025: Direct3D does not work right now, at least at my wifes notebook, because
-    //of "Could not lock DIRECT3D9 Texture." issue
-    //mDevice = createDevice(video::EDT_DIRECT3D9, mScreenRes, 16, mFullscreen, mEnableShadows, false, mEventReceiver);
+    return true;
+}
+
+bool InfrastructureBase::InitStage2() {
+    /************************************************/
+    /********** Init Irrlicht stuff Stage 2 *********/
+    /************************************************/
+
+    //Define the resolution to be used, according to the program type we execute as,
+    //and the Game config Xml file configuration
+    if (mRunningAs == INFRA_RUNNING_AS_GAME) {
+        if (mGameConfig->enableDoubleResolution) {
+            mScreenRes.set(1280,960);
+        } else {
+            mScreenRes.set(640,480);
+        }
+
+        mFullscreen = false;
+        mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 32, mFullscreen, false, mGameConfig->enableVSync, mEventReceiver);
+    } else if (mRunningAs == INFRA_RUNNING_AS_EDITOR) {
+        mScreenRes.set(1280,960);
+
+        mFullscreen = false;
+        mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 32, mFullscreen, false, true, mEventReceiver);
+    } else {
+        //unknown program run mode, quit
+        logging::Error("Unknown infrastructure program run mode, Exit!");
+        return false;
+    }
 
     if (mDevice == 0) {
-        logging::Error("Failed Irrlicht device creation!");
+        logging::Error("Failed Irrlicht device creation in InitStage2!");
         return false;
     }
 
@@ -109,16 +388,74 @@ bool InfrastructureBase::InitIrrlicht() {
     //create a DrawDebug object
     mDrawDebug = new DrawDebug(mDriver);
 
-    //load gui font
-    //guiFont = mGuienv->getFont("media/fontlucida.png");
+    return true;
+}
 
-    //get game root dir, is an absolute path
-    mGameRootDir = mDevice->getFileSystem()->getWorkingDirectory();
+bool InfrastructureBase::InitStage3() {
+    //create the predefined axis direction vectors
+    xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
+    yAxisDirVector = new irr::core::vector3df(0.0f, 1.0f, 0.0f);
+    zAxisDirVector = new irr::core::vector3df(0.0f, 0.0f, 1.0f);
 
-    //mDriver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 10, 30, .03f, false, true);
+    //Query if the graphics adapter is able to render to a target
+    //we need this feature to create the block definition preview images
+    //for the Gui Windows
+    if (mDriver->queryFeature(video::EVDF_RENDER_TO_TARGET))
+     {
+        //we have this feature, we can enable block preview in LevelEditor
+        mBlockPreviewEnabled = true;
+     } else {
+        logging::Warning("Graphics Adapter does not support Render To Target Feature: Block definition preview images not working");
+        mBlockPreviewEnabled = false;
+    }
+
+    //detect the original game files
+    //if some directory of original game is missing
+    //exit here
+    if (!LocateOriginalGame())
+        return false;
+
+    //search original game version data in
+    //original game exe file
+    if (!DetermineOriginalGameVersion())
+        return false;
+
+    //do we know this game version?
+    if (!ProcessGameVersionDate())
+        return false;
+
+    if (this->mExtendedGame) {
+        logging::Info("This game is the extended version");
+    } else {
+        logging::Info("This game is the non-extended version");
+    }
+
+    //log window left upper corner 100, 380
+    //log window right lower corner 540, 460
+    irr::core::rect logWindowPos(100, 380, 540, 460);
+
+    //create my logger class
+    mLogger = new Logger(mGuienv, logWindowPos);
+    mLogger->HideWindow();
+
+    //Initial most basic game assets to be able
+    //to show a first graphical screen to the user
+    //remaining data extraction/loading of assets is
+    //done from main loop of the game
+    if (!InitGameResourcesInitialStep())
+        return false;
+
+    logging::Info("Initial Game Resources initialized");
+
+    mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,300));
+
+    mCrc32 = new Crc32();
+
+    mAttribution = new Attribution(this, 800, true);
 
     return true;
 }
+
 
 //returns true if Gui Event should be canceled
 bool InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
@@ -1546,10 +1883,6 @@ float InfrastructureBase::randFloat() {
     return r;
 }
 
-bool InfrastructureBase::GetInfrastructureInitOk() {
-    return mInitOk;
-}
-
 //returns true if the original game version date is known,
 //and we can use it, False otherwise
 bool InfrastructureBase::ProcessGameVersionDate() {
@@ -1946,82 +2279,16 @@ void InfrastructureBase::FillTexture(irr::video::ITexture* target, unsigned char
     target->unlock();
 }
 
-void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen) {
-    mScreenRes = resolution;
-    mFullscreen = fullScreen;
-
-    if (!InitIrrlicht()) {
-        return;
-    }
-
-    //create the predefined axis direction vectors
-    xAxisDirVector = new irr::core::vector3df(1.0f, 0.0f, 0.0f);
-    yAxisDirVector = new irr::core::vector3df(0.0f, 1.0f, 0.0f);
-    zAxisDirVector = new irr::core::vector3df(0.0f, 0.0f, 1.0f);
-
-    //Query if the graphics adapter is able to render to a target
-    //we need this feature to create the block definition preview images
-    //for the Gui Windows
-    if (mDriver->queryFeature(video::EVDF_RENDER_TO_TARGET))
-     {
-        //we have this feature, we can enable block preview in LevelEditor
-        mBlockPreviewEnabled = true;
-     } else {
-        logging::Warning("Graphics Adapter does not support Render To Target Feature: Block definition preview images not working");
-        mBlockPreviewEnabled = false;
-    }
-
-    //detect the original game files
-    //if some directory of original game is missing
-    //exit here
-    if (!LocateOriginalGame())
-        return;
-
-    //search original game version data in
-    //original game exe file
-    if (!DetermineOriginalGameVersion())
-        return;
-
-    //do we know this game version?
-    if (!ProcessGameVersionDate())
-        return;
-
-    if (this->mExtendedGame) {
-        logging::Info("This game is the extended version");
-    } else {
-        logging::Info("This game is the non-extended version");
-    }
-
-    //log window left upper corner 100, 380
-    //log window right lower corner 540, 460
-    irr::core::rect logWindowPos(100, 380, 540, 460);
-
-    //create my logger class
-    mLogger = new Logger(mGuienv, logWindowPos);
-    mLogger->HideWindow();
-
-    //Initial most basic game assets to be able
-    //to show a first graphical screen to the user
-    //remaining data extraction/loading of assets is
-    //done from main loop of the game
-    if (!InitGameResourcesInitialStep())
-        return;
-
-    logging::Info("Initial Game Resources initialized");
-
-    mTimeProfiler = new TimeProfiler(mGuienv, rect<s32>(100,150,300,300));
-
-    mCrc32 = new Crc32();
-
-    mAttribution = new Attribution(this, 800, true);
-
-    mInitOk = true;
-}
-
-InfrastructureBase::InfrastructureBase(int pArgc, char **pArgv) {
+InfrastructureBase::InfrastructureBase(int pArgc, char **pArgv, irr::u8 runningAsVal) {
     ParseCommandLineInformation(pArgc, pArgv);
 
-    mInitOk = false;
+    mRunningAs = runningAsVal;
+
+    //if we are running as a game, create my game
+    //configuration
+    if (runningAsVal == INFRA_RUNNING_AS_GAME) {
+        mGameConfig = new GameConfigStruct();
+    }
 }
 
 void InfrastructureBase::ParseCommandLineInformation(int pArgc, char **pArgv) {
@@ -2132,6 +2399,11 @@ InfrastructureBase::~InfrastructureBase() {
     delete xAxisDirVector;
     delete yAxisDirVector;
     delete zAxisDirVector;
+
+    if (mGameConfig != nullptr) {
+        delete mGameConfig;
+        mGameConfig = nullptr;
+    }
 
     //if we did logging into a log file before
     //stop it

@@ -42,6 +42,11 @@
 #define MENUE_ACTION_SETPLAYERNAME 5
 #define MENUE_ACTION_SETMUSICVOLUME 6
 #define MENUE_ACTION_SETSOUNDVOLUME 7
+#define MENUE_ACTION_SETDOUBLERESOLUTION 8
+#define MENUE_ACTION_SETVSYNC 9
+#define MENUE_ACTION_SETENABLESHADOW 10
+#define MENUE_ACTION_SETUPGRADEDSKY 11
+#define MENUE_ACTION_RETURNFROMDETAILSMENUE 12
 
 //"special" menue actions
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
@@ -183,6 +188,10 @@ typedef struct MenuePage {
     //one level above, for example when player presses ESC key
     //one level; or when text input is done in one player
     MenuePage* parentMenuePage = nullptr;
+
+    //Allows to trigger an action when this page
+    //is exit with ESC key
+    MenueAction* pageEscKeyTriggerAction = nullptr;
 } MenuePage;
 
 typedef struct {
@@ -313,7 +322,10 @@ private:
 
     //Menue definitions for video details
     MenuePage* VideoDetailsPage = nullptr;
+    MenueSingleEntry* EnableDoubleResolution = nullptr;
     MenueSingleEntry* EnableVSync = nullptr;
+    MenueSingleEntry* EnableShadows = nullptr;
+    MenueSingleEntry* UseUpgradedSky = nullptr;
     MenueSingleEntry* VideoPageBackToOptionsMenue = nullptr;
 
     //Menue definitions for sound options
@@ -557,6 +569,12 @@ public:
 
     MenueAction* ActSetComputerPlayerEnable = nullptr;
     MenueAction* ActSetDifficultyLevel = nullptr;
+
+    MenueAction* ActSetDoubleResolution = nullptr;
+    MenueAction* ActSetVSync = nullptr;
+    MenueAction* ActSetEnableShadows = nullptr;
+    MenueAction* ActSetUpgradedSky = nullptr;
+    MenueAction* ActReturnFromDetailsMenue = nullptr;
 
     MenueAction* ActSetPlayerName = nullptr;
     MenueAction* ActSetMusicVolume = nullptr;

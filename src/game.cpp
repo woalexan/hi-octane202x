@@ -132,24 +132,31 @@ bool Game::InitGameStep2() {
     return true;
 }
 
-//creates the most basic game infrastructure, and
-//extracts basic things to be able to show a first
-//graphical screen
-bool Game::InitGameStep1(bool useXEffects) {
-    dimension2d<u32> targetResolution;
+//First initialization step that is only important
+//for the game, setup XEffects if needed, and
+//load first resources
+bool Game::InitGameStep1() {
+   mUseXEffects = false;
 
-    //set target screen resolution
-    targetResolution.set(640,480);
-    //targetResolution.set(1280,960);
+   //if we use shadows we need to enable XEffects
+   if (mGameConfig->enableShadows) {
+       mUseXEffects = true;
+       logging::Info("XEffects is turned on");
 
-    //initialize my infrastructure
-    this->InfrastructureInit(targetResolution, fullscreen);
-    if (!GetInfrastructureInitOk())
-        return false;
+       if (!mGameConfig->useUpgradedSky) {
+            //we need to use the upgraded sky, because the vanilla
+            //sky does not work together with XEffects enabled
+            mGameConfig->useUpgradedSky = true;
 
-    mUseXEffects = useXEffects;
+            logging::Warning("Switch to use upgraded sky because vanilla sky is not compatible to using XEffects");
+       }
+   }
 
-    if (mUseXEffects) {
+   if (!mUseXEffects) {
+       logging::Info("XEffects is not used");
+   }
+
+   if (mUseXEffects) {
         // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
         // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
         // (The screen buffer resolution need not be the same as the screen resolution.)
@@ -474,6 +481,44 @@ void Game::HandleMenueActions() {
         nextRaceLevelNr = randRangeInt(1, (int)(mGameAssets->mRaceTrackVec->size()));
 
         mGameState = DEF_GAMESTATE_INITDEMO;
+    }
+
+    if (pendingAction == MainMenue->ActSetDoubleResolution) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->enableDoubleResolution = false;
+        } else {
+            mGameConfig->enableDoubleResolution = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActSetVSync) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->enableVSync = false;
+        } else {
+            mGameConfig->enableVSync = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActSetEnableShadows) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->enableShadows = false;
+        } else {
+            mGameConfig->enableShadows = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActSetUpgradedSky) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->useUpgradedSky = false;
+        } else {
+            mGameConfig->useUpgradedSky = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActReturnFromDetailsMenue) {
+        //write the new updated configuration
+        logging::Info("Updated configuration in game config Xml file");
+        WriteGameConfigXmlFile(mDevice);
     }
 }
 
@@ -1341,7 +1386,7 @@ bool Game::ParseCommandLineForGame() {
     return true;
 }
 
-Game::Game(int argc, char **argv) : InfrastructureBase(argc, argv) {
+Game::Game(int argc, char **argv) : InfrastructureBase(argc, argv, INFRA_RUNNING_AS_GAME) {
 }
 
 Game::~Game() {

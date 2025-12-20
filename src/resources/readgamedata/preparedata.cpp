@@ -1421,6 +1421,9 @@ void PrepareData::ExtractLoadingScreenSVGA() {
          throw std::string("Could not locate the original games data file onet0-1.dat");
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/onet0-1.png", 640, 480, 1);
+
+    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/onet0-1-x2.png", 640, 480, 2);
 }
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab
@@ -1441,7 +1444,7 @@ void PrepareData::ExtractSelectionScreenSVGA() {
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1.png", 640, 480, 1);
 
-    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960 (level editor for example needs this)
+    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1-x2.png", 640, 480, 2);
 }
 
@@ -2225,6 +2228,9 @@ void PrepareData::ExtractIntroductoryScreen() {
          throw std::string("Could not locate the original games data file title.dat");
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title.png", 320, 200, 2);
+
+    //create a second vesion as well, scaled by factor 4 for resolution 1280 x 800
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title-X2.png", 320, 200, 4);
 }
 
 //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab

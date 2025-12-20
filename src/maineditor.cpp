@@ -33,6 +33,32 @@ int main(int argc, char **argv)
     //create new editor object
     mEditor = new Editor(argc, argv);
 
+    //Init most basic stuff
+    //using the Irrlicht Null device
+    //Parse command line options
+    //Start logging
+    //Read also Game Xml config file
+    if (!mEditor->InitStage1()) {
+        //editor init failed
+        return 1;
+    }
+
+    //Init final Irrlicht device
+    if (!mEditor->InitStage2()) {
+        //Stage 2 editor init failed
+        return 1;
+    }
+
+    //Third initialization step
+    //Locate original game
+    //Define game directories
+    //Make sure basic first game assets
+    //are available
+    if (!mEditor->InitStage3()) {
+        //Stage 3 editor init failed
+        return 1;
+    }
+
     //try to init most basic
     //game components, so that we
     //can show a first graphical screen
@@ -41,7 +67,8 @@ int main(int argc, char **argv)
        return 1;
     }
 
-    //run the editor
+    //Continue initialization
+    //and finally run the editor
     mEditor->RunEditor();
 
     delete mEditor;

@@ -643,32 +643,101 @@ void Menue::InitMenuePageEntries() {
     /************************************
     * Video Details Option Menue Page   *
     * ***********************************/
+    EnableDoubleResolution = new MenueSingleEntry();
+    EnableDoubleResolution->entryText = strdup("DOUBLE RESOLUTION");
+    EnableDoubleResolution->entryNumber = 0;
+    EnableDoubleResolution->drawTextScrPosition = irr::core::vector2di(144, 181);
+    //enable double resolution is a checkbox
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        EnableDoubleResolution->currValue = 1;
+    } else {
+        EnableDoubleResolution->currValue = 0;
+    }
+    EnableDoubleResolution->maxValue = 1;
+    EnableDoubleResolution->checkBoxOutline.UpperLeftCorner.set(525, 182);
+    EnableDoubleResolution->checkBoxOutline.LowerRightCorner.set(547, 196);
+    EnableDoubleResolution->checkBoxNrBlocks = 1;
+    ActSetDoubleResolution = new MenueAction();
+    ActSetDoubleResolution->actionNr = MENUE_ACTION_SETDOUBLERESOLUTION;
+    EnableDoubleResolution->triggerAction = ActSetDoubleResolution;
+
     EnableVSync = new MenueSingleEntry();
     EnableVSync->entryText = strdup("ENABLE VSYNC");
-    EnableVSync->entryNumber = 0;
-    EnableVSync->drawTextScrPosition = irr::core::vector2di(144, 270);
+    EnableVSync->entryNumber = 1;
+    EnableVSync->drawTextScrPosition = irr::core::vector2di(144, 203);
     //enable vsync is a checkbox
-    EnableVSync->currValue = 1; //by default enabled
+    if (mGame->mGameConfig->enableVSync) {
+        EnableVSync->currValue = 1;
+    } else {
+        EnableVSync->currValue = 0;
+    }
     EnableVSync->maxValue = 1;
-    EnableVSync->checkBoxOutline.UpperLeftCorner.set(505, 271);
-    EnableVSync->checkBoxOutline.LowerRightCorner.set(527, 285);
+    EnableVSync->checkBoxOutline.UpperLeftCorner.set(525, 204);
+    EnableVSync->checkBoxOutline.LowerRightCorner.set(547, 218);
     EnableVSync->checkBoxNrBlocks = 1;
+    ActSetVSync = new MenueAction();
+    ActSetVSync->actionNr = MENUE_ACTION_SETVSYNC;
+    EnableVSync->triggerAction = ActSetVSync;
+
+    EnableShadows = new MenueSingleEntry();
+    EnableShadows->entryText = strdup("ENABLE SHADOWS");
+    EnableShadows->entryNumber = 2;
+    EnableShadows->drawTextScrPosition = irr::core::vector2di(144, 225);
+    //enable shadows is a checkbox
+    if (mGame->mGameConfig->enableShadows) {
+        EnableShadows->currValue = 1;
+    } else {
+        EnableShadows->currValue = 0;
+    }
+    EnableShadows->maxValue = 1;
+    EnableShadows->checkBoxOutline.UpperLeftCorner.set(525, 226);
+    EnableShadows->checkBoxOutline.LowerRightCorner.set(547, 240);
+    EnableShadows->checkBoxNrBlocks = 1;
+    ActSetEnableShadows = new MenueAction();
+    ActSetEnableShadows->actionNr = MENUE_ACTION_SETENABLESHADOW;
+    EnableShadows->triggerAction = ActSetEnableShadows;
+
+    UseUpgradedSky = new MenueSingleEntry();
+    UseUpgradedSky->entryText = strdup("UPGRADED SKY");
+    UseUpgradedSky->entryNumber = 3;
+    UseUpgradedSky->drawTextScrPosition = irr::core::vector2di(144, 247);
+    //option to use the upgraded sky is a checkbox
+    if (mGame->mGameConfig->useUpgradedSky) {
+        UseUpgradedSky->currValue = 1;
+    } else {
+        UseUpgradedSky->currValue = 0;
+    }
+    UseUpgradedSky->maxValue = 1;
+    UseUpgradedSky->checkBoxOutline.UpperLeftCorner.set(525, 248);
+    UseUpgradedSky->checkBoxOutline.LowerRightCorner.set(547, 262);
+    UseUpgradedSky->checkBoxNrBlocks = 1;
+    ActSetUpgradedSky = new MenueAction();
+    ActSetUpgradedSky->actionNr = MENUE_ACTION_SETUPGRADEDSKY;
+    UseUpgradedSky->triggerAction = ActSetUpgradedSky;
+
     //ActSetComputerPlayerEnable = new MenueAction();
     //ActSetComputerPlayerEnable->actionNr = MENUE_ACTION_SETCOMPUTERPLAYERENA;
     //ComputerPlayersCheckBox->triggerAction = ActSetComputerPlayerEnable;
 
     VideoPageBackToOptionsMenue = new MenueSingleEntry();
     VideoPageBackToOptionsMenue->entryText = strdup("MAIN OPTIONS");
-    VideoPageBackToOptionsMenue->entryNumber = 1;
-    VideoPageBackToOptionsMenue->drawTextScrPosition = irr::core::vector2di(230, 314);
+    VideoPageBackToOptionsMenue->entryNumber = 4;
+    VideoPageBackToOptionsMenue->drawTextScrPosition = irr::core::vector2di(230, 269);
     VideoPageBackToOptionsMenue->nextMenuePage = OptionMenuePage;
+    ActReturnFromDetailsMenue = new MenueAction();
+    ActReturnFromDetailsMenue->actionNr = MENUE_ACTION_RETURNFROMDETAILSMENUE;
+    VideoPageBackToOptionsMenue->triggerAction = ActReturnFromDetailsMenue;
 
+    VideoDetailsPage->pageEntryVec.push_back(EnableDoubleResolution);
     VideoDetailsPage->pageEntryVec.push_back(EnableVSync);
+    VideoDetailsPage->pageEntryVec.push_back(EnableShadows);
+    VideoDetailsPage->pageEntryVec.push_back(UseUpgradedSky);
     VideoDetailsPage->pageEntryVec.push_back(VideoPageBackToOptionsMenue);
     this->menuePageVector.push_back(VideoDetailsPage);
 
     //parent page of video option menue is Option menue page
     VideoDetailsPage->parentMenuePage = OptionMenuePage;
+    VideoDetailsPage->pageEscKeyTriggerAction = ActReturnFromDetailsMenue;
 
     /*****************************
     * Sound Options Menue Page   *
@@ -2073,6 +2142,16 @@ void Menue::ItemDown() {
 }
 
 void Menue::ItemReturn() {
+    //Does this menue item have an action we can trigger?
+    //when pressing Return key
+    if (currSelMenueSingleEntry->triggerAction != nullptr) {
+           //we want to trigger/execute an action by the user
+            //we can reuse currSetValue here to indicate the main program
+            //for example which championship slot to load or save and so on
+            currSelMenueSingleEntry->triggerAction->currSetValue = currSelMenueSingleEntry->entryNumber;
+            currActionToExecute = currSelMenueSingleEntry->triggerAction;
+    }
+
     //does this item allow to change to another sub menue page?
     //if so then change to the next page
     if (currSelMenueSingleEntry->nextMenuePage != nullptr) {
@@ -2128,15 +2207,15 @@ void Menue::ItemReturn() {
       return;
     }
 
-    //if not does this menue item have an action we can trigger?
+    //Does this menue item have an action we can trigger?
     //when pressing Return key
-    if (currSelMenueSingleEntry->triggerAction != nullptr) {
+   /* if (currSelMenueSingleEntry->triggerAction != nullptr) {
            //we want to trigger/execute an action by the user
             //we can reuse currSetValue here to indicate the main program
             //for example which championship slot to load or save and so on
             currSelMenueSingleEntry->triggerAction->currSetValue = currSelMenueSingleEntry->entryNumber;
             currActionToExecute = currSelMenueSingleEntry->triggerAction;
-    }
+    }*/
 }
 
 void Menue::RemoveInputTextFieldChar(MenueSingleEntry* textInputEntry) {
@@ -2215,6 +2294,12 @@ void Menue::SetInputTextField(MenueSingleEntry* textInputEntry, char* newText) {
 void Menue::ReturnToParentMenuePage(MenuePage* currentMenuePage) {
     //is there really a parent entry, if not we can not go up
     if (currentMenuePage->parentMenuePage != nullptr) {
+
+        //is there an action that should be triggered when with exit this menue page
+        //with ESC key?
+        if (currentMenuePage->pageEscKeyTriggerAction != nullptr) {
+             currActionToExecute = currentMenuePage->pageEscKeyTriggerAction;
+        }
 
         if (MENUE_ENABLETYPEWRITEREFFECT) {
             finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currentMenuePage->parentMenuePage);
