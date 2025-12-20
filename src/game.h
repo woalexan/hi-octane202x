@@ -145,17 +145,12 @@ public:
 
     EffectHandler* mEffect = nullptr;
 
-    //ShadowMap settings
-    E_FILTER_TYPE mShadowMapFilterType;
-    irr::u32 mShadowMapResolution;
-
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging
     bool mDebugRace = false;
     bool mDebugDemoMode = false;
 
     bool enableLightning = false;
-    bool enableShadows = false;
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
 

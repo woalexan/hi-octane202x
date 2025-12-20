@@ -81,9 +81,6 @@ private:
 
     irr::scene::IAnimatedMesh*  RecoveryMesh = nullptr;
 
-    //recovery vehicle shadow SceneNode
-    irr::scene::IShadowVolumeSceneNode* NodeShadow = nullptr;
-
     irr::scene::ISceneManager* mSmgr = nullptr;
 
     Race* mRace = nullptr;

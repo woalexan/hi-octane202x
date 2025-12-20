@@ -66,6 +66,23 @@ struct OriginalGameCreditStruct {
     std::vector<std::string> individualsVec;
 };
 
+struct MapConfigStruct {
+    std::string SkyImageFileVanilla;
+    std::string SkyImageFileUpgradedSky;
+    irr::video::SColor cloudColorCenter1;
+    irr::video::SColor cloudColorInner1;
+    irr::video::SColor cloudColorOuter1;
+    irr::video::SColor cloudColorCenter2;
+    irr::video::SColor cloudColorInner2;
+    irr::video::SColor cloudColorOuter2;
+    irr::video::SColor cloudColorCenter3;
+    irr::video::SColor cloudColorInner3;
+    irr::video::SColor cloudColorOuter3;
+    std::string MusicFile;
+    bool EnableLensFlare;
+    irr::core::vector3df lensflareLocation;
+};
+
 class InfrastructureBase {
 public:
   InfrastructureBase(int pArgc, char **pArgv);
@@ -98,7 +115,7 @@ public:
   dimension2d<u32> mScreenRes;
   Logger* mLogger = nullptr;
 
-  void InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows);
+  void InfrastructureInit(dimension2d<u32> resolution, bool fullScreen);
   bool GetInfrastructureInitOk();
 
   //have all pointers as public
@@ -167,6 +184,42 @@ public:
   irr::io::path GetMapConfigFileName(LevelFolderInfoStruct* whichLevel);
   irr::io::path GetMapConfigFileName(std::string levelRootPath);
 
+  irr::core::stringw SColorToXmlSettingStr(irr::video::SColor* whichColor);
+  irr::core::stringw Vector3dfToXmlSettingStr(irr::core::vector3df* whichVector);
+  irr::core::stringw BoolToXmlSettingStr(bool inputVal);
+
+  //Returns true in case the input string contains a number, False if there are any other characters
+  //that are no digits;
+  bool WStringContainsNumber(irr::core::stringw inputStr, bool allowDecimalNumber);
+
+  //Returns false if Xml value payload string is missformed, True otherwise
+  //The output payload string is returned in the second parameter
+  bool GetXmlValuePayload(irr::core::stringw inputStr, irr::core::stringw &payloadStr);
+
+  irr::u32 CntNumberCharacterOccurence(irr::core::stringw* inputStr, wchar_t delimiter);
+  void SplitWStringAtDelimiterChar(irr::core::stringw* inputStr, wchar_t delimiter, std::vector<irr::core::stringw> &outWStrVec, bool addEmptyStrings = false);
+
+  //Returns false if input string is invalid (can not be parsed), True otherwise
+  //Output value is returned in second parameter
+  bool XmlSettingStrToBool(irr::core::stringw inputStr, bool& outValue);
+
+  //Returns false if input string is invalid (can not be parsed), True otherwise
+  //Output value is returned in second parameter
+  bool XmlSettingStrToVector3df(irr::core::stringw inputStr, irr::core::vector3df& outValue);
+
+  //Returns false if input string is invalid (can not be parsed), True otherwise
+  //Output value is returned in second parameter
+  bool XmlSettingStrToSColor(irr::core::stringw inputStr, irr::video::SColor& outColor);
+
+  bool GetCloudColorValue(map<irr::core::stringw, irr::core::stringw> *valueMap, irr::core::stringw keyName, irr::video::SColor &outColor);
+
+  //Returns true in case of success, False otherwise
+  bool WriteMapConfigFile(const std::string fileName, MapConfigStruct* configStruct);
+
+  //Returns true in case of success, False otherwise
+  //Read values are returned in second parameter
+  bool ReadMapConfigFile(const std::string fileName, MapConfigStruct &configStruct);
+
   //Returns a vector of existing levels in a specified root directory
   void GetExistingLevelInfo(std::string rootDir, bool markAsCustomLevel, std::vector<LevelFolderInfoStruct*> &levelInfoVec);
 
@@ -191,7 +244,6 @@ public:
 
 private:
   //Irrlicht stuff
-  bool mEnableShadows;
   bool mFullscreen;
   bool mInitOk = false;
 

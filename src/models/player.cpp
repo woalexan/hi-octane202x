@@ -484,11 +484,6 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     Player_node->setMaterialFlag(irr::video::EMF_LIGHTING, this->mRace->mGame->enableLightning);
     Player_node->setMaterialFlag(irr::video::EMF_FOG_ENABLE, true);
 
-    if (this->mRace->mGame->enableShadows) {
-       // add shadow
-       PlayerNodeShadow = Player_node->addShadowVolumeSceneNode();
-    }
-
     //get player bounding box, to use later for machine gun targeting
     irr::core::aabbox3df Player_node_bbox = Player_node->getTransformedBoundingBox();
 
@@ -1953,6 +1948,9 @@ void Player::HideCraft() {
     if (mCraftVisible) {
         mCraftVisible = false;
         this->Player_node->setVisible(false);
+        if (mRace->mGame->mUseXEffects) {
+            mRace->mGame->mEffect->removeShadowFromNode(this->phobj->sceneNode);
+        }
     }
 }
 
@@ -1960,6 +1958,9 @@ void Player::UnhideCraft() {
     if (!mCraftVisible) {
         mCraftVisible = true;
         this->Player_node->setVisible(true);
+        if (mRace->mGame->mUseXEffects) {
+            mRace->mGame->mEffect->addShadowToNode(this->phobj->sceneNode, E_FILTER_TYPE::EFT_12PCF);
+        }
     }
 }
 

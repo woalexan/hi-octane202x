@@ -47,6 +47,7 @@
 #include "models/collectablespawner.h"
 #include "draw/drawdebug.h"
 #include "models/steamfountain.h"
+#include "scenenodes/CLensFlareSceneNode.h"
 
 #include "audio/sound.h"
 #include "audio/music.h"
@@ -58,6 +59,161 @@
 
 #include "game.h"
 #include "race.h"
+#include "infrabase.h"
+
+class ShaderCallBack : public video::IShaderConstantSetCallBack
+{
+private:
+    Race* mRace;
+
+public:
+    ShaderCallBack(Race* parentRace) {
+        mRace = parentRace;
+    }
+
+    ~ShaderCallBack() {
+    }
+
+    //for final Pointlights
+    /*virtual void OnSetConstants(video::IMaterialRendererServices* services,
+            s32 userData)
+    {
+        video::IVideoDriver* driver = services->getVideoDriver();
+
+        // set inverted world matrix
+        // if we are using highlevel shaders (the user can select this when
+        // starting the program), we must set the constants by name.
+
+        core::matrix4 invWorld = driver->getTransform(video::ETS_WORLD);
+        invWorld.makeInverse();
+
+        services->setVertexShaderConstant("mInvWorld", invWorld.pointer(), 16);
+
+        // set clip matrix
+
+        core::matrix4 worldViewProj;
+        worldViewProj = driver->getTransform(video::ETS_PROJECTION);
+        worldViewProj *= driver->getTransform(video::ETS_VIEW);
+        worldViewProj *= driver->getTransform(video::ETS_WORLD);
+
+        services->setVertexShaderConstant("mWorldViewProj", worldViewProj.pointer(), 16);
+
+        // set viewer position
+        core::vector3df viewPos = device->mRace->mGame->mSmgr->
+                getActiveCamera()->getAbsolutePosition();
+
+        services->setVertexShaderConstant("mViewerPos", reinterpret_cast<f32*>(&viewPos), 3);
+
+        //Set Material
+        irr::core::vector3df matSpecular(0.5f, 0.5f, 0.5f);
+        irr::f32 matShininess = 32.0f;
+        // set texture, for textures you can use both an int and a float setPixelShaderConstant interfaces (You need it only for an OpenGL driver).
+        s32 TextureLayerID = 0;
+
+        services->setPixelShaderConstant("material.diffuseTex", &TextureLayerID, 1);
+        services->setVertexShaderConstant("material.specular", reinterpret_cast<f32*>(&matSpecular), 3);
+        services->setVertexShaderConstant("material.shininess", reinterpret_cast<f32*>(&matShininess), 1);
+
+        //Set light
+        irr::core::vector3df lightColorAmbient(0.2f, 0.2f, 0.2f);
+        irr::core::vector3df lightDiffuse(0.5f, 0.5f, 0.5f);  // darken diffuse light a bit
+        irr::core::vector3df lightSpecular(1.0f, 1.0f, 1.0f);
+        services->setVertexShaderConstant("pointLight.position", reinterpret_cast<f32*>(&lightPos), 3);
+        services->setVertexShaderConstant("pointLight.ambient", reinterpret_cast<f32*>(&lightColorAmbient), 3);
+        services->setVertexShaderConstant("pointLight.diffuse", reinterpret_cast<f32*>(&lightDiffuse), 3);
+        services->setVertexShaderConstant("pointLight.specular", reinterpret_cast<f32*>(&lightSpecular), 3);
+
+        //see OGRE Wiki:
+        //https://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation
+
+        //      Distance 	Constant 	Linear 	Quadratic
+        //7 	1.0         0.7         1.8
+        //13 	1.0         0.35        0.44
+        //20 	1.0         0.22        0.20
+        //32 	1.0         0.14        0.07
+        //50 	1.0         0.09        0.032
+        //65 	1.0         0.07        0.017
+        //100 	1.0         0.045       0.0075
+        //160 	1.0         0.027       0.0028
+        //200 	1.0         0.022       0.0019
+        //325 	1.0         0.014       0.0007
+        //600 	1.0     	0.007       0.0002
+        //3250 	1.0         0.0014      0.000007
+
+        irr::f32 lightAttConstant = 1.0f;
+        irr::f32 lightAttLinear = 0.007f;
+        irr::f32 lightAttQuadratic = 0.0002f;
+
+        services->setVertexShaderConstant("pointLight.constant", reinterpret_cast<f32*>(&lightAttConstant), 1);
+        services->setVertexShaderConstant("pointLight.linear", reinterpret_cast<f32*>(&lightAttLinear), 1);
+        services->setVertexShaderConstant("pointLight.quadratic", reinterpret_cast<f32*>(&lightAttQuadratic), 1);
+
+        // set transposed world matrix
+
+        core::matrix4 world = driver->getTransform(video::ETS_WORLD);
+        world = world.getTransposed();
+
+        services->setVertexShaderConstant("mTransWorld", world.pointer(), 16);
+    }*/
+
+    //for Directional lights
+    virtual void OnSetConstants(video::IMaterialRendererServices* services,
+            s32 userData)
+    {
+        video::IVideoDriver* driver = services->getVideoDriver();
+
+        // set inverted world matrix
+        // if we are using highlevel shaders (the user can select this when
+        // starting the program), we must set the constants by name.
+
+        core::matrix4 invWorld = driver->getTransform(video::ETS_WORLD);
+        invWorld.makeInverse();
+
+        services->setVertexShaderConstant("mInvWorld", invWorld.pointer(), 16);
+
+        // set clip matrix
+
+        core::matrix4 worldViewProj;
+        worldViewProj = driver->getTransform(video::ETS_PROJECTION);
+        worldViewProj *= driver->getTransform(video::ETS_VIEW);
+        worldViewProj *= driver->getTransform(video::ETS_WORLD);
+
+        services->setVertexShaderConstant("mWorldViewProj", worldViewProj.pointer(), 16);
+
+        // set viewer position
+        core::vector3df viewPos = mRace->mGame->mSmgr->
+                getActiveCamera()->getAbsolutePosition();
+
+        services->setVertexShaderConstant("mViewerPos", reinterpret_cast<f32*>(&viewPos), 3);
+
+        //Set Material
+        irr::core::vector3df matSpecular(0.5f, 0.5f, 0.5f);
+        irr::f32 matShininess = 32.0f;
+        // set texture, for textures you can use both an int and a float setPixelShaderConstant interfaces (You need it only for an OpenGL driver).
+        s32 TextureLayerID = 0;
+
+        services->setPixelShaderConstant("material.diffuseTex", &TextureLayerID, 1);
+        services->setVertexShaderConstant("material.specular", reinterpret_cast<f32*>(&matSpecular), 3);
+        services->setVertexShaderConstant("material.shininess", reinterpret_cast<f32*>(&matShininess), 1);
+
+        //Set light
+        irr::core::vector3df lightColorAmbient(0.3f, 0.3f, 0.3f);
+        irr::core::vector3df lightDiffuse(0.5f, 0.5f, 0.5f);  // darken diffuse light a bit
+        irr::core::vector3df lightSpecular(0.0f, 0.0f, 0.0f);
+        irr::core::vector3df lightDirection(-0.5f, 2.0f, -0.6f);
+        services->setVertexShaderConstant("dirLight.lightDir", reinterpret_cast<f32*>(&lightDirection), 3);
+        services->setVertexShaderConstant("dirLight.ambient", reinterpret_cast<f32*>(&lightColorAmbient), 3);
+        services->setVertexShaderConstant("dirLight.diffuse", reinterpret_cast<f32*>(&lightDiffuse), 3);
+        services->setVertexShaderConstant("dirLight.specular", reinterpret_cast<f32*>(&lightSpecular), 3);
+
+        // set transposed world matrix
+
+        core::matrix4 world = driver->getTransform(video::ETS_WORLD);
+        world = world.getTransposed();
+
+        services->setVertexShaderConstant("mTransWorld", world.pointer(), 16);
+    }
+};
 
 Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
            SoundEngine* soundEngine, std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode, bool skipStart) {
@@ -128,6 +284,30 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     //for the start of the race we want to trigger
     //target group 1 once
     mPendingTriggerTargetGroups.push_back(1);
+
+   /* io::path vsFileName; // filename for the vertex shader
+    io::path fragmentFileName; // filename for the fragment shader
+
+    fragmentFileName = "shaders/opengl.frag";
+    vsFileName = "shaders/opengl.vert";
+
+    video::IGPUProgrammingServices* gpu = mGame->mDriver->getGPUProgrammingServices();
+
+    if (gpu) {
+           shaderCallBack = new ShaderCallBack(this);
+
+            // Choose the desired shader type. Default is the native
+                    // shader type for the driver, for Cg pass the special
+                    // enum value EGSL_CG
+
+                         // create material from high level shaders (hlsl, glsl or cg)
+                         shaderMaterial1 = gpu->addHighLevelShaderMaterialFromFiles(
+                             vsFileName, "vertexMain", video::EVST_VS_1_1,
+                             fragmentFileName, "pixelMain", video::EPST_PS_1_1,
+                             shaderCallBack, video::EMT_SOLID, 0, video::E_GPU_SHADING_LANGUAGE::EGSL_DEFAULT);
+
+                 //shaderCallBack->drop();
+             }*/
 
     //test code
 
@@ -317,6 +497,31 @@ Race::~Race() {
     CleanUpCameras();
     CleanUpExplosionEntities();
     CleanupChargingStations();
+
+    if (skydomeNode != nullptr) {
+        skydomeNode->remove();
+        skydomeNode = nullptr;
+    }
+
+    if (flare != nullptr) {
+        flare->remove();
+        flare = nullptr;
+    }
+
+    if (cloudLayer1 != nullptr) {
+        cloudLayer1->remove();
+        cloudLayer1 = nullptr;
+    }
+
+    if (cloudLayer2 != nullptr) {
+        cloudLayer2->remove();
+        cloudLayer2 = nullptr;
+    }
+
+    if (cloudLayer3 != nullptr) {
+        cloudLayer3->remove();
+        cloudLayer3 = nullptr;
+    }
 
     //free lowlevel level data
     delete mLevelBlocks;
@@ -936,7 +1141,7 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
         // Add this SceneNode to the shadow node list, using the chosen filtertype.
         // It will use the default shadow mode, ESM_BOTH, which allows it to
         // both cast and receive shadows.
-        mGame->mEffect->addShadowToNode(newPlayer->Player_node, mGame->mShadowMapFilterType);
+        mGame->mEffect->addShadowToNode(newPlayer->Player_node, mShadowMapFilterType);
     }
 
     //Setup physics for new player, we handover pointer to Irrlicht
@@ -1870,7 +2075,7 @@ void Race::Init() {
     testBezier = new Bezier(mLevelTerrain, mGame->mDrawDebug);
 
     //load the correct music file for this level
-    if (!mMusicPlayer->loadGameMusicFile(mMusicFileName.c_str())) {
+    if (!mMusicPlayer->loadGameMusicFile(mMapConfig->MusicFile.c_str())) {
         logging::Error("Music load failed");
         return;
     } else {
@@ -2137,6 +2342,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //update all current explosions
     mExplosionLauncher->Update(frameDeltaTime);
 
+    UpdateShadowLights();
+
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntUpdateParticleSystems);
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
@@ -2144,6 +2351,22 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     }
 
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntWorldAware);
+}
+
+void Race::UpdateShadowLights() {
+    if (mGame->mUseXEffects) {
+        ICameraSceneNode* activeCam = mGame->mSmgr->getActiveCamera();
+
+        if (activeCam != nullptr) {
+            //mGame->mEffect->getShadowLight(0).setPosition(mPlayerVec.at(0)->phobj->physicState.position + irr::core::vector3df(0.0f, 40.0f, 0.0f));
+            //mGame->mEffect->getShadowLight(0).setTarget(mPlayerVec.at(0)->phobj->physicState.position);
+
+            irr::core::vector3df camAbsPos = activeCam->getAbsolutePosition();
+
+            mGame->mEffect->getShadowLight(0).setPosition(camAbsPos + irr::core::vector3df(0.0f, 40.0f, 0.0f));
+            mGame->mEffect->getShadowLight(0).setTarget(camAbsPos);
+        }
+    }
 }
 
 void Race::PlayerEnteredCraftTriggerRegion(Player* whichPlayer, MapTileRegionStruct* whichRegion) {
@@ -2369,15 +2592,6 @@ void Race::HandleBasicInput() {
       //   this->mPlayerVec.at(0)->StartDbgRecording();
         /*if (testtrans < 255)
             testtrans = testtrans + 1;
-
-         testBill->setColor(irr::video::SColor(255, testtrans,testtrans,testtrans));*/
-    }
-
-    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F6))
-    {
-        // this->mPlayerVec.at(0)->EndDbgRecording();
-        /*if (testtrans > 0)
-            testtrans = testtrans - 1;
 
          testBill->setColor(irr::video::SColor(255, testtrans,testtrans,testtrans));*/
     }
@@ -3248,7 +3462,7 @@ bool Race::LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d
     driver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //load sky image
-    mSkyImage = driver->getTexture(mSkyFileName.c_str());
+    mSkyImage = driver->getTexture(mMapConfig->SkyImageFileVanilla.c_str());
 
     if (mSkyImage == nullptr) {
         //there was a texture loading error
@@ -3329,7 +3543,7 @@ bool Race::LoadLevelConfigData() {
 
     if (FileExists(configFileName.c_str()) != 1) {
         //Problem with this file
-        std::string logErr("Can not read file '");
+        std::string logErr("Can not find file '");
         logErr.append(configFileName.c_str());
         logErr.append("'!");
 
@@ -3337,9 +3551,24 @@ bool Race::LoadLevelConfigData() {
         return false;
     }
 
+    //Read complete level/map configuration from Xml file
+    mMapConfig = new MapConfigStruct();
+    if (!mGame->ReadMapConfigFile(configFileName.c_str(), *mMapConfig)) {
+        logging::Error("Failed to read map config file!");
+        return false;
+    }
+
+    std::string logStr("Succesfully read file '");
+    logStr.append(configFileName.c_str());
+    logStr.append("'");
+
+    logging::Info(logStr);
+
+    return true;
+
     //open map config text file
     //and read line by line
-    std::ifstream configFile(configFileName.c_str());
+   /* std::ifstream configFile(configFileName.c_str());
 
     std::string line;
     irr::u32 currLineNr = 0;
@@ -3376,7 +3605,97 @@ bool Race::LoadLevelConfigData() {
 
      logging::Error(logStr);
 
-     return false;
+     return false;*/
+}
+
+//Returns true in case of success, False
+//otherwise
+bool Race::SetupSky() {
+    if (mGame->mUseXEffects) {
+        //We want to use the "upgraded" sky (not vanilla)
+
+        //create sky box
+        /*  mGame->mDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
+                skyboxNode = mGame->mSmgr->addSkyBoxSceneNode(
+                     mGame->mDriver->getTexture("media/skybox/remus/sky01_up.jpg"),
+                     mGame->mDriver->getTexture("media/skybox/remus/sky01_dn.jpg"),
+                     mGame->mDriver->getTexture("media/skybox/remus/sky01_rt.jpg"),
+                     mGame->mDriver->getTexture("media/skybox/remus/sky01_lf.jpg"),
+                     mGame->mDriver->getTexture("media/skybox/remus/sky01_ft.jpg"),
+                     mGame->mDriver->getTexture("media/skybox/remus/sky01_bk.jpg"));
+               mGame->mDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
+
+       skyboxNode->setRotation(irr::core::vector3df(0.0f, 220.0f, 0.0f));
+       skyboxNode->setMaterialFlag(video::E_MATERIAL_FLAG::EMF_FOG_ENABLE, false); */
+
+       if (!(FileExists(mMapConfig->SkyImageFileUpgradedSky.c_str()) == 1)) {
+           std::string overvallMsg("Can not find file ");
+           overvallMsg.append(mMapConfig->SkyImageFileUpgradedSky);
+           overvallMsg.append("!");
+           logging::Error(overvallMsg);
+           return false;
+       }
+
+       skydomeNode = mGame->mSmgr->addSkyDomeSceneNode(mGame->mDriver->getTexture(mMapConfig->SkyImageFileUpgradedSky.c_str()),16,16,1.0f,1.4f);
+
+       if (mMapConfig->EnableLensFlare) {
+               scene::ILightSceneNode *light = mGame->mSmgr->addLightSceneNode(0, mMapConfig->lensflareLocation,
+                                               video::SColor(0,248, 130, 0));
+               light->setLightType(video::ELT_DIRECTIONAL);
+               light->enableCastShadow(false);
+
+               std::string readFile;
+               readFile.clear();
+               readFile.append("media/flares/flares.jpg");
+
+               if (!(FileExists(readFile.c_str()) == 1)) {
+                   std::string overvallMsg("Can not find file ");
+                   overvallMsg.append(readFile);
+                   overvallMsg.append("!");
+                   logging::Error(overvallMsg);
+                   return false;
+               }
+
+              flare = new scene::CLensFlareSceneNode(light, mGame->mSmgr, 666);
+              if(flare) {
+                   flare->getMaterial(0).setTexture(0, mGame->mDriver->getTexture(readFile.c_str()));
+                   flare->setMaterialFlag(video::EMF_LIGHTING, false);
+              }
+       }
+
+      // add 1st cloud layer
+      cloudLayer1 = new scene::CCloudSceneNode(mGame->mSmgr->getRootSceneNode(), mGame->mSmgr);
+      cloudLayer1->setTranslation(core::vector2df(0.008f, 0.0f));
+      cloudLayer1->getMaterial(0).setTexture(0, mGame->mDriver->getTexture("media/clouds/cloud01.png"));
+      cloudLayer1->setCloudHeight(0.5f, 0.1f, -0.05f);
+      cloudLayer1->setCloudColor(mMapConfig->cloudColorCenter1, mMapConfig->cloudColorInner1, mMapConfig->cloudColorOuter1);
+
+      // add 2nd cloud layer
+      cloudLayer2 = new scene::CCloudSceneNode(mGame->mSmgr->getRootSceneNode(), mGame->mSmgr);
+      cloudLayer2->setTranslation(core::vector2df(0.006f, 0.003f));
+      cloudLayer2->getMaterial(0).setTexture(0, mGame->mDriver->getTexture("media/clouds/cloud02.png"));
+      cloudLayer2->setCloudHeight(0.4f, 0.05f, -0.1f);
+      cloudLayer2->setTextureScale(0.5f);
+      cloudLayer2->setCloudColor(mMapConfig->cloudColorCenter2, mMapConfig->cloudColorInner2, mMapConfig->cloudColorOuter2);
+
+      // add 3rd cloud layer
+      cloudLayer3 = new scene::CCloudSceneNode(mGame->mSmgr->getRootSceneNode(), mGame->mSmgr);
+      cloudLayer3->setTranslation(core::vector2df(0.006f, 0.003f));
+      cloudLayer3->getMaterial(0).setTexture(0, mGame->mDriver->getTexture("media/clouds/cloud03.png"));
+      cloudLayer3->setCloudHeight(0.35f, 0.0f, -0.15f);
+      cloudLayer3->setTextureScale(0.4f);
+      cloudLayer3->setCloudColor(mMapConfig->cloudColorCenter3, mMapConfig->cloudColorInner3, mMapConfig->cloudColorOuter3);
+    } else {
+        //we want to use the original game sky art (vanilla)
+
+        //load sky image for selected level
+        if (!LoadSkyImage(mGame->mDriver, mGame->mScreenRes)) {
+            //error loading sky image, do something about it!
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool Race::LoadLevel() {
@@ -3440,12 +3759,37 @@ bool Race::LoadLevel() {
    //unfortunetly! do not forget it!
    mLevelTerrain->SetLevelBlocks(mLevelBlocks);
 
+   if (!SetupSky()) {
+       return false;
+   }
+
    if (mGame->mUseXEffects) {
+       //Set ShadowMap filter type
+       mShadowMapFilterType = E_FILTER_TYPE::EFT_12PCF;
+       mShadowMapResolution = 4096;
+
+       // Set a global ambient color. A very dark gray.
+       mGame->mEffect->setAmbientColor(SColor(255, 32, 32, 32));
+
+       /*mShadowLight = SShadowLight(mShadowMapResolution, vector3df(-25.0f, 120.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
+                                   SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false);*/
+
+       mGame->mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 110.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
+                                                   SColor(255, 255, 255, 255), 10.0f, 90.0f, 90.0f * DEGTORAD, false));
+
+       //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));
+
+       /*core::stringc shaderExt = (mDriver->getDriverType() == EDT_DIRECT3D9) ? ".hlsl" : ".glsl";
+
+       mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurHP") + shaderExt);
+       mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurVP") + shaderExt);
+       mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BloomP") + shaderExt);*/
+
        // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
        // It will use the default shadow mode, ESM_BOTH, which allows it to
        // both cast and receive shadows.
-       mGame->mEffect->addShadowToNode(mLevelBlocks->BlockCollisionSceneNode, mGame->mShadowMapFilterType);
-       mGame->mEffect->addShadowToNode(mLevelBlocks->BlockWithoutCollisionSceneNode, mGame->mShadowMapFilterType);
+       mGame->mEffect->addShadowToNode(mLevelBlocks->BlockCollisionSceneNode, mShadowMapFilterType, ESM_RECEIVE);
+       mGame->mEffect->addShadowToNode(mLevelBlocks->BlockWithoutCollisionSceneNode, mShadowMapFilterType, ESM_RECEIVE);
    }
 
    //create all level entities
@@ -3470,14 +3814,8 @@ bool Race::LoadLevel() {
        // Add the terrain SceneNodes to the shadow node list, using the chosen filtertype.
        // It will use the default shadow mode, ESM_BOTH, which allows it to
        // both cast and receive shadows.
-       this->mGame->mEffect->addShadowToNode(mLevelTerrain->StaticTerrainSceneNode, this->mGame->mShadowMapFilterType);
-       this->mGame->mEffect->addShadowToNode(mLevelTerrain->DynamicTerrainSceneNode, this->mGame->mShadowMapFilterType);
-   }
-
-   //load sky image for selected level
-   if (!LoadSkyImage(mGame->mDriver, mGame->mScreenRes)) {
-       //error loading sky image, do something about it!
-       return false;
+       this->mGame->mEffect->addShadowToNode(mLevelTerrain->StaticTerrainSceneNode, mShadowMapFilterType, ESM_RECEIVE);
+       this->mGame->mEffect->addShadowToNode(mLevelTerrain->DynamicTerrainSceneNode, mShadowMapFilterType, ESM_RECEIVE);
    }
 
   // driver->setFog(video::SColor(0,138,125,81), video::EFT_FOG_LINEAR, 100, 250, .03f, false, true);
@@ -3500,6 +3838,18 @@ bool Race::LoadLevel() {
   //create a bounding box for valid player
   //location testing
   mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
+
+ /* mLevelTerrain->StaticTerrainSceneNode->setMaterialFlag(video::EMF_LIGHTING, false);
+  mLevelTerrain->StaticTerrainSceneNode->setMaterialType((video::E_MATERIAL_TYPE)shaderMaterial1);
+
+  mLevelTerrain->DynamicTerrainSceneNode->setMaterialFlag(video::EMF_LIGHTING, false);
+  mLevelTerrain->DynamicTerrainSceneNode->setMaterialType((video::E_MATERIAL_TYPE)shaderMaterial1);
+
+  mLevelBlocks->BlockCollisionSceneNode->setMaterialFlag(video::EMF_LIGHTING, false);
+  mLevelBlocks->BlockCollisionSceneNode->setMaterialType((video::E_MATERIAL_TYPE)shaderMaterial1);
+
+  mLevelBlocks->BlockWithoutCollisionSceneNode->setMaterialFlag(video::EMF_LIGHTING, false);
+  mLevelBlocks->BlockWithoutCollisionSceneNode->setMaterialType((video::E_MATERIAL_TYPE)shaderMaterial1);*/
 
   return true;
 }
@@ -4667,7 +5017,7 @@ void Race::createEntity(EntityItem *p_entity,
                 // Add this SceneNode to the shadow node list, using the chosen filtertype.
                 // It will use the default shadow mode, ESM_BOTH, which allows it to
                 // both cast and receive shadows.
-                mGame->mEffect->addShadowToNode(recov1->Recovery_node, mGame->mShadowMapFilterType);
+                mGame->mEffect->addShadowToNode(recov1->Recovery_node, mShadowMapFilterType);
             }
 
             //remember all recovery vehicles in a vector for later use

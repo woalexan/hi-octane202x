@@ -24,6 +24,9 @@
 #include <list>
 #include "resources/entityitem.h"
 #include <string>
+#include "xeffects/XEffects.h"
+#include "scenenodes/CloudSceneNode.h"
+#include "scenenodes/CLensFlareSceneNode.h"
 
 using namespace std;
 
@@ -112,6 +115,8 @@ class DrawDebug;
 class LevelFile;
 class Collectable;
 struct ColorStruct;
+class ShaderCallBack;
+struct MapConfigStruct;
 
 class Race {
 public:
@@ -278,17 +283,30 @@ public:
     //a vector of my existing charging stations
     std::vector<ChargingStation*>* mChargingStationVec = nullptr;
 
+    ShaderCallBack* shaderCallBack;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
 
-    std::string mSkyFileName;
-    std::string mMusicFileName;
-
     bool mMiniMapInitOk;
+
+    MapConfigStruct* mMapConfig = nullptr;
 
     void InitiateExitRace();
     void HandleExitRace();
+
+    //Returns true in case of success, False
+    //otherwise
+    bool SetupSky();
+
+    irr::s32 shaderMaterial1;
+
+    //ShadowMap settings
+    E_FILTER_TYPE mShadowMapFilterType;
+    irr::u32 mShadowMapResolution;
+
+    SShadowLight* mShadowLight = nullptr;
 
     //the image for the base of the minimap
     //without the player location dots
@@ -536,6 +554,17 @@ private:
     std::vector<Collectable*> mType2CollectableForCleanupLater;
 
     void CreateChargingStations();
+
+    //for improved sky
+    irr::scene::ISceneNode* skydomeNode = nullptr;
+
+    irr::scene::CLensFlareSceneNode* flare = nullptr;
+
+    irr::scene::CCloudSceneNode* cloudLayer1 = nullptr;
+    irr::scene::CCloudSceneNode* cloudLayer2 = nullptr;
+    irr::scene::CCloudSceneNode* cloudLayer3 = nullptr;
+
+    void UpdateShadowLights();
 };
 
 #endif // RACE_H

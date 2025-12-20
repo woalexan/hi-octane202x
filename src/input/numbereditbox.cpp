@@ -227,7 +227,7 @@ bool NumberEditBox::InterpretValueInt(irr::s32& readNumber) {
    stringw text = mEditBox->getText();
 
    //Does text contain a number?
-   if (!mParentMode->mParentSession->mParentEditor->mUiConversion->StringContainsNumber(text, false)) {
+   if (!mParentMode->mParentSession->mParentEditor->WStringContainsNumber(text, false)) {
        //no, some other characters as well
        return false;
    }
@@ -265,7 +265,7 @@ bool NumberEditBox::InterpretValueFloat(irr::f32& readNumber) {
 
    //Does text contain a number?
    //Allow float number here
-   if (!mParentMode->mParentSession->mParentEditor->mUiConversion->StringContainsNumber(text, true)) {
+   if (!mParentMode->mParentSession->mParentEditor->WStringContainsNumber(text, true)) {
        //no, contains invalid characters
        return false;
    }

@@ -85,9 +85,7 @@ bool InfrastructureBase::InitIrrlicht() {
     // create event receiver
     mEventReceiver = new MyEventReceiver(this);
 
-    //we need to enable stencil buffers, otherwise volumentric shadows
-    //will not work
-    mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 32, mFullscreen, mEnableShadows, false, mEventReceiver);
+    mDevice = createDevice(video::EDT_OPENGL, mScreenRes, 32, mFullscreen, false, false, mEventReceiver);
     
     //22.03.2025: Direct3D does not work right now, at least at my wifes notebook, because
     //of "Could not lock DIRECT3D9 Texture." issue
@@ -147,6 +145,653 @@ irr::io::path InfrastructureBase::GetMiniMapCalFileName(std::string levelRootPat
 
     miniMapFileName.append("minimapcalval.dat");
     return miniMapFileName;
+}
+
+irr::core::stringw InfrastructureBase::SColorToXmlSettingStr(irr::video::SColor* whichColor) {
+   irr::core::stringw result(L"SColor(");
+
+   result.append(irr::core::stringw(whichColor->getAlpha()));
+   result.append(L",");
+   result.append(irr::core::stringw(whichColor->getRed()));
+   result.append(L",");
+   result.append(irr::core::stringw(whichColor->getGreen()));
+   result.append(L",");
+   result.append(irr::core::stringw(whichColor->getBlue()));
+   result.append(L")");
+
+   return result;
+}
+
+irr::core::stringw InfrastructureBase::Vector3dfToXmlSettingStr(irr::core::vector3df* whichVector) {
+   irr::core::stringw result(L"Vector3df(");
+
+   result.append(irr::core::stringw(whichVector->X));
+   result.append(L",");
+   result.append(irr::core::stringw(whichVector->Y));
+   result.append(L",");
+   result.append(irr::core::stringw(whichVector->Z));
+   result.append(L")");
+
+   return result;
+}
+
+irr::core::stringw InfrastructureBase::BoolToXmlSettingStr(bool inputVal) {
+   if (!inputVal) {
+       return (irr::core::stringw("False"));
+   }
+
+   return (irr::core::stringw("True"));
+}
+
+irr::u32 InfrastructureBase::CntNumberCharacterOccurence(irr::core::stringw* inputStr, wchar_t delimiter) {
+    irr::u32 cnt = 0;
+    irr::s32 currIdx;
+    irr::s32 lastIdx = 0;
+    irr::s32 nextIdx = -1;
+
+    irr::s32 inputStrLen = (irr::s32)(inputStr->size());
+
+    do {
+        nextIdx = lastIdx + 1;
+        if (!(nextIdx >= inputStrLen)) {
+            currIdx = inputStr->findNext(delimiter, nextIdx);
+            if (currIdx != -1) {
+                cnt++;
+                lastIdx = currIdx;
+            }
+        } else {
+            currIdx = -1;
+        }
+    } while (currIdx != -1);
+
+    return cnt;
+}
+
+void InfrastructureBase::SplitWStringAtDelimiterChar(irr::core::stringw* inputStr, wchar_t delimiter, std::vector<irr::core::stringw> &outWStrVec,
+                                                     bool addEmptyStrings) {
+    irr::s32 currIdx = -1;
+    irr::s32 lastIdx = -1;
+    irr::s32 nextIdx = -1;
+
+    irr::core::stringw subStr;
+
+    irr::s32 inputStrLen = (irr::s32)(inputStr->size());
+
+    outWStrVec.clear();
+
+    do {
+        nextIdx = lastIdx + 1;
+        if (!(nextIdx >= inputStrLen)) {
+            currIdx = inputStr->findNext(delimiter, nextIdx);
+            subStr = L"";
+            if (currIdx != -1) {
+                subStr = inputStr->subString(lastIdx + 1, (currIdx - lastIdx - 1));
+                lastIdx = currIdx;
+              } else {
+                //add remaining part of string
+                subStr = inputStr->subString(lastIdx + 1, (inputStrLen - lastIdx - 1));
+             }
+
+            if (subStr.size() > 0) {
+                outWStrVec.push_back(subStr);
+            } else if (addEmptyStrings) {
+                outWStrVec.push_back(subStr);
+            }
+       } else {
+            currIdx = -1;
+        }
+    } while (currIdx != -1);
+}
+
+//Returns false if input string is invalid (can not be parsed), True otherwise
+//Output value is returned in second parameter
+bool InfrastructureBase::XmlSettingStrToBool(irr::core::stringw inputStr, bool& outValue) {
+    if (inputStr.make_lower().find(L"false") != -1) {
+        outValue = false;
+        return true;
+    } else if (inputStr.make_lower().find(L"true") != -1) {
+        outValue = true;
+        return true;
+    }
+
+    return false;
+}
+
+//Returns true in case the input string contains a number, False if there are any other characters
+//that are no digits;
+bool InfrastructureBase::WStringContainsNumber(irr::core::stringw inputStr, bool allowDecimalNumber) {
+    irr::u32 textLen = inputStr.size();
+
+    wint_t currwChar;
+    bool radixFound = false;
+
+    for (irr::u32 idx = 0; idx < textLen; idx++) {
+        currwChar = (wint_t)(inputStr[idx]);
+
+        if (std::iswdigit(currwChar) == 0) {
+            //non numeric char found! => invalid
+            //could be a float?
+            if (!allowDecimalNumber) {
+                //for a non decimal number
+                //we already can exit with invalid result
+                return false;
+            }
+
+            if (currwChar == L'.') {
+                //if we find a radix the second time we can
+                //also exit
+                if (radixFound) {
+                    return false;
+                }
+
+                //one radix is ok, continue search
+                radixFound = true;
+            }
+        }
+    }
+
+    return true;
+}
+
+//Returns false if Xml value payload string is missformed, True otherwise
+//The output payload string is returned in the second parameter
+bool InfrastructureBase::GetXmlValuePayload(irr::core::stringw inputStr, irr::core::stringw &payloadStr) {
+    irr::s32 firstIdx = inputStr.findFirst(L'(');
+    if (firstIdx == -1) {
+        //( character not found
+        return false;
+    }
+
+    irr::s32 possSecondStartSearch = firstIdx + 1;
+
+    if (!(possSecondStartSearch >= (irr::s32)(inputStr.size()))) {
+            irr::s32 possibleSecond = inputStr.findNext(L'(', possSecondStartSearch);
+
+            if (possibleSecond != -1) {
+                //we found another ( character, there should not be another
+                //one => exit
+                return false;
+            }
+    }
+
+    irr::s32 secondIdx = inputStr.findNext(L')', firstIdx);
+
+    if (secondIdx == -1) {
+        //we did not find ) character, exit
+        return false;
+    }
+
+    //now get substring between () characters
+    irr::core::stringw subStr = inputStr.subString(firstIdx + 1, (secondIdx - firstIdx - 1));
+
+    payloadStr = subStr;
+
+    return true;
+}
+
+//Returns false if input string is invalid (can not be parsed), True otherwise
+//Output value is returned in second parameter
+bool InfrastructureBase::XmlSettingStrToVector3df(irr::core::stringw inputStr, irr::core::vector3df& outValue) {
+    if (inputStr.make_lower().find(L"vector3df") == -1) {
+         return false;
+    }
+
+    irr::core::stringw subStr;
+
+    if (!GetXmlValuePayload(inputStr, subStr)) {
+        //Xml value payload string is missformed
+        return false;
+    }
+
+    if (CntNumberCharacterOccurence(&subStr, L',') != 2) {
+        //wrong number of input fields for vector3df
+        return false;
+    }
+
+    std::vector<irr::core::stringw> strVec;
+
+    SplitWStringAtDelimiterChar(&subStr, L',', strVec, false);
+
+    if (strVec.size() != 3) {
+        //again wrong number of expected fields
+        return false;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        //check if all fields are numbers
+        if (!WStringContainsNumber(strVec.at(i), true)) {
+            //first part string does also contain characters
+            //that do not belong to a number!
+            return false;
+        }
+    }
+
+    irr::f32 parsedValue;
+
+    //now parse the resulting numbers
+    std::swscanf( strVec.at(0).c_str(), L"%f", &parsedValue);
+    outValue.X = parsedValue;
+
+    std::swscanf( strVec.at(1).c_str(), L"%f", &parsedValue);
+    outValue.Y = parsedValue;
+
+    std::swscanf( strVec.at(2).c_str(), L"%f", &parsedValue);
+    outValue.Z = parsedValue;
+
+    return true;
+}
+
+//Returns false if input string is invalid (can not be parsed), True otherwise
+//Output value is returned in second parameter
+bool InfrastructureBase::XmlSettingStrToSColor(irr::core::stringw inputStr, irr::video::SColor& outColor) {
+    if (inputStr.make_lower().find(L"scolor") == -1) {
+         return false;
+    }
+
+    irr::core::stringw subStr;
+
+    if (!GetXmlValuePayload(inputStr, subStr)) {
+        //Xml value payload string is missformed
+        return false;
+    }
+
+    if (CntNumberCharacterOccurence(&subStr, L',') != 3) {
+        //wrong number of input fields for SColor
+        return false;
+    }
+
+    std::vector<irr::core::stringw> strVec;
+
+    SplitWStringAtDelimiterChar(&subStr, L',', strVec, false);
+
+    if (strVec.size() != 4) {
+        //again wrong number of expected fields
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        //check if all fields are numbers
+        if (!WStringContainsNumber(strVec.at(i), false)) {
+            //first part string does also contain characters
+            //that do not belong to a number!
+            return false;
+        }
+    }
+
+    irr::s32 parsedValue;
+
+    //now parse the resulting numbers
+    std::swscanf( strVec.at(0).c_str(), L"%d", &parsedValue);
+    if ((parsedValue < 0) || (parsedValue > 255)) {
+        //invalid number
+        return false;
+    }
+
+    outColor.setAlpha(parsedValue);
+
+    std::swscanf( strVec.at(1).c_str(), L"%d", &parsedValue);
+    if ((parsedValue < 0) || (parsedValue > 255)) {
+        //invalid number
+        return false;
+    }
+
+    outColor.setRed(parsedValue);
+
+    std::swscanf( strVec.at(2).c_str(), L"%d", &parsedValue);
+    if ((parsedValue < 0) || (parsedValue > 255)) {
+        //invalid number
+        return false;
+    }
+
+    outColor.setGreen(parsedValue);
+
+    std::swscanf( strVec.at(3).c_str(), L"%d", &parsedValue);
+    if ((parsedValue < 0) || (parsedValue > 255)) {
+        //invalid number
+        return false;
+    }
+
+    outColor.setBlue(parsedValue);
+
+    return true;
+}
+
+//Returns true in case of success, False otherwise
+bool InfrastructureBase::WriteMapConfigFile(const std::string fileName, MapConfigStruct* configStruct) {
+    //create necessary XML writer
+    irr::io::IXMLWriter* writer = mDevice->getFileSystem()->createXMLWriter( fileName.c_str() );
+        if (!writer) {
+            std::string overallMsg("Failed to create map config file ");
+            overallMsg.append(fileName);
+            overallMsg.append("!");
+            logging::Error(overallMsg);
+
+            return false;
+        }
+
+        //we need exactly one XML header
+        writer->writeXMLHeader();
+
+        writer->writeElement(L"mapconfig");
+        writer->writeLineBreak();
+
+        //section for sky setup
+        writer->writeElement(L"sky");
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"vanillaSkyImage" , L"value", irr::core::stringw(configStruct->SkyImageFileVanilla.c_str()).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"upgradedSkyImage" , L"value", irr::core::stringw(configStruct->SkyImageFileUpgradedSky.c_str()).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorCenter1" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorCenter1).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorInner1" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorInner1).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorOuter1" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorOuter1).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorCenter2" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorCenter2).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorInner2" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorInner2).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorOuter2" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorOuter2).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorCenter3" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorCenter3).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorInner3" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorInner3).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"cloudColorOuter3" , L"value", SColorToXmlSettingStr(&configStruct->cloudColorOuter3).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"enableLensflare" , L"value", BoolToXmlSettingStr(configStruct->EnableLensFlare).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"locationLensflare" , L"value", Vector3dfToXmlSettingStr(&configStruct->lensflareLocation).c_str());
+        writer->writeLineBreak();
+
+        //close sky setup section
+        writer->writeClosingTag(L"sky");
+        writer->writeLineBreak();
+
+        //section for music setup
+        writer->writeElement(L"music");
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"musicFile" , L"value", irr::core::stringw(configStruct->MusicFile.c_str()).c_str());
+        writer->writeLineBreak();
+
+        //close music setup section
+        writer->writeClosingTag(L"music");
+        writer->writeLineBreak();
+
+        //end of mapconfig
+        writer->writeClosingTag(L"mapconfig");
+
+        //remove Xml writer
+        writer->drop();
+
+        return true;
+}
+
+//Return true in case of success, false otherwise
+bool InfrastructureBase::GetCloudColorValue(map<irr::core::stringw, irr::core::stringw> *valueMap, irr::core::stringw keyName, irr::video::SColor &outColor) {
+    map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+
+    nodePntr = valueMap->find(keyName);
+
+    if (nodePntr == nullptr) {
+        std::string overallErrMsg("ReadMapConfigFile: Missing ");
+        overallErrMsg.append(WStringToStdString(keyName.c_str()));
+        overallErrMsg.append("field in Mapconfig Xml file");
+        logging::Error(overallErrMsg);
+
+        return false;
+    } else {
+       irr::video::SColor outCol;
+       if (!XmlSettingStrToSColor(nodePntr->getValue(), outCol)) {
+           std::string overallErrMsg("ReadMapConfigFile: Missformed field value for ");
+           overallErrMsg.append(WStringToStdString(keyName.c_str()));
+           overallErrMsg.append(" in Mapconfig Xml file");
+           logging::Error(overallErrMsg);
+
+           return false;
+       }
+
+       outColor = outCol;
+    }
+
+    return true;
+}
+
+//Returns true in case of success, False otherwise
+//Read values are returned in second parameter
+bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfigStruct &configStruct) {
+        //create the Xml Reader
+        irr::io::IXMLReader* xmlReader = mDevice->getFileSystem()->createXMLReader(fileName.c_str());
+        if (!xmlReader) {
+            std::string overallMsg("Failed to read map config file ");
+            overallMsg.append(fileName);
+            overallMsg.append("!");
+            logging::Error(overallMsg);
+
+            return false;
+        }
+
+        const irr::core::stringw settingTag(L"setting");
+        const irr::core::stringw skySetupTag(L"sky");
+        const irr::core::stringw musicSetupTag(L"music");
+
+        irr::core::stringw currentSection;
+
+        map<irr::core::stringw, irr::core::stringw> skySetupMap;
+        map<irr::core::stringw, irr::core::stringw> musicSetupMap;
+
+        //while there is more to read
+        while (xmlReader->read())
+        {
+            //check the node type
+            switch (xmlReader->getNodeType())
+            {
+                //we found a new element
+                case irr::io::EXN_ELEMENT:
+                {
+                     //we currently are in the empty or mapconfig section and find the sky setup tag so we set our current section to sky setup
+                     if (currentSection.empty() && skySetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                        {
+                            currentSection = skySetupTag;
+                        }
+
+                     //we are in the sky setup section and we find a setting to parse
+                     else if (currentSection.equals_ignore_case(skySetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                        {
+                           //read in the key
+                            irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                            //if there actually is a key to set
+                            if (!key.empty())
+                            {
+                                //set the setting in the map to the value,
+                                //the [] operator overrides values if they already exist or inserts a new key value
+                                //pair into the settings map if it was not defined yet
+                                skySetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                            }
+                        }
+
+                     //we currently are in the empty or mapconfig section and find the music setup tag so we set our current section to music setup
+                     if (currentSection.empty() && musicSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                        {
+                            currentSection = musicSetupTag;
+                        }
+
+                     //we are in the music setup section and we find a setting to parse
+                     else if (currentSection.equals_ignore_case(musicSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                        {
+                           //read in the key
+                            irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                            //if there actually is a key to set
+                            if (!key.empty())
+                            {
+                                //set the setting in the map to the value,
+                                //the [] operator overrides values if they already exist or inserts a new key value
+                                //pair into the settings map if it was not defined yet
+                                musicSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                            }
+                        }
+                }
+                break;
+
+                //we found the end of an element
+                case irr::io::EXN_ELEMENT_END:
+                     //we were at the end of the sky setup section so we reset our tag
+                     currentSection=L"";
+                     break;
+                }
+       }
+
+       // don't forget to delete the xml reader
+       xmlReader->drop();
+
+       map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+
+       //get name of vanillaSkyImage
+       nodePntr = skySetupMap.find(L"vanillaSkyImage");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing vanillaSkyImage field in Mapconfig Xml file");
+           return false;
+       } else {
+          configStruct.SkyImageFileVanilla.clear();
+          configStruct.SkyImageFileVanilla.append(WStringToStdString(nodePntr->getValue().c_str()));
+       }
+
+       //get name of upgradedSkyImage
+       nodePntr = skySetupMap.find(L"upgradedSkyImage");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing upgradedSkyImage field in Mapconfig Xml file");
+           return false;
+       } else {
+          configStruct.SkyImageFileUpgradedSky.clear();
+          configStruct.SkyImageFileUpgradedSky.append(WStringToStdString(nodePntr->getValue().c_str()));
+       }
+
+       //get value for enableLensflare
+       nodePntr = skySetupMap.find(L"enableLensflare");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing enableLensflare field in Mapconfig Xml file");
+           return false;
+       } else {
+          bool outBool;
+          if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+              logging::Error("ReadMapConfigFile: Missformed field value for enableLensflare in Mapconfig Xml file");
+              return false;
+          }
+
+          configStruct.EnableLensFlare = outBool;
+       }
+
+       //get value for locationLensflare
+       nodePntr = skySetupMap.find(L"locationLensflare");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing locationLensflare field in Mapconfig Xml file");
+           return false;
+       } else {
+          irr::core::vector3df outVector;
+          if (!XmlSettingStrToVector3df(nodePntr->getValue(), outVector)) {
+              logging::Error("ReadMapConfigFile: Missformed field value for locationLensflare in Mapconfig Xml file");
+              return false;
+          }
+
+          configStruct.lensflareLocation = outVector;
+       }
+
+       //get value for cloudColorCenter1
+       irr::video::SColor clColor;
+
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorCenter1", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorCenter1 = clColor;
+
+       //get value for cloudColorInner1
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorInner1", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorInner1 = clColor;
+
+       //get value for cloudColorOuter1
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorOuter1", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorOuter1 = clColor;
+
+       //get value for cloudColorCenter2
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorCenter2", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorCenter2 = clColor;
+
+       //get value for cloudColorInner2
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorInner2", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorInner2 = clColor;
+
+       //get value for cloudColorOuter2
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorOuter2", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorOuter2 = clColor;
+
+       //get value for cloudColorCenter3
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorCenter3", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorCenter3 = clColor;
+
+       //get value for cloudColorInner3
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorInner3", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorInner3 = clColor;
+
+       //get value for cloudColorOuter3
+       if (!GetCloudColorValue(&skySetupMap, L"cloudColorOuter3", clColor)) {
+           return false;
+       }
+
+       configStruct.cloudColorOuter3 = clColor;
+
+       //get name of music file
+       nodePntr = musicSetupMap.find(L"musicFile");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing musicFile field in Mapconfig Xml file");
+           return false;
+       } else {
+          configStruct.MusicFile.clear();
+          configStruct.MusicFile.append(WStringToStdString(nodePntr->getValue().c_str()));
+       }
+
+       return true;
 }
 
 bool InfrastructureBase::WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP) {
@@ -1144,7 +1789,7 @@ irr::io::path InfrastructureBase::GetMapConfigFileName(LevelFolderInfoStruct* wh
         return resultPath;
 
     resultPath.append(whichLevel->levelBaseDir);
-    resultPath.append("mapconfig.txt");
+    resultPath.append("mapconfig.xml");
     return resultPath;
 }
 
@@ -1152,7 +1797,7 @@ irr::io::path InfrastructureBase::GetMapConfigFileName(std::string levelRootPath
     irr::io::path resultPath("");
 
     resultPath.append(levelRootPath.c_str());
-    resultPath.append("mapconfig.txt");
+    resultPath.append("mapconfig.xml");
     return resultPath;
 }
 
@@ -1301,10 +1946,9 @@ void InfrastructureBase::FillTexture(irr::video::ITexture* target, unsigned char
     target->unlock();
 }
 
-void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen, bool enableShadows) {
+void InfrastructureBase::InfrastructureInit(dimension2d<u32> resolution, bool fullScreen) {
     mScreenRes = resolution;
     mFullscreen = fullScreen;
-    mEnableShadows = enableShadows;
 
     if (!InitIrrlicht()) {
         return;

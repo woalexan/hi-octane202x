@@ -437,9 +437,6 @@ public:
 
     void UpdateCameras();
 
-    //player craft shadow SceneNode
-    irr::scene::IShadowVolumeSceneNode* PlayerNodeShadow = nullptr;
-
     //the players stats
     PLAYERSTATS *mPlayerStats = nullptr;
 

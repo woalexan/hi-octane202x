@@ -129,10 +129,6 @@ bool Game::InitGameStep2() {
         mSmgr->setAmbientLight(video::SColorf(1.0f, 1.0f, 1.0f));
     }
 
-    if (enableShadows) {
-       mSmgr->setShadowColor(video::SColor(150,0,0,0));
-    }
-
     return true;
 }
 
@@ -147,7 +143,7 @@ bool Game::InitGameStep1(bool useXEffects) {
     //targetResolution.set(1280,960);
 
     //initialize my infrastructure
-    this->InfrastructureInit(targetResolution, fullscreen, enableShadows);
+    this->InfrastructureInit(targetResolution, fullscreen);
     if (!GetInfrastructureInitOk())
         return false;
 
@@ -159,25 +155,9 @@ bool Game::InitGameStep1(bool useXEffects) {
         // (The screen buffer resolution need not be the same as the screen resolution.)
         // The second to last parameter enables VSM filtering, see example 6 for more information.
         // The last parameter enables soft round spot light masks on our shadow lights.
-        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true);
-
-        //Set ShadowMap filter type
-        mShadowMapFilterType = E_FILTER_TYPE::EFT_12PCF;
-        mShadowMapResolution = 4096;
-
-        // Set a global ambient color. A very dark gray.
-        mEffect->setAmbientColor(SColor(255, 255, 255, 255));
-
-        mEffect->addShadowLight(SShadowLight(mShadowMapResolution, vector3df(-25.0f, 120.0f, 60.0f), vector3df(-25.0f, 36.0f, 60.0f),
-                SColor(255, 255, 255, 255), 20.0f, 120.0f, 90.0f * DEGTORAD, false));
-
-        //mSmgr->addLightSceneNode(0, vector3df(-32.86f, 58.0f, 63.0f));
-
-        /*core::stringc shaderExt = (mDriver->getDriverType() == EDT_DIRECT3D9) ? ".hlsl" : ".glsl";
-
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurHP") + shaderExt);
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BlurVP") + shaderExt);
-        mEffect->addPostProcessingEffectFromFile(core::stringc("shaders/BloomP") + shaderExt);*/
+        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true, false);
+        mEffect->setClearColour(SColor(255, 0, 0, 0));
+        mEffect->setAmbientColor(SColor(255, 0, 0, 0));
     }
 
     //load the background image we need
@@ -195,7 +175,7 @@ bool Game::InitGameStep1(bool useXEffects) {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 6;
+    nextRaceLevelNr = 1;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -207,7 +187,7 @@ void Game::SetupDebugGame() {
     mGameAssets->SetNewMainPlayerSelectedCraft(0);
 
     //add computer players?
-    mGameAssets->SetComputerPlayersEnabled(true);
+    mGameAssets->SetComputerPlayersEnabled(false);
 
     mGameState = DEF_GAMESTATE_INITRACE;
 }
