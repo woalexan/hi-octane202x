@@ -156,17 +156,6 @@ bool Game::InitGameStep1() {
        logging::Info("XEffects is not used");
    }
 
-   if (mUseXEffects) {
-        // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
-        // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
-        // (The screen buffer resolution need not be the same as the screen resolution.)
-        // The second to last parameter enables VSM filtering, see example 6 for more information.
-        // The last parameter enables soft round spot light masks on our shadow lights.
-        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true, false);
-        mEffect->setClearColour(SColor(255, 0, 0, 0));
-        mEffect->setAmbientColor(SColor(255, 0, 0, 0));
-    }
-
     //load the background image we need
     //for data extraction screen rendering and
     //main menue
@@ -544,7 +533,13 @@ bool Game::LoadAdditionalGameImages() {
      mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //load gameTitle
-     gameTitle = mDriver->getTexture("extract/images/title.png");
+     if (!mGameConfig->enableDoubleResolution) {
+        //load the image that was scaled by a factor of 2x before
+        gameTitle = mDriver->getTexture("extract/images/title.png");
+     } else {
+        //load the image that was scaled by a factor of 4x before
+        gameTitle = mDriver->getTexture("extract/images/title-x2.png");
+     }
 
      if (gameTitle == nullptr) {
          //there was a texture loading error
@@ -582,7 +577,12 @@ bool Game::LoadBackgroundImage() {
     mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //first load background image for menue
-    backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
+    if (!mGameConfig->enableDoubleResolution) {
+        backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
+    } else {
+        //load the image which was 2x scaled before
+        backgnd = mDriver->getTexture("extract/images/oscr0-1-x2.png");
+    }
 
     if (backgnd == nullptr) {
         //there was a texture loading error
@@ -1039,6 +1039,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         delete mCurrentRace;
         mCurrentRace = nullptr;
 
+        //cleanup XEffects if used
+        if (mUseXEffects) {
+            delete mEffect;
+            mEffect = nullptr;
+        }
+
         //if we were in game debugging mode or map test mode simply skip
         //main menue, and exit game immediately
         if (mDebugRace || mDebugDemoMode || mTestMapMode) {
@@ -1274,6 +1280,17 @@ bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> 
     levelRootDir.append("/");
 
     levelName.append(targetLevel.substr(splitCharPos + 1, targetLevel.size() - splitCharPos));
+
+    if (mUseXEffects) {
+         // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
+         // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
+         // (The screen buffer resolution need not be the same as the screen resolution.)
+         // The second to last parameter enables VSM filtering, see example 6 for more information.
+         // The last parameter enables soft round spot light masks on our shadow lights.
+         mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true, false);
+         mEffect->setClearColour(SColor(255, 0, 0, 0));
+         mEffect->setAmbientColor(SColor(255, 0, 0, 0));
+     }
 
     //create a new Race
     mCurrentRace = new Race(this, gameMusicPlayer, gameSoundEngine, levelRootDir, levelName, nrLaps, demoMode, debugRace);

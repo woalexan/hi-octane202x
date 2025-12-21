@@ -2230,7 +2230,7 @@ void PrepareData::ExtractIntroductoryScreen() {
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title.png", 320, 200, 2);
 
     //create a second vesion as well, scaled by factor 4 for resolution 1280 x 800
-    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title-X2.png", 320, 200, 4);
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title-x2.png", 320, 200, 4);
 }
 
 //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab
