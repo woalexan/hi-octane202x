@@ -206,6 +206,16 @@ private:
 
     irr::video::SColor* mColorTargetSymbolHealthBar = nullptr;
 
+    //Stores some precalculated positions
+    irr::core::vector2di mHudDrawPositionOffset;
+
+    irr::core::vector2d<irr::s32> mPosLapSymbol;
+    irr::core::vector2d<irr::s32> mPosLapCount;
+    irr::core::vector2d<irr::s32> mPosRedSkull;
+    irr::core::vector2d<irr::s32> mPosFragCnt;
+
+    void PrecalculatePositions();
+
 public:
     HUD(Game* game);
     ~HUD();

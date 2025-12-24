@@ -465,25 +465,6 @@ bool InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
 void InfrastructureBase::HandleMouseEvent(const irr::SEvent& event) {
 }
 
-irr::io::path InfrastructureBase::GetMiniMapCalFileName(LevelFolderInfoStruct* whichLevel) {
-    irr::io::path resultPath("");
-
-    if (whichLevel == nullptr)
-        return resultPath;
-
-    resultPath.append(whichLevel->levelBaseDir);
-    resultPath.append("minimapcalval.dat");
-    return resultPath;
-}
-
-irr::io::path InfrastructureBase::GetMiniMapCalFileName(std::string levelRootPath) {
-    irr::io::path miniMapFileName("");
-    miniMapFileName.append(levelRootPath.c_str());
-
-    miniMapFileName.append("minimapcalval.dat");
-    return miniMapFileName;
-}
-
 irr::core::stringw InfrastructureBase::SColorToXmlSettingStr(irr::video::SColor* whichColor) {
    irr::core::stringw result(L"SColor(");
 
@@ -507,6 +488,17 @@ irr::core::stringw InfrastructureBase::Vector3dfToXmlSettingStr(irr::core::vecto
    result.append(irr::core::stringw(whichVector->Y));
    result.append(L",");
    result.append(irr::core::stringw(whichVector->Z));
+   result.append(L")");
+
+   return result;
+}
+
+irr::core::stringw InfrastructureBase::Vector2diToXmlSettingStr(irr::core::vector2di* whichVector) {
+   irr::core::stringw result(L"Vector2di(");
+
+   result.append(irr::core::stringw(whichVector->X));
+   result.append(L",");
+   result.append(irr::core::stringw(whichVector->Y));
    result.append(L")");
 
    return result;
@@ -793,6 +785,55 @@ bool InfrastructureBase::XmlSettingStrToSColor(irr::core::stringw inputStr, irr:
     return true;
 }
 
+//Returns false if input string is invalid (can not be parsed), True otherwise
+//Output value is returned in second parameter
+bool InfrastructureBase::XmlSettingStrToVector2di(irr::core::stringw inputStr, irr::core::vector2di& outVector) {
+    if (inputStr.make_lower().find(L"vector2di") == -1) {
+         return false;
+    }
+
+    irr::core::stringw subStr;
+
+    if (!GetXmlValuePayload(inputStr, subStr)) {
+        //Xml value payload string is missformed
+        return false;
+    }
+
+    if (CntNumberCharacterOccurence(&subStr, L',') != 1) {
+        //wrong number of input fields for a 2 dimensional vector
+        return false;
+    }
+
+    std::vector<irr::core::stringw> strVec;
+
+    SplitWStringAtDelimiterChar(&subStr, L',', strVec, false);
+
+    if (strVec.size() != 2) {
+        //again wrong number of expected fields
+        return false;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        //check if all fields are numbers
+        if (!WStringContainsNumber(strVec.at(i), false)) {
+            //first part string does also contain characters
+            //that do not belong to a number!
+            return false;
+        }
+    }
+
+    irr::s32 parsedValue;
+
+    //now parse the resulting numbers
+    std::swscanf( strVec.at(0).c_str(), L"%d", &parsedValue);
+    outVector.X = parsedValue;
+
+    std::swscanf( strVec.at(1).c_str(), L"%d", &parsedValue);
+    outVector.Y = parsedValue;
+
+    return true;
+}
+
 //Returns true in case of success, False otherwise
 bool InfrastructureBase::WriteMapConfigFile(const std::string fileName, MapConfigStruct* configStruct) {
     //create necessary XML writer
@@ -870,6 +911,21 @@ bool InfrastructureBase::WriteMapConfigFile(const std::string fileName, MapConfi
         writer->writeClosingTag(L"music");
         writer->writeLineBreak();
 
+        //section for minimap setup
+        writer->writeElement(L"minimap");
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"minimapCalSet" , L"value", BoolToXmlSettingStr(configStruct->minimapCalSet).c_str());
+        writer->writeLineBreak();
+        writer->writeElement(L"setting",true, L"name", L"minimapCalStartVal" , L"value", Vector2diToXmlSettingStr(&configStruct->minimapCalStartVal).c_str());
+        writer->writeLineBreak();
+        writer->writeElement(L"setting",true, L"name", L"minimapCalEndVal" , L"value", Vector2diToXmlSettingStr(&configStruct->minimapCalEndVal).c_str());
+        writer->writeLineBreak();
+
+        //close minimap setup section
+        writer->writeClosingTag(L"minimap");
+        writer->writeLineBreak();
+
         //end of mapconfig
         writer->writeClosingTag(L"mapconfig");
 
@@ -926,11 +982,13 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
         const irr::core::stringw settingTag(L"setting");
         const irr::core::stringw skySetupTag(L"sky");
         const irr::core::stringw musicSetupTag(L"music");
+        const irr::core::stringw minimapSetupTag(L"minimap");
 
         irr::core::stringw currentSection;
 
         map<irr::core::stringw, irr::core::stringw> skySetupMap;
         map<irr::core::stringw, irr::core::stringw> musicSetupMap;
+        map<irr::core::stringw, irr::core::stringw> minimapSetupMap;
 
         //while there is more to read
         while (xmlReader->read())
@@ -982,12 +1040,33 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
                                 musicSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
                             }
                         }
+
+                     //we currently are in the empty or another config section and find the minimap setup tag so we set our current section to minimap setup
+                                          if (currentSection.empty() && minimapSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                                             {
+                                                 currentSection = minimapSetupTag;
+                                             }
+
+                                          //we are in the minimap setup section and we find a setting to parse
+                                          else if (currentSection.equals_ignore_case(minimapSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                                             {
+                                                //read in the key
+                                                 irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                                                 //if there actually is a key to set
+                                                 if (!key.empty())
+                                                 {
+                                                     //set the setting in the map to the value,
+                                                     //the [] operator overrides values if they already exist or inserts a new key value
+                                                     //pair into the settings map if it was not defined yet
+                                                     minimapSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                                                 }
+                                             }
                 }
                 break;
 
                 //we found the end of an element
                 case irr::io::EXN_ELEMENT_END:
-                     //we were at the end of the sky setup section so we reset our tag
+                     //we were at the end of the sky/music/minimap setup section so we reset our tag
                      currentSection=L"";
                      break;
                 }
@@ -1128,80 +1207,56 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
           configStruct.MusicFile.append(WStringToStdString(nodePntr->getValue().c_str()));
        }
 
+       //Minimap setup
+       //get value for minimapCalSet
+       nodePntr = minimapSetupMap.find(L"minimapCalSet");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing minimapCalSet field in Mapconfig Xml file");
+           return false;
+       } else {
+          bool outBool;
+          if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+              logging::Error("ReadMapConfigFile: Missformed field value for minimapCalSet in Mapconfig Xml file");
+              return false;
+          }
+
+          configStruct.minimapCalSet = outBool;
+       }
+
+       //get value for minimapCalStartVal
+       nodePntr = minimapSetupMap.find(L"minimapCalStartVal");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing minimapCalStartVal field in Mapconfig Xml file");
+           return false;
+       } else {
+          irr::core::vector2di outVector;
+          if (!XmlSettingStrToVector2di(nodePntr->getValue(), outVector)) {
+              logging::Error("ReadMapConfigFile: Missformed field value for minimapCalStartVal in Mapconfig Xml file");
+              return false;
+          }
+
+          configStruct.minimapCalStartVal = outVector;
+       }
+
+       //get value for minimapCalEndVal
+       nodePntr = minimapSetupMap.find(L"minimapCalEndVal");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing minimapCalEndVal field in Mapconfig Xml file");
+           return false;
+       } else {
+          irr::core::vector2di outVector;
+          if (!XmlSettingStrToVector2di(nodePntr->getValue(), outVector)) {
+              logging::Error("ReadMapConfigFile: Missformed field value for minimapCalEndVal in Mapconfig Xml file");
+              return false;
+          }
+
+          configStruct.minimapCalEndVal = outVector;
+       }
+
        return true;
-}
-
-bool InfrastructureBase::WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP) {
-    FILE *oFile;
-
-    oFile = fopen(fileName.c_str(), "wb");
-    if (oFile == nullptr) {
-        return false;
-    }
-
-    unsigned char* buf = new unsigned char[16];
-    write_long_le_buf(&buf[0], startWP);
-    write_long_le_buf(&buf[4], endWP);
-    write_long_le_buf(&buf[8], startHP);
-    write_long_le_buf(&buf[12], endHP);
-
-    for (int idx = 0; idx < 16; idx++) {
-        fputc(buf[idx], oFile);
-    }
-
-    fclose(oFile);
-
-    delete[] buf;
-
-    return true;
-}
-
-bool InfrastructureBase::ReadMiniMapCalFile(std::string fileName, irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP) {
-    if (FileExists(fileName.c_str()) != 1) {
-        //File does not exist!
-        std::string errMsg("ReadMiniMapCalFile: File ");
-        errMsg.append(fileName);
-        errMsg.append("not found!");
-
-        logging::Error(errMsg);
-        return false;
-    }
-
-    FILE *iFile;
-
-    iFile = fopen(fileName.c_str(), "rb");
-    if (iFile == nullptr) {
-        std::string errMsg("ReadMiniMapCalFile: Can not open file ");
-        errMsg.append(fileName);
-        errMsg.append("!");
-
-        logging::Error(errMsg);
-        return false;
-    }
-
-    fseek(iFile, 0L, SEEK_END);
-    size_t size = ftell(iFile);
-    fseek(iFile, 0L, SEEK_SET);
-
-    unsigned char* buf = new unsigned char[size];
-
-    size_t counter = 0;
-
-    do {
-           buf[counter] = fgetc(iFile);
-           counter++;
-        } while (counter < size);
-
-    fclose(iFile);
-
-    startWP = (irr::u32)(read_long_le_buf(&buf[0]));
-    endWP = (irr::u32)(read_long_le_buf2(&buf[0]));
-    startHP = (irr::u32)(read_long_le_buf3(&buf[0]));
-    endHP = (irr::u32)(read_long_le_buf4(&buf[0]));
-
-    delete[] buf;
-
-    return true;
 }
 
 //The original game executable contains the Credits for the overall game development team; Unfortunetly when writting this

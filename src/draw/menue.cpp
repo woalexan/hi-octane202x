@@ -63,79 +63,64 @@ bool Menue::InitMenueResources() {
     mGame->mDriver->makeColorKeyTexture(wndCornerElementLowerRightTex,
            irr::core::position2d<irr::s32>(0, 0));
 
-    irr::u32 resolutionMultiplier = 1;
+    /**********************************
+     * Load game logo images          *
+     **********************************/
 
-    //Logo part 1
-    MenueGraphicPart* GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0000.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
+    std::string imgNamePrefix("");
+    std::string imgName("");
+    char nrStr[15];
+
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        //use images that were upscaled by a factor of 2 before
+        imgNamePrefix.append("extract/images/logo0-1-x2-");
+    } else {
+        imgNamePrefix.append("extract/images/logo0-1-");
     }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(90 * resolutionMultiplier, 34 * resolutionMultiplier);
 
-    GameLogo.push_back(GameLogoPiece);
+    MenueGraphicPart* GameLogoPiece;
+    std::vector<irr::core::vector2d<irr::s32>> posDefinitionVector;
 
-    //Logo part 2
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0001.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
+    //Define the game logo images draw positions to stich the logo properly
+    //together
+    if (!mGame->mGameConfig->enableDoubleResolution) {
+        posDefinitionVector.push_back(irr::core::vector2di(90, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(220, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(347, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(474, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(91, 92));
+        posDefinitionVector.push_back(irr::core::vector2di(218, 92));
+
+        mLogoExtensionStrPos.set(368,92);
+    } else {
+        posDefinitionVector.push_back(irr::core::vector2di(90 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(220 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(347 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(474 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(91 * 2, 92 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(218 * 2, 92 * 2));
+
+        mLogoExtensionStrPos.set(368 * 2 + 40, 92 * 2);
     }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(220 * resolutionMultiplier, 34 * resolutionMultiplier);
 
-    GameLogo.push_back(GameLogoPiece);
+    for (long idx = 0; idx < 6; idx++) {
+        imgName.clear();
+        imgName.append(imgNamePrefix);
 
-    //Logo part 3
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0002.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
+        sprintf (nrStr, "%0*ld.bmp", 4, idx);
+        imgName.append(nrStr);
+
+        GameLogoPiece = new MenueGraphicPart();
+        GameLogoPiece->texture = mGame->mDriver->getTexture(imgName.c_str());
+        if (GameLogoPiece->texture == nullptr) {
+            return false;
+        }
+        mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+        GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
+        GameLogoPiece->drawScrPosition.set(posDefinitionVector.at(idx));
+
+        GameLogo.push_back(GameLogoPiece);
     }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(347 * resolutionMultiplier, 34 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
-
-    //Logo part 4
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0003.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
-    }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(474 * resolutionMultiplier, 34 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
-
-    //Logo part 5
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0004.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
-    }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(91 * resolutionMultiplier, 92 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
-
-    //Logo part 6
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0005.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
-    }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(218 * resolutionMultiplier, 92 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
 
     mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
@@ -1811,7 +1796,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
         }
 
         //add my additional logo text
-        mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText, irr::core::position2di(368,92));
+        mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText, mLogoExtensionStrPos);
 
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)

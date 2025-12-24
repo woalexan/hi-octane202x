@@ -197,7 +197,7 @@ void Game::SetupDebugDemo() {
     nextRaceLevelNr = 1;
 
     //in demo mode computer players need to be enabled!
-    mGameAssets->SetComputerPlayersEnabled(true);
+    mGameAssets->SetComputerPlayersEnabled(false);
 
     mGameState = DEF_GAMESTATE_INITDEMO;
 }
@@ -554,7 +554,12 @@ bool Game::LoadAdditionalGameImages() {
      gameTitleDrawPos.Y = (mScreenRes.Height - gameTitleSize.Height) / 2;
 
      //load race loading screen
-     raceLoadingScr = mDriver->getTexture("extract/images/onet0-1.png");
+     if (!mGameConfig->enableDoubleResolution) {
+        raceLoadingScr = mDriver->getTexture("extract/images/onet0-1.png");
+     } else {
+        //load the image that was scaled by a factor of 2x before
+        raceLoadingScr = mDriver->getTexture("extract/images/onet0-1-x2.png");
+     }
 
      if (raceLoadingScr == nullptr) {
          //there was a texture loading error
@@ -736,8 +741,17 @@ void Game::GameLoopLoadRaceScreen() {
     mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
                      , 0, irr::video::SColor(255,255,255,255), true);
 
-    //at 190, 240 write "LOADING LEVEL"
-    mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
+    char loadingTxt[25];
+    strcpy(loadingTxt, "LOADING LEVEL");
+
+    irr::u32 txtWidth = mGameTexts->GetWidthPixelsGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont);
+    irr::u32 txtHeight = mGameTexts->GetHeightPixelsGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont);
+
+    irr::core::position2di txtDrawPos;
+    txtDrawPos.X = mScreenRes.Width / 2 - txtWidth / 2;
+    txtDrawPos.Y = mScreenRes.Height / 2 - txtHeight / 2;
+
+    mGameTexts->DrawGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont, txtDrawPos);
 
     mDriver->endScene();
 
@@ -1310,6 +1324,14 @@ bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> 
 
         //finally add the player to the race
         mCurrentRace->AddPlayer((*itPilot)->humanPlayer, (*itPilot)->pilotName, modelName);
+    }
+
+    //is there at least one player?
+    if (mCurrentRace->mPlayerVec.size() == 0) {
+        //no player in race, we need to interrupt
+        //no race possible
+        logging::Error("Not a single player in race, interrupt race creation");
+        return false;
     }
 
     //which player do we want to follow at the start

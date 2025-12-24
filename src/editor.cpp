@@ -606,22 +606,6 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
         }
     }
 
-    //copy minimap calibration data file as well if it is existing already
-    irr::io::path miniMapCalTarget = GetMiniMapCalFileName(mSelLevelForFileOperation);
-    irr::io::path miniMapCalSource = GetMiniMapCalFileName(currOpenLevelRootDir);
-
-    if (FileExists(miniMapCalSource.c_str()) == 1) {
-        //minimap cal file is also there, copy
-        logging::Info("SaveAsLevel: Copy also existing minimap calibration value file");
-        if (copy_file(miniMapCalSource.c_str(), miniMapCalTarget.c_str()) != 0) {
-            success = false;
-
-            logging::Error("SaveAsLevel: Minimap calibration value file copy operation failed");
-        } else {
-            logging::Info("SaveAsLevel: Minimap calibration value file copy operation was succesfull");
-        }
-    }
-
     //copy map config file as well if it is existing already
     irr::io::path mapConfigFileTarget = GetMapConfigFileName(mSelLevelForFileOperation);
     irr::io::path mapConfigFileSource = GetMapConfigFileName(currOpenLevelRootDir);
@@ -2052,6 +2036,11 @@ bool Editor::CreateDefaultMapConfigFile(std::string targetMapFolder) {
     newConfig.cloudColorCenter3.set(220, 220, 220, 220);
     newConfig.cloudColorInner3.set(180, 180, 180, 180);
     newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+    //default minimap not set, not configured
+    newConfig.minimapCalSet = false;
+    newConfig.minimapCalStartVal.set(0, 0);
+    newConfig.minimapCalEndVal.set(0, 0);
 
     if (!WriteMapConfigFile(std::string(configFilePath.c_str()), &newConfig)) {
         return false;

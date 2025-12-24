@@ -120,6 +120,8 @@ private:
     void ExtractNamed3DModel(const char* name, int n_models);
     void Extra3DModels();
 
+    void UpscaleExistingImageFile(const char* srcFile, const char* destFile, int scaleFactor);
+
     //extracts the SVGA game logo data in data\logo0-1.dat and data\logo0-1.tab
     //raises an error message in case of unexpected error
     void ExtractGameLogoSVGA();
@@ -158,11 +160,6 @@ private:
     //helper function to stich the original games minimap
     //parts together
     void StitchMiniMaps();
-
-    //Write minimap cal values found to be working
-    //with the original vanilla levels of the game
-    //Returns true in case of success, False otherwise
-    bool PrepareMiniMapCalData();
 
     //void ReorganizeTerrainAtlas(char* targetFile, char* outputFileName);
 

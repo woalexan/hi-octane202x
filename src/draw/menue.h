@@ -552,6 +552,8 @@ private:
     void UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, std::vector<ChampionshipSaveGameInfoStruct*>::iterator it);
     char* mNewChampionshipNameInputText = nullptr;
 
+    irr::core::position2di mLogoExtensionStrPos;
+
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
     Menue(Game* game,
