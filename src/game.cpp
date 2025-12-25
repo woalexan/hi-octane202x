@@ -226,7 +226,7 @@ void Game::AdvanceChampionship() {
 
         //go back to the championship
         //menue
-        MainMenue->ShowChampionshipMenue();
+        MainMenue->ShowChampionshipMenue(true);
     } else {
         //no more levels available
         //return to top of main menue, as also
@@ -407,24 +407,21 @@ void Game::HandleMenueActions() {
     if (pendingAction == MainMenue->ActLoadChampionshipSlot) {
         //which slot we want to load is handed over
         //in parameter currSetValue inside the action
-        //range of currSetValue is from 1 up to 5
+        irr::u8 slotNr = MainMenue->GetChampionShipSlotNrForLoadAction(pendingAction->currSetValue);
+
         //function expects value 0 up to 4
-        mGameAssets->LoadChampionshipSaveGame(pendingAction->currSetValue - 1);
+        mGameAssets->LoadChampionshipSaveGame(slotNr);
 
         //after loading of the save game
         //go back to the main championship menue
-        MainMenue->ShowChampionshipMenue();
+        MainMenue->ShowChampionshipMenue(true);
     }
 
     //user wants to save the current championship state?
     if (pendingAction == MainMenue->ActSaveChampionshipSlot) {
         //which slot we want to save to is handed over
         //in parameter currSetValue inside the action
-        //range of currSetValue is from 1 up to 5
-        //function expects value 0 up to 4
-        //store the slot number inside this member,
-        //until we have a new championship name, and we can finally save
-        mSaveChampionShipToWhichSlot = pendingAction->currSetValue - 1;
+        mSaveChampionShipToWhichSlot = MainMenue->GetChampionShipSlotNrForSaveAction(pendingAction->currSetValue);
 
         //change the menue, so that the user can enter the new
         //championship name

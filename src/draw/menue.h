@@ -38,7 +38,6 @@
 #define MENUE_ENTRY_TYPE_SLIDER 1
 #define MENUE_ENTRY_TYPE_TEXTINPUTFIELD 2
 #define MENUE_ENTRY_TYPE_EMPTYSPACE 3
-#define MENUE_ENTRY_TYPE_TEXTLABEL 4
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION 0
@@ -238,8 +237,6 @@ public:
                                                      MenueAction* triggerAction);
     MenueSingleEntry* AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction);
     MenueSingleEntry* AddEmptySpaceMenueEntry();
-    /*MenueSingleEntry* AddTextLabelMenueEntry(const char* initText, irr::core::vector2d<irr::s32> fixedPosition,
-                                                        GameTextFont* usedFont);*/
 
     void RealignMenueEntries(irr::core::recti newMenueSpace);
 
@@ -612,6 +609,8 @@ private:
 
     irr::core::position2di mLogoExtensionStrPos;
 
+    void ScalePositionMenueTextLabel(MenueTextLabel& whichLabel);
+
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
     Menue(Game* game,
@@ -666,7 +665,7 @@ public:
     void ShowGameTitle();
     void ShowGameLoadingScreen();
     void ShowMainMenue();
-    void ShowChampionshipMenue();
+    void ShowChampionshipMenue(bool enaWindowAnimation = false);
     void ShowRaceMenue();
     void ShowIntro();
     void ShowHighscore();
@@ -676,6 +675,9 @@ public:
     //parameter overallPoints just controls which header text is used
     void ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable, bool overallPoints);
     void CleanupPointsTablePage();
+
+    irr::u8 GetChampionShipSlotNrForSaveAction(irr::u8 whichEntryNumber);
+    irr::u8 GetChampionShipSlotNrForLoadAction(irr::u8 whichEntryNumber);
 
     void ContinueChampionship();
     void StartChampionshipNameInputAtSlot(irr::u8 whichSlotNr);

@@ -2686,9 +2686,6 @@ void Race::HandleBasicInput() {
     }
 
     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
-        //only for debugging!
-        //this->mRaceWasFinished = true;
-
         //24.03.2025: Add a final race phase where we wait until
         //all currently working animators are finished
         //this->exitRace = true;

@@ -170,40 +170,6 @@ MenueSingleEntry* MenuePage::AddTextInputMenueEntry(char* initTextPntrParam, boo
 
    return nullptr;
 }
-/*
-MenueSingleEntry* MenuePage::AddTextLabelMenueEntry(const char* initText, irr::core::vector2d<irr::s32> fixedPosition,
-                                                    GameTextFont* usedFont) {
-    irr::u8 currNrEntries = this->pageEntryVec.size();
-
-    if (currNrEntries < 255) {
-          MenueSingleEntry* newEntry = new MenueSingleEntry();
-
-          newEntry->mParentPage = this;
-          newEntry->entryType = MENUE_ENTRY_TYPE_TEXTLABEL;
-          //This entry has no checkbox/slider; Therefore maxValue = 0
-          newEntry->maxValue = 0;
-          newEntry->currValue = 0;
-          newEntry->entryText = strdup(initText);
-          newEntry->entryNumber = currNrEntries;
-          newEntry->nextMenuePage = nullptr;
-          newEntry->triggerAction = nullptr;
-          newEntry->itemSelectable = false;
-
-          //this item uses a fixed draw position
-          newEntry->drawTextScrPosition = fixedPosition;
-
-          //and we also set the specific used font for drawing the text
-          newEntry->overrideUsedTextFont = usedFont;
-
-          pageEntryVec.push_back(newEntry);
-
-          return newEntry;
-    } else {
-        logging::Error("Too much menue entries, Skip new entry creation!");
-    }
-
-    return nullptr;
-}*/
 
 void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
     //we want to reorganize all menue entries in a way, that
@@ -722,8 +688,11 @@ void Menue::CreateMenueEntries() {
     //Race track selection page
     //Item must be selectable, Important!
     RaceTrackNameTitle = RaceTrackSelectionPage->AddDefaultMenueEntry("", true, nullptr, nullptr);
-    RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
-    RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+        RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+    }
 
     SelRaceTrackNrLapsLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
                                                                            mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
@@ -737,6 +706,14 @@ void Menue::CreateMenueEntries() {
     //Ship selection page
     //Item must be selectable, Important!
     ShipNameTitle = ShipSelectionPage->AddDefaultMenueEntry("", true, nullptr, nullptr);
+    ShipSelectionPage->AddEmptySpaceMenueEntry();
+    ShipSelectionPage->AddEmptySpaceMenueEntry();
+    ShipSelectionPage->AddEmptySpaceMenueEntry();
+
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        ShipSelectionPage->AddEmptySpaceMenueEntry();
+        ShipSelectionPage->AddEmptySpaceMenueEntry();
+    }
 }
 
 void Menue::SetWindowAnimationVec() {
@@ -1582,6 +1559,9 @@ void Menue::InterruptRaceSelection() {
     } else if (RaceTrackSelectionCallerMenueEntry == this->NewChampionshipEntry) {
         currSelMenuePage = ChampionshipMenuePage;
         currSelMenueSingleEntry = NewChampionshipEntry;
+    } else if (RaceTrackSelectionCallerMenueEntry == this->ContinueChampionshipEntry) {
+        currSelMenuePage = ChampionshipMenuePage;
+        currSelMenueSingleEntry = ContinueChampionshipEntry;
     }
 
     //hide race track models again
@@ -1715,15 +1695,15 @@ void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
     if (currSelMenuePage == gameHighscoreMenuePage) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
-        RenderWindow(irr::core::recti(24, 23, 619, 311));
+        RenderWindow(irr::core::recti(24, 23, 619, 360));
     } else if (currSelMenuePage == raceStatsMenuePage) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
-        RenderWindow(irr::core::recti(0, 0, 640, 334));
+        RenderWindow(irr::core::recti(0, 0, 640, 395/*334*/));
     } else if (currSelMenuePage == pointsTablePage) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
-        RenderWindow(irr::core::recti(25, 18, 618, 301));
+        RenderWindow(irr::core::recti(25, 18, 618, 360));
     }
 
     irr::s32 printCharLeft = currNrCharsShownCnter;
@@ -2749,8 +2729,13 @@ void Menue::SetShipColorScheme(irr::u8 newSelectedColorScheme) {
     //recalculate X coordinate of ship color scheme name to center name!
     irr::u32 newCoord = (mGame->mScreenRes.Width / 2) -
             (mGame->mGameTexts->GetWidthPixelsGameText(currSelShipColorSchemeName, mGame->mGameTexts->GameMenueWhiteTextSmallSVGA) / 2);
-    currSelectedShipColorSchemeTextPos.X = newCoord;
-    currSelectedShipColorSchemeTextPos.Y = 59;
+
+    irr::core::vector2di pos1(newCoord, 59);
+
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
+
+    currSelectedShipColorSchemeTextPos.X = pos1.X;
+    currSelectedShipColorSchemeTextPos.Y = pos1.Y;
 }
 
 //newPosition = number of ship model in the front of camera
@@ -3044,17 +3029,37 @@ void Menue::CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::
 }
 
 void Menue::RecalculateShipStatLabels() {
+    irr::core::vector2di pos1(216, 97);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
+
     //Center speed stat around coord 216, 97
-    CalcStatLabelHelper(currSelShipStatSpeed, *ShipStatSpeedLabel, irr::core::vector2di(216, 97));
+    CalcStatLabelHelper(currSelShipStatSpeed, *ShipStatSpeedLabel, pos1);
+
+    pos1.set(200, 113);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
 
     //Center speed stat around coord 200, 113
-    CalcStatLabelHelper(currSelShipStatArmour, *ShipStatArmourLabel, irr::core::vector2di(200, 113));
+    CalcStatLabelHelper(currSelShipStatArmour, *ShipStatArmourLabel, pos1);
+
+    pos1.set(452, 97);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
 
     //Center weight stat around coord 452, 97
-    CalcStatLabelHelper(currSelShipStatWeight, *ShipStatWeightLabel, irr::core::vector2di(452, 97));
+    CalcStatLabelHelper(currSelShipStatWeight, *ShipStatWeightLabel, pos1);
+
+    pos1.set(456, 113);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
 
     //Center firepower stat around coord 456, 113
-    CalcStatLabelHelper(currSelShipStatFirePower, *ShipStatFirePowerLabel, irr::core::vector2di(456, 113));
+    CalcStatLabelHelper(currSelShipStatFirePower, *ShipStatFirePowerLabel, pos1);
 }
 
 void Menue::CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di centerCoord) {
@@ -3171,7 +3176,54 @@ void Menue::UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, s
     whichEntry.itemSelectable = (*it)->saveGameAvail;
 }
 
-//expected range from whichSlotNr is from 0 to 4
+irr::u8 Menue::GetChampionShipSlotNrForSaveAction(irr::u8 whichEntryNumber) {
+    if (ChampionshipSaveSlot1->entryNumber == whichEntryNumber) {
+        //is slot 0 = Savegame 1
+        return 0;
+    } else if (ChampionshipSaveSlot2->entryNumber == whichEntryNumber) {
+        //is slot 1 = Savegame 2
+        return 1;
+    } else if (ChampionshipSaveSlot3->entryNumber == whichEntryNumber) {
+        //is slot 2 = Savegame 3
+        return 2;
+    } else if (ChampionshipSaveSlot4->entryNumber == whichEntryNumber) {
+        //is slot 3 = Savegame 4
+        return 3;
+    } else if (ChampionshipSaveSlot5->entryNumber == whichEntryNumber) {
+        //is slot 4 = Savegame 5
+        return 4;
+    }
+
+    //if there is something wrong, return an invalid slot number
+    //then save function will simply exit
+    logging::Error("GetChampionShipSlotNrForSaveAction: Invalid entry number found! Skip save");
+    return 5;
+}
+
+irr::u8 Menue::GetChampionShipSlotNrForLoadAction(irr::u8 whichEntryNumber) {
+    if (ChampionshipLoadSlot1->entryNumber == whichEntryNumber) {
+        //is slot 0 = Savegame 1
+        return 0;
+    } else if (ChampionshipLoadSlot2->entryNumber == whichEntryNumber) {
+        //is slot 1 = Savegame 2
+        return 1;
+    } else if (ChampionshipLoadSlot3->entryNumber == whichEntryNumber) {
+        //is slot 2 = Savegame 3
+        return 2;
+    } else if (ChampionshipLoadSlot4->entryNumber == whichEntryNumber) {
+        //is slot 3 = Savegame 4
+        return 3;
+    } else if (ChampionshipLoadSlot5->entryNumber == whichEntryNumber) {
+        //is slot 4 = Savegame 5
+        return 4;
+    }
+
+    //if there is something wrong, return an invalid slot number
+    //then load function will simply exit
+    logging::Error("GetChampionShipSlotNrForLoadAction: Invalid entry number found! Skip save");
+    return 5;
+}
+
 void Menue::StartChampionshipNameInputAtSlot(irr::u8 whichSlotNr) {
     if (whichSlotNr > 4)
         return;
@@ -3369,15 +3421,13 @@ void Menue::ShowRaceMenue() {
     lastAnimationUpdateAbsTime = absoluteTime;
 }
 
-void Menue::ShowChampionshipMenue() {
+void Menue::ShowChampionshipMenue(bool enaWindowAnimation) {
     mMenueUserInactiveTimer = 0.0f;
 
     //when a championship race is finished
     //the original game returns to the championship
     //top menue
     currSelMenuePage = this->ChampionshipMenuePage;
-
-    RealignMenuePageItems();
 
     //if there is currently a championship active, then allow to select
     //the continue championship menue entry
@@ -3403,8 +3453,19 @@ void Menue::ShowChampionshipMenue() {
         finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
     }
 
-    currMenueState = MENUE_STATE_TYPETEXT;
-    lastAnimationUpdateAbsTime = absoluteTime;
+    RealignMenuePageItems();
+
+    if (!enaWindowAnimation) {
+        currMenueState = MENUE_STATE_TYPETEXT;
+        lastAnimationUpdateAbsTime = absoluteTime;
+    } else {
+        //activate menue animation
+        currSelWindowAnimation = windowMenueAnimationStartGame;
+        currMenueWindowAnimationIdx = 0;
+        currMenueWindowAnimationFinalIdx = (irr::u8)(windowMenueAnimationStartGame->coordVec.size()) - 1;
+        currMenueState = MENUE_STATE_TRANSITION;
+        lastAnimationUpdateAbsTime = absoluteTime;
+    }
 }
 
 //parameter overallPoints just controls which header text is used
@@ -3452,6 +3513,8 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
            this->mGame->mGameTexts->GetWidthPixelsGameText(newLabel->text, newLabel->whichFont) / 2;
    newLabel->drawPositionTxt.Y = 56;
 
+   newLabel->drawPositionTxt.Y = (newLabel->drawPositionTxt.Y * mGame->mScreenRes.Height) / 400;
+
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of pointPageTable
@@ -3488,6 +3551,8 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
            newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedEntryFont;
        }
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        pointsTablePageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3515,6 +3580,8 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
        delete[] pointValStr;
 
        newLabel->visible = true; //set to true, free text pointer afterwards!
+
+       ScalePositionMenueTextLabel(*newLabel);
 
        pointsTablePageTextVec->push_back(newLabel);
 
@@ -3609,6 +3676,11 @@ void Menue::CleanupHighScorepage() {
     ShowMainMenue();
 }
 
+void Menue::ScalePositionMenueTextLabel(MenueTextLabel& whichLabel) {
+    whichLabel.drawPositionTxt.X = (whichLabel.drawPositionTxt.X * mGame->mScreenRes.Width) / 640;
+    whichLabel.drawPositionTxt.Y = (whichLabel.drawPositionTxt.Y * mGame->mScreenRes.Height) / 400;
+}
+
 void Menue::ShowHighscore() {
    //request pointer to highscore table values
    std::vector<HighScoreEntryStruct*>* pntrTable;
@@ -3637,6 +3709,8 @@ void Menue::ShowHighscore() {
    newLabel->text = strdup("HISCORES");
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
+   ScalePositionMenueTextLabel(*newLabel);
+
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of highscore screen
@@ -3662,6 +3736,8 @@ void Menue::ShowHighscore() {
        newLabel->visible = true; //we must free this text pointer!
        newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        highScorePageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3684,6 +3760,8 @@ void Menue::ShowHighscore() {
 
        newLabel->visible = true; //set to true, free text pointer afterwards!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        highScorePageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3703,6 +3781,8 @@ void Menue::ShowHighscore() {
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = strdup(assessementStr);
        newLabel->visible = true; //we must free this text pointer!
+
+       ScalePositionMenueTextLabel(*newLabel);
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3783,6 +3863,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    newLabel->text = strdup("STATISTICS");
    newLabel->whichFont = mGame->mGameTexts->HudWhiteTextBannerFont;
 
+   ScalePositionMenueTextLabel(*newLabel);
+
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of highscore screen
@@ -3817,6 +3899,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3840,6 +3924,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3854,6 +3940,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("HIT ACCURACY");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3886,6 +3974,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3900,6 +3990,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("KILLS");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3931,6 +4023,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3945,6 +4039,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("DEATHS");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3976,6 +4072,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3990,6 +4088,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("AVERAGE LAP");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4021,6 +4121,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4035,6 +4137,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("BEST LAP");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4066,6 +4170,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4079,6 +4185,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("RACE TIME");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4110,6 +4218,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4123,6 +4233,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("RATING");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4155,6 +4267,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4168,6 +4282,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("POSITION");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4199,6 +4315,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4219,6 +4337,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    newLabel->text = strdup(playerAssessement);
 
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
