@@ -127,10 +127,6 @@ bool Editor::InitEditorStep2() {
         mSmgr->setAmbientLight(video::SColorf(1.0f, 1.0f, 1.0f));
     }
 
-    if (enableShadows) {
-       mSmgr->setShadowColor(video::SColor(150,0,0,0));
-    }
-
     //set Gui dialog transparency
     //between 0 and 255
     setSkinTransparency(200, mGuienv->getSkin());
@@ -152,21 +148,10 @@ bool Editor::InitEditorStep2() {
     return true;
 }
 
-//creates the most basic game infrastructure, and
+//creates the most basic editor infrastructure, and
 //extracts basic things to be able to show a first
 //graphical screen
 bool Editor::InitEditorStep1() {
-    dimension2d<u32> targetResolution;
-
-    //set target screen resolution
-    //targetResolution.set(640,480);
-    targetResolution.set(1280,960);
-
-    //initialize my infrastructure
-    this->InfrastructureInit(targetResolution, fullscreen);
-    if (!GetInfrastructureInitOk())
-        return false;
-
     //load the background image we need
     //for data extraction screen rendering and
     //main menue
@@ -618,22 +603,6 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
             logging::Error("SaveAsLevel: Minimap file copy operation failed");
         } else {
             logging::Info("SaveAsLevel: Minimap file copy operation was succesfull");
-        }
-    }
-
-    //copy minimap calibration data file as well if it is existing already
-    irr::io::path miniMapCalTarget = GetMiniMapCalFileName(mSelLevelForFileOperation);
-    irr::io::path miniMapCalSource = GetMiniMapCalFileName(currOpenLevelRootDir);
-
-    if (FileExists(miniMapCalSource.c_str()) == 1) {
-        //minimap cal file is also there, copy
-        logging::Info("SaveAsLevel: Copy also existing minimap calibration value file");
-        if (copy_file(miniMapCalSource.c_str(), miniMapCalTarget.c_str()) != 0) {
-            success = false;
-
-            logging::Error("SaveAsLevel: Minimap calibration value file copy operation failed");
-        } else {
-            logging::Info("SaveAsLevel: Minimap calibration value file copy operation was succesfull");
         }
     }
 
@@ -1491,8 +1460,6 @@ bool Editor::LoadBackgroundImage() {
     mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //first load background image for menue
-
-    //backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
     backgnd = mDriver->getTexture("extract/images/oscr0-1-x2.png");
 
     if (backgnd == nullptr) {
@@ -2070,6 +2037,11 @@ bool Editor::CreateDefaultMapConfigFile(std::string targetMapFolder) {
     newConfig.cloudColorInner3.set(180, 180, 180, 180);
     newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
+    //default minimap not set, not configured
+    newConfig.minimapCalSet = false;
+    newConfig.minimapCalStartVal.set(0, 0);
+    newConfig.minimapCalEndVal.set(0, 0);
+
     if (!WriteMapConfigFile(std::string(configFilePath.c_str()), &newConfig)) {
         return false;
     }
@@ -2503,7 +2475,7 @@ bool Editor::ModifyMapFile(std::string originFileName, std::string outputFileNam
   return true;
 }
 
-Editor::Editor(int argc, char **argv) : InfrastructureBase(argc, argv) {
+Editor::Editor(int argc, char **argv) : InfrastructureBase(argc, argv, INFRA_RUNNING_AS_EDITOR) {
     //allocate memory for current editor statusbar text
     mCurrentStatusBarText = new wchar_t[400];
     swprintf(mCurrentStatusBarText, 390, L"");

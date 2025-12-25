@@ -1,5 +1,5 @@
 ﻿/*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -14,6 +14,282 @@
 #include "gametext.h"
 #include "../resources/assets.h"
 #include "../race.h"
+
+MenueAction::MenueAction(irr::u32 actionNrParam) {
+    actionNr = actionNrParam;
+}
+
+MenueAction::~MenueAction() {
+}
+
+MenuePage::~MenuePage() {
+}
+
+MenuePage::MenuePage(Menue* parentMenue, MenuePage* parentPage, irr::u8 pageNr, MenueAction* pageEscKeyAction) {
+    pageNumber = pageNr;
+    parentMenuePage = parentPage;
+    pageEscKeyTriggerAction = pageEscKeyAction;
+    mParentMenue = parentMenue;
+};
+
+MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction) {
+    return(AddDefaultMenueEntry(text, itemSelectable, goToPage, triggerAction, mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont,
+                                                      mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont));
+}
+
+MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction,
+                                                  GameTextFont* unselectedFont, GameTextFont* selectedFont) {
+    irr::u8 currNrEntries = this->pageEntryVec.size();
+
+    if (currNrEntries < 255) {
+          MenueSingleEntry* newEntry = new MenueSingleEntry();
+
+          newEntry->mParentPage = this;
+          newEntry->entryType = MENUE_ENTRY_TYPE_DEFAULT;
+          //This entry has no checkbox/slider; Therefore maxValue = 0
+          newEntry->maxValue = 0;
+          newEntry->currValue = 0;
+          newEntry->entryText = strdup(text);
+          newEntry->entryNumber = currNrEntries;
+          newEntry->nextMenuePage = goToPage;
+          newEntry->triggerAction = triggerAction;
+          newEntry->itemSelectable = itemSelectable;
+
+          //set special used fonts
+          newEntry->usedUnselectedTextFont = unselectedFont;
+          newEntry->usedSelectedTextFont = selectedFont;
+
+          pageEntryVec.push_back(newEntry);
+
+          return newEntry;
+    } else {
+        logging::Error("Too much menue entries, Skip new entry creation!");
+    }
+
+    return nullptr;
+}
+
+MenueSingleEntry* MenuePage::AddEmptySpaceMenueEntry() {
+    irr::u8 currNrEntries = this->pageEntryVec.size();
+
+    if (currNrEntries < 255) {
+          MenueSingleEntry* newEntry = new MenueSingleEntry();
+
+          newEntry->mParentPage = this;
+          newEntry->entryType = MENUE_ENTRY_TYPE_EMPTYSPACE;
+          newEntry->maxValue = 0;
+          newEntry->currValue = 0;
+          newEntry->entryText = strdup("");
+          newEntry->entryNumber = currNrEntries;
+          newEntry->nextMenuePage = nullptr;
+          newEntry->triggerAction = nullptr;
+          newEntry->itemSelectable = false;
+
+          //use the default menue fonts
+          newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+
+          pageEntryVec.push_back(newEntry);
+
+          return newEntry;
+    } else {
+        logging::Error("Too much menue entries, Skip new entry creation!");
+    }
+
+    return nullptr;
+}
+
+MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSelectable,
+                                                 irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
+                                                 irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
+                                                 MenueAction* triggerAction) {
+    irr::u8 currNrEntries = this->pageEntryVec.size();
+
+    if (currNrEntries < 255) {
+          MenueSingleEntry* newEntry = new MenueSingleEntry();
+
+          newEntry->mParentPage = this;
+          newEntry->entryType = MENUE_ENTRY_TYPE_SLIDER;
+          //This entry has a checkbox/slider; We know this when
+          //maxValue is set > 0
+          newEntry->maxValue = maxValueParam;
+          newEntry->currValue = currValueParam;
+          newEntry->entryText = strdup(text);
+          newEntry->entryNumber = currNrEntries;
+          newEntry->nextMenuePage = nullptr;
+          newEntry->triggerAction = triggerAction;
+          newEntry->itemSelectable = itemSelectable;
+          newEntry->checkBoxPixelPerBlockWidth = checkBoxPixelPerBlockWidthParam;
+          newEntry->checkBoxPixelPerBlockHeight = checkBoxPixelPerBlockHeightParam;
+          newEntry->checkBoxNrBlocks = nrBlocksParam;
+
+          //use the default menue fonts
+          newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+
+          pageEntryVec.push_back(newEntry);
+
+          return newEntry;
+    } else {
+        logging::Error("Too much menue entries, Skip new entry creation!");
+    }
+
+    return nullptr;
+}
+
+MenueSingleEntry* MenuePage::AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction) {
+    irr::u8 currNrEntries = this->pageEntryVec.size();
+
+    if (currNrEntries < 255) {
+          MenueSingleEntry* newEntry = new MenueSingleEntry();
+
+          newEntry->mParentPage = this;
+          newEntry->entryType = MENUE_ENTRY_TYPE_TEXTINPUTFIELD;
+          //This entry has no checkbox/slider; Therefore maxValue = 0
+          newEntry->maxValue = 0;
+          newEntry->currValue = 0;
+          newEntry->entryText = strdup(""); //start with empty text!
+          newEntry->entryNumber = currNrEntries;
+          newEntry->nextMenuePage = nullptr;
+          newEntry->triggerAction = triggerAction;
+          newEntry->itemSelectable = itemSelectable;
+          newEntry->isTextEntryField = true;  //important!
+
+          newEntry->initTextPntr = initTextPntrParam; //set initial text at the start
+
+          //use the default menue fonts
+          newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+
+          pageEntryVec.push_back(newEntry);
+
+          return newEntry;
+    } else {
+        logging::Error("Too much menue entries, Skip new entry creation!");
+    }
+
+   return nullptr;
+}
+
+void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
+    //we want to reorganize all menue entries in a way, that
+    //all printed information is centered inside the currently
+    //available menue selection space
+    irr::u16 nrEntries = this->pageEntryVec.size();
+    irr::u32 startAlignY;
+    irr::u32 alignX = newMenueSpace.UpperLeftCorner.X + newMenueSpace.getWidth() / 2;
+
+    if (nrEntries > 0) {
+        irr::u32 height = newMenueSpace.getHeight();
+
+        irr::u32 neededHeight = 0;
+
+        std::vector<MenueSingleEntry*>::iterator it;
+        for (it = pageEntryVec.begin(); it != pageEntryVec.end(); ++it) {
+            if (((*it)->entryType != MENUE_ENTRY_TYPE_TEXTINPUTFIELD) &&
+                ((*it)->entryType != MENUE_ENTRY_TYPE_EMPTYSPACE)) {
+                neededHeight += (*it)->GetHeight();
+            } else {
+                //for text entry or empty space entry
+                //use fixed height in pixels
+                neededHeight += MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
+            }
+
+            neededHeight += MENUE_ENTRY_DISTANCE_PIXEL;
+        }
+
+        irr::u32 remainHeight = height - neededHeight;
+        startAlignY = newMenueSpace.UpperLeftCorner.Y + remainHeight / 2;
+
+        for (it = pageEntryVec.begin(); it != pageEntryVec.end(); ++it) {
+           (*it)->drawTextScrPosition.X = alignX - (*it)->GetWidth() / 2;
+           (*it)->drawTextScrPosition.Y = startAlignY;
+
+            //if this element also has a slider, we also need to set its outline box
+            if ((*it)->entryType == MENUE_ENTRY_TYPE_SLIDER) {
+                (*it)->checkBoxOutline.UpperLeftCorner.X = alignX + (*it)->GetWidth() / 2 + MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
+                (*it)->checkBoxOutline.UpperLeftCorner.Y = startAlignY;
+                (*it)->checkBoxOutline.LowerRightCorner.X = (*it)->checkBoxOutline.UpperLeftCorner.X + (*it)->checkBoxNrBlocks * (*it)->checkBoxPixelPerBlockWidth;
+                (*it)->checkBoxOutline.LowerRightCorner.Y = (*it)->checkBoxOutline.UpperLeftCorner.Y + (*it)->checkBoxPixelPerBlockHeight;
+            }
+
+            if (((*it)->entryType != MENUE_ENTRY_TYPE_TEXTINPUTFIELD) &&
+                ((*it)->entryType != MENUE_ENTRY_TYPE_EMPTYSPACE)) {
+                    startAlignY += (*it)->GetHeight() + MENUE_ENTRY_DISTANCE_PIXEL;
+            } else {
+                    startAlignY += MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
+            }
+        }
+    }
+}
+
+//Gets the needed width in pixels
+irr::u32 MenueSingleEntry::GetWidth() {
+    //Get width of text in pixels for entry
+    irr::u32 textWidth =
+             mParentPage->mParentMenue->mGame->mGameTexts->GetWidthPixelsGameText(entryText,
+                                                  this->usedUnselectedTextFont);
+
+    //is also a checkbox/slider included?
+    if (maxValue != 0) {
+        //yes, it is
+        textWidth += MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
+        textWidth += checkBoxNrBlocks * checkBoxPixelPerBlockWidth;
+    }
+
+    return textWidth;
+}
+
+//Gets the needed height in pixels
+irr::u32 MenueSingleEntry::GetHeight() {
+    //Get height of text in pixels for entry
+    irr::u32 textHeight =
+             mParentPage->mParentMenue->mGame->mGameTexts->GetHeightPixelsGameText(entryText,
+                                                  this->usedUnselectedTextFont);
+
+    //is also a checkbox/slider included?
+    if (maxValue != 0) {
+        //yes, it is
+        //if the slider blocks are heigher then the text itself
+        //the set the needed height to the height of the slider
+        //block itself
+        if (checkBoxPixelPerBlockHeight > textHeight) {
+            textHeight = checkBoxPixelPerBlockHeight;
+        }
+    }
+
+    return textHeight;
+}
+
+void MenueSingleEntry::SetText(char* newText) {
+    if (newText == nullptr)
+        return;
+
+    if (entryText != nullptr) {
+        //delete old string at heap
+        //we need to use free here, as we have strdup
+        //text strings before!
+        free(entryText);
+
+        //set new output string
+        entryText = newText;
+    }
+}
+
+void Menue::RealignMenuePageItems() {
+    if (currSelMenuePage == nullptr)
+        return;
+
+    irr::core::recti scaled;
+
+    scaled.UpperLeftCorner.X = (currMenueSpace.UpperLeftCorner.X * mGame->mScreenRes.Width) / 640;
+    scaled.LowerRightCorner.X = (currMenueSpace.LowerRightCorner.X * mGame->mScreenRes.Width) / 640;
+
+    scaled.UpperLeftCorner.Y = (currMenueSpace.UpperLeftCorner.Y * mGame->mScreenRes.Height) / 400;
+    scaled.LowerRightCorner.Y = (currMenueSpace.LowerRightCorner.Y * mGame->mScreenRes.Height) / 400;
+
+    currSelMenuePage->RealignMenueEntries(scaled);
+}
 
 void Menue::PlayMenueSound(uint8_t sndResId) {
   if (mSoundEngine != nullptr) {
@@ -63,79 +339,64 @@ bool Menue::InitMenueResources() {
     mGame->mDriver->makeColorKeyTexture(wndCornerElementLowerRightTex,
            irr::core::position2d<irr::s32>(0, 0));
 
-    irr::u32 resolutionMultiplier = 1;
+    /**********************************
+     * Load game logo images          *
+     **********************************/
 
-    //Logo part 1
-    MenueGraphicPart* GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0000.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
+    std::string imgNamePrefix("");
+    std::string imgName("");
+    char nrStr[15];
+
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        //use images that were upscaled by a factor of 2 before
+        imgNamePrefix.append("extract/images/logo0-1-x2-");
+    } else {
+        imgNamePrefix.append("extract/images/logo0-1-");
     }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(90 * resolutionMultiplier, 34 * resolutionMultiplier);
 
-    GameLogo.push_back(GameLogoPiece);
+    MenueGraphicPart* GameLogoPiece;
+    std::vector<irr::core::vector2d<irr::s32>> posDefinitionVector;
 
-    //Logo part 2
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0001.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
+    //Define the game logo images draw positions to stich the logo properly
+    //together
+    if (!mGame->mGameConfig->enableDoubleResolution) {
+        posDefinitionVector.push_back(irr::core::vector2di(90, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(220, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(347, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(474, 34));
+        posDefinitionVector.push_back(irr::core::vector2di(91, 92));
+        posDefinitionVector.push_back(irr::core::vector2di(218, 92));
+
+        mLogoExtensionStrPos.set(368,92);
+    } else {
+        posDefinitionVector.push_back(irr::core::vector2di(90 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(220 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(347 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(474 * 2, 34 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(91 * 2, 92 * 2));
+        posDefinitionVector.push_back(irr::core::vector2di(218 * 2, 92 * 2));
+
+        mLogoExtensionStrPos.set(368 * 2 + 40, 92 * 2);
     }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(220 * resolutionMultiplier, 34 * resolutionMultiplier);
 
-    GameLogo.push_back(GameLogoPiece);
+    for (long idx = 0; idx < 6; idx++) {
+        imgName.clear();
+        imgName.append(imgNamePrefix);
 
-    //Logo part 3
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0002.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
+        sprintf (nrStr, "%0*ld.bmp", 4, idx);
+        imgName.append(nrStr);
+
+        GameLogoPiece = new MenueGraphicPart();
+        GameLogoPiece->texture = mGame->mDriver->getTexture(imgName.c_str());
+        if (GameLogoPiece->texture == nullptr) {
+            return false;
+        }
+        mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
+        GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
+        GameLogoPiece->drawScrPosition.set(posDefinitionVector.at(idx));
+
+        GameLogo.push_back(GameLogoPiece);
     }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(347 * resolutionMultiplier, 34 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
-
-    //Logo part 4
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0003.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
-    }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(474 * resolutionMultiplier, 34 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
-
-    //Logo part 5
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0004.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
-    }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(91 * resolutionMultiplier, 92 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
-
-    //Logo part 6
-    GameLogoPiece = new MenueGraphicPart();
-    GameLogoPiece->texture = mGame->mDriver->getTexture("extract/images/logo0-1-0005.bmp");
-    if (GameLogoPiece->texture == nullptr) {
-        return false;
-    }
-    mGame->mDriver->makeColorKeyTexture(GameLogoPiece->texture, irr::core::position2d<irr::s32>(0,0));
-    GameLogoPiece->sizeTex = GameLogoPiece->texture->getSize();
-    GameLogoPiece->drawScrPosition.set(218 * resolutionMultiplier, 92 * resolutionMultiplier);
-
-    GameLogo.push_back(GameLogoPiece);
 
     mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
@@ -150,533 +411,247 @@ void Menue::AcceptedRaceSetup() {
     this->currActionToExecute = this->ActRace;
 }
 
-void Menue::InitMenuePageEntries() {
-    //a special action that signals the Main loop that race stat
-    //page was closed by player
-    ActCloseRaceStatPage = new MenueAction();
-    ActCloseRaceStatPage->actionNr = MENUE_ACTION_CLOSERACESTATPAGE;
+void Menue::InitActions() {
+    //create the action for starting the race
+    ActRace = new MenueAction(MENUE_ACTION_RACE);
 
-    //a special action that signals the Main loop that points table
-    //page was closed by player
-    ActClosePointsTablePage = new MenueAction();
-    ActClosePointsTablePage->actionNr = MENUE_ACTION_CLOSEPOINTSTABLEPAGE;
-
-    //a special action that signals the Main loop that a demo
-    //should be started
-    ActStartDemo = new MenueAction();
-    ActStartDemo->actionNr = MENUE_ACTION_STARTDEMO;
-
-    //a special action that signals the Main loop that the
-    //highscore page should be shown
-    ActShowHighScorePage = new MenueAction();
-    ActShowHighScorePage->actionNr = MENUE_ACTION_SHOWHIGHSCOREPAGE;
-
-    //define menue pages first
-    TopMenuePage = new MenuePage();
-    TopMenuePage->pageNumber = MENUE_TOPENTRY;
-
-    OptionMenuePage = new MenuePage();
-    OptionMenuePage->pageNumber = MENUE_OPTION;
-
-    ChangeNamePage = new MenuePage();
-    ChangeNamePage->pageNumber = MENUE_CHANGENAME;
-
-    RaceMenuePage = new MenuePage();
-    RaceMenuePage->pageNumber = MENUE_SELECTIONRACE;
-
-    ChampionshipMenuePage = new MenuePage();
-    ChampionshipMenuePage->pageNumber = MENUE_CHAMPIONSHIP;
-
-    ChampionshipSaveMenuePage = new MenuePage();
-    ChampionshipSaveMenuePage->pageNumber = MENUE_CHAMPIONSHIPSAVE;
-
-    ChampionshipLoadMenuePage = new MenuePage();
-    ChampionshipLoadMenuePage->pageNumber = MENUE_CHAMPIONSHIPLOAD;
-
-    VideoDetailsPage = new MenuePage();
-    VideoDetailsPage->pageNumber = MENUE_VIDEOOPTIONS;
-
-    SoundOptionsPage = new MenuePage();
-    SoundOptionsPage->pageNumber = MENUE_SOUNDOPTIONS;
-
-    RaceTrackSelectionPage = new MenuePage();
-    RaceTrackSelectionPage->pageNumber = MENUE_SELECTRACETRACK;
-
-    ShipSelectionPage = new MenuePage();
-    ShipSelectionPage->pageNumber = MENUE_SELECTSHIP;
-
-    //define dummy menue page for highscore screen
-    gameHighscoreMenuePage = new MenuePage();
-    gameHighscoreMenuePage->pageNumber = MENUE_HIGHSCORE;
-    //if we press ESC on the highscore page go to game menue
-    gameHighscoreMenuePage->parentMenuePage = nullptr;
-
-    gameHiscoreMenueDummyEntry = new MenueSingleEntry();
-    gameHiscoreMenueDummyEntry->entryText = strdup("");
-    gameHiscoreMenueDummyEntry->entryNumber = 0;
-    gameHiscoreMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
-    gameHiscoreMenueDummyEntry->nextMenuePage = nullptr;
-    gameHiscoreMenueDummyEntry->triggerAction = nullptr;
-
-    gameHighscoreMenuePage->pageEntryVec.push_back(gameHiscoreMenueDummyEntry);
-
-    //define dummy menue page for race stats screen
-    raceStatsMenuePage = new MenuePage();
-    raceStatsMenuePage->pageNumber = MENUE_RACESTATS;
-    //if we press ESC on the race stats page go to game menue
-    raceStatsMenuePage->parentMenuePage = nullptr;
-
-    raceStatsMenueDummyEntry = new MenueSingleEntry();
-    raceStatsMenueDummyEntry->entryText = strdup("");
-    raceStatsMenueDummyEntry->entryNumber = 0;
-    raceStatsMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
-    raceStatsMenueDummyEntry->nextMenuePage = nullptr;
-    raceStatsMenueDummyEntry->triggerAction = ActCloseRaceStatPage;
-
-    raceStatsMenuePage->pageEntryVec.push_back(raceStatsMenueDummyEntry);
-
-    //define dummy menue page for points table page
-    pointsTablePage = new MenuePage();
-    pointsTablePage->pageNumber = MENUE_POINTSTABLE;
-    pointsTablePage->parentMenuePage = nullptr;
-
-    pointsTableMenueDummyEntry = new MenueSingleEntry();
-    pointsTableMenueDummyEntry->entryText = strdup("");
-    pointsTableMenueDummyEntry->entryNumber = 0;
-    pointsTableMenueDummyEntry->drawTextScrPosition = irr::core::vector2di(256, 248);
-    pointsTableMenueDummyEntry->nextMenuePage = nullptr;
-    pointsTableMenueDummyEntry->triggerAction = ActClosePointsTablePage;
-
-    pointsTablePage->pageEntryVec.push_back(pointsTableMenueDummyEntry);
-
-    //now define menue page entries
-
-    /**************************
-     * TOP Level Menue Page   *
-     * ************************/
-
-    Race = new MenueSingleEntry();
-    Race->entryText = strdup("RACE");
-    Race->entryNumber = 0;
-    Race->drawTextScrPosition = irr::core::vector2di(282, 226);
-    Race->nextMenuePage = RaceMenuePage;
-    Race->triggerAction = nullptr;
-
-    Options = new MenueSingleEntry();
-    Options->entryText = strdup("OPTIONS");
-    Options->entryNumber = 1;
-    Options->drawTextScrPosition = irr::core::vector2di(256, 248);
-    Options->nextMenuePage = OptionMenuePage;
-    Options->triggerAction = nullptr;
-
-    QuitToOS = new MenueSingleEntry();
-    QuitToOS->entryText = strdup("QUIT TO OS");
-    QuitToOS->entryNumber = 2;
-    QuitToOS->drawTextScrPosition = irr::core::vector2di(224, 270);
-    QuitToOS->nextMenuePage = nullptr;
-    ActQuitToOS = new MenueAction();
-    ActQuitToOS->actionNr = MENUE_ACTION_QUITTOOS;
-    QuitToOS->triggerAction = ActQuitToOS;
-
-    TopMenuePage->pageEntryVec.push_back(Race);
-    TopMenuePage->pageEntryVec.push_back(Options);
-    TopMenuePage->pageEntryVec.push_back(QuitToOS);
-    this->menuePageVector.push_back(TopMenuePage);
-    //this menue page has no parent, is highest level
-    TopMenuePage->parentMenuePage = nullptr;
-
-    /******************************
-    * SELECTION RACE Menue Page   *
-    * *****************************/
-
-    ActEnterChampionshipMenue = new MenueAction();
-    ActEnterChampionshipMenue->actionNr = MENUE_ACTION_CHAMPIONSHIP_ENTERMENUE;
-
-    SelectChampionsship = new MenueSingleEntry();
-    SelectChampionsship->entryText = strdup("CHAMPIONSHIP");
-    SelectChampionsship->entryNumber = 0;
-    SelectChampionsship->drawTextScrPosition = irr::core::vector2di(204, 225);
-    SelectChampionsship->nextMenuePage = nullptr;
-    SelectChampionsship->triggerAction = ActEnterChampionshipMenue;
-
-    SelectSingleRace = new MenueSingleEntry();
-    SelectSingleRace->entryText = strdup("SINGLE RACE");
-    SelectSingleRace->entryNumber = 1;
-    SelectSingleRace->drawTextScrPosition = irr::core::vector2di(220, 248);
-    SelectSingleRace->nextMenuePage = RaceTrackSelectionPage;
-    SelectSingleRace->triggerAction = nullptr;
-
-    //ActRace = new MenueAction();
-    //ActRace->actionNr = MENUE_ACTION_RACE;
-
-    RaceMenuePageBackToMainMenue = new MenueSingleEntry();
-    RaceMenuePageBackToMainMenue->entryText = strdup("MAIN MENUE");
-    RaceMenuePageBackToMainMenue->entryNumber = 2;
-    RaceMenuePageBackToMainMenue->drawTextScrPosition = irr::core::vector2di(230, 270);
-    RaceMenuePageBackToMainMenue->nextMenuePage = TopMenuePage;
-    RaceMenuePageBackToMainMenue->triggerAction = nullptr;
-
-    RaceMenuePage->pageEntryVec.push_back(SelectChampionsship);
-    RaceMenuePage->pageEntryVec.push_back(SelectSingleRace);
-    RaceMenuePage->pageEntryVec.push_back(RaceMenuePageBackToMainMenue);
-    RaceMenuePage->parentMenuePage = TopMenuePage;
-
-    this->menuePageVector.push_back(RaceMenuePage);
+    ActQuitToOS = new MenueAction(MENUE_ACTION_QUITTOOS);
 
     /****************************
      * Championship Actions     *
      ****************************/
 
-    ActContinueChampionship = new MenueAction();
-    ActContinueChampionship->actionNr = MENUE_ACTION_CHAMPIONSHIP_CONTINUE;
+    ActEnterChampionshipMenue = new MenueAction(MENUE_ACTION_CHAMPIONSHIP_ENTERMENUE);
+    ActContinueChampionship = new MenueAction(MENUE_ACTION_CHAMPIONSHIP_CONTINUE);
+    ActLoadChampionshipSlot = new MenueAction(MENUE_ACTION_CHAMPIONSHIP_LOADSLOT);
+    ActSaveChampionshipSlot = new MenueAction(MENUE_ACTION_CHAMPIONSHIP_SAVESLOT);
+    ActFinalizeChampionshipSaveSlot = new MenueAction(MENUE_ACTION_CHAMPIONSHIP_SAVESLOT_FINALIZE);
+    ActQuitChampionship = new MenueAction(MENUE_ACTION_CHAMPIONSHIP_QUIT);
 
-    ActLoadChampionshipSlot = new MenueAction();
-    ActLoadChampionshipSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_LOADSLOT;
+    /***************************
+     * Other actions           *
+     ***************************/
 
-    ActSaveChampionshipSlot = new MenueAction();
-    ActSaveChampionshipSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_SAVESLOT;
+    //create an action for setting a new player name
+    ActSetPlayerName = new MenueAction(MENUE_ACTION_SETPLAYERNAME);
 
-    ActFinalizeChampionshipSaveSlot = new MenueAction();
-    ActFinalizeChampionshipSaveSlot->actionNr = MENUE_ACTION_CHAMPIONSHIP_SAVESLOT_FINALIZE;
+    //a special action that signals the Main loop that race stat
+    //page was closed by player
+    ActCloseRaceStatPage = new MenueAction(MENUE_ACTION_CLOSERACESTATPAGE);
 
-    ActQuitChampionship = new MenueAction();
-    ActQuitChampionship->actionNr = MENUE_ACTION_CHAMPIONSHIP_QUIT;
+    //a special action that signals the Main loop that points table
+    //page was closed by player
+    ActClosePointsTablePage = new MenueAction(MENUE_ACTION_CLOSEPOINTSTABLEPAGE);
+
+    //a special action that signals the Main loop that a demo
+    //should be started
+    ActStartDemo = new MenueAction(MENUE_ACTION_STARTDEMO);
+
+    //a special action that signals the Main loop that the
+    //highscore page should be shown
+    ActShowHighScorePage = new MenueAction(MENUE_ACTION_SHOWHIGHSCOREPAGE);
+    ActSetComputerPlayerEnable = new MenueAction(MENUE_ACTION_SETCOMPUTERPLAYERENA);
+    ActSetDifficultyLevel = new MenueAction(MENUE_ACTION_SETDIFFICULTYLEVEL);
+
+    /***************************
+     * Option actions          *
+     ***************************/
+
+    ActReturnFromDetailsMenue = new MenueAction(MENUE_ACTION_RETURNFROMDETAILSMENUE);
+    ActSetSoundVolume = new MenueAction(MENUE_ACTION_SETSOUNDVOLUME);
+    ActSetMusicVolume = new MenueAction(MENUE_ACTION_SETMUSICVOLUME);
+    ActSetUpgradedSky = new MenueAction(MENUE_ACTION_SETUPGRADEDSKY);
+    ActSetEnableShadows = new MenueAction(MENUE_ACTION_SETENABLESHADOW);
+    ActSetVSync = new MenueAction(MENUE_ACTION_SETVSYNC);
+    ActSetDoubleResolution = new MenueAction(MENUE_ACTION_SETDOUBLERESOLUTION);
+}
+
+void Menue::InitMenuePages() {
+    //define menue pages first, highest top page, has no parent
+    TopMenuePage = new MenuePage(this, nullptr, MENUE_TOPENTRY);
+
+    RaceMenuePage = new MenuePage(this, TopMenuePage, MENUE_SELECTIONRACE);
+    OptionMenuePage = new MenuePage(this, TopMenuePage, MENUE_OPTION);
+
+    //TODO: do we need a link to a parent page here? IMPORTANT!
+    RaceTrackSelectionPage = new MenuePage(this, nullptr, MENUE_SELECTRACETRACK);
+    //TODO: do we need a link to a parent page here? IMPORTANT!
+    ShipSelectionPage = new MenuePage(this, nullptr, MENUE_SELECTSHIP);
+
+    ChampionshipMenuePage = new MenuePage(this, RaceMenuePage, MENUE_CHAMPIONSHIP);
+
+    ChampionshipSaveMenuePage = new MenuePage(this, ChampionshipMenuePage, MENUE_CHAMPIONSHIPSAVE);
+    ChampionshipLoadMenuePage = new MenuePage(this, ChampionshipMenuePage, MENUE_CHAMPIONSHIPLOAD);
+
+    //parent page of changeNamePage is option menue page, important!
+    ChangeNamePage = new MenuePage(this, OptionMenuePage, MENUE_CHANGENAME);
+    VideoDetailsPage = new MenuePage(this, OptionMenuePage, MENUE_VIDEOOPTIONS, ActReturnFromDetailsMenue);
+
+    //parent page of sound option menue is Option menue page
+    SoundOptionsPage = new MenuePage(this, OptionMenuePage, MENUE_SOUNDOPTIONS);
+
+    //define dummy menue page for highscore screen
+    //if we press ESC on the highscore page go to game menue
+    gameHighscoreMenuePage = new MenuePage(this, nullptr, MENUE_HIGHSCORE);
+
+    //define dummy menue page for race stats screen
+    //if we press ESC on the race stats page go to game menue
+    raceStatsMenuePage = new MenuePage(this, nullptr, MENUE_RACESTATS);
+
+    //define dummy menue page for points table page
+    pointsTablePage = new MenuePage(this, nullptr, MENUE_POINTSTABLE);
+}
+
+void Menue::CreateMenueEntries() {
+    /**************************
+     * TOP Level Menue Page   *
+     * ************************/
+
+    Race = TopMenuePage->AddDefaultMenueEntry("RACE", true, RaceMenuePage, nullptr);
+    TopMenuePage->AddDefaultMenueEntry("OPTIONS", true, OptionMenuePage, nullptr);
+    TopMenuePage->AddDefaultMenueEntry("QUIT TO OS", true, nullptr, ActQuitToOS);
+
+    /******************************
+    * SELECTION RACE Menue Page   *
+    * *****************************/
+
+    SelectChampionsship = RaceMenuePage->AddDefaultMenueEntry("CHAMPIONSHIP", true, nullptr, ActEnterChampionshipMenue);
+    SelectSingleRace = RaceMenuePage->AddDefaultMenueEntry("SINGLE RACE", true, RaceTrackSelectionPage, nullptr);
+    RaceMenuePage->AddDefaultMenueEntry("MAIN MENUE", true, TopMenuePage, nullptr);
 
     /*****************************
      * Championship Menue Page   *
      * ***************************/
 
-    ContinueChampionshipEntry = new MenueSingleEntry();
-    ContinueChampionshipEntry->entryText = strdup("CONTINUE CHAMPIONSHIP");
-    ContinueChampionshipEntry->entryNumber = 0;
-    ContinueChampionshipEntry->drawTextScrPosition = irr::core::vector2di(120, 193);
-    ContinueChampionshipEntry->nextMenuePage = nullptr;
-    //default make item not selectable
-    ContinueChampionshipEntry->itemSelectable = false;
-    ContinueChampionshipEntry->triggerAction = ActContinueChampionship;
-
-    NewChampionshipEntry = new MenueSingleEntry();
-    NewChampionshipEntry->entryText = strdup("NEW CHAMPIONSHIP");
-    NewChampionshipEntry->entryNumber = 1;
-    NewChampionshipEntry->drawTextScrPosition = irr::core::vector2di(163, 215);
-    NewChampionshipEntry->nextMenuePage = RaceTrackSelectionPage;
-    NewChampionshipEntry->triggerAction = nullptr;
-
-    LoadChampionshipEntry = new MenueSingleEntry();
-    LoadChampionshipEntry->entryText = strdup("LOAD CHAMPIONSHIP");
-    LoadChampionshipEntry->entryNumber = 2;
-    LoadChampionshipEntry->drawTextScrPosition = irr::core::vector2di(157, 237);
-    LoadChampionshipEntry->triggerAction = nullptr;
-    LoadChampionshipEntry->nextMenuePage = ChampionshipLoadMenuePage;
-
-    SaveChampionshipEntry = new MenueSingleEntry();
-    SaveChampionshipEntry->entryText = strdup("SAVE CHAMPIONSHIP");
-    SaveChampionshipEntry->entryNumber = 3;
-    SaveChampionshipEntry->drawTextScrPosition = irr::core::vector2di(157, 259);
-    SaveChampionshipEntry->triggerAction = nullptr;
-    //default make item not selectable
-    SaveChampionshipEntry->itemSelectable = false;
-    SaveChampionshipEntry->nextMenuePage = ChampionshipSaveMenuePage;
-
-    QuitChampionshipEntry = new MenueSingleEntry();
-    QuitChampionshipEntry->entryText = strdup("QUIT CHAMPIONSHIP");
-    QuitChampionshipEntry->entryNumber = 4;
-    QuitChampionshipEntry->drawTextScrPosition = irr::core::vector2di(161, 281);
-    QuitChampionshipEntry->nextMenuePage = nullptr;
-    QuitChampionshipEntry->triggerAction = ActQuitChampionship;
-
-    ChampionshipMenuePage->pageEntryVec.push_back(ContinueChampionshipEntry);
-    ChampionshipMenuePage->pageEntryVec.push_back(NewChampionshipEntry);
-    ChampionshipMenuePage->pageEntryVec.push_back(LoadChampionshipEntry);
-    ChampionshipMenuePage->pageEntryVec.push_back(SaveChampionshipEntry);
-    ChampionshipMenuePage->pageEntryVec.push_back(QuitChampionshipEntry);
-    ChampionshipMenuePage->parentMenuePage = RaceMenuePage;
-
-    this->menuePageVector.push_back(ChampionshipMenuePage);
+    //default make next item not selectable!
+    ContinueChampionshipEntry = ChampionshipMenuePage->AddDefaultMenueEntry("CONTINUE CHAMPIONSHIP", false, nullptr, ActContinueChampionship);
+    NewChampionshipEntry = ChampionshipMenuePage->AddDefaultMenueEntry("NEW CHAMPIONSHIP", true, RaceTrackSelectionPage, nullptr);
+    ChampionshipMenuePage->AddDefaultMenueEntry("LOAD CHAMPIONSHIP", true, ChampionshipLoadMenuePage, nullptr);
+    //default make next item not selectable!
+    SaveChampionshipEntry = ChampionshipMenuePage->AddDefaultMenueEntry("SAVE CHAMPIONSHIP", false, ChampionshipSaveMenuePage, nullptr);
+    ChampionshipMenuePage->AddDefaultMenueEntry("QUIT CHAMPIONSHIP", true, nullptr, ActQuitChampionship);
 
     /*********************************
     * CHAMPIONSHIP SAVE Menue Page   *
     * ********************************/
 
-    ChampionshipSaveTxtLabel = new MenueSingleEntry();
-    ChampionshipSaveTxtLabel->entryText = strdup("SAVE GAME");
-    ChampionshipSaveTxtLabel->entryNumber = 0;
-    ChampionshipSaveTxtLabel->drawTextScrPosition = irr::core::vector2di(230, 162);
-    ChampionshipSaveTxtLabel->nextMenuePage = nullptr;
-    ChampionshipSaveTxtLabel->triggerAction = nullptr;
-    ChampionshipSaveTxtLabel->itemSelectable = false;
-
-    ChampionshipSaveSlot1 = new MenueSingleEntry();
-    ChampionshipSaveSlot1->entryText = strdup("EMPTY");
-    ChampionshipSaveSlot1->entryNumber = 1;
-    ChampionshipSaveSlot1->drawTextScrPosition = irr::core::vector2di(266, 206);
-    ChampionshipSaveSlot1->nextMenuePage = nullptr;
-    ChampionshipSaveSlot1->triggerAction = ActSaveChampionshipSlot;
-
-    ChampionshipSaveSlot2 = new MenueSingleEntry();
-    ChampionshipSaveSlot2->entryText = strdup("EMPTY");
-    ChampionshipSaveSlot2->entryNumber = 2;
-    ChampionshipSaveSlot2->drawTextScrPosition = irr::core::vector2di(266, 228);
-    ChampionshipSaveSlot2->nextMenuePage = nullptr;
-    ChampionshipSaveSlot2->triggerAction = ActSaveChampionshipSlot;
-
-    ChampionshipSaveSlot3 = new MenueSingleEntry();
-    ChampionshipSaveSlot3->entryText = strdup("EMPTY");
-    ChampionshipSaveSlot3->entryNumber = 3;
-    ChampionshipSaveSlot3->drawTextScrPosition = irr::core::vector2di(266, 250);
-    ChampionshipSaveSlot3->nextMenuePage = nullptr;
-    ChampionshipSaveSlot3->triggerAction = ActSaveChampionshipSlot;
-
-    ChampionshipSaveSlot4 = new MenueSingleEntry();
-    ChampionshipSaveSlot4->entryText = strdup("EMPTY");
-    ChampionshipSaveSlot4->entryNumber = 4;
-    ChampionshipSaveSlot4->drawTextScrPosition = irr::core::vector2di(266, 272);
-    ChampionshipSaveSlot4->nextMenuePage = nullptr;
-    ChampionshipSaveSlot4->triggerAction = ActSaveChampionshipSlot;
-
-    ChampionshipSaveSlot5 = new MenueSingleEntry();
-    ChampionshipSaveSlot5->entryText = strdup("EMPTY");
-    ChampionshipSaveSlot5->entryNumber = 5;
-    ChampionshipSaveSlot5->drawTextScrPosition = irr::core::vector2di(266, 294);
-    ChampionshipSaveSlot5->nextMenuePage = nullptr;
-    ChampionshipSaveSlot5->triggerAction = ActSaveChampionshipSlot;
-
-    ChampionshipSaveReturnToChampionsShipMenue = new MenueSingleEntry();
-    ChampionshipSaveReturnToChampionsShipMenue->entryText = strdup("MAIN OPTIONS");
-    ChampionshipSaveReturnToChampionsShipMenue->entryNumber = 6;
-    ChampionshipSaveReturnToChampionsShipMenue->drawTextScrPosition = irr::core::vector2di(208, 338);
-    ChampionshipSaveReturnToChampionsShipMenue->nextMenuePage = ChampionshipMenuePage;
-    ChampionshipSaveReturnToChampionsShipMenue->triggerAction = nullptr;
-
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveTxtLabel);
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveSlot1);
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveSlot2);
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveSlot3);
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveSlot4);
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveSlot5);
-    ChampionshipSaveMenuePage->pageEntryVec.push_back(ChampionshipSaveReturnToChampionsShipMenue);
-    this->menuePageVector.push_back(ChampionshipSaveMenuePage);
-
-    ChampionshipSaveMenuePage->parentMenuePage = ChampionshipMenuePage;
+    //This item is only a lable, make not selectable!
+    ChampionshipSaveMenuePage->AddDefaultMenueEntry("SAVE GAME", false, nullptr, nullptr);
+    ChampionshipSaveMenuePage->AddEmptySpaceMenueEntry();
+    ChampionshipSaveSlot1 = ChampionshipSaveMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActSaveChampionshipSlot);
+    ChampionshipSaveSlot2 = ChampionshipSaveMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActSaveChampionshipSlot);
+    ChampionshipSaveSlot3 = ChampionshipSaveMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActSaveChampionshipSlot);
+    ChampionshipSaveSlot4 = ChampionshipSaveMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActSaveChampionshipSlot);
+    ChampionshipSaveSlot5 = ChampionshipSaveMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActSaveChampionshipSlot);
+    ChampionshipSaveMenuePage->AddEmptySpaceMenueEntry();
+    ChampionshipSaveMenuePage->AddDefaultMenueEntry("MAIN OPTIONS", true, ChampionshipMenuePage, nullptr);
 
     /*********************************
     * CHAMPIONSHIP LOAD Menue Page   *
     * ********************************/
-    ChampionshipLoadTxtLabel = new MenueSingleEntry();
-    ChampionshipLoadTxtLabel->entryText = strdup("LOAD GAME");
-    ChampionshipLoadTxtLabel->entryNumber = 0;
-    ChampionshipLoadTxtLabel->drawTextScrPosition = irr::core::vector2di(230, 162);
-    ChampionshipLoadTxtLabel->nextMenuePage = nullptr;
-    ChampionshipLoadTxtLabel->triggerAction = nullptr;
-    ChampionshipLoadTxtLabel->itemSelectable = false;
 
-    ChampionshipLoadSlot1 = new MenueSingleEntry();
-    ChampionshipLoadSlot1->entryText = strdup("EMPTY");
-    ChampionshipLoadSlot1->entryNumber = 1;
-    ChampionshipLoadSlot1->drawTextScrPosition = irr::core::vector2di(266, 206);
-    ChampionshipLoadSlot1->nextMenuePage = nullptr;
-    ChampionshipLoadSlot1->triggerAction = ActLoadChampionshipSlot;
+    //This item is only a lable, make not selectable!
+    ChampionshipLoadMenuePage->AddDefaultMenueEntry("LOAD GAME", false, nullptr, nullptr);
+    ChampionshipLoadMenuePage->AddEmptySpaceMenueEntry();
+    ChampionshipLoadSlot1 = ChampionshipLoadMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActLoadChampionshipSlot);
+    ChampionshipLoadSlot2 = ChampionshipLoadMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActLoadChampionshipSlot);
+    ChampionshipLoadSlot3 = ChampionshipLoadMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActLoadChampionshipSlot);
+    ChampionshipLoadSlot4 = ChampionshipLoadMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActLoadChampionshipSlot);
+    ChampionshipLoadSlot5 = ChampionshipLoadMenuePage->AddDefaultMenueEntry("EMPTY", true, nullptr, ActLoadChampionshipSlot);
+    ChampionshipLoadMenuePage->AddEmptySpaceMenueEntry();
+    ChampionshipLoadMenuePage->AddDefaultMenueEntry("MAIN OPTIONS", true, ChampionshipMenuePage, nullptr);
 
-    ChampionshipLoadSlot2 = new MenueSingleEntry();
-    ChampionshipLoadSlot2->entryText = strdup("EMPTY");
-    ChampionshipLoadSlot2->entryNumber = 2;
-    ChampionshipLoadSlot2->drawTextScrPosition = irr::core::vector2di(266, 228);
-    ChampionshipLoadSlot2->nextMenuePage = nullptr;
-    ChampionshipLoadSlot2->triggerAction = ActLoadChampionshipSlot;
+    /*********************************
+    * Dummy Menue Entries            *
+    * ********************************/
 
-    ChampionshipLoadSlot3 = new MenueSingleEntry();
-    ChampionshipLoadSlot3->entryText = strdup("EMPTY");
-    ChampionshipLoadSlot3->entryNumber = 3;
-    ChampionshipLoadSlot3->drawTextScrPosition = irr::core::vector2di(266, 250);
-    ChampionshipLoadSlot3->nextMenuePage = nullptr;
-    ChampionshipLoadSlot3->triggerAction = ActLoadChampionshipSlot;
+    gameHiscoreMenueDummyEntry = gameHighscoreMenuePage->AddDefaultMenueEntry("", true, nullptr, nullptr);
+    raceStatsMenueDummyEntry = raceStatsMenuePage->AddDefaultMenueEntry("", true, nullptr, ActCloseRaceStatPage);
+    pointsTableMenueDummyEntry = pointsTablePage->AddDefaultMenueEntry("", true, nullptr, ActClosePointsTablePage);
 
-    ChampionshipLoadSlot4 = new MenueSingleEntry();
-    ChampionshipLoadSlot4->entryText = strdup("EMPTY");
-    ChampionshipLoadSlot4->entryNumber = 4;
-    ChampionshipLoadSlot4->drawTextScrPosition = irr::core::vector2di(266, 272);
-    ChampionshipLoadSlot4->nextMenuePage = nullptr;
-    ChampionshipLoadSlot4->triggerAction = ActLoadChampionshipSlot;
+    /**********************
+    * OPTION Menue Page   *
+    * *********************/
 
-    ChampionshipLoadSlot5 = new MenueSingleEntry();
-    ChampionshipLoadSlot5->entryText = strdup("EMPTY");
-    ChampionshipLoadSlot5->entryNumber = 5;
-    ChampionshipLoadSlot5->drawTextScrPosition = irr::core::vector2di(266, 294);
-    ChampionshipLoadSlot5->nextMenuePage = nullptr;
-    ChampionshipLoadSlot5->triggerAction = ActLoadChampionshipSlot;
+    OptionMenuePage->AddDefaultMenueEntry("CHANGE NAME", true, ChangeNamePage, nullptr);
+    OptionMenuePage->AddDefaultMenueEntry("DETAIL OPTIONS", true, VideoDetailsPage, nullptr);
+    OptionMenuePage->AddDefaultMenueEntry("SOUND OPTIONS", true, SoundOptionsPage, nullptr);
+    OptionMenuePage->AddDefaultMenueEntry("REINITIALIZE JOYSTICK", true, nullptr, nullptr);
 
-    ChampionshipLoadReturnToChampionsShipMenue = new MenueSingleEntry();
-    ChampionshipLoadReturnToChampionsShipMenue->entryText = strdup("MAIN OPTIONS");
-    ChampionshipLoadReturnToChampionsShipMenue->entryNumber = 6;
-    ChampionshipLoadReturnToChampionsShipMenue->drawTextScrPosition = irr::core::vector2di(208, 338);
-    ChampionshipLoadReturnToChampionsShipMenue->nextMenuePage = ChampionshipMenuePage;
-    ChampionshipLoadReturnToChampionsShipMenue->triggerAction = nullptr;
-
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadTxtLabel);
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadSlot1);
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadSlot2);
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadSlot3);
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadSlot4);
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadSlot5);
-    ChampionshipLoadMenuePage->pageEntryVec.push_back(ChampionshipLoadReturnToChampionsShipMenue);
-    this->menuePageVector.push_back(ChampionshipLoadMenuePage);
-
-    ChampionshipLoadMenuePage->parentMenuePage = ChampionshipMenuePage;
-
-    /****************************
-    * OPTION Level Menue Page   *
-    * **************************/
-    ChangeName = new MenueSingleEntry();
-    ChangeName->entryText = strdup("CHANGE NAME");
-    ChangeName->entryNumber = 0;
-    ChangeName->drawTextScrPosition = irr::core::vector2di(210, 182);
-    ChangeName->nextMenuePage = ChangeNamePage;
-
-    DetailOptions = new MenueSingleEntry();
-    DetailOptions->entryText = strdup("DETAIL OPTIONS");
-    DetailOptions->entryNumber = 1;
-    DetailOptions->drawTextScrPosition = irr::core::vector2di(194, 204);
-    DetailOptions->nextMenuePage = VideoDetailsPage;
-
-    SoundOptions = new MenueSingleEntry();
-    SoundOptions->entryText = strdup("SOUND OPTIONS");
-    SoundOptions->entryNumber = 2;
-    SoundOptions->drawTextScrPosition = irr::core::vector2di(200, 226);
-    SoundOptions->nextMenuePage = SoundOptionsPage;
-
-    ReinitializeJoystick = new MenueSingleEntry();
-    ReinitializeJoystick->entryText = strdup("REINITIALIZE JOYSTICK");
-    ReinitializeJoystick->entryNumber = 3;
-    ReinitializeJoystick->drawTextScrPosition = irr::core::vector2di(135, 248);
-    ReinitializeJoystick->nextMenuePage = nullptr;
-
-    ComputerPlayersCheckBox = new MenueSingleEntry();
-    ComputerPlayersCheckBox->entryText = strdup("COMPUTER PLAYERS");
-    ComputerPlayersCheckBox->entryNumber = 4;
-    ComputerPlayersCheckBox->drawTextScrPosition = irr::core::vector2di(144, 270);
-    ComputerPlayersCheckBox->nextMenuePage = nullptr;
+    irr::u8 setValue;
     //computer players is a checkbox
     if (this->mGameAssets->GetComputerPlayersEnabled()) {
-        ComputerPlayersCheckBox->currValue = 1;
+        setValue = 1;
     } else {
-        ComputerPlayersCheckBox->currValue = 0;
+        setValue = 0;
     }
-    ComputerPlayersCheckBox->maxValue = 1;
-    ComputerPlayersCheckBox->checkBoxOutline.UpperLeftCorner.set(505, 271);
-    ComputerPlayersCheckBox->checkBoxOutline.LowerRightCorner.set(527, 285);
-    ComputerPlayersCheckBox->checkBoxNrBlocks = 1;
-    ActSetComputerPlayerEnable = new MenueAction();
-    ActSetComputerPlayerEnable->actionNr = MENUE_ACTION_SETCOMPUTERPLAYERENA;
-    ComputerPlayersCheckBox->triggerAction = ActSetComputerPlayerEnable;
 
-    DifficultyLevel = new MenueSingleEntry();
-    DifficultyLevel->entryText = strdup("DIFFICULTY LEVEL");
-    DifficultyLevel->entryNumber = 5;
-    DifficultyLevel->drawTextScrPosition = irr::core::vector2di(152, 292);
-    DifficultyLevel->nextMenuePage = nullptr;
+    OptionMenuePage->AddSliderMenueEntry("COMPUTER PLAYERS", true, setValue, 1, 1, 22, 14, ActSetComputerPlayerEnable);
+
     //difficultyLevel allows to set 4 different levels
     //get current difficulty level from assets class
-    DifficultyLevel->currValue = mGameAssets->GetCurrentGameDifficulty();
+    setValue = mGameAssets->GetCurrentGameDifficulty();
 
-    DifficultyLevel->maxValue = 3;
-    DifficultyLevel->checkBoxOutline.UpperLeftCorner.set(487, 293);
-    DifficultyLevel->checkBoxOutline.LowerRightCorner.set(517, 306);
-    DifficultyLevel->checkBoxNrBlocks = 3;
-    ActSetDifficultyLevel = new MenueAction();
-    ActSetDifficultyLevel->actionNr = MENUE_ACTION_SETDIFFICULTYLEVEL;
-    DifficultyLevel->triggerAction = ActSetDifficultyLevel;
-
-    OptionMenuePageBackToMainMenue = new MenueSingleEntry();
-    OptionMenuePageBackToMainMenue->entryText = strdup("MAIN MENU");
-    OptionMenuePageBackToMainMenue->entryNumber = 6;
-    OptionMenuePageBackToMainMenue->drawTextScrPosition = irr::core::vector2di(230, 314);
-    OptionMenuePageBackToMainMenue->nextMenuePage = TopMenuePage;
-    //parent page of option menue is top menue page
-    OptionMenuePage->parentMenuePage = TopMenuePage;
-
-    OptionMenuePage->pageEntryVec.push_back(ChangeName);
-    OptionMenuePage->pageEntryVec.push_back(DetailOptions);
-    OptionMenuePage->pageEntryVec.push_back(SoundOptions);
-    OptionMenuePage->pageEntryVec.push_back(ReinitializeJoystick);
-    OptionMenuePage->pageEntryVec.push_back(ComputerPlayersCheckBox);
-    OptionMenuePage->pageEntryVec.push_back(DifficultyLevel);
-    OptionMenuePage->pageEntryVec.push_back(OptionMenuePageBackToMainMenue);
-    this->menuePageVector.push_back(OptionMenuePage);
+    OptionMenuePage->AddSliderMenueEntry("DIFFICULTY LEVEL", true, setValue, 3, 3, 22, 14, ActSetDifficultyLevel);
+    OptionMenuePage->AddDefaultMenueEntry("MAIN MENU", true, TopMenuePage, nullptr);
 
     /**********************************
     * CHANGE Player Name Menue Page   *
     * *********************************/
     //the first entry just is used to print label "ENTER NAME"
     //is not selectable
-    EnterNameLabel = new MenueSingleEntry();
-    EnterNameLabel->entryText = strdup("ENTER NAME");
-    EnterNameLabel->entryNumber = 0;
-    EnterNameLabel->drawTextScrPosition = irr::core::vector2di(219, 221);
-    EnterNameLabel->nextMenuePage = nullptr;
-    EnterNameLabel->itemSelectable = false; //important!
+    ChangeNamePage->AddDefaultMenueEntry("ENTER NAME", false, nullptr, nullptr);
 
     //the second entry is used for player name input
-    PlayerNameEnterField = new MenueSingleEntry();
-    PlayerNameEnterField->entryText = strdup("");  //start with empty name!
-    PlayerNameEnterField->entryNumber = 1;
-    PlayerNameEnterField->drawTextScrPosition = irr::core::vector2di(244, 260);
-    PlayerNameEnterField->nextMenuePage = nullptr;
-    PlayerNameEnterField->itemSelectable = true;
-    PlayerNameEnterField->isTextEntryField = true; //important!
-
     //initialize the input text field with current configured
     //main player name
-    PlayerNameEnterField->initTextPntr = this->mGameAssets->GetNewMainPlayerName();
-
-    //create an action for setting a new player name
-    ActSetPlayerName = new MenueAction();
-    ActSetPlayerName->actionNr = MENUE_ACTION_SETPLAYERNAME;
-    PlayerNameEnterField->triggerAction = ActSetPlayerName;
-
-    ChangeNamePage->pageEntryVec.push_back(EnterNameLabel);
-    ChangeNamePage->pageEntryVec.push_back(PlayerNameEnterField);
-    this->menuePageVector.push_back(ChangeNamePage);
-
-    //parent page of changeNamePage is option menue page, important!
-    ChangeNamePage->parentMenuePage = OptionMenuePage;
+    ChangeNamePage->AddTextInputMenueEntry(this->mGameAssets->GetNewMainPlayerName(), true, ActSetPlayerName);
 
     /************************************
     * Video Details Option Menue Page   *
     * ***********************************/
-    EnableVSync = new MenueSingleEntry();
-    EnableVSync->entryText = strdup("ENABLE VSYNC");
-    EnableVSync->entryNumber = 0;
-    EnableVSync->drawTextScrPosition = irr::core::vector2di(144, 270);
+
+    //enable double resolution is a checkbox
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        setValue = 1;
+    } else {
+        setValue = 0;
+    }
+
+    VideoDetailsPage->AddSliderMenueEntry("DOUBLE RESOLUTION", true, setValue, 1, 1, 22, 14, ActSetDoubleResolution);
+
     //enable vsync is a checkbox
-    EnableVSync->currValue = 1; //by default enabled
-    EnableVSync->maxValue = 1;
-    EnableVSync->checkBoxOutline.UpperLeftCorner.set(505, 271);
-    EnableVSync->checkBoxOutline.LowerRightCorner.set(527, 285);
-    EnableVSync->checkBoxNrBlocks = 1;
-    //ActSetComputerPlayerEnable = new MenueAction();
-    //ActSetComputerPlayerEnable->actionNr = MENUE_ACTION_SETCOMPUTERPLAYERENA;
-    //ComputerPlayersCheckBox->triggerAction = ActSetComputerPlayerEnable;
+    if (mGame->mGameConfig->enableVSync) {
+        setValue = 1;
+    } else {
+        setValue = 0;
+    }
 
-    VideoPageBackToOptionsMenue = new MenueSingleEntry();
-    VideoPageBackToOptionsMenue->entryText = strdup("MAIN OPTIONS");
-    VideoPageBackToOptionsMenue->entryNumber = 1;
-    VideoPageBackToOptionsMenue->drawTextScrPosition = irr::core::vector2di(230, 314);
-    VideoPageBackToOptionsMenue->nextMenuePage = OptionMenuePage;
+    VideoDetailsPage->AddSliderMenueEntry("ENABLE VSYNC", true, setValue, 1, 1, 22, 14, ActSetVSync);
 
-    VideoDetailsPage->pageEntryVec.push_back(EnableVSync);
-    VideoDetailsPage->pageEntryVec.push_back(VideoPageBackToOptionsMenue);
-    this->menuePageVector.push_back(VideoDetailsPage);
+    //enable shadows is a checkbox
+    if (mGame->mGameConfig->enableShadows) {
+        setValue = 1;
+    } else {
+        setValue = 0;
+    }
 
-    //parent page of video option menue is Option menue page
-    VideoDetailsPage->parentMenuePage = OptionMenuePage;
+    VideoDetailsPage->AddSliderMenueEntry("ENABLE SHADOWS", true, setValue, 1, 1, 22, 14, ActSetEnableShadows);
+
+    //option to use the upgraded sky is a checkbox
+    if (mGame->mGameConfig->useUpgradedSky) {
+        setValue = 1;
+    } else {
+        setValue = 0;
+    }
+
+    VideoDetailsPage->AddSliderMenueEntry("UPGRADED SKY", true, setValue, 1, 1, 22, 14, ActSetUpgradedSky);
+    VideoDetailsPage->AddDefaultMenueEntry("MAIN OPTIONS", true, OptionMenuePage, ActReturnFromDetailsMenue);
 
     /*****************************
     * Sound Options Menue Page   *
     * ****************************/
-    MusicVolumeSlider = new MenueSingleEntry();
-    MusicVolumeSlider->entryText = strdup("MUSIC VOLUME");
-    MusicVolumeSlider->entryNumber = 0;
-    MusicVolumeSlider->drawTextScrPosition = irr::core::vector2di(113, 225);
+
     //music volume is a slider with 16 blocks (17 different possible settings)
 
     //get current music volume from GameAssets class
@@ -691,19 +666,8 @@ void Menue::InitMenuePageEntries() {
     if (finalVal > 16)
         finalVal = 16;
 
-    MusicVolumeSlider->currValue = finalVal;
-    MusicVolumeSlider->maxValue = 16;
-    MusicVolumeSlider->checkBoxOutline.UpperLeftCorner.set(395, 226);
-    MusicVolumeSlider->checkBoxOutline.LowerRightCorner.set(555, 240);
-    MusicVolumeSlider->checkBoxNrBlocks = 16;
-    ActSetMusicVolume = new MenueAction();
-    ActSetMusicVolume->actionNr = MENUE_ACTION_SETMUSICVOLUME;
-    MusicVolumeSlider->triggerAction = ActSetMusicVolume;
+    SoundOptionsPage->AddSliderMenueEntry("MUSIC VOLUME", true, finalVal, 16, 16, 10, 14, ActSetMusicVolume);
 
-    EffectsVolumeSlider = new MenueSingleEntry();
-    EffectsVolumeSlider->entryText = strdup("EFFECTS VOLUME");
-    EffectsVolumeSlider->entryNumber = 1;
-    EffectsVolumeSlider->drawTextScrPosition = irr::core::vector2di(93, 247);
     //effects volume is a slider with 16 blocks (17 different possible settings)
 
     //get current sound volume from GameAssets class
@@ -718,55 +682,38 @@ void Menue::InitMenuePageEntries() {
     if (finalVal > 16)
         finalVal = 16;
 
-    EffectsVolumeSlider->currValue = finalVal;
-    EffectsVolumeSlider->maxValue = 16;
-    EffectsVolumeSlider->checkBoxOutline.UpperLeftCorner.set(413, 248);
-    EffectsVolumeSlider->checkBoxOutline.LowerRightCorner.set(573, 261);
-    EffectsVolumeSlider->checkBoxNrBlocks = 16;
-    ActSetSoundVolume = new MenueAction();
-    ActSetSoundVolume->actionNr = MENUE_ACTION_SETSOUNDVOLUME;
-    EffectsVolumeSlider->triggerAction = ActSetSoundVolume;
-
-    SoundOptionsBackToOptionsMenue = new MenueSingleEntry();
-    SoundOptionsBackToOptionsMenue->entryText = strdup("MAIN OPTIONS");
-    SoundOptionsBackToOptionsMenue->entryNumber = 2;
-    SoundOptionsBackToOptionsMenue->drawTextScrPosition = irr::core::vector2di(207, 269);
-    SoundOptionsBackToOptionsMenue->nextMenuePage = OptionMenuePage;
-
-    SoundOptionsPage->pageEntryVec.push_back(MusicVolumeSlider);
-    SoundOptionsPage->pageEntryVec.push_back(EffectsVolumeSlider);
-    SoundOptionsPage->pageEntryVec.push_back(SoundOptionsBackToOptionsMenue);
-    this->menuePageVector.push_back(SoundOptionsPage);
-
-    //parent page of sound option menue is Option menue page
-    SoundOptionsPage->parentMenuePage = OptionMenuePage;
+    SoundOptionsPage->AddSliderMenueEntry("EFFECTS VOLUME", true, finalVal, 16, 16, 10, 14, ActSetSoundVolume);
+    SoundOptionsPage->AddDefaultMenueEntry("MAIN OPTIONS", true, OptionMenuePage, nullptr);
 
     //Race track selection page
-    RaceTrackNameTitle = new MenueSingleEntry();
-    RaceTrackNameTitle->entryText = strdup("");
-    RaceTrackNameTitle->entryNumber = 0;
-    RaceTrackNameTitle->drawTextScrPosition = irr::core::vector2di(81, 38);
-    RaceTrackNameTitle->nextMenuePage = nullptr;
-    RaceTrackNameTitle->itemSelectable = true; //important!!
+    //Item must be selectable, Important!
+    RaceTrackNameTitle = RaceTrackSelectionPage->AddDefaultMenueEntry("", true, nullptr, nullptr);
 
-    RaceTrackSelectionPage->pageEntryVec.push_back(RaceTrackNameTitle);
-    this->menuePageVector.push_back(RaceTrackSelectionPage);
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+        RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+    }
+
+    SelRaceTrackNrLapsLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                                                           mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
+
+    SelRaceTrackBestLapLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                                                            mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
+
+    SelRaceTrackBestRaceLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                                                             mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
 
     //Ship selection page
-    ShipNameTitle = new MenueSingleEntry();
-    ShipNameTitle->entryText = strdup("");
-    ShipNameTitle->entryNumber = 0;
-    ShipNameTitle->drawTextScrPosition = irr::core::vector2di(81, 38);
-    ShipNameTitle->nextMenuePage = nullptr;
-    ShipNameTitle->itemSelectable = true; //important!!
+    //Item must be selectable, Important!
+    ShipNameTitle = ShipSelectionPage->AddDefaultMenueEntry("", true, nullptr, nullptr);
+    ShipSelectionPage->AddEmptySpaceMenueEntry();
+    ShipSelectionPage->AddEmptySpaceMenueEntry();
+    ShipSelectionPage->AddEmptySpaceMenueEntry();
 
-    //ship selection page
-    ShipSelectionPage->pageEntryVec.push_back(ShipNameTitle);
-    this->menuePageVector.push_back(ShipSelectionPage);
-
-    //create the action for starting the race
-    ActRace = new MenueAction();
-    ActRace->actionNr = MENUE_ACTION_RACE;
+    if (mGame->mGameConfig->enableDoubleResolution) {
+        ShipSelectionPage->AddEmptySpaceMenueEntry();
+        ShipSelectionPage->AddEmptySpaceMenueEntry();
+    }
 }
 
 void Menue::SetWindowAnimationVec() {
@@ -981,20 +928,13 @@ void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
     //calculate correct position
     cursorPos.UpperLeftCorner.X = textEntryField->drawTextScrPosition.X +
             mGame->mGameTexts->GetWidthPixelsGameText(textEntryField->currTextInputFieldStr,
-                     mGame->mGameTexts->HudWhiteTextBannerFont) + 1;
+                     textEntryField->usedSelectedTextFont) + 3;
 
     cursorPos.UpperLeftCorner.Y = textEntryField->drawTextScrPosition.Y + 1;
 
-    //make cursor 16 x 16 pixels
-    cursorPos.LowerRightCorner.X = cursorPos.UpperLeftCorner.X + 14;
-    cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 14;
-
-    //scale resolution, initially defined for 640x400, we have other selected game resolution
-    cursorPos.UpperLeftCorner.X = (cursorPos.UpperLeftCorner.X * mGame->mScreenRes.Width) / 640;
-    cursorPos.LowerRightCorner.X = (cursorPos.LowerRightCorner.X * mGame->mScreenRes.Width) / 640;
-
-    cursorPos.UpperLeftCorner.Y = (cursorPos.UpperLeftCorner.Y * mGame->mScreenRes.Height) / 400;
-    cursorPos.LowerRightCorner.Y = (cursorPos.LowerRightCorner.Y * mGame->mScreenRes.Height) / 400;
+    //make cursor 18 x 18 pixels
+    cursorPos.LowerRightCorner.X = cursorPos.UpperLeftCorner.X + 18;
+    cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 18;
 
     //draw cursor with greenish color
     this->mGame->mDriver->draw2DRectangle(irr::video::SColor(255, 97, 165, 145), cursorPos);
@@ -1039,7 +979,6 @@ void Menue::PrintMenueEntries() {
     if (currSelMenuePage != nullptr) {
         //print text from currently selected menue page item by item
         std::vector<MenueSingleEntry*>::iterator it;
-        irr::core::vector2di txtPos;
         irr::s32 printCharLeft = currNrCharsShownCnter;
 
         //if we do not use type write effect deactivate it
@@ -1051,16 +990,9 @@ void Menue::PrintMenueEntries() {
         //any entries here to print?
         if (currSelMenuePage->pageEntryVec.size() > 0) {
             for (it = currSelMenuePage->pageEntryVec.begin(); it != currSelMenuePage->pageEntryVec.end(); ++it) {
-                txtPos = (*it)->drawTextScrPosition;
-
-                //correct current text position information with actually selected game resolution
-                //specified locations in parameter are always based on 640x400 resolution game uses in VGA mode
-                txtPos.X = (txtPos.X * mGame->mScreenRes.Width) / 640;
-                txtPos.Y = (txtPos.Y * mGame->mScreenRes.Height) / 400;
-
                 //if current item to print is currently selected menue entry item print it in white text color
                 if ((currSelMenueSingleEntry->entryNumber == (*it)->entryNumber) && ((*it)->isTextEntryField == false)) {
-                    mGame->mGameTexts->DrawGameText((*it)->entryText, mGame->mGameTexts->HudWhiteTextBannerFont, txtPos, printCharLeft);
+                    mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedSelectedTextFont, (*it)->drawTextScrPosition, printCharLeft);
 
                     if (MENUE_ENABLETYPEWRITEREFFECT) {
                         //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -1077,7 +1009,7 @@ void Menue::PrintMenueEntries() {
                     }
                 } else {
                         //item is currently not selected, draw in "greenish" color, or is a text input field entry item (is also green in original game)
-                        mGame->mGameTexts->DrawGameText((*it)->entryText, mGame->mGameTexts->GameMenueUnselectedEntryFont, txtPos, printCharLeft);
+                        mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedUnselectedTextFont, (*it)->drawTextScrPosition, printCharLeft);
 
                         if (MENUE_ENABLETYPEWRITEREFFECT) {
                             //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -1101,42 +1033,6 @@ void Menue::PrintMenueEntries() {
             }
         }
     }
-}
-
-void Menue::PrintMenueEntriesRaceSelection() {
-    //is there currently a menue page selected?
-    if (currSelMenuePage != nullptr) {
-         irr::s32 printCharLeft = currNrCharsShownCnter;
-
-         //if we do not use type write effect deactivate it
-         //here for rendering
-         if (!MENUE_ENABLETYPEWRITEREFFECT) {
-             printCharLeft = -1;
-         }
-
-          mGame->mGameTexts->DrawGameText(currSelRaceTrackName, mGame->mGameTexts->HudWhiteTextBannerFont, this->RaceTrackNameTitle->drawTextScrPosition, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(currSelRaceTrackName));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-
-          mGame->mGameTexts->DrawGameText(SelRaceTrackNrLapsLabel->text, SelRaceTrackNrLapsLabel->whichFont,
-                                           SelRaceTrackNrLapsLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(SelRaceTrackNrLapsLabel->text));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-
-          mGame->mGameTexts->DrawGameText(SelRaceTrackBestLapLabel->text, SelRaceTrackBestLapLabel->whichFont,
-                                           SelRaceTrackBestLapLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(SelRaceTrackBestLapLabel->text));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-
-          mGame->mGameTexts->DrawGameText(SelRaceTrackBestRaceLabel->text, SelRaceTrackBestRaceLabel->whichFont,
-                                           SelRaceTrackBestRaceLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(SelRaceTrackBestRaceLabel->text));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-    } 
 }
 
 void Menue::PrintMenueEntriesShipSelection() {
@@ -1228,13 +1124,6 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
                 (irr::s32)(pixelDist * (irr::f32)(entry->checkBoxNrBlocks - renderOnlyNumberBlocks));
             drawNrBlocks = renderOnlyNumberBlocks;
         }
-
-        //at the beginning we need to recalculate the position from original game menue 640x400 resolution
-        //to our set game screen resolution
-        position.UpperLeftCorner.X = (position.UpperLeftCorner.X * mGame->mScreenRes.Width) / 640;
-        position.UpperLeftCorner.Y = (position.UpperLeftCorner.Y * mGame->mScreenRes.Height) / 400;
-        position.LowerRightCorner.X = (position.LowerRightCorner.X * mGame->mScreenRes.Width) / 640;
-        position.LowerRightCorner.Y = (position.LowerRightCorner.Y * mGame->mScreenRes.Height) / 400;
 
         //step 1: draw outline of whole element using lineColor
         mGame->mDriver->draw2DRectangleOutline(position, lineColor);
@@ -1437,10 +1326,8 @@ void Menue::AdvanceTime(irr::f32 frameDeltaTime) {
 //the Race selection part of the menue is so special/different to the remaining menue
 //that it is better to implement it by itself
 void Menue::RenderRaceSelection() {
-    //first draw background picture
-    mGame->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
-                                 irr::core::recti(0, 0, mGame->mScreenRes.Width, mGame->mScreenRes.Height)
-                          , 0, irr::video::SColor(255,255,255,255), true);
+    //first draw background picture, no logo
+    DrawBackground(false);
 
     //Render the currently selected window depending on the current
     //window state (fully open vs. transitioning)
@@ -1459,6 +1346,12 @@ void Menue::RenderRaceSelection() {
             currMenueWindowAnimationIdx = currMenueWindowAnimationFinalIdx;
 
             StopMenueSound();
+
+            //set current menue space
+            currMenueSpace = currSelWindowAnimation->coordVec[currMenueWindowAnimationIdx];
+
+            //Realign layout of menue page
+            RealignMenuePageItems();
 
             if (currSelMenuePage == ShipSelectionPage) {
                 FinalPositionShipSelectionWheelReached(currSelectedShip);
@@ -1481,7 +1374,7 @@ void Menue::RenderRaceSelection() {
     //only print menue items if window is fully open right now
     if ((currMenueState == MENUE_STATE_SELACTIVE) || (currMenueState == MENUE_STATE_TYPETEXT)) {
         if (currSelMenuePage == RaceTrackSelectionPage)
-            PrintMenueEntriesRaceSelection();
+            PrintMenueEntries();
         else if (currSelMenuePage == ShipSelectionPage)
            PrintMenueEntriesShipSelection();
     }
@@ -1647,6 +1540,7 @@ void Menue::ShowRaceSelection(MenueSingleEntry* callerItem, bool championshipMod
 
     //change current page to race track selection
     currSelMenuePage = RaceTrackSelectionPage;
+    currSelMenueSingleEntry = RaceTrackNameTitle;
 
     //activate window animation for change of main menue to race selection page
     currSelWindowAnimation = windowMenueAnimationBeforeTrackSelection;
@@ -1665,6 +1559,9 @@ void Menue::InterruptRaceSelection() {
     } else if (RaceTrackSelectionCallerMenueEntry == this->NewChampionshipEntry) {
         currSelMenuePage = ChampionshipMenuePage;
         currSelMenueSingleEntry = NewChampionshipEntry;
+    } else if (RaceTrackSelectionCallerMenueEntry == this->ContinueChampionshipEntry) {
+        currSelMenuePage = ChampionshipMenuePage;
+        currSelMenueSingleEntry = ContinueChampionshipEntry;
     }
 
     //hide race track models again
@@ -1716,6 +1613,27 @@ void Menue::HandleUserInactiveTimer(irr::f32 frameDeltaTime) {
     }
 }
 
+void Menue::DrawBackground(bool addLogo) {
+   //first draw background picture
+   mGame->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
+                         irr::core::recti(0, 0, mGame->mScreenRes.Width, mGame->mScreenRes.Height)
+                         , 0, irr::video::SColor(255,255,255,255), true);
+
+   if (addLogo) {
+       //draw game logo
+       int sizeVec = (int)(GameLogo.size());
+
+       for (int i = 0; i < sizeVec ; i++) {
+           mGame->mDriver->draw2DImage(GameLogo[i]->texture, GameLogo[i]->drawScrPosition,
+             irr::core::rect<irr::s32>(0,0, GameLogo[i]->sizeTex.Width, GameLogo[i]->sizeTex.Height), 0,
+             irr::video::SColor(255,255,255,255), true);
+       }
+
+       //add my additional logo text
+       mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText, mLogoExtensionStrPos);
+   }
+}
+
 void Menue::Render(irr::f32 frameDeltaTime) {
     //racetrack selection and ship selection menue is so different, render it independently
     if ((this->currSelMenuePage == RaceTrackSelectionPage) || (this->currSelMenuePage == ShipSelectionPage)) {
@@ -1727,31 +1645,17 @@ void Menue::Render(irr::f32 frameDeltaTime) {
     } else {
      //default menue rendering source code
 
-     //first draw background picture
-      mGame->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
-                          irr::core::recti(0, 0, mGame->mScreenRes.Width, mGame->mScreenRes.Height)
-                          , 0, irr::video::SColor(255,255,255,255), true);
+     //first draw background picture, logo included
+     DrawBackground(true);
 
-        //draw game logo
-        int sizeVec = (int)(GameLogo.size());
+     //Render the currently selected window depending on the current
+     //window state (fully open vs. transitioning)
+     RenderWindow(currSelWindowAnimation->coordVec[currMenueWindowAnimationIdx]);
 
-        for (int i = 0; i < sizeVec ; i++) {
-            mGame->mDriver->draw2DImage(GameLogo[i]->texture, GameLogo[i]->drawScrPosition,
-              irr::core::rect<irr::s32>(0,0, GameLogo[i]->sizeTex.Width, GameLogo[i]->sizeTex.Height), 0,
-              irr::video::SColor(255,255,255,255), true);
-        }
-
-        //add my additional logo text
-        mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText, irr::core::position2di(368,92));
-
-        //Render the currently selected window depending on the current
-        //window state (fully open vs. transitioning)
-        RenderWindow(currSelWindowAnimation->coordVec[currMenueWindowAnimationIdx]);
-
-        //in case of current window transition calculate next animation index
-        //and also check if transistion is finished
-        if ((currMenueState == MENUE_STATE_TRANSITION) && ((absoluteTime - lastAnimationUpdateAbsTime) > MENUE_WINDOW_ANIMATION_PERIODTIME)) {
-            currMenueWindowAnimationIdx++;
+     //in case of current window transition calculate next animation index
+     //and also check if transistion is finished
+     if ((currMenueState == MENUE_STATE_TRANSITION) && ((absoluteTime - lastAnimationUpdateAbsTime) > MENUE_WINDOW_ANIMATION_PERIODTIME)) {
+           currMenueWindowAnimationIdx++;
 
             //play sound that is active during window movement
             PlayMenueSound(SRES_MENUE_WINDOWMOVEMENT);
@@ -1761,6 +1665,13 @@ void Menue::Render(irr::f32 frameDeltaTime) {
                 currMenueWindowAnimationIdx = currMenueWindowAnimationFinalIdx;
 
                 StopMenueSound();
+
+                //set current menue space
+                currMenueSpace = currSelWindowAnimation->coordVec[currMenueWindowAnimationIdx];
+
+                //Realign layout of menue page
+                RealignMenuePageItems();
+
                 currMenueState = MENUE_STATE_TYPETEXT;
             }
 
@@ -1778,23 +1689,21 @@ void Menue::Render(irr::f32 frameDeltaTime) {
 //the point table pages, and the highscore page
 //(which contains just formated texts)
 void Menue::RenderStatTextPage(irr::f32 frameDeltaTime) {
-    //first draw background picture
-    mGame->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
-                          irr::core::recti(0, 0, mGame->mScreenRes.Width, mGame->mScreenRes.Height)
-                         , 0, irr::video::SColor(255,255,255,255), true);
+    //first draw background picture, no logo
+    DrawBackground(false);
 
     if (currSelMenuePage == gameHighscoreMenuePage) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
-        RenderWindow(irr::core::recti(24, 23, 619, 311));
+        RenderWindow(irr::core::recti(24, 23, 619, 360));
     } else if (currSelMenuePage == raceStatsMenuePage) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
-        RenderWindow(irr::core::recti(0, 0, 640, 334));
+        RenderWindow(irr::core::recti(0, 0, 640, 395/*334*/));
     } else if (currSelMenuePage == pointsTablePage) {
         //Render the currently selected window depending on the current
         //window state (fully open vs. transitioning)
-        RenderWindow(irr::core::recti(25, 18, 618, 301));
+        RenderWindow(irr::core::recti(25, 18, 618, 360));
     }
 
     irr::s32 printCharLeft = currNrCharsShownCnter;
@@ -1886,7 +1795,7 @@ MenueSingleEntry* Menue::GetMenueSingleEntryForEntryNr(MenuePage* newMenuePage, 
     return nullptr;
 }
 
-void Menue::SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nextSelEntryNr) {
+void Menue::SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nextSelEntryNr) {  
     //only run this operation when we have at least one item in the vector
     //otherwise we crash
     if (newMenuePage->pageEntryVec.size() > 0) {
@@ -1896,6 +1805,9 @@ void Menue::SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nex
                 //we found the matching menue item, change selected item
                 currSelMenuePage = newMenuePage;
                 currSelMenueSingleEntry = (*it);
+
+                //Realign layout of menue page
+                RealignMenuePageItems();
 
                 //if this menue page has a text entry field
                 //preset input text
@@ -2073,6 +1985,16 @@ void Menue::ItemDown() {
 }
 
 void Menue::ItemReturn() {
+    //Does this menue item have an action we can trigger?
+    //when pressing Return key
+    if (currSelMenueSingleEntry->triggerAction != nullptr) {
+           //we want to trigger/execute an action by the user
+            //we can reuse currSetValue here to indicate the main program
+            //for example which championship slot to load or save and so on
+            currSelMenueSingleEntry->triggerAction->currSetValue = currSelMenueSingleEntry->entryNumber;
+            currActionToExecute = currSelMenueSingleEntry->triggerAction;
+    }
+
     //does this item allow to change to another sub menue page?
     //if so then change to the next page
     if (currSelMenueSingleEntry->nextMenuePage != nullptr) {
@@ -2126,16 +2048,6 @@ void Menue::ItemReturn() {
       }
 
       return;
-    }
-
-    //if not does this menue item have an action we can trigger?
-    //when pressing Return key
-    if (currSelMenueSingleEntry->triggerAction != nullptr) {
-           //we want to trigger/execute an action by the user
-            //we can reuse currSetValue here to indicate the main program
-            //for example which championship slot to load or save and so on
-            currSelMenueSingleEntry->triggerAction->currSetValue = currSelMenueSingleEntry->entryNumber;
-            currActionToExecute = currSelMenueSingleEntry->triggerAction;
     }
 }
 
@@ -2215,6 +2127,12 @@ void Menue::SetInputTextField(MenueSingleEntry* textInputEntry, char* newText) {
 void Menue::ReturnToParentMenuePage(MenuePage* currentMenuePage) {
     //is there really a parent entry, if not we can not go up
     if (currentMenuePage->parentMenuePage != nullptr) {
+
+        //is there an action that should be triggered when with exit this menue page
+        //with ESC key?
+        if (currentMenuePage->pageEscKeyTriggerAction != nullptr) {
+             currActionToExecute = currentMenuePage->pageEscKeyTriggerAction;
+        }
 
         if (MENUE_ENABLETYPEWRITEREFFECT) {
             finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currentMenuePage->parentMenuePage);
@@ -2402,6 +2320,8 @@ void Menue::HandleTextInputField(MenueSingleEntry* textInputEntry) {
   if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
      AcceptInputTextFieldValue(textInputEntry);
   }
+
+  RealignMenuePageItems();
 }
 
 void Menue::UpdateShipSelectionTypeWriterEffect() {
@@ -2413,16 +2333,6 @@ void Menue::UpdateShipSelectionTypeWriterEffect() {
             (irr::u32)(strlen(ShipStatArmourLabel->text)) + ShipStatArmourLabel->statNrBlocks +
             (irr::u32)(strlen(ShipStatWeightLabel->text)) + ShipStatWeightLabel->statNrBlocks +
             (irr::u32)(strlen(ShipStatFirePowerLabel->text)) + ShipStatFirePowerLabel->statNrBlocks;
-    }
-}
-
-void Menue::UpdateRaceTrackSelectionTypeWriterEffect() {
-    if (MENUE_ENABLETYPEWRITEREFFECT) {
-        currNrCharsShownCnter = 0;
-        currMenueState = MENUE_STATE_TYPETEXT;
-        finalNrChardsShownMenuePageFinished = (irr::u32)(strlen(currSelRaceTrackName)) +
-            (irr::u32)(strlen(SelRaceTrackNrLapsLabel->text)) + (irr::u32)(strlen(SelRaceTrackBestLapLabel->text)) +
-            (irr::u32)(strlen(SelRaceTrackBestRaceLabel->text));
     }
 }
 
@@ -2445,6 +2355,9 @@ void Menue::HandleInputRaceSelection() {
                 currentSelRaceLapNumberVal = 1;
 
             RecalculateRaceTrackStatLabels();
+
+            finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+            currNrCharsShownCnter = finalNrChardsShownMenuePageFinished;
         }
 
         if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN) && (!mChampionshipMode)) {
@@ -2460,6 +2373,9 @@ void Menue::HandleInputRaceSelection() {
                 currentSelRaceLapNumberVal = 50;
 
             RecalculateRaceTrackStatLabels();
+
+            finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+            currNrCharsShownCnter = finalNrChardsShownMenuePageFinished;
         }
 
         if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
@@ -2739,8 +2655,13 @@ void Menue::FinalPositionShipSelectionWheelReached(irr::u8 newPosition) {
 //Function is called when selected race track position is reached
 //at the front of the menue
 void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
+    //Important info: We need to use malloc here, instead of new char[]
+    //Because we will free this memory later! Not that we get a delete[]
+    //vs. free memory issue later
+    char* currSelRaceTrackName = (char*)(malloc(50));
+
     //first update entry name in window
-    if ((newPosition >= 0) && (newPosition < this->mGameAssets->mRaceTrackVec->size())) {
+    if ((newPosition >= 0) && (newPosition < this->mGameAssets->mRaceTrackVec->size())) {   
        //copy name of race track from game assets class
        strcpy(currSelRaceTrackName, this->mGameAssets->mRaceTrackVec->at(newPosition)->name);
 
@@ -2753,13 +2674,19 @@ void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
        currentSelRaceLapNumberVal = 0;
     }
 
-    //recalculate X coordinate of race track name to center race track name!
-    irr::u32 newCoord = (mGame->mScreenRes.Width / 2) -
-            (mGame->mGameTexts->GetWidthPixelsGameText(currSelRaceTrackName, mGame->mGameTexts->HudWhiteTextBannerFont) / 2);
-    this->RaceTrackNameTitle->drawTextScrPosition.X = newCoord;
+    RaceTrackNameTitle->SetText(currSelRaceTrackName);
 
     RecalculateRaceTrackStatLabels();
-    UpdateRaceTrackSelectionTypeWriterEffect();
+    RealignMenuePageItems();
+
+    //update number of characters to print in type writer effect
+    finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+
+    //start type writer effect from beginning again
+    currNrCharsShownCnter = 0;
+
+    currMenueState = MENUE_STATE_TYPETEXT;
+    lastAnimationUpdateAbsTime = absoluteTime;
 }
 
 //newPosition = number of race track model in the front of camera
@@ -2802,8 +2729,13 @@ void Menue::SetShipColorScheme(irr::u8 newSelectedColorScheme) {
     //recalculate X coordinate of ship color scheme name to center name!
     irr::u32 newCoord = (mGame->mScreenRes.Width / 2) -
             (mGame->mGameTexts->GetWidthPixelsGameText(currSelShipColorSchemeName, mGame->mGameTexts->GameMenueWhiteTextSmallSVGA) / 2);
-    currSelectedShipColorSchemeTextPos.X = newCoord;
-    currSelectedShipColorSchemeTextPos.Y = 59;
+
+    irr::core::vector2di pos1(newCoord, 59);
+
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
+
+    currSelectedShipColorSchemeTextPos.X = pos1.X;
+    currSelectedShipColorSchemeTextPos.Y = pos1.Y;
 }
 
 //newPosition = number of ship model in the front of camera
@@ -3051,27 +2983,6 @@ void Menue::InitStatLabels() {
 
     strcpy(ShipStatFirePowerLabel->text, "FIREPOWER");
     //all the other variables will be setup later
-
-    SelRaceTrackNrLapsLabel = new MenueTextLabel();
-    SelRaceTrackNrLapsLabel->text = new char[70];
-    SelRaceTrackNrLapsLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-    strcpy(SelRaceTrackNrLapsLabel->text, "");
-    //all the other variables will be setup later
-
-    SelRaceTrackBestLapLabel = new MenueTextLabel();
-    SelRaceTrackBestLapLabel->text = new char[70];
-    SelRaceTrackBestLapLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-    strcpy(SelRaceTrackBestLapLabel->text, "");
-    //all the other variables will be setup later
-
-    SelRaceTrackBestRaceLabel = new MenueTextLabel();
-    SelRaceTrackBestRaceLabel->text = new char[70];
-    SelRaceTrackBestRaceLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-    strcpy(SelRaceTrackBestRaceLabel->text, "");
-    //all the other variables will be setup later
 }
 
 void Menue::CleanUpStatLabels() {
@@ -3090,18 +3001,6 @@ void Menue::CleanUpStatLabels() {
     delete[] ShipStatFirePowerLabel->text;
     delete ShipStatFirePowerLabel;
     ShipStatFirePowerLabel = nullptr;
-
-    delete[] SelRaceTrackNrLapsLabel->text;
-    delete SelRaceTrackNrLapsLabel;
-    SelRaceTrackNrLapsLabel = nullptr;
-
-    delete[] SelRaceTrackBestLapLabel->text;
-    delete SelRaceTrackBestLapLabel;
-    SelRaceTrackBestLapLabel = nullptr;
-
-    delete[] SelRaceTrackBestRaceLabel->text;
-    delete SelRaceTrackBestRaceLabel;
-    SelRaceTrackBestRaceLabel = nullptr;
 }
 
 void Menue::CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord) {
@@ -3130,17 +3029,37 @@ void Menue::CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::
 }
 
 void Menue::RecalculateShipStatLabels() {
+    irr::core::vector2di pos1(216, 97);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
+
     //Center speed stat around coord 216, 97
-    CalcStatLabelHelper(currSelShipStatSpeed, *ShipStatSpeedLabel, irr::core::vector2di(216, 97));
+    CalcStatLabelHelper(currSelShipStatSpeed, *ShipStatSpeedLabel, pos1);
+
+    pos1.set(200, 113);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
 
     //Center speed stat around coord 200, 113
-    CalcStatLabelHelper(currSelShipStatArmour, *ShipStatArmourLabel, irr::core::vector2di(200, 113));
+    CalcStatLabelHelper(currSelShipStatArmour, *ShipStatArmourLabel, pos1);
+
+    pos1.set(452, 97);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
 
     //Center weight stat around coord 452, 97
-    CalcStatLabelHelper(currSelShipStatWeight, *ShipStatWeightLabel, irr::core::vector2di(452, 97));
+    CalcStatLabelHelper(currSelShipStatWeight, *ShipStatWeightLabel, pos1);
+
+    pos1.set(456, 113);
+
+    pos1.X = (pos1.X * mGame->mScreenRes.Width) / 640;
+    pos1.Y = (pos1.Y * mGame->mScreenRes.Height) / 400;
 
     //Center firepower stat around coord 456, 113
-    CalcStatLabelHelper(currSelShipStatFirePower, *ShipStatFirePowerLabel, irr::core::vector2di(456, 113));
+    CalcStatLabelHelper(currSelShipStatFirePower, *ShipStatFirePowerLabel, pos1);
 }
 
 void Menue::CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di centerCoord) {
@@ -3153,23 +3072,30 @@ void Menue::CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di
 
 void Menue::RecalculateRaceTrackStatLabels() {
     //update to latest text labels
-    sprintf(SelRaceTrackNrLapsLabel->text, "NUMBER OF LAPS %d", currentSelRaceLapNumberVal);
+    //Important info: We need to use malloc here, instead of new char[]
+    //Because we will free this memory later! Not that we get a delete[]
+    //vs. free memory issue later
+    char* newNrLapsText = (char*)(malloc(70));
+
+    sprintf(newNrLapsText, "NUMBER OF LAPS %d", currentSelRaceLapNumberVal);
+
+    //Set the new text
+    SelRaceTrackNrLapsLabel->SetText(newNrLapsText);
+
+    char* newBestLapText = (char*)(malloc(70));
 
     //also need to center all of this text inside the text window
-    sprintf(SelRaceTrackBestLapLabel->text, "BEST LAP %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestLapTime,
+    sprintf(newBestLapText, "BEST LAP %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestLapTime,
             this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestPlayer);
 
-    sprintf(SelRaceTrackBestRaceLabel->text, "BEST RACE %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestHighScore,
+    SelRaceTrackBestLapLabel->SetText(newBestLapText);
+
+    char* newBestRaceText = (char*)(malloc(70));
+
+    sprintf(newBestRaceText, "BEST RACE %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestHighScore,
             this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestHighScorePlayer);
 
-    //Center current number of laps around coord 329, 81
-    CalcMenueTextLabelHelper(*SelRaceTrackNrLapsLabel, irr::core::position2di(329, 81));
-
-    //Center best lap info around coord 329, 98
-    CalcMenueTextLabelHelper(*SelRaceTrackBestLapLabel, irr::core::position2di(329, 98));
-
-    //Center best race info around coord 329, 113
-    CalcMenueTextLabelHelper(*SelRaceTrackBestRaceLabel, irr::core::position2di(329, 113));
+    SelRaceTrackBestRaceLabel->SetText(newBestRaceText);
 }
 
 //Constructor, initialization of main menue
@@ -3197,7 +3123,9 @@ Menue::Menue(Game* game, SoundEngine* soundEngine, Assets *assets) {
         MenueInitializationSuccess = false;
 
     InitStatLabels();
-    InitMenuePageEntries();
+    InitActions();
+    InitMenuePages();
+    CreateMenueEntries();
     SetWindowAnimationVec();
     InitRaceTrackSceneNodes();
     InitVehicleModels();
@@ -3217,6 +3145,8 @@ void Menue::ShowMainMenue() {
     //with item Race selected
     currSelMenuePage = this->TopMenuePage;
     currSelMenueSingleEntry = this->Race;
+
+    RealignMenuePageItems();
 
     //initial setup for type writer effect
     //of main menue
@@ -3246,7 +3176,54 @@ void Menue::UpdateChampionshipLoadSlotMenueEntry(MenueSingleEntry &whichEntry, s
     whichEntry.itemSelectable = (*it)->saveGameAvail;
 }
 
-//expected range from whichSlotNr is from 0 to 4
+irr::u8 Menue::GetChampionShipSlotNrForSaveAction(irr::u8 whichEntryNumber) {
+    if (ChampionshipSaveSlot1->entryNumber == whichEntryNumber) {
+        //is slot 0 = Savegame 1
+        return 0;
+    } else if (ChampionshipSaveSlot2->entryNumber == whichEntryNumber) {
+        //is slot 1 = Savegame 2
+        return 1;
+    } else if (ChampionshipSaveSlot3->entryNumber == whichEntryNumber) {
+        //is slot 2 = Savegame 3
+        return 2;
+    } else if (ChampionshipSaveSlot4->entryNumber == whichEntryNumber) {
+        //is slot 3 = Savegame 4
+        return 3;
+    } else if (ChampionshipSaveSlot5->entryNumber == whichEntryNumber) {
+        //is slot 4 = Savegame 5
+        return 4;
+    }
+
+    //if there is something wrong, return an invalid slot number
+    //then save function will simply exit
+    logging::Error("GetChampionShipSlotNrForSaveAction: Invalid entry number found! Skip save");
+    return 5;
+}
+
+irr::u8 Menue::GetChampionShipSlotNrForLoadAction(irr::u8 whichEntryNumber) {
+    if (ChampionshipLoadSlot1->entryNumber == whichEntryNumber) {
+        //is slot 0 = Savegame 1
+        return 0;
+    } else if (ChampionshipLoadSlot2->entryNumber == whichEntryNumber) {
+        //is slot 1 = Savegame 2
+        return 1;
+    } else if (ChampionshipLoadSlot3->entryNumber == whichEntryNumber) {
+        //is slot 2 = Savegame 3
+        return 2;
+    } else if (ChampionshipLoadSlot4->entryNumber == whichEntryNumber) {
+        //is slot 3 = Savegame 4
+        return 3;
+    } else if (ChampionshipLoadSlot5->entryNumber == whichEntryNumber) {
+        //is slot 4 = Savegame 5
+        return 4;
+    }
+
+    //if there is something wrong, return an invalid slot number
+    //then load function will simply exit
+    logging::Error("GetChampionShipSlotNrForLoadAction: Invalid entry number found! Skip save");
+    return 5;
+}
+
 void Menue::StartChampionshipNameInputAtSlot(irr::u8 whichSlotNr) {
     if (whichSlotNr > 4)
         return;
@@ -3430,6 +3407,8 @@ void Menue::ShowRaceMenue() {
     currSelMenuePage = this->RaceMenuePage;
     currSelMenueSingleEntry = this->SelectChampionsship;
 
+    RealignMenuePageItems();
+
     //initial setup for type writer effect
     //of main menue
     if (MENUE_ENABLETYPEWRITEREFFECT) {
@@ -3442,7 +3421,7 @@ void Menue::ShowRaceMenue() {
     lastAnimationUpdateAbsTime = absoluteTime;
 }
 
-void Menue::ShowChampionshipMenue() {
+void Menue::ShowChampionshipMenue(bool enaWindowAnimation) {
     mMenueUserInactiveTimer = 0.0f;
 
     //when a championship race is finished
@@ -3474,8 +3453,19 @@ void Menue::ShowChampionshipMenue() {
         finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
     }
 
-    currMenueState = MENUE_STATE_TYPETEXT;
-    lastAnimationUpdateAbsTime = absoluteTime;
+    RealignMenuePageItems();
+
+    if (!enaWindowAnimation) {
+        currMenueState = MENUE_STATE_TYPETEXT;
+        lastAnimationUpdateAbsTime = absoluteTime;
+    } else {
+        //activate menue animation
+        currSelWindowAnimation = windowMenueAnimationStartGame;
+        currMenueWindowAnimationIdx = 0;
+        currMenueWindowAnimationFinalIdx = (irr::u8)(windowMenueAnimationStartGame->coordVec.size()) - 1;
+        currMenueState = MENUE_STATE_TRANSITION;
+        lastAnimationUpdateAbsTime = absoluteTime;
+    }
 }
 
 //parameter overallPoints just controls which header text is used
@@ -3523,6 +3513,8 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
            this->mGame->mGameTexts->GetWidthPixelsGameText(newLabel->text, newLabel->whichFont) / 2;
    newLabel->drawPositionTxt.Y = 56;
 
+   newLabel->drawPositionTxt.Y = (newLabel->drawPositionTxt.Y * mGame->mScreenRes.Height) / 400;
+
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of pointPageTable
@@ -3559,6 +3551,8 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
            newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedEntryFont;
        }
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        pointsTablePageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3586,6 +3580,8 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
        delete[] pointValStr;
 
        newLabel->visible = true; //set to true, free text pointer afterwards!
+
+       ScalePositionMenueTextLabel(*newLabel);
 
        pointsTablePageTextVec->push_back(newLabel);
 
@@ -3680,6 +3676,11 @@ void Menue::CleanupHighScorepage() {
     ShowMainMenue();
 }
 
+void Menue::ScalePositionMenueTextLabel(MenueTextLabel& whichLabel) {
+    whichLabel.drawPositionTxt.X = (whichLabel.drawPositionTxt.X * mGame->mScreenRes.Width) / 640;
+    whichLabel.drawPositionTxt.Y = (whichLabel.drawPositionTxt.Y * mGame->mScreenRes.Height) / 400;
+}
+
 void Menue::ShowHighscore() {
    //request pointer to highscore table values
    std::vector<HighScoreEntryStruct*>* pntrTable;
@@ -3708,6 +3709,8 @@ void Menue::ShowHighscore() {
    newLabel->text = strdup("HISCORES");
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
+   ScalePositionMenueTextLabel(*newLabel);
+
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of highscore screen
@@ -3733,6 +3736,8 @@ void Menue::ShowHighscore() {
        newLabel->visible = true; //we must free this text pointer!
        newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        highScorePageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3755,6 +3760,8 @@ void Menue::ShowHighscore() {
 
        newLabel->visible = true; //set to true, free text pointer afterwards!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        highScorePageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3774,6 +3781,8 @@ void Menue::ShowHighscore() {
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = strdup(assessementStr);
        newLabel->visible = true; //we must free this text pointer!
+
+       ScalePositionMenueTextLabel(*newLabel);
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3854,6 +3863,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    newLabel->text = strdup("STATISTICS");
    newLabel->whichFont = mGame->mGameTexts->HudWhiteTextBannerFont;
 
+   ScalePositionMenueTextLabel(*newLabel);
+
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
    //that during the Cleanup process of variables of highscore screen
@@ -3888,6 +3899,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3911,6 +3924,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3925,6 +3940,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("HIT ACCURACY");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -3957,6 +3974,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -3971,6 +3990,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("KILLS");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4002,6 +4023,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4016,6 +4039,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("DEATHS");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4047,6 +4072,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4061,6 +4088,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel->text = strdup("AVERAGE LAP");
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4092,6 +4121,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4106,6 +4137,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("BEST LAP");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4137,6 +4170,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4150,6 +4185,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("RACE TIME");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4181,6 +4218,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4194,6 +4233,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("RATING");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4226,6 +4267,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
+        ScalePositionMenueTextLabel(*newLabel);
+
         raceStatsPageTextVec->push_back(newLabel);
 
         nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4239,6 +4282,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel->text = strdup("POSITION");
     newLabel->visible = true; //we must free this text pointer!
+
+    ScalePositionMenueTextLabel(*newLabel);
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4270,6 +4315,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
+       ScalePositionMenueTextLabel(*newLabel);
+
        raceStatsPageTextVec->push_back(newLabel);
 
        nrCharsOverall += (irr::u32)(strlen(newLabel->text));
@@ -4290,6 +4337,8 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    newLabel->text = strdup(playerAssessement);
 
    newLabel->visible = true; //we must free this text pointer!
+
+   ScalePositionMenueTextLabel(*newLabel);
 
    raceStatsPageTextVec->push_back(newLabel);
 

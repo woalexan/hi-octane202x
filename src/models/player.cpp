@@ -378,6 +378,10 @@ void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
         //also fix broken glass
         RepairGlasBreaks();
 
+        //original game in this case also refills fuel and ammo completely
+        this->mPlayerStats->ammoVal = this->mPlayerStats->ammoMax;
+        this->mPlayerStats->gasolineVal = this->mPlayerStats->gasolineMax;
+
         //remove killed by HUD message
         RemovePlayerPermanentGreenBigText();
     }

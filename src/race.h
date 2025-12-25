@@ -271,10 +271,10 @@ public:
     //file. We need this information later to be able
     //to convert player level coordinates to 2D minimap
     //positions
-    irr::u32 miniMapStartW;
+   /* irr::u32 miniMapStartW;
     irr::u32 miniMapEndW;
     irr::u32 miniMapStartH;
-    irr::u32 miniMapEndH;
+    irr::u32 miniMapEndH;*/
 
     irr::u8 mPlayersInTrouble;
 

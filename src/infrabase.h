@@ -23,9 +23,8 @@ using namespace irr::video;
 using namespace irr::scene;
 using namespace irr::gui;
 
-#define INFRA_LEVEL_ORIGINALGAME_VANILLA 0
-#define INFRA_LEVEL_ORIGINALGAME_MODIFIED 1
-#define INFRA_LEVEL_CUSTOM 2
+#define INFRA_RUNNING_AS_GAME 0
+#define INFRA_RUNNING_AS_EDITOR 1
 
 //valid size of the unpacked level file in bytes
 #define INFRA_LEVEL_FILE_VALIDSIZE_BYTES 896140
@@ -67,6 +66,7 @@ struct OriginalGameCreditStruct {
 };
 
 struct MapConfigStruct {
+    //Configuration for the Sky
     std::string SkyImageFileVanilla;
     std::string SkyImageFileUpgradedSky;
     irr::video::SColor cloudColorCenter1;
@@ -78,15 +78,33 @@ struct MapConfigStruct {
     irr::video::SColor cloudColorCenter3;
     irr::video::SColor cloudColorInner3;
     irr::video::SColor cloudColorOuter3;
-    std::string MusicFile;
     bool EnableLensFlare;
     irr::core::vector3df lensflareLocation;
+
+    //Music configuration
+    std::string MusicFile;
+
+    //Minimap "calibration" value
+    //to correctly map to X-Y
+    //level coordinates
+    bool minimapCalSet;
+    irr::core::vector2di minimapCalStartVal;
+    irr::core::vector2di minimapCalEndVal;
+};
+
+struct GameConfigStruct {
+   bool enableDoubleResolution;
+   bool useUpgradedSky;
+   bool enableShadows;
+   bool enableVSync;
 };
 
 class InfrastructureBase {
 public:
-  InfrastructureBase(int pArgc, char **pArgv);
+  InfrastructureBase(int pArgc, char **pArgv, irr::u8 runningAsVal);
   ~InfrastructureBase();
+
+  irr::u8 mRunningAs;
 
   //decoded command line parameter
   //information
@@ -115,9 +133,6 @@ public:
   dimension2d<u32> mScreenRes;
   Logger* mLogger = nullptr;
 
-  void InfrastructureInit(dimension2d<u32> resolution, bool fullScreen);
-  bool GetInfrastructureInitOk();
-
   //have all pointers as public
   //so that we can access them easily everywhere
   IrrlichtDevice* mDevice = nullptr;
@@ -138,6 +153,10 @@ public:
   TimeProfiler* mTimeProfiler = nullptr;
   Crc32* mCrc32 = nullptr;
   Attribution* mAttribution = nullptr;
+
+  //Note: only used for the game itself
+  //not for the Level editor
+  GameConfigStruct* mGameConfig = nullptr;
 
   OriginalGameFolderInfoStruct* mOriginalGame = nullptr;
 
@@ -169,23 +188,15 @@ public:
   //returns 0 for an undefined ECOLOR_FORMAT
   irr::u32 ReturnBytesPerPixel(irr::video::ECOLOR_FORMAT colFormat);
 
-  //Returns true in case of success, False otherwise
-  bool WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP);
-
-  //Returns true in case of success, False otherwise
-  bool ReadMiniMapCalFile(std::string fileName, irr::u32 &startWP, irr::u32 &endWP, irr::u32 &startHP, irr::u32 &endHP);
-
   irr::io::path GetMiniMapFileName(LevelFolderInfoStruct* whichLevel);
   irr::io::path GetMiniMapFileName(std::string levelRootPath);
-
-  irr::io::path GetMiniMapCalFileName(LevelFolderInfoStruct* whichLevel);
-  irr::io::path GetMiniMapCalFileName(std::string levelRootPath);
 
   irr::io::path GetMapConfigFileName(LevelFolderInfoStruct* whichLevel);
   irr::io::path GetMapConfigFileName(std::string levelRootPath);
 
   irr::core::stringw SColorToXmlSettingStr(irr::video::SColor* whichColor);
   irr::core::stringw Vector3dfToXmlSettingStr(irr::core::vector3df* whichVector);
+  irr::core::stringw Vector2diToXmlSettingStr(irr::core::vector2di* whichVector);
   irr::core::stringw BoolToXmlSettingStr(bool inputVal);
 
   //Returns true in case the input string contains a number, False if there are any other characters
@@ -206,6 +217,10 @@ public:
   //Returns false if input string is invalid (can not be parsed), True otherwise
   //Output value is returned in second parameter
   bool XmlSettingStrToVector3df(irr::core::stringw inputStr, irr::core::vector3df& outValue);
+
+  //Returns false if input string is invalid (can not be parsed), True otherwise
+  //Output value is returned in second parameter
+  bool XmlSettingStrToVector2di(irr::core::stringw inputStr, irr::core::vector2di& outVector);
 
   //Returns false if input string is invalid (can not be parsed), True otherwise
   //Output value is returned in second parameter
@@ -242,10 +257,16 @@ public:
   //Returns true in case of success, False otherwise
   bool ParseOriginalGameCredits(std::vector<OriginalGameCreditStruct*>& originalGameCredits);
 
+  //Returns true in case of success, False otherwise
+  bool InitStage1();
+  bool InitStage2();
+  bool InitStage3();
+
+  bool WriteGameConfigXmlFile(IrrlichtDevice *device);
+
 private:
   //Irrlicht stuff
   bool mFullscreen;
-  bool mInitOk = false;
 
   //this paths are all absolute paths
   irr::io::path mGameRootDir;
@@ -262,10 +283,11 @@ private:
   bool ProcessGameVersionDate();
 
   //Returns true for success, false for error occured
-  bool InitIrrlicht();
   bool InitGameResourcesInitialStep();
 
   bool ParseOriginalGameCreditsWorkaround(std::vector<uint8_t> mGameCreditsInformation, size_t startIdx);
+
+  bool ReadGameConfigXmlFile(IrrlichtDevice *device);
 };
 
 

@@ -155,7 +155,7 @@ public:
     bool DebugShowVariableBoxes = false;
 
     //Returns true for success, false for error occured
-    bool InitGameStep1(bool useXEffects);
+    bool InitGameStep1();
     bool InitGameStep2();
 
     void RunGame();

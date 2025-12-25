@@ -326,6 +326,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
             newConfig.cloudColorInner3.set(180, 180, 180, 180);
             newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
+            //Minimap calibration values
+            newConfig.minimapCalSet = true;
+            newConfig.minimapCalStartVal.set(0, 2);
+            newConfig.minimapCalEndVal.set(58, 125);
+
             break;
         }
 
@@ -357,6 +362,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
             newConfig.cloudColorCenter3.set(160, 160, 160, 160);
             newConfig.cloudColorInner3.set(100, 100, 100, 100);
             newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+            //Minimap calibration values
+            newConfig.minimapCalSet = true;
+            newConfig.minimapCalStartVal.set(26, 0);
+            newConfig.minimapCalEndVal.set(134, 127);
 
             break;
         }
@@ -390,6 +400,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorInner3.set(35, 35, 35, 35);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(0, 5);
+        newConfig.minimapCalEndVal.set(117, 119);
+
         break;
     }
 
@@ -421,6 +436,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorCenter3.set(220, 220, 220, 220);
         newConfig.cloudColorInner3.set(180, 180, 180, 180);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(0, 5);
+        newConfig.minimapCalEndVal.set(73, 134);
 
         break;
     }
@@ -454,6 +474,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorInner3.set(180, 180, 180, 180);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(0, 5);
+        newConfig.minimapCalEndVal.set(92, 145);
+
         break;
     }
 
@@ -486,6 +511,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorInner3.set(180, 180, 180, 180);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(0, 0);
+        newConfig.minimapCalEndVal.set(98, 103);
+
         break;
     }
 
@@ -510,6 +540,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorCenter3.set(220, 220, 220, 220);
         newConfig.cloudColorInner3.set(180, 180, 180, 180);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(9, 20);
+        newConfig.minimapCalEndVal.set(103, 154);
 
         break;
     }
@@ -536,6 +571,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorInner3.set(180, 180, 180, 180);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
 
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(12, 17);
+        newConfig.minimapCalEndVal.set(101, 105);
+
         break;
     }
 
@@ -561,6 +601,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.cloudColorCenter3.set(220, 220, 220, 220);
         newConfig.cloudColorInner3.set(180, 180, 180, 180);
         newConfig.cloudColorOuter3.set(0, 0, 0, 0);
+
+        //Minimap calibration values
+        newConfig.minimapCalSet = true;
+        newConfig.minimapCalStartVal.set(0, 0);
+        newConfig.minimapCalEndVal.set(36, 116);
 
         break;
     }
@@ -609,61 +654,11 @@ void PrepareData::PrepareMapConfigData() {
     }
 }
 
-//Write minimap cal values found to be working
-//with the original vanilla levels of the game
-//Returns true in case of success, False otherwise
-bool PrepareData::PrepareMiniMapCalData() {
-    //bool InfrastructureBase::WriteMiniMapCalFile(std::string fileName, irr::u32 startWP, irr::u32 endWP, irr::u32 startHP, irr::u32 endHP)
-
-    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-1/minimapcalval.dat"),
-                                0, 58, 2, 125))
-        return false;
-
-    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-2/minimapcalval.dat"),
-                                26, 134, 0, 127))
-        return false;
-
-    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-3/minimapcalval.dat"),
-                                0, 117, 5, 119))
-        return false;
-
-    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-4/minimapcalval.dat"),
-                                0, 73, 5, 134))
-        return false;
-
-    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-5/minimapcalval.dat"),
-                                0, 92, 5, 145))
-        return false;
-
-    if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-6/minimapcalval.dat"),
-                                0, 98, 0, 103))
-        return false;
-
-    if (mInfra->mExtendedGame) {
-        if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-7/minimapcalval.dat"),
-                                    9, 103, 20, 154))
-            return false;
-
-        if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-8/minimapcalval.dat"),
-                                    12, 101, 17, 105))
-            return false;
-
-        if (!mInfra->WriteMiniMapCalFile(std::string("extract/level0-9/minimapcalval.dat"),
-                                    0, 36, 0, 116))
-            return false;
-    }
-
-    return true;
-}
-
 void PrepareData::ExtractMiniMaps() {
     logging::Info("Extracting minimaps...");
     PrepareSubDir("extract/minimaps");
     ExtractMiniMapsSVGA();
     StitchMiniMaps();
-    if (!PrepareMiniMapCalData()) {
-         throw std::string("Failed to write minimap calibration value files!");
-    }
 }
 
 void PrepareData::ExtractTerrainTextures() {
@@ -935,6 +930,57 @@ void PrepareData::ExtractGameLogoSVGA() {
          throw std::string("Could not locate the original games data file logo0-1.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/images/logo0-1-");
+
+    //We also want to create an upscaled version (times 2) of this intro pictures
+    //for double resolution mode
+    char finalpathSrc[80];
+    char finalpathDest[80];
+    char fname[20];
+
+    for (int idx = 0; idx < 6; idx++) {
+           strcpy(finalpathSrc, "extract/images/logo0-1-");
+           sprintf (fname, "%0*ld.bmp", 4, idx);
+           strcat(finalpathSrc, fname);
+
+           strcpy(finalpathDest, "extract/images/logo0-1-x2-");
+           strcat(finalpathDest, fname);
+
+           UpscaleExistingImageFile(finalpathSrc, finalpathDest, 2);
+    }
+}
+
+void PrepareData::UpscaleExistingImageFile(const char* srcFile, const char* destFile, int scaleFactor) {
+    irr::video::IImage* srcImg = mInfra->mDriver->createImageFromFile(srcFile);
+    if (srcImg == nullptr) {
+         throw std::string("UpscaleExistingImageFile: Image loading failed");
+    }
+
+    irr::core::dimension2d<irr::u32> srcDim;
+    srcDim.set(srcImg->getDimension().Width, srcImg->getDimension().Height);
+
+    //We need to make sure the have A8R8G8B8 color format for upscaling below,
+    //otherwise this does not work. The read from file above can deliver also other
+    //file formats. As a workaround create a new image with correct color format,
+    //and let Irrlicht convert color format by "stupid" getPixel and setPixel loop
+    irr::video::IImage* srcImg2 =
+            mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, srcDim);
+
+    irr::video::SColor pixCol;
+
+    for (irr::u32 xc = 0; xc < srcDim.Width; xc++) {
+        for (irr::u32 yc = 0; yc < srcDim.Height; yc++) {
+            pixCol = srcImg->getPixel(xc, yc);
+            srcImg2->setPixel(xc, yc, pixCol);
+        }
+    }
+
+    srcImg->drop();
+
+    irr::video::IImage* destImg;
+    destImg = UpscaleImage(srcImg2, srcDim.Width, srcDim.Height, scaleFactor);
+    saveIrrImage(destFile, destImg);
+
+    srcImg2->drop();
 }
 
 //extracts the SVGA HUD for 1 Player in data\panel0-1.dat and data\panel0-1.tab
@@ -1421,6 +1467,9 @@ void PrepareData::ExtractLoadingScreenSVGA() {
          throw std::string("Could not locate the original games data file onet0-1.dat");
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/onet0-1.png", 640, 480, 1);
+
+    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/onet0-1-x2.png", 640, 480, 2);
 }
 
 //extracts the SVGA Selection Screen (is the Main menue background picture) in data\oscr0-1.dat and data\oscr0-1.tab
@@ -1441,7 +1490,7 @@ void PrepareData::ExtractSelectionScreenSVGA() {
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1.png", 640, 480, 1);
 
-    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960 (level editor for example needs this)
+    //create a second vesion as well, scaled by factor 2 for resolution 1280 x 960
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/oscr0-1-x2.png", 640, 480, 2);
 }
 
@@ -1914,6 +1963,10 @@ irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u
         irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
         irr::core::dimension2d<irr::u32>(sizex * scaleFactor, sizey * scaleFactor));
 
+    if (upImg == nullptr) {
+        throw std::string("UpscaleImage: New image creation failed");
+    }
+
     //get the pointers to the raw image data
     uint32_t *imageDataUp = (uint32_t*)upImg->lock();
     uint32_t *imageData = (uint32_t*)srcImg->lock();
@@ -2225,6 +2278,9 @@ void PrepareData::ExtractIntroductoryScreen() {
          throw std::string("Could not locate the original games data file title.dat");
     }
     ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title.png", 320, 200, 2);
+
+    //create a second vesion as well, scaled by factor 4 for resolution 1280 x 800
+    ConvertCompressedImageData(inputDatFile.c_str(), "extract/images/title-x2.png", 320, 200, 4);
 }
 
 //extracts the SVGA thin white font data in data\hfont0-0.dat and data\hfont0-0.tab

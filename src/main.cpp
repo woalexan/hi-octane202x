@@ -48,14 +48,40 @@ int main(int argc, char **argv)
     //create new game object
     mGame = new Game(argc, argv);
 
-    //try to init most basic
-    //game components, so that we
-    //can show a first graphical screen
-    //04.05.2025: Do not use XEffects right now, I have problem with too dark lightning
-    if (!mGame->InitGameStep1(false))
-       return 1;
+    //Init most basic stuff
+    //using the Irrlicht Null device
+    //Parse command line options
+    //Start logging
+    //Read also Game Xml config file
+    if (!mGame->InitStage1()) {
+        //game init failed
+        return 1;
+    }
 
-    //run the game
+    //Init final Irrlicht device
+    if (!mGame->InitStage2()) {
+        //Stage 2 game init failed
+        return 1;
+    }
+
+    //Third initialization step
+    //Locate original game
+    //Define game directories
+    //Make sure basic first game assets
+    //are available
+    if (!mGame->InitStage3()) {
+        //Stage 3 game init failed
+        return 1;
+    }
+
+    //If needed initialize XEffects (Shaders)
+    //Load first background image
+    if (!mGame->InitGameStep1()) {
+       return 1;
+    }
+
+    //continue game initialization
+    //and finally run the game
     mGame->RunGame();
 
     delete mGame;

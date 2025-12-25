@@ -132,33 +132,29 @@ bool Game::InitGameStep2() {
     return true;
 }
 
-//creates the most basic game infrastructure, and
-//extracts basic things to be able to show a first
-//graphical screen
-bool Game::InitGameStep1(bool useXEffects) {
-    dimension2d<u32> targetResolution;
+//First initialization step that is only important
+//for the game, setup XEffects if needed, and
+//load first resources
+bool Game::InitGameStep1() {
+   mUseXEffects = false;
 
-    //set target screen resolution
-    targetResolution.set(640,480);
-    //targetResolution.set(1280,960);
+   //if we use shadows we need to enable XEffects
+   if (mGameConfig->enableShadows) {
+       mUseXEffects = true;
+       logging::Info("XEffects is turned on");
 
-    //initialize my infrastructure
-    this->InfrastructureInit(targetResolution, fullscreen);
-    if (!GetInfrastructureInitOk())
-        return false;
+       if (!mGameConfig->useUpgradedSky) {
+            //we need to use the upgraded sky, because the vanilla
+            //sky does not work together with XEffects enabled
+            mGameConfig->useUpgradedSky = true;
 
-    mUseXEffects = useXEffects;
+            logging::Warning("Switch to use upgraded sky because vanilla sky is not compatible to using XEffects");
+       }
+   }
 
-    if (mUseXEffects) {
-        // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
-        // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
-        // (The screen buffer resolution need not be the same as the screen resolution.)
-        // The second to last parameter enables VSM filtering, see example 6 for more information.
-        // The last parameter enables soft round spot light masks on our shadow lights.
-        mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true, false);
-        mEffect->setClearColour(SColor(255, 0, 0, 0));
-        mEffect->setAmbientColor(SColor(255, 0, 0, 0));
-    }
+   if (!mUseXEffects) {
+       logging::Info("XEffects is not used");
+   }
 
     //load the background image we need
     //for data extraction screen rendering and
@@ -201,7 +197,7 @@ void Game::SetupDebugDemo() {
     nextRaceLevelNr = 1;
 
     //in demo mode computer players need to be enabled!
-    mGameAssets->SetComputerPlayersEnabled(true);
+    mGameAssets->SetComputerPlayersEnabled(false);
 
     mGameState = DEF_GAMESTATE_INITDEMO;
 }
@@ -230,7 +226,7 @@ void Game::AdvanceChampionship() {
 
         //go back to the championship
         //menue
-        MainMenue->ShowChampionshipMenue();
+        MainMenue->ShowChampionshipMenue(true);
     } else {
         //no more levels available
         //return to top of main menue, as also
@@ -411,24 +407,21 @@ void Game::HandleMenueActions() {
     if (pendingAction == MainMenue->ActLoadChampionshipSlot) {
         //which slot we want to load is handed over
         //in parameter currSetValue inside the action
-        //range of currSetValue is from 1 up to 5
+        irr::u8 slotNr = MainMenue->GetChampionShipSlotNrForLoadAction(pendingAction->currSetValue);
+
         //function expects value 0 up to 4
-        mGameAssets->LoadChampionshipSaveGame(pendingAction->currSetValue - 1);
+        mGameAssets->LoadChampionshipSaveGame(slotNr);
 
         //after loading of the save game
         //go back to the main championship menue
-        MainMenue->ShowChampionshipMenue();
+        MainMenue->ShowChampionshipMenue(true);
     }
 
     //user wants to save the current championship state?
     if (pendingAction == MainMenue->ActSaveChampionshipSlot) {
         //which slot we want to save to is handed over
         //in parameter currSetValue inside the action
-        //range of currSetValue is from 1 up to 5
-        //function expects value 0 up to 4
-        //store the slot number inside this member,
-        //until we have a new championship name, and we can finally save
-        mSaveChampionShipToWhichSlot = pendingAction->currSetValue - 1;
+        mSaveChampionShipToWhichSlot = MainMenue->GetChampionShipSlotNrForSaveAction(pendingAction->currSetValue);
 
         //change the menue, so that the user can enter the new
         //championship name
@@ -475,6 +468,44 @@ void Game::HandleMenueActions() {
 
         mGameState = DEF_GAMESTATE_INITDEMO;
     }
+
+    if (pendingAction == MainMenue->ActSetDoubleResolution) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->enableDoubleResolution = false;
+        } else {
+            mGameConfig->enableDoubleResolution = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActSetVSync) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->enableVSync = false;
+        } else {
+            mGameConfig->enableVSync = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActSetEnableShadows) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->enableShadows = false;
+        } else {
+            mGameConfig->enableShadows = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActSetUpgradedSky) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->useUpgradedSky = false;
+        } else {
+            mGameConfig->useUpgradedSky = true;
+        }
+    }
+
+    if (pendingAction == MainMenue->ActReturnFromDetailsMenue) {
+        //write the new updated configuration
+        logging::Info("Updated configuration in game config Xml file");
+        WriteGameConfigXmlFile(mDevice);
+    }
 }
 
 void Game::CleanUpPointTable(std::vector<PointTableEntryStruct*> &tablePntr) {
@@ -499,7 +530,13 @@ bool Game::LoadAdditionalGameImages() {
      mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
      //load gameTitle
-     gameTitle = mDriver->getTexture("extract/images/title.png");
+     if (!mGameConfig->enableDoubleResolution) {
+        //load the image that was scaled by a factor of 2x before
+        gameTitle = mDriver->getTexture("extract/images/title.png");
+     } else {
+        //load the image that was scaled by a factor of 4x before
+        gameTitle = mDriver->getTexture("extract/images/title-x2.png");
+     }
 
      if (gameTitle == nullptr) {
          //there was a texture loading error
@@ -514,7 +551,12 @@ bool Game::LoadAdditionalGameImages() {
      gameTitleDrawPos.Y = (mScreenRes.Height - gameTitleSize.Height) / 2;
 
      //load race loading screen
-     raceLoadingScr = mDriver->getTexture("extract/images/onet0-1.png");
+     if (!mGameConfig->enableDoubleResolution) {
+        raceLoadingScr = mDriver->getTexture("extract/images/onet0-1.png");
+     } else {
+        //load the image that was scaled by a factor of 2x before
+        raceLoadingScr = mDriver->getTexture("extract/images/onet0-1-x2.png");
+     }
 
      if (raceLoadingScr == nullptr) {
          //there was a texture loading error
@@ -537,7 +579,12 @@ bool Game::LoadBackgroundImage() {
     mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //first load background image for menue
-    backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
+    if (!mGameConfig->enableDoubleResolution) {
+        backgnd = mDriver->getTexture("extract/images/oscr0-1.png");
+    } else {
+        //load the image which was 2x scaled before
+        backgnd = mDriver->getTexture("extract/images/oscr0-1-x2.png");
+    }
 
     if (backgnd == nullptr) {
         //there was a texture loading error
@@ -691,8 +738,17 @@ void Game::GameLoopLoadRaceScreen() {
     mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
                      , 0, irr::video::SColor(255,255,255,255), true);
 
-    //at 190, 240 write "LOADING LEVEL"
-    mGameTexts->DrawGameText((char*)("LOADING LEVEL"), mGameTexts->HudWhiteTextBannerFont, irr::core::position2di(190, 240));
+    char loadingTxt[25];
+    strcpy(loadingTxt, "LOADING LEVEL");
+
+    irr::u32 txtWidth = mGameTexts->GetWidthPixelsGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont);
+    irr::u32 txtHeight = mGameTexts->GetHeightPixelsGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont);
+
+    irr::core::position2di txtDrawPos;
+    txtDrawPos.X = mScreenRes.Width / 2 - txtWidth / 2;
+    txtDrawPos.Y = mScreenRes.Height / 2 - txtHeight / 2;
+
+    mGameTexts->DrawGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont, txtDrawPos);
 
     mDriver->endScene();
 
@@ -994,6 +1050,12 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         delete mCurrentRace;
         mCurrentRace = nullptr;
 
+        //cleanup XEffects if used
+        if (mUseXEffects) {
+            delete mEffect;
+            mEffect = nullptr;
+        }
+
         //if we were in game debugging mode or map test mode simply skip
         //main menue, and exit game immediately
         if (mDebugRace || mDebugDemoMode || mTestMapMode) {
@@ -1230,6 +1292,17 @@ bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> 
 
     levelName.append(targetLevel.substr(splitCharPos + 1, targetLevel.size() - splitCharPos));
 
+    if (mUseXEffects) {
+         // Initialise the EffectHandler, pass it the working Irrlicht device and the screen buffer resolution.
+         // Shadow map resolution setting has been moved to SShadowLight for more flexibility.
+         // (The screen buffer resolution need not be the same as the screen resolution.)
+         // The second to last parameter enables VSM filtering, see example 6 for more information.
+         // The last parameter enables soft round spot light masks on our shadow lights.
+         mEffect = new EffectHandler(mDevice, mDriver->getScreenSize(), false, true, false);
+         mEffect->setClearColour(SColor(255, 0, 0, 0));
+         mEffect->setAmbientColor(SColor(255, 0, 0, 0));
+     }
+
     //create a new Race
     mCurrentRace = new Race(this, gameMusicPlayer, gameSoundEngine, levelRootDir, levelName, nrLaps, demoMode, debugRace);
 
@@ -1248,6 +1321,14 @@ bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> 
 
         //finally add the player to the race
         mCurrentRace->AddPlayer((*itPilot)->humanPlayer, (*itPilot)->pilotName, modelName);
+    }
+
+    //is there at least one player?
+    if (mCurrentRace->mPlayerVec.size() == 0) {
+        //no player in race, we need to interrupt
+        //no race possible
+        logging::Error("Not a single player in race, interrupt race creation");
+        return false;
     }
 
     //which player do we want to follow at the start
@@ -1341,7 +1422,7 @@ bool Game::ParseCommandLineForGame() {
     return true;
 }
 
-Game::Game(int argc, char **argv) : InfrastructureBase(argc, argv) {
+Game::Game(int argc, char **argv) : InfrastructureBase(argc, argv, INFRA_RUNNING_AS_GAME) {
 }
 
 Game::~Game() {

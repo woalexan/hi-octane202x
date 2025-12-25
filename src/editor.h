@@ -363,7 +363,6 @@ public:
     virtual void HandleMouseEvent(const irr::SEvent& event);
 
     bool enableLightning = false;
-    bool enableShadows = false;
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
 
