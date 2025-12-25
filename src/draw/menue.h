@@ -38,6 +38,7 @@
 #define MENUE_ENTRY_TYPE_SLIDER 1
 #define MENUE_ENTRY_TYPE_TEXTINPUTFIELD 2
 #define MENUE_ENTRY_TYPE_EMPTYSPACE 3
+#define MENUE_ENTRY_TYPE_TEXTLABEL 4
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION 0
@@ -98,7 +99,11 @@
 #define MENUE_3DMODEL_UPDATEPERIODSEC 0.015f
 
 //distance in pixels between menue entries
-#define MENUE_ENTRY_DISTANCE_PIXEL 20
+#define MENUE_ENTRY_DISTANCE_PIXEL 10
+
+//empty space menue item height in pixels
+//is also the fixed height for text input fields
+#define MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS 30
 
 //distance in pixels between menue entry and slider
 #define MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL 10
@@ -160,11 +165,13 @@ public:
     //Gets the needed height in pixels
     irr::u32 GetHeight();
 
+    void SetText(char* newText);
+
     irr::u8 entryType;
+    char* entryText;
 
     irr::u8 entryNumber;
     irr::core::vector2d<irr::s32> drawTextScrPosition;
-    char* entryText;
 
     //if true this menue item can be selected by using
     //cursor key up/down; If false the item is static
@@ -206,6 +213,10 @@ public:
     irr::u8 checkBoxPixelPerBlockWidth;
     irr::u8 checkBoxPixelPerBlockHeight;
     irr::u8 checkBoxNrBlocks;
+
+    //which font should be used?
+    GameTextFont* usedUnselectedTextFont = nullptr;
+    GameTextFont* usedSelectedTextFont = nullptr;
 };
 
 //this struct collects information about one
@@ -218,12 +229,17 @@ public:
 
     //returns pointer to newly created entry, if user needs this
     MenueSingleEntry* AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction);
+    MenueSingleEntry* AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction,
+                                                      GameTextFont* unselectedFont, GameTextFont* selectedFont);
+
     MenueSingleEntry* AddSliderMenueEntry(const char* text, bool itemSelectable,
                                                      irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
                                                      irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
                                                      MenueAction* triggerAction);
     MenueSingleEntry* AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction);
     MenueSingleEntry* AddEmptySpaceMenueEntry();
+    /*MenueSingleEntry* AddTextLabelMenueEntry(const char* initText, irr::core::vector2d<irr::s32> fixedPosition,
+                                                        GameTextFont* usedFont);*/
 
     void RealignMenueEntries(irr::core::recti newMenueSpace);
 
@@ -250,7 +266,6 @@ typedef struct {
 struct ShipStatLabel {
    char* text = nullptr;
    irr::core::vector2di drawPositionTxt;
-   bool visible = true;
 
    irr::core::recti statBoxOutline;
    irr::u8 statNrBlocks;
@@ -406,7 +421,6 @@ private:
 
     void InterruptRaceSelection();
     void HandleInputRaceSelection();
-    void PrintMenueEntriesRaceSelection();
 
     void ItemUp();
     void ItemDown();
@@ -484,7 +498,6 @@ private:
     irr::f32 currRaceTrackWheelAngleDeg;
     irr::f32 targetRaceTrackWheelAngleDeg;
 
-    char currSelRaceTrackName[50];
     irr::u8 currentSelRaceLapNumberVal;
 
     irr::u8 currSelectedShip;
@@ -508,9 +521,13 @@ private:
     //interrupts we can return to the correct caller menue
     MenueSingleEntry* RaceTrackSelectionCallerMenueEntry = nullptr;
 
-    MenueTextLabel* SelRaceTrackNrLapsLabel = nullptr;
-    MenueTextLabel* SelRaceTrackBestLapLabel = nullptr;
-    MenueTextLabel* SelRaceTrackBestRaceLabel = nullptr;
+    //MenueTextLabel* SelRaceTrackNrLapsLabel = nullptr;
+    //MenueTextLabel* SelRaceTrackBestLapLabel = nullptr;
+    //MenueTextLabel* SelRaceTrackBestRaceLabel = nullptr;
+
+    MenueSingleEntry* SelRaceTrackNrLapsLabel = nullptr;
+    MenueSingleEntry* SelRaceTrackBestLapLabel = nullptr;
+    MenueSingleEntry* SelRaceTrackBestRaceLabel = nullptr;
 
     //0 = wheel not moving
     //1 = wheel moving clock wise
@@ -554,7 +571,6 @@ private:
 
     void CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di centerCoord);
     void RecalculateRaceTrackStatLabels();
-    void UpdateRaceTrackSelectionTypeWriterEffect();
 
     void InitRaceTrackSceneNodes();
     void Update3DModels();

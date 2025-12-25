@@ -33,6 +33,12 @@ MenuePage::MenuePage(Menue* parentMenue, MenuePage* parentPage, irr::u8 pageNr, 
 };
 
 MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction) {
+    return(AddDefaultMenueEntry(text, itemSelectable, goToPage, triggerAction, mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont,
+                                                      mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont));
+}
+
+MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction,
+                                                  GameTextFont* unselectedFont, GameTextFont* selectedFont) {
     irr::u8 currNrEntries = this->pageEntryVec.size();
 
     if (currNrEntries < 255) {
@@ -48,6 +54,10 @@ MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSel
           newEntry->nextMenuePage = goToPage;
           newEntry->triggerAction = triggerAction;
           newEntry->itemSelectable = itemSelectable;
+
+          //set special used fonts
+          newEntry->usedUnselectedTextFont = unselectedFont;
+          newEntry->usedSelectedTextFont = selectedFont;
 
           pageEntryVec.push_back(newEntry);
 
@@ -74,6 +84,10 @@ MenueSingleEntry* MenuePage::AddEmptySpaceMenueEntry() {
           newEntry->nextMenuePage = nullptr;
           newEntry->triggerAction = nullptr;
           newEntry->itemSelectable = false;
+
+          //use the default menue fonts
+          newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
 
           pageEntryVec.push_back(newEntry);
 
@@ -109,6 +123,10 @@ MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSele
           newEntry->checkBoxPixelPerBlockHeight = checkBoxPixelPerBlockHeightParam;
           newEntry->checkBoxNrBlocks = nrBlocksParam;
 
+          //use the default menue fonts
+          newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+
           pageEntryVec.push_back(newEntry);
 
           return newEntry;
@@ -139,6 +157,10 @@ MenueSingleEntry* MenuePage::AddTextInputMenueEntry(char* initTextPntrParam, boo
 
           newEntry->initTextPntr = initTextPntrParam; //set initial text at the start
 
+          //use the default menue fonts
+          newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+
           pageEntryVec.push_back(newEntry);
 
           return newEntry;
@@ -148,6 +170,40 @@ MenueSingleEntry* MenuePage::AddTextInputMenueEntry(char* initTextPntrParam, boo
 
    return nullptr;
 }
+/*
+MenueSingleEntry* MenuePage::AddTextLabelMenueEntry(const char* initText, irr::core::vector2d<irr::s32> fixedPosition,
+                                                    GameTextFont* usedFont) {
+    irr::u8 currNrEntries = this->pageEntryVec.size();
+
+    if (currNrEntries < 255) {
+          MenueSingleEntry* newEntry = new MenueSingleEntry();
+
+          newEntry->mParentPage = this;
+          newEntry->entryType = MENUE_ENTRY_TYPE_TEXTLABEL;
+          //This entry has no checkbox/slider; Therefore maxValue = 0
+          newEntry->maxValue = 0;
+          newEntry->currValue = 0;
+          newEntry->entryText = strdup(initText);
+          newEntry->entryNumber = currNrEntries;
+          newEntry->nextMenuePage = nullptr;
+          newEntry->triggerAction = nullptr;
+          newEntry->itemSelectable = false;
+
+          //this item uses a fixed draw position
+          newEntry->drawTextScrPosition = fixedPosition;
+
+          //and we also set the specific used font for drawing the text
+          newEntry->overrideUsedTextFont = usedFont;
+
+          pageEntryVec.push_back(newEntry);
+
+          return newEntry;
+    } else {
+        logging::Error("Too much menue entries, Skip new entry creation!");
+    }
+
+    return nullptr;
+}*/
 
 void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
     //we want to reorganize all menue entries in a way, that
@@ -170,7 +226,7 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
             } else {
                 //for text entry or empty space entry
                 //use fixed height in pixels
-                neededHeight += 20;
+                neededHeight += MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
             }
 
             neededHeight += MENUE_ENTRY_DISTANCE_PIXEL;
@@ -191,7 +247,12 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
                 (*it)->checkBoxOutline.LowerRightCorner.Y = (*it)->checkBoxOutline.UpperLeftCorner.Y + (*it)->checkBoxPixelPerBlockHeight;
             }
 
-            startAlignY += (*it)->GetHeight() + MENUE_ENTRY_DISTANCE_PIXEL;
+            if (((*it)->entryType != MENUE_ENTRY_TYPE_TEXTINPUTFIELD) &&
+                ((*it)->entryType != MENUE_ENTRY_TYPE_EMPTYSPACE)) {
+                    startAlignY += (*it)->GetHeight() + MENUE_ENTRY_DISTANCE_PIXEL;
+            } else {
+                    startAlignY += MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
+            }
         }
     }
 }
@@ -201,7 +262,7 @@ irr::u32 MenueSingleEntry::GetWidth() {
     //Get width of text in pixels for entry
     irr::u32 textWidth =
              mParentPage->mParentMenue->mGame->mGameTexts->GetWidthPixelsGameText(entryText,
-                                                  mParentPage->mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont);
+                                                  this->usedUnselectedTextFont);
 
     //is also a checkbox/slider included?
     if (maxValue != 0) {
@@ -218,7 +279,7 @@ irr::u32 MenueSingleEntry::GetHeight() {
     //Get height of text in pixels for entry
     irr::u32 textHeight =
              mParentPage->mParentMenue->mGame->mGameTexts->GetHeightPixelsGameText(entryText,
-                                                  mParentPage->mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont);
+                                                  this->usedUnselectedTextFont);
 
     //is also a checkbox/slider included?
     if (maxValue != 0) {
@@ -232,6 +293,21 @@ irr::u32 MenueSingleEntry::GetHeight() {
     }
 
     return textHeight;
+}
+
+void MenueSingleEntry::SetText(char* newText) {
+    if (newText == nullptr)
+        return;
+
+    if (entryText != nullptr) {
+        //delete old string at heap
+        //we need to use free here, as we have strdup
+        //text strings before!
+        free(entryText);
+
+        //set new output string
+        entryText = newText;
+    }
 }
 
 void Menue::RealignMenuePageItems() {
@@ -643,10 +719,20 @@ void Menue::CreateMenueEntries() {
     SoundOptionsPage->AddSliderMenueEntry("EFFECTS VOLUME", true, finalVal, 16, 16, 10, 14, ActSetSoundVolume);
     SoundOptionsPage->AddDefaultMenueEntry("MAIN OPTIONS", true, OptionMenuePage, nullptr);
 
-
     //Race track selection page
     //Item must be selectable, Important!
     RaceTrackNameTitle = RaceTrackSelectionPage->AddDefaultMenueEntry("", true, nullptr, nullptr);
+    RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+    RaceTrackSelectionPage->AddEmptySpaceMenueEntry();
+
+    SelRaceTrackNrLapsLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                                                           mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
+
+    SelRaceTrackBestLapLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                                                            mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
+
+    SelRaceTrackBestRaceLabel = RaceTrackSelectionPage->AddDefaultMenueEntry("", false, nullptr, nullptr, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                                                             mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA);
 
     //Ship selection page
     //Item must be selectable, Important!
@@ -865,7 +951,7 @@ void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
     //calculate correct position
     cursorPos.UpperLeftCorner.X = textEntryField->drawTextScrPosition.X +
             mGame->mGameTexts->GetWidthPixelsGameText(textEntryField->currTextInputFieldStr,
-                     mGame->mGameTexts->HudWhiteTextBannerFont) + 3;
+                     textEntryField->usedSelectedTextFont) + 3;
 
     cursorPos.UpperLeftCorner.Y = textEntryField->drawTextScrPosition.Y + 1;
 
@@ -929,7 +1015,7 @@ void Menue::PrintMenueEntries() {
             for (it = currSelMenuePage->pageEntryVec.begin(); it != currSelMenuePage->pageEntryVec.end(); ++it) {
                 //if current item to print is currently selected menue entry item print it in white text color
                 if ((currSelMenueSingleEntry->entryNumber == (*it)->entryNumber) && ((*it)->isTextEntryField == false)) {
-                    mGame->mGameTexts->DrawGameText((*it)->entryText, mGame->mGameTexts->HudWhiteTextBannerFont, (*it)->drawTextScrPosition, printCharLeft);
+                    mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedSelectedTextFont, (*it)->drawTextScrPosition, printCharLeft);
 
                     if (MENUE_ENABLETYPEWRITEREFFECT) {
                         //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -946,7 +1032,7 @@ void Menue::PrintMenueEntries() {
                     }
                 } else {
                         //item is currently not selected, draw in "greenish" color, or is a text input field entry item (is also green in original game)
-                        mGame->mGameTexts->DrawGameText((*it)->entryText, mGame->mGameTexts->GameMenueUnselectedEntryFont, (*it)->drawTextScrPosition, printCharLeft);
+                        mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedUnselectedTextFont, (*it)->drawTextScrPosition, printCharLeft);
 
                         if (MENUE_ENABLETYPEWRITEREFFECT) {
                             //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -970,42 +1056,6 @@ void Menue::PrintMenueEntries() {
             }
         }
     }
-}
-
-void Menue::PrintMenueEntriesRaceSelection() {
-    //is there currently a menue page selected?
-    if (currSelMenuePage != nullptr) {
-         irr::s32 printCharLeft = currNrCharsShownCnter;
-
-         //if we do not use type write effect deactivate it
-         //here for rendering
-         if (!MENUE_ENABLETYPEWRITEREFFECT) {
-             printCharLeft = -1;
-         }
-
-          mGame->mGameTexts->DrawGameText(currSelRaceTrackName, mGame->mGameTexts->HudWhiteTextBannerFont, this->RaceTrackNameTitle->drawTextScrPosition, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(currSelRaceTrackName));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-
-          mGame->mGameTexts->DrawGameText(SelRaceTrackNrLapsLabel->text, SelRaceTrackNrLapsLabel->whichFont,
-                                           SelRaceTrackNrLapsLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(SelRaceTrackNrLapsLabel->text));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-
-          mGame->mGameTexts->DrawGameText(SelRaceTrackBestLapLabel->text, SelRaceTrackBestLapLabel->whichFont,
-                                           SelRaceTrackBestLapLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(SelRaceTrackBestLapLabel->text));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-
-          mGame->mGameTexts->DrawGameText(SelRaceTrackBestRaceLabel->text, SelRaceTrackBestRaceLabel->whichFont,
-                                           SelRaceTrackBestRaceLabel->drawPositionTxt, printCharLeft);
-          printCharLeft -= (irr::u32)(strlen(SelRaceTrackBestRaceLabel->text));
-          if (printCharLeft < 0)
-              printCharLeft = 0;
-    } 
 }
 
 void Menue::PrintMenueEntriesShipSelection() {
@@ -1347,7 +1397,7 @@ void Menue::RenderRaceSelection() {
     //only print menue items if window is fully open right now
     if ((currMenueState == MENUE_STATE_SELACTIVE) || (currMenueState == MENUE_STATE_TYPETEXT)) {
         if (currSelMenuePage == RaceTrackSelectionPage)
-            PrintMenueEntriesRaceSelection();
+            PrintMenueEntries();
         else if (currSelMenuePage == ShipSelectionPage)
            PrintMenueEntriesShipSelection();
     }
@@ -1513,6 +1563,7 @@ void Menue::ShowRaceSelection(MenueSingleEntry* callerItem, bool championshipMod
 
     //change current page to race track selection
     currSelMenuePage = RaceTrackSelectionPage;
+    currSelMenueSingleEntry = RaceTrackNameTitle;
 
     //activate window animation for change of main menue to race selection page
     currSelWindowAnimation = windowMenueAnimationBeforeTrackSelection;
@@ -2018,16 +2069,6 @@ void Menue::ItemReturn() {
 
       return;
     }
-
-    //Does this menue item have an action we can trigger?
-    //when pressing Return key
-   /* if (currSelMenueSingleEntry->triggerAction != nullptr) {
-           //we want to trigger/execute an action by the user
-            //we can reuse currSetValue here to indicate the main program
-            //for example which championship slot to load or save and so on
-            currSelMenueSingleEntry->triggerAction->currSetValue = currSelMenueSingleEntry->entryNumber;
-            currActionToExecute = currSelMenueSingleEntry->triggerAction;
-    }*/
 }
 
 void Menue::RemoveInputTextFieldChar(MenueSingleEntry* textInputEntry) {
@@ -2315,16 +2356,6 @@ void Menue::UpdateShipSelectionTypeWriterEffect() {
     }
 }
 
-void Menue::UpdateRaceTrackSelectionTypeWriterEffect() {
-    if (MENUE_ENABLETYPEWRITEREFFECT) {
-        currNrCharsShownCnter = 0;
-        currMenueState = MENUE_STATE_TYPETEXT;
-        finalNrChardsShownMenuePageFinished = (irr::u32)(strlen(currSelRaceTrackName)) +
-            (irr::u32)(strlen(SelRaceTrackNrLapsLabel->text)) + (irr::u32)(strlen(SelRaceTrackBestLapLabel->text)) +
-            (irr::u32)(strlen(SelRaceTrackBestRaceLabel->text));
-    }
-}
-
 void Menue::HandleInputRaceSelection() {
     //only allow menue input in case window is fully open
     if (currMenueState == MENUE_STATE_SELACTIVE) {
@@ -2344,6 +2375,9 @@ void Menue::HandleInputRaceSelection() {
                 currentSelRaceLapNumberVal = 1;
 
             RecalculateRaceTrackStatLabels();
+
+            finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+            currNrCharsShownCnter = finalNrChardsShownMenuePageFinished;
         }
 
         if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_DOWN) && (!mChampionshipMode)) {
@@ -2359,6 +2393,9 @@ void Menue::HandleInputRaceSelection() {
                 currentSelRaceLapNumberVal = 50;
 
             RecalculateRaceTrackStatLabels();
+
+            finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+            currNrCharsShownCnter = finalNrChardsShownMenuePageFinished;
         }
 
         if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_RETURN)) {
@@ -2638,8 +2675,13 @@ void Menue::FinalPositionShipSelectionWheelReached(irr::u8 newPosition) {
 //Function is called when selected race track position is reached
 //at the front of the menue
 void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
+    //Important info: We need to use malloc here, instead of new char[]
+    //Because we will free this memory later! Not that we get a delete[]
+    //vs. free memory issue later
+    char* currSelRaceTrackName = (char*)(malloc(50));
+
     //first update entry name in window
-    if ((newPosition >= 0) && (newPosition < this->mGameAssets->mRaceTrackVec->size())) {
+    if ((newPosition >= 0) && (newPosition < this->mGameAssets->mRaceTrackVec->size())) {   
        //copy name of race track from game assets class
        strcpy(currSelRaceTrackName, this->mGameAssets->mRaceTrackVec->at(newPosition)->name);
 
@@ -2652,13 +2694,19 @@ void Menue::FinalPositionRaceTrackWheelReached(irr::u8 newPosition) {
        currentSelRaceLapNumberVal = 0;
     }
 
-    //recalculate X coordinate of race track name to center race track name!
-    irr::u32 newCoord = (mGame->mScreenRes.Width / 2) -
-            (mGame->mGameTexts->GetWidthPixelsGameText(currSelRaceTrackName, mGame->mGameTexts->HudWhiteTextBannerFont) / 2);
-    this->RaceTrackNameTitle->drawTextScrPosition.X = newCoord;
+    RaceTrackNameTitle->SetText(currSelRaceTrackName);
 
     RecalculateRaceTrackStatLabels();
-    UpdateRaceTrackSelectionTypeWriterEffect();
+    RealignMenuePageItems();
+
+    //update number of characters to print in type writer effect
+    finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+
+    //start type writer effect from beginning again
+    currNrCharsShownCnter = 0;
+
+    currMenueState = MENUE_STATE_TYPETEXT;
+    lastAnimationUpdateAbsTime = absoluteTime;
 }
 
 //newPosition = number of race track model in the front of camera
@@ -2950,27 +2998,6 @@ void Menue::InitStatLabels() {
 
     strcpy(ShipStatFirePowerLabel->text, "FIREPOWER");
     //all the other variables will be setup later
-
-    SelRaceTrackNrLapsLabel = new MenueTextLabel();
-    SelRaceTrackNrLapsLabel->text = new char[70];
-    SelRaceTrackNrLapsLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-    strcpy(SelRaceTrackNrLapsLabel->text, "");
-    //all the other variables will be setup later
-
-    SelRaceTrackBestLapLabel = new MenueTextLabel();
-    SelRaceTrackBestLapLabel->text = new char[70];
-    SelRaceTrackBestLapLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-    strcpy(SelRaceTrackBestLapLabel->text, "");
-    //all the other variables will be setup later
-
-    SelRaceTrackBestRaceLabel = new MenueTextLabel();
-    SelRaceTrackBestRaceLabel->text = new char[70];
-    SelRaceTrackBestRaceLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-    strcpy(SelRaceTrackBestRaceLabel->text, "");
-    //all the other variables will be setup later
 }
 
 void Menue::CleanUpStatLabels() {
@@ -2989,18 +3016,6 @@ void Menue::CleanUpStatLabels() {
     delete[] ShipStatFirePowerLabel->text;
     delete ShipStatFirePowerLabel;
     ShipStatFirePowerLabel = nullptr;
-
-    delete[] SelRaceTrackNrLapsLabel->text;
-    delete SelRaceTrackNrLapsLabel;
-    SelRaceTrackNrLapsLabel = nullptr;
-
-    delete[] SelRaceTrackBestLapLabel->text;
-    delete SelRaceTrackBestLapLabel;
-    SelRaceTrackBestLapLabel = nullptr;
-
-    delete[] SelRaceTrackBestRaceLabel->text;
-    delete SelRaceTrackBestRaceLabel;
-    SelRaceTrackBestRaceLabel = nullptr;
 }
 
 void Menue::CalcStatLabelHelper(irr::u8 currStatVal, ShipStatLabel &label, irr::core::vector2di centerCoord) {
@@ -3052,23 +3067,30 @@ void Menue::CalcMenueTextLabelHelper(MenueTextLabel &label, irr::core::vector2di
 
 void Menue::RecalculateRaceTrackStatLabels() {
     //update to latest text labels
-    sprintf(SelRaceTrackNrLapsLabel->text, "NUMBER OF LAPS %d", currentSelRaceLapNumberVal);
+    //Important info: We need to use malloc here, instead of new char[]
+    //Because we will free this memory later! Not that we get a delete[]
+    //vs. free memory issue later
+    char* newNrLapsText = (char*)(malloc(70));
+
+    sprintf(newNrLapsText, "NUMBER OF LAPS %d", currentSelRaceLapNumberVal);
+
+    //Set the new text
+    SelRaceTrackNrLapsLabel->SetText(newNrLapsText);
+
+    char* newBestLapText = (char*)(malloc(70));
 
     //also need to center all of this text inside the text window
-    sprintf(SelRaceTrackBestLapLabel->text, "BEST LAP %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestLapTime,
+    sprintf(newBestLapText, "BEST LAP %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestLapTime,
             this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestPlayer);
 
-    sprintf(SelRaceTrackBestRaceLabel->text, "BEST RACE %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestHighScore,
+    SelRaceTrackBestLapLabel->SetText(newBestLapText);
+
+    char* newBestRaceText = (char*)(malloc(70));
+
+    sprintf(newBestRaceText, "BEST RACE %d %s", this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestHighScore,
             this->mGameAssets->mRaceTrackVec->at(currSelectedRaceTrack)->bestHighScorePlayer);
 
-    //Center current number of laps around coord 329, 81
-    CalcMenueTextLabelHelper(*SelRaceTrackNrLapsLabel, irr::core::position2di(329, 81));
-
-    //Center best lap info around coord 329, 98
-    CalcMenueTextLabelHelper(*SelRaceTrackBestLapLabel, irr::core::position2di(329, 98));
-
-    //Center best race info around coord 329, 113
-    CalcMenueTextLabelHelper(*SelRaceTrackBestRaceLabel, irr::core::position2di(329, 113));
+    SelRaceTrackBestRaceLabel->SetText(newBestRaceText);
 }
 
 //Constructor, initialization of main menue
