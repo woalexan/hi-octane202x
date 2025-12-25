@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2025 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -13,6 +13,7 @@
 #include <irrlicht.h>
 #include <vector>
 #include <cstdint>
+#include <string>
 
 //definition of available menue pages
 #define MENUE_AFTERGAMESTART 0
@@ -32,6 +33,11 @@
 #define MENUE_HIGHSCORE 202
 #define MENUE_RACESTATS 203
 #define MENUE_POINTSTABLE 204
+
+#define MENUE_ENTRY_TYPE_DEFAULT 0
+#define MENUE_ENTRY_TYPE_SLIDER 1
+#define MENUE_ENTRY_TYPE_TEXTINPUTFIELD 2
+#define MENUE_ENTRY_TYPE_EMPTYSPACE 3
 
 //definition of available menue action trigger types
 #define MENUE_ACTION_NOACTION 0
@@ -91,6 +97,12 @@
 //3D model update period time in seconds
 #define MENUE_3DMODEL_UPDATEPERIODSEC 0.015f
 
+//distance in pixels between menue entries
+#define MENUE_ENTRY_DISTANCE_PIXEL 20
+
+//distance in pixels between menue entry and slider
+#define MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL 10
+
 //after the user is inactive for 30 seconds in the menue
 //trigger an action automatically
 //implemented as in the original game
@@ -104,9 +116,10 @@ typedef struct MenueGraphicPart {
      irr::core::dimension2d<irr::s32> sizeTex;
 } MenueGraphicPart;
 
-typedef struct MenueAction {
-    //integer index for type of action
-    irr::u32 actionNr;
+class MenueAction {
+public:
+    MenueAction(irr::u32 actionNrParam);
+    ~MenueAction();
 
     //can be used for sliders/checkboxes to
     //handover current set value
@@ -119,9 +132,13 @@ typedef struct MenueAction {
     //for simple menue items which are activated with
     //Return key press this field is do not care
     char newSetTextInputString[30];
-} MenueAction;
 
-struct MenuePage; //Forward declaration
+private:
+    //integer index for type of action
+    irr::u32 actionNr;
+};
+
+class MenuePage; //Forward declaration
 struct RaceStatsEntryStruct; //Forward declaration
 struct PointTableEntryStruct; //Forward declaration
 struct ChampionshipSaveGameInfoStruct; //Forward declaration
@@ -129,13 +146,25 @@ class SoundEngine; //Forward declaration
 class Assets; //Forward declaration
 class Game; //Forward declaration
 struct GameTextFont; //Forward declaration
+class Menue;  //Forward declaration
 
 //this struct holds the information about a single
 //menue entry
-typedef struct MenueSingleEntry {
+class MenueSingleEntry {
+public:
+    MenuePage* mParentPage = nullptr;
+
+    //Gets the needed width in pixels
+    irr::u32 GetWidth();
+
+    //Gets the needed height in pixels
+    irr::u32 GetHeight();
+
+    irr::u8 entryType;
+
     irr::u8 entryNumber;
     irr::core::vector2d<irr::s32> drawTextScrPosition;
-    char* entryText = nullptr;
+    char* entryText;
 
     //if true this menue item can be selected by using
     //cursor key up/down; If false the item is static
@@ -174,25 +203,45 @@ typedef struct MenueSingleEntry {
     irr::u8 currValue = 0;
     irr::u8 maxValue = 0;
     irr::core::recti checkBoxOutline;
+    irr::u8 checkBoxPixelPerBlockWidth;
+    irr::u8 checkBoxPixelPerBlockHeight;
     irr::u8 checkBoxNrBlocks;
-} MenueSingleEntry;
+};
 
 //this struct collects information about one
 //possible page of the menue (summary of multiple
 //MenueSingleEntries)
-typedef struct MenuePage {
-    irr::u8 pageNumber;
+class MenuePage {
+public:
+    MenuePage(Menue* parentMenue, MenuePage* parentPage, irr::u8 pageNr, MenueAction* pageEscKeyAction = nullptr);
+    ~MenuePage();
+
+    //returns pointer to newly created entry, if user needs this
+    MenueSingleEntry* AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction);
+    MenueSingleEntry* AddSliderMenueEntry(const char* text, bool itemSelectable,
+                                                     irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
+                                                     irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
+                                                     MenueAction* triggerAction);
+    MenueSingleEntry* AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction);
+    MenueSingleEntry* AddEmptySpaceMenueEntry();
+
+    void RealignMenueEntries(irr::core::recti newMenueSpace);
+
+    Menue* mParentMenue;
+
     std::vector<MenueSingleEntry*> pageEntryVec;
+
+    //Allows to trigger an action when this page
+    //is exit with ESC key
+    MenueAction* pageEscKeyTriggerAction;
+
+    irr::u8 pageNumber;
 
     //is used when program needs to return to menue page
     //one level above, for example when player presses ESC key
     //one level; or when text input is done in one player
     MenuePage* parentMenuePage = nullptr;
-
-    //Allows to trigger an action when this page
-    //is exit with ESC key
-    MenueAction* pageEscKeyTriggerAction = nullptr;
-} MenuePage;
+};
 
 typedef struct {
     std::vector<irr::core::recti> coordVec;
@@ -219,7 +268,6 @@ class Menue {
 private:
     SoundEngine* mSoundEngine = nullptr;
     Assets* mGameAssets = nullptr;
-    Game* mGame = nullptr;
 
     std::vector<MenueGraphicPart*> GameLogo;
 
@@ -242,14 +290,19 @@ private:
     irr::u32 finalNrChardsShownMenuePageFinished;
     irr::f32 typeWriterEffectNextCharacterAbsTime;
 
-    //all available menue page entries
-    std::vector<MenuePage*> menuePageVector;
+    //current graphical region available for the
+    //selection menue
+    irr::core::recti currMenueSpace;
+
+    void RealignMenuePageItems();
 
     bool InitMenueResources();
-    void InitMenuePageEntries();
+    void CreateMenueEntries();
     void RenderWindow(irr::core::recti position);
     void PrintMenueEntries();
     void RenderRaceSelection();
+    void InitActions();
+    void InitMenuePages();
 
     void AcceptedRaceSetup();
 
@@ -268,49 +321,36 @@ private:
     //Menue definitions for main top entry menue
     MenuePage* TopMenuePage = nullptr;
     MenueSingleEntry* Race = nullptr;
-    MenueSingleEntry* Options = nullptr;
-    MenueSingleEntry* QuitToOS = nullptr;
 
     //Menue definitions for Race page
     MenuePage* RaceMenuePage = nullptr;
     MenueSingleEntry* SelectChampionsship = nullptr;
     MenueSingleEntry* SelectSingleRace = nullptr;
-    MenueSingleEntry* RaceMenuePageBackToMainMenue = nullptr;
 
     //Menue definitions for Championship page
     MenuePage* ChampionshipMenuePage = nullptr;
     MenueSingleEntry* ContinueChampionshipEntry = nullptr;
     MenueSingleEntry* NewChampionshipEntry = nullptr;
-    MenueSingleEntry* LoadChampionshipEntry = nullptr;
     MenueSingleEntry* SaveChampionshipEntry = nullptr;
-    MenueSingleEntry* QuitChampionshipEntry = nullptr;
 
     //menue definitions for Championship save page
     MenuePage* ChampionshipSaveMenuePage = nullptr;
-    MenueSingleEntry* ChampionshipSaveTxtLabel = nullptr;
     MenueSingleEntry* ChampionshipSaveSlot1 = nullptr;
     MenueSingleEntry* ChampionshipSaveSlot2 = nullptr;
     MenueSingleEntry* ChampionshipSaveSlot3 = nullptr;
     MenueSingleEntry* ChampionshipSaveSlot4 = nullptr;
     MenueSingleEntry* ChampionshipSaveSlot5 = nullptr;
-    MenueSingleEntry* ChampionshipSaveReturnToChampionsShipMenue = nullptr;
 
     //menue definitions for Championship load page
     MenuePage* ChampionshipLoadMenuePage = nullptr;
-    MenueSingleEntry* ChampionshipLoadTxtLabel = nullptr;
     MenueSingleEntry* ChampionshipLoadSlot1 = nullptr;
     MenueSingleEntry* ChampionshipLoadSlot2 = nullptr;
     MenueSingleEntry* ChampionshipLoadSlot3 = nullptr;
     MenueSingleEntry* ChampionshipLoadSlot4 = nullptr;
     MenueSingleEntry* ChampionshipLoadSlot5 = nullptr;
-    MenueSingleEntry* ChampionshipLoadReturnToChampionsShipMenue = nullptr;
 
     //Menue definitions for option menue
     MenuePage* OptionMenuePage = nullptr;
-    MenueSingleEntry* ChangeName = nullptr;
-    MenueSingleEntry* DetailOptions = nullptr;
-    MenueSingleEntry* SoundOptions = nullptr;
-    MenueSingleEntry* ReinitializeJoystick = nullptr;
     MenueSingleEntry* ComputerPlayersCheckBox = nullptr;
     MenueSingleEntry* DifficultyLevel = nullptr;
     MenueSingleEntry* OptionMenuePageBackToMainMenue = nullptr;
@@ -359,6 +399,8 @@ private:
     //call this->mGameAssets->GetLastSelectedRaceTrack(). Also the number of laps for the following race does not depend on the
     //user/player selection, but on the default number of laps for this racetrack. As in the original game.
     void ShowRaceSelection(MenueSingleEntry* callerItem, bool championshipMode);
+
+    void DrawBackground(bool addLogo);
 
     void ShowShipSelection();
 
@@ -559,6 +601,8 @@ public:
     Menue(Game* game,
            SoundEngine* soundEngine, Assets* assets);
     ~Menue();
+
+    Game* mGame = nullptr;
 
     bool MenueInitializationSuccess;
 
