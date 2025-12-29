@@ -23,6 +23,7 @@
 #include <sstream>
 #include <iomanip>
 #include "draw/attribution.h"
+#include "game.h"
 
 //Returns true in case of success, False otherwise
 bool InfrastructureBase::WriteGameConfigXmlFile(IrrlichtDevice *device) {
@@ -67,15 +68,15 @@ bool InfrastructureBase::WriteGameConfigXmlFile(IrrlichtDevice *device) {
      writer->writeLineBreak();
 
      //section for music setup
-    /* writer->writeElement(L"music");
+     writer->writeElement(L"intro");
      writer->writeLineBreak();
 
-     writer->writeElement(L"setting",true, L"name", L"musicFile" , L"value", irr::core::stringw(configStruct->MusicFile.c_str()).c_str());
+     writer->writeElement(L"setting",true, L"name", L"skipIntro" , L"value", BoolToXmlSettingStr(mGameConfig->skipIntro).c_str());
      writer->writeLineBreak();
 
      //close music setup section
-     writer->writeClosingTag(L"music");
-     writer->writeLineBreak();*/
+     writer->writeClosingTag(L"intro");
+     writer->writeLineBreak();
 
      //end of hi-octane202x config
      writer->writeClosingTag(L"hi-octane202x");
@@ -101,6 +102,7 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
         mGameConfig->enableShadows = false;
         mGameConfig->useUpgradedSky = false;
         mGameConfig->enableDoubleResolution = false;
+        mGameConfig->skipIntro = false;
 
         if (!WriteGameConfigXmlFile(device)) {
             logging::Error("Writing new game configuration Xml file failed!");
@@ -124,12 +126,12 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
 
     const irr::core::stringw settingTag(L"setting");
     const irr::core::stringw graphicsSetupTag(L"graphics");
-    //const irr::core::stringw musicSetupTag(L"music");
+    const irr::core::stringw introSetupTag(L"intro");
 
     irr::core::stringw currentSection;
 
     map<irr::core::stringw, irr::core::stringw> graphicsSetupMap;
-    //map<irr::core::stringw, irr::core::stringw> musicSetupMap;
+    map<irr::core::stringw, irr::core::stringw> introSetupMap;
 
     //while there is more to read
     while (xmlReader->read())
@@ -161,15 +163,15 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
                         }
                     }
 
-                 /*
+
                  //we currently are in the empty or mapconfig section and find the music setup tag so we set our current section to music setup
-                 if (currentSection.empty() && musicSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                 if (currentSection.empty() && introSetupTag.equals_ignore_case(xmlReader->getNodeName()))
                     {
-                        currentSection = musicSetupTag;
+                        currentSection = introSetupTag;
                     }
 
-                 //we are in the music setup section and we find a setting to parse
-                 else if (currentSection.equals_ignore_case(musicSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                 //we are in the intro setup section and we find a setting to parse
+                 else if (currentSection.equals_ignore_case(introSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
                     {
                        //read in the key
                         irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
@@ -179,9 +181,9 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
                             //set the setting in the map to the value,
                             //the [] operator overrides values if they already exist or inserts a new key value
                             //pair into the settings map if it was not defined yet
-                            musicSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                            introSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
                         }
-                    }*/
+                    }
 
                 break;
           }
@@ -262,6 +264,22 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
        }
 
        mGameConfig->useUpgradedSky = outBool;
+   }
+
+   //get skipIntro setting
+   nodePntr = introSetupMap.find(L"skipIntro");
+
+   if (nodePntr == nullptr) {
+       logging::Error("ReadGameConfigXmlFile: Missing skipIntro field in game config Xml file");
+       return false;
+   } else {
+       bool outBool;
+       if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+           logging::Error("ReadGameConfigXmlFile: Missformed field value for skipIntro in game config Xml file");
+           return false;
+       }
+
+       mGameConfig->skipIntro = outBool;
    }
 
    return true;

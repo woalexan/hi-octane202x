@@ -53,6 +53,7 @@
 #define MENUE_ACTION_SETENABLESHADOW 10
 #define MENUE_ACTION_SETUPGRADEDSKY 11
 #define MENUE_ACTION_RETURNFROMDETAILSMENUE 12
+#define MENUE_ACTION_SETSKIPINTRO 13
 
 //"special" menue actions
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
@@ -366,6 +367,7 @@ private:
     MenueSingleEntry* ComputerPlayersCheckBox = nullptr;
     MenueSingleEntry* DifficultyLevel = nullptr;
     MenueSingleEntry* OptionMenuePageBackToMainMenue = nullptr;
+    MenueSingleEntry* SkipIntro = nullptr;
 
     //Menue definitions for Name change dialog/menue
     MenuePage* ChangeNamePage = nullptr;
@@ -630,6 +632,7 @@ public:
 
     MenueAction* ActSetComputerPlayerEnable = nullptr;
     MenueAction* ActSetDifficultyLevel = nullptr;
+    MenueAction* ActSkipIntro = nullptr;
 
     MenueAction* ActSetDoubleResolution = nullptr;
     MenueAction* ActSetVSync = nullptr;

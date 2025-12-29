@@ -97,6 +97,7 @@ struct GameConfigStruct {
    bool useUpgradedSky;
    bool enableShadows;
    bool enableVSync;
+   bool skipIntro;
 };
 
 class InfrastructureBase {
