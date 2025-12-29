@@ -21,9 +21,11 @@
 #include "irrlicht.h"
 #include "objectdatfile.h"
 #include "../../utils/logging.h"
+#include "../../infrabase.h"
 
-ObjectDatFile::ObjectDatFile(TABFILE* pntrModelTextureAtlasInfo, unsigned int texAtlasWidth,
+ObjectDatFile::ObjectDatFile(InfrastructureBase* infra, TABFILE* pntrModelTextureAtlasInfo, unsigned int texAtlasWidth,
                              unsigned int texAtlasHeight) {
+    mInfra = infra;
     uvCoordVec = new std::vector<float>();
     this->ObjFileVertexVector = new std::vector<ObjVertex*>;
     this->ObjFileTriangleVector = new std::vector<ObjTriangle*>;
@@ -153,10 +155,10 @@ void ObjectDatFile::DebugWriteTriangleCsvFile(char* debugOutPutFileName, int tri
         }
 
     //write the next entry
-    fprintf(debugTriangleOutputFile, "%d;%d;%lu;%u;%u\n", triangleNr, texID, texItem->offset, texItem->width, texItem->height);
+    fprintf(debugTriangleOutputFile, "%d;%d;%u;%u;%u\n", triangleNr, texID, texItem->offset, texItem->width, texItem->height);
 }
 
-bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
+bool ObjectDatFile::LoadObjectDatFile(const char* filename, std::vector<ObjTexModification*> texModificationVec) {
     char hlpstr[500];
     std::string msg("");
 
@@ -388,8 +390,20 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
       float uGlobal;
       float vGlobal;
 
+      ObjTexModification currTexMod(0, OBJ_EXPORT_DEF_UVMAP_NORMAL);
+      std::vector<ObjTexModification*>::iterator itTexMod;
+
       //char dbgFileName[70];
       //strcpy(dbgFileName, "extract/dbg_UV.txt");
+
+      //the next block is only for debugging! -Start-
+      /*size_t itemCnt = this->mAtlasTextureInfo->count;
+
+      for (size_t idx2 = 0; idx2 < itemCnt; idx2++) {
+        CreateTextureAtlasDebugPicture(idx2);
+      }*/
+
+      //debugging -End-
 
       for(int i = 0; i < numTriangles; i++)
       {
@@ -425,8 +439,27 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
 
           if (type == 5) {
               //first byte contains the texture ID of the
-              //correct texture in the texture Atlas
+              //correct texture in the texture Atlas              
               int texId = (unsigned char)(ByteArray[offset + 0]);
+
+              //29.12.2025: I still can not figure out how to solve the problem
+              //with the mirrored number on the race crafts;
+              //Also other textures seem to be mirrored, but the problem is when I
+              //mirror them all the same way to fix the numbers, then other textures
+              //(for example at the truck) are messed up completely
+              //so I can not simply mirror them all.
+              //As a workaround I decided to implement the texture modification function
+              //below, to be able to only mirror the number textures itself, without messing up
+              //anything else
+              //do we apply any texture modification?
+              currTexMod.mTexModType = OBJ_EXPORT_DEF_UVMAP_NORMAL;
+
+              for (itTexMod = texModificationVec.begin(); itTexMod != texModificationVec.end(); ++itTexMod) {
+                  if ((*itTexMod)->mApplyToTexId == texId) {
+                     currTexMod.mTexModType = (*itTexMod)->mTexModType;
+                     break;
+                  }
+              }
 
               //the next 6 bytes contain the UV coordinates
               int UV0 = ByteArray[offset + 1];
@@ -454,8 +487,30 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
               srcYLoc = (texOffset / this->mTexAtlasWidth);
               srcXLoc =  texOffset - (srcYLoc * this->mTexAtlasWidth);
 
-              uPosLocal = srcXLoc + float(UV0);
-              vPosLocal = srcYLoc + float(UV1);
+              switch (currTexMod.mTexModType) {
+                  case OBJ_EXPORT_DEF_UVMAP_NORMAL: {
+                      uPosLocal = srcXLoc + float(UV0);
+                      vPosLocal = srcYLoc + float(UV1);
+                      break;
+                  }
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPU: {
+                      uPosLocal = srcXLoc + (texWidth - float(UV0));
+                      vPosLocal = srcYLoc + float(UV1);
+                      break;
+                  }
+
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPV: {
+                      uPosLocal = srcXLoc + float(UV0);
+                      vPosLocal = srcYLoc + (texHeight - float(UV1));
+                      break;
+                  }
+
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPUV: {
+                      uPosLocal = srcXLoc + (texWidth - float(UV0));
+                      vPosLocal = srcYLoc + (texHeight - float(UV1));
+                      break;
+                  }
+              }
 
               uGlobal = (uPosLocal / (float)(this->mTexAtlasWidth));
               vGlobal = (vPosLocal / (float)(this->mTexAtlasHeight));
@@ -463,8 +518,30 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
               uvCoordVec->push_back(uGlobal);
               uvCoordVec->push_back(vGlobal);
 
-              uPosLocal = srcXLoc + float(UV2);
-              vPosLocal = srcYLoc + float(UV3);
+              switch (currTexMod.mTexModType) {
+                  case OBJ_EXPORT_DEF_UVMAP_NORMAL: {
+                      uPosLocal = srcXLoc + float(UV2);
+                      vPosLocal = srcYLoc + float(UV3);
+                      break;
+                  }
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPU: {
+                      uPosLocal = srcXLoc + (texWidth - float(UV2));
+                      vPosLocal = srcYLoc + float(UV3);
+                      break;
+                  }
+
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPV: {
+                      uPosLocal = srcXLoc + float(UV2);
+                      vPosLocal = srcYLoc + (texHeight - float(UV3));
+                      break;
+                  }
+
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPUV: {
+                      uPosLocal = srcXLoc + (texWidth - float(UV2));
+                      vPosLocal = srcYLoc + (texHeight - float(UV3));
+                      break;
+                  }
+              }
 
               uGlobal = (uPosLocal / (float)(this->mTexAtlasWidth));
               vGlobal = (vPosLocal / (float)(this->mTexAtlasHeight));
@@ -472,8 +549,30 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
               uvCoordVec->push_back(uGlobal);
               uvCoordVec->push_back(vGlobal);
 
-              uPosLocal = srcXLoc + float(UV4);
-              vPosLocal = srcYLoc + float(UV5);
+              switch (currTexMod.mTexModType) {
+                  case OBJ_EXPORT_DEF_UVMAP_NORMAL: {
+                      uPosLocal = srcXLoc + float(UV4);
+                      vPosLocal = srcYLoc + float(UV5);
+                      break;
+                  }
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPU: {
+                      uPosLocal = srcXLoc + (texWidth - float(UV4));
+                      vPosLocal = srcYLoc + float(UV5);
+                      break;
+                  }
+
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPV: {
+                      uPosLocal = srcXLoc + float(UV4);
+                      vPosLocal = srcYLoc + (texHeight - float(UV5));
+                      break;
+                  }
+
+                  case OBJ_EXPORT_DEF_UVMAP_FLIPUV: {
+                      uPosLocal = srcXLoc + (texWidth - float(UV4));
+                      vPosLocal = srcYLoc + (texHeight - float(UV5));
+                      break;
+                  }
+              }
 
               uGlobal = (uPosLocal / (float)(this->mTexAtlasWidth));
               vGlobal = (vPosLocal / (float)(this->mTexAtlasHeight));
@@ -481,7 +580,7 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
               uvCoordVec->push_back(uGlobal);
               uvCoordVec->push_back(vGlobal);
 
-              //DebugWriteTriangleCsvFile(dbgFileName, i, texId, pntrItem);
+              //DebugWriteTriangleCsvFile("dbgTriangle.txt", i, texId, pntrItem);
 
               offset += 7; // presumably 1 byte texture atlas id, 6 bytes tex coords
           }
@@ -549,6 +648,62 @@ bool ObjectDatFile::LoadObjectDatFile(const char* filename) {
 
       return true;
 }
+
+/*
+void ObjectDatFile::CreateTextureAtlasDebugPicture(int markTexId) {
+    //load the texture atlas image
+    //first open target image again
+    irr::io::IReadFile *file =  mInfra->mDevice->getFileSystem()->createAndOpenFile("extract/models/tex0-0.png");
+
+    irr::video::IImage* origAtlas = mInfra->mDriver->createImageFromFile(file);
+
+    //now mark all defined texture Id images in this picture for
+    //debugging and learning
+    size_t itemCnt = this->mAtlasTextureInfo->count;
+    TABFILE_ITEM* pntrItem;
+
+    float texWidth;
+    float texHeight;
+    unsigned long texOffset;
+
+    unsigned int srcXLoc;
+    unsigned int srcYLoc;
+
+    irr::video::SColor color(255, 255, 0, 0);
+    irr::video::SColor white(255, 255, 255, 255);
+
+    for (size_t idx = 0; idx < itemCnt; idx++) {
+        pntrItem = &this->mAtlasTextureInfo->items[idx];
+
+        texWidth = (float)(pntrItem->width);
+        texHeight = (float)(pntrItem->height);
+        texOffset = pntrItem->offset;
+
+        //calculate start upper left corner of source rect in original Atlas, depending on
+        //Offset value for current picture
+        srcYLoc = (texOffset / this->mTexAtlasWidth);
+        srcXLoc =  texOffset - (srcYLoc * this->mTexAtlasWidth);
+
+        DrawRectangle(*origAtlas, color, srcXLoc, srcYLoc,
+                srcXLoc + texWidth, srcYLoc + texHeight);
+
+        if (idx == markTexId) {
+            DrawLine(*origAtlas, white, srcXLoc, srcYLoc, srcXLoc + texWidth, srcYLoc + texHeight);
+            DrawLine(*origAtlas, white, srcXLoc + texWidth, srcYLoc, srcXLoc, srcYLoc + texHeight);
+        }
+    }
+
+    irr::io::path outFileName("extract/models/tex0-0-debug-");
+    irr::io::path number(markTexId);
+    outFileName.append(number);
+    outFileName.append(".png");
+
+    //write debug picture
+    irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outFileName, false);
+    mInfra->mDriver->writeImageToFile(origAtlas, outputPic);
+    outputPic->drop();
+    origAtlas->drop();
+}*/
 
 //Maybe on another computer this code will not work anymore
 //therefore I wanted to include this "unit" test
@@ -717,46 +872,27 @@ bool ObjectDatFile::WriteToObjFile(const char* filename, const char* objectname)
     std::vector<ObjVertex*>::iterator itNormals;
     std::vector<float>::iterator itUVCoord;
 
-    //original line before change to textured version
-    /*for (itVert = ObjFileVertexVector->begin(); itVert != ObjFileVertexVector->end(); ++itVert) {
-       fprintf(oFile, "v %.6f %.6f %.6f\n", -(*itVert)->X, (*itVert)->Z, (*itVert)->Y);
-    }*/
-
     for (itTri = ObjFileTriangleVector->begin(); itTri != ObjFileTriangleVector->end(); ++itTri) {
            pntrVert = ObjFileVertexVector->at((*itTri)->A);
-           //fprintf(oFile, "v %.6f %.6f %.6f\n", -pntrVert->X, pntrVert->Z, pntrVert->Y);
            fprintf(oFile, "v %f %f %f\n", -pntrVert->X, pntrVert->Z, pntrVert->Y);
 
            pntrVert = ObjFileVertexVector->at((*itTri)->B);
-           //fprintf(oFile, "v %.6f %.6f %.6f\n", -pntrVert->X, pntrVert->Z, pntrVert->Y);
            fprintf(oFile, "v %f %f %f\n", -pntrVert->X, pntrVert->Z, pntrVert->Y);
 
            pntrVert = ObjFileVertexVector->at((*itTri)->C);
-           //fprintf(oFile, "v %.6f %.6f %.6f\n", -pntrVert->X, pntrVert->Z, pntrVert->Y);
            fprintf(oFile, "v %f %f %f\n", -pntrVert->X, pntrVert->Z, pntrVert->Y);
         }
 
 
     for (itUVCoord = this->uvCoordVec->begin(); itUVCoord != this->uvCoordVec->end(); ++itUVCoord) {
-       //fprintf(oFile, "vt %.6f ", (*itUVCoord));
        fprintf(oFile, "vt %f ", (*itUVCoord));
        ++itUVCoord;
-       //fprintf(oFile, "%.6f\n", (*itUVCoord));
        fprintf(oFile, "%f\n", -(*itUVCoord));
     }
-
-    //original line before change to textured version
-    /*for (itTri = ObjFileTriangleVector->begin(); itTri != ObjFileTriangleVector->end(); ++itTri) {
-       fprintf(oFile, "f %d %d %d\n", ((*itTri)->A + 1), ((*itTri)->B + 1), ((*itTri)->C + 1));
-    }*/
 
     //write my vector of calculated normals
     for (itNormals = ObjFileNormalsVector->begin(); itNormals != ObjFileNormalsVector->end(); ++itNormals) {
            //we need to write each normal 3 times, as each triangle has 3 vertices with the same normal
-           //fprintf(oFile, "vn %.6f %.6f %.6f\n", -(*itNormals)->X, (*itNormals)->Z, (*itNormals)->Y);
-           //fprintf(oFile, "vn %.6f %.6f %.6f\n", -(*itNormals)->X, (*itNormals)->Z, (*itNormals)->Y);
-           //fprintf(oFile, "vn %.6f %.6f %.6f\n", -(*itNormals)->X, (*itNormals)->Z, (*itNormals)->Y);
-
            fprintf(oFile, "vn %f %f %f\n", -(*itNormals)->X, (*itNormals)->Z, (*itNormals)->Y);
            fprintf(oFile, "vn %f %f %f\n", -(*itNormals)->X, (*itNormals)->Z, (*itNormals)->Y);
            fprintf(oFile, "vn %f %f %f\n", -(*itNormals)->X, (*itNormals)->Z, (*itNormals)->Y);
