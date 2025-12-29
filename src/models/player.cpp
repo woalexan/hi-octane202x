@@ -238,13 +238,13 @@ Player::~Player() {
     delete this->mHMapCollPntData.backRight45deg;
     delete this->mHMapCollPntData.back;
 
-    delete this->cameraSensor;
+    /*delete this->cameraSensor;
     delete this->cameraSensor2;
     delete this->cameraSensor3;
     delete this->cameraSensor4;
     delete this->cameraSensor5;
     delete this->cameraSensor6;
-    delete this->cameraSensor7;
+    delete this->cameraSensor7;*/
 
     CleanUpBrokenGlas();
     delete this->brokenGlasVec;
@@ -501,6 +501,10 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
 
     //create my internal camera SceneNode for 1st person
     mIntCamera = mRace->mGame->mSmgr->addCameraSceneNode(nullptr, NewPosition);
+
+    //lower camera near value to prevent clipping into
+    //the terrain
+    mIntCamera->setNearValue(0.05f);
 
     //create my internal camera SceneNode for 3rd person
     mThirdPersonCamera = mRace->mGame->mSmgr->addCameraSceneNode(nullptr, NewPosition);
@@ -939,7 +943,7 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     //straight forwards direction camera Sensor to sense steepness over a longer
     //distance in front of the craft to prevent clipping of the camera at steep
     //hills
-    this->cameraSensor = new HMAPCOLLSENSOR();
+    /*this->cameraSensor = new HMAPCOLLSENSOR();
     this->cameraSensor->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z + 2.0f * this->mRace->mLevelTerrain->segmentSize);
     this->cameraSensor->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z + 1.0f * this->mRace->mLevelTerrain->segmentSize);
     strcpy(this->cameraSensor->sensorName, "CamSens");
@@ -972,7 +976,7 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     this->cameraSensor7 = new HMAPCOLLSENSOR();
     this->cameraSensor7->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 4.0f * this->mRace->mLevelTerrain->segmentSize);
     this->cameraSensor7->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 5.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor7->sensorName, "CamSens7");
+    strcpy(this->cameraSensor7->sensorName, "CamSens7");*/
 }
 
 void Player::DebugCraftLocalFeatureCoordinates() {
@@ -2027,7 +2031,7 @@ void Player::ChangeViewMode() {
         mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
     }
 }
-
+/*
 //returns true if the return parameter was modified, that means if a new minimum was
 //found and set
 bool Player::GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
@@ -2095,13 +2099,13 @@ bool Player::GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos) 
     }
 
     return minValSet;
-}
+}*/
 
 void Player::UpdateCameras() {
     //update cameraSensor to detect steepness over a wider distance
     //in front of the player craft in an attempt to prevent camera clipping
     //when moving fast over steep hills
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor);
+  /*  UpdateHMapCollisionSensorPointData(*this->cameraSensor);
     UpdateHMapCollisionSensorPointData(*this->cameraSensor2);
     UpdateHMapCollisionSensorPointData(*this->cameraSensor3);
     UpdateHMapCollisionSensorPointData(*this->cameraSensor4);
@@ -2227,7 +2231,7 @@ void Player::UpdateCameras() {
     maxh = fmax(maxh, deltah4);
     maxh = fmax(maxh, deltah5);
     maxh = fmax(maxh, deltah6);
-    maxh = fmax(maxh, deltah7);
+    maxh = fmax(maxh, deltah7);*/
 
     //update 3rd person camera coordinates
     WorldTopLookingCamPosPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamPosPnt);
@@ -2237,7 +2241,7 @@ void Player::UpdateCameras() {
     World1stPersonCamPosPnt = this->phobj->ConvertToWorldCoord(this->Local1stPersonCamPosPnt);
     World1stPersonCamTargetPnt = this->phobj->ConvertToWorldCoord(this->Local1stPersonCamTargetPnt);
 
-    if (playerCamHeightListElementNr > 20) {
+   /* if (playerCamHeightListElementNr > 20) {
         this->playerCamHeightList.pop_front();
         playerCamHeightListElementNr--;
     }
@@ -2270,7 +2274,7 @@ void Player::UpdateCameras() {
     dbgCameraTargetVal = World1stPersonCamTargetPnt.Y;
     dbgNewCameraVal = newCameraHeight;
     dbgCameraAvgVAl = avgVal;
-    dbgMinCeilingFound = dbgCurrCeilingMinPos.Y;
+    dbgMinCeilingFound = dbgCurrCeilingMinPos.Y;*/
 
     /*********************************************
      * Update my two internal cameras            *

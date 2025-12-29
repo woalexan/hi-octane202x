@@ -218,13 +218,13 @@ public:
            irr::u8 nrLaps, bool humanPlayer);
     ~Player();
 
-    HMAPCOLLSENSOR* cameraSensor = nullptr;
+   /* HMAPCOLLSENSOR* cameraSensor = nullptr;
     HMAPCOLLSENSOR* cameraSensor2 = nullptr;
     HMAPCOLLSENSOR* cameraSensor3 = nullptr;
     HMAPCOLLSENSOR* cameraSensor4 = nullptr;
     HMAPCOLLSENSOR* cameraSensor5 = nullptr;
     HMAPCOLLSENSOR* cameraSensor6 = nullptr;
-    HMAPCOLLSENSOR* cameraSensor7 = nullptr;
+    HMAPCOLLSENSOR* cameraSensor7 = nullptr;*/
 
     void SetPlayerObject(PhysicsObject* phObjPtr);
     void DamageGlas();
@@ -673,9 +673,9 @@ private:
 
     void JumpControlPhysicsLoop(irr::f32 deltaTime);
 
-    bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
+/*    bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
     bool GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
-                                                irr::core::vector3df &currMinPos, bool firstElement = false);
+                                                irr::core::vector3df &currMinPos, bool firstElement = false);*/
 
     float updateSlowCnter = 0.0f;
 
