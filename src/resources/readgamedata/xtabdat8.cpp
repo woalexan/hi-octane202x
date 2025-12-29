@@ -23,8 +23,10 @@
 //in routine read_tabfile_data to make 3D Model export work correctly
 //Therefore this source code is not full original anymore!
 
- //Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
- // I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+//Note 19.03.2025: In an attempt to reduce/remove the warnings due to type conversions, uninitialized variables and so on in Visual Studio,
+// I decided to modify more parts of the original code below. I wanted to use variable types now with fixed defined bit lengths.
+
+//Note 29.12.2025: Finally found and fixed a bug which I introduced originally, and caused the cone model texturing to be wrong
 
 //extracts all images within data file into outputDir
 int ExtractImages (char* datfname, char* tabfname, unsigned char* palette, char* outputDir)
@@ -225,7 +227,12 @@ int read_tabfile_data(TABFILE* tabf,const char* srcfname, bool skipFirstEntry)
         	return 1;
 
         tabf->filelength=(unsigned long)(file_length_opened(tabfp));
-        tabf->count=tabf->filelength/6 - 1;
+        if (skipFirstEntry) {
+            tabf->count=tabf->filelength/6 - 1;
+        } else {
+            //Note 29.12.2025: Bugfix for cone model texture mapping problem
+            tabf->count=tabf->filelength/6;
+        }
         tabf->items=static_cast<TABFILE_ITEM*>(malloc(tabf->count*sizeof(TABFILE_ITEM)));
 
         if (!tabf->items) { 

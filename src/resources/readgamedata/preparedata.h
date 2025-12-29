@@ -35,11 +35,24 @@
 #define PREP_DATA_EXTRACTMISC 12
 #define PREP_DATA_FINISHED 13
 
+#define OBJ_EXPORT_DEF_UVMAP_NORMAL 0
+#define OBJ_EXPORT_DEF_UVMAP_FLIPU 1
+#define OBJ_EXPORT_DEF_UVMAP_FLIPV 2
+#define OBJ_EXPORT_DEF_UVMAP_FLIPUV 3
+
 /************************
  * Forward declarations *
  ************************/
 
 class InfrastructureBase;
+
+class ObjTexModification {
+public:
+  ObjTexModification(int applyToTexIdParam, uint8_t texModTypeParam);
+
+  int mApplyToTexId;
+  uint8_t mTexModType;
+};
 
 //each SOUNDFILEENTRY has 32 bytes
 typedef struct {
@@ -109,6 +122,8 @@ private:
     void ExtractIntro();
     void ExtractAudio();
     void ExtractUserdata();
+
+    std::vector<ObjTexModification*> mModelTexModificationVec;
 
     //Tabfile information for model texture atlas file
     //this information is needed to be able to export

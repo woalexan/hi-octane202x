@@ -24,6 +24,7 @@
 #include <vector>
 #include "../../utils/fileutils.h"
 #include "xtabdat8.h"
+#include "irrlicht.h"
 
 #define OBJDATHEADER "BULLFROG OBJECT DATA"
 #define OBJDATHEADERLENGTH 58
@@ -40,9 +41,15 @@ typedef struct {
     float Z;
 } ObjVertex;
 
+//Forward declaration
+class InfrastructureBase;
+class ObjTexModification;
+
 class ObjectDatFile {
 
 private:
+    InfrastructureBase* mInfra = nullptr;
+
     std::vector<ObjTriangle*> *ObjFileTriangleVector = nullptr;
     std::vector<ObjVertex*> *ObjFileVertexVector = nullptr;
     std::vector<float> *uvCoordVec = nullptr;
@@ -58,14 +65,15 @@ private:
     bool CreateMtlFile(char* outFilename);
     void CalculateAndAddNormals(ObjVertex* v1, ObjVertex* v2, ObjVertex* v3);
     void DebugWriteTriangleCsvFile(char* debugOutPutFileName, int triangleNr, int texID, TABFILE_ITEM* texItem);
+    //void CreateTextureAtlasDebugPicture(int markTexId);
 
 public:
-    ObjectDatFile(TABFILE* pntrModelTextureAtlasInfo, unsigned int texAtlasWidth,
+    ObjectDatFile(InfrastructureBase* infra, TABFILE* pntrModelTextureAtlasInfo, unsigned int texAtlasWidth,
                   unsigned int texAtlasHeight);
     ~ObjectDatFile();
 
     //Routines
-    bool LoadObjectDatFile(const char* filename);
+    bool LoadObjectDatFile(const char* filename, std::vector<ObjTexModification*> texModificationVec);
     bool WriteToObjFile(const char* filename, const char* objectname);
     bool TestBitConverterToInt16();
 

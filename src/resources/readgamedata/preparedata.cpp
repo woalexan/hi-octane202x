@@ -25,6 +25,11 @@ void UnpackDataFile(const char* packfile, const char* unpackfile);
 void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
 std::vector<unsigned char> loadRawFile(const char *filename);
 
+ObjTexModification::ObjTexModification(int applyToTexIdParam, uint8_t texModTypeParam) {
+    mApplyToTexId = applyToTexIdParam;
+    mTexModType = texModTypeParam;
+}
+
 void PrepareData::CreatePalette() {
     logging::Info("Create Palette information...");
 
@@ -229,6 +234,18 @@ PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
 
 PrepareData::~PrepareData() {
     free(palette);
+
+    std::vector<ObjTexModification*>::iterator it;
+    ObjTexModification* pntr;
+
+    if (mModelTexModificationVec.size() > 0) {
+        for (it = mModelTexModificationVec.begin(); it != mModelTexModificationVec.end(); ) {
+            pntr = (*it);
+            it = mModelTexModificationVec.erase(it);
+
+            delete pntr;
+        }
+    }
 }
 
 void PrepareData::ExtractGameScreens() {
@@ -813,6 +830,14 @@ void PrepareData::ExtractModels() {
     logging::Info("Extracting models...");
     PrepareSubDir("extract/models");
     ExtractModelTextures();
+
+    //29.12.2025: Workaround to fix orientation of numbers
+    //on top of craft; We need to mirror U texture corrdinates for
+    //Texture Id textures 31 up to 38
+    for (int idx = 31; idx < 39; idx++) {
+        mModelTexModificationVec.push_back(new ObjTexModification(idx, OBJ_EXPORT_DEF_UVMAP_FLIPU));
+    }
+
     Extra3DModels();
 }
 
@@ -889,10 +914,10 @@ void PrepareData::Extract3DModel(const char* srcFilename, const char* destFilena
         throw std::string("Error: Model texture atlas not loaded");
     }
 
-    ObjectDatFile* newConversion = new ObjectDatFile(this->modelsTabFileInfo, (unsigned int)(this->modelTexAtlasSize.Width),
+    ObjectDatFile* newConversion = new ObjectDatFile(mInfra, this->modelsTabFileInfo, (unsigned int)(this->modelTexAtlasSize.Width),
                        (unsigned int)(this->modelTexAtlasSize.Height));
 
-    if (!newConversion->LoadObjectDatFile(srcFilename)) {
+    if (!newConversion->LoadObjectDatFile(srcFilename, mModelTexModificationVec)) {
         delete newConversion;
         throw "Error loading object file: " + std::string(srcFilename);
     }
