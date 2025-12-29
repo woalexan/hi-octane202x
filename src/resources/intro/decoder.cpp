@@ -10,6 +10,9 @@
 
 //Note 22.03.2025: In an attempt to reduce/remove the warnings due to type conversions and uninitialized
 // variables under Visual Studio, I decided to modify some parts of the original code below.
+//Note 28.12.2025: Today I was finally able to fix a color palette issue/problem that occured at some
+//specific frames with the Hioctance Intro file. It seems an index variable increment calculation was missing
+//which I added today. Now the intro is exported without the palette issues.
 //Therefore the source code below is not the original source code of the original author anymore.
 
 #include "flic.h"
@@ -168,6 +171,8 @@ void Decoder::readColorChunk(Frame& frame, bool oldColorChunk)
         color.b = 255 * int(color.b) / 63;
       }
     }
+    //Wolf Alexander 28.12.2025: Color palette bugfix added in next line:
+    i+= colors;
   }
 }
 

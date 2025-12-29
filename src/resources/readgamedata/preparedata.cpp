@@ -3071,7 +3071,12 @@ void PrepareData::PrepareIntro() {
 
        //create the filename for the picture output file
        strcpy(outFrameFileName, "extract/intro/frame");
-       sprintf (fname, "%0*lu.png", 4, i);
+       //28.12.2025: Change from png image format to jpg instead
+       //The image quality loss is not really visible, but instead of
+       //85.7 MB during my experiments we only need 11.9 MB on disc for the
+       //overall sequence
+       //sprintf (fname, "%0*lu.png", 4, i);
+       sprintf (fname, "%0*lu.jpg", 4, i);
        strcat(outFrameFileName, fname);
 
        msg.clear();
@@ -3083,6 +3088,9 @@ void PrepareData::PrepareIntro() {
        //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
        ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2);
     }
+
+    //delete temporary "intro.fli" file
+    remove(destFName);
 
     free(srcFName);
     free(destFName);

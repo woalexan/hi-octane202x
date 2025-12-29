@@ -172,9 +172,9 @@ void *allocateMem(ulong buffer_size,int ErrNum,int mem_clear,int Options)
     char hlpstr[500];
     std::string msg("");
 
-    snprintf(hlpstr, 500, "!AllocateMem starting, %d\n",buffer_size);
-    msg.append(hlpstr);
-    logging::Info(msg);
+    //snprintf(hlpstr, 500, "!AllocateMem starting, %d\n",buffer_size);
+    //msg.append(hlpstr);
+    //logging::Info(msg);
 
     char *Data=(char*)malloc(buffer_size);
 //    printf("!AllocateMem done\n");

@@ -148,7 +148,11 @@ bool IntroPlayer::Init() {
         //first build the name for the image file to load
         //that we have prepared during the first start of the game
         strcpy(frameFileName, "extract/intro/frame");
-        sprintf (fname, "%0*lu.png", 4, frameNr);
+        //sprintf (fname, "%0*lu.png", 4, frameNr);
+        //28.12.2025: Changed from png image format to jpg today,
+        //to save a lot of disc space for video sequence storage
+        //sprintf (fname, "%0*lu.png", 4, frameNr);
+        sprintf (fname, "%0*lu.jpg", 4, frameNr);
         strcat(frameFileName, fname);
 
         //load this image (texture)

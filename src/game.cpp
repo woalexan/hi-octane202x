@@ -501,6 +501,18 @@ void Game::HandleMenueActions() {
         }
     }
 
+    if (pendingAction == MainMenue->ActSkipIntro) {
+        if (pendingAction->currSetValue == 0) {
+            mGameConfig->skipIntro = false;
+        } else {
+            mGameConfig->skipIntro = true;
+        }
+
+        //write the new updated configuration
+        logging::Info("Updated configuration in game config Xml file");
+        WriteGameConfigXmlFile(mDevice);
+    }
+
     if (pendingAction == MainMenue->ActReturnFromDetailsMenue) {
         //write the new updated configuration
         logging::Info("Updated configuration in game config Xml file");
@@ -1118,7 +1130,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
 void Game::GameLoopIntro(irr::f32 frameDeltaTime) {
     //if we want to skip the intro, do it now
-    if (SkipGameIntro) {
+    if (mGameConfig->skipIntro) {
         mGameState = DEF_GAMESTATE_GAMETITLE;
         return;
     }

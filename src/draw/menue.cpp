@@ -452,6 +452,7 @@ void Menue::InitActions() {
     ActShowHighScorePage = new MenueAction(MENUE_ACTION_SHOWHIGHSCOREPAGE);
     ActSetComputerPlayerEnable = new MenueAction(MENUE_ACTION_SETCOMPUTERPLAYERENA);
     ActSetDifficultyLevel = new MenueAction(MENUE_ACTION_SETDIFFICULTYLEVEL);
+    ActSkipIntro = new MenueAction(MENUE_ACTION_SETSKIPINTRO);
 
     /***************************
      * Option actions          *
@@ -593,6 +594,15 @@ void Menue::CreateMenueEntries() {
     setValue = mGameAssets->GetCurrentGameDifficulty();
 
     OptionMenuePage->AddSliderMenueEntry("DIFFICULTY LEVEL", true, setValue, 3, 3, 22, 14, ActSetDifficultyLevel);
+
+    //Skip intro
+    if (mGame->mGameConfig->skipIntro) {
+        setValue = 1;
+    } else {
+        setValue = 0;
+    }
+
+    OptionMenuePage->AddSliderMenueEntry("SKIP INTRO", true, setValue, 1, 1, 22, 14, ActSkipIntro);
     OptionMenuePage->AddDefaultMenueEntry("MAIN MENU", true, TopMenuePage, nullptr);
 
     /**********************************

@@ -63,10 +63,6 @@ private:
 
     bool ExitGame = false;
 
-    //set true to skip playing
-    //game intro
-    bool SkipGameIntro = true;
-
     //if true config.dat file is updated
     //with latest selected choices
     bool keepConfigDataFileUpdated = false;
