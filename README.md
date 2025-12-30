@@ -79,7 +79,6 @@ The game development is still work in progress. It can be played, but there is m
 - I already added the possibility to enable shadows and an improved sky. I am currently try to learn more aber shaders and use them for further improvements 
 - Please be aware that I did not try to implement the original controls of the game, the craft controls will work and feel different
 - Unfortunetly the computer players are way too basic right now, this is the area where I will need to do most of the improvements in future
-- I will need to decide what to do with collision detection between player crafts. I want collision detection, but the current solution sometimes slows computer players down
 
 ![level4](screenshots/level4.png)
 
