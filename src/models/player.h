@@ -54,6 +54,7 @@ const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
 #define CAMERA_PLAYER_COCKPIT 0
 #define CAMERA_PLAYER_BEHINDCRAFT 1
 #define CAMERA_EXTERNALVIEW 2
+#define CAMERA_PLAYER_SIDELOOKING 3
 
 /************************
  * Forward declarations *
@@ -218,14 +219,6 @@ public:
            irr::u8 nrLaps, bool humanPlayer);
     ~Player();
 
-    HMAPCOLLSENSOR* cameraSensor = nullptr;
-    HMAPCOLLSENSOR* cameraSensor2 = nullptr;
-    HMAPCOLLSENSOR* cameraSensor3 = nullptr;
-    HMAPCOLLSENSOR* cameraSensor4 = nullptr;
-    HMAPCOLLSENSOR* cameraSensor5 = nullptr;
-    HMAPCOLLSENSOR* cameraSensor6 = nullptr;
-    HMAPCOLLSENSOR* cameraSensor7 = nullptr;
-
     void SetPlayerObject(PhysicsObject* phObjPtr);
     void DamageGlas();
 
@@ -342,6 +335,12 @@ public:
     irr::core::vector3df World1stPersonCamPosPnt;
     irr::core::vector3df World1stPersonCamTargetPnt;
 
+    irr::core::vector3df LocalSideLookingCamPosPnt;
+    irr::core::vector3df LocalSideLookingCamTargetPnt;
+
+    irr::core::vector3df WorldSideLookingCamPosPnt;
+    irr::core::vector3df WorldSideLookingCamTargetPnt;
+
     //local coordinate for control of craft
     irr::core::vector3d<irr::f32> LocalCraftForceCntrlPnt;
 
@@ -434,6 +433,8 @@ public:
     irr::scene::ICameraSceneNode* mIntCamera = nullptr;
     //my 3rd person camera from behind the craft
     irr::scene::ICameraSceneNode* mThirdPersonCamera = nullptr;
+
+    irr::scene::ICameraSceneNode* mSideLookingCamera = nullptr;
 
     void UpdateCameras();
 
@@ -673,9 +674,9 @@ private:
 
     void JumpControlPhysicsLoop(irr::f32 deltaTime);
 
-    bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
+/*    bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
     bool GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
-                                                irr::core::vector3df &currMinPos, bool firstElement = false);
+                                                irr::core::vector3df &currMinPos, bool firstElement = false);*/
 
     float updateSlowCnter = 0.0f;
 
