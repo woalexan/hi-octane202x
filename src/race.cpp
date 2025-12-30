@@ -3710,7 +3710,7 @@ bool Race::LoadLevel() {
    /***********************************************************/
 
    //load the level data itself
-   this->mLevelRes = new LevelFile(mGame, levelfilename);
+   this->mLevelRes = new LevelFile(mGame, levelfilename, mGame->mExtendedGame);
 
    //was loading level data succesful? if not interrupt
    if (!this->mLevelRes->get_Ready()) {

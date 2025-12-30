@@ -76,7 +76,7 @@ struct ColumnsStruct {
 
 class LevelFile {
 public:
-    LevelFile(InfrastructureBase* infra, std::string filename);
+    LevelFile(InfrastructureBase* infra, std::string filename, bool runAsExtendedGame);
     ~LevelFile();
 
     int Width();
