@@ -197,7 +197,7 @@ void Game::SetupDebugDemo() {
     nextRaceLevelNr = 1;
 
     //in demo mode computer players need to be enabled!
-    mGameAssets->SetComputerPlayersEnabled(false);
+    mGameAssets->SetComputerPlayersEnabled(true);
 
     mGameState = DEF_GAMESTATE_INITDEMO;
 }

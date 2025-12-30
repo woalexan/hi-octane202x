@@ -238,14 +238,6 @@ Player::~Player() {
     delete this->mHMapCollPntData.backRight45deg;
     delete this->mHMapCollPntData.back;
 
-    /*delete this->cameraSensor;
-    delete this->cameraSensor2;
-    delete this->cameraSensor3;
-    delete this->cameraSensor4;
-    delete this->cameraSensor5;
-    delete this->cameraSensor6;
-    delete this->cameraSensor7;*/
-
     CleanUpBrokenGlas();
     delete this->brokenGlasVec;
 
@@ -258,6 +250,7 @@ Player::~Player() {
     //delete my camera SceneNodes
     this->mIntCamera->remove();
     this->mThirdPersonCamera->remove();
+    mSideLookingCamera->remove();
 }
 
 void Player::SetNewState(irr::u32 newPlayerState) {
@@ -508,6 +501,8 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
 
     //create my internal camera SceneNode for 3rd person
     mThirdPersonCamera = mRace->mGame->mSmgr->addCameraSceneNode(nullptr, NewPosition);
+
+    mSideLookingCamera = mRace->mGame->mSmgr->addCameraSceneNode(nullptr, NewPosition);
 
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
 
@@ -914,6 +909,9 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     //Local1stPersonCamPosPnt = (LocalCraftFrontPnt) * irr::core::vector3df(0.0f, 0.0f, 0.5f);
     //Local1stPersonCamTargetPnt = Local1stPersonCamPosPnt + irr::core::vector3df(0.0f, 0.0f, -0.2f);
 
+    LocalSideLookingCamPosPnt = WCDirVecCOGtoRight + irr::core::vector3df(-1.5f, 0.4f, 0.0f);
+    LocalSideLookingCamTargetPnt = irr::core::vector3df(0.0f, 0.0f, 0.0f);
+
     Local1stPersonCamPosPnt = LocalCraftOrigin + irr::core::vector3df(0.0f, 0.2f, 0.4f);
     Local1stPersonCamTargetPnt = Local1stPersonCamPosPnt + irr::core::vector3df(0.0f, 0.0f, -0.2f);
 
@@ -939,44 +937,6 @@ void Player::CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewP
     LocalCraftBackPnt = mHMapCollPntData.back->localPnt1;
     LocalCraftLeftPnt = mHMapCollPntData.left->localPnt1;
     LocalCraftRightPnt = mHMapCollPntData.right->localPnt1;
-
-    //straight forwards direction camera Sensor to sense steepness over a longer
-    //distance in front of the craft to prevent clipping of the camera at steep
-    //hills
-    /*this->cameraSensor = new HMAPCOLLSENSOR();
-    this->cameraSensor->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z + 2.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z + 1.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor->sensorName, "CamSens");
-
-    this->cameraSensor2 = new HMAPCOLLSENSOR();
-    this->cameraSensor2->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z + 1.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor2->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 0.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor2->sensorName, "CamSens2");
-
-    this->cameraSensor3 = new HMAPCOLLSENSOR();
-    this->cameraSensor3->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 0.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor3->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 1.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor3->sensorName, "CamSens3");
-
-    this->cameraSensor4 = new HMAPCOLLSENSOR();
-    this->cameraSensor4->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 1.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor4->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 2.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor4->sensorName, "CamSens4");
-
-    this->cameraSensor5 = new HMAPCOLLSENSOR();
-    this->cameraSensor5->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 2.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor5->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 3.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor5->sensorName, "CamSens5");
-
-    this->cameraSensor6 = new HMAPCOLLSENSOR();
-    this->cameraSensor6->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 3.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor6->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 4.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor6->sensorName, "CamSens6");
-
-    this->cameraSensor7 = new HMAPCOLLSENSOR();
-    this->cameraSensor7->localPnt1.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 4.0f * this->mRace->mLevelTerrain->segmentSize);
-    this->cameraSensor7->localPnt2.set(0.0f, 0.0f, -0.5f * hlpVec.Z - 5.0f * this->mRace->mLevelTerrain->segmentSize);
-    strcpy(this->cameraSensor7->sensorName, "CamSens7");*/
 }
 
 void Player::DebugCraftLocalFeatureCoordinates() {
@@ -2012,6 +1972,12 @@ irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
          return mThirdPersonCamera;
     }
 
+    if (mCurrentViewMode == CAMERA_PLAYER_SIDELOOKING) {
+        UnhideCraft();
+
+        return mSideLookingCamera;
+    }
+
     //no valid view option, return nullptr
     return nullptr;
 }
@@ -2024,6 +1990,8 @@ void Player::ChangeViewMode() {
 
          mCurrentViewMode = CAMERA_PLAYER_BEHINDCRAFT;
     } else if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+        mCurrentViewMode = CAMERA_PLAYER_SIDELOOKING;
+    }  else if (mCurrentViewMode == CAMERA_PLAYER_SIDELOOKING) {
         //hide player craft model so that we do not see
         //it in our own camera
         HideCraft();
@@ -2031,208 +1999,8 @@ void Player::ChangeViewMode() {
         mCurrentViewMode = CAMERA_PLAYER_COCKPIT;
     }
 }
-/*
-//returns true if the return parameter was modified, that means if a new minimum was
-//found and set
-bool Player::GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
-                                                    irr::core::vector3df &currMinPos, bool firstElement) {
-
-   bool valSet = false;
-   bool fElement = firstElement;
-
-   irr::f32 height1;
-   bool ceil1 =
-           mRace->mLevelBlocks->GetCurrentCeilingHeightForTileCoord(sensor->cellPnt1, height1);
-
-   irr::f32 height2;
-   bool ceil2 = false;
-
-   if (sensor->cellPnt1 != sensor->cellPnt2) {
-       ceil2 = mRace->mLevelBlocks->GetCurrentCeilingHeightForTileCoord(sensor->cellPnt2, height2);
-   }
-
-   if (ceil1) {
-      if ((height1 < currMinPos.Y) || (fElement)) {
-           currMinPos.Y = height1;
-
-           currMinPos.X = -sensor->cellPnt1.X * this->mRace->mLevelBlocks->segmentSize;
-           currMinPos.Z = sensor->cellPnt1.Y * this->mRace->mLevelBlocks->segmentSize;
-           valSet = true;
-           fElement = false;
-      }
-   }
-
-   if (ceil2) {
-      if ((height2 < currMinPos.Y) || (fElement)) {
-           currMinPos.Y = height2;
-
-           currMinPos.X = -sensor->cellPnt2.X * this->mRace->mLevelBlocks->segmentSize;
-           currMinPos.Z = sensor->cellPnt2.Y * this->mRace->mLevelBlocks->segmentSize;
-           valSet = true;
-      }
-   }
-
-   return valSet;
-}
-
-bool Player::GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos) {
-    bool minValSet = false;
-
-    irr::core::vector3df minPosVec(1000.0f, 1000.0f, 1000.0f);
-
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor, minPosVec, true);
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor2, minPosVec);
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor3, minPosVec);
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor4, minPosVec);
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor5, minPosVec);
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor6, minPosVec);
-    minValSet |= GetCurrentCeilingMinimumPositionHelper(this->cameraSensor7, minPosVec);
-
-    if (minValSet) {
-        currMinPos = minPosVec;
-        irr::core::vector2di outCell;
-
-        currMinPos.Y += mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-        (minPosVec.X,
-         minPosVec.Z,
-            outCell);
-    }
-
-    return minValSet;
-}*/
 
 void Player::UpdateCameras() {
-    //update cameraSensor to detect steepness over a wider distance
-    //in front of the player craft in an attempt to prevent camera clipping
-    //when moving fast over steep hills
-  /*  UpdateHMapCollisionSensorPointData(*this->cameraSensor);
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor2);
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor3);
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor4);
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor5);
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor6);
-    UpdateHMapCollisionSensorPointData(*this->cameraSensor7);
-
-    cameraSensor->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor->wCoordPnt1.X,
-             cameraSensor->wCoordPnt1.Z,
-             cameraSensor->cellPnt1);
-
-    cameraSensor->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor->wCoordPnt2.X,
-             cameraSensor->wCoordPnt2.Z,
-             cameraSensor->cellPnt2);
-
-    cameraSensor->stepness = cameraSensor->wCoordPnt2.Y - cameraSensor->wCoordPnt1.Y;
-
-    cameraSensor2->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor2->wCoordPnt1.X,
-             cameraSensor2->wCoordPnt1.Z,
-             cameraSensor2->cellPnt1);
-
-    cameraSensor2->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor2->wCoordPnt2.X,
-             cameraSensor2->wCoordPnt2.Z,
-             cameraSensor2->cellPnt2);
-
-    cameraSensor2->stepness = cameraSensor2->wCoordPnt2.Y - cameraSensor2->wCoordPnt1.Y;
-
-    cameraSensor3->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor3->wCoordPnt1.X,
-             cameraSensor3->wCoordPnt1.Z,
-             cameraSensor3->cellPnt1);
-
-    cameraSensor3->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor3->wCoordPnt2.X,
-             cameraSensor3->wCoordPnt2.Z,
-             cameraSensor3->cellPnt2);
-
-    cameraSensor3->stepness = cameraSensor3->wCoordPnt2.Y - cameraSensor3->wCoordPnt1.Y;
-
-    cameraSensor4->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor4->wCoordPnt1.X,
-             cameraSensor4->wCoordPnt1.Z,
-             cameraSensor4->cellPnt1);
-
-    cameraSensor4->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor4->wCoordPnt2.X,
-             cameraSensor4->wCoordPnt2.Z,
-             cameraSensor4->cellPnt2);
-
-    cameraSensor4->stepness = cameraSensor4->wCoordPnt2.Y - cameraSensor4->wCoordPnt1.Y;
-
-    cameraSensor5->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor5->wCoordPnt1.X,
-             cameraSensor5->wCoordPnt1.Z,
-             cameraSensor5->cellPnt1);
-
-    cameraSensor5->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor5->wCoordPnt2.X,
-             cameraSensor5->wCoordPnt2.Z,
-             cameraSensor5->cellPnt2);
-
-    cameraSensor5->stepness = cameraSensor5->wCoordPnt2.Y - cameraSensor5->wCoordPnt1.Y;
-
-    cameraSensor6->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor6->wCoordPnt1.X,
-             cameraSensor6->wCoordPnt1.Z,
-             cameraSensor6->cellPnt1);
-
-    cameraSensor6->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor6->wCoordPnt2.X,
-             cameraSensor6->wCoordPnt2.Z,
-             cameraSensor6->cellPnt2);
-
-    cameraSensor6->stepness = cameraSensor6->wCoordPnt2.Y - cameraSensor6->wCoordPnt1.Y;
-
-    cameraSensor7->wCoordPnt1.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor7->wCoordPnt1.X,
-             cameraSensor7->wCoordPnt1.Z,
-             cameraSensor7->cellPnt1);
-
-    cameraSensor7->wCoordPnt2.Y =
-            mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate
-            (cameraSensor7->wCoordPnt2.X,
-             cameraSensor7->wCoordPnt2.Z,
-             cameraSensor7->cellPnt2);
-
-    cameraSensor7->stepness = cameraSensor7->wCoordPnt2.Y - cameraSensor7->wCoordPnt1.Y;
-
-    //*****************************************************
-    //* Get minimum height above player craft
-    //*****************************************************
-    minCeilingFound = GetCurrentCeilingMinimumPosition(dbgCurrCeilingMinPos);
-
-   // StabilizeCraft(frameDeltaTime);
-
-    irr::f32 deltah1 = cameraSensor->wCoordPnt1.Y  - cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah2 = cameraSensor2->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah3 = cameraSensor3->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah4 = cameraSensor4->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah5 = cameraSensor5->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah6 = cameraSensor6->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
-    irr::f32 deltah7 = cameraSensor7->wCoordPnt1.Y - cameraSensor->wCoordPnt1.Y;
-
-    irr::f32 maxh = fmax(deltah1, deltah2);
-    maxh = fmax(maxh, deltah3);
-    maxh = fmax(maxh, deltah4);
-    maxh = fmax(maxh, deltah5);
-    maxh = fmax(maxh, deltah6);
-    maxh = fmax(maxh, deltah7);*/
-
     //update 3rd person camera coordinates
     WorldTopLookingCamPosPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamPosPnt);
     WorldTopLookingCamTargetPnt = this->phobj->ConvertToWorldCoord(this->LocalTopLookingCamTargetPnt);
@@ -2241,40 +2009,9 @@ void Player::UpdateCameras() {
     World1stPersonCamPosPnt = this->phobj->ConvertToWorldCoord(this->Local1stPersonCamPosPnt);
     World1stPersonCamTargetPnt = this->phobj->ConvertToWorldCoord(this->Local1stPersonCamTargetPnt);
 
-   /* if (playerCamHeightListElementNr > 20) {
-        this->playerCamHeightList.pop_front();
-        playerCamHeightListElementNr--;
-    }
-
-    irr::f32 newCameraHeight = maxh * 0.5f;
-
-    if (minCeilingFound) {
-        if (World1stPersonCamPosPnt.Y > (dbgCurrCeilingMinPos.Y - 1.0f)) {
-            newCameraHeight -= (World1stPersonCamPosPnt.Y - (dbgCurrCeilingMinPos.Y - 0.6f));
-        }
-    }
-
-    this->playerCamHeightList.push_back(newCameraHeight);
-    playerCamHeightListElementNr++;
-
-    std::list<irr::f32>::iterator itList;
-    irr::f32 avgVal = 0.0f;
-
-    for (itList = this->playerCamHeightList.begin(); itList != this->playerCamHeightList.end(); ++itList) {
-        avgVal += (*itList);
-    }
-
-    avgVal = (avgVal / (irr::f32)(playerCamHeightListElementNr));
-
-    World1stPersonCamPosPnt.Y += avgVal;
-    World1stPersonCamTargetPnt.Y += avgVal;
-
-    dbgMaxh = maxh;
-    dbgCameraVal = World1stPersonCamPosPnt.Y;
-    dbgCameraTargetVal = World1stPersonCamTargetPnt.Y;
-    dbgNewCameraVal = newCameraHeight;
-    dbgCameraAvgVAl = avgVal;
-    dbgMinCeilingFound = dbgCurrCeilingMinPos.Y;*/
+    //Side looking camera (for debugging)
+    WorldSideLookingCamPosPnt = this->phobj->ConvertToWorldCoord(this->LocalSideLookingCamPosPnt);
+    WorldSideLookingCamTargetPnt = this->phobj->ConvertToWorldCoord(this->LocalSideLookingCamTargetPnt);
 
     /*********************************************
      * Update my two internal cameras            *
@@ -2288,6 +2025,9 @@ void Player::UpdateCameras() {
     mIntCamera->setPosition(this->World1stPersonCamPosPnt);
     mIntCamera->setTarget(this->World1stPersonCamTargetPnt);
     mIntCamera->setUpVector(this->craftUpwardsVec);
+
+    mSideLookingCamera->setPosition(this->WorldSideLookingCamPosPnt);
+    mSideLookingCamera->setTarget(this->WorldSideLookingCamTargetPnt);
 }
 
 void Player::UpdateInternalCoordVariables() {
@@ -2305,6 +2045,7 @@ void Player::UpdateInternalCoordVariables() {
 
     //calculate craft forward direction vector
     craftForwardDirVec = (WorldCoordCraftFrontPnt - this->phobj->physicState.position).normalize();
+
     craftSidewaysToRightVec = (WorldCoordCraftRightPnt - this->phobj->physicState.position).normalize();
 
     //recalculate current 2D cell coordinates
@@ -2691,15 +2432,30 @@ void Player::CraftHeightControl() {
         heightErrorRight = 0.0f;
     }
 
+    //Split forces into 2 groups: Higher forces when craft needs to get heigher
+    //for example when driving up a hill; Lower forces when going down a hill
+
     //best values until now 01.08.2024
-    irr::f32 corrForceHeight = 100.0f;
-    irr::f32 corrDampingHeight = 10.0f;
+    irr::f32 corrForceHeightDown = 200.0f;
+    irr::f32 corrDampingHeightDown = 10.0f;
+
+    //Experimental value 30.12.2025:
+    irr::f32 corrForceHeightUp = 400.0f;
+    irr::f32 corrDampingHeightUp = 10.0f;
 
     irr::f32 preventFlip = craftUpwardsVec.dotProduct(*mRace->mGame->yAxisDirVector);
 
     //original lines until 21.12.2024
     irr::f32 currVelFront =  this->phobj->GetVelocityLocalCoordPoint(LocalCraftFrontPnt).Y;
-    irr::f32 corrForceFront = heightErrorFront * corrForceHeight + currVelFront * corrDampingHeight;
+    irr::f32 corrForceFront;
+
+    if (heightErrorFront < 0.0f) {
+       //Craft needs to quickly climb, Terrain is too close
+       corrForceFront = heightErrorFront * corrForceHeightUp + currVelFront * corrDampingHeightUp;
+    } else {
+       //Craft is too high
+       corrForceFront = heightErrorFront * corrForceHeightDown + currVelFront * corrDampingHeightDown;
+    }
 
     //this line prevents flipping over the player model on the roof
     corrForceFront = corrForceFront * preventFlip;
@@ -2708,7 +2464,16 @@ void Player::CraftHeightControl() {
                                             PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 
     irr::f32 currVelBack = this->phobj->GetVelocityLocalCoordPoint(LocalCraftBackPnt).Y;
-    irr::f32 corrForceBack = heightErrorBack * corrForceHeight + currVelBack * corrDampingHeight;
+
+    irr::f32 corrForceBack;
+
+    if (heightErrorBack < 0.0f) {
+        //Craft needs to quickly climb, Terrain is too close
+        corrForceBack = heightErrorBack * corrForceHeightUp + currVelBack * corrDampingHeightUp;
+    } else {
+        //Craft is too high
+        corrForceBack = heightErrorBack * corrForceHeightDown + currVelBack * corrDampingHeightDown;
+    }
 
     //this line prevents flipping over the player model on the roof
     corrForceBack = corrForceBack * preventFlip;
@@ -2717,7 +2482,16 @@ void Player::CraftHeightControl() {
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 
     irr::f32 currVelLeft = this->phobj->GetVelocityLocalCoordPoint(LocalCraftLeftPnt).Y;
-    irr::f32 corrForceLeft = heightErrorLeft * corrForceHeight + currVelLeft * corrDampingHeight;
+
+    irr::f32 corrForceLeft;
+
+    if (heightErrorLeft < 0.0f) {
+       //Craft needs to quickly climb, Terrain is too close
+       corrForceLeft = heightErrorLeft * corrForceHeightUp + currVelLeft * corrDampingHeightUp;
+    } else {
+       //Craft is too high
+       corrForceLeft = heightErrorLeft * corrForceHeightDown + currVelLeft * corrDampingHeightDown;
+    }
 
     //this line prevents flipping over the player model on the roof
     corrForceLeft = corrForceLeft * preventFlip;
@@ -2726,7 +2500,16 @@ void Player::CraftHeightControl() {
                                     PHYSIC_DBG_FORCETYPE_HEIGHTCNTRL);
 
     irr::f32 currVelRight = this->phobj->GetVelocityLocalCoordPoint(LocalCraftRightPnt).Y;
-    irr::f32 corrForceRight = heightErrorRight * corrForceHeight + currVelRight * corrDampingHeight;
+
+    irr::f32 corrForceRight;
+
+    if (heightErrorRight < 0.0f) {
+      //Craft needs to quickly climb, Terrain is too close
+      corrForceRight = heightErrorRight * corrForceHeightUp + currVelRight * corrDampingHeightUp;
+    } else {
+      //Craft is too high
+      corrForceRight = heightErrorRight * corrForceHeightDown + currVelRight * corrDampingHeightDown;
+    }
 
     //this line prevents flipping over the player model on the roof
     corrForceRight = corrForceRight * preventFlip;
