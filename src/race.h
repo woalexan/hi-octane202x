@@ -121,7 +121,8 @@ struct MapConfigStruct;
 class Race {
 public:
     Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
-         std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode, bool skipStart);
+         std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode, bool attributionActive,
+         bool skipStart);
 
     ~Race();
 
@@ -285,6 +286,10 @@ public:
 
     ShaderCallBack* shaderCallBack;
 
+    //Is public, because game loop needs to be
+    //able to stop the race in attribution mode
+    void InitiateExitRace();
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -293,7 +298,6 @@ private:
 
     MapConfigStruct* mMapConfig = nullptr;
 
-    void InitiateExitRace();
     void HandleExitRace();
 
     //Returns true in case of success, False
@@ -565,6 +569,13 @@ private:
     irr::scene::CCloudSceneNode* cloudLayer3 = nullptr;
 
     void UpdateShadowLights();
+
+    //if true attribution mode is enabled
+    //This means the race (demo) is only interrupted
+    //by either the user (with Escape key), or by the game
+    //loop itself (when attribution is finished); The
+    //finished race does not end the demo (attribution mode)
+    bool mAttributionMode;
 };
 
 #endif // RACE_H

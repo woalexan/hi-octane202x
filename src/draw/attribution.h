@@ -33,7 +33,7 @@ struct AttrEmbeddedImageStruct {
 
 class Attribution {
 public:
-    Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, bool enableFading);
+    Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, irr::s32 offsXRender, bool enableFading);
     ~Attribution();
 
     void Init();
@@ -57,6 +57,7 @@ private:
 
     irr::core::dimension2d<irr::u32> mScreenRes;
     irr::s32 mWidthRender;
+    irr::s32 mOffsXRender;
 
     //Return true in case of success, False otherwise
     bool ReadAttributionInfo();

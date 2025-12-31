@@ -13,11 +13,12 @@
 #include "../utils/logging.h"
 #include "../infrabase.h"
 
-Attribution::Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, bool enableFading) {
+Attribution::Attribution(InfrastructureBase* infra, irr::s32 widthRenderPixel, irr::s32 offsXRender, bool enableFading) {
     mInfra = infra;
     mScreenRes = mInfra->mScreenRes;
     mWidthRender = widthRenderPixel;
     mFading = enableFading;
+    mOffsXRender = offsXRender;
 
     texSeperatorLine1Width = 0;
     texSeperatorLine2Width = 0;
@@ -274,7 +275,7 @@ void Attribution::Start() {
 
     mNextTextLineNr = 0;
 
-    irr::s32 midX = mScreenRes.Width / 2;
+    irr::s32 midX = (mScreenRes.Width / 2) + mOffsXRender;
 
     std::vector<AttrEmbeddedImageStruct*>::iterator it;
 
@@ -472,7 +473,7 @@ void Attribution::UpdateImages() {
 
                 irr::core::rect<irr::s32> nextPos = mCurrRect;
 
-                irr::s32 midX = mScreenRes.Width / 2;
+                irr::s32 midX = (mScreenRes.Width / 2) + mOffsXRender;
 
                 nextPos.UpperLeftCorner.Y += texSeperatorLineHeight;
                 nextPos.UpperLeftCorner.X = midX - mWidthRender / 2;

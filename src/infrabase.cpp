@@ -23,6 +23,7 @@
 #include <sstream>
 #include <iomanip>
 #include "draw/attribution.h"
+#include "font/font_manager.h"
 #include "game.h"
 
 //Returns true in case of success, False otherwise
@@ -130,8 +131,8 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
 
     irr::core::stringw currentSection;
 
-    map<irr::core::stringw, irr::core::stringw> graphicsSetupMap;
-    map<irr::core::stringw, irr::core::stringw> introSetupMap;
+    irr::core::map<irr::core::stringw, irr::core::stringw> graphicsSetupMap;
+    irr::core::map<irr::core::stringw, irr::core::stringw> introSetupMap;
 
     //while there is more to read
     while (xmlReader->read())
@@ -200,7 +201,7 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
    // don't forget to delete the xml reader
    xmlReader->drop();
 
-   map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+   irr::core::map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
 
    //get double resolution setting
    nodePntr = graphicsSetupMap.find(L"enableDoubleResolution");
@@ -358,6 +359,8 @@ bool InfrastructureBase::InitStage1() {
     // create event receiver
     mEventReceiver = new MyEventReceiver(this);
 
+    mFontManager = new FontManager();
+
     return true;
 }
 
@@ -405,6 +408,21 @@ bool InfrastructureBase::InitStage2() {
 
     //create a DrawDebug object
     mDrawDebug = new DrawDebug(mDriver);
+
+    if ((mRunningAs == INFRA_RUNNING_AS_EDITOR) ||
+            ((mRunningAs == INFRA_RUNNING_AS_GAME) && (mGameConfig->enableDoubleResolution))) {
+            //higher resolution font size
+            fontAndika = mFontManager->GetTtFont(mDriver, mDevice->getFileSystem(),
+                             "media/andika/Andika-R.ttf", 12, true, true);
+    } else {
+        //lower resolution font size
+        fontAndika = mFontManager->GetTtFont(mDriver, mDevice->getFileSystem(),
+                         "media/andika/Andika-R.ttf", 10, true, true);
+    }
+
+    if (fontAndika) {
+         mGuienv->getSkin()->setFont(fontAndika);
+    }
 
     return true;
 }
@@ -469,11 +487,15 @@ bool InfrastructureBase::InitStage3() {
 
     mCrc32 = new Crc32();
 
-    mAttribution = new Attribution(this, 800, true);
+    if ((mRunningAs == INFRA_RUNNING_AS_EDITOR) ||
+            ((mRunningAs == INFRA_RUNNING_AS_GAME) && (mGameConfig->enableDoubleResolution))) {
+            mAttribution = new Attribution(this, 796, 0, true);
+    } else {
+            mAttribution = new Attribution(this, 412, -70, true);
+    }
 
     return true;
 }
-
 
 //returns true if Gui Event should be canceled
 bool InfrastructureBase::HandleGuiEvent(const irr::SEvent& event) {
@@ -954,8 +976,8 @@ bool InfrastructureBase::WriteMapConfigFile(const std::string fileName, MapConfi
 }
 
 //Return true in case of success, false otherwise
-bool InfrastructureBase::GetCloudColorValue(map<irr::core::stringw, irr::core::stringw> *valueMap, irr::core::stringw keyName, irr::video::SColor &outColor) {
-    map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+bool InfrastructureBase::GetCloudColorValue(irr::core::map<irr::core::stringw, irr::core::stringw> *valueMap, irr::core::stringw keyName, irr::video::SColor &outColor) {
+    irr::core::map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
 
     nodePntr = valueMap->find(keyName);
 
@@ -1004,9 +1026,9 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
 
         irr::core::stringw currentSection;
 
-        map<irr::core::stringw, irr::core::stringw> skySetupMap;
-        map<irr::core::stringw, irr::core::stringw> musicSetupMap;
-        map<irr::core::stringw, irr::core::stringw> minimapSetupMap;
+        irr::core::map<irr::core::stringw, irr::core::stringw> skySetupMap;
+        irr::core::map<irr::core::stringw, irr::core::stringw> musicSetupMap;
+        irr::core::map<irr::core::stringw, irr::core::stringw> minimapSetupMap;
 
         //while there is more to read
         while (xmlReader->read())
@@ -1093,7 +1115,7 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
        // don't forget to delete the xml reader
        xmlReader->drop();
 
-       map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+       irr::core::map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
 
        //get name of vanillaSkyImage
        nodePntr = skySetupMap.find(L"vanillaSkyImage");
@@ -2461,6 +2483,11 @@ InfrastructureBase::~InfrastructureBase() {
 
         delete mOriginalGame;
         mOriginalGame = nullptr;
+    }
+
+    if (mFontManager != nullptr) {
+        delete mFontManager;
+        mFontManager = nullptr;
     }
 
     if (mAttribution != nullptr) {

@@ -17,7 +17,7 @@ This source code will only run if the user does possess and supply it with the o
 - libADLMIDI 1.5.1
 - freetype2 2.10.4
 
-The library versions listed above are known to result in successful compilation. Other library versions may work too. Library freetype2 is only used by the level editor. If you have problems with this library or you do not want to use it you can comment out the define for `USE_FREETYPE` in file `definitions.h`. Only drawback will be that Irrlicht has to fall back on the integrated Gui font, which is very small and therefore could be difficult to read.
+The library versions listed above are known to result in successful compilation. Other library versions may work too. If you have problems with the freetype library or you do not want to use it you can comment out the define for `USE_FREETYPE` in file `definitions.h`. Only drawback will be that Irrlicht has to fall back on the integrated Gui font, which is very small and therefore could be difficult to read.
 
 #### Compile
 Change to the `build` directory and run

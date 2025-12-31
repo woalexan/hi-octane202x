@@ -121,6 +121,13 @@ add_executable(hi-octane202x
     src/resources/intro/decoder.cpp
     src/resources/intro/encoder.cpp
 
+    src/font/CGUITTFont.h
+    src/font/CGUITTFont.cpp
+    src/font/font_manager.h
+    src/font/font_manager.cpp
+    src/font/gui_freetype_font.h
+    src/font/gui_freetype_font.cpp
+
     src/draw/drawdebug.h
     src/draw/drawdebug.cpp
     src/draw/gametext.h
@@ -410,6 +417,7 @@ TARGET_LINK_LIBRARIES(hi-editor ${SFML_LIBRARIES})
 if(Freetype_FOUND)
     MESSAGE(STATUS "FREETYPE_LIBRARIES = ${FREETYPE_LIBRARIES}")
     TARGET_LINK_LIBRARIES(hi-editor ${FREETYPE_LIBRARIES})
+    TARGET_LINK_LIBRARIES(hi-octane202x ${FREETYPE_LIBRARIES})
 endif()
 
 ###########################

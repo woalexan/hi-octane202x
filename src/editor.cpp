@@ -34,7 +34,6 @@
 #include "editor/fileoperationdialog.h"
 #include "resources/readgamedata/preparedata.h"
 #include "input/input.h"
-#include "font/font_manager.h"
 #include <fstream>
 #include "utils/fileutils.h"
 #include "utils/tiny-process-library/process.hpp"
@@ -130,13 +129,6 @@ bool Editor::InitEditorStep2() {
     //set Gui dialog transparency
     //between 0 and 255
     setSkinTransparency(200, mGuienv->getSkin());
-
-    fontAndika = mFontManager->GetTtFont(mDriver, mDevice->getFileSystem(),
-                     "media/andika/Andika-R.ttf", 12, true, true);
-
-    if (fontAndika) {
-         mGuienv->getSkin()->setFont(fontAndika);
-    }
 
     noEditorSessionText = mGuienv->addStaticText(L"No EditorSession",
            rect<s32>(590,470,690,490), false, true, nullptr, -1, true);
@@ -2483,7 +2475,6 @@ Editor::Editor(int argc, char **argv) : InfrastructureBase(argc, argv, INFRA_RUN
     mRegisteredNumberEditBoxes.clear();
 
     mUiConversion = new UiConversion(this);
-    mFontManager = new FontManager();
     mFileOperationDialog = new FileOperationDialog(this);
 }
 
@@ -2511,11 +2502,6 @@ Editor::~Editor() {
     if (mUiConversion != nullptr) {
         delete mUiConversion;
         mUiConversion = nullptr;
-    }
-
-    if (mFontManager != nullptr) {
-        delete mFontManager;
-        mFontManager = nullptr;
     }
 
     if (mFileOperationDialog != nullptr) {

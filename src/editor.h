@@ -177,7 +177,6 @@ class EditorSession;
 class EditorMode;
 class NumberEditBox;
 class UiConversion;
-class FontManager;
 class FileOperationDialog;
 
 class Editor : public InfrastructureBase {
@@ -200,7 +199,6 @@ private:
     void EditorLoopSession(irr::f32 frameDeltaTime);
     
     EditorSession* mCurrentSession = nullptr;
-    FontManager* mFontManager = nullptr;
     FileOperationDialog* mFileOperationDialog = nullptr;
 
     void RenderDataExtractionScreen();
@@ -311,8 +309,6 @@ private:
     void PopulateInfoMenueEntries();
 
     void UpdateMenueEntries();
-
-    IGUIFont* fontAndika;
 
     //Returns true if user level maps folder
     //is available (or was succesfully created), False otherwise

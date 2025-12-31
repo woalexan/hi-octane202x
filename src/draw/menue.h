@@ -28,6 +28,7 @@
 #define MENUE_SOUNDOPTIONS 9
 #define MENUE_SELECTRACETRACK 10
 #define MENUE_SELECTSHIP 11
+#define MENUE_INFO 12
 
 //special "menue" pages
 #define MENUE_HIGHSCORE 202
@@ -54,6 +55,7 @@
 #define MENUE_ACTION_SETUPGRADEDSKY 11
 #define MENUE_ACTION_RETURNFROMDETAILSMENUE 12
 #define MENUE_ACTION_SETSKIPINTRO 13
+#define MENUE_ACTION_STARTATTRIBUTION 14
 
 //"special" menue actions
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
@@ -400,6 +402,9 @@ private:
     MenueSingleEntry* currSelMenueSingleEntry = nullptr;
     MenueAction* currActionToExecute = nullptr;
 
+    //Info menue page
+    MenuePage* InfoMenuePage = nullptr;
+
     irr::u32 MaxMenueEntryNumber(MenuePage* inputPage);
     void SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nextSelEntryNr);
     MenueSingleEntry* GetMenueSingleEntryForEntryNr(MenuePage* newMenuePage, irr::u32 inputEntryNr);
@@ -657,6 +662,9 @@ public:
     MenueAction* ActFinalizeChampionshipSaveSlot = nullptr;
     MenueAction* ActQuitChampionship = nullptr;
     MenueAction* ActEnterChampionshipMenue = nullptr;
+
+    //Info menue actions
+    MenueAction* ActStartAttribution = nullptr;
 
     void Render(irr::f32 frameDeltaTime);
     void HandleUserInactiveTimer(irr::f32 frameDeltaTime);

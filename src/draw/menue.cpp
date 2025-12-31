@@ -465,6 +465,12 @@ void Menue::InitActions() {
     ActSetEnableShadows = new MenueAction(MENUE_ACTION_SETENABLESHADOW);
     ActSetVSync = new MenueAction(MENUE_ACTION_SETVSYNC);
     ActSetDoubleResolution = new MenueAction(MENUE_ACTION_SETDOUBLERESOLUTION);
+
+    /***************************
+     * Info actions            *
+     ***************************/
+
+    ActStartAttribution = new MenueAction(MENUE_ACTION_STARTATTRIBUTION);
 }
 
 void Menue::InitMenuePages() {
@@ -501,6 +507,9 @@ void Menue::InitMenuePages() {
 
     //define dummy menue page for points table page
     pointsTablePage = new MenuePage(this, nullptr, MENUE_POINTSTABLE);
+
+    //Info menue page
+    InfoMenuePage = new MenuePage(this, TopMenuePage, MENUE_INFO);
 }
 
 void Menue::CreateMenueEntries() {
@@ -510,6 +519,7 @@ void Menue::CreateMenueEntries() {
 
     Race = TopMenuePage->AddDefaultMenueEntry("RACE", true, RaceMenuePage, nullptr);
     TopMenuePage->AddDefaultMenueEntry("OPTIONS", true, OptionMenuePage, nullptr);
+    TopMenuePage->AddDefaultMenueEntry("INFO", true, InfoMenuePage, nullptr);
     TopMenuePage->AddDefaultMenueEntry("QUIT TO OS", true, nullptr, ActQuitToOS);
 
     /******************************
@@ -724,6 +734,13 @@ void Menue::CreateMenueEntries() {
         ShipSelectionPage->AddEmptySpaceMenueEntry();
         ShipSelectionPage->AddEmptySpaceMenueEntry();
     }
+
+    /**********************
+    * INFO Menue Page   *
+    * *********************/
+
+    InfoMenuePage->AddDefaultMenueEntry("ATTRIBUTION", true, nullptr, ActStartAttribution);
+    InfoMenuePage->AddDefaultMenueEntry("MAIN MENU", true, TopMenuePage, nullptr);
 }
 
 void Menue::SetWindowAnimationVec() {
