@@ -1989,9 +1989,9 @@ void Player::ChangeViewMode() {
          UnhideCraft();
 
          mCurrentViewMode = CAMERA_PLAYER_BEHINDCRAFT;
-    } else if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+    } /*else if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
         mCurrentViewMode = CAMERA_PLAYER_SIDELOOKING;
-    }  else if (mCurrentViewMode == CAMERA_PLAYER_SIDELOOKING) {
+    } */ else if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
         //hide player craft model so that we do not see
         //it in our own camera
         HideCraft();

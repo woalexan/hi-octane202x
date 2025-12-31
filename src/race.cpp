@@ -216,10 +216,12 @@ public:
 };
 
 Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
-           SoundEngine* soundEngine, std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode, bool skipStart) {
+           SoundEngine* soundEngine, std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode,
+           bool attributionActive, bool skipStart) {
     this->mMusicPlayer = gameMusicPlayerParam;
     this->mSoundEngine = soundEngine;
     this->mDemoMode = demoMode;
+    this->mAttributionMode = attributionActive;
 
     mRaceNumberOfLaps = nrLaps;
 
@@ -3536,6 +3538,14 @@ void Race::CleanMiniMap() {
 //the race is already finished, and handles
 //everything afterwards
 void Race::CheckRaceFinished(irr::f32 deltaTime) {
+    //in attribution mode do not check for
+    //finished race, race does continue until interrupted
+    //by player Escape key, or when game loop tells us to
+    //stop
+    if (mAttributionMode) {
+        return;
+    }
+
     //all players finished?
     if (mRaceWasFinished) {
         mRaceFinishedWaitTimeCnter += deltaTime;
@@ -3710,7 +3720,7 @@ bool Race::LoadLevel() {
    /***********************************************************/
 
    //load the level data itself
-   this->mLevelRes = new LevelFile(mGame, levelfilename);
+   this->mLevelRes = new LevelFile(mGame, levelfilename, mGame->mExtendedGame);
 
    //was loading level data succesful? if not interrupt
    if (!this->mLevelRes->get_Ready()) {
@@ -5307,3 +5317,4 @@ void Race::CleanUpCollectableSpawners() {
         }
     }
 }
+

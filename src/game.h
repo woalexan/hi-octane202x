@@ -134,6 +134,13 @@ private:
     std::string mTestTargetLevel;
     bool mTestMapModeNoCpuPlayers = false;
 
+    //for Attribution
+    //Returns true in case attribution has
+    //started succesfully, False otherwise
+    bool StartAttribution();
+
+    bool mAttributionRunning = false;
+
 public:
     irr::video::ITexture* backgnd = nullptr;
 

@@ -713,8 +713,9 @@ void Physics::HandleObjToObjCollision(PhysicsObject *currObj, irr::f32 deltaTime
                                   force2 = sgn(force2) * 2000.0f;
                               }
 
-                              (*it)->AddFriction(5000.0f);
-                              (*it2)->AddFriction(5000.0f);
+                              //30.12.2025: changed to much less friction
+                              (*it)->AddFriction(1000.0f);
+                              (*it2)->AddFriction(1000.0f);
 
                               (*it)->AddWorldCoordForce((*it)->physicState.position, collNormal * force1, PHYSIC_APPLYFORCE_ONLYTRANS,
                                                     PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);

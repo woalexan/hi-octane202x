@@ -18,6 +18,7 @@
 #include "draw/gametext.h"
 #include "race.h"
 #include "utils/tprofile.h"
+#include "draw/attribution.h"
 
 void Game::StopTime() {
     if (!mTimeStopped) {
@@ -459,6 +460,18 @@ void Game::HandleMenueActions() {
     //show HighScorePage?
     if (pendingAction == MainMenue->ActShowHighScorePage) {
         MainMenue->ShowHighscore();
+    }
+
+    if (pendingAction == MainMenue->ActStartAttribution) {
+        //Returns true if attribution started succesfully
+        //only then run demo
+        if (StartAttribution()) {
+            nextRaceLevelNr = 1;
+
+            mAttributionRunning = true;
+
+            mGameState = DEF_GAMESTATE_INITDEMO;
+        }
     }
 
     //start a demo?
@@ -1035,6 +1048,16 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mCurrentRace->DrawHUD(frameDeltaTime);
     mCurrentRace->DrawMiniMap(frameDeltaTime);
 
+    if (mAttributionRunning) {
+        mAttribution->Update(frameDeltaTime);
+
+        if (mAttribution->GetState() == DEF_ATTR_STATE_PRESENTATIONDONE) {
+            //presentation is finished
+            //tell the race to stop itself, and exit
+            mCurrentRace->InitiateExitRace();
+        }
+    }
+
     //render log window
     mLogger->Render();
 
@@ -1050,6 +1073,13 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         mCurrentRace->End();
 
         this->lastRaceStat = nullptr;
+
+        //if attribution was running, reset everything again
+        if (mAttributionRunning) {
+            mAttribution->Stop();
+
+            mAttributionRunning = false;
+        }
 
         //was the race finished, that means all players went through the finish
         //line and finished the last lap?
@@ -1316,7 +1346,7 @@ bool Game::CreateNewRace(std::string targetLevel, std::vector<PilotInfoStruct*> 
      }
 
     //create a new Race
-    mCurrentRace = new Race(this, gameMusicPlayer, gameSoundEngine, levelRootDir, levelName, nrLaps, demoMode, debugRace);
+    mCurrentRace = new Race(this, gameMusicPlayer, gameSoundEngine, levelRootDir, levelName, nrLaps, demoMode, mAttributionRunning, debugRace);
 
     mCurrentRace->Init();
 
@@ -1379,6 +1409,37 @@ bool Game::CreateNewRace(int load_levelnr, std::vector<PilotInfoStruct*> pilotIn
     targetLevel.append(nrStr);
 
     return (CreateNewRace(targetLevel, pilotInfo, nrLaps, demoMode, debugRace));
+}
+
+bool Game::StartAttribution() {
+    if (mAttribution == nullptr)
+        return false;
+
+    irr::u8 state = mAttribution->GetState();
+
+    if (state == DEF_ATTR_STATE_PRESENTING) {
+        return true;
+    }
+
+    //if (state == DEF_ATTR_STATE_UNINITIALIZED) {
+       mAttribution->Init();
+    //}
+
+    state = mAttribution->GetState();
+
+    if (state == DEF_ATTR_STATE_INITERROR) {
+        return false;
+    }
+
+    if ((state != DEF_ATTR_STATE_READY) && (state != DEF_ATTR_STATE_PRESENTATIONDONE)) {
+        return true;
+    }
+
+    mAttribution->SetScrollSpeed(2);
+    mAttribution->SetFadingParameters(200, 0.0f, 1.0f);
+    mAttribution->Start();
+
+    return true;
 }
 
 void Game::CleanUpRace() {

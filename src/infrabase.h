@@ -41,6 +41,7 @@ class TimeProfiler;
 class DrawDebug;
 class Crc32;
 class Attribution;
+class FontManager;
 
 struct OriginalGameFolderInfoStruct {
     irr::io::IFileList* rootFolder = nullptr;
@@ -143,6 +144,7 @@ public:
   IGUIEnvironment* mGuienv = nullptr;
 
   gui::IGUIFont* guiFont = nullptr;
+  FontManager* mFontManager = nullptr;
 
   MyEventReceiver* mEventReceiver = nullptr;
 
@@ -227,7 +229,7 @@ public:
   //Output value is returned in second parameter
   bool XmlSettingStrToSColor(irr::core::stringw inputStr, irr::video::SColor& outColor);
 
-  bool GetCloudColorValue(map<irr::core::stringw, irr::core::stringw> *valueMap, irr::core::stringw keyName, irr::video::SColor &outColor);
+  bool GetCloudColorValue(irr::core::map<irr::core::stringw, irr::core::stringw> *valueMap, irr::core::stringw keyName, irr::video::SColor &outColor);
 
   //Returns true in case of success, False otherwise
   bool WriteMapConfigFile(const std::string fileName, MapConfigStruct* configStruct);
@@ -268,6 +270,8 @@ public:
 private:
   //Irrlicht stuff
   bool mFullscreen;
+
+  IGUIFont* fontAndika;
 
   //this paths are all absolute paths
   irr::io::path mGameRootDir;

@@ -39,7 +39,7 @@
 
 */
 
-LevelFile::LevelFile(InfrastructureBase* infra, std::string filename) {
+LevelFile::LevelFile(InfrastructureBase* infra, std::string filename, bool runAsExtendedGame) {
    this->m_Filename = filename;
    this->m_Ready = false;
    this->mInfra = infra;
@@ -120,6 +120,32 @@ LevelFile::LevelFile(InfrastructureBase* infra, std::string filename) {
     }
 
     //DebugWriteCellInfoToCsvFile((char*)("dbgcellInfo.csv"));
+
+    //30.12.2025: The extended game version has a lot of terrain tile
+    //in the levels that are pink color (Texture ID = 160). I do not know why this
+    //was introduced there, but if the pink tiles are put in a level the are rendered in the
+    //original game as dirt (texture Id = 0) tiles. Other then this I can not see any difference
+    //in behavior.
+    //I need to have the same behavior in my project, because the levels in the game
+    //look bad with pink tiles in them
+    //So if we run the extended game version, replace all Texture Id = 160 tiles with
+    //Texture Id = 0 tiles
+    if (runAsExtendedGame) {
+        MapEntry* entry;
+        for (int y = 0; y < Height(); y++) {
+          for (int x = 0; x < Width(); x++) {
+             entry = this->pMap[x][y];
+             if (entry != nullptr) {
+                 if (entry->get_Column() == nullptr) {
+                     //replace pink tile with dirt tile
+                     if (entry->m_TextureId == 160) {
+                         entry->m_TextureId = 0;
+                     }
+                 }
+             }
+         }
+       }
+    }
 }
 
 LevelFile::~LevelFile() {

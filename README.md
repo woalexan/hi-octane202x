@@ -17,7 +17,7 @@ This source code will only run if the user does possess and supply it with the o
 - libADLMIDI 1.5.1
 - freetype2 2.10.4
 
-The library versions listed above are known to result in successful compilation. Other library versions may work too. Library freetype2 is only used by the level editor. If you have problems with this library or you do not want to use it you can comment out the define for `USE_FREETYPE` in file `definitions.h`. Only drawback will be that Irrlicht has to fall back on the integrated Gui font, which is very small and therefore could be difficult to read.
+The library versions listed above are known to result in successful compilation. Other library versions may work too. If you have problems with the freetype library or you do not want to use it you can comment out the define for `USE_FREETYPE` in file `definitions.h`. Only drawback will be that Irrlicht has to fall back on the integrated Gui font, which is very small and therefore could be difficult to read.
 
 #### Compile
 Change to the `build` directory and run
@@ -79,7 +79,6 @@ The game development is still work in progress. It can be played, but there is m
 - I already added the possibility to enable shadows and an improved sky. I am currently try to learn more aber shaders and use them for further improvements 
 - Please be aware that I did not try to implement the original controls of the game, the craft controls will work and feel different
 - Unfortunetly the computer players are way too basic right now, this is the area where I will need to do most of the improvements in future
-- I will need to decide what to do with collision detection between player crafts. I want collision detection, but the current solution sometimes slows computer players down
 
 ![level4](screenshots/level4.png)
 
