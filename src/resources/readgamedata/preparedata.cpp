@@ -328,6 +328,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
             newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
             newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
             newConfig.MusicFile.append("extract/music/TGAME1.XMI");
+            newConfig.texBaseLocation.append("extract/textures/level0-1");
+            newConfig.useCustomTextures = true;
 
             newConfig.EnableLensFlare = true;
             newConfig.lensflareLocation.set(0.0f,80.0f,-80.0f);
@@ -365,6 +367,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
 
             newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-1.png");
             newConfig.SkyImageFileUpgradedSky.append("media/sky/skydomegrey.png");
+            newConfig.texBaseLocation.append("extract/textures/level0-2");
+            newConfig.useCustomTextures = true;
 
             newConfig.EnableLensFlare = false;
             newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -402,6 +406,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
 
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-2.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydomeblack.png");
+        newConfig.texBaseLocation.append("extract/textures/level0-3");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -439,6 +445,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
 
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-3.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+        newConfig.texBaseLocation.append("extract/textures/level0-4");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -476,6 +484,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
 
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-4.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+        newConfig.texBaseLocation.append("extract/textures/level0-5");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -513,6 +523,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
 
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-5.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydomeyellow.png");
+        newConfig.texBaseLocation.append("extract/textures/level0-6");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -543,6 +555,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         //Level 7 uses sky0
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+        newConfig.texBaseLocation.append("extract/textures/level0-7");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -573,6 +587,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         //Level 8 uses sky0
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+        newConfig.texBaseLocation.append("extract/textures/level0-8");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -604,6 +620,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         //Level 9 uses sky0
         newConfig.SkyImageFileVanilla.append("extract/sky/modsky0-0.png");
         newConfig.SkyImageFileUpgradedSky.append("media/sky/skydome.tga");
+        newConfig.texBaseLocation.append("extract/textures/level0-9");
+        newConfig.useCustomTextures = true;
 
         newConfig.EnableLensFlare = false;
         newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
@@ -680,6 +698,7 @@ void PrepareData::ExtractMiniMaps() {
 
 void PrepareData::ExtractTerrainTextures() {
     logging::Info("Extracting terrain textures...");
+    PrepareSubDir("extract/textures");
 
     if (!mInfra->mExtendedGame) {
         for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
@@ -1876,7 +1895,6 @@ void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, cha
 }
 
 void PrepareData::ExtractTerrainTexture(char levelNr) {
-    //todo: Scale Tiles by factor of 2.0
     //read race track Terrain texture
     //info please see https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //Raw image 64×16384 	RNC-compressed = Yes 	64x64 Terrain Textures
@@ -1894,7 +1912,7 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
         texNr = '0';
     }
 
-    std::string extract_dir = "extract/";
+    std::string extract_dir = "extract/textures/";
 
     std::string packfile("textu0-");
     std::string packfile2 = packfile + texNr + ".dat";

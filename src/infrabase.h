@@ -91,6 +91,10 @@ struct MapConfigStruct {
     bool minimapCalSet;
     irr::core::vector2di minimapCalStartVal;
     irr::core::vector2di minimapCalEndVal;
+
+    //texture base location
+    std::string texBaseLocation;
+    bool useCustomTextures;
 };
 
 struct GameConfigStruct {
@@ -166,9 +170,15 @@ public:
   std::vector<uint8_t> mGameVersionDate;
   bool mExtendedGame = false;
 
+  irr::io::IFileList* CreateFileList(irr::io::path whichAbsPath);
+
   //if specified file is not found, returns empty path
-  irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName);
+  irr::io::path LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName,
+                                     bool ignoreFileEnding = false);
   bool UpdateFileListSaveFolder();
+
+  io::path RemoveFileEndingFromFileName(io::path fileName);
+  io::path GetFileEndingFromFileName(io::path fileName);
 
   //lets create and store a direction vector for
   //later use (calculations), so that we do not have to do this
@@ -267,6 +277,9 @@ public:
 
   bool WriteGameConfigXmlFile(IrrlichtDevice *device);
 
+  //Returns true in case of success, false otherwise
+  bool LoadLevelConfigData(std::string levelRootPath, MapConfigStruct** outMapTarget);
+
 private:
   //Irrlicht stuff
   bool mFullscreen;
@@ -277,8 +290,6 @@ private:
   irr::io::path mGameRootDir;
   irr::io::path mOriginalGameRootDir;
   irr::io::path saveFolderDataPath;
-
-  irr::io::IFileList* CreateFileList(irr::io::path whichAbsPath);
 
   //Returns true if original game found,
   //False otherwise, resulting original

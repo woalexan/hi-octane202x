@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -15,29 +15,38 @@
 
 using namespace irr::core;
 
+/************************
+ * Forward declarations *
+ ************************/
+
+class InfrastructureBase;
+
 class TextureLoader {
 
 public:
     int NumLevelTextures;
     int NumSpriteTextures;
+    int NumCustomLevelTextures;
 
     int NumEditorTextures;
 
     std::vector<irr::video::ITexture*> levelTex;
     std::vector<irr::video::ITexture*> spriteTex;
     std::vector<irr::video::ITexture*> editorTex;
-    TextureLoader(irr::video::IVideoDriver* myDriver,  const char* levelTexFilePath,
-                  const char* spriteTexFilePath, bool loadLevelEditorSprites = false);
+    TextureLoader(InfrastructureBase* infra, const char* filePathLevelRootDir, const char* filePathBaseTextures,
+                  bool useCustomTextures, const char* spriteTexFilePath, bool loadLevelEditorSprites = false);
     ~TextureLoader();
 
-    void LoadLevelTextures(const char* filePath);
+    void LoadLevelTextures(const char* filePathLevelRootDir, const char* filePathBaseTextures);
     void LoadSpriteTextures(const char* filePath, bool makeTransparent = false);
     void LoadEditorTextures();
 
     bool mLoadSuccess = true;
 
 private:
-    irr::video::IVideoDriver *m_driver = nullptr;
+    InfrastructureBase* mInfra = nullptr;
+
+    bool mUseCustomTextures;
 
     void LoadEditorTexture(const char* fileName, bool makeTransparent = false);
 };

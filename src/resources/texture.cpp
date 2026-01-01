@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -10,36 +10,103 @@
 #include "texture.h"
 #include <string>
 #include "../utils/logging.h"
+#include "../infrabase.h"
 
-void TextureLoader::LoadLevelTextures(const char* filePath) {
+void TextureLoader::LoadLevelTextures(const char* filePathLevelRootDir, const char* filePathBaseTextures) {
     int currTexIdx = 0;
-    char finalpath[70];
+    io::path finalPath;
     char fname[20];
     irr::video::ITexture* newTex;
 
     NumLevelTextures = 0;
+    NumCustomLevelTextures = 0;
+
+    //01.01.2026: Changed behavior: First build file name in level
+    //root directory for each texture, to see if the user supplied
+    //us with an alternative (replacement) texture file
+    //if so, use this file instead for texture loading
+
+    //if there is no replacement file in the level root dir,
+    //use the default texture files in the specified texture base directory
+    //from the map Xml config file
+
+    //Create a list of files existing in specified level root dir
+    irr::io::IFileList* fList = mInfra->CreateFileList(irr::io::path(filePathLevelRootDir));
+
+    bool fallBackDefaultTex = false;
+
+    if (fList == nullptr) {
+        logging::Warning("LoadLevelTextures: Can not search for user specified texture files, Fallback to default textures");
+        fallBackDefaultTex = true;
+    }
+
+    if (!mUseCustomTextures) {
+        logging::Info("LoadLevelTextures: Custom textures disabled for this level, use default textures");
+        fallBackDefaultTex = true;
+    }
+
+    io::path fileEnding;
+    bool customTex;
 
     //there are 256 texture files to load
     for (currTexIdx = 0; currTexIdx < 256; currTexIdx++) {
-        //create filename
-        strcpy(finalpath, filePath);
-        sprintf (fname, "%0*d.png", 4, currTexIdx);
-        strcat(finalpath, fname);
+        //create filename, let the file ending open
+        //so that we can search for the texture file name
+        //strcpy(finalpath, filePathLevelRootDir);
+        sprintf (fname, "tex%0*d", 4, currTexIdx);
+        //strcat(finalpath, fname);
+
+        customTex = false;
+
+        if (!fallBackDefaultTex) {
+                //is there a file with this name?
+                //See additional parameter true, we need to ignore the file ending!
+                irr::io::path alternativeTexFile =
+                        mInfra->LocateFileInFileList(fList, irr::core::string<fschar_t>(fname), true);
+
+                if (!alternativeTexFile.empty()) {
+                   //There is a possible alternative texture file to load, check further if file ending is usable
+                   fileEnding = mInfra->GetFileEndingFromFileName(alternativeTexFile);
+
+                   if (fileEnding.equals_ignore_case("png") || fileEnding.equals_ignore_case("jpg") ||
+                           fileEnding.equals_ignore_case("bmp") || fileEnding.equals_ignore_case("tga")
+                           || fileEnding.equals_ignore_case("pcx")) {
+                       //file is usable, use this file instead
+                       finalPath = alternativeTexFile;
+                       NumCustomLevelTextures++;
+                       customTex = true;
+                   }
+              }
+        }
+
+        if (!customTex) {
+             finalPath = "";
+             finalPath.append(filePathBaseTextures);
+             finalPath.append("/");
+             finalPath.append(fname);
+             finalPath.append(".png");
+        }
 
         //loading the specified terrain texture file
-        newTex = m_driver->getTexture(finalpath);
+        newTex = mInfra->mDriver->getTexture(finalPath);
 
         if (newTex == nullptr) {
             char hlpstr[500];
             std::string msg("");
 
             //loading texture failed
-            snprintf(hlpstr, 500, "Failed to load texture: %s", finalpath);
+            snprintf(hlpstr, 500, "Failed to load texture: %s", finalPath.c_str());
             msg.clear();
             msg.append(hlpstr);
             logging::Error(msg);
 
             mLoadSuccess = false;
+
+            if (!fallBackDefaultTex) {
+                //drop the file list again
+                //not that we get a memory leak!
+                fList->drop();
+            }
 
             return;
         }
@@ -48,6 +115,20 @@ void TextureLoader::LoadLevelTextures(const char* filePath) {
         this->levelTex.push_back(newTex);
 
         NumLevelTextures++;
+    }
+
+    char hlpstr[500];
+    std::string msg("");
+
+    snprintf(hlpstr, 500, "Loaded %d custom level textures", NumCustomLevelTextures);
+    msg.clear();
+    msg.append(hlpstr);
+    logging::Info(msg);
+
+    if (!fallBackDefaultTex) {
+        //drop the file list again
+        //not that we get a memory leak!
+        fList->drop();
     }
 }
 
@@ -67,7 +148,7 @@ void TextureLoader::LoadSpriteTextures(const char* filePath, bool makeTransparen
         strcat(finalpath, fname);
 
         //loading the specified sprite texture file
-        newTex = m_driver->getTexture(finalpath);
+        newTex = mInfra->mDriver->getTexture(finalpath);
 
         if (newTex == nullptr) {
             char hlpstr[500];
@@ -86,7 +167,7 @@ void TextureLoader::LoadSpriteTextures(const char* filePath, bool makeTransparen
 
         if (makeTransparent) {
             //Take pixel 1,1 for transparent color
-            m_driver->makeColorKeyTexture(newTex, irr::core::vector2di(1,1));
+            mInfra->mDriver->makeColorKeyTexture(newTex, irr::core::vector2di(1,1));
         }
 
         //add new texture to sprite vector
@@ -100,7 +181,7 @@ void TextureLoader::LoadEditorTexture(const char* fileName, bool makeTransparent
     irr::video::ITexture* newTex;
 
     //load the specified texture file
-    newTex = m_driver->getTexture(fileName);
+    newTex = mInfra->mDriver->getTexture(fileName);
 
     if (newTex == nullptr) {
         char hlpstr[500];
@@ -119,7 +200,7 @@ void TextureLoader::LoadEditorTexture(const char* fileName, bool makeTransparent
 
     if (makeTransparent) {
         //Take pixel 1,1 for transparent color
-        m_driver->makeColorKeyTexture(newTex, irr::core::vector2di(1,1));
+        mInfra->mDriver->makeColorKeyTexture(newTex, irr::core::vector2di(1,1));
     }
 
     //add new texture to level editor sprite vector
@@ -142,12 +223,13 @@ void TextureLoader::LoadEditorTextures() {
     LoadEditorTexture("media/editor/stopsign-small.png", true);
 }
 
-TextureLoader::TextureLoader(irr::video::IVideoDriver* myDriver, const char* levelTexFilePath,  const char* spriteTexFilePath,
-                             bool loadLevelEditorSprites) {
-   m_driver = myDriver;
+TextureLoader::TextureLoader(InfrastructureBase* infra, const char* filePathLevelRootDir, const char* filePathBaseTextures,
+                             bool useCustomTextures, const char* spriteTexFilePath, bool loadLevelEditorSprites) {
+   mInfra = infra;
+   mUseCustomTextures = useCustomTextures;
 
    //load all level textures
-   LoadLevelTextures(levelTexFilePath);
+   LoadLevelTextures(filePathLevelRootDir, filePathBaseTextures);
 
    //load all sprite textures
    //for level editor make the sprites transparent
@@ -170,7 +252,7 @@ TextureLoader::~TextureLoader() {
            it = levelTex.erase(it);
 
            //free texture via driver
-           m_driver->removeTexture(pntr);
+           mInfra->mDriver->removeTexture(pntr);
        }
    }
 
@@ -185,7 +267,7 @@ TextureLoader::~TextureLoader() {
            it = spriteTex.erase(it);
 
            //free texture via driver
-           m_driver->removeTexture(pntr);
+           mInfra->mDriver->removeTexture(pntr);
        }
    }
 
@@ -200,7 +282,7 @@ TextureLoader::~TextureLoader() {
            it = editorTex.erase(it);
 
            //free texture via driver
-           m_driver->removeTexture(pntr);
+           mInfra->mDriver->removeTexture(pntr);
        }
    }
 }
