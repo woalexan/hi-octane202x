@@ -400,8 +400,6 @@ private:
     bool DebugShowTriggerEvents = false;
     bool AllowStartMorphsPerKey = false;
 
-    bool LoadLevelConfigData();
-
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
     bool LoadLevel();

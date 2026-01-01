@@ -3567,35 +3567,6 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
     }
 }
 
-bool Race::LoadLevelConfigData() {
-    irr::io::path configFileName = mGame->GetMapConfigFileName(mLevelRootPath);
-
-    if (FileExists(configFileName.c_str()) != 1) {
-        //Problem with this file
-        std::string logErr("Can not find file '");
-        logErr.append(configFileName.c_str());
-        logErr.append("'!");
-
-        logging::Error(logErr);
-        return false;
-    }
-
-    //Read complete level/map configuration from Xml file
-    mMapConfig = new MapConfigStruct();
-    if (!mGame->ReadMapConfigFile(configFileName.c_str(), *mMapConfig)) {
-        logging::Error("Failed to read map config file!");
-        return false;
-    }
-
-    std::string logStr("Succesfully read file '");
-    logStr.append(configFileName.c_str());
-    logStr.append("'");
-
-    logging::Info(logStr);
-
-    return true;
-}
-
 //Returns true in case of success, False
 //otherwise
 bool Race::SetupSky() {
@@ -3700,14 +3671,15 @@ bool Race::LoadLevel() {
 
    std::string spritefilename("extract/sprites/tmaps");
 
-   if (!LoadLevelConfigData()) {
+   if (!mGame->LoadLevelConfigData(mLevelRootPath, &mMapConfig)) {
        return false;
    }
 
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
-   mTexLoader = new TextureLoader(mGame->mDriver, texfilename.c_str(), spritefilename.c_str());
+   mTexLoader = new TextureLoader(mGame, mLevelRootPath.c_str(), mMapConfig->texBaseLocation.c_str(),
+                                  mMapConfig->useCustomTextures, spritefilename.c_str());
 
    //was loading textures succesfull? if not interrupt
    if (!this->mTexLoader->mLoadSuccess) {

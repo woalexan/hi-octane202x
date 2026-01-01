@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 Wolf Alexander
+ Copyright (C) 2025-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -561,7 +561,16 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
 
     targetLevelRootDir.append(mSelLevelForFileOperation->levelBaseDir.c_str());
 
-    if (saveAsNewLevel) {
+    bool simpleSave = false;
+
+    //If the user calls "SaveAS" at the currently opened project, make sure to not copy
+    //file over themselves, as this breaks the map files
+    //In this case only execute a save levelfile operation
+    if (currOpenLevelRootDir == targetLevelRootDir) {
+        simpleSave = true;
+    }
+
+    if (!simpleSave && saveAsNewLevel) {
         //create the level base dir if not existing
         if (!PrepareCustomLevelDirectory(mSelLevelForFileOperation->levelName)) {
             //user level folder preparation failed
@@ -569,24 +578,29 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
         }
     }
 
-    //first copy all level terrain textures
-    //from current level to target level
-    bool success = CopyLevelTextures(currOpenLevelRootDir, targetLevelRootDir);
+    bool success = true;
 
-    if (!success) {
-        logging::Error("SaveAsLevel: Level terrain texture copy operation failed");
-    } else {
-        logging::Info("SaveAsLevel: Level terrain texture copy operation was succesfull");
+    if (!simpleSave) {
+            //first copy all level terrain textures
+            //from current level to target level
+            success = CopyLevelTextures(currOpenLevelRootDir, targetLevelRootDir);
+
+            if (!success) {
+                logging::Error("SaveAsLevel: Level terrain texture copy operation failed");
+            } else {
+                logging::Info("SaveAsLevel: Level terrain texture copy operation was succesfull");
+            }
     }
 
     //Save the level file itself as well
     success = success && mCurrentSession->SaveAs(targetLevelRootDir, mSelLevelForFileOperation->levelName);
+    logging::Info("Levelfile saved");
 
     //copy minimap file as well if it is existing already
     irr::io::path miniMapNameTarget = GetMiniMapFileName(mSelLevelForFileOperation);
     irr::io::path miniMapNameSource = GetMiniMapFileName(currOpenLevelRootDir);
 
-    if (FileExists(miniMapNameSource.c_str()) == 1) {
+    if (!simpleSave && (FileExists(miniMapNameSource.c_str()) == 1)) {
         //minimap is also there, copy
         logging::Info("SaveAsLevel: Copy also existing minimap image file");
         if (copy_file(miniMapNameSource.c_str(), miniMapNameTarget.c_str()) != 0) {
@@ -602,7 +616,7 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
     irr::io::path mapConfigFileTarget = GetMapConfigFileName(mSelLevelForFileOperation);
     irr::io::path mapConfigFileSource = GetMapConfigFileName(currOpenLevelRootDir);
 
-    if (FileExists(mapConfigFileSource.c_str()) == 1) {
+    if (!simpleSave && (FileExists(mapConfigFileSource.c_str()) == 1)) {
         //map config file is also there, copy
         logging::Info("SaveAsLevel: Copy also existing mapconfig file");
         if (copy_file(mapConfigFileSource.c_str(), mapConfigFileTarget.c_str()) != 0) {
@@ -863,6 +877,7 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
                 if (mCurrLevelWhichIsEdited != nullptr) {
                     //save to the current existing level file
                     mCurrentSession->mLevelRes->Save(mCurrLevelWhichIsEdited->levelFileName.c_str());
+                    logging::Info("Levelfile saved");
                 } else {
                     //no level file assigned yet, this is our first save
                     //Therefore we need to execute SaveAs
@@ -939,7 +954,7 @@ void Editor::TriggerFileOperation(irr::s32 elementId) {
             mEditorState = DEF_EDITORSTATE_SAVEAS_OVERWRITE_CONFIRM;
             return;
         }
-    } else if (elementId == GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON) {
+
         if (mFileOperationDialog->GetCurrentFileOperationMode() == FILEOP_MODE_SAVEAS_NEW) {
             mSelLevelForFileOperation = mFileOperationDialog->GetCurrentSelectedLevel();
 
@@ -956,34 +971,25 @@ void Editor::TriggerFileOperation(irr::s32 elementId) {
 
 void Editor::OnButtonClicked(irr::s32 buttonId) {
     //is this an event for the FileOperationsDialog?
-    //first check if user wants to save Level as a new level
-    //for this we need to check if the user has supplied a correct
-    //new level name
-    if (buttonId == GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON) {
-             std::wstring result;
-
-             //Next command checks if entered new level name is valid
-             //if so this command returns true, and returns the new level name as
-             //a parameter; If the new level name is not valid then returns false,
-             //and the file operation dialog is not closed
-             if (!mFileOperationDialog->OnNewButtonClicked(result)) {
-                 //no valid name
-                  mGuienv->addMessageBox(L"Error", result.c_str(), true, EMBF_OK, nullptr, -1, nullptr);
-
-                  return;
-             }
-
-             //we have a valid new name
-             //next command simply hides the file operation dialog again
-             mFileOperationDialog->OnButtonClicked();
-
-             TriggerFileOperation(buttonId);
-
-             return;
-    }
-
     if ((buttonId == GUI_ID_FILEOPERATIONDIALOG_TRIGGEROPERATIONBUTTON) ||
         (buttonId == GUI_ID_FILEOPERATIONDIALOG_CANCELBUTTON)) {
+             //check if user wants to save level as a new level
+             if ((mFileOperationDialog->GetCurrentFileOperationMode() == FILEOP_MODE_SAVEAS_NEW)
+                 && (buttonId == GUI_ID_FILEOPERATIONDIALOG_TRIGGEROPERATIONBUTTON)) {
+                 std::wstring result;
+
+                 //Next command checks if entered new level name is valid
+                 //if so this command returns true, and returns the new level name as
+                 //a parameter; If the new level name is not valid then returns false,
+                 //and the file operation dialog is not closed
+                 if (!mFileOperationDialog->VerifyNewLevelname(result)) {
+                     //no valid name
+                      mGuienv->addMessageBox(L"Error", result.c_str(), true, EMBF_OK, nullptr, -1, nullptr);
+
+                      return;
+                 }
+             }
+
              //next command simply hides the file operation dialog again
              mFileOperationDialog->OnButtonClicked();
 
@@ -1214,6 +1220,14 @@ void Editor::OnEditBoxEnterEvent(IGUIEditBox* editBox) {
   CheckForNumberEditBoxEvent(val);
 }
 
+void Editor::OnEditBoxTextChanged(irr::s32 id) {
+    if (id == GUI_ID_FILEOPERATIONDIALOG_NEWLEVELNAMEEDITBOX) {
+        if (mFileOperationDialog != nullptr) {
+            mFileOperationDialog->OnEditBoxTextChanged(id);
+        }
+    }
+}
+
 void Editor::OnLeftMouseButtonDown() {
     MouseState.LeftButtonDown = true;
 
@@ -1364,6 +1378,12 @@ bool Editor::HandleGuiEvent(const irr::SEvent& event) {
         case EGET_EDITBOX_ENTER: {
             //user pressed Enter in an EditBox
             OnEditBoxEnterEvent((IGUIEditBox*)event.GUIEvent.Caller);
+            break;
+        }
+
+        case EGET_EDITBOX_CHANGED: {
+            //user changed text of an EditBox
+            OnEditBoxTextChanged(id);
             break;
         }
 

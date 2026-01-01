@@ -286,6 +286,36 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
    return true;
 }
 
+//Returns true in case of success, false otherwise
+bool InfrastructureBase::LoadLevelConfigData(std::string levelRootPath, MapConfigStruct** outMapTarget) {
+    irr::io::path configFileName = GetMapConfigFileName(levelRootPath);
+
+    if (FileExists(configFileName.c_str()) != 1) {
+        //Problem with this file
+        std::string logErr("Can not find file '");
+        logErr.append(configFileName.c_str());
+        logErr.append("'!");
+
+        logging::Error(logErr);
+        return false;
+    }
+
+    //Read complete level/map configuration from Xml file
+    *outMapTarget = new MapConfigStruct();
+    if (!ReadMapConfigFile(configFileName.c_str(), **outMapTarget)) {
+        logging::Error("Failed to read map config file!");
+        return false;
+    }
+
+    std::string logStr("Succesfully read file '");
+    logStr.append(configFileName.c_str());
+    logStr.append("'");
+
+    logging::Info(logStr);
+
+    return true;
+}
+
 bool InfrastructureBase::InitStage1() {
    //first initialization is done using the Nulldevice
 
@@ -951,6 +981,20 @@ bool InfrastructureBase::WriteMapConfigFile(const std::string fileName, MapConfi
         writer->writeClosingTag(L"music");
         writer->writeLineBreak();
 
+        //section for texture base location setup
+        writer->writeElement(L"texturebase");
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"texturebaseLocation" , L"value", irr::core::stringw(configStruct->texBaseLocation.c_str()).c_str());
+        writer->writeLineBreak();
+
+        writer->writeElement(L"setting",true, L"name", L"useCustomTextures" , L"value", BoolToXmlSettingStr(configStruct->useCustomTextures).c_str());
+        writer->writeLineBreak();
+
+        //close texture base location setup section
+        writer->writeClosingTag(L"texturebase");
+        writer->writeLineBreak();
+
         //section for minimap setup
         writer->writeElement(L"minimap");
         writer->writeLineBreak();
@@ -1023,12 +1067,14 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
         const irr::core::stringw skySetupTag(L"sky");
         const irr::core::stringw musicSetupTag(L"music");
         const irr::core::stringw minimapSetupTag(L"minimap");
+        const irr::core::stringw texBaseSetupTag(L"texturebase");
 
         irr::core::stringw currentSection;
 
         irr::core::map<irr::core::stringw, irr::core::stringw> skySetupMap;
         irr::core::map<irr::core::stringw, irr::core::stringw> musicSetupMap;
         irr::core::map<irr::core::stringw, irr::core::stringw> minimapSetupMap;
+        irr::core::map<irr::core::stringw, irr::core::stringw> texBaseSetupMap;
 
         //while there is more to read
         while (xmlReader->read())
@@ -1081,26 +1127,47 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
                             }
                         }
 
-                     //we currently are in the empty or another config section and find the minimap setup tag so we set our current section to minimap setup
-                                          if (currentSection.empty() && minimapSetupTag.equals_ignore_case(xmlReader->getNodeName()))
-                                             {
-                                                 currentSection = minimapSetupTag;
-                                             }
+                     //we currently are in the empty or mapconfig section and find the tex base setup tag so we set our current section to tex base setup
+                     if (currentSection.empty() && texBaseSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                        {
+                            currentSection = texBaseSetupTag;
+                        }
 
-                                          //we are in the minimap setup section and we find a setting to parse
-                                          else if (currentSection.equals_ignore_case(minimapSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
-                                             {
-                                                //read in the key
-                                                 irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
-                                                 //if there actually is a key to set
-                                                 if (!key.empty())
-                                                 {
-                                                     //set the setting in the map to the value,
-                                                     //the [] operator overrides values if they already exist or inserts a new key value
-                                                     //pair into the settings map if it was not defined yet
-                                                     minimapSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
-                                                 }
-                                             }
+                     //we are in the texture base setup section and we find a setting to parse
+                     else if (currentSection.equals_ignore_case(texBaseSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                        {
+                           //read in the key
+                            irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                            //if there actually is a key to set
+                            if (!key.empty())
+                            {
+                                //set the setting in the map to the value,
+                                //the [] operator overrides values if they already exist or inserts a new key value
+                                //pair into the settings map if it was not defined yet
+                                texBaseSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                            }
+                        }
+
+                     //we currently are in the empty or another config section and find the minimap setup tag so we set our current section to minimap setup
+                      if (currentSection.empty() && minimapSetupTag.equals_ignore_case(xmlReader->getNodeName()))
+                             {
+                                 currentSection = minimapSetupTag;
+                             }
+
+                     //we are in the minimap setup section and we find a setting to parse
+                     else if (currentSection.equals_ignore_case(minimapSetupTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                            {
+                                 //read in the key
+                                 irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                                 //if there actually is a key to set
+                                 if (!key.empty())
+                                 {
+                                   //set the setting in the map to the value,
+                                   //the [] operator overrides values if they already exist or inserts a new key value
+                                   //pair into the settings map if it was not defined yet
+                                   minimapSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                                 }
+                            }
                 }
                 break;
 
@@ -1245,6 +1312,33 @@ bool InfrastructureBase::ReadMapConfigFile(const std::string fileName, MapConfig
        } else {
           configStruct.MusicFile.clear();
           configStruct.MusicFile.append(WStringToStdString(nodePntr->getValue().c_str()));
+       }
+
+       //get path to textue base
+       nodePntr = texBaseSetupMap.find(L"texturebaseLocation");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing texturebaseLocation field in Mapconfig Xml file");
+           return false;
+       } else {
+          configStruct.texBaseLocation.clear();
+          configStruct.texBaseLocation.append(WStringToStdString(nodePntr->getValue().c_str()));
+       }
+
+       //get value for useCustomTextures
+       nodePntr = texBaseSetupMap.find(L"useCustomTextures");
+
+       if (nodePntr == nullptr) {
+           logging::Error("ReadMapConfigFile: Missing useCustomTextures field in Mapconfig Xml file");
+           return false;
+       } else {
+          bool outBool;
+          if (!XmlSettingStrToBool(nodePntr->getValue(), outBool)) {
+              logging::Error("ReadMapConfigFile: Missformed field value for useCustomTextures in Mapconfig Xml file");
+              return false;
+          }
+
+          configStruct.useCustomTextures = outBool;
        }
 
        //Minimap setup
@@ -1562,14 +1656,54 @@ irr::io::IFileList* InfrastructureBase::CreateFileList(irr::io::path whichAbsPat
     return fileList;
 }
 
+io::path InfrastructureBase::RemoveFileEndingFromFileName(io::path fileName) {
+    io::path result("");
+
+    //Returns -1 if not found
+    irr::s32 dotPos = fileName.findLast('.');
+
+    if (dotPos != -1) {
+        //get rid of the file ending for comparison
+        result = fileName.subString(0, dotPos);
+    } else {
+        result = fileName;
+    }
+
+    return result;
+}
+
+io::path InfrastructureBase::GetFileEndingFromFileName(io::path fileName) {
+    io::path result("");
+
+    //Returns -1 if not found
+    irr::s32 dotPos = fileName.findLast('.');
+
+    if (dotPos != -1) {
+        //derive file ending
+        result = fileName.subString((irr::u32)(dotPos) + 1, fileName.size() - dotPos - 1);
+    } else {
+        result = fileName;
+    }
+
+    return result;
+}
+
 //if specified file is not found, returns empty path
-irr::io::path InfrastructureBase::LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName) {
+irr::io::path InfrastructureBase::LocateFileInFileList(irr::io::IFileList* fileList, irr::core::string<fschar_t> fileName,
+                                                       bool ignoreFileEnding) {
     irr::u32 entriesFound = fileList->getFileCount();
     bool equals;
+    io::path currName;
 
     for (irr::u32 idx = 0; idx < entriesFound; idx++) {
+       currName = fileList->getFileName(idx);
+
+       if (ignoreFileEnding) {
+          currName = RemoveFileEndingFromFileName(currName);
+       }
+
        //returns true if equal ignoring case
-       equals = fileList->getFileName(idx).equals_ignore_case(fileName);
+       equals = currName.equals_ignore_case(fileName);
 
        if (equals) {
            return (fileList->getFullFileName(idx));

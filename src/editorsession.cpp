@@ -232,6 +232,11 @@ EditorSession::~EditorSession() {
     //free all loaded textures
     delete mTexLoader;
 
+    if (mMapConfig != nullptr) {
+        delete mMapConfig;
+        mMapConfig = nullptr;
+    }
+
     //remove all remaining SceneNodes
     mParentEditor->CleanupAllSceneNodes();
 }
@@ -320,11 +325,16 @@ bool EditorSession::LoadLevel() {
 
    std::string spritefilename("extract/sprites/tmaps");
 
+   if (!mParentEditor->LoadLevelConfigData(mLevelRootPath, &mMapConfig)) {
+       return false;
+   }
+
    /***********************************************************/
    /* Load level textures                                     */
    /***********************************************************/
    //Note: We need to additional load the level editor textures!
-   mTexLoader = new TextureLoader(mParentEditor->mDriver, texfilename.c_str(), spritefilename.c_str(), true);
+   mTexLoader = new TextureLoader(mParentEditor, mLevelRootPath.c_str(),  mMapConfig->texBaseLocation.c_str(),
+                                  mMapConfig->useCustomTextures, spritefilename.c_str(), true);
 
    //was loading textures succesfull? if not interrupt
    if (!this->mTexLoader->mLoadSuccess) {

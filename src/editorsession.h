@@ -52,6 +52,7 @@ class EntityMode;
 class EntityManager;
 class RegionMode;
 struct CurrentlySelectedEditorItemInfoStruct;
+struct MapConfigStruct;
 
 /* GUI Elements
 */
@@ -182,6 +183,8 @@ private:
     irr::gui::IGUIStaticText* mModeInfoText = nullptr;
     irr::gui::IGUIStaticText* mControlInfoText = nullptr;
     irr::gui::IGUIStaticText* mAssignedLevelInfoText = nullptr;
+
+    MapConfigStruct* mMapConfig = nullptr;
 
 public:
     EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName);

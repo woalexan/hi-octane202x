@@ -44,7 +44,6 @@ struct GUIFileOperationDialog
 
     irr::gui::IGUIButton* TriggerOperationButton;
     irr::gui::IGUIButton* CancelButton;
-    irr::gui::IGUIButton* NewButton;
 
     irr::gui::IGUIStaticText* LabelCurrentSelLevelInfo;
     irr::gui::IGUIStaticText* LabelNoMiniMapAvailable;
@@ -65,6 +64,7 @@ public:
 
      void OnTableSelected(irr::s32 elementId);
      void OnTabChanged(irr::s32 elementId);
+     void OnEditBoxTextChanged(irr::s32 elementId);
      void OnButtonClicked();
 
      //Checks if entered new level name is valid
@@ -73,7 +73,7 @@ public:
      //If the new level name is not valid then method returns false,
      //and the file operation dialog is not closed; The issue is described in
      //return parameter string result
-     bool OnNewButtonClicked(std::wstring& result);
+     bool VerifyNewLevelname(std::wstring& result);
 
      irr::u8 GetCurrentFileOperationMode();
 
