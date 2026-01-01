@@ -86,12 +86,6 @@ void FileOperationDialog::CreateWindow() {
     mGUIFileOperationDialog.LabelNewLevelName->setVisible(false);
     mGUIFileOperationDialog.LabelNewLevelName->setEnabled(false);
 
-    mGUIFileOperationDialog.NewButton
-            = mParentEditor->mGuienv->addButton(core::recti(165, dim.Height - 45, 215, dim.Height - 20), Window, GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON, L"New");
-
-    mGUIFileOperationDialog.NewButton->setEnabled(false);
-    mGUIFileOperationDialog.NewButton->setVisible(false);
-
     //move window to a better start location
     Window->move(irr::core::vector2d<irr::s32>(200,200));
 
@@ -111,9 +105,6 @@ void FileOperationDialog::SelectLevelForLoad() {
 
     mGUIFileOperationDialog.NewLevelNameEditBox->setVisible(false);
     mGUIFileOperationDialog.NewLevelNameEditBox->setEnabled(false);
-
-    mGUIFileOperationDialog.NewButton->setEnabled(false);
-    mGUIFileOperationDialog.NewButton->setVisible(false);
 
     mGUIFileOperationDialog.LabelNewLevelName->setVisible(false);
     mGUIFileOperationDialog.LabelNewLevelName->setEnabled(false);
@@ -146,11 +137,10 @@ void FileOperationDialog::SelectLevelForSaveAs() {
     mCurrLevelSelected = nullptr;
     mLoadedTextures.clear();
 
+    mGUIFileOperationDialog.NewLevelNameEditBox->setText(L"");
+
     mGUIFileOperationDialog.NewLevelNameEditBox->setVisible(true);
     mGUIFileOperationDialog.NewLevelNameEditBox->setEnabled(true);
-
-    mGUIFileOperationDialog.NewButton->setEnabled(true);
-    mGUIFileOperationDialog.NewButton->setVisible(true);
 
     mGUIFileOperationDialog.LabelNewLevelName->setVisible(true);
     mGUIFileOperationDialog.LabelNewLevelName->setEnabled(true);
@@ -235,6 +225,13 @@ void FileOperationDialog::OnTableSelected(irr::s32 elementId) {
     }
 
     if (mCurrLevelSelected != nullptr) {
+        if (mFileOpMode == FILEOP_MODE_SAVEAS_NEW) {
+            mFileOpMode = FILEOP_MODE_SAVEAS;
+
+            //empty the new level name EditorBox
+            mGUIFileOperationDialog.NewLevelNameEditBox->setText(L"");
+        }
+
         bool noMinimap = false;
 
         irr::core::stringw newSelLevel(mCurrLevelSelected->description.c_str());
@@ -297,11 +294,9 @@ void FileOperationDialog::CleanupLoadedMinimapTextures() {
 //a parameter; If the new level name is not valid then returns false,
 //and the file operation dialog is not closed. In case of no success the reason
 //for the fail is returned in parameter newLevelname as well
-bool FileOperationDialog::OnNewButtonClicked(std::wstring& result) {
+bool FileOperationDialog::VerifyNewLevelname(std::wstring& result) {
    //get new selected level name text
    irr::core::stringw newName = mGUIFileOperationDialog.NewLevelNameEditBox->getText();
-
-   mFileOpMode = FILEOP_MODE_SAVEAS_NEW;
 
    //new name string empty?
    if (newName.empty()) {
@@ -353,9 +348,6 @@ void FileOperationDialog::OnButtonClicked() {
    mGUIFileOperationDialog.CancelButton->setEnabled(false);
    mGUIFileOperationDialog.CancelButton->setVisible(false);
 
-   mGUIFileOperationDialog.NewButton->setEnabled(false);
-   mGUIFileOperationDialog.NewButton->setVisible(false);
-
    //make sure the minimap Image GUI Element does not show the texture anymore
    //that we will delete below
    mGUIFileOperationDialog.CurrentlySelectedLevelMinimap->setImage(nullptr);
@@ -379,6 +371,18 @@ void FileOperationDialog::OnTabChanged(irr::s32 elementId) {
           OnTableSelected(GUI_ID_FILEOPERATIONDIALOG_CUSTOMLEVELTABLE);
       }
     }
+}
+
+void FileOperationDialog::OnEditBoxTextChanged(irr::s32 elementId) {
+      if (elementId == GUI_ID_FILEOPERATIONDIALOG_NEWLEVELNAMEEDITBOX) {
+          //user entered a new level name in EditBox
+          //change to save as new
+          mFileOpMode = FILEOP_MODE_SAVEAS_NEW;
+
+          //Deselect any current selection in tables
+          mGUIFileOperationDialog.GameLevelTable->setSelected(-1);
+          mGUIFileOperationDialog.CustomLevelTable->setSelected(-1);
+      }
 }
 
 void FileOperationDialog::UpdateLevelTables() {
@@ -444,11 +448,6 @@ FileOperationDialog::~FileOperationDialog() {
     if (mGUIFileOperationDialog.CancelButton != nullptr) {
         mGUIFileOperationDialog.CancelButton->remove();
         mGUIFileOperationDialog.CancelButton = nullptr;
-    }
-
-    if (mGUIFileOperationDialog.NewButton != nullptr) {
-        mGUIFileOperationDialog.NewButton->remove();
-        mGUIFileOperationDialog.NewButton = nullptr;
     }
 
     if (mGUIFileOperationDialog.GameLevelTable != nullptr) {

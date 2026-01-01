@@ -53,7 +53,6 @@ enum
     GUI_ID_FILEOPERATIONDIALOG_TRIGGEROPERATIONBUTTON,
     GUI_ID_FILEOPERATIONDIALOG_CANCELBUTTON,
     GUI_ID_FILEOPERATIONDIALOG_NEWLEVELNAMEEDITBOX,
-    GUI_ID_FILEOPERATIONDIALOG_NEWBUTTON,
     GUI_ID_EDITOR_MSGBOX_CONFIRM_OVERWRITE,
 
     GUI_ID_OPEN_LEVEL,
@@ -251,6 +250,7 @@ private:
     void OnMessageBoxYes(irr::s32 elementId);
     void OnMessageBoxNo(irr::s32 elementId);
     void OnTabChanged(irr::s32 elementId);
+    void OnEditBoxTextChanged(irr::s32 id);
 
     //if function returns true the close action should be interrupted
     bool OnElementClose(irr::s32 elementId);
