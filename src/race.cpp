@@ -2233,37 +2233,33 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     if (physicsFrameDeltaTime > 0.1f)
       physicsFrameDeltaTime = 0.01f;
 
-    //if we are in race phase already handle morphs,
+    //Handle morphs,
     //and update timers
+    if (AllowStartMorphsPerKey && runMorph)
+    {
+        absTimeMorph += frameDeltaTime;
+        progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
 
-    if (mCurrentPhase == DEF_RACE_PHASE_RACING) {
-            //run morphs
-            if (AllowStartMorphsPerKey && runMorph)
-                {
-                  absTimeMorph += frameDeltaTime;
-                  progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
+        std::list<Morph*>::iterator itMorph;
 
-                  std::list<Morph*>::iterator itMorph;
+        for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+               (*itMorph)->setProgress(progressMorph);
+               this->mLevelTerrain->ApplyMorph((**itMorph));
+               (*itMorph)->MorphColumns();
+        }
 
-                  for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
-                      (*itMorph)->setProgress(progressMorph);
-                      this->mLevelTerrain->ApplyMorph((**itMorph));
-                      (*itMorph)->MorphColumns();
-                  }
+        //if necessary update the Mesh now
+        mLevelTerrain->CheckForMeshUpdate();
+        mLevelBlocks->CheckForMeshUpdate();
+     }
 
-                  //if necessary update the Mesh now
-                  mLevelTerrain->CheckForMeshUpdate();
-                  mLevelBlocks->CheckForMeshUpdate();
-                }
-
-            if (!AllowStartMorphsPerKey) {
-                //update level morphs
-                UpdateMorphs(frameDeltaTime);
-            }
-
-            //update timer
-            UpdateTimers(frameDeltaTime);
+    if (!AllowStartMorphsPerKey) {
+          //update level morphs
+          UpdateMorphs(frameDeltaTime);
     }
+
+    //update timer
+    UpdateTimers(frameDeltaTime);
 
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
 

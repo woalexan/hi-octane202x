@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -326,9 +326,8 @@ void Missile::CheckForHitOfMissileTrigger(irr::core::vector3df explodedAtLocatio
     for (itRegion = mParentLauncher->mParent->mRace->mTriggerRegionVec.begin(); itRegion != mParentLauncher->mParent->mRace->mTriggerRegionVec.end(); ++itRegion) {
         //only check for regions which are missile trigger region
         if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
-            //did the missile explosion hit this area?
-            if ((cellHit.X == (int)((*itRegion)->regionCenterTileCoord.X)) &&
-                (cellHit.Y == (int)((*itRegion)->regionCenterTileCoord.Y))) {
+           //is the missile hit point inside this trigger region?
+           if (mParentLauncher->mParent->mRace->mLevelTerrain->CheckPosInsideRegion(cellHit.X, cellHit.Y, (*itRegion))) {
                 //yes, missile hit
 
                 //is it a one time trigger? if so only trigger if we have not triggered before

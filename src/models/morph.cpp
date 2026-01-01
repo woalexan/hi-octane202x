@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
+ Copyright (C) 2024-2026 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -35,14 +35,8 @@ void Morph::MorphColumns() {
 }
 
 void Morph::Trigger() {
-   if (Permanent && mPermanentOnceFired)
-       return;
-
+   //Start morphing
    mCurrMorphing = true;
-
-   if (Permanent && !mPermanentOnceFired) {
-       mPermanentOnceFired = true;
-   }
 }
 
 void Morph::Update(irr::f32 frameDeltaTime) {
@@ -56,12 +50,22 @@ void Morph::Update(irr::f32 frameDeltaTime) {
     MorphColumns();
 
     if (mMorphDirectionUp && (progress >= 0.99999f)) {
-        mCurrMorphing = false;
+        //A morphOnce morph needs to stop when
+        //end point is reached, Permanent morph keeps running
+        if (!Permanent) {
+            mCurrMorphing = false;
+        }
+        //Change direction
         mMorphDirectionUp = false;
     }
 
     if (!mMorphDirectionUp && (progress <= 0.0001f)) {
-        mCurrMorphing = false;
+        //A morphOnce morph needs to stop when
+        //end point is reached, Permanent morph keeps running
+        if (!Permanent) {
+            mCurrMorphing = false;
+        }
+        //Change direction
         mMorphDirectionUp = true;
     }
 }

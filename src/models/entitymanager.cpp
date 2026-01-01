@@ -2026,6 +2026,21 @@ void EntityManager::UpdateCustomMesh(EditorEntity* whichEntity) {
             (whichEntity->mEntityItem->getOffsetX() / currMeshSize.X, 
              1.0f,
              whichEntity->mEntityItem->getOffsetY() / currMeshSize.Z);
+
+        //Some TriggerCraft and TriggerRocket entities have an OffsetX and OffsetY value of 0
+        //in this case make sure that a minimum Size of the Mesh is guaranteed, so that we see something
+        if (scaleVal.X < 0.01f) {
+            scaleVal.X = 0.05f;
+        }
+
+        if (scaleVal.Y < 0.01f) {
+            scaleVal.Y = 0.05f;
+        }
+
+        if (scaleVal.Z < 0.01f) {
+            scaleVal.Z = 0.05f;
+        }
+
         meshManipulator->scale(meshPntr, scaleVal);
 
         whichEntity->UpdateBoundingBox();
