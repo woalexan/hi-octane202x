@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
+ Copyright (C) 2024-2026 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -35,11 +35,11 @@ public:
           LevelTerrain* levelTerrain, LevelBlocks* levelblocks);
     ~Morph();
 
-    bool Enabled = true;
-
     EntityItem* Source = nullptr;
     EntityItem* Target = nullptr;
 
+    //A permanent morph means the morph continiously
+    //is running in the game; does never stop
     bool Permanent;
     bool UVSFromSource = false;
 
@@ -56,8 +56,12 @@ public:
 
     void MorphColumns();
 
-    //if morph is triggered, it will morph
+    //if a morph is triggered, it will morph
     //the terrain/columns
+    //The permament morph will start running initially
+    //when triggered first and then run forever
+    //A MorphOnce will move to the other state once when triggered, and then
+    //wait again for the next trigger. Then it will move back
     void Trigger();
 
     void Update(irr::f32 frameDeltaTime);
@@ -66,8 +70,6 @@ public:
 
     bool mCurrMorphing = false;
     bool mMorphDirectionUp = true;
-
-    bool mPermanentOnceFired = false;
    
 private:
     irr::f32 progress = 0.0f;
