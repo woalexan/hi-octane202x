@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -237,6 +237,8 @@ private:
     //writes raw video data into picture file, using specified palette file
     void ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
                              const char* outputFilename, int scaleFactor = 1);
+
+    void UpscaleAllImagesInDirectory(const char* srcDir, const char* srcFilePrefix, const char* targetDir, int scaleFactor);
 
     void ExtractTmaps();
 

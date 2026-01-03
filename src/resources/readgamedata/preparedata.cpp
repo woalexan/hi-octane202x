@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -266,15 +266,15 @@ void PrepareData::ExtractFonts() {
     PrepareSubDir("extract/fonts/thinwhite");
     ExtractThinWhiteFontSVGA();
 
-    //PrepareSubDir("extract/fonts/smallsvga");
-    //ExtractSmallFontSVGA();
-
     PrepareSubDir("extract/fonts/smallsvgagreenish");
     //create greenish font for unselected items in menue (but based for smaller text size)
     CreateFontForUnselectedItemsInMenue(
         "extract/fonts/smallsvga/osfnt0-1-",
         "extract/fonts/smallsvgagreenish/green-osfnt0-1-",
         0, 241);
+
+    UpscaleAllImagesInDirectory("extract/fonts/smallsvgagreenish",
+        "green-osfnt0-1-", "extract/fonts/smallsvgagreenish-x2", 2);
 
     PrepareSubDir("extract/fonts/large");
     ExtractLargeFontSVGA();
@@ -286,6 +286,11 @@ void PrepareData::ExtractFonts() {
         "extract/fonts/large/olfnt0-1-",
         "extract/fonts/largegreenish/green-olfnt0-1-",
         0, 241);
+
+    //03.01.2026: Also upscale fonts used in menue
+    //This scaled font is then use for doubleResolution option
+    //in menues
+    UpscaleAllImagesInDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", "extract/fonts/largegreenish-x2", 2);
 
     PrepareSubDir("extract/fonts/largegreen");
     ExtractLargeGreenFontSVGA();
@@ -993,6 +998,44 @@ void PrepareData::ExtractGameLogoSVGA() {
     }
 }
 
+void PrepareData::UpscaleAllImagesInDirectory(const char* srcDir, const char* srcFilePrefix, const char* targetDir, int scaleFactor) {
+    //Create a list of files existing in specified source dir
+    irr::io::IFileList* fList = mInfra->CreateFileList(irr::io::path(srcDir));
+
+    if (fList == nullptr) {
+        throw std::string("UpscaleAllImagesInDirectory: Can not search for files in source directory");
+    }
+
+    //make sure targetDir exists
+    PrepareSubDir(targetDir);
+
+    irr::u32 fileCnt = fList->getFileCount();
+    io::path currFileName;
+    io::path currTargetFileName;
+
+    for (irr::u32 idx = 0; idx < fileCnt; idx++) {
+        currFileName = fList->getFileName(idx);
+
+        //-1 return value means string not found in string
+        if (currFileName.find(srcFilePrefix, 0) != -1) {
+            //create targetFileName
+            currTargetFileName = "";
+            currTargetFileName.append(targetDir);
+            currTargetFileName.append("/");
+            currTargetFileName.append(mInfra->RemoveFileEndingFromFileName(currFileName));
+            //Save as PNG to not loose the Alpha value
+            currTargetFileName.append(".png");
+           
+            //file contains prefix, scale this file
+            UpscaleExistingImageFile(fList->getFullFileName(idx).c_str(), currTargetFileName.c_str(), scaleFactor);
+        }
+    }
+
+    //drop the file list again
+    //not that we get a memory leak!
+    fList->drop();
+}
+
 void PrepareData::UpscaleExistingImageFile(const char* srcFile, const char* destFile, int scaleFactor) {
     irr::video::IImage* srcImg = mInfra->mDriver->createImageFromFile(srcFile);
     if (srcImg == nullptr) {
@@ -1286,6 +1329,11 @@ void PrepareData::ExtractLargeFontSVGA() {
          throw std::string("Could not locate the original games data file olfnt0-1.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/large/olfnt0-1-");
+
+    //03.01.2026: Also upscale fonts used in menue
+    //This scaled font is then use for doubleResolution option
+    //in menues
+    UpscaleAllImagesInDirectory("extract/fonts/large", "olfnt0-1-", "extract/fonts/large-x2", 2);
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -1313,6 +1361,9 @@ void PrepareData::ExtractSmallFontSVGA() {
          throw std::string("Could not locate the original games data file osfnt0-1.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/smallsvga/osfnt0-1-");
+
+    UpscaleAllImagesInDirectory("extract/fonts/smallsvga", "osfnt0-1-", "extract/fonts/smallsvga-x2", 2);
+
 }
 
 //Takes an image, and replaces one specified color with another specified color

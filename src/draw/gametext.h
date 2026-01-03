@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -15,6 +15,12 @@
 #include <vector>
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
+
+ /************************
+  * Forward declarations *
+  ************************/
+
+class InfrastructureBase;
 
 typedef struct GameTextCharacterInfo {
       //contains the raw texture for the character
@@ -39,12 +45,12 @@ typedef struct GameTextFont {
 class GameText {
 
 private:
-    irr::video::IVideoDriver* myDriver = nullptr;
-    irr::IrrlichtDevice* myDevice = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     void LoadInitialFont();
 
-    GameTextFont* LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = nullptr);
+    GameTextFont* LoadGameFont(char* fileName, const char* fileEnding, unsigned long numOffset, unsigned long numChars,
+        std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = nullptr);
     irr::core::rect<irr::s32> FindCharArea(GameTextCharacterInfo *character, bool &succesFlag);
     bool AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor);
     void FreeTextFont(GameTextFont &pntrFont);
@@ -57,7 +63,7 @@ private:
                                                 irr::video::SColor newColor);
 
 public:
-    GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver);
+    GameText(InfrastructureBase* infra);
     ~GameText();
 
     void LoadFontsStep2();
@@ -99,6 +105,9 @@ public:
     //main use is in Hud banner text at the lower part of the screen
     GameTextFont* HudWhiteTextBannerFont = nullptr;
 
+    //used in game menue for selected items
+    GameTextFont* GameMenueSelectedItemFont = nullptr;
+
     //is the white smaller text font that is used in the menue for example
     //to give additional information about number of laps etc...
     GameTextFont* GameMenueWhiteTextSmallSVGA = nullptr;
@@ -138,7 +147,8 @@ public:
     GameTextFont* HudTargetNameGreen = nullptr;
     GameTextFont* HudTargetNameRed = nullptr;
 
-    GameTextFont* ThinWhiteText = nullptr;
+    //Not used until 03.01.2026; commented out
+    //GameTextFont* ThinWhiteText = nullptr;
 
     bool GameTextInitializedOk = false;
 };

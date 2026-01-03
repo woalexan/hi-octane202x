@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -767,14 +767,14 @@ void Game::GameLoopLoadRaceScreen() {
     char loadingTxt[25];
     strcpy(loadingTxt, "LOADING LEVEL");
 
-    irr::u32 txtWidth = mGameTexts->GetWidthPixelsGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont);
-    irr::u32 txtHeight = mGameTexts->GetHeightPixelsGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont);
+    irr::u32 txtWidth = mGameTexts->GetWidthPixelsGameText(loadingTxt, mGameTexts->GameMenueSelectedItemFont);
+    irr::u32 txtHeight = mGameTexts->GetHeightPixelsGameText(loadingTxt, mGameTexts->GameMenueSelectedItemFont);
 
     irr::core::position2di txtDrawPos;
     txtDrawPos.X = mScreenRes.Width / 2 - txtWidth / 2;
     txtDrawPos.Y = mScreenRes.Height / 2 - txtHeight / 2;
 
-    mGameTexts->DrawGameText(loadingTxt, mGameTexts->HudWhiteTextBannerFont, txtDrawPos);
+    mGameTexts->DrawGameText(loadingTxt, mGameTexts->GameMenueSelectedItemFont, txtDrawPos);
 
     mDriver->endScene();
 

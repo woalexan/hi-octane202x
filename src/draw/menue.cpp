@@ -1,5 +1,5 @@
 ﻿/*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -34,7 +34,7 @@ MenuePage::MenuePage(Menue* parentMenue, MenuePage* parentPage, irr::u8 pageNr, 
 
 MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction) {
     return(AddDefaultMenueEntry(text, itemSelectable, goToPage, triggerAction, mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont,
-                                                      mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont));
+                                                      mParentMenue->mGame->mGameTexts->GameMenueSelectedItemFont));
 }
 
 MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction,
@@ -87,7 +87,7 @@ MenueSingleEntry* MenuePage::AddEmptySpaceMenueEntry() {
 
           //use the default menue fonts
           newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
-          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueSelectedItemFont;
 
           pageEntryVec.push_back(newEntry);
 
@@ -125,7 +125,7 @@ MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSele
 
           //use the default menue fonts
           newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
-          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueSelectedItemFont;
 
           pageEntryVec.push_back(newEntry);
 
@@ -159,7 +159,7 @@ MenueSingleEntry* MenuePage::AddTextInputMenueEntry(char* initTextPntrParam, boo
 
           //use the default menue fonts
           newEntry->usedUnselectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueUnselectedEntryFont;
-          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->HudWhiteTextBannerFont;
+          newEntry->usedSelectedTextFont = mParentMenue->mGame->mGameTexts->GameMenueSelectedItemFont;
 
           pageEntryVec.push_back(newEntry);
 
@@ -1073,7 +1073,7 @@ void Menue::PrintMenueEntriesShipSelection() {
                 printCharLeft = -1;
             }
 
-          mGame->mGameTexts->DrawGameText(currSelShipName, mGame->mGameTexts->HudWhiteTextBannerFont, this->ShipNameTitle->drawTextScrPosition, printCharLeft);
+          mGame->mGameTexts->DrawGameText(currSelShipName, mGame->mGameTexts->GameMenueSelectedItemFont, this->ShipNameTitle->drawTextScrPosition, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(currSelShipName));
           if (printCharLeft < 0)
               printCharLeft = 0;
@@ -2673,7 +2673,7 @@ void Menue::FinalPositionShipSelectionWheelReached(irr::u8 newPosition) {
 
     //recalculate X coordinate of ship name to center name!
     irr::u32 newCoord = (mGame->mScreenRes.Width / 2) -
-            (mGame->mGameTexts->GetWidthPixelsGameText(currSelShipName, mGame->mGameTexts->HudWhiteTextBannerFont) / 2);
+            (mGame->mGameTexts->GetWidthPixelsGameText(currSelShipName, mGame->mGameTexts->GameMenueSelectedItemFont) / 2);
     this->ShipNameTitle->drawTextScrPosition.X = newCoord;
 
     UpdateShipSelectionTypeWriterEffect();
@@ -3573,7 +3573,7 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
        //for the first 3 entries use white font color
        //for the remaining entries use header color
        if (cnt < 3) {
-           newLabel->whichFont = mGame->mGameTexts->HudWhiteTextBannerFont;
+           newLabel->whichFont = mGame->mGameTexts->GameMenueSelectedItemFont;
        } else {
            newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedEntryFont;
        }
@@ -3594,7 +3594,7 @@ void Menue::ShowPointsTablePage(std::vector<PointTableEntryStruct*>* pointTable,
        //for the first 3 entries use white font color
        //for the remaining entries use header color
        if (cnt < 3) {
-           newLabel->whichFont = mGame->mGameTexts->HudWhiteTextBannerFont;
+           newLabel->whichFont = mGame->mGameTexts->GameMenueSelectedItemFont;
        } else {
            newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedEntryFont;
        }
@@ -3888,7 +3888,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    newLabel->drawPositionTxt.X = 225;
    newLabel->drawPositionTxt.Y = 25;
    newLabel->text = strdup("STATISTICS");
-   newLabel->whichFont = mGame->mGameTexts->HudWhiteTextBannerFont;
+   newLabel->whichFont = mGame->mGameTexts->GameMenueSelectedItemFont;
 
    ScalePositionMenueTextLabel(*newLabel);
 
@@ -4355,7 +4355,7 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
                this->mGameAssets->GetNumberDriverAssessementStrings() - finalRaceStatistics->at(0)->rating);
 
    newLabel = new MenueTextLabel();
-   newLabel->whichFont = mGame->mGameTexts->HudWhiteTextBannerFont;
+   newLabel->whichFont = mGame->mGameTexts->GameMenueSelectedItemFont;
    newLabel->drawPositionTxt.X = 320 - mGame->mGameTexts->GetWidthPixelsGameText(
                playerAssessement, newLabel->whichFont) / 2;
 

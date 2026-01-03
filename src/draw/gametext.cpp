@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -8,6 +8,7 @@
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
 #include "gametext.h"
+#include "../infrabase.h"
 
 void GameText::AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>> &colorOccurenceList,
                                             irr::video::SColor newColor)
@@ -42,6 +43,12 @@ bool GameText::DeriveTransparentColorForChar(GameTextCharacterInfo &character) {
          //lock texture for just reading of pixel data
          irr::u8* datapntr = (irr::u8*)character.texture->lock(irr::video::ETLM_READ_ONLY);
          irr::u32 pitch = character.texture->getPitch();
+         irr::u32 bytesPerPixel = mInfra->ReturnBytesPerPixel(format);
+
+         if (bytesPerPixel == 0) {
+             //unsupported format, return false
+             return false;
+         }
 
          //the get the most likely transparent color of the font character
          //take the 4 corner pixels, and inspect which color the have
@@ -54,22 +61,26 @@ bool GameText::DeriveTransparentColorForChar(GameTextCharacterInfo &character) {
          vecColorOccurence.clear();
 
          //get left upper pixel
-         irr::video::SColor* texelTrans = (irr::video::SColor *)(datapntr + ((0 * pitch) + (0 * sizeof(irr::video::SColor))));
+         //irr::video::SColor* texelTrans = (irr::video::SColor *)(datapntr + ((0 * pitch) + (0 * sizeof(irr::video::SColor))));
+         irr::video::SColor* texelTrans = (irr::video::SColor*)(datapntr + ((0 * pitch) + (0 * bytesPerPixel)));
 
          AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
 
          //get right upper pixel
-         texelTrans = (irr::video::SColor *)(datapntr + ((0 * pitch) + ((character.sizeRawTex.Width - 1) * sizeof(irr::video::SColor))));
+         //texelTrans = (irr::video::SColor *)(datapntr + ((0 * pitch) + ((character.sizeRawTex.Width - 1) * sizeof(irr::video::SColor))));
+         texelTrans = (irr::video::SColor*)(datapntr + ((0 * pitch) + ((character.sizeRawTex.Width - 1) * bytesPerPixel)));
 
          AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
 
          //get left lower pixel
-         texelTrans = (irr::video::SColor *)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + (0 * sizeof(irr::video::SColor))));
+         //texelTrans = (irr::video::SColor *)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + (0 * sizeof(irr::video::SColor))));
+         texelTrans = (irr::video::SColor*)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + (0 * bytesPerPixel)));
 
          AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
 
          //get right lower pixel
-         texelTrans = (irr::video::SColor *)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + ((character.sizeRawTex.Width - 1) * sizeof(irr::video::SColor))));
+         //texelTrans = (irr::video::SColor *)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + ((character.sizeRawTex.Width - 1) * sizeof(irr::video::SColor))));
+         texelTrans = (irr::video::SColor*)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + ((character.sizeRawTex.Width - 1) * bytesPerPixel)));
 
          AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
 
@@ -102,6 +113,15 @@ irr::core::rect<irr::s32> GameText::FindCharArea(GameTextCharacterInfo *characte
 
  //we need to know the used pixel color format
   irr::video::ECOLOR_FORMAT format = character->texture->getColorFormat();
+  irr::u32 bytesPerPixel = mInfra->ReturnBytesPerPixel(format);
+
+  if (bytesPerPixel == 0) {
+      //unsupported pixel color format!
+      //just return full characters, and set successFlag to False
+      irr::core::rect<irr::s32> result(0, 0, character->sizeRawTex.Width, character->sizeRawTex.Height);
+      succesFlag = false;
+      return result;
+  }
 
   //we can only handle this format right now
   if(irr::video::ECF_A8R8G8B8 == format)
@@ -115,6 +135,12 @@ irr::core::rect<irr::s32> GameText::FindCharArea(GameTextCharacterInfo *characte
         //irr::video::SColor* texelTrans = (irr::video::SColor *)(datapntr + ((0 * pitch) + (0 * sizeof(irr::video::SColor))));
         irr::video::SColor* texelTrans = &character->transColor;
 
+        irr::video::SColor col1;
+        irr::video::SColor col2 = *texelTrans;
+        col2.setAlpha(0);
+
+        irr::video::SColor* texel;
+
         //iterate through all colums from left to right
         for (irr::s32 x = 0; x < character->sizeRawTex.Width; x++) {
             //check current column from top to bottom to see if we only find
@@ -124,9 +150,14 @@ irr::core::rect<irr::s32> GameText::FindCharArea(GameTextCharacterInfo *characte
             for (irr::s32 y = 0; y < character->sizeRawTex.Height; y++) {
                 //texel is the pixel color at position x and y
 
-                irr::video::SColor* texel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
-                if (*texel != *texelTrans) {
+                //irr::video::SColor* texel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
+                texel = (irr::video::SColor*)(datapntr + ((y * pitch) + (x * bytesPerPixel)));
+                col1 = *texel;
+                col1.setAlpha(0);
+
+                if (col1 != col2) {
                     wholeColumnTrans = false;
+                    break;
                 }
             }
 
@@ -146,9 +177,14 @@ irr::core::rect<irr::s32> GameText::FindCharArea(GameTextCharacterInfo *characte
             for (irr::s32 y = 0; y < character->sizeRawTex.Height; y++) {
                 //texel is the pixel color at position x and y
 
-                irr::video::SColor* texel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
-                if (*texel != *texelTrans) {
+                //irr::video::SColor* texel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
+                texel = (irr::video::SColor*)(datapntr + ((y * pitch) + (x * bytesPerPixel)));
+                col1 = *texel;
+                col1.setAlpha(0);
+
+                if (col1 != col2) {
                     wholeColumnTrans = false;
+                    break;
                 }
             }
 
@@ -197,12 +233,22 @@ irr::core::rect<irr::s32> GameText::FindCharArea(GameTextCharacterInfo *characte
 //In case of an unexpected error this function returns succesFlag = false, True otherwise
 bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor) {
 
-  irr::video::SColor* texelTrans;
-  irr::video::SColor texelTextColor;
+  irr::video::SColor texelTrans;
+  //irr::video::SColor texelTextColor;
   bool textColFound = false;
-
+ 
  //we need to know the used pixel color format
   irr::video::ECOLOR_FORMAT format = character.texture->getColorFormat();
+
+  irr::u32 bytesPerPixel = mInfra->ReturnBytesPerPixel(format);
+
+  if (bytesPerPixel == 0) {
+      //unsupported pixel color format!
+      return false;
+  }
+
+  std::vector<SColor> texelTextColorVec;
+  texelTextColorVec.clear();
 
   //we can only handle this format right now
   if(irr::video::ECF_A8R8G8B8 == format)
@@ -210,40 +256,47 @@ bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::S
       irr::core::vector2d<irr::u32> texSize = character.texture->getSize();
 
       //create a helper texture in which we store the initial character pixel info
-      irr::video::ITexture* hTex = this->myDriver->addTexture(texSize, irr::io::path("helperTex"), format);
+      irr::video::ITexture* hTex = mInfra->mDriver->addTexture(texSize, irr::io::path("helperTex"), format);
 
         //lock texture for just reading of pixel data
         irr::u8* datapntr = (irr::u8*)character.texture->lock(irr::video::ETLM_READ_ONLY);
         irr::u8* datapntr2 = (irr::u8*)hTex->lock(irr::video::ETLM_READ_WRITE);
         irr::u32 pitch = character.texture->getPitch();
-
+    
         //all raw character pictures have the transparent color at the upper leftmost pixel (0,0)
         //get this value, as a reference where there is no pixel of the character itself
         //texelTrans = (irr::video::SColor *)(datapntr + ((0 * pitch) + (0 * sizeof(irr::video::SColor))));
-        texelTrans = &character.transColor;
+        texelTrans = character.transColor;
+        texelTrans.setAlpha(0);
 
         irr::video::SColor* texel;
         irr::video::SColor* wTexel;
+        irr::video::SColor col1;
 
         //iterate through all pixels and copy them into the helper texture
         for (irr::s32 x = 0; x < character.sizeRawTex.Width; x++) {
             for (irr::s32 y = 0; y < character.sizeRawTex.Height; y++) {
                 //texel is the pixel color at position x and y
 
-                texel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
-                wTexel = (irr::video::SColor *)(datapntr2 + ((y * pitch) + (x * sizeof(irr::video::SColor))));
+                //texel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
+                //wTexel = (irr::video::SColor *)(datapntr2 + ((y * pitch) + (x * sizeof(irr::video::SColor))));
+
+                texel = (irr::video::SColor*)(datapntr + ((y * pitch) + (x * bytesPerPixel)));
+                wTexel = (irr::video::SColor*)(datapntr2 + ((y * pitch) + (x * bytesPerPixel)));
 
                 //copy original picture into the helper texture
                 *wTexel = *texel;
 
-                //try to establish text color
-                if (textColFound == false) {
-                    if (*texel != *texelTrans) {
-                        //remember text color we found
-                        texelTextColor = *texel;
-                        textColFound = true;
-                    }
-                }
+                col1 = *texel;
+                col1.setAlpha(0);
+
+                //try to establish all text colors, that are not
+                //background pixels
+                if (col1 != texelTrans) {
+                     //remember text color we found
+                     texelTextColorVec.push_back(col1);
+                     textColFound = true;
+                }         
             }
         }
 
@@ -268,13 +321,27 @@ bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::S
         irr::video::SColor* texel7;
         irr::video::SColor* texel8;
         irr::video::SColor* texelp;
+
+        irr::video::SColor texel1col;
+        irr::video::SColor texel2col;
+        irr::video::SColor texel3col;
+        irr::video::SColor texel4col;
+        irr::video::SColor texel5col;
+        irr::video::SColor texel6col;
+        irr::video::SColor texel7col;
+        irr::video::SColor texel8col;
         bool outLine;
+
+        std::vector<irr::video::SColor>::iterator itColor;
+        irr::video::SColor col2;
 
         //now iterate again, create outline pixel by pixel, and store result in original texture
         for (irr::s32 x = 1; x < character.sizeRawTex.Width - 1; x++) {
             for (irr::s32 y = 1; y < character.sizeRawTex.Height -1 ; y++) {
+
+                outLine = true;
                 //texel is the pixel color at position x and y
-                 irr::video::SColor* wTexel = (irr::video::SColor *)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
+               /* irr::video::SColor* wTexel = (irr::video::SColor*)(datapntr + ((y * pitch) + (x * sizeof(irr::video::SColor))));
 
                 texel1 = (irr::video::SColor *)(datapntr2 + (((y-1) * pitch) + ((x-1) * sizeof(irr::video::SColor))));
                 texel2 = (irr::video::SColor *)(datapntr2 + (((y-1) * pitch) + ((x) * sizeof(irr::video::SColor))));
@@ -285,19 +352,95 @@ bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::S
                 texel7 = (irr::video::SColor *)(datapntr2 + (((y+1) * pitch) + ((x) * sizeof(irr::video::SColor))));
                 texel8 = (irr::video::SColor *)(datapntr2 + (((y+1) * pitch) + ((x+1) * sizeof(irr::video::SColor))));
 
-                texelp = (irr::video::SColor *)(datapntr2 + (((y) * pitch) + ((x) * sizeof(irr::video::SColor))));
+                texelp = (irr::video::SColor *)(datapntr2 + (((y) * pitch) + ((x) * sizeof(irr::video::SColor))));*/
 
-                //an outline pixel must have at least one neighboring pixel that is not transparent colored
-                outLine = ((*texel1 != *texelTrans ) || (*texel2 != *texelTrans ) || (*texel3 != *texelTrans ) ||
-                        (*texel4 != *texelTrans ) || (*texel5 != *texelTrans ) || (*texel6 != *texelTrans ) || (*texel7 != *texelTrans )
-                        || (*texel8 != *texelTrans ));
+                texelp = (irr::video::SColor*)(datapntr2 + (((y)*pitch) + ((x)*bytesPerPixel)));
+                col2 = *texelp;
+                col2.setAlpha(0);
 
                 //and an outline pixel can not have the text color itself!
-                outLine &= (*texelp != texelTextColor);
+                //check for all found text colors
+                for (itColor = texelTextColorVec.begin(); itColor != texelTextColorVec.end(); ++itColor) {
+                    outLine &= (col2 != (*itColor));
+                }
 
-                //if this pixel belongs to an outline, set the outline color there
-                if (outLine) {
+                if (!outLine) {
+                    continue;
+                }
+
+                irr::video::SColor* wTexel = (irr::video::SColor*)(datapntr + ((y * pitch) + (x * bytesPerPixel)));
+
+                texel1 = (irr::video::SColor*)(datapntr2 + (((y - 1) * pitch) + ((x - 1) * bytesPerPixel)));
+                texel1col = *texel1;
+                texel1col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (texel1col != texelTrans) {
                     *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel2 = (irr::video::SColor*)(datapntr2 + (((y - 1) * pitch) + ((x) * bytesPerPixel)));
+                texel2col = *texel2;
+                texel2col.setAlpha(0);
+
+                if (texel2col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel3 = (irr::video::SColor*)(datapntr2 + (((y - 1) * pitch) + ((x + 1) * bytesPerPixel)));
+                texel3col = *texel3;
+                texel3col.setAlpha(0);
+
+                if (texel3col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel4 = (irr::video::SColor*)(datapntr2 + (((y)*pitch) + ((x - 1) * bytesPerPixel)));
+                texel4col = *texel4;
+                texel4col.setAlpha(0);
+
+                if (texel4col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel5 = (irr::video::SColor*)(datapntr2 + (((y)*pitch) + ((x + 1) * bytesPerPixel)));
+                texel5col = *texel5;
+                texel5col.setAlpha(0);
+
+                if (texel5col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel6 = (irr::video::SColor*)(datapntr2 + (((y + 1) * pitch) + ((x - 1) * bytesPerPixel)));
+                texel6col = *texel6;
+                texel6col.setAlpha(0);
+
+                if (texel6col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel7 = (irr::video::SColor*)(datapntr2 + (((y + 1) * pitch) + ((x) * bytesPerPixel)));
+                texel7col = *texel7;
+                texel7col.setAlpha(0);
+
+                if (texel7col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
+                }
+
+                texel8 = (irr::video::SColor*)(datapntr2 + (((y + 1) * pitch) + ((x + 1) * bytesPerPixel)));
+                texel8col = *texel8;
+                texel8col.setAlpha(0);
+
+                if (texel8col != texelTrans) {
+                    *wTexel = *outLineColor;
+                    continue;
                 }
             }
         }
@@ -323,9 +466,9 @@ bool GameText::AddColoredOutline(GameTextCharacterInfo &character, irr::video::S
 //  loadAddFileNr = allows to specify additional files for loading character images file offsets
 //                  at the end
 //In case of an unexpected error this function returns nullptr
-GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr,
+GameTextFont* GameText::LoadGameFont(char* fileName, const char *fileEnding, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr,
                                      bool addOutline, irr::video::SColor* outLineColor) {
-  myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+  mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
   char finalpath[70];
   char fname[20];
@@ -353,13 +496,13 @@ GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, un
   for (it2 = loadFileNumbers.begin(); it2 != loadFileNumbers.end(); ++it2) {
       //build current filename
       strcpy(finalpath, fileName);
-      sprintf (fname, "%0*lu.bmp", 4, (*it2));
+      sprintf (fname, "%0*lu%s", 4, (*it2), fileEnding);
       strcat(finalpath, fname);
 
       //load a new character for the new font
       GameTextCharacterInfo* newCharInfo = new GameTextCharacterInfo;
 
-      newCharInfo->texture = myDriver->getTexture(finalpath);
+      newCharInfo->texture = mInfra->mDriver->getTexture(finalpath);
 
       if (newCharInfo->texture == nullptr) {
           //there was a texture loading error
@@ -387,7 +530,7 @@ GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, un
       //always only a line of transparent pixels between characters)
       newCharInfo->charRect = FindCharArea(newCharInfo, successFlag);
 
-      myDriver->makeColorKeyTexture(newCharInfo->texture, newCharInfo->transColor);
+      mInfra->mDriver->makeColorKeyTexture(newCharInfo->texture, newCharInfo->transColor);
 
       if (successFlag != true) {
         //we had an unexpected error in FindCharArea, just return nullptr and stop
@@ -398,7 +541,7 @@ GameTextFont* GameText::LoadGameFont(char* fileName, unsigned long numOffset, un
       newFont->CharacterVector.push_back(newCharInfo);
   }
 
-  myDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
+  mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
 
   return newFont;
 }
@@ -417,7 +560,7 @@ void GameText::FreeTextFont(GameTextFont &pntrFont) {
           itChar = pntrFont.CharacterVector.erase(itChar);
 
           //remove underlying texture
-          this->myDriver->removeTexture(pntr->texture);
+          mInfra->mDriver->removeTexture(pntr->texture);
 
           //delete character object itself
           delete pntr;
@@ -443,7 +586,7 @@ void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::posi
 
     while ((*pntr != 0) && ((charCnter > 0) || (stopAfterNrChars == -1))) {
         //draw current character
-        myDriver->draw2DImage(whichFont->CharacterVector[*pntr]->texture, correctCharPosition,
+        mInfra->mDriver->draw2DImage(whichFont->CharacterVector[*pntr]->texture, correctCharPosition,
               whichFont->CharacterVector[*pntr]->charRect, 0,
                   irr::video::SColor(255,255,255,255), true);
 
@@ -552,7 +695,7 @@ void GameText::DrawHudSmallText(char* alphanumericalText, GameTextFont *whichHud
 
           if (!skipChar) {
               //draw current character
-              myDriver->draw2DImage(whichHudFont->CharacterVector[index]->texture, correctCharPosition,
+              mInfra->mDriver->draw2DImage(whichHudFont->CharacterVector[index]->texture, correctCharPosition,
                 whichHudFont->CharacterVector[index]->charRect, 0,
                     irr::video::SColor(255,255,255,255), true);
 
@@ -627,7 +770,7 @@ void GameText::DrawGameNumberText(char* numberText, GameTextFont *whichFont, irr
 
         if (!skipChar) {
             //draw current character
-            myDriver->draw2DImage(whichFont->CharacterVector[index]->texture, correctCharPosition,
+            mInfra->mDriver->draw2DImage(whichFont->CharacterVector[index]->texture, correctCharPosition,
               whichFont->CharacterVector[index]->charRect, 0,
                   irr::video::SColor(255,255,255,255), true);
 
@@ -717,7 +860,7 @@ void GameText::LoadInitialFont() {
     std::vector<int> addFileOffs = {};
 
     //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
-    GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/osfnt0-1-", 0, 241, addFileOffs, true, outLineColor);
+    GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/osfnt0-1-", ".bmp", 0, 241, addFileOffs, true, outLineColor);
 
     //was there are problem loading the text font?
     if (GameMenueWhiteTextSmallSVGA == nullptr) {
@@ -734,15 +877,29 @@ void GameText::LoadFontsStep2() {
     std::vector<int> addFileOffs = {};
 
     //load white Hud banner text font, 241 characters need to be loaded
-    HudWhiteTextBannerFont = LoadGameFont((char*)"extract/fonts/large/olfnt0-1-", 0, 241, addFileOffs, true, outLineColor);
+    HudWhiteTextBannerFont = LoadGameFont((char*)"extract/fonts/large/olfnt0-1-", ".bmp", 0, 241, addFileOffs, true, outLineColor);
 
     //was there are problem loading the text font?
     if (HudWhiteTextBannerFont == nullptr) {
         GameTextInitializedOk = false;
     }
 
+    //load white text font used in game menue, 241 characters need to be loaded
+    if (!mInfra->mGameConfig->enableDoubleResolution) {
+        GameMenueSelectedItemFont = LoadGameFont((char*)"extract/fonts/large/olfnt0-1-", ".bmp", 0, 241, addFileOffs, true, outLineColor);
+    }
+    else {
+        //for double resolution use font upscaled by factor of 2
+        GameMenueSelectedItemFont = LoadGameFont((char*)"extract/fonts/large-x2/olfnt0-1-", ".png", 0, 241, addFileOffs, true, outLineColor);
+    }
+
+    //was there are problem loading the text font?
+    if (GameMenueSelectedItemFont == nullptr) {
+        GameTextInitializedOk = false;
+    }
+
     //load big green Hud text font, 241 characters need to be loaded
-    HudBigGreenText = LoadGameFont((char*)"extract/fonts/largegreen/pfont0-1-", 0, 241, addFileOffs, false);
+    HudBigGreenText = LoadGameFont((char*)"extract/fonts/largegreen/pfont0-1-", ".bmp", 0, 241, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (HudBigGreenText == nullptr) {
@@ -752,7 +909,7 @@ void GameText::LoadFontsStep2() {
     //load Hud laptime number fonts in red, only 12 characters need to be loaded
     //also add graphical symbol with the 2 red arrows (which is used next to the current lap numbers)
     std::vector<int> addFileOffs2 = {226};
-    HudLaptimeNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", 138, 12, addFileOffs2, false);
+    HudLaptimeNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 138, 12, addFileOffs2, false);
 
     //was there are problem loading the text font?
     if (HudLaptimeNumberRed == nullptr) {
@@ -760,7 +917,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load Hud laptime number fonts in grey, only 12 characters need to be loaded
-    HudLaptimeNumberGrey = LoadGameFont((char*)"extract/hud1player/panel0-1-", 150, 12, addFileOffs, false);
+    HudLaptimeNumberGrey = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 150, 12, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (HudLaptimeNumberGrey == nullptr) {
@@ -769,12 +926,18 @@ void GameText::LoadFontsStep2() {
 
     //add also the skull graphical symbol
     std::vector<int> addFileOffs3 = {227};
-    HudKillCounterNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", 117, 10, addFileOffs3, false);
+    HudKillCounterNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 117, 10, addFileOffs3, false);
 
     irr::video::SColor* outLineColor2 = new irr::video::SColor(255, 40, 65, 56);
 
     //load font we created ourself before for unselected items in mainmenue
-    GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish/green-olfnt0-1-", 0, 241, addFileOffs, true, outLineColor2);
+    if (!mInfra->mGameConfig->enableDoubleResolution) {
+        GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish/green-olfnt0-1-", ".bmp", 0, 241, addFileOffs, true, outLineColor2);
+    }
+    else {
+        //for double resolution use font upscaled by factor of 2
+        GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish-x2/green-olfnt0-1-", ".png", 0, 241, addFileOffs, true, outLineColor2);
+    }
 
     //was there are problem loading the text font?
     if (GameMenueUnselectedEntryFont == nullptr) {
@@ -782,7 +945,13 @@ void GameText::LoadFontsStep2() {
     }
 
     //load font we created ourself before for unselected items in mainmenue (based on smaller text size)
-    GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", 0, 241, addFileOffs, true, outLineColor2);
+    if (!mInfra->mGameConfig->enableDoubleResolution) {
+        GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish/green-osfnt0-1-", ".bmp", 0, 241, addFileOffs, true, outLineColor2);
+    }
+    else {
+        //for double resolution use font upscaled by factor of 2
+        GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish-x2/green-osfnt0-1-", ".png", 0, 241, addFileOffs, true, outLineColor2);
+    }
 
     //was there are problem loading the text font?
     if (GameMenueUnselectedTextSmallSVGA == nullptr) {
@@ -790,7 +959,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load very small green target description font of HUD
-    HudTargetNameGreen = LoadGameFont((char*)"extract/hud1player/panel0-1-", 231, 26, addFileOffs, false);
+    HudTargetNameGreen = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 231, 26, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (HudTargetNameGreen == nullptr) {
@@ -798,7 +967,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load very small red target description font of HUD
-    HudTargetNameRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", 200, 26, addFileOffs, false);
+    HudTargetNameRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 200, 26, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (HudTargetNameRed == nullptr) {
@@ -806,26 +975,23 @@ void GameText::LoadFontsStep2() {
     }
 
     //load white thin font
-    ThinWhiteText = LoadGameFont((char*)"extract/fonts/thinwhite/hfont0-0-", 0, 127, addFileOffs, false);
+    //Not used until now, commented out on 03.01.2026
+    //ThinWhiteText = LoadGameFont((char*)"extract/fonts/thinwhite/hfont0-0-", ".bmp", 0, 127, addFileOffs, false);
 
     //was there are problem loading the text font?
-    if (ThinWhiteText == nullptr) {
+    /*if (ThinWhiteText == nullptr) {
         GameTextInitializedOk = false;
-    }
+    }*/
 
     delete outLineColor;
     delete outLineColor2;
 }
 
 //Constructor, initialization of all available and needed GameText fonts
-//Parameters:
-//  device = pointer to Irrlicht graphics device
-//  driver = pointer to Irrlicht Video driver
 // In case of unexpected initialization issue this constructor sets public
 // member GameTextInitializedOk to false, and to true otherwise.
-GameText::GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver) {
-    myDriver = driver;
-    myDevice = device;
+GameText::GameText(InfrastructureBase* infra) {
+    mInfra = infra;
     this->GameTextInitializedOk = true;
 
     //only load an initial font so that we can
@@ -844,6 +1010,11 @@ GameText::~GameText() {
     if (HudWhiteTextBannerFont != nullptr) {
         FreeTextFont(*HudWhiteTextBannerFont);
         HudWhiteTextBannerFont = nullptr;
+    }
+
+    if (GameMenueSelectedItemFont != nullptr) {
+        FreeTextFont(*GameMenueSelectedItemFont);
+        GameMenueSelectedItemFont = nullptr;
     }
 
     if (HudBigGreenText != nullptr) {
@@ -880,11 +1051,11 @@ GameText::~GameText() {
         FreeTextFont(*HudTargetNameRed);
         HudTargetNameRed = nullptr;
     }
-
+    /*
     if (ThinWhiteText != nullptr) {
         FreeTextFont(*ThinWhiteText);
         ThinWhiteText = nullptr;
-    }
+    }*/
 
     if (GameMenueWhiteTextSmallSVGA != nullptr) {
         FreeTextFont(*GameMenueWhiteTextSmallSVGA);

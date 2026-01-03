@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 Wolf Alexander
+ Copyright (C) 2025-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -2091,7 +2091,7 @@ bool InfrastructureBase::InitGameResourcesInitialStep() {
     /* Load the first initial GameFont, so that we can show    */
     /* a first graphical screen                                */
     /***********************************************************/
-    mGameTexts = new GameText(mDevice, mDriver);
+    mGameTexts = new GameText(this);
 
     if (!mGameTexts->GameTextInitializedOk) {
         logging::Error("First Game font init operation failed!");
