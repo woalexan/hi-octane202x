@@ -454,6 +454,9 @@ bool InfrastructureBase::InitStage2() {
          mGuienv->getSkin()->setFont(fontAndika);
     }
 
+    //"Random" seed for "random" number generator
+    srand(mDevice->getTimer()->getRealTime());
+
     return true;
 }
 

@@ -33,7 +33,7 @@ class Menue;
 struct RaceStatsEntryStruct;
 struct PointTableEntryStruct;
 struct PilotInfoStruct;
-struct MenueAction;
+class MenueAction;
 class Logger;
 class SoundEngine;
 class Assets;
