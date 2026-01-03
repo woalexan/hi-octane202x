@@ -97,9 +97,9 @@ void TerraformingMode::SetUiMultipleSelection() {
     wchar_t* selInfo = new wchar_t[200];
 
     if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELVERTICES) {
-        swprintf(selInfo, 190, L"%d vertices selected", selNrVertices);
+        swprintf(selInfo, 190, L"%d vertices selected", (int)(selNrVertices));
     } else if (mOpMode == EDITOR_TERRAFORMING_OPMODE_SELCELLS) {
-        swprintf(selInfo, 190, L"%d cells selected", selNrVertices);
+        swprintf(selInfo, 190, L"%d cells selected", (int)(selNrVertices));
     }
 
     mParentSession->mParentEditor->UpdateStatusbarText(selInfo);

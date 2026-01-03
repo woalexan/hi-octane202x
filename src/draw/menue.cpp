@@ -39,7 +39,7 @@ MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSel
 
 MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSelectable, MenuePage* goToPage, MenueAction* triggerAction,
                                                   GameTextFont* unselectedFont, GameTextFont* selectedFont) {
-    irr::u8 currNrEntries = this->pageEntryVec.size();
+    irr::u8 currNrEntries = (irr::u8)(this->pageEntryVec.size());
 
     if (currNrEntries < 255) {
           MenueSingleEntry* newEntry = new MenueSingleEntry();
@@ -70,7 +70,7 @@ MenueSingleEntry* MenuePage::AddDefaultMenueEntry(const char* text, bool itemSel
 }
 
 MenueSingleEntry* MenuePage::AddEmptySpaceMenueEntry() {
-    irr::u8 currNrEntries = this->pageEntryVec.size();
+    irr::u8 currNrEntries = (irr::u8)(this->pageEntryVec.size());
 
     if (currNrEntries < 255) {
           MenueSingleEntry* newEntry = new MenueSingleEntry();
@@ -103,7 +103,7 @@ MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSele
                                                  irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
                                                  irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
                                                  MenueAction* triggerAction) {
-    irr::u8 currNrEntries = this->pageEntryVec.size();
+    irr::u8 currNrEntries = (irr::u8)(this->pageEntryVec.size());
 
     if (currNrEntries < 255) {
           MenueSingleEntry* newEntry = new MenueSingleEntry();
@@ -138,7 +138,7 @@ MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSele
 }
 
 MenueSingleEntry* MenuePage::AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction) {
-    irr::u8 currNrEntries = this->pageEntryVec.size();
+    irr::u8 currNrEntries = (irr::u8)(this->pageEntryVec.size());
 
     if (currNrEntries < 255) {
           MenueSingleEntry* newEntry = new MenueSingleEntry();
@@ -175,7 +175,7 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
     //we want to reorganize all menue entries in a way, that
     //all printed information is centered inside the currently
     //available menue selection space
-    irr::u16 nrEntries = this->pageEntryVec.size();
+    irr::u16 nrEntries = (irr::u16)(this->pageEntryVec.size());
     irr::u32 startAlignY;
     irr::u32 alignX = newMenueSpace.UpperLeftCorner.X + newMenueSpace.getWidth() / 2;
 
@@ -3656,7 +3656,7 @@ void Menue::CleanupPointsTablePage() {
         //in function CleanupPointsTablePage we need to free also the
         //pntr to the text variable; if visible is false, then we must not
         //free the text string pointer!
-        if ((*it)->visible) {
+        if (labelPntr->visible) {
            //visible was set to true, free text pointer!
            //text was malloced, we NEED to use free!
            free(labelPntr->text);
@@ -3685,7 +3685,7 @@ void Menue::CleanupHighScorepage() {
         //in function CleanupHighScorepage we need to delete also the
         //pntr to the text variable; if visible is false, then we must not
         //delete the text string pointer!
-        if ((*it)->visible) {
+        if (labelPntr->visible) {
            //visible was set to true, free text pointer
            //we malloced the text, therefore we need to use
            //free here! not delete!!!

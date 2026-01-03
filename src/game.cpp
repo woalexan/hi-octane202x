@@ -476,8 +476,9 @@ void Game::HandleMenueActions() {
 
     //start a demo?
     if (pendingAction == MainMenue->ActStartDemo) {
-        //pick a random level number for the demo
-        nextRaceLevelNr = randRangeInt(1, (int)(mGameAssets->mRaceTrackVec->size()));
+        //The original game always starts a demo in the last selected
+        //level in the race selection screen, do the same
+        nextRaceLevelNr = mGameAssets->GetLastSelectedRaceTrack() + 1;
 
         mGameState = DEF_GAMESTATE_INITDEMO;
     }
