@@ -16,6 +16,7 @@
 #include "../../utils/fileutils.h"
 #include "../readgamedata/objectdatfile.h"
 #include <iomanip>
+#include <algorithm>
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flifix.h"
 #include "../readgamedata/dernc.h"
@@ -276,6 +277,10 @@ void PrepareData::ExtractFonts() {
     UpscaleAllImagesInDirectory("extract/fonts/smallsvgagreenish",
         "green-osfnt0-1-", "extract/fonts/smallsvgagreenish-x2", 2);
 
+    irr::video::SColor* outLineColor2 = new irr::video::SColor(255, 40, 65, 56);
+    PreProcessFontDirectory("extract/fonts/smallsvgagreenish", "green-osfnt0-1-", true, outLineColor2);
+    PreProcessFontDirectory("extract/fonts/smallsvgagreenish-x2", "green-osfnt0-1-", true, outLineColor2);
+   
     PrepareSubDir("extract/fonts/large");
     ExtractLargeFontSVGA();
 
@@ -291,6 +296,11 @@ void PrepareData::ExtractFonts() {
     //This scaled font is then use for doubleResolution option
     //in menues
     UpscaleAllImagesInDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", "extract/fonts/largegreenish-x2", 2);
+
+    PreProcessFontDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", true, outLineColor2);
+    PreProcessFontDirectory("extract/fonts/largegreenish-x2", "green-olfnt0-1-", true, outLineColor2);
+
+    delete outLineColor2;
 
     PrepareSubDir("extract/fonts/largegreen");
     ExtractLargeGreenFontSVGA();
@@ -1302,6 +1312,10 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
          throw std::string("Could not locate the original games data file pfont0-1.tab");
     }
     ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/fonts/largegreen/pfont0-1-");
+
+    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
+    PreProcessFontDirectory("extract/fonts/largegreen", "pfont0-1-", false, outLineColor);
+    delete outLineColor;
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
@@ -1334,6 +1348,11 @@ void PrepareData::ExtractLargeFontSVGA() {
     //This scaled font is then use for doubleResolution option
     //in menues
     UpscaleAllImagesInDirectory("extract/fonts/large", "olfnt0-1-", "extract/fonts/large-x2", 2);
+
+    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
+    PreProcessFontDirectory("extract/fonts/large", "olfnt0-1-", true, outLineColor);
+    PreProcessFontDirectory("extract/fonts/large-x2", "olfnt0-1-", true, outLineColor);
+    delete outLineColor;
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -1364,6 +1383,10 @@ void PrepareData::ExtractSmallFontSVGA() {
 
     UpscaleAllImagesInDirectory("extract/fonts/smallsvga", "osfnt0-1-", "extract/fonts/smallsvga-x2", 2);
 
+    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
+    PreProcessFontDirectory("extract/fonts/smallsvga", "osfnt0-1-", true, outLineColor);
+    PreProcessFontDirectory("extract/fonts/smallsvga-x2", "osfnt0-1-", true, outLineColor);
+    delete outLineColor;
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -1707,13 +1730,6 @@ void PrepareData::ModifyPixelForBlackSky(irr::f32 &red, irr::f32 &green, irr::f3
 //colorSelector == 3 => creates very dark grey sky (thunderstorm like)
 bool PrepareData::CreateColoredSkydomeImage(const char* srcImagePath, const char* targetImagePath,
                              int colorSelector) {
-
- //we need to know the used pixel color format
-  //irr::video::ECOLOR_FORMAT format = image->getColorFormat();
-
-  //we can only handle this format right now
-  //if(irr::video::ECF_A8R8G8B8 == format)
-  //  {
 
    if ((colorSelector != 1) && (colorSelector != 2) && (colorSelector != 3)) {
        logging::Error("CreateColoredSkydomeImage: Unknown colorSelector value, Operation failed");
@@ -2402,6 +2418,10 @@ void PrepareData::ExtractThinWhiteFontSVGA() {
          throw std::string("Could not locate the original games data file hfont0-0.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/thinwhite/hfont0-0-");
+
+    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
+    PreProcessFontDirectory("extract/fonts/thinwhite", "hfont0-0-", false, outLineColor);
+    delete outLineColor;
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
@@ -3291,3 +3311,451 @@ std::vector<unsigned char> loadRawFile(const char *filename) {
     fclose(iFile);
     return buffer;
 }
+
+//************************************************
+// Font Preprocessing stuff                      *
+//************************************************
+void PrepareData::AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
+    irr::video::SColor newColor)
+{
+    //check if input color already exists in list
+    std::vector<std::pair <irr::u8, irr::video::SColor>>::iterator it;
+
+    for (it = colorOccurenceList.begin(); it != colorOccurenceList.end(); ++it) {
+        if ((*it).second == newColor) {
+            //color does already exist in list
+            //just increase occurence
+            (*it).first += 1;
+            return;
+        }
+    }
+
+    //color does not yet exist in list
+    //add entry with occurence 1
+    colorOccurenceList.push_back(std::make_pair(1, newColor));
+}
+
+//uses the 4 corner pixel of the character to derive the most
+//likely transparent pixel color
+void PrepareData::DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character) {    
+        //the get the most likely transparent color of the font character
+        //take the 4 corner pixels, and inspect which color the have
+        //the color with the most occurence will most likey be the transparent
+        //font character background color
+
+        //declaring vector of pairs containing pixel color
+        //and number of occurence of color
+        std::vector< std::pair <irr::u8, irr::video::SColor> > vecColorOccurence;
+        vecColorOccurence.clear();
+
+        //get left upper pixel
+        irr::video::SColor texelTrans = character.image->getPixel(0, 0);        
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //get right upper pixel
+        texelTrans = character.image->getPixel(character.sizeRawTex.Width - 1, 0);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //get left lower pixel
+        texelTrans = character.image->getPixel(0, character.sizeRawTex.Height - 1);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //get right lower pixel
+        texelTrans = character.image->getPixel(character.sizeRawTex.Width - 1, character.sizeRawTex.Height - 1);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //now sort list of pixel color occurences with falling number
+        //of occurences, the color we want to find is then the one at the top
+
+        //sort vector pairs in descending number of occurences
+        std::sort(vecColorOccurence.rbegin(), vecColorOccurence.rend());
+
+        //the most likely transparent color is now the one at the beginning of
+        //the list, store it in struct for this specific character
+        character.transColor = vecColorOccurence.begin()->second;
+}
+
+//Takes the image from a font character, and defines a rect that contains the pixels of the character,
+//while removing unnecessary transparent columns of pixels
+//Parameters:
+//  character = pointer to the character that should be "optimized"
+void PrepareData::FindCharArea(FontCharacterPreprocessInfo* character) {
+    bool wholeColumnTrans;
+    irr::s32 firstCharColumn = -1;
+    irr::s32 lastCharColumn = -1;
+
+    //to find the character area we need to also know the SColor
+    //of the background of the character, this color was established in
+    //method call DeriveTransparentColorForChar before
+    irr::video::SColor col2 = character->transColor;
+
+    //ignore Alpha value for pixels
+    //so that we can compare them based on RGB values alone
+    col2.setAlpha(0);
+
+    irr::video::SColor col1;
+
+    //iterate through all colums from left to right
+    for (irr::s32 x = 0; x < character->sizeRawTex.Width; x++) {
+        //check current column from top to bottom to see if we only find
+        //black (unused pixels)
+        wholeColumnTrans = true;
+
+        for (irr::s32 y = 0; y < character->sizeRawTex.Height; y++) {
+            //texel is the pixel color at position x and y
+            col1 = character->image->getPixel(x, y);
+
+            //again ignore alpha value during comparison
+            col1.setAlpha(0);
+
+            if (col1 != col2) {
+                wholeColumnTrans = false;
+                break;
+            }
+        }
+
+        if (!wholeColumnTrans) {
+            if (firstCharColumn == -1)
+                firstCharColumn = x;
+            break;
+        }
+    }
+
+    //iterate through all colums from right to left
+    for (irr::s32 x = (character->sizeRawTex.Width - 1); x > -1; x--) {
+        //check current column from top to bottom to see if we only find
+        //black (unused pixels)
+        wholeColumnTrans = true;
+
+        for (irr::s32 y = 0; y < character->sizeRawTex.Height; y++) {
+            //texel is the pixel color at position x and y
+            col1 = character->image->getPixel(x, y);
+            col1.setAlpha(0);
+
+            if (col1 != col2) {
+                wholeColumnTrans = false;
+                break;
+            }
+        }
+
+        if (!wholeColumnTrans) {
+            if (lastCharColumn == -1)
+                lastCharColumn = x;
+            break;
+        }
+    }
+
+    //if possible leave one fully transparent column left of the character data
+    if (firstCharColumn > 0)
+        firstCharColumn--;
+
+    //if no character was found at all return "full" empty character
+    if (firstCharColumn == -1)
+        firstCharColumn = 0;
+
+    if (lastCharColumn == -1)
+        lastCharColumn = character->sizeRawTex.Width;
+
+    //if possible leave one fully transparent column right of the character data
+    if (lastCharColumn < character->sizeRawTex.Width)
+        lastCharColumn++;
+
+    //setup optimized size of character
+    character->charRect.UpperLeftCorner.set(firstCharColumn, 0);
+    character->charRect.LowerRightCorner.set(lastCharColumn, character->sizeRawTex.Height);
+}
+
+void PrepareData::DeriveCharColorsForChar(FontCharacterPreprocessInfo& character) {
+   character.charColorVec.clear();
+   
+   //to find pixel with colors other then transparent we need to
+   //get transparent color first, this color was established in
+   //method call DeriveTransparentColorForChar before
+   irr::video::SColor transColor = character.transColor;
+
+   //ignore alpha value during pixel color comparison
+   transColor.setAlpha(0);
+
+   irr::video::SColor col1;
+
+   //iterate through all pixels and find pixels with colors other then transparent color
+   for (irr::s32 x = 0; x < character.sizeRawTex.Width; x++) {
+        for (irr::s32 y = 0; y < character.sizeRawTex.Height; y++) { 
+            col1 = character.image->getPixel(x, y);
+
+            //ignore alpha value again
+            col1.setAlpha(0);
+
+            //try to establish all text colors, that are not
+            //background pixels
+            if (col1 != transColor) {
+                //remember text color we found
+                character.charColorVec.push_back(col1);
+            }
+        }
+   }
+}
+
+//Takes the image from a font character, and adds an single pixel wide outline around it with a specified
+//color; The game seems to do the same to improve the contrast of the text
+//Parameters:
+//  character = pointer to the input character
+//In case of an unexpected error this function returns succesFlag = false, True otherwise
+bool PrepareData::AddColoredOutline(FontCharacterPreprocessInfo& character, irr::video::SColor* outLineColor) {
+    irr::video::SColor texelTrans;
+    bool textColFound = false;
+
+    irr::core::vector2d<irr::u32> imageSize = character.image->getDimension();
+
+    //create a helper image in which we store temporarily the original image data
+    irr::video::IImage* hImg =
+        mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, imageSize);
+
+    if (hImg == nullptr) {
+        return false;
+    }
+    
+    texelTrans = character.transColor;
+    texelTrans.setAlpha(0);
+
+    //copy original image into new helper image
+    character.image->copyTo(hImg);
+
+    irr::video::SColor pix1col;
+    irr::video::SColor pix2col;
+    irr::video::SColor pix3col;
+    irr::video::SColor pix4col;
+    irr::video::SColor pix5col;
+    irr::video::SColor pix6col;
+    irr::video::SColor pix7col;
+    irr::video::SColor pix8col;
+    bool outLine;
+
+    std::vector<irr::video::SColor>::iterator itColor;
+    irr::video::SColor col2;
+
+    //now iterate again, create outline pixel by pixel
+    for (irr::s32 x = 0; x < character.sizeRawTex.Width; x++) {
+        for (irr::s32 y = 0; y < character.sizeRawTex.Height; y++) {
+            outLine = true;
+            
+            col2 = hImg->getPixel(x, y);
+            col2.setAlpha(0);
+
+            //an outline pixel can not have the text color itself!
+            //check for all found text colors
+            for (itColor = character.charColorVec.begin(); itColor != character.charColorVec.end(); ++itColor) {
+                    outLine &= (col2 != (*itColor));
+                }
+
+            //can not be an outline pixel, go to the next pixel
+            if (!outLine) {
+                continue;
+            }
+
+            if ((x > 0) && (y > 0)) {
+                pix1col = hImg->getPixel(x - 1, y - 1);
+                pix1col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix1col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if (y > 0) {
+                pix2col = hImg->getPixel(x, y - 1);
+                pix2col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix2col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if ((x < (character.sizeRawTex.Width - 1)) && (y > 0)) {
+                pix3col = hImg->getPixel(x + 1, y - 1);
+                pix3col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                    if (pix3col != texelTrans) {
+                        character.image->setPixel(x, y, *outLineColor);
+                        continue;
+                    }
+            }
+
+            if (x > 0) {
+                pix4col = hImg->getPixel(x - 1, y);
+                pix4col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix4col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if (x < (character.sizeRawTex.Width - 1)) {
+                pix5col = hImg->getPixel(x + 1, y);
+                pix5col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix5col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if ((y < (character.sizeRawTex.Height - 1)) && (x > 0)) {
+                pix6col = hImg->getPixel(x - 1, y + 1);
+                pix6col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix6col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if (y < (character.sizeRawTex.Height - 1)) {
+                pix7col = hImg->getPixel(x, y + 1);
+                pix7col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix7col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if ((x < (character.sizeRawTex.Width - 1)) &&
+                (y < (character.sizeRawTex.Height - 1))) {
+                pix8col = hImg->getPixel(x + 1, y + 1);
+                pix8col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix8col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+        }
+    }
+
+    //delete helper image again
+    hImg->drop();
+
+    return true;
+}
+
+//Returns true in case of success, False otherwise
+bool PrepareData::StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName) {
+    irr::core::dimension2du dim;
+    dim.Width = character.charRect.getWidth();
+    dim.Height = character.charRect.getHeight();
+
+    irr::video::IImage* preProcImg =
+        mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, dim);
+
+    if (preProcImg == nullptr) {
+        return false;
+    }
+
+    irr::s32 x1 = character.charRect.UpperLeftCorner.X;
+    irr::s32 x2 = character.charRect.LowerRightCorner.X + 1;
+    irr::s32 y1 = character.charRect.UpperLeftCorner.Y;
+    irr::s32 y2 = character.charRect.LowerRightCorner.Y + 1;
+
+    irr::video::SColor pixCol;
+
+    //copy optimized character to new image file
+    for (irr::s32 x = x1; x < x2; x++) {
+        for (irr::s32 y = y1; y < y2; y++) {
+            pixCol = character.image->getPixel(x, y);
+            preProcImg->setPixel(x - x1, y - y1, pixCol);
+        }
+    }
+
+    saveIrrImage(outFileName, preProcImg);
+
+    return true;
+}
+
+void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor) {
+    //Create a list of files existing in specified font dir
+    irr::io::IFileList* fList = mInfra->CreateFileList(irr::io::path(fontDirName));
+
+    if (fList == nullptr) {
+        throw std::string("PreProcessFontDirectory: Can not search for files in source directory");
+    }
+
+    irr::u32 fileCnt = fList->getFileCount();
+    io::path currFileName;
+    io::path currTargetFileName;
+    FontCharacterPreprocessInfo fontChar;
+    irr::io::IReadFile* file;
+
+    for (irr::u32 idx = 0; idx < fileCnt; idx++) {
+        currFileName = fList->getFileName(idx);
+
+        //-1 return value means string not found in string
+        if (currFileName.find(srcFilePrefix, 0) != -1) {
+            //create targetFileName
+            currTargetFileName = "";
+            currTargetFileName.append(fontDirName);
+            currTargetFileName.append("/pre-");
+            currTargetFileName.append(mInfra->RemoveFileEndingFromFileName(currFileName));
+            //Save as PNG to not loose the Alpha value
+            currTargetFileName.append(".png");
+
+            //preprocess this character font image file
+            file = mInfra->mDevice->getFileSystem()->createAndOpenFile(fList->getFullFileName(idx));
+            fontChar.image = mInfra->mDriver->createImageFromFile(file);
+
+            file->drop();
+
+            if (fontChar.image == nullptr) {
+                throw std::string("PreProcessFontDirectory: Font char image loading error");
+            }
+
+            //get source image dimension
+            fontChar.sizeRawTex = fontChar.image->getDimension();
+
+            //try to establish most likely transparent color of char
+            DeriveTransparentColorForChar(fontChar);
+
+            //find character colors (which are non transparent)
+            DeriveCharColorsForChar(fontChar);
+
+            //should we add an outline to the character?
+            if (addOutline && (outLineColor != nullptr)) {
+                if (!AddColoredOutline(fontChar, outLineColor)) {
+                    throw std::string("PreProcessFontDirectory: Add font character outline operation failed");
+                }
+            }
+
+            //find out where in the image the character is actually,
+            //to remove transparent additional columns of pixels
+            //the game seems to do the same somehow (in screenshots there is
+            //always only a line of transparent pixels between characters)
+            FindCharArea(&fontChar);
+
+            if (!StorePreProcessedFontCharacter(fontChar, currTargetFileName.c_str())) {
+                throw std::string("PreProcessFontDirectory: Save preprocessed font character image operation failed");
+            }
+
+            fontChar.image->drop();
+
+            //remove old temporary file
+            //remove(fList->getFullFileName(idx).c_str());
+        }
+    }
+
+    //drop the file list again
+    //not that we get a memory leak!
+    fList->drop();
+}
+

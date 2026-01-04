@@ -72,6 +72,28 @@ typedef struct {
         uint32_t AllTunesLenBytes;
      } MUSICTABLEENTRY;
 
+typedef struct FontCharacterPreprocessInfo {
+    //contains the raw image for the character
+    irr::video::IImage* image = nullptr;
+
+    //size in pixels of the raw image for character
+    //as read from original game export data
+    irr::core::dimension2d<irr::s32> sizeRawTex;
+
+    //contains "optimized" area of character, non useful empty black area removed
+    //only 1 line of black area left on left and right side
+    irr::core::rect<irr::s32> charRect;
+
+    //contains the transparent color found for this
+    //character
+    irr::video::SColor transColor;
+
+    //contains the found character colors itself
+    //are all colors that are not background colors
+    //after upscaling multiple colors are possible
+    std::vector<irr::video::SColor> charColorVec;
+} FontCharacterPreprocessInfo;
+
 class PrepareData {
 
 public:
@@ -285,6 +307,20 @@ private:
                                  int colorSelector);
 
     void PrepareUpgradedSkyData();
+
+    //Stuff for font preprocessing
+    void FindCharArea(FontCharacterPreprocessInfo* character);
+    bool AddColoredOutline(FontCharacterPreprocessInfo& character, irr::video::SColor* outLineColor);
+
+    void DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character);
+    void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
+        irr::video::SColor newColor);
+    void DeriveCharColorsForChar(FontCharacterPreprocessInfo& character);
+
+    //Returns true in case of success, False otherwise
+    bool StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName);
+
+    void PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor);
 };
 
 #endif // PREPAREDATA_H

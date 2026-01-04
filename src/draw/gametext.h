@@ -23,14 +23,14 @@
 class InfrastructureBase;
 
 typedef struct GameTextCharacterInfo {
-      //contains the raw texture for the character
+     //contains the texture for the character
      irr::video::ITexture* texture = nullptr;
 
-     //size in pixels of the raw texture for character
+     //size in pixels of the texture for character
      irr::core::dimension2d<irr::s32> sizeRawTex;
 
-     //contains "optimized" area of area, non useful empty black area removed
-     //only 1 line of black area left on left and right side
+     //contains source rect coordinates for 2D
+     //driver drawing operation
      irr::core::rect<irr::s32> charRect;
 
      //contains the transparent color found for this
@@ -49,18 +49,18 @@ private:
 
     void LoadInitialFont();
 
-    GameTextFont* LoadGameFont(char* fileName, const char* fileEnding, unsigned long numOffset, unsigned long numChars,
-        std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = nullptr);
-    irr::core::rect<irr::s32> FindCharArea(GameTextCharacterInfo *character, bool &succesFlag);
-    bool AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor);
-    void FreeTextFont(GameTextFont &pntrFont);
-
+    void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
+        irr::video::SColor newColor);
+    
     //uses the 4 corner pixel of the character to derive the most
     //likely transparent pixel color
     //Returns true in case of success, false otherwise
-    bool DeriveTransparentColorForChar(GameTextCharacterInfo &character);
-    void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>> &colorOccurenceList,
-                                                irr::video::SColor newColor);
+    bool DeriveTransparentColorForChar(GameTextCharacterInfo& character);
+
+    GameTextFont* LoadGameFont(char* fileName, const char* fileEnding, unsigned long numOffset, unsigned long numChars,
+        std::vector<int> loadAddFileNr);
+ 
+    void FreeTextFont(GameTextFont &pntrFont);
 
 public:
     GameText(InfrastructureBase* infra);
@@ -147,8 +147,7 @@ public:
     GameTextFont* HudTargetNameGreen = nullptr;
     GameTextFont* HudTargetNameRed = nullptr;
 
-    //Not used until 03.01.2026; commented out
-    //GameTextFont* ThinWhiteText = nullptr;
+    GameTextFont* ThinWhiteText = nullptr;
 
     bool GameTextInitializedOk = false;
 };
