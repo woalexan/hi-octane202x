@@ -9,94 +9,7 @@
 
 #include "gametext.h"
 #include "../infrabase.h"
-
-void GameText::AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
-    irr::video::SColor newColor)
-{
-    //check if input color already exists in list
-    std::vector<std::pair <irr::u8, irr::video::SColor>>::iterator it;
-
-    for (it = colorOccurenceList.begin(); it != colorOccurenceList.end(); ++it) {
-        if ((*it).second == newColor) {
-            //color does already exist in list
-            //just increase occurence
-            (*it).first += 1;
-            return;
-        }
-    }
-
-    //color does not yet exist in list
-    //add entry with occurence 1
-    colorOccurenceList.push_back(std::make_pair(1, newColor));
-}
-
-//uses the 4 corner pixel of the character to derive the most
-//likely transparent pixel color
-//Returns true in case of success, false otherwise
-bool GameText::DeriveTransparentColorForChar(GameTextCharacterInfo& character) {
-    //we need to know the used pixel color format
-    irr::video::ECOLOR_FORMAT format = character.texture->getColorFormat();
-
-    //we can only handle this format right now
-    if (irr::video::ECF_A8R8G8B8 == format)
-    {
-        //lock texture for just reading of pixel data
-        irr::u8* datapntr = (irr::u8*)character.texture->lock(irr::video::ETLM_READ_ONLY);
-        irr::u32 pitch = character.texture->getPitch();
-        irr::u32 bytesPerPixel = mInfra->ReturnBytesPerPixel(format);
-
-        if (bytesPerPixel == 0) {
-            //unsupported format, return false
-            return false;
-        }
-
-        //the get the most likely transparent color of the font character
-        //take the 4 corner pixels, and inspect which color the have
-        //the color with the most occurence will most likey be the transparent
-        //font character background color
-
-        //declaring vector of pairs containing pixel color
-        //and number of occurence of color
-        std::vector< std::pair <irr::u8, irr::video::SColor> > vecColorOccurence;
-        vecColorOccurence.clear();
-
-        //get left upper pixel
-        irr::video::SColor* texelTrans = (irr::video::SColor*)(datapntr + ((0 * pitch) + (0 * bytesPerPixel)));
-
-        AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
-
-        //get right upper pixel
-        texelTrans = (irr::video::SColor*)(datapntr + ((0 * pitch) + ((character.sizeRawTex.Width - 1) * bytesPerPixel)));
-
-        AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
-
-        //get left lower pixel
-        texelTrans = (irr::video::SColor*)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + (0 * bytesPerPixel)));
-
-        AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
-
-        //get right lower pixel
-        texelTrans = (irr::video::SColor*)(datapntr + (((character.sizeRawTex.Height - 1) * pitch) + ((character.sizeRawTex.Width - 1) * bytesPerPixel)));
-
-        AddPixelToColorOccurenceList(vecColorOccurence, *texelTrans);
-
-        //now sort list of pixel color occurences with falling number
-        //of occurences, the color we want to find is then the one at the top
-
-        //sort vector pairs in descending number of occurences
-        std::sort(vecColorOccurence.rbegin(), vecColorOccurence.rend());
-
-        //the most likely transparent color is now the one at the beginning of
-        //the list
-        character.transColor = vecColorOccurence.begin()->second;
-
-        return true;
-    }
-    else {
-        //unsupported pixel color format!
-        return false;
-    }
-}
+#include "../utils/logging.h"
 
 //Loads a game font from the extracted (many) character image files
 //Parameters:
@@ -114,6 +27,24 @@ GameTextFont* GameText::LoadGameFont(char* fileName, const char *fileEnding, uns
 
   char finalpath[70];
   char fname[20];
+
+  //first load font info Xml file
+  //we get transparent pixel data from there
+  std::string inputPath(fileName);
+  size_t endPathPos = inputPath.find_last_of('/');
+
+  if (endPathPos == std::string::npos) {
+      logging::Error("LoadGameFont: Invalid path to font, font loading failed");
+      return nullptr;
+  }
+
+  irr::video::SColor transColor;
+
+  std::string path = inputPath.substr(0, endPathPos);
+  if (!mInfra->ReadFontInfoXmlFile(mInfra->mDevice, irr::io::path(path.c_str()), transColor)) {
+      logging::Error("LoadGameFont: Font Info Xml file reading failed");
+      return nullptr;
+  }
 
   //create the new font
   GameTextFont *newFont = new GameTextFont;
@@ -153,10 +84,8 @@ GameTextFont* GameText::LoadGameFont(char* fileName, const char *fileEnding, uns
       newCharInfo->sizeRawTex = newCharInfo->texture->getOriginalSize();
       newCharInfo->charRect.UpperLeftCorner.set(0, 0);
       newCharInfo->charRect.LowerRightCorner.set(newCharInfo->sizeRawTex.Width, newCharInfo->sizeRawTex.Height);
+      newCharInfo->transColor = transColor;
 
-      //try to establish most likely transparent color of char
-      DeriveTransparentColorForChar(*newCharInfo);
-      
       mInfra->mDriver->makeColorKeyTexture(newCharInfo->texture, newCharInfo->transColor);
 
       //add new character to our vector of characters for this font
@@ -478,7 +407,6 @@ irr::u32 GameText::GetWidthPixelsGameNumberText(char* numberText, GameTextFont *
 }
 
 void GameText::LoadInitialFont() {
-    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
     std::vector<int> addFileOffs = {};
 
     //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
@@ -488,8 +416,6 @@ void GameText::LoadInitialFont() {
     if (GameMenueWhiteTextSmallSVGA == nullptr) {
         GameTextInitializedOk = false;
     }
-
-    delete outLineColor;
 }
 
 //this function handles loading fonts step 2

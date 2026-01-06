@@ -190,6 +190,13 @@ bool PrepareData::GameDataAvailable() {
 PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     mInfra = mInfraPntr;
 
+    //define font outline colors
+    //fontOutLineColor = new irr::video::SColor(255, 4, 4, 8);
+    //fontOutLineColor2 = new irr::video::SColor(255, 40, 65, 56);
+
+    fontOutLineColor = new irr::video::SColor(255, 255, 0, 0);
+    fontOutLineColor2 = new irr::video::SColor(255, 255, 0, 0);
+
     //load palette information needed for the later
     //data preparation steps
     CreatePalette();
@@ -247,6 +254,16 @@ PrepareData::~PrepareData() {
             delete pntr;
         }
     }
+
+    if (fontOutLineColor != nullptr) {
+        delete fontOutLineColor;
+        fontOutLineColor = nullptr;
+    }
+
+    if (fontOutLineColor2 != nullptr) {
+        delete fontOutLineColor2;
+        fontOutLineColor2 = nullptr;
+    }
 }
 
 void PrepareData::ExtractGameScreens() {
@@ -277,9 +294,8 @@ void PrepareData::ExtractFonts() {
     UpscaleAllImagesInDirectory("extract/fonts/smallsvgagreenish",
         "green-osfnt0-1-", "extract/fonts/smallsvgagreenish-x2", 2);
 
-    irr::video::SColor* outLineColor2 = new irr::video::SColor(255, 40, 65, 56);
-    PreProcessFontDirectory("extract/fonts/smallsvgagreenish", "green-osfnt0-1-", true, outLineColor2);
-    PreProcessFontDirectory("extract/fonts/smallsvgagreenish-x2", "green-osfnt0-1-", true, outLineColor2);
+    PreProcessFontDirectory("extract/fonts/smallsvgagreenish", "green-osfnt0-1-", true, fontOutLineColor2);
+    PreProcessFontDirectory("extract/fonts/smallsvgagreenish-x2", "green-osfnt0-1-", true, fontOutLineColor2);
    
     PrepareSubDir("extract/fonts/large");
     ExtractLargeFontSVGA();
@@ -297,10 +313,8 @@ void PrepareData::ExtractFonts() {
     //in menues
     UpscaleAllImagesInDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", "extract/fonts/largegreenish-x2", 2);
 
-    PreProcessFontDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", true, outLineColor2);
-    PreProcessFontDirectory("extract/fonts/largegreenish-x2", "green-olfnt0-1-", true, outLineColor2);
-
-    delete outLineColor2;
+    PreProcessFontDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", true, fontOutLineColor2);
+    PreProcessFontDirectory("extract/fonts/largegreenish-x2", "green-olfnt0-1-", true, fontOutLineColor2);
 
     PrepareSubDir("extract/fonts/largegreen");
     ExtractLargeGreenFontSVGA();
@@ -1313,9 +1327,7 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
     }
     ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/fonts/largegreen/pfont0-1-");
 
-    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
-    PreProcessFontDirectory("extract/fonts/largegreen", "pfont0-1-", false, outLineColor);
-    delete outLineColor;
+    PreProcessFontDirectory("extract/fonts/largegreen", "pfont0-1-", false, fontOutLineColor);
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
@@ -1349,10 +1361,8 @@ void PrepareData::ExtractLargeFontSVGA() {
     //in menues
     UpscaleAllImagesInDirectory("extract/fonts/large", "olfnt0-1-", "extract/fonts/large-x2", 2);
 
-    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
-    PreProcessFontDirectory("extract/fonts/large", "olfnt0-1-", true, outLineColor);
-    PreProcessFontDirectory("extract/fonts/large-x2", "olfnt0-1-", true, outLineColor);
-    delete outLineColor;
+    PreProcessFontDirectory("extract/fonts/large", "olfnt0-1-", true, fontOutLineColor);
+    PreProcessFontDirectory("extract/fonts/large-x2", "olfnt0-1-", true, fontOutLineColor);
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -1383,10 +1393,8 @@ void PrepareData::ExtractSmallFontSVGA() {
 
     UpscaleAllImagesInDirectory("extract/fonts/smallsvga", "osfnt0-1-", "extract/fonts/smallsvga-x2", 2);
 
-    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
-    PreProcessFontDirectory("extract/fonts/smallsvga", "osfnt0-1-", true, outLineColor);
-    PreProcessFontDirectory("extract/fonts/smallsvga-x2", "osfnt0-1-", true, outLineColor);
-    delete outLineColor;
+    PreProcessFontDirectory("extract/fonts/smallsvga", "osfnt0-1-", true, fontOutLineColor);
+    PreProcessFontDirectory("extract/fonts/smallsvga-x2", "osfnt0-1-", true, fontOutLineColor);
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -2419,9 +2427,7 @@ void PrepareData::ExtractThinWhiteFontSVGA() {
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/thinwhite/hfont0-0-");
 
-    irr::video::SColor* outLineColor = new irr::video::SColor(255, 4, 4, 8);
-    PreProcessFontDirectory("extract/fonts/thinwhite", "hfont0-0-", false, outLineColor);
-    delete outLineColor;
+    PreProcessFontDirectory("extract/fonts/thinwhite", "hfont0-0-", false, fontOutLineColor);
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
@@ -3337,7 +3343,7 @@ void PrepareData::AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, i
 
 //uses the 4 corner pixel of the character to derive the most
 //likely transparent pixel color
-void PrepareData::DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character) {    
+irr::video::SColor PrepareData::DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character) {
         //the get the most likely transparent color of the font character
         //take the 4 corner pixels, and inspect which color the have
         //the color with the most occurence will most likey be the transparent
@@ -3371,8 +3377,9 @@ void PrepareData::DeriveTransparentColorForChar(FontCharacterPreprocessInfo& cha
         std::sort(vecColorOccurence.rbegin(), vecColorOccurence.rend());
 
         //the most likely transparent color is now the one at the beginning of
-        //the list, store it in struct for this specific character
-        character.transColor = vecColorOccurence.begin()->second;
+        //the list
+        irr::video::SColor result = vecColorOccurence.begin()->second;
+        return result;
 }
 
 //Takes the image from a font character, and defines a rect that contains the pixels of the character,
@@ -3697,6 +3704,8 @@ void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* s
     io::path currTargetFileName;
     FontCharacterPreprocessInfo fontChar;
     irr::io::IReadFile* file;
+    irr::video::SColor transColorVal;
+    bool transColFound = false;
 
     for (irr::u32 idx = 0; idx < fileCnt; idx++) {
         currFileName = fList->getFileName(idx);
@@ -3724,8 +3733,16 @@ void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* s
             //get source image dimension
             fontChar.sizeRawTex = fontChar.image->getDimension();
 
-            //try to establish most likely transparent color of char
-            DeriveTransparentColorForChar(fontChar);
+            //try to establish most likely transparent color of chars
+            //use only first image to establish transparent pixel color
+            //the are the same for all chars in this font
+
+            if (!transColFound) {
+                transColorVal = DeriveTransparentColorForChar(fontChar);
+                transColFound = true;
+            } else {
+                fontChar.transColor = transColorVal;
+            }
 
             //find character colors (which are non transparent)
             DeriveCharColorsForChar(fontChar);
@@ -3754,8 +3771,13 @@ void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* s
         }
     }
 
+    //Save the detected transparent pixel color for later
+    //font loading again
+    if (!mInfra->WriteFontInfoXmlFile(mInfra->mDevice, irr::io::path(fontDirName), transColorVal)) {
+        throw std::string("PreProcessFontDirectory: Font info Xml file writing error");
+    }
+
     //drop the file list again
     //not that we get a memory leak!
     fList->drop();
 }
-

@@ -1105,6 +1105,8 @@ void Race::PlayerCrossesFinishLineTheFirstTime() {
 }
 
 bool Race::RaceAllowsPlayersToAttack() {
+    //computer player is only allowed to attack after
+    //first player has crossed the starting line the fist time
     if (mCurrentPhase == DEF_RACE_PHASE_RACING)
         return true;
 

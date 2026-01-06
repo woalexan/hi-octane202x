@@ -148,8 +148,6 @@ private:
 
     //************** Big green text end ******//
 
-    void RenderRedTextLapNumber(char *text,  irr::core::vector2d<irr::s32> drawTxtPosition);
-    void RenderRedTextKillCount(char *text,  irr::core::vector2d<irr::s32> drawTxtPosition);
     void CleanUpHudDisplayPartVector(std::vector<HudDisplayPart*> &pntrVector);
 
     //************************************

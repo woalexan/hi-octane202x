@@ -49,14 +49,6 @@ private:
 
     void LoadInitialFont();
 
-    void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
-        irr::video::SColor newColor);
-    
-    //uses the 4 corner pixel of the character to derive the most
-    //likely transparent pixel color
-    //Returns true in case of success, false otherwise
-    bool DeriveTransparentColorForChar(GameTextCharacterInfo& character);
-
     GameTextFont* LoadGameFont(char* fileName, const char* fileEnding, unsigned long numOffset, unsigned long numChars,
         std::vector<int> loadAddFileNr);
  

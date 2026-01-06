@@ -276,6 +276,11 @@ public:
   bool InitStage3();
 
   bool WriteGameConfigXmlFile(IrrlichtDevice *device);
+  bool WriteFontInfoXmlFile(IrrlichtDevice *device, irr::io::path fontPath, irr::video::SColor transColor);
+
+  //Returns true in case of success, False otherwise
+  //Read transparent color is returned in last reference parameter
+  bool ReadFontInfoXmlFile(IrrlichtDevice *device, irr::io::path fontPath, irr::video::SColor& transColor);
 
   //Returns true in case of success, false otherwise
   bool LoadLevelConfigData(std::string levelRootPath, MapConfigStruct** outMapTarget);

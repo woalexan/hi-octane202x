@@ -62,7 +62,7 @@ typedef struct {
         char padding2[4];
         uint32_t tuneLenBytes;
         int16_t unknown;
-     } SOUNDFILEENTRY;
+} SOUNDFILEENTRY;
 
 //each MUSICTABLEENTRY has 16 bytes
 typedef struct {
@@ -70,7 +70,7 @@ typedef struct {
         uint32_t offTune1;   //offset to the first tune
         uint32_t unknown;  //unknown (always 0xC0000000, or 192)
         uint32_t AllTunesLenBytes;
-     } MUSICTABLEENTRY;
+} MUSICTABLEENTRY;
 
 typedef struct FontCharacterPreprocessInfo {
     //contains the raw image for the character
@@ -312,7 +312,7 @@ private:
     void FindCharArea(FontCharacterPreprocessInfo* character);
     bool AddColoredOutline(FontCharacterPreprocessInfo& character, irr::video::SColor* outLineColor);
 
-    void DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character);
+    irr::video::SColor DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character);
     void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
         irr::video::SColor newColor);
     void DeriveCharColorsForChar(FontCharacterPreprocessInfo& character);
@@ -321,6 +321,8 @@ private:
     bool StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName);
 
     void PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor);
+    irr::video::SColor* fontOutLineColor;
+    irr::video::SColor* fontOutLineColor2;
 };
 
 #endif // PREPAREDATA_H
