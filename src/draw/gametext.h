@@ -50,7 +50,7 @@ private:
     void LoadInitialFont();
 
     GameTextFont* LoadGameFont(char* fileName, const char* fileEnding, unsigned long numOffset, unsigned long numChars,
-        std::vector<int> loadAddFileNr);
+        std::vector<int> loadAddFileNr, bool removeGap);
  
     void FreeTextFont(GameTextFont &pntrFont);
 

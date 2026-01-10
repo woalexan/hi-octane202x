@@ -3880,7 +3880,7 @@ void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* s
             fontChar.image->drop();
 
             //remove old temporary file
-            //remove(fList->getFullFileName(idx).c_str());
+            remove(fList->getFullFileName(idx).c_str());
         }
     }
 

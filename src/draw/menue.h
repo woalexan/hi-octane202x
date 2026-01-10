@@ -162,7 +162,7 @@ public:
     MenuePage* mParentPage = nullptr;
 
     //Gets the needed width in pixels
-    irr::u32 GetWidth();
+    irr::u32 GetWidth(bool doNotAddSlider = false);
 
     //Gets the needed height in pixels
     irr::u32 GetHeight();
@@ -236,7 +236,6 @@ public:
 
     MenueSingleEntry* AddSliderMenueEntry(const char* text, bool itemSelectable,
                                                      irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
-                                                     irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
                                                      MenueAction* triggerAction);
     MenueSingleEntry* AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction);
     MenueSingleEntry* AddEmptySpaceMenueEntry();

@@ -22,7 +22,7 @@
 //                  at the end
 //In case of an unexpected error this function returns nullptr
 GameTextFont* GameText::LoadGameFont(char* fileName, const char *fileEnding, unsigned long numOffset, 
-    unsigned long numChars, std::vector<int> loadAddFileNr) {
+    unsigned long numChars, std::vector<int> loadAddFileNr, bool removeGap) {
   mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
   char finalpath[70];
@@ -82,7 +82,16 @@ GameTextFont* GameText::LoadGameFont(char* fileName, const char *fileEnding, uns
       }
 
       newCharInfo->sizeRawTex = newCharInfo->texture->getOriginalSize();
-      newCharInfo->charRect.UpperLeftCorner.set(0, 0);
+      if (!removeGap) {
+        newCharInfo->charRect.UpperLeftCorner.set(0, 0);
+      } else {
+        //10.01.2026: Most text in the game is written in a way, that there is no
+        //gap (column) with transparent pixels between neighboring characters in a text
+        //For all fonts where this applies, skip the empty column in the font character
+        //images at the left side
+        newCharInfo->charRect.UpperLeftCorner.set(1, 0);
+      }
+
       newCharInfo->charRect.LowerRightCorner.set(newCharInfo->sizeRawTex.Width, newCharInfo->sizeRawTex.Height);
       newCharInfo->transColor = transColor;
 
@@ -409,8 +418,12 @@ irr::u32 GameText::GetWidthPixelsGameNumberText(char* numberText, GameTextFont *
 void GameText::LoadInitialFont() {
     std::vector<int> addFileOffs = {};
 
-    //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
-    GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/pre-osfnt0-1-", ".png", 0, 241, addFileOffs);
+    if (!mInfra->mGameConfig->enableDoubleResolution) {
+        //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
+        GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
+    } else {
+        GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga-x2/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
+    }
 
     //was there are problem loading the text font?
     if (GameMenueWhiteTextSmallSVGA == nullptr) {
@@ -424,7 +437,7 @@ void GameText::LoadFontsStep2() {
     std::vector<int> addFileOffs = {};
 
     //load white Hud banner text font, 241 characters need to be loaded
-    HudWhiteTextBannerFont = LoadGameFont((char*)"extract/fonts/large/pre-olfnt0-1-", ".png", 0, 241, addFileOffs);
+    HudWhiteTextBannerFont = LoadGameFont((char*)"extract/fonts/large/pre-olfnt0-1-", ".png", 0, 241, addFileOffs, true);
 
     //was there are problem loading the text font?
     if (HudWhiteTextBannerFont == nullptr) {
@@ -433,11 +446,11 @@ void GameText::LoadFontsStep2() {
 
     //load white text font used in game menue, 241 characters need to be loaded
     if (!mInfra->mGameConfig->enableDoubleResolution) {
-        GameMenueSelectedItemFont = LoadGameFont((char*)"extract/fonts/large/pre-olfnt0-1-", ".png", 0, 241, addFileOffs);
+        GameMenueSelectedItemFont = LoadGameFont((char*)"extract/fonts/large/pre-olfnt0-1-", ".png", 0, 241, addFileOffs, true);
     }
     else {
         //for double resolution use font upscaled by factor of 2
-        GameMenueSelectedItemFont = LoadGameFont((char*)"extract/fonts/large-x2/pre-olfnt0-1-", ".png", 0, 241, addFileOffs);
+        GameMenueSelectedItemFont = LoadGameFont((char*)"extract/fonts/large-x2/pre-olfnt0-1-", ".png", 0, 241, addFileOffs, true);
     }
 
     //was there are problem loading the text font?
@@ -446,7 +459,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load big green Hud text font, 241 characters need to be loaded
-    HudBigGreenText = LoadGameFont((char*)"extract/fonts/largegreen/pre-pfont0-1-", ".png", 0, 241, addFileOffs);
+    HudBigGreenText = LoadGameFont((char*)"extract/fonts/largegreen/pre-pfont0-1-", ".png", 0, 241, addFileOffs, true);
 
     //was there are problem loading the text font?
     if (HudBigGreenText == nullptr) {
@@ -456,7 +469,7 @@ void GameText::LoadFontsStep2() {
     //load Hud laptime number fonts in red
     //also add graphical symbol with the 2 red arrows (which is used next to the current lap numbers)
     //therefore 13 characters need to be loaded
-    HudLaptimeNumberRed = LoadGameFont((char*)"extract/fonts/hudlaptimered/pre-panel0-1-", ".png", 0, 13, addFileOffs);
+    HudLaptimeNumberRed = LoadGameFont((char*)"extract/fonts/hudlaptimered/pre-panel0-1-", ".png", 0, 13, addFileOffs, true);
 
     //was there are problem loading the text font?
     if (HudLaptimeNumberRed == nullptr) {
@@ -464,7 +477,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load Hud laptime number fonts in grey, only 12 characters need to be loaded
-    HudLaptimeNumberGrey = LoadGameFont((char*)"extract/fonts/hudlaptimegrey/pre-panel0-1-", ".png", 0, 12, addFileOffs);
+    HudLaptimeNumberGrey = LoadGameFont((char*)"extract/fonts/hudlaptimegrey/pre-panel0-1-", ".png", 0, 12, addFileOffs, true);
 
     //was there are problem loading the text font?
     if (HudLaptimeNumberGrey == nullptr) {
@@ -472,15 +485,15 @@ void GameText::LoadFontsStep2() {
     }
 
     //add also the skull graphical symbol
-    HudKillCounterNumberRed = LoadGameFont((char*)"extract/fonts/hudkillcounterred/pre-panel0-1-", ".png", 0, 11, addFileOffs);
+    HudKillCounterNumberRed = LoadGameFont((char*)"extract/fonts/hudkillcounterred/pre-panel0-1-", ".png", 0, 11, addFileOffs, true);
 
     //load font we created ourself before for unselected items in mainmenue
     if (!mInfra->mGameConfig->enableDoubleResolution) {
-        GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish/pre-green-olfnt0-1-", ".png", 0, 241, addFileOffs);
+        GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish/pre-green-olfnt0-1-", ".png", 0, 241, addFileOffs, true);
     }
     else {
         //for double resolution use font upscaled by factor of 2
-        GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish-x2/pre-green-olfnt0-1-", ".png", 0, 241, addFileOffs);
+        GameMenueUnselectedEntryFont = LoadGameFont((char*)"extract/fonts/largegreenish-x2/pre-green-olfnt0-1-", ".png", 0, 241, addFileOffs, true);
     }
 
     //was there are problem loading the text font?
@@ -490,11 +503,11 @@ void GameText::LoadFontsStep2() {
 
     //load font we created ourself before for unselected items in mainmenue (based on smaller text size)
     if (!mInfra->mGameConfig->enableDoubleResolution) {
-        GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish/pre-green-osfnt0-1-", ".png", 0, 241, addFileOffs);
+        GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish/pre-green-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
     }
     else {
         //for double resolution use font upscaled by factor of 2
-        GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish-x2/pre-green-osfnt0-1-", ".png", 0, 241, addFileOffs);
+        GameMenueUnselectedTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvgagreenish-x2/pre-green-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
     }
 
     //was there are problem loading the text font?
@@ -503,7 +516,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load very small green target description font of HUD
-    HudTargetNameGreen = LoadGameFont((char*)"extract/fonts/hudtargetgreen/pre-panel0-1-", ".png", 0, 26, addFileOffs);
+    HudTargetNameGreen = LoadGameFont((char*)"extract/fonts/hudtargetgreen/pre-panel0-1-", ".png", 0, 26, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (HudTargetNameGreen == nullptr) {
@@ -511,7 +524,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load very small red target description font of HUD
-    HudTargetNameRed = LoadGameFont((char*)"extract/fonts/hudtargetred/pre-panel0-1-", ".png", 0, 26, addFileOffs);
+    HudTargetNameRed = LoadGameFont((char*)"extract/fonts/hudtargetred/pre-panel0-1-", ".png", 0, 26, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (HudTargetNameRed == nullptr) {
@@ -519,7 +532,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load white thin font
-    ThinWhiteText = LoadGameFont((char*)"extract/fonts/thinwhite/pre-hfont0-0-", ".png", 0, 127, addFileOffs);
+    ThinWhiteText = LoadGameFont((char*)"extract/fonts/thinwhite/pre-hfont0-0-", ".png", 0, 127, addFileOffs, false);
 
     //was there are problem loading the text font?
     if (ThinWhiteText == nullptr) {

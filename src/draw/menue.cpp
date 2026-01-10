@@ -101,7 +101,6 @@ MenueSingleEntry* MenuePage::AddEmptySpaceMenueEntry() {
 
 MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSelectable,
                                                  irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
-                                                 irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
                                                  MenueAction* triggerAction) {
     irr::u8 currNrEntries = (irr::u8)(this->pageEntryVec.size());
 
@@ -119,8 +118,10 @@ MenueSingleEntry* MenuePage::AddSliderMenueEntry(const char* text, bool itemSele
           newEntry->nextMenuePage = nullptr;
           newEntry->triggerAction = triggerAction;
           newEntry->itemSelectable = itemSelectable;
-          newEntry->checkBoxPixelPerBlockWidth = checkBoxPixelPerBlockWidthParam;
-          newEntry->checkBoxPixelPerBlockHeight = checkBoxPixelPerBlockHeightParam;
+          //The following two values are updated later
+          //based on the text next to the checkbox
+          newEntry->checkBoxPixelPerBlockWidth = 0;
+          newEntry->checkBoxPixelPerBlockHeight = 0;
           newEntry->checkBoxNrBlocks = nrBlocksParam;
 
           //use the default menue fonts
@@ -196,6 +197,13 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
             }
 
             neededHeight += MENUE_ENTRY_DISTANCE_PIXEL;
+
+            if ((*it)->entryType == MENUE_ENTRY_TYPE_SLIDER) {
+                //we need to setup the checkbox width and height depending on the text next
+                //to the checkbox
+                (*it)->checkBoxPixelPerBlockHeight = (*it)->GetHeight();
+                (*it)->checkBoxPixelPerBlockWidth = (*it)->checkBoxPixelPerBlockHeight;
+            }
         }
 
         irr::u32 remainHeight = height - neededHeight;
@@ -207,7 +215,7 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
 
             //if this element also has a slider, we also need to set its outline box
             if ((*it)->entryType == MENUE_ENTRY_TYPE_SLIDER) {
-                (*it)->checkBoxOutline.UpperLeftCorner.X = alignX + (*it)->GetWidth() / 2 + MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
+                (*it)->checkBoxOutline.UpperLeftCorner.X = (*it)->drawTextScrPosition.X + (*it)->GetWidth(false) + MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
                 (*it)->checkBoxOutline.UpperLeftCorner.Y = startAlignY;
                 (*it)->checkBoxOutline.LowerRightCorner.X = (*it)->checkBoxOutline.UpperLeftCorner.X + (*it)->checkBoxNrBlocks * (*it)->checkBoxPixelPerBlockWidth;
                 (*it)->checkBoxOutline.LowerRightCorner.Y = (*it)->checkBoxOutline.UpperLeftCorner.Y + (*it)->checkBoxPixelPerBlockHeight;
@@ -224,14 +232,14 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
 }
 
 //Gets the needed width in pixels
-irr::u32 MenueSingleEntry::GetWidth() {
+irr::u32 MenueSingleEntry::GetWidth(bool doNotAddSlider) {
     //Get width of text in pixels for entry
     irr::u32 textWidth =
              mParentPage->mParentMenue->mGame->mGameTexts->GetWidthPixelsGameText(entryText,
                                                   this->usedUnselectedTextFont);
 
     //is also a checkbox/slider included?
-    if (maxValue != 0) {
+    if ((maxValue != 0) && (!doNotAddSlider)) {
         //yes, it is
         textWidth += MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
         textWidth += checkBoxNrBlocks * checkBoxPixelPerBlockWidth;
@@ -248,7 +256,7 @@ irr::u32 MenueSingleEntry::GetHeight() {
                                                   this->usedUnselectedTextFont);
 
     //is also a checkbox/slider included?
-    if (maxValue != 0) {
+  /*  if (maxValue != 0) {
         //yes, it is
         //if the slider blocks are heigher then the text itself
         //the set the needed height to the height of the slider
@@ -256,7 +264,7 @@ irr::u32 MenueSingleEntry::GetHeight() {
         if (checkBoxPixelPerBlockHeight > textHeight) {
             textHeight = checkBoxPixelPerBlockHeight;
         }
-    }
+    }*/
 
     return textHeight;
 }
@@ -597,13 +605,13 @@ void Menue::CreateMenueEntries() {
         setValue = 0;
     }
 
-    OptionMenuePage->AddSliderMenueEntry("COMPUTER PLAYERS", true, setValue, 1, 1, 22, 14, ActSetComputerPlayerEnable);
+    OptionMenuePage->AddSliderMenueEntry("COMPUTER PLAYERS", true, setValue, 1, 1, ActSetComputerPlayerEnable);
 
     //difficultyLevel allows to set 4 different levels
     //get current difficulty level from assets class
     setValue = mGameAssets->GetCurrentGameDifficulty();
 
-    OptionMenuePage->AddSliderMenueEntry("DIFFICULTY LEVEL", true, setValue, 3, 3, 22, 14, ActSetDifficultyLevel);
+    OptionMenuePage->AddSliderMenueEntry("DIFFICULTY LEVEL", true, setValue, 3, 3, ActSetDifficultyLevel);
 
     //Skip intro
     if (mGame->mGameConfig->skipIntro) {
@@ -612,7 +620,7 @@ void Menue::CreateMenueEntries() {
         setValue = 0;
     }
 
-    OptionMenuePage->AddSliderMenueEntry("SKIP INTRO", true, setValue, 1, 1, 22, 14, ActSkipIntro);
+    OptionMenuePage->AddSliderMenueEntry("SKIP INTRO", true, setValue, 1, 1, ActSkipIntro);
     OptionMenuePage->AddDefaultMenueEntry("MAIN MENU", true, TopMenuePage, nullptr);
 
     /**********************************
@@ -638,7 +646,7 @@ void Menue::CreateMenueEntries() {
         setValue = 0;
     }
 
-    VideoDetailsPage->AddSliderMenueEntry("DOUBLE RESOLUTION", true, setValue, 1, 1, 22, 14, ActSetDoubleResolution);
+    VideoDetailsPage->AddSliderMenueEntry("DOUBLE RESOLUTION", true, setValue, 1, 1, ActSetDoubleResolution);
 
     //enable vsync is a checkbox
     if (mGame->mGameConfig->enableVSync) {
@@ -647,7 +655,7 @@ void Menue::CreateMenueEntries() {
         setValue = 0;
     }
 
-    VideoDetailsPage->AddSliderMenueEntry("ENABLE VSYNC", true, setValue, 1, 1, 22, 14, ActSetVSync);
+    VideoDetailsPage->AddSliderMenueEntry("ENABLE VSYNC", true, setValue, 1, 1, ActSetVSync);
 
     //enable shadows is a checkbox
     if (mGame->mGameConfig->enableShadows) {
@@ -656,7 +664,7 @@ void Menue::CreateMenueEntries() {
         setValue = 0;
     }
 
-    VideoDetailsPage->AddSliderMenueEntry("ENABLE SHADOWS", true, setValue, 1, 1, 22, 14, ActSetEnableShadows);
+    VideoDetailsPage->AddSliderMenueEntry("ENABLE SHADOWS", true, setValue, 1, 1, ActSetEnableShadows);
 
     //option to use the upgraded sky is a checkbox
     if (mGame->mGameConfig->useUpgradedSky) {
@@ -665,7 +673,7 @@ void Menue::CreateMenueEntries() {
         setValue = 0;
     }
 
-    VideoDetailsPage->AddSliderMenueEntry("UPGRADED SKY", true, setValue, 1, 1, 22, 14, ActSetUpgradedSky);
+    VideoDetailsPage->AddSliderMenueEntry("UPGRADED SKY", true, setValue, 1, 1, ActSetUpgradedSky);
     VideoDetailsPage->AddDefaultMenueEntry("MAIN OPTIONS", true, OptionMenuePage, ActReturnFromDetailsMenue);
 
     /*****************************
@@ -686,7 +694,7 @@ void Menue::CreateMenueEntries() {
     if (finalVal > 16)
         finalVal = 16;
 
-    SoundOptionsPage->AddSliderMenueEntry("MUSIC VOLUME", true, finalVal, 16, 16, 10, 14, ActSetMusicVolume);
+    SoundOptionsPage->AddSliderMenueEntry("MUSIC VOLUME", true, finalVal, 16, 16, ActSetMusicVolume);
 
     //effects volume is a slider with 16 blocks (17 different possible settings)
 
@@ -702,7 +710,7 @@ void Menue::CreateMenueEntries() {
     if (finalVal > 16)
         finalVal = 16;
 
-    SoundOptionsPage->AddSliderMenueEntry("EFFECTS VOLUME", true, finalVal, 16, 16, 10, 14, ActSetSoundVolume);
+    SoundOptionsPage->AddSliderMenueEntry("EFFECTS VOLUME", true, finalVal, 16, 16, ActSetSoundVolume);
     SoundOptionsPage->AddDefaultMenueEntry("MAIN OPTIONS", true, OptionMenuePage, nullptr);
 
     //Race track selection page
@@ -959,9 +967,15 @@ void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
 
     cursorPos.UpperLeftCorner.Y = textEntryField->drawTextScrPosition.Y + 1;
 
-    //make cursor 18 x 18 pixels
-    cursorPos.LowerRightCorner.X = cursorPos.UpperLeftCorner.X + 18;
-    cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 18;
+    if (!mGame->mGameConfig->enableDoubleResolution) {
+        //make cursor 18 x 18 pixels
+        cursorPos.LowerRightCorner.X = cursorPos.UpperLeftCorner.X + 18;
+        cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 18;
+    } else {
+        //make cursor 36 x 36 pixels
+        cursorPos.LowerRightCorner.X = cursorPos.UpperLeftCorner.X + 36;
+        cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 36;
+    }
 
     //draw cursor with greenish color
     this->mGame->mDriver->draw2DRectangle(irr::video::SColor(255, 97, 165, 145), cursorPos);
