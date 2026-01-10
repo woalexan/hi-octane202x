@@ -2479,7 +2479,7 @@ irr::io::path InfrastructureBase::GetMiniMapFileName(LevelFolderInfoStruct* whic
         return resultPath;
 
     resultPath.append(whichLevel->levelBaseDir);
-    resultPath.append("minimap.bmp");
+    resultPath.append("minimap.png");
     return resultPath;
 }
 
@@ -2487,7 +2487,7 @@ irr::io::path InfrastructureBase::GetMiniMapFileName(std::string levelRootPath) 
     irr::io::path resultPath("");
 
     resultPath.append(levelRootPath.c_str());
-    resultPath.append("minimap.bmp");
+    resultPath.append("minimap.png");
     return resultPath;
 }
 

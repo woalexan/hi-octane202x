@@ -23,7 +23,7 @@ void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
 
     //first build the name for the image file to load
     strcpy(fileName, "extract/hud1player/panel0-1-");
-    sprintf (fname, "%0*u.bmp", 4, panelTexNr);
+    sprintf (fname, "%0*u.png", 4, panelTexNr);
     strcat(fileName, fname);
 
     HudDisplayPart* newPart = new HudDisplayPart();
@@ -57,7 +57,7 @@ void HUD::Add1PlayerHudDisplayPart(std::vector<HudDisplayPart*>* addToWhichBar,
 
         //build the name for the alternative image file to load
         strcpy(altFileName, "extract/hud1player/panel0-1-");
-        sprintf (fname, "%0*u.bmp", 4, (irr::u16)(altPanelTexNr));
+        sprintf (fname, "%0*u.png", 4, (irr::u16)(altPanelTexNr));
         strcat(altFileName, fname);
 
         //load/add the alternative texture
@@ -206,7 +206,7 @@ void HUD::InitBrokenGlas() {
 
     //broken glas image
     brokenGlas = new HudDisplayPart();
-    brokenGlas->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0229.bmp");
+    brokenGlas->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0229.png");
     mGame->mDriver->makeColorKeyTexture(brokenGlas->texture, irr::core::position2d<irr::s32>(0,0));
     brokenGlas->sizeTex = brokenGlas->texture->getSize();
     brokenGlas->drawScrPosition.set(0, 0);
@@ -1200,14 +1200,14 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     HudDisplayPart* leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
     leftBoundarySymbState1->altTexture = nullptr;
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
     leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 77, posY);
 
     //Right boundary block symbol
     HudDisplayPart* rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
     rightBoundarySymbState1->altTexture = nullptr;
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
     rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 28, posY);
@@ -1222,7 +1222,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 3; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.png");
         middleWhiteSymbState1Symb->altTexture = nullptr;
 
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
@@ -1247,14 +1247,14 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
     leftBoundarySymbState1->altTexture = nullptr;
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
     leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 110, posY);
 
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
     rightBoundarySymbState1->altTexture = nullptr;
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
     rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 60, posY);
@@ -1268,7 +1268,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 5; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.png");
         middleWhiteSymbState1Symb->altTexture = nullptr;
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
         middleWhiteSymbState1Symb->drawScrPosition.set((posX - 320) + mHudDrawPositionOffset.X, posY);
@@ -1292,14 +1292,14 @@ void HUD::InitHudBannerText() {
 
    //Left boundary block symbol
    leftBoundarySymbState1 = new HudDisplayPart();
-   leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+   leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
    leftBoundarySymbState1->altTexture = nullptr;
    leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
    leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 140, posY);
 
    //Right boundary block symbol
    rightBoundarySymbState1 = new HudDisplayPart();
-   rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+   rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
    rightBoundarySymbState1->altTexture = nullptr;
    rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
    rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 90, posY);
@@ -1313,7 +1313,7 @@ void HUD::InitHudBannerText() {
    //create all middle while background symbols (before text appears)
    for (int idx = 0; idx < 8; idx++) {
        middleWhiteSymbState1Symb = new HudDisplayPart();
-       middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+       middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.png");
        middleWhiteSymbState1Symb->altTexture = nullptr;
        middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
        middleWhiteSymbState1Symb->drawScrPosition.set((posX - 320) + mHudDrawPositionOffset.X, posY);
@@ -1337,14 +1337,14 @@ void HUD::InitHudBannerText() {
 
   //Left boundary block symbol
   leftBoundarySymbState1 = new HudDisplayPart();
-  leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+  leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
   leftBoundarySymbState1->altTexture = nullptr;
   leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
   leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 169, posY);
 
   //Right boundary block symbol
   rightBoundarySymbState1 = new HudDisplayPart();
-  rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+  rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
   rightBoundarySymbState1->altTexture = nullptr;
   rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
   rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 121, posY);
@@ -1358,7 +1358,7 @@ void HUD::InitHudBannerText() {
   //create all middle while background symbols (before text appears)
   for (int idx = 0; idx < 10; idx++) {
       middleWhiteSymbState1Symb = new HudDisplayPart();
-      middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+      middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.png");
       middleWhiteSymbState1Symb->altTexture = nullptr;
       middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
       middleWhiteSymbState1Symb->drawScrPosition.set((posX - 320) + mHudDrawPositionOffset.X, posY);
@@ -1382,14 +1382,14 @@ void HUD::InitHudBannerText() {
 
  //Left boundary block symbol
  leftBoundarySymbState1 = new HudDisplayPart();
- leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+ leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
  leftBoundarySymbState1->altTexture = nullptr;
  leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
  leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 200, posY);
 
  //Right boundary block symbol
  rightBoundarySymbState1 = new HudDisplayPart();
- rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+ rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
  rightBoundarySymbState1->altTexture = nullptr;
  rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
  rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 150, posY);
@@ -1403,7 +1403,7 @@ void HUD::InitHudBannerText() {
  //create all middle while background symbols (before text appears)
  for (int idx = 0; idx < 13; idx++) {
      middleWhiteSymbState1Symb = new HudDisplayPart();
-     middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+     middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.png");
      middleWhiteSymbState1Symb->altTexture = nullptr;
      middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
      middleWhiteSymbState1Symb->drawScrPosition.set((posX - 320) + mHudDrawPositionOffset.X, posY);
@@ -1427,14 +1427,14 @@ void HUD::InitHudBannerText() {
 
     //Left boundary block symbol
     leftBoundarySymbState1 = new HudDisplayPart();
-    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+    leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
     leftBoundarySymbState1->altTexture = nullptr;
     leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
     leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 229, posY);
 
     //Right boundary block symbol
     rightBoundarySymbState1 = new HudDisplayPart();
-    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+    rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
     rightBoundarySymbState1->altTexture = nullptr;
     rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
     rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 181, posY);
@@ -1448,7 +1448,7 @@ void HUD::InitHudBannerText() {
     //create all middle while background symbols (before text appears)
     for (int idx = 0; idx < 15; idx++) {
         middleWhiteSymbState1Symb = new HudDisplayPart();
-        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.bmp");
+        middleWhiteSymbState1Symb->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0199.png");
         middleWhiteSymbState1Symb->altTexture = nullptr;
         middleWhiteSymbState1Symb->sizeTex = middleWhiteSymbState1Symb->texture->getSize();
         middleWhiteSymbState1Symb->drawScrPosition.set((posX - 320) + mHudDrawPositionOffset.X, posY);
@@ -1472,14 +1472,14 @@ void HUD::InitHudBannerText() {
 
        //Left boundary block symbol
        leftBoundarySymbState1 = new HudDisplayPart();
-       leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.bmp");
+       leftBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0197.png");
        leftBoundarySymbState1->altTexture = nullptr;
        leftBoundarySymbState1->sizeTex = leftBoundarySymbState1->texture->getSize();
        leftBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X - 229, posY);
 
        //Right boundary block symbol
        rightBoundarySymbState1 = new HudDisplayPart();
-       rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.bmp");
+       rightBoundarySymbState1->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0198.png");
        rightBoundarySymbState1->altTexture = nullptr;
        rightBoundarySymbState1->sizeTex = rightBoundarySymbState1->texture->getSize();
        rightBoundarySymbState1->drawScrPosition.set(mHudDrawPositionOffset.X + 181, posY);
@@ -1749,10 +1749,10 @@ void HUD::InitTargetStuff() {
 
     targetSymbol = new HudDisplayPart();
     //green target symbol
-    targetSymbol->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0257.bmp");
+    targetSymbol->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0257.png");
 
     //red target symbol
-    targetSymbol->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0258.bmp");
+    targetSymbol->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0258.png");
 
     mGame->mDriver->makeColorKeyTexture(targetSymbol->texture, irr::core::position2d<irr::s32>(0,0));
     mGame->mDriver->makeColorKeyTexture(targetSymbol->altTexture, irr::core::position2d<irr::s32>(0,0));
@@ -1768,10 +1768,10 @@ void HUD::InitTargetStuff() {
     //arrow left of target symbol
     targetArrowLeft = new HudDisplayPart();
     //green arrow left
-    targetArrowLeft->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0263.bmp");
+    targetArrowLeft->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0263.png");
 
     //red arrow left
-    targetArrowLeft->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0264.bmp");
+    targetArrowLeft->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0264.png");
 
     mGame->mDriver->makeColorKeyTexture(targetArrowLeft->texture, irr::core::position2d<irr::s32>(0,0));
     mGame->mDriver->makeColorKeyTexture(targetArrowLeft->altTexture, irr::core::position2d<irr::s32>(0,0));
@@ -1787,10 +1787,10 @@ void HUD::InitTargetStuff() {
     //arrow right of target symbol
     targetArrowRight = new HudDisplayPart();
     //green arrow right
-    targetArrowRight->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0265.bmp");
+    targetArrowRight->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0265.png");
 
     //red arrow right
-    targetArrowRight->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0266.bmp");
+    targetArrowRight->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0266.png");
 
     mGame->mDriver->makeColorKeyTexture(targetArrowRight->texture, irr::core::position2d<irr::s32>(0,0));
     mGame->mDriver->makeColorKeyTexture(targetArrowRight->altTexture, irr::core::position2d<irr::s32>(0,0));
@@ -1806,10 +1806,10 @@ void HUD::InitTargetStuff() {
     //arrow above of target symbol
     targetArrowAbove = new HudDisplayPart();
     //green arrow above
-    targetArrowAbove->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0259.bmp");
+    targetArrowAbove->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0259.png");
 
     //red arrow above
-    targetArrowAbove->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0260.bmp");
+    targetArrowAbove->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0260.png");
 
     mGame->mDriver->makeColorKeyTexture(targetArrowAbove->texture, irr::core::position2d<irr::s32>(0,0));
     mGame->mDriver->makeColorKeyTexture(targetArrowAbove->altTexture, irr::core::position2d<irr::s32>(0,0));
@@ -1825,10 +1825,10 @@ void HUD::InitTargetStuff() {
     //arrow below of target symbol
     targetArrowBelow = new HudDisplayPart();
     //green arrow below
-    targetArrowBelow->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0261.bmp");
+    targetArrowBelow->texture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0261.png");
 
     //red arrow below
-    targetArrowBelow->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0262.bmp");
+    targetArrowBelow->altTexture = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0262.png");
 
     mGame->mDriver->makeColorKeyTexture(targetArrowBelow->texture, irr::core::position2d<irr::s32>(0,0));
     mGame->mDriver->makeColorKeyTexture(targetArrowBelow->altTexture, irr::core::position2d<irr::s32>(0,0));

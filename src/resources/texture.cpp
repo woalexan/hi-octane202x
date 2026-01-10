@@ -218,7 +218,7 @@ void TextureLoader::LoadEditorTextures() {
     LoadEditorTexture("media/editor/speedo-fast-small.png", true);
 
     //image of original game: white arrow pointing to the right
-    LoadEditorTexture("extract/hud1player/panel0-1-0308.bmp", true);
+    LoadEditorTexture("extract/hud1player/panel0-1-0308.png", true);
 
     LoadEditorTexture("media/editor/stopsign-small.png", true);
 }

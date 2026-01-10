@@ -100,6 +100,8 @@ public:
     PrepareData(InfrastructureBase* mInfraPntr);
     ~PrepareData();
 
+    InfrastructureBase* mInfra = nullptr;
+
     //returns true if data preparation was succesfully
     //finished
     bool ExecuteNextStep();
@@ -109,24 +111,27 @@ public:
     //false otherwise if further extraction is needed
     bool GameDataAvailable();
 
+    std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
+
     //void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
 
 private:
-    InfrastructureBase* mInfra = nullptr;
-
     irr::u8 mCurrentStep = PREP_DATA_INITSTATE;
 
     //contains the ingame palette information
     unsigned char *palette = nullptr;
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
-    std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
 
     uint32_t read_uint32_le_file (FILE *fp);
     void ReadSoundFileEntry(FILE* inputFile, SOUNDFILEENTRY* entry);
     void ReadMusicFileEntry(FILE* inputFile, MUSICTABLEENTRY* entry);
 
     void CreatePalette();
+
+    void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, const char* outputDir);
+    void UnpackDataFile(const char* packfile, const char* unpackfile);
+    std::vector<unsigned char> loadRawFile(const char *filename);
 
     void ExtractInitialData();
 
@@ -144,6 +149,10 @@ private:
     void ExtractIntro();
     void ExtractAudio();
     void ExtractUserdata();
+
+    void MoveIndexedFilesToNewLocation(const char* srcPath, const char* srcPrefix, irr::u16 srcStartIdx,
+                                                    irr::u16 srcNrFiles, const char* targetPath, irr::u16 targetStartIdx);
+    void PrepareHudFontsLocation();
 
     std::vector<ObjTexModification*> mModelTexModificationVec;
 
@@ -319,8 +328,8 @@ private:
 
     //Returns true in case of success, False otherwise
     bool StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName);
-
     void PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor);
+
     irr::video::SColor* fontOutLineColor;
     irr::video::SColor* fontOutLineColor2;
 };

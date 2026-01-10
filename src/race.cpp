@@ -1622,7 +1622,7 @@ bool Race::InitMiniMap() {
     //of minimap
     std::string miniMapPicFile("");
     miniMapPicFile.append(mLevelRootPath);
-    miniMapPicFile.append("minimap.bmp");
+    miniMapPicFile.append("minimap.png");
 
     if (FileExists(miniMapPicFile.c_str()) != 1) {
         //minimap image file does not exist!

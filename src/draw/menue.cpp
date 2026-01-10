@@ -311,28 +311,28 @@ bool Menue::InitMenueResources() {
     mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
     //load window graphic elements
-    wndCornerElementUpperLeftTex = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0299.bmp");
+    wndCornerElementUpperLeftTex = mGame->mDriver->getTexture("extract/hud1player/panel0-1-0299.png");
     if (wndCornerElementUpperLeftTex == nullptr)
         return false;
     //define transparency color
     mGame->mDriver->makeColorKeyTexture(wndCornerElementUpperLeftTex,
            irr::core::position2d<irr::s32>(wndCornerElementUpperLeftTex->getSize().Width - 1, wndCornerElementUpperLeftTex->getSize().Height - 1));
 
-    wndCornerElementUpperRightTex = mGame->mDriver->getTexture("extract//hud1player/panel0-1-0300.bmp");
+    wndCornerElementUpperRightTex = mGame->mDriver->getTexture("extract//hud1player/panel0-1-0300.png");
     if (wndCornerElementUpperRightTex == nullptr)
         return false;
     //define transparency color
     mGame->mDriver->makeColorKeyTexture(wndCornerElementUpperRightTex,
            irr::core::position2d<irr::s32>(0, wndCornerElementUpperRightTex->getSize().Height - 1));
 
-    wndCornerElementLowerLeftTex  = mGame->mDriver->getTexture("extract//hud1player/panel0-1-0301.bmp");
+    wndCornerElementLowerLeftTex  = mGame->mDriver->getTexture("extract//hud1player/panel0-1-0301.png");
     if (wndCornerElementLowerLeftTex == nullptr)
         return false;
     //define transparency color
     mGame->mDriver->makeColorKeyTexture(wndCornerElementLowerLeftTex,
            irr::core::position2d<irr::s32>(wndCornerElementLowerLeftTex->getSize().Width - 1, 0));
 
-    wndCornerElementLowerRightTex = mGame->mDriver->getTexture("extract//hud1player/panel0-1-0302.bmp");
+    wndCornerElementLowerRightTex = mGame->mDriver->getTexture("extract//hud1player/panel0-1-0302.png");
     if (wndCornerElementLowerRightTex == nullptr)
         return false;
     //define transparency color
@@ -383,7 +383,7 @@ bool Menue::InitMenueResources() {
         imgName.clear();
         imgName.append(imgNamePrefix);
 
-        sprintf (nrStr, "%0*ld.bmp", 4, idx);
+        sprintf (nrStr, "%0*ld.png", 4, idx);
         imgName.append(nrStr);
 
         GameLogoPiece = new MenueGraphicPart();

@@ -453,11 +453,10 @@ void GameText::LoadFontsStep2() {
         GameTextInitializedOk = false;
     }
 
-    //load Hud laptime number fonts in red, only 12 characters need to be loaded
+    //load Hud laptime number fonts in red
     //also add graphical symbol with the 2 red arrows (which is used next to the current lap numbers)
-    std::vector<int> addFileOffs2 = {226};
-    //TODO 04.01.2026: Images still need to be preoptimized in PrepareData!
-    HudLaptimeNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 138, 12, addFileOffs2 /*, false*/);
+    //therefore 13 characters need to be loaded
+    HudLaptimeNumberRed = LoadGameFont((char*)"extract/fonts/hudlaptimered/pre-panel0-1-", ".png", 0, 13, addFileOffs);
 
     //was there are problem loading the text font?
     if (HudLaptimeNumberRed == nullptr) {
@@ -465,8 +464,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load Hud laptime number fonts in grey, only 12 characters need to be loaded
-    //TODO 04.01.2026: Images still need to be preoptimized in PrepareData!
-    HudLaptimeNumberGrey = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 150, 12, addFileOffs /*, false*/);
+    HudLaptimeNumberGrey = LoadGameFont((char*)"extract/fonts/hudlaptimegrey/pre-panel0-1-", ".png", 0, 12, addFileOffs);
 
     //was there are problem loading the text font?
     if (HudLaptimeNumberGrey == nullptr) {
@@ -474,9 +472,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //add also the skull graphical symbol
-    std::vector<int> addFileOffs3 = {227};
-    //TODO 04.01.2026: Images still need to be preoptimized in PrepareData!
-    HudKillCounterNumberRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 117, 10, addFileOffs3 /*, false*/);
+    HudKillCounterNumberRed = LoadGameFont((char*)"extract/fonts/hudkillcounterred/pre-panel0-1-", ".png", 0, 11, addFileOffs);
 
     //load font we created ourself before for unselected items in mainmenue
     if (!mInfra->mGameConfig->enableDoubleResolution) {
@@ -507,8 +503,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load very small green target description font of HUD
-    //TODO 04.01.2026: Images still need to be preoptimized in PrepareData!
-    HudTargetNameGreen = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 231, 26, addFileOffs /*, false*/);
+    HudTargetNameGreen = LoadGameFont((char*)"extract/fonts/hudtargetgreen/pre-panel0-1-", ".png", 0, 26, addFileOffs);
 
     //was there are problem loading the text font?
     if (HudTargetNameGreen == nullptr) {
@@ -516,8 +511,7 @@ void GameText::LoadFontsStep2() {
     }
 
     //load very small red target description font of HUD
-    //TODO 04.01.2026: Images still need to be preoptimized in PrepareData!
-    HudTargetNameRed = LoadGameFont((char*)"extract/hud1player/panel0-1-", ".bmp", 200, 26, addFileOffs /*, false*/);
+    HudTargetNameRed = LoadGameFont((char*)"extract/fonts/hudtargetred/pre-panel0-1-", ".png", 0, 26, addFileOffs);
 
     //was there are problem loading the text font?
     if (HudTargetNameRed == nullptr) {

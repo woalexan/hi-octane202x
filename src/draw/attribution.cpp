@@ -117,9 +117,9 @@ irr::video::ITexture* Attribution::LoadResourceImage(std::string filename, irr::
 bool Attribution::LoadLineSeperatorImages() {
     mInfra->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
 
-    std::string texFile1("extract/hud1player/panel0-1-0197.bmp");
-    std::string texFile2("extract/hud1player/panel0-1-0199.bmp");
-    std::string texFile3("extract/hud1player/panel0-1-0198.bmp");
+    std::string texFile1("extract/hud1player/panel0-1-0197.png");
+    std::string texFile2("extract/hud1player/panel0-1-0199.png");
+    std::string texFile3("extract/hud1player/panel0-1-0198.png");
 
     texSeperatorLine1 = LoadResourceImage(texFile1, texSeperatorLine1Width, texSeperatorLineHeight);
 
