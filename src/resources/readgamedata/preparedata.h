@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -62,7 +62,7 @@ typedef struct {
         char padding2[4];
         uint32_t tuneLenBytes;
         int16_t unknown;
-     } SOUNDFILEENTRY;
+} SOUNDFILEENTRY;
 
 //each MUSICTABLEENTRY has 16 bytes
 typedef struct {
@@ -70,13 +70,37 @@ typedef struct {
         uint32_t offTune1;   //offset to the first tune
         uint32_t unknown;  //unknown (always 0xC0000000, or 192)
         uint32_t AllTunesLenBytes;
-     } MUSICTABLEENTRY;
+} MUSICTABLEENTRY;
+
+typedef struct FontCharacterPreprocessInfo {
+    //contains the raw image for the character
+    irr::video::IImage* image = nullptr;
+
+    //size in pixels of the raw image for character
+    //as read from original game export data
+    irr::core::dimension2d<irr::s32> sizeRawTex;
+
+    //contains "optimized" area of character, non useful empty black area removed
+    //only 1 line of black area left on left and right side
+    irr::core::rect<irr::s32> charRect;
+
+    //contains the transparent color found for this
+    //character
+    irr::video::SColor transColor;
+
+    //contains the found character colors itself
+    //are all colors that are not background colors
+    //after upscaling multiple colors are possible
+    std::vector<irr::video::SColor> charColorVec;
+} FontCharacterPreprocessInfo;
 
 class PrepareData {
 
 public:
     PrepareData(InfrastructureBase* mInfraPntr);
     ~PrepareData();
+
+    InfrastructureBase* mInfra = nullptr;
 
     //returns true if data preparation was succesfully
     //finished
@@ -87,24 +111,27 @@ public:
     //false otherwise if further extraction is needed
     bool GameDataAvailable();
 
+    std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
+
     //void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
 
 private:
-    InfrastructureBase* mInfra = nullptr;
-
     irr::u8 mCurrentStep = PREP_DATA_INITSTATE;
 
     //contains the ingame palette information
     unsigned char *palette = nullptr;
 
     void ReadPaletteFile(char *palFile, unsigned char* paletteDataOut);
-    std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
 
     uint32_t read_uint32_le_file (FILE *fp);
     void ReadSoundFileEntry(FILE* inputFile, SOUNDFILEENTRY* entry);
     void ReadMusicFileEntry(FILE* inputFile, MUSICTABLEENTRY* entry);
 
     void CreatePalette();
+
+    void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, const char* outputDir);
+    void UnpackDataFile(const char* packfile, const char* unpackfile);
+    std::vector<unsigned char> loadRawFile(const char *filename);
 
     void ExtractInitialData();
 
@@ -122,6 +149,10 @@ private:
     void ExtractIntro();
     void ExtractAudio();
     void ExtractUserdata();
+
+    void MoveIndexedFilesToNewLocation(const char* srcPath, const char* srcPrefix, irr::u16 srcStartIdx,
+                                                    irr::u16 srcNrFiles, const char* targetPath, irr::u16 targetStartIdx);
+    void PrepareHudFontsLocation();
 
     std::vector<ObjTexModification*> mModelTexModificationVec;
 
@@ -238,6 +269,8 @@ private:
     void ConvertRawImageData(const char* rawDataFilename, irr::u32 sizex, irr::u32 sizey,
                              const char* outputFilename, int scaleFactor = 1);
 
+    void UpscaleAllImagesInDirectory(const char* srcDir, const char* srcFilePrefix, const char* targetDir, int scaleFactor);
+
     void ExtractTmaps();
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
@@ -283,6 +316,22 @@ private:
                                  int colorSelector);
 
     void PrepareUpgradedSkyData();
+
+    //Stuff for font preprocessing
+    void FindCharArea(FontCharacterPreprocessInfo* character);
+    bool AddColoredOutline(FontCharacterPreprocessInfo& character, irr::video::SColor* outLineColor);
+
+    irr::video::SColor DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character);
+    void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
+        irr::video::SColor newColor);
+    void DeriveCharColorsForChar(FontCharacterPreprocessInfo& character);
+
+    //Returns true in case of success, False otherwise
+    bool StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName);
+    void PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor);
+
+    irr::video::SColor* fontOutLineColor;
+    irr::video::SColor* fontOutLineColor2;
 };
 
 #endif // PREPAREDATA_H

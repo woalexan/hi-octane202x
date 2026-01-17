@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -115,6 +115,11 @@
 //implemented as in the original game
 const irr::f32 MENUE_USERINACTIVETIME_THRESHOLD = 30.0f;
 
+#define MENUE_STATE_FADING_FADEDIN 0
+#define MENUE_STATE_FADING_FADEDOUT 1
+#define MENUE_STATE_FADING_FADINGIN 2
+#define MENUE_STATE_FADING_FADINGOUT 3
+
 //this struct holds the information for a menue
 //graphical element (mostly logo)
 typedef struct MenueGraphicPart {
@@ -162,7 +167,7 @@ public:
     MenuePage* mParentPage = nullptr;
 
     //Gets the needed width in pixels
-    irr::u32 GetWidth();
+    irr::u32 GetWidth(bool doNotAddSlider = false);
 
     //Gets the needed height in pixels
     irr::u32 GetHeight();
@@ -236,7 +241,6 @@ public:
 
     MenueSingleEntry* AddSliderMenueEntry(const char* text, bool itemSelectable,
                                                      irr::u8 currValueParam, irr::u8 maxValueParam, irr::u8 nrBlocksParam,
-                                                     irr::u8 checkBoxPixelPerBlockWidthParam, irr::u8 checkBoxPixelPerBlockHeightParam,
                                                      MenueAction* triggerAction);
     MenueSingleEntry* AddTextInputMenueEntry(char* initTextPntrParam, bool itemSelectable, MenueAction* triggerAction);
     MenueSingleEntry* AddEmptySpaceMenueEntry();
@@ -261,6 +265,7 @@ public:
 
 typedef struct {
     std::vector<irr::core::recti> coordVec;
+    irr::f32 animationPeriodTime;
 } MenueWindowAnimationVec;
 
 struct ShipStatLabel {
@@ -618,6 +623,13 @@ private:
 
     void ScalePositionMenueTextLabel(MenueTextLabel& whichLabel);
 
+    //for fading in/out of menue
+    irr::u8 mCurrFadingState = MENUE_STATE_FADING_FADEDIN;
+    irr::f32 mCurrFadingFactor = 1.0f; //default Menue fully faded in
+
+    irr::video::SColor UpdateRenderColor(irr::video::SColor fullyFadedInColor);
+    void UpdateCurrentRenderColors();
+
 public:
     //if you do not want any Menue Sounds just put NULL pointer into soundEngine
     Menue(Game* game,
@@ -631,6 +643,15 @@ public:
     //remembers if we entered the last race selection
     //page in Championship mode or not
     bool mChampionshipMode = false;
+
+    //the following color information is used for
+    //fading in and out the menue
+    irr::video::SColor mCurrentMainRenderColor;
+    irr::video::SColor mCurrentWindowBackgroundRenderColor;
+    irr::video::SColor mCurrentWindowUpperLeftLineRenderColor;
+    irr::video::SColor mCurrentWindowLowerRightLineRenderColor;
+    irr::video::SColor mCurrentCheckBoxFillColor;
+    irr::video::SColor mCurrentCheckBoxOutlineColor;
 
     MenueAction* ActRace = nullptr;
     MenueAction* ActQuitToOS = nullptr;
@@ -668,6 +689,14 @@ public:
 
     void Render(irr::f32 frameDeltaTime);
     void HandleUserInactiveTimer(irr::f32 frameDeltaTime);
+
+    void UpdateFading(irr::f32 frameDeltaTime);
+
+    void StartFadeIn();
+    void StartFadeOut();
+    bool IsFadingOutDone();
+    bool IsFadingInDone();
+    void SetFullyFadedIn();
 
     void HandleInput();
     bool HandleActions(MenueAction* &pendingAction);

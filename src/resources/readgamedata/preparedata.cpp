@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -16,14 +16,11 @@
 #include "../../utils/fileutils.h"
 #include "../readgamedata/objectdatfile.h"
 #include <iomanip>
+#include <algorithm>
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flifix.h"
 #include "../readgamedata/dernc.h"
 #include <sstream>
-
-void UnpackDataFile(const char* packfile, const char* unpackfile);
-void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir);
-std::vector<unsigned char> loadRawFile(const char *filename);
 
 ObjTexModification::ObjTexModification(int applyToTexIdParam, uint8_t texModTypeParam) {
     mApplyToTexId = applyToTexIdParam;
@@ -62,26 +59,26 @@ bool PrepareData::ExecuteNextStep() {
     switch (mCurrentStep) {
         case PREP_DATA_EXTRACTGAMESCREENS: {
             ExtractGameScreens();
-            mCurrentStep = PREP_DATA_EXTRACTFONTS;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME FONTS");
-            break;
-         }
-
-        case PREP_DATA_EXTRACTFONTS: {
-            ExtractFonts();
             mCurrentStep = PREP_DATA_EXTRACTHUD;
             currentStepDescription.clear();
             currentStepDescription.append("GAME HUD");
             break;
-        }
+         }
 
         case PREP_DATA_EXTRACTHUD: {
              ExtractHuds();
-             mCurrentStep = PREP_DATA_EXTRACTSKIES;
+             mCurrentStep = PREP_DATA_EXTRACTFONTS;
              currentStepDescription.clear();
-             currentStepDescription.append("GAME SKIES");
+             currentStepDescription.append("GAME FONTS");
              break;
+        }
+
+        case PREP_DATA_EXTRACTFONTS: {
+            ExtractFonts();
+            mCurrentStep = PREP_DATA_EXTRACTSKIES;
+            currentStepDescription.clear();
+            currentStepDescription.append("GAME SKIES");
+            break;
         }
 
         case PREP_DATA_EXTRACTSKIES: {
@@ -189,6 +186,15 @@ bool PrepareData::GameDataAvailable() {
 PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     mInfra = mInfraPntr;
 
+    //define correct font outline colors
+    fontOutLineColor = new irr::video::SColor(255, 4, 4, 9);
+    fontOutLineColor2 = new irr::video::SColor(255, 40, 65, 56);
+
+    //the next two lines are good for text extraction, preparation
+    //and rendering debugging
+    //fontOutLineColor = new irr::video::SColor(255, 255, 0, 0);
+    //fontOutLineColor2 = new irr::video::SColor(255, 255, 0, 0);
+
     //load palette information needed for the later
     //data preparation steps
     CreatePalette();
@@ -246,6 +252,16 @@ PrepareData::~PrepareData() {
             delete pntr;
         }
     }
+
+    if (fontOutLineColor != nullptr) {
+        delete fontOutLineColor;
+        fontOutLineColor = nullptr;
+    }
+
+    if (fontOutLineColor2 != nullptr) {
+        delete fontOutLineColor2;
+        fontOutLineColor2 = nullptr;
+    }
 }
 
 void PrepareData::ExtractGameScreens() {
@@ -261,13 +277,11 @@ void PrepareData::ExtractGameScreens() {
 void PrepareData::ExtractFonts() {
     //extract SVGA game logo data if not all exported files present
     logging::Info("Extracting game fonts...");
-    //PrepareSubDir("extract/fonts");
+
+    PrepareHudFontsLocation();
 
     PrepareSubDir("extract/fonts/thinwhite");
     ExtractThinWhiteFontSVGA();
-
-    //PrepareSubDir("extract/fonts/smallsvga");
-    //ExtractSmallFontSVGA();
 
     PrepareSubDir("extract/fonts/smallsvgagreenish");
     //create greenish font for unselected items in menue (but based for smaller text size)
@@ -276,6 +290,12 @@ void PrepareData::ExtractFonts() {
         "extract/fonts/smallsvgagreenish/green-osfnt0-1-",
         0, 241);
 
+    UpscaleAllImagesInDirectory("extract/fonts/smallsvgagreenish",
+        "green-osfnt0-1-", "extract/fonts/smallsvgagreenish-x2", 2);
+
+    PreProcessFontDirectory("extract/fonts/smallsvgagreenish", "green-osfnt0-1-", true, fontOutLineColor2);
+    PreProcessFontDirectory("extract/fonts/smallsvgagreenish-x2", "green-osfnt0-1-", true, fontOutLineColor2);
+   
     PrepareSubDir("extract/fonts/large");
     ExtractLargeFontSVGA();
 
@@ -287,8 +307,104 @@ void PrepareData::ExtractFonts() {
         "extract/fonts/largegreenish/green-olfnt0-1-",
         0, 241);
 
+    //03.01.2026: Also upscale fonts used in menue
+    //This scaled font is then use for doubleResolution option
+    //in menues
+    UpscaleAllImagesInDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", "extract/fonts/largegreenish-x2", 2);
+
+    PreProcessFontDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", true, fontOutLineColor2);
+    PreProcessFontDirectory("extract/fonts/largegreenish-x2", "green-olfnt0-1-", true, fontOutLineColor2);
+
     PrepareSubDir("extract/fonts/largegreen");
     ExtractLargeGreenFontSVGA();
+}
+
+void PrepareData::MoveIndexedFilesToNewLocation(const char* srcPath, const char* srcPrefix, irr::u16 srcStartIdx,
+                                                irr::u16 srcNrFiles, const char* targetPath, irr::u16 targetStartIdx) {
+    char fname[30];
+
+    irr::io::path srcfileName("");
+    irr::io::path targetfileName("");
+    for (irr::u16 idx = 0; idx < srcNrFiles; idx++) {
+        srcfileName = "";
+        srcfileName.append(srcPath);
+        srcfileName.append("/");
+        srcfileName.append(srcPrefix);
+        sprintf (fname, "%0*u.png", 4, (idx + srcStartIdx));
+        srcfileName.append(fname);
+
+        if (!(FileExists(srcfileName.c_str()) == 1)) {
+            //file does not exist
+            throw std::string("MoveIndexedFilesToNewLocation: Source file not found!");
+        }
+
+        targetfileName = "";
+        targetfileName.append(targetPath);
+        targetfileName.append("/");
+        targetfileName.append(srcPrefix);
+        sprintf (fname, "%0*u.png", 4, (idx + targetStartIdx));
+        targetfileName.append(fname);
+
+        //copy the file
+        if (copy_file(srcfileName.c_str(), targetfileName.c_str()) == 1) {
+            //unexpected error
+            throw std::string("MoveIndexedFilesToNewLocation: Copy operation failed!");
+        }
+
+        //remove the source file
+        std::remove(srcfileName.c_str());
+    }
+}
+
+void PrepareData::PrepareHudFontsLocation() {
+    logging::Info("Prepare Hud font location...");
+    PrepareSubDir("extract/fonts/hudtargetgreen");
+
+    //move images for hud target symbol green text
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 231, 26,
+                                  "extract/fonts/hudtargetgreen", 0);
+
+    PreProcessFontDirectory("extract/fonts/hudtargetgreen", "panel0-1-", false, fontOutLineColor);
+
+    PrepareSubDir("extract/fonts/hudtargetred");
+
+    //move images for hud target symbol red text
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 200, 26,
+                                  "extract/fonts/hudtargetred", 0);
+
+    PreProcessFontDirectory("extract/fonts/hudtargetred", "panel0-1-", false, fontOutLineColor);
+
+    PrepareSubDir("extract/fonts/hudlaptimered");
+
+    //move images for hud laptime red numbers
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 138, 12,
+                                  "extract/fonts/hudlaptimered", 0);
+
+    //also add graphical symbol with the 2 red arrows (which is used next to the current lap numbers)
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 226, 1,
+                                  "extract/fonts/hudlaptimered", 12);
+
+    PreProcessFontDirectory("extract/fonts/hudlaptimered", "panel0-1-", false, fontOutLineColor);
+
+    PrepareSubDir("extract/fonts/hudlaptimegrey");
+
+    //move images for hud laptime grey numbers
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 150, 12,
+                                  "extract/fonts/hudlaptimegrey", 0);
+
+    PreProcessFontDirectory("extract/fonts/hudlaptimegrey", "panel0-1-", false, fontOutLineColor);
+
+    PrepareSubDir("extract/fonts/hudkillcounterred");
+
+    //move images for hud killcounter red numbers
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 117, 10,
+                                  "extract/fonts/hudkillcounterred", 0);
+
+    //add also the skull graphical symbol
+    MoveIndexedFilesToNewLocation("extract/hud1player", "panel0-1-", 227, 1,
+                                  "extract/fonts/hudkillcounterred", 10);
+
+    PreProcessFontDirectory("extract/fonts/hudkillcounterred", "panel0-1-", false, fontOutLineColor);
 }
 
 void PrepareData::ExtractHuds() {
@@ -983,7 +1099,7 @@ void PrepareData::ExtractGameLogoSVGA() {
 
     for (int idx = 0; idx < 6; idx++) {
            strcpy(finalpathSrc, "extract/images/logo0-1-");
-           sprintf (fname, "%0*ld.bmp", 4, idx);
+           sprintf (fname, "%0*ld.png", 4, idx);
            strcat(finalpathSrc, fname);
 
            strcpy(finalpathDest, "extract/images/logo0-1-x2-");
@@ -991,6 +1107,44 @@ void PrepareData::ExtractGameLogoSVGA() {
 
            UpscaleExistingImageFile(finalpathSrc, finalpathDest, 2);
     }
+}
+
+void PrepareData::UpscaleAllImagesInDirectory(const char* srcDir, const char* srcFilePrefix, const char* targetDir, int scaleFactor) {
+    //Create a list of files existing in specified source dir
+    irr::io::IFileList* fList = mInfra->CreateFileList(irr::io::path(srcDir));
+
+    if (fList == nullptr) {
+        throw std::string("UpscaleAllImagesInDirectory: Can not search for files in source directory");
+    }
+
+    //make sure targetDir exists
+    PrepareSubDir(targetDir);
+
+    irr::u32 fileCnt = fList->getFileCount();
+    io::path currFileName;
+    io::path currTargetFileName;
+
+    for (irr::u32 idx = 0; idx < fileCnt; idx++) {
+        currFileName = fList->getFileName(idx);
+
+        //-1 return value means string not found in string
+        if (currFileName.find(srcFilePrefix, 0) != -1) {
+            //create targetFileName
+            currTargetFileName = "";
+            currTargetFileName.append(targetDir);
+            currTargetFileName.append("/");
+            currTargetFileName.append(mInfra->RemoveFileEndingFromFileName(currFileName));
+            //Save as PNG to not loose the Alpha value
+            currTargetFileName.append(".png");
+           
+            //file contains prefix, scale this file
+            UpscaleExistingImageFile(fList->getFullFileName(idx).c_str(), currTargetFileName.c_str(), scaleFactor);
+        }
+    }
+
+    //drop the file list again
+    //not that we get a memory leak!
+    fList->drop();
 }
 
 void PrepareData::UpscaleExistingImageFile(const char* srcFile, const char* destFile, int scaleFactor) {
@@ -1051,7 +1205,7 @@ void PrepareData::ExtractHUD1PlayerSVGA() {
         //tab file not found!
          throw std::string("Could not locate the original games data file panel0-1.tab");
     }
-    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/hud1player/panel0-1-");
+    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/hud1player/panel0-1-");
 }
 
 //extracts the SVGA Minimaps in data\track0-1.dat and data\track0-1.tab
@@ -1083,12 +1237,12 @@ void PrepareData::ExtractMiniMapsSVGA() {
     if (mInfra->mExtendedGame) {
         UnpackDataFile(inputDatFile.c_str(), "extract/tmp-unpacked.dat");
 
-        ExtractImagesfromDataFile("extract/tmp-unpacked.dat", inputTabFile.c_str(), palette, "extract/minimaps/track0-1-");
+        ExtractImagesfromDataFile("extract/tmp-unpacked.dat", inputTabFile.c_str(), "extract/minimaps/track0-1-");
 
         remove("extract/tmp-unpacked.dat");
     } else {
         //non extended game version does not use RNC compression!
-        ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/minimaps/track0-1-");
+        ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/minimaps/track0-1-");
     }
 }
 
@@ -1160,50 +1314,50 @@ private:
 
 void PrepareData::StitchMiniMaps() {
     MinimapStitcher track1(mInfra->mDevice, mInfra->mDriver);
-    track1.insert_image(0, 0, "extract/minimaps/track0-1-0000.bmp");
-    track1.insert_image(6, 120, "extract/minimaps/track0-1-0001.bmp");
+    track1.insert_image(0, 0, "extract/minimaps/track0-1-0000.png");
+    track1.insert_image(6, 120, "extract/minimaps/track0-1-0001.png");
     track1.probe_transparent(0, 0, 0);
-    track1.finalize("extract/level0-1/minimap.bmp");
+    track1.finalize("extract/level0-1/minimap.png");
 
     MinimapStitcher track2(mInfra->mDevice, mInfra->mDriver);
-    track2.insert_image(0, 0, "extract/minimaps/track0-1-0002.bmp");
-    track2.insert_image(120, 5, "extract/minimaps/track0-1-0003.bmp");
-    track2.insert_image(74, 120, "extract/minimaps/track0-1-0004.bmp");
+    track2.insert_image(0, 0, "extract/minimaps/track0-1-0002.png");
+    track2.insert_image(120, 5, "extract/minimaps/track0-1-0003.png");
+    track2.insert_image(74, 120, "extract/minimaps/track0-1-0004.png");
     track2.probe_transparent(0, 0, 0);
-    track2.finalize("extract/level0-2/minimap.bmp");
+    track2.finalize("extract/level0-2/minimap.png");
 
-    // track3 minimap is fully contained in file track0-1-0005.bmp -> no need for stitching
-    copy_file("extract/minimaps/track0-1-0005.bmp", "extract/level0-3/minimap.bmp");
+    // track3 minimap is fully contained in file track0-1-0005.png -> no need for stitching
+    copy_file("extract/minimaps/track0-1-0005.png", "extract/level0-3/minimap.png");
 
     MinimapStitcher track4(mInfra->mDevice, mInfra->mDriver);
-    track4.insert_image(0, 0, "extract/minimaps/track0-1-0006.bmp");
-    track4.insert_image(27, 120, "extract/minimaps/track0-1-0007.bmp");
+    track4.insert_image(0, 0, "extract/minimaps/track0-1-0006.png");
+    track4.insert_image(27, 120, "extract/minimaps/track0-1-0007.png");
     track4.probe_transparent(0, 0, 0);
-    track4.finalize("extract/level0-4/minimap.bmp");
+    track4.finalize("extract/level0-4/minimap.png");
 
     MinimapStitcher track5(mInfra->mDevice, mInfra->mDriver);
-    track5.insert_image(0, 0, "extract/minimaps/track0-1-0008.bmp");
-    track5.insert_image(18, 120, "extract/minimaps/track0-1-0009.bmp");
+    track5.insert_image(0, 0, "extract/minimaps/track0-1-0008.png");
+    track5.insert_image(18, 120, "extract/minimaps/track0-1-0009.png");
     track5.probe_transparent(0, 0, 0);
-    track5.finalize("extract/level0-5/minimap.bmp");
+    track5.finalize("extract/level0-5/minimap.png");
 
-    // track6 minimap is fully contained in file track0-1-0010.bmp -> no need for stitching
-    copy_file("extract/minimaps/track0-1-0010.bmp", "extract/level0-6/minimap.bmp");
+    // track6 minimap is fully contained in file track0-1-0010.png -> no need for stitching
+    copy_file("extract/minimaps/track0-1-0010.png", "extract/level0-6/minimap.png");
 
     //if we have the extended game version, we also need to stich the remaining
     //maps as well
     if (mInfra->mExtendedGame) {
         MinimapStitcher track7(mInfra->mDevice, mInfra->mDriver);
-        track7.insert_image(0, 0, "extract/minimaps/track0-1-0011.bmp");
-        track7.insert_image(6, 126, "extract/minimaps/track0-1-0012.bmp");
+        track7.insert_image(0, 0, "extract/minimaps/track0-1-0011.png");
+        track7.insert_image(6, 126, "extract/minimaps/track0-1-0012.png");
         track7.probe_transparent(0, 0, 0);
-        track7.finalize("extract/level0-7/minimap.bmp");
+        track7.finalize("extract/level0-7/minimap.png");
 
-        // track8 minimap is fully contained in file track0-1-0013.bmp -> no need for stitching
-        copy_file("extract/minimaps/track0-1-0013.bmp", "extract/level0-8/minimap.bmp");
+        // track8 minimap is fully contained in file track0-1-0013.png -> no need for stitching
+        copy_file("extract/minimaps/track0-1-0013.png", "extract/level0-8/minimap.png");
 
-        // track9 minimap is fully contained in file track0-1-0014.bmp -> no need for stitching
-        copy_file("extract/minimaps/track0-1-0014.bmp", "extract/level0-9/minimap.bmp");
+        // track9 minimap is fully contained in file track0-1-0014.png -> no need for stitching
+        copy_file("extract/minimaps/track0-1-0014.png", "extract/level0-9/minimap.png");
     }
 }
 
@@ -1231,7 +1385,7 @@ void PrepareData::ExtractHUD2PlayersSVGA() {
         //tab file not found!
          throw std::string("Could not locate the original games data file panel0-0.tab");
     }
-    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/hud2player/panel0-0-");
+    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/hud2player/panel0-0-");
 }
 
 //extracts the SVGA Large Green font in data\pfont0-1.dat and data\pfont0-1.tab
@@ -1258,7 +1412,9 @@ void PrepareData::ExtractLargeGreenFontSVGA() {
         //tab file not found!
          throw std::string("Could not locate the original games data file pfont0-1.tab");
     }
-    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), palette, "extract/fonts/largegreen/pfont0-1-");
+    ExtractImagesfromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/largegreen/pfont0-1-");
+
+    PreProcessFontDirectory("extract/fonts/largegreen", "pfont0-1-", false, fontOutLineColor);
 }
 
 //extracts the SVGA Large white font data in data\olfnt0-1.dat and data\olfnt0-1.tab
@@ -1286,6 +1442,14 @@ void PrepareData::ExtractLargeFontSVGA() {
          throw std::string("Could not locate the original games data file olfnt0-1.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/large/olfnt0-1-");
+
+    //03.01.2026: Also upscale fonts used in menue
+    //This scaled font is then use for doubleResolution option
+    //in menues
+    UpscaleAllImagesInDirectory("extract/fonts/large", "olfnt0-1-", "extract/fonts/large-x2", 2);
+
+    PreProcessFontDirectory("extract/fonts/large", "olfnt0-1-", true, fontOutLineColor);
+    PreProcessFontDirectory("extract/fonts/large-x2", "olfnt0-1-", true, fontOutLineColor);
 }
 
 //extracts the SVGA Small white font data in data\osfnt0-1.dat and data\osfnt0-1.tab
@@ -1313,6 +1477,11 @@ void PrepareData::ExtractSmallFontSVGA() {
          throw std::string("Could not locate the original games data file osfnt0-1.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/smallsvga/osfnt0-1-");
+
+    UpscaleAllImagesInDirectory("extract/fonts/smallsvga", "osfnt0-1-", "extract/fonts/smallsvga-x2", 2);
+
+    PreProcessFontDirectory("extract/fonts/smallsvga", "osfnt0-1-", true, fontOutLineColor);
+    PreProcessFontDirectory("extract/fonts/smallsvga-x2", "osfnt0-1-", true, fontOutLineColor);
 }
 
 //Takes an image, and replaces one specified color with another specified color
@@ -1442,7 +1611,7 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
         //build current filename
         strcpy(finalpathSrc, sourceFntFileName);
         strcpy(finalpathDest, destFntFileName);
-        sprintf (fname, "%0*lu.bmp", 4, idx);
+        sprintf (fname, "%0*lu.png", 4, idx);
         strcat(finalpathSrc, fname);
         strcat(finalpathDest, fname);
 
@@ -1656,13 +1825,6 @@ void PrepareData::ModifyPixelForBlackSky(irr::f32 &red, irr::f32 &green, irr::f3
 //colorSelector == 3 => creates very dark grey sky (thunderstorm like)
 bool PrepareData::CreateColoredSkydomeImage(const char* srcImagePath, const char* targetImagePath,
                              int colorSelector) {
-
- //we need to know the used pixel color format
-  //irr::video::ECOLOR_FORMAT format = image->getColorFormat();
-
-  //we can only handle this format right now
-  //if(irr::video::ECF_A8R8G8B8 == format)
-  //  {
 
    if ((colorSelector != 1) && (colorSelector != 2) && (colorSelector != 3)) {
        logging::Error("CreateColoredSkydomeImage: Unknown colorSelector value, Operation failed");
@@ -2351,6 +2513,8 @@ void PrepareData::ExtractThinWhiteFontSVGA() {
          throw std::string("Could not locate the original games data file hfont0-0.tab");
     }
     ExtractCompressedImagesFromDataFile(inputDatFile.c_str(), inputTabFile.c_str(), "extract/fonts/thinwhite/hfont0-0-");
+
+    PreProcessFontDirectory("extract/fonts/thinwhite", "hfont0-0-", false, fontOutLineColor);
 }
 
 //extracts the Editor cursors data in data\point0-0.dat and data\point0-0.tab
@@ -3154,7 +3318,6 @@ void PrepareData::ExtractCompressedImagesFromDataFile(const char* datFileName, c
     ExtractImagesfromDataFile(
         "extract/tmp-unpacked.dat",
         tabFileName,
-        palette,
         outdir);
 
     remove("extract/tmp-unpacked.dat");
@@ -3190,25 +3353,50 @@ void PrepareData::saveIrrImage(const char* outputFilename, irr::video::IImage* i
 }
 
 // wrap ExtractImages to take const char* arguments and throw an exception on error
-void ExtractImagesfromDataFile(const char* datfname, const char* tabfname, unsigned char* palette, const char* outputDir) {
+void PrepareData::ExtractImagesfromDataFile(const char* datfname, const char* tabfname,
+                                            const char* outputDir) {
     // we need to temporarily copy the strings because ExtractImages takes char* arguments.
     char* _datfname = strdup(datfname);
     char* _tabfname = strdup(tabfname);
     char* _outputDir = strdup(outputDir);
 
-    int extract_res = ExtractImages(_datfname, _tabfname, palette, _outputDir);
+    std::vector<irr::u16> indexVec;
+    std::vector<irr::video::IImage*> outImageVec;
+
+    //original line int extract_res = ExtractImages(_datfname, _tabfname, palette, _outputDir);
+    bool success = ExtractToIrrlichtImages(this, _datfname, _tabfname, indexVec, outImageVec);
+
+    std::vector<irr::video::IImage*>::iterator it;
+    std::vector<irr::u16>::iterator it2 = indexVec.begin();
+
+    irr::io::path outFileName("");
+    char fname[20];
+
+    if (success) {
+        for (it = outImageVec.begin(); it != outImageVec.end(); ++it, ++it2) {
+            outFileName = "";
+            outFileName.append(outputDir);
+            sprintf (fname, "%0*ld.png", 4, (long)((*it2)));
+            outFileName.append(fname);
+
+            irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outFileName, false);
+            mInfra->mDriver->writeImageToFile((*it), outputPic);
+            outputPic->drop();
+            (*it)->drop();
+        }
+    }
 
     free(_datfname);
     free(_tabfname);
     free(_outputDir);
 
-    if (extract_res != 0) {
+    if (!success) {
         throw std::string("Error extracting images from ") + datfname + " and " + tabfname;
     }
 }
 
 // wrap main_unpack to take const char* arguments and throw an exception on error
-void UnpackDataFile(const char* packfile, const char* unpackfile) {
+void PrepareData::UnpackDataFile(const char* packfile, const char* unpackfile) {
     logging::Detail(std::string("unpacking ") + packfile);
 
     // we need to temporarily copy the strings because main_unpack takes char* arguments.
@@ -3225,7 +3413,7 @@ void UnpackDataFile(const char* packfile, const char* unpackfile) {
     }
 }
 
-std::vector<unsigned char> loadRawFile(const char *filename) {
+std::vector<unsigned char> PrepareData::loadRawFile(const char *filename) {
     FILE* iFile = fopen(filename, "rb");
     if (iFile == nullptr)
     {
@@ -3239,4 +3427,470 @@ std::vector<unsigned char> loadRawFile(const char *filename) {
     fread(buffer.data(), 1, size, iFile);
     fclose(iFile);
     return buffer;
+}
+
+//************************************************
+// Font Preprocessing stuff                      *
+//************************************************
+void PrepareData::AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>>& colorOccurenceList,
+    irr::video::SColor newColor)
+{
+    //check if input color already exists in list
+    std::vector<std::pair <irr::u8, irr::video::SColor>>::iterator it;
+
+    for (it = colorOccurenceList.begin(); it != colorOccurenceList.end(); ++it) {
+        if ((*it).second == newColor) {
+            //color does already exist in list
+            //just increase occurence
+            (*it).first += 1;
+            return;
+        }
+    }
+
+    //color does not yet exist in list
+    //add entry with occurence 1
+    colorOccurenceList.push_back(std::make_pair(1, newColor));
+}
+
+//uses the 4 corner pixel of the character to derive the most
+//likely transparent pixel color
+irr::video::SColor PrepareData::DeriveTransparentColorForChar(FontCharacterPreprocessInfo& character) {
+        //the get the most likely transparent color of the font character
+        //take the 4 corner pixels, and inspect which color the have
+        //the color with the most occurence will most likey be the transparent
+        //font character background color
+
+        //declaring vector of pairs containing pixel color
+        //and number of occurence of color
+        std::vector< std::pair <irr::u8, irr::video::SColor> > vecColorOccurence;
+        vecColorOccurence.clear();
+
+        //get left upper pixel
+        irr::video::SColor texelTrans = character.image->getPixel(0, 0);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //get right upper pixel
+        texelTrans = character.image->getPixel(character.sizeRawTex.Width - 1, 0);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //get left lower pixel
+        texelTrans = character.image->getPixel(0, character.sizeRawTex.Height - 1);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //get right lower pixel
+        texelTrans = character.image->getPixel(character.sizeRawTex.Width - 1, character.sizeRawTex.Height - 1);
+        AddPixelToColorOccurenceList(vecColorOccurence, texelTrans);
+
+        //now sort list of pixel color occurences with falling number
+        //of occurences, the color we want to find is then the one at the top
+
+        //sort vector pairs in descending number of occurences
+        std::sort(vecColorOccurence.rbegin(), vecColorOccurence.rend());
+
+        //the most likely transparent color is now the one at the beginning of
+        //the list
+        irr::video::SColor result = vecColorOccurence.begin()->second;
+        return result;
+}
+
+//Takes the image from a font character, and defines a rect that contains the pixels of the character,
+//while removing unnecessary transparent columns of pixels
+//Parameters:
+//  character = pointer to the character that should be "optimized"
+void PrepareData::FindCharArea(FontCharacterPreprocessInfo* character) {
+    bool wholeColumnTrans;
+    irr::s32 firstCharColumn = -1;
+    irr::s32 lastCharColumn = -1;
+
+    //to find the character area we need to also know the SColor
+    //of the background of the character, this color was established in
+    //method call DeriveTransparentColorForChar before
+    irr::video::SColor col2 = character->transColor;
+
+    //ignore Alpha value for pixels
+    //so that we can compare them based on RGB values alone
+    col2.setAlpha(0);
+
+    irr::video::SColor col1;
+
+    //iterate through all colums from left to right
+    for (irr::s32 x = 0; x < character->sizeRawTex.Width; x++) {
+        //check current column from top to bottom to see if we only find
+        //black (unused pixels)
+        wholeColumnTrans = true;
+
+        for (irr::s32 y = 0; y < character->sizeRawTex.Height; y++) {
+            //texel is the pixel color at position x and y
+            col1 = character->image->getPixel(x, y);
+
+            //again ignore alpha value during comparison
+            col1.setAlpha(0);
+
+            if (col1 != col2) {
+                wholeColumnTrans = false;
+                break;
+            }
+        }
+
+        if (!wholeColumnTrans) {
+            if (firstCharColumn == -1)
+                firstCharColumn = x;
+            break;
+        }
+    }
+
+    //iterate through all colums from right to left
+    for (irr::s32 x = (character->sizeRawTex.Width - 1); x > -1; x--) {
+        //check current column from top to bottom to see if we only find
+        //black (unused pixels)
+        wholeColumnTrans = true;
+
+        for (irr::s32 y = 0; y < character->sizeRawTex.Height; y++) {
+            //texel is the pixel color at position x and y
+            col1 = character->image->getPixel(x, y);
+            col1.setAlpha(0);
+
+            if (col1 != col2) {
+                wholeColumnTrans = false;
+                break;
+            }
+        }
+
+        if (!wholeColumnTrans) {
+            if (lastCharColumn == -1)
+                lastCharColumn = x;
+            break;
+        }
+    }
+
+    //if possible leave one fully transparent column left of the character data
+    if (firstCharColumn > 0)
+        firstCharColumn--;
+
+    //if no character was found at all return "full" empty character
+    if (firstCharColumn == -1)
+        firstCharColumn = 0;
+
+    if (lastCharColumn == -1)
+        lastCharColumn = character->sizeRawTex.Width;
+
+    //if possible leave one fully transparent column right of the character data
+    if (lastCharColumn < character->sizeRawTex.Width)
+        lastCharColumn++;
+
+    //setup optimized size of character
+    character->charRect.UpperLeftCorner.set(firstCharColumn, 0);
+    character->charRect.LowerRightCorner.set(lastCharColumn, character->sizeRawTex.Height);
+}
+
+void PrepareData::DeriveCharColorsForChar(FontCharacterPreprocessInfo& character) {
+   character.charColorVec.clear();
+   
+   //to find pixel with colors other then transparent we need to
+   //get transparent color first, this color was established in
+   //method call DeriveTransparentColorForChar before
+   irr::video::SColor transColor = character.transColor;
+
+   //ignore alpha value during pixel color comparison
+   transColor.setAlpha(0);
+
+   irr::video::SColor col1;
+
+   //iterate through all pixels and find pixels with colors other then transparent color
+   for (irr::s32 x = 0; x < character.sizeRawTex.Width; x++) {
+        for (irr::s32 y = 0; y < character.sizeRawTex.Height; y++) { 
+            col1 = character.image->getPixel(x, y);
+
+            //ignore alpha value again
+            col1.setAlpha(0);
+
+            //try to establish all text colors, that are not
+            //background pixels
+            if (col1 != transColor) {
+                //remember text color we found
+                character.charColorVec.push_back(col1);
+            }
+        }
+   }
+}
+
+//Takes the image from a font character, and adds an single pixel wide outline around it with a specified
+//color; The game seems to do the same to improve the contrast of the text
+//Parameters:
+//  character = pointer to the input character
+//In case of an unexpected error this function returns succesFlag = false, True otherwise
+bool PrepareData::AddColoredOutline(FontCharacterPreprocessInfo& character, irr::video::SColor* outLineColor) {
+    irr::video::SColor texelTrans;
+    bool textColFound = false;
+
+    irr::core::vector2d<irr::u32> imageSize = character.image->getDimension();
+
+    //create a helper image in which we store temporarily the original image data
+    irr::video::IImage* hImg =
+        mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, imageSize);
+
+    if (hImg == nullptr) {
+        return false;
+    }
+    
+    texelTrans = character.transColor;
+    texelTrans.setAlpha(0);
+
+    //copy original image into new helper image
+    character.image->copyTo(hImg);
+
+    irr::video::SColor pix1col;
+    irr::video::SColor pix2col;
+    irr::video::SColor pix3col;
+    irr::video::SColor pix4col;
+    irr::video::SColor pix5col;
+    irr::video::SColor pix6col;
+    irr::video::SColor pix7col;
+    irr::video::SColor pix8col;
+    bool outLine;
+
+    std::vector<irr::video::SColor>::iterator itColor;
+    irr::video::SColor col2;
+
+    //now iterate again, create outline pixel by pixel
+    for (irr::s32 x = 0; x < character.sizeRawTex.Width; x++) {
+        for (irr::s32 y = 0; y < character.sizeRawTex.Height; y++) {
+            outLine = true;
+            
+            col2 = hImg->getPixel(x, y);
+            col2.setAlpha(0);
+
+            //an outline pixel can not have the text color itself!
+            //check for all found text colors
+            for (itColor = character.charColorVec.begin(); itColor != character.charColorVec.end(); ++itColor) {
+                    outLine &= (col2 != (*itColor));
+                }
+
+            //can not be an outline pixel, go to the next pixel
+            if (!outLine) {
+                continue;
+            }
+
+            if ((x > 0) && (y > 0)) {
+                pix1col = hImg->getPixel(x - 1, y - 1);
+                pix1col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix1col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if (y > 0) {
+                pix2col = hImg->getPixel(x, y - 1);
+                pix2col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix2col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if ((x < (character.sizeRawTex.Width - 1)) && (y > 0)) {
+                pix3col = hImg->getPixel(x + 1, y - 1);
+                pix3col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                    if (pix3col != texelTrans) {
+                        character.image->setPixel(x, y, *outLineColor);
+                        continue;
+                    }
+            }
+
+            if (x > 0) {
+                pix4col = hImg->getPixel(x - 1, y);
+                pix4col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix4col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if (x < (character.sizeRawTex.Width - 1)) {
+                pix5col = hImg->getPixel(x + 1, y);
+                pix5col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix5col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if ((y < (character.sizeRawTex.Height - 1)) && (x > 0)) {
+                pix6col = hImg->getPixel(x - 1, y + 1);
+                pix6col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix6col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if (y < (character.sizeRawTex.Height - 1)) {
+                pix7col = hImg->getPixel(x, y + 1);
+                pix7col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix7col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+            if ((x < (character.sizeRawTex.Width - 1)) &&
+                (y < (character.sizeRawTex.Height - 1))) {
+                pix8col = hImg->getPixel(x + 1, y + 1);
+                pix8col.setAlpha(0);
+
+                //an outline pixel must have at least one neighboring pixel that is not transparent colored
+                if (pix8col != texelTrans) {
+                    character.image->setPixel(x, y, *outLineColor);
+                    continue;
+                }
+            }
+
+        }
+    }
+
+    //delete helper image again
+    hImg->drop();
+
+    return true;
+}
+
+//Returns true in case of success, False otherwise
+bool PrepareData::StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName) {
+    irr::core::dimension2du dim;
+    dim.Width = character.charRect.getWidth();
+    dim.Height = character.charRect.getHeight();
+
+    irr::video::IImage* preProcImg =
+        mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, dim);
+
+    if (preProcImg == nullptr) {
+        return false;
+    }
+
+    irr::s32 x1 = character.charRect.UpperLeftCorner.X;
+    irr::s32 x2 = character.charRect.LowerRightCorner.X + 1;
+    irr::s32 y1 = character.charRect.UpperLeftCorner.Y;
+    irr::s32 y2 = character.charRect.LowerRightCorner.Y + 1;
+
+    irr::video::SColor pixCol;
+
+    //copy optimized character to new image file
+    for (irr::s32 x = x1; x < x2; x++) {
+        for (irr::s32 y = y1; y < y2; y++) {
+            pixCol = character.image->getPixel(x, y);
+            preProcImg->setPixel(x - x1, y - y1, pixCol);
+        }
+    }
+
+    saveIrrImage(outFileName, preProcImg);
+
+    return true;
+}
+
+void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor) {
+    //Create a list of files existing in specified font dir
+    irr::io::IFileList* fList = mInfra->CreateFileList(irr::io::path(fontDirName));
+
+    if (fList == nullptr) {
+        throw std::string("PreProcessFontDirectory: Can not search for files in source directory");
+    }
+
+    irr::u32 fileCnt = fList->getFileCount();
+    io::path currFileName;
+    io::path currTargetFileName;
+    FontCharacterPreprocessInfo fontChar;
+    irr::io::IReadFile* file;
+    irr::video::SColor transColorVal;
+    bool transColFound = false;
+
+    for (irr::u32 idx = 0; idx < fileCnt; idx++) {
+        currFileName = fList->getFileName(idx);
+
+        //-1 return value means string not found in string
+        if (currFileName.find(srcFilePrefix, 0) != -1) {
+            //create targetFileName
+            currTargetFileName = "";
+            currTargetFileName.append(fontDirName);
+            currTargetFileName.append("/pre-");
+            currTargetFileName.append(mInfra->RemoveFileEndingFromFileName(currFileName));
+            //Save as PNG to not loose the Alpha value
+            currTargetFileName.append(".png");
+
+            //preprocess this character font image file
+            file = mInfra->mDevice->getFileSystem()->createAndOpenFile(fList->getFullFileName(idx));
+            std::cout << fList->getFullFileName(idx).c_str() << std::endl;
+            fontChar.image = mInfra->mDriver->createImageFromFile(file);
+
+            file->drop();
+
+            if (fontChar.image == nullptr) {
+                throw std::string("PreProcessFontDirectory: Font char image loading error");
+            }
+
+            //get source image dimension
+            fontChar.sizeRawTex = fontChar.image->getDimension();
+
+            //try to establish most likely transparent color of chars
+            //use only first image to establish transparent pixel color
+            //the are the same for all chars in this font
+
+            if (!transColFound) {
+                transColorVal = DeriveTransparentColorForChar(fontChar);
+                fontChar.transColor = transColorVal;
+                transColFound = true;
+            } else {
+                fontChar.transColor = transColorVal;
+            }
+
+            //find character colors (which are non transparent)
+            DeriveCharColorsForChar(fontChar);
+
+            //should we add an outline to the character?
+            if (addOutline && (outLineColor != nullptr)) {
+                if (!AddColoredOutline(fontChar, outLineColor)) {
+                    throw std::string("PreProcessFontDirectory: Add font character outline operation failed");
+                }
+            }
+
+            //find out where in the image the character is actually,
+            //to remove transparent additional columns of pixels
+            //the game seems to do the same somehow (in screenshots there is
+            //always only a line of transparent pixels between characters)
+            FindCharArea(&fontChar);
+
+            if (!StorePreProcessedFontCharacter(fontChar, currTargetFileName.c_str())) {
+                throw std::string("PreProcessFontDirectory: Save preprocessed font character image operation failed");
+            }
+
+            fontChar.image->drop();
+
+            //remove old temporary file
+            remove(fList->getFullFileName(idx).c_str());
+        }
+    }
+
+    //Save the detected transparent pixel color for later
+    //font loading again
+    if (!mInfra->WriteFontInfoXmlFile(mInfra->mDevice, irr::io::path(fontDirName), transColorVal)) {
+        throw std::string("PreProcessFontDirectory: Font info Xml file writing error");
+    }
+
+    //drop the file list again
+    //not that we get a memory leak!
+    fList->drop();
 }

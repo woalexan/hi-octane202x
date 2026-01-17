@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -18,12 +18,18 @@
 #define DEF_GAMESTATE_INITSTEP2 2
 #define DEF_GAMESTATE_INTRO 3
 #define DEF_GAMESTATE_GAMETITLE 4
-#define DEF_GAMESTATE_MENUE 5
-#define DEF_GAMESTATE_RACE 6
-#define DEF_GAMESTATE_DEMORACE 7
-#define DEF_GAMESTATE_INITRACE 8
-#define DEF_GAMESTATE_INITDEMO 9
-#define DEF_GAMESTATE_ERROR 10
+#define DEF_GAMESTATE_GAMETILE_FADEOUT 5
+#define DEF_GAMESTATE_MENUE 6
+#define DEF_GAMESTATE_RACE 7
+#define DEF_GAMESTATE_DEMORACE 8
+#define DEF_GAMESTATE_FADEOUT_BEFOREINIT_RACE 9
+#define DEF_GAMESTATE_FADEIN_RACELOAD_SCREEN 10
+#define DEF_GAMESTATE_INITRACE 11
+#define DEF_GAMESTATE_INITDEMO 12
+#define DEF_GAMESTATE_ERROR 13
+
+#define DEF_GAME_STARTRACE 0
+#define DEF_GAME_STARTDEMO 1
 
 /************************
  * Forward declarations *
@@ -82,7 +88,7 @@ private:
 
     void CleanUpPointTable(std::vector<PointTableEntryStruct*> &tablePntr);
 
-    void GameLoop();
+    void MainGameLoop();
     void GameLoopMenue(irr::f32 frameDeltaTime);
     void GameLoopRace(irr::f32 frameDeltaTime);
 
@@ -102,6 +108,9 @@ private:
     void GameLoopLoadRaceScreen();
     bool LoadAdditionalGameImages();
     void GameLoopInitStep2();
+
+    void GameLoopTileFadeOut(irr::f32 frameDeltaTime);
+    void GameLoopLoadRaceScreenFadeIn(irr::f32 frameDeltaTime);
 
     bool LoadGameData();
 
@@ -126,6 +135,7 @@ private:
     irr::core::dimension2d<irr::u32> raceLoadingScrSize;
 
     int nextRaceLevelNr = 1;
+    irr::u8 mEnterWhichRaceMode;
 
     //Returns false if game should exit, False otherwise
     bool ParseCommandLineForGame();

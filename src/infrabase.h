@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 Wolf Alexander
+ Copyright (C) 2025-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -276,6 +276,11 @@ public:
   bool InitStage3();
 
   bool WriteGameConfigXmlFile(IrrlichtDevice *device);
+  bool WriteFontInfoXmlFile(IrrlichtDevice *device, irr::io::path fontPath, irr::video::SColor transColor);
+
+  //Returns true in case of success, False otherwise
+  //Read transparent color is returned in last reference parameter
+  bool ReadFontInfoXmlFile(IrrlichtDevice *device, irr::io::path fontPath, irr::video::SColor& transColor);
 
   //Returns true in case of success, false otherwise
   bool LoadLevelConfigData(std::string levelRootPath, MapConfigStruct** outMapTarget);

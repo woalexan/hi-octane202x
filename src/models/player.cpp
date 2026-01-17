@@ -267,10 +267,11 @@ void Player::SetNewState(irr::u32 newPlayerState) {
         //and the first time a player crosses the finish line
         //in this state the players move towards the start line, and
         //computer players do not seem to attack
+        //Human player is allowed to attack
         //Also the HUD is not shown yet
         case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE: {
             this->mPlayerStats->mPlayerCanMove = true;
-            this->mPlayerStats->mPlayerCanShoot = false;
+            this->mPlayerStats->mPlayerCanShoot = true;
             break;
         }
 

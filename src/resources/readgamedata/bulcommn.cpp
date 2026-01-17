@@ -21,47 +21,50 @@
 
 //Note 08.10.2025: Added read_long_le_buf3 and read_long_le_buf4 function, as I needed it somewhere else
 
+//Note 10.01.2026: Commented out (now) unused code to help compilation time
+
 #include "bulcommn.h"
 #include "../../utils/logging.h"
 #include <string.h>
 
-void write_short_le_file (FILE *fp, uint16_t x)
-{
-    fputc ((uint8_t) (x&255), fp);
-    fputc ((uint8_t) ((x>>8)&255), fp);
-}
+//Commented out 10.01.2026
+//void write_short_le_file (FILE *fp, uint16_t x)
+//{
+//    fputc ((uint8_t) (x&255), fp);
+//    fputc ((uint8_t) ((x>>8)&255), fp);
+//}
 
-void write_short_le_buf (unsigned char *buff, uint16_t x)
-{
-    buff[0]= (uint8_t)(x&255);
-    buff[1]= (uint8_t)((x>>8)&255);
-}
+//void write_short_le_buf (unsigned char *buff, uint16_t x)
+//{
+//    buff[0]= (uint8_t)(x&255);
+//    buff[1]= (uint8_t)((x>>8)&255);
+//}
 
-void write_long_le_file (FILE *fp, uint32_t x)
-{
-    fputc ((uint8_t) (x&255), fp);
-    fputc ((uint8_t) ((x>>8)&255), fp);
-    fputc ((uint8_t) ((x>>16)&255), fp);
-    fputc ((uint8_t) ((x>>24)&255), fp);
-}
+//void write_long_le_file (FILE *fp, uint32_t x)
+//{
+//    fputc ((uint8_t) (x&255), fp);
+//    fputc ((uint8_t) ((x>>8)&255), fp);
+//    fputc ((uint8_t) ((x>>16)&255), fp);
+//    fputc ((uint8_t) ((x>>24)&255), fp);
+//}
 
-void write_long_le_buf (unsigned char *buff, uint32_t x)
-{
-    buff[0]= (uint8_t)(x&255);
-    buff[1]= (uint8_t)((x>>8)&255);
-    buff[2]= (uint8_t)((x>>16)&255);
-    buff[3]= (uint8_t)((x>>24)&255);
-}
+//void write_long_le_buf (unsigned char *buff, uint32_t x)
+//{
+//    buff[0]= (uint8_t)(x&255);
+//    buff[1]= (uint8_t)((x>>8)&255);
+//    buff[2]= (uint8_t)((x>>16)&255);
+//    buff[3]= (uint8_t)((x>>24)&255);
+//}
 
-int32_t read_long_le_file (FILE *fp)
-{
-    int32_t l = 0;
-    l = fgetc (fp);
-    l += fgetc (fp)<<8;
-    l += fgetc (fp)<<16;
-    l += fgetc (fp)<<24;
-    return l;
-}
+//int32_t read_long_le_file (FILE *fp)
+//{
+//    int32_t l = 0;
+//    l = fgetc (fp);
+//    l += fgetc (fp)<<8;
+//    l += fgetc (fp)<<16;
+//    l += fgetc (fp)<<24;
+//    return l;
+//}
 
 int32_t read_long_le_buf (unsigned char *buff)
 {
@@ -73,43 +76,44 @@ int32_t read_long_le_buf (unsigned char *buff)
     return l;
 }
 
-int32_t read_long_le_buf2 (unsigned char *buff)
-{
-    int32_t l;
-    l = buff[4];
-    l += buff[5]<<8;
-    l += buff[6]<<16;
-    l += buff[7]<<24;
-    return l;
-}
+//Commented out 10.01.2026
+//int32_t read_long_le_buf2 (unsigned char *buff)
+//{
+//    int32_t l;
+//    l = buff[4];
+//    l += buff[5]<<8;
+//    l += buff[6]<<16;
+//    l += buff[7]<<24;
+//    return l;
+//}
 
-int32_t read_long_le_buf3 (unsigned char *buff)
-{
-    int32_t l;
-    l = buff[8];
-    l += buff[9]<<8;
-    l += buff[10]<<16;
-    l += buff[11]<<24;
-    return l;
-}
+//int32_t read_long_le_buf3 (unsigned char *buff)
+//{
+//    int32_t l;
+//    l = buff[8];
+//    l += buff[9]<<8;
+//    l += buff[10]<<16;
+//    l += buff[11]<<24;
+//    return l;
+//}
 
-int32_t read_long_le_buf4 (unsigned char *buff)
-{
-    int32_t l;
-    l = buff[12];
-    l += buff[13]<<8;
-    l += buff[14]<<16;
-    l += buff[15]<<24;
-    return l;
-}
+//int32_t read_long_le_buf4 (unsigned char *buff)
+//{
+//    int32_t l;
+//    l = buff[12];
+//    l += buff[13]<<8;
+//    l += buff[14]<<16;
+//    l += buff[15]<<24;
+//    return l;
+//}
 
-uint16_t read_short_le_buf (unsigned char *buff)
-{
-    uint16_t l;
-    l = buff[0];
-    l += buff[1]<<8;
-    return l;
-}
+//uint16_t read_short_le_buf (unsigned char *buff)
+//{
+//    uint16_t l;
+//    l = buff[0];
+//    l += buff[1]<<8;
+//    return l;
+//}
 
 uint16_t read_short_le_file (FILE *fp)
 {
@@ -119,151 +123,155 @@ uint16_t read_short_le_file (FILE *fp)
     return l;
 }
 
-int32_t read_long_be_buf (unsigned char *buff)
-{
-    int32_t l;
-    l =  buff[3];
-    l += buff[2]<<8;
-    l += buff[1]<<16;
-    l += buff[0]<<24;
-    return l;
-}
+//Commented out 10.01.2026
+//int32_t read_long_be_buf (unsigned char *buff)
+//{
+//    int32_t l;
+//    l =  buff[3];
+//    l += buff[2]<<8;
+//    l += buff[1]<<16;
+//    l += buff[0]<<24;
+//    return l;
+//}
 
-void write_short_be_buf (unsigned char *buff, uint16_t x)
-{
-    buff[1]=(uint8_t)(x&255);
-    buff[0]= (uint8_t)((x>>8)&255);
-}
+//Commented out 10.01.2026
+//void write_short_be_buf (unsigned char *buff, uint16_t x)
+//{
+//    buff[1]=(uint8_t)(x&255);
+//    buff[0]= (uint8_t)((x>>8)&255);
+//}
 
-void write_long_be_buf (unsigned char *buff, uint32_t x)
-{
-    buff[3]=(uint8_t)(x&255);
-    buff[2]=(uint8_t)((x>>8)&255);
-    buff[1]=(uint8_t)((x>>16)&255);
-    buff[0]=(uint8_t)((x>>24)&255);
-}
+//void write_long_be_buf (unsigned char *buff, uint32_t x)
+//{
+//    buff[3]=(uint8_t)(x&255);
+//    buff[2]=(uint8_t)((x>>8)&255);
+//    buff[1]=(uint8_t)((x>>16)&255);
+//    buff[0]=(uint8_t)((x>>24)&255);
+//}
 
-void write_bmp_idx (char *fname, uint16_t width, uint16_t height,
-		unsigned char *pal, char *data,
-        int16_t red, int16_t green, int16_t blue, int16_t mult)
-{
-    char hlpstr[500];
-    std::string msg("");
+//Commented out 10.01.2026
+//void write_bmp_idx (char *fname, uint16_t width, uint16_t height,
+//		unsigned char *pal, char *data,
+//        int16_t red, int16_t green, int16_t blue, int16_t mult)
+//{
+//    char hlpstr[500];
+//    std::string msg("");
 
-    uint16_t i, j;
-    FILE *out;
+//    uint16_t i, j;
+//    FILE *out;
     
-    out = fopen (fname, "wb");
-    if (!out)
-    {
-	    snprintf (hlpstr, 500, "\nCan't open file %s. Aborting.", fname);
-        msg.clear();
-        msg.append(hlpstr);
-        logging::Error(msg);
-	    exit (1);
-    }
+//    out = fopen (fname, "wb");
+//    if (!out)
+//    {
+//	    snprintf (hlpstr, 500, "\nCan't open file %s. Aborting.", fname);
+//        msg.clear();
+//        msg.append(hlpstr);
+//        logging::Error(msg);
+//	    exit (1);
+//    }
     
-    uint32_t l = width * height;
-    fprintf (out, "BM");
-    write_long_le_file (out, l+0x436);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0x436);
-    write_long_le_file (out, 40);
-    write_long_le_file (out, width);
-    write_long_le_file (out, height);
-    write_short_le_file (out, 1);
-    write_short_le_file (out, 8);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
+//    uint32_t l = width * height;
+//    fprintf (out, "BM");
+//    write_long_le_file (out, l+0x436);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0x436);
+//    write_long_le_file (out, 40);
+//    write_long_le_file (out, width);
+//    write_long_le_file (out, height);
+//    write_short_le_file (out, 1);
+//    write_short_le_file (out, 8);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
     
-    for (i=0; i < 256; i++)
-    {
-	    fputc (pal[i*3+blue]*mult, out);
-	    fputc (pal[i*3+green]*mult, out);
-	    fputc (pal[i*3+red]*mult, out);
-	    fputc (0, out);
-    }
+//    for (i=0; i < 256; i++)
+//    {
+//	    fputc (pal[i*3+blue]*mult, out);
+//	    fputc (pal[i*3+green]*mult, out);
+//	    fputc (pal[i*3+red]*mult, out);
+//	    fputc (0, out);
+//    }
     
-    for (i=1; i <= height; i++)
-    {
-	    fwrite (data+(height-i)*width, width, 1, out);
-	    if (width & 3)
-	        for (j=0; j < 4-(width&3); j++)
-		    fputc (0, out);
-        }
+//    for (i=1; i <= height; i++)
+//    {
+//	    fwrite (data+(height-i)*width, width, 1, out);
+//	    if (width & 3)
+//	        for (j=0; j < 4-(width&3); j++)
+//		    fputc (0, out);
+//        }
     
-    fclose (out);
-}
+//    fclose (out);
+//}
 
-void write_bmp_24b (char *fname, uint16_t width, uint16_t height, char *data)
-{
-    uint16_t i;
-    FILE *out;
-    char hlpstr[500];
-    std::string msg("");
+//Commented out 10.01.2026
+//void write_bmp_24b (char *fname, uint16_t width, uint16_t height, char *data)
+//{
+//    uint16_t i;
+//    FILE *out;
+//    char hlpstr[500];
+//    std::string msg("");
     
-    out = fopen (fname, "wb");
-    if (!out)
-    {
-	    snprintf (hlpstr, 500, "\nCan't open file %s. Aborting.", fname);
-        msg.clear();
-        msg.append(hlpstr);
-        logging::Error(msg);
-	    exit (1);
-    }
+//    out = fopen (fname, "wb");
+//    if (!out)
+//    {
+//	    snprintf (hlpstr, 500, "\nCan't open file %s. Aborting.", fname);
+//        msg.clear();
+//        msg.append(hlpstr);
+//        logging::Error(msg);
+//	    exit (1);
+//    }
     
-    uint32_t l = width * height;
-    fprintf (out, "BM");
-    write_long_le_file (out, 3*l+0x036);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0x036);
-    write_long_le_file (out, 40);
-    write_long_le_file (out, width);
-    write_long_le_file (out, height);
-    write_short_le_file (out, 1);
-    write_short_le_file (out, 24);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
-    write_long_le_file (out, 0);
+//    uint32_t l = width * height;
+//    fprintf (out, "BM");
+//    write_long_le_file (out, 3*l+0x036);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0x036);
+//    write_long_le_file (out, 40);
+//    write_long_le_file (out, width);
+//    write_long_le_file (out, height);
+//    write_short_le_file (out, 1);
+//    write_short_le_file (out, 24);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
+//    write_long_le_file (out, 0);
     
-    int32_t datawidth=width*3;
-    for (i=1; i <= height; i++)
-    {
-        fwrite (data+(height-i)*datawidth, datawidth, 1, out);
-        int16_t padding_size=4-(datawidth&3);
-        if ((padding_size&3) > 0)
-        {
-            int16_t cntr;
-            for (cntr=0;cntr<padding_size;cntr++)
-    	        fputc (0, out);
-        }
-    }
+//    int32_t datawidth=width*3;
+//    for (i=1; i <= height; i++)
+//    {
+//        fwrite (data+(height-i)*datawidth, datawidth, 1, out);
+//        int16_t padding_size=4-(datawidth&3);
+//        if ((padding_size&3) > 0)
+//        {
+//            int16_t cntr;
+//            for (cntr=0;cntr<padding_size;cntr++)
+//    	        fputc (0, out);
+//        }
+//    }
     
-    fclose (out);
-}
+//    fclose (out);
+//}
 
-
-long file_length (char *path)
-{
-    FILE *fp;
-    long ret;
+//Commented out 10.01.2026
+//long file_length (char *path)
+//{
+//    FILE *fp;
+//    long ret;
     
-    fp = fopen (path, "rb");
-    if (!fp)
-	    return -1;
+//    fp = fopen (path, "rb");
+//    if (!fp)
+//	    return -1;
 
-    fseek (fp, 0, SEEK_END);
-    ret = ftell (fp);
-    fclose (fp);
-    return ret;
-}
+//    fseek (fp, 0, SEEK_END);
+//    ret = ftell (fp);
+//    fclose (fp);
+//    return ret;
+//}
 
 long file_length_opened (FILE *fp)
 {
@@ -280,54 +288,55 @@ long file_length_opened (FILE *fp)
     return length;
 }
 
-char *filename_from_path(char *pathname)
-{
-    char *fname = nullptr;
-    if (pathname)
-    {
-        fname = strrchr (pathname, '/') + 1;
-        if (!fname)
-            fname = strrchr (pathname, '\\') + 1;
-    }
-    if (!fname)
-        fname=pathname;
-return fname;
-}
+//Commented out 10.01.2026
+//char *filename_from_path(char *pathname)
+//{
+//    char *fname = nullptr;
+//    if (pathname)
+//    {
+//        fname = strrchr (pathname, '/') + 1;
+//        if (!fname)
+//            fname = strrchr (pathname, '\\') + 1;
+//    }
+//    if (!fname)
+//        fname=pathname;
+//return fname;
+//}
 
-int nth_bit( unsigned char c, int n ) {
-    // returns the nth bit of c
-    // either 1 or 0
-    // ...hooray for cse271...
+//int nth_bit( unsigned char c, int n ) {
+//    // returns the nth bit of c
+//    // either 1 or 0
+//    // ...hooray for cse271...
     
-    unsigned char one = 1;
+//    unsigned char one = 1;
     
-    if( n < 0 || n > 7 )
-        return 0;
+//    if( n < 0 || n > 7 )
+//        return 0;
     
-    c = c>>n;
-    return (int)(c & one);
+//    c = c>>n;
+//    return (int)(c & one);
     
-}
+//}
 
-int nth_bit_fourbytes( unsigned char c[4], int n ) {
-    // returns the nth bit of c
-    // either 1 or 0
-    // goes like this:
-    // [31 30 29 28 27 26 25 24][...][...][7 6 5 4 3 2 1 0]
+//int nth_bit_fourbytes( unsigned char c[4], int n ) {
+//    // returns the nth bit of c
+//    // either 1 or 0
+//    // goes like this:
+//    // [31 30 29 28 27 26 25 24][...][...][7 6 5 4 3 2 1 0]
     
-    if( n < 0 || n > 32 )
-        return 0;
+//    if( n < 0 || n > 32 )
+//        return 0;
     
-    if( n < 8 )    // bits 0 - 7
-        return nth_bit( c[3], n );
-    else if( n < 16 )
-        return nth_bit( c[2], n%8 );
-    else if( n < 24 )
-        return nth_bit( c[1], n%8 );
-    else
-        return nth_bit( c[0], n%8 );
+//    if( n < 8 )    // bits 0 - 7
+//        return nth_bit( c[3], n );
+//    else if( n < 16 )
+//        return nth_bit( c[2], n%8 );
+//    else if( n < 24 )
+//        return nth_bit( c[1], n%8 );
+//    else
+//        return nth_bit( c[0], n%8 );
     
-}
+//}
 
 int read_palette_rgb(unsigned char *palette, char *fname, uint16_t nColors)
 {

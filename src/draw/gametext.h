@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -16,15 +16,21 @@
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
 
+ /************************
+  * Forward declarations *
+  ************************/
+
+class InfrastructureBase;
+
 typedef struct GameTextCharacterInfo {
-      //contains the raw texture for the character
+     //contains the texture for the character
      irr::video::ITexture* texture = nullptr;
 
-     //size in pixels of the raw texture for character
+     //size in pixels of the texture for character
      irr::core::dimension2d<irr::s32> sizeRawTex;
 
-     //contains "optimized" area of area, non useful empty black area removed
-     //only 1 line of black area left on left and right side
+     //contains source rect coordinates for 2D
+     //driver drawing operation
      irr::core::rect<irr::s32> charRect;
 
      //contains the transparent color found for this
@@ -39,25 +45,17 @@ typedef struct GameTextFont {
 class GameText {
 
 private:
-    irr::video::IVideoDriver* myDriver = nullptr;
-    irr::IrrlichtDevice* myDevice = nullptr;
+    InfrastructureBase* mInfra = nullptr;
 
     void LoadInitialFont();
 
-    GameTextFont* LoadGameFont(char* fileName, unsigned long numOffset, unsigned long numChars, std::vector<int> loadAddFileNr, bool addOutline, irr::video::SColor* outLineColor = nullptr);
-    irr::core::rect<irr::s32> FindCharArea(GameTextCharacterInfo *character, bool &succesFlag);
-    bool AddColoredOutline(GameTextCharacterInfo &character, irr::video::SColor *outLineColor);
+    GameTextFont* LoadGameFont(char* fileName, const char* fileEnding, unsigned long numOffset, unsigned long numChars,
+        std::vector<int> loadAddFileNr, bool removeGap);
+ 
     void FreeTextFont(GameTextFont &pntrFont);
 
-    //uses the 4 corner pixel of the character to derive the most
-    //likely transparent pixel color
-    //Returns true in case of success, false otherwise
-    bool DeriveTransparentColorForChar(GameTextCharacterInfo &character);
-    void AddPixelToColorOccurenceList(std::vector<std::pair <irr::u8, irr::video::SColor>> &colorOccurenceList,
-                                                irr::video::SColor newColor);
-
 public:
-    GameText(irr::IrrlichtDevice* device, irr::video::IVideoDriver* driver);
+    GameText(InfrastructureBase* infra);
     ~GameText();
 
     void LoadFontsStep2();
@@ -69,7 +67,11 @@ public:
     //  position = 2D position where text rendering should occur (leftmost character of text)
     //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
     //                     If specified stops text rendering after specified number of chars
-    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s16 stopAfterNrChars = -1);
+    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position,
+                      irr::video::SColor renderColor, irr::s16 stopAfterNrChars = -1);
+
+    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position,
+                      irr::s16 stopAfterNrChars = -1);
     irr::u32 GetWidthPixelsGameText(char* text, GameTextFont *whichFont, irr::s16 stopAfterNrChars = -1);
 
     //delivers the maximum height in pixels of all characters found in the specified text
@@ -98,6 +100,9 @@ public:
 
     //main use is in Hud banner text at the lower part of the screen
     GameTextFont* HudWhiteTextBannerFont = nullptr;
+
+    //used in game menue for selected items
+    GameTextFont* GameMenueSelectedItemFont = nullptr;
 
     //is the white smaller text font that is used in the menue for example
     //to give additional information about number of laps etc...

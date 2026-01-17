@@ -1105,6 +1105,8 @@ void Race::PlayerCrossesFinishLineTheFirstTime() {
 }
 
 bool Race::RaceAllowsPlayersToAttack() {
+    //computer player is only allowed to attack after
+    //first player has crossed the starting line the fist time
     if (mCurrentPhase == DEF_RACE_PHASE_RACING)
         return true;
 
@@ -1620,7 +1622,7 @@ bool Race::InitMiniMap() {
     //of minimap
     std::string miniMapPicFile("");
     miniMapPicFile.append(mLevelRootPath);
-    miniMapPicFile.append("minimap.bmp");
+    miniMapPicFile.append("minimap.png");
 
     if (FileExists(miniMapPicFile.c_str()) != 1) {
         //minimap image file does not exist!

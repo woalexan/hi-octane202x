@@ -7,6 +7,9 @@
 #include <cstring>
 #include "../../utils/logging.h"
 #include <stdlib.h>
+#include "preparedata.h"
+#include "../../infrabase.h"
+#include <tuple>
 
 //source code taken from http://syndicate.lubiki.pl/downloads/bullfrog_utils_tabdat.zip
 //for readme file please see bullfrog_utils_tabdat-readme.txt
@@ -28,8 +31,17 @@
 
 //Note 29.12.2025: Finally found and fixed a bug which I introduced originally, and caused the cone model texturing to be wrong
 
+//Note 10.01.2026: I had issues again when trying to load the bitmap files first exported with this original source code
+//(the are saved in color format A1R5G5B5 in a .bmp file initially) in  Irrlicht, and then using them in A8R8G8B8 color format
+//(and storing them in .png format) afterwards. What happns is that getPixel function in Irrlicht of the loaded image then
+//delivers wrong pixel color information. I also come more and more to the conclusion that the multiple image file saving/loading
+//during data extraction, data processing and so on is just not practical.
+//Because of this I finally decided to modify this source code here, so that instead of writing a bitmap file in the first
+//place here, and then load it later again in Irrlicht from the image file, I create the Irrlicht image here immediately.
+
 //extracts all images within data file into outputDir
-int ExtractImages (char* datfname, char* tabfname, unsigned char* palette, char* outputDir)
+//10.01.2026: Commented out, replaced with ExtractToIrrlichtImages today
+/*int ExtractImages(char* datfname, char* tabfname, unsigned char* palette, char* outputDir)
 {
     //Reading DAT,TAB and extracting images
     IMAGELIST images;
@@ -55,6 +67,61 @@ int ExtractImages (char* datfname, char* tabfname, unsigned char* palette, char*
 
     free_dattab_images(&images);
     return 0;
+}*/
+
+//Returns true in case of success, False otherwise
+bool ExtractToIrrlichtImages(PrepareData* parent, char* datfname, char* tabfname,
+                             std::vector<irr::u16> &imageIndex,
+                             std::vector<irr::video::IImage*> &imageOutput) {
+    //Reading DAT,TAB and extracting images to Irrlicht images
+    IMAGELIST images;
+    {
+        int retcode=create_images_dattab_idx(&images,datfname,tabfname,1);
+        if (retcode!=0) {
+            return false;
+        }
+    }
+
+    //Looping through images and extracting to files
+    long picnum;
+    size_t nrPixels;
+    for (picnum=0;picnum<images.count;picnum++)
+    {
+        IMAGEITEM *item=&(images.items[picnum]);
+        nrPixels = (size_t)(item->width * item->height);
+
+        if (nrPixels>0) {
+            //Create a new empty Irrlicht image
+            irr::video::IImage* img =
+                    parent->mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+                                                irr::core::dimension2d<irr::u32>((irr::u32)(item->width), (irr::u32)(item->height)));
+
+            if (img == nullptr) {
+                //image creation issue, return with failed operation
+                return false;
+            }
+
+            auto raw_buffer = (uint32_t*)img->lock();
+            unsigned char r, g, b;
+            unsigned char pixVal;
+
+            for (size_t idx = 0; idx < nrPixels; idx++) {
+                pixVal = item->data[idx];
+                std::tie(r, g, b) = parent->GetPaletteColor(pixVal);
+                *raw_buffer++ = 0xFF000000 | (r << 16) | (g << 8) | b;
+            }
+            img->unlock();
+
+            //add the newly loaded image
+            imageIndex.push_back((irr::u16)(picnum));
+            imageOutput.push_back(img);
+        }
+    }
+
+    free_dattab_images(&images);
+
+    //return success
+    return true;
 }
 
 int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int verbose)

@@ -24,39 +24,47 @@
 
 //Note 08.10.2025: Added read_long_le_buf3 and read_long_le_buf4 function, as I needed it somewhere else
 
+//Note 10.01.2026: Commented out (now) unused code to help compilation time
+
 // RNC compression magic identifier
 #define RNC_SIGNATURE_STR "RNC\001"
 
 // Routines
 
-long file_length (char *path);
+//Commented out 10.01.2026
+//long file_length (char *path);
 long file_length_opened (FILE *fp);
-char *filename_from_path(char *pathname);
+//Commented out 10.01.2026
+//char *filename_from_path(char *pathname);
 
-int32_t read_long_le_file (FILE *fp);
+//int32_t read_long_le_file (FILE *fp);
 int32_t read_long_le_buf (unsigned char *buff);
 uint16_t read_short_le_file (FILE *fp);
-uint16_t read_short_le_buf (unsigned char *buff);
+//uint16_t read_short_le_buf (unsigned char *buff);
 
-void write_short_le_file (FILE *fp, uint16_t x);
-void write_short_le_buf (unsigned char *buff, uint16_t x);
-void write_long_le_file (FILE *fp, uint32_t x);
-void write_long_le_buf (unsigned char *buff, uint32_t x);
+//Commented out 10.01.2026
+//void write_short_le_file (FILE *fp, uint16_t x);
+//void write_short_le_buf (unsigned char *buff, uint16_t x);
+//void write_long_le_file (FILE *fp, uint32_t x);
+//void write_long_le_buf (unsigned char *buff, uint32_t x);
 
-int32_t read_long_be_buf (unsigned char *buff);
-int32_t read_long_le_buf2 (unsigned char *buff);
-int32_t read_long_le_buf3 (unsigned char *buff);
-int32_t read_long_le_buf4 (unsigned char *buff);
+//Commented out 10.01.2026
+//int32_t read_long_be_buf (unsigned char *buff);
+//int32_t read_long_le_buf2 (unsigned char *buff);
+//int32_t read_long_le_buf3 (unsigned char *buff);
+//int32_t read_long_le_buf4 (unsigned char *buff);
 
-void write_short_be_buf (unsigned char *buff, uint16_t x);
-void write_long_be_buf (unsigned char *buff, uint32_t x);
+//Commented out 10.01.2026
+//void write_short_be_buf (unsigned char *buff, uint16_t x);
+//void write_long_be_buf (unsigned char *buff, uint32_t x);
 
-int nth_bit( unsigned char c, int n );
-int nth_bit_fourbytes( unsigned char c[4], int n );
+//int nth_bit( unsigned char c, int n );
+//int nth_bit_fourbytes( unsigned char c[4], int n );
 
-void write_bmp_idx (char *fname, uint16_t width, uint16_t height, unsigned char *pal,
-		char *data, int16_t red, int16_t green, int16_t blue, int16_t mult);
-void write_bmp_24b (char *fname, uint16_t width, uint16_t height, char *data);
+//Commented out 10.01.2026
+//void write_bmp_idx (char *fname, uint16_t width, uint16_t height, unsigned char *pal,
+//		char *data, int16_t red, int16_t green, int16_t blue, int16_t mult);
+//void write_bmp_24b (char *fname, uint16_t width, uint16_t height, char *data);
 
 int read_palette_rgb(unsigned char *palette, char *fname, uint16_t nColors);
 

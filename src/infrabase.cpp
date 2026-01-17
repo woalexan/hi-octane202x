@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 Wolf Alexander
+ Copyright (C) 2025-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -284,6 +284,150 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
    }
 
    return true;
+}
+
+//Returns true in case of success, False otherwise
+bool InfrastructureBase::WriteFontInfoXmlFile(IrrlichtDevice *device, irr::io::path fontPath, irr::video::SColor transColor) {
+    std::string infoFileName(fontPath.c_str());
+    infoFileName.append("/fontinfo.xml");
+
+    //create necessary XML writer
+    irr::io::IXMLWriter* writer = device->getFileSystem()->createXMLWriter( infoFileName.c_str() );
+    if (!writer) {
+         std::string overallMsg("Failed to create font info Xml config file ");
+         overallMsg.append(infoFileName);
+         overallMsg.append("!");
+         logging::Error(overallMsg);
+
+         return false;
+     }
+
+     //we need exactly one XML header
+     writer->writeXMLHeader();
+
+     writer->writeElement(L"fontinfo");
+     writer->writeLineBreak();
+
+     //section for color info
+     writer->writeElement(L"colors");
+     writer->writeLineBreak();
+
+     writer->writeElement(L"setting",true, L"name", L"transparentColor" , L"value", SColorToXmlSettingStr(&transColor).c_str());
+     writer->writeLineBreak();
+
+     //close color info section
+     writer->writeClosingTag(L"colors");
+     writer->writeLineBreak();
+
+     //end of font info Xml file
+     writer->writeClosingTag(L"fontinfo");
+
+     //remove Xml writer
+     writer->drop();
+
+     return true;
+}
+
+//Returns true in case of success, False otherwise
+//Read transparent color is returned in last reference parameter
+bool InfrastructureBase::ReadFontInfoXmlFile(IrrlichtDevice *device, irr::io::path fontPath, irr::video::SColor& transColor) {
+    //does this file exist?
+    std::string infoFileName(fontPath.c_str());
+    infoFileName.append("/fontinfo.xml");
+    if (!(FileExists(infoFileName.c_str()) == 1)) {
+        //file does not exist
+        std::string overallMsg("Font info Xml config file ");
+        overallMsg.append(infoFileName);
+        overallMsg.append(" does not exist, font loading failed!");
+        logging::Error(overallMsg);
+
+        return false;
+    }
+
+    //font info file exists, read the transparent color
+    //create the Xml Reader
+    irr::io::IXMLReader* xmlReader = device->getFileSystem()->createXMLReader(infoFileName.c_str());
+    if (!xmlReader) {
+        std::string overallMsg("Failed to read font info Xml file ");
+        overallMsg.append(infoFileName);
+        overallMsg.append("! Font loading failed!");
+        logging::Error(overallMsg);
+
+        return false;
+    }
+
+    const irr::core::stringw colorTag(L"colors");
+    const irr::core::stringw settingTag(L"setting");
+
+    irr::core::stringw currentSection;
+
+    irr::core::map<irr::core::stringw, irr::core::stringw> colorsSetupMap;
+
+    //while there is more to read
+    while (xmlReader->read())
+    {
+        //check the node type
+        switch (xmlReader->getNodeType())
+        {
+            //we found a new element
+            case irr::io::EXN_ELEMENT:
+            {
+                 //we currently are in no section and find the colors setup tag so we set our current section to colors setup
+                 if (currentSection.empty() && colorTag.equals_ignore_case(xmlReader->getNodeName()))
+                    {
+                        currentSection = colorTag;
+                    }
+
+                 //we are in the colors setup section and we find a color to parse
+                 else if (currentSection.equals_ignore_case(colorTag) && settingTag.equals_ignore_case(xmlReader->getNodeName()))
+                    {
+                       //read in the key
+                        irr::core::stringw key = xmlReader->getAttributeValueSafe(L"name");
+                        //if there actually is a key to set
+                        if (!key.empty())
+                        {
+                            //set the setting in the map to the value,
+                            //the [] operator overrides values if they already exist or inserts a new key value
+                            //pair into the settings map if it was not defined yet
+                            colorsSetupMap[key] = xmlReader->getAttributeValueSafe(L"value");
+                        }
+                    }
+
+                break;
+          }
+
+          //we found the end of an element
+          case irr::io::EXN_ELEMENT_END: {
+              //we were at the end of the current setup section so we reset our tag
+                 currentSection=L"";
+                 break;
+          }
+       }
+   }
+
+   // don't forget to delete the xml reader
+   xmlReader->drop();
+
+   irr::core::map<irr::core::stringw, irr::core::stringw>::Node* nodePntr;
+
+   //get transparent pixel color
+   irr::video::SColor result;
+
+   nodePntr = colorsSetupMap.find(L"transparentColor");
+
+   if (nodePntr == nullptr) {
+       logging::Error("ReadFontInfoXmlFile: Missing transparentColor field in font info Xml file");
+       return false;
+   } else {
+       if (!XmlSettingStrToSColor(nodePntr->getValue(), result)) {
+           logging::Error("ReadFontInfoXmlFile: Missformed field value for transparentColor in font info Xml file");
+           return false;
+       }
+  }
+
+  transColor = result;
+
+  return true;
 }
 
 //Returns true in case of success, false otherwise
@@ -2091,7 +2235,7 @@ bool InfrastructureBase::InitGameResourcesInitialStep() {
     /* Load the first initial GameFont, so that we can show    */
     /* a first graphical screen                                */
     /***********************************************************/
-    mGameTexts = new GameText(mDevice, mDriver);
+    mGameTexts = new GameText(this);
 
     if (!mGameTexts->GameTextInitializedOk) {
         logging::Error("First Game font init operation failed!");
@@ -2335,7 +2479,7 @@ irr::io::path InfrastructureBase::GetMiniMapFileName(LevelFolderInfoStruct* whic
         return resultPath;
 
     resultPath.append(whichLevel->levelBaseDir);
-    resultPath.append("minimap.bmp");
+    resultPath.append("minimap.png");
     return resultPath;
 }
 
@@ -2343,7 +2487,7 @@ irr::io::path InfrastructureBase::GetMiniMapFileName(std::string levelRootPath) 
     irr::io::path resultPath("");
 
     resultPath.append(levelRootPath.c_str());
-    resultPath.append("minimap.bmp");
+    resultPath.append("minimap.png");
     return resultPath;
 }
 
