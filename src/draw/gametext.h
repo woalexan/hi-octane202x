@@ -67,7 +67,11 @@ public:
     //  position = 2D position where text rendering should occur (leftmost character of text)
     //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
     //                     If specified stops text rendering after specified number of chars
-    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s16 stopAfterNrChars = -1);
+    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position,
+                      irr::video::SColor renderColor, irr::s16 stopAfterNrChars = -1);
+
+    void DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position,
+                      irr::s16 stopAfterNrChars = -1);
     irr::u32 GetWidthPixelsGameText(char* text, GameTextFont *whichFont, irr::s16 stopAfterNrChars = -1);
 
     //delivers the maximum height in pixels of all characters found in the specified text

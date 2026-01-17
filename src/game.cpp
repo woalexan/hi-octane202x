@@ -157,6 +157,15 @@ bool Game::InitGameStep1() {
        logging::Info("XEffects is not used");
    }
 
+   //if we use double the resolution we also need to enable the
+   //upgraded sky, before the vanilla sky images do not work
+   //right now with the higher resolution
+   if (mGameConfig->enableDoubleResolution && !mGameConfig->useUpgradedSky) {
+       mGameConfig->useUpgradedSky = true;
+
+       logging::Warning("Switch to use upgraded sky because vanilla sky is not compatible with double resolution option");
+   }
+
     //load the background image we need
     //for data extraction screen rendering and
     //main menue
@@ -211,7 +220,7 @@ void Game::RunGame() {
         mGameState = DEF_GAMESTATE_INITSTEP2;
     }
 
-    GameLoop();
+    MainGameLoop();
 }
 
 void Game::AdvanceChampionship() {
@@ -303,7 +312,19 @@ void Game::HandleMenueActions() {
         //next level number selected in race track selection page
         //at the end is handed over in pendingAction->currSetValue;
         nextRaceLevelNr = pendingAction->currSetValue;
-        mGameState = DEF_GAMESTATE_INITRACE;
+
+        //11.01.2026: Because from now on the need to first fade out
+        //menue screen before fading in the race loading screen we need
+        //to remember for the state machine if we want to start a race or
+        //a demo, so that after the fading action we can correctly set the
+        //correct game state again
+        mEnterWhichRaceMode = DEF_GAME_STARTRACE;
+
+        //Start fading out menue
+        MainMenue->StartFadeOut();
+
+        //set the new fadeout menue game state
+        mGameState = DEF_GAMESTATE_FADEOUT_BEFOREINIT_RACE;
     }
 
     //take care of the special menue actions
@@ -470,7 +491,18 @@ void Game::HandleMenueActions() {
 
             mAttributionRunning = true;
 
-            mGameState = DEF_GAMESTATE_INITDEMO;
+            //11.01.2026: Because from now on the need to first fade out
+            //menue screen before fading in the race loading screen we need
+            //to remember for the state machine if we want to start a race or
+            //a demo, so that after the fading action we can correctly set the
+            //correct game state again
+            mEnterWhichRaceMode = DEF_GAME_STARTDEMO;
+
+            //Start fading out menue
+            MainMenue->StartFadeOut();
+
+            //set the new fadeout menue game state
+            mGameState = DEF_GAMESTATE_FADEOUT_BEFOREINIT_RACE;
         }
     }
 
@@ -480,7 +512,18 @@ void Game::HandleMenueActions() {
         //level in the race selection screen, do the same
         nextRaceLevelNr = mGameAssets->GetLastSelectedRaceTrack() + 1;
 
-        mGameState = DEF_GAMESTATE_INITDEMO;
+        //11.01.2026: Because from now on the need to first fade out
+        //menue screen before fading in the race loading screen we need
+        //to remember for the state machine if we want to start a race or
+        //a demo, so that after the fading action we can correctly set the
+        //correct game state again
+        mEnterWhichRaceMode = DEF_GAME_STARTDEMO;
+
+        //Start fading out menue
+        MainMenue->StartFadeOut();
+
+        //set the new fadeout menue game state
+        mGameState = DEF_GAMESTATE_FADEOUT_BEFOREINIT_RACE;
     }
 
     if (pendingAction == MainMenue->ActSetDoubleResolution) {
@@ -691,6 +734,37 @@ void Game::GameLoopExtractData() {
     mDriver->endScene();
 }
 
+void Game::GameLoopTileFadeOut(irr::f32 frameDeltaTime) {
+    MainMenue->UpdateFading(frameDeltaTime);
+
+    //Get current menue render color
+    //depending on current fading out state
+    mDriver->beginScene(true,true,
+        irr::video::SColor(255, 100, 101, 140));
+
+    //first draw a black rectangle over the whole screen to make sure that the parts of the
+    //screen that are outside of the drawn image regions are black as well
+    mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mScreenRes.Width, mScreenRes.Height));
+
+    //draw game tile screen
+    mDriver->draw2DImage(gameTitle, gameTitleDrawPos, irr::core::recti(0, 0,
+                     gameTitleSize.Width, gameTitleSize.Height)
+                     , 0, MainMenue->mCurrentMainRenderColor, true);
+
+    mDriver->endScene();
+
+    if (MainMenue->IsFadingOutDone()) {
+        //go to next state, which is to start
+        //showing the menue
+        mGameState = DEF_GAMESTATE_MENUE;
+
+        //fully Fade in menue immediately
+        MainMenue->SetFullyFadedIn();
+        MainMenue->ShowMainMenue();
+    }
+}
+
 void Game::GameLoopTitleScreenLoadData() {
     //we need to load additional images
     if (!LoadAdditionalGameImages()) {
@@ -738,8 +812,9 @@ void Game::GameLoopTitleScreenLoadData() {
             }
 
             //was succesfull, now continue to main menue
-            mGameState = DEF_GAMESTATE_MENUE;
-            MainMenue->ShowMainMenue();
+            //but first fadeout tile screen
+            mGameState = DEF_GAMESTATE_GAMETILE_FADEOUT;
+            MainMenue->StartFadeOut();
         } else if (mDebugRace) {
             //we want to directly create a race for debugging
             //of game mechanics and enter it
@@ -747,6 +822,36 @@ void Game::GameLoopTitleScreenLoadData() {
         } else if (mDebugDemoMode) {
             //we want to directly create a demo for debugging
             SetupDebugDemo();
+        }
+    }
+}
+
+void Game::GameLoopLoadRaceScreenFadeIn(irr::f32 frameDeltaTime) {
+    MainMenue->UpdateFading(frameDeltaTime);
+
+    mDriver->beginScene(true,true,
+    video::SColor(255,100,101,140));
+
+    //first draw a black rectangle over the whole screen to make sure that the parts of the
+    //screen that are outside of the drawn image regions are black as well
+    mDriver->draw2DRectangle(irr::video::SColor(255,0,0,0),
+                   irr::core::rect<irr::s32>(0, 0, mScreenRes.Width, mScreenRes.Height));
+
+    //draw load race screen
+    mDriver->draw2DImage(raceLoadingScr, raceLoadingScrDrawPos, irr::core::recti(0, 0, raceLoadingScrSize.Width, raceLoadingScrSize.Height)
+                     , 0, MainMenue->mCurrentMainRenderColor, true);
+
+    mDriver->endScene();
+
+    //is fading in done?
+    if (MainMenue->IsFadingInDone()) {
+        //11.01.2026: Depending on if we want to start a race or a demo
+        //restore the initial Game state machine state again
+        //after the fading action
+        if (mEnterWhichRaceMode == DEF_GAME_STARTRACE) {
+            mGameState = DEF_GAMESTATE_INITRACE;
+        } else if (mEnterWhichRaceMode == DEF_GAME_STARTDEMO) {
+            mGameState = DEF_GAMESTATE_INITDEMO;
         }
     }
 }
@@ -838,8 +943,11 @@ void Game::GameLoopLoadRaceScreen() {
 }
 
 void Game::GameLoopMenue(irr::f32 frameDeltaTime) {
-    mDriver->beginScene(true,true,
-                video::SColor(255,100,101,140));
+    //11.01.2026: In case we need to fade in/out update
+    //current fading state
+    MainMenue->UpdateFading(frameDeltaTime);
+
+    mDriver->beginScene(true,true, irr::video::SColor(255, 100, 101, 140));
 
     MainMenue->HandleInput();
     MainMenue->Render(frameDeltaTime);
@@ -1118,47 +1226,6 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     }
 }
 
-/* Fade In and Out example
- * //from https://github.com/XadillaX/irr-guide-examples/blob/master/Chapter%202/FadeInNFadeOut/main.cpp
- *
- *  f32 bg_r = 255.0f;
-    f32 bg_g = 255.0f;
-    f32 bg_b = 255.0f;
-    bool fadeOut = true;
-    int lastFPS = -1;
-
-    u32 then = device->getTimer()->getTime();
-    const f32 fadeRate = 0.1f;
-
-    while(device->run())
-    {
-        const u32 now = device->getTimer()->getTime();
-        const f32 frameDeltaTime = (f32)(now - then);
-        then = now;
-
-        if(bg_r <= 0.0f) fadeOut = false;
-        else
-        if(bg_r >= 255.0f) fadeOut = true;
-
-        if(fadeOut)
-        {
-            bg_r -= fadeRate * frameDeltaTime;
-            bg_g -= fadeRate * frameDeltaTime;
-            bg_b -= fadeRate * frameDeltaTime;
-        }
-        else
-        {
-            bg_r += fadeRate * frameDeltaTime;
-            bg_g += fadeRate * frameDeltaTime;
-            bg_b += fadeRate * frameDeltaTime;
-        }
-
-        driver->beginScene(true, true, SColor(255, bg_r, bg_g, bg_b));
-        driver->endScene();
-    }
-
-    */
-
 void Game::GameLoopIntro(irr::f32 frameDeltaTime) {
     //if we want to skip the intro, do it now
     if (mGameConfig->skipIntro) {
@@ -1214,7 +1281,7 @@ void Game::GameLoopInitStep2() {
     }
 }
 
-void Game::GameLoop() {
+void Game::MainGameLoop() {
 
     // In order to do framerate independent movement, we have to know
     // how long it was since the last frame
@@ -1250,9 +1317,31 @@ void Game::GameLoop() {
                    GameLoopTitleScreenLoadData();
                    break;
             }
+
+            case DEF_GAMESTATE_GAMETILE_FADEOUT: {
+                   GameLoopTileFadeOut(frameDeltaTime);
+                   break;
+            }
+
             case DEF_GAMESTATE_MENUE: {
                 GameLoopMenue(frameDeltaTime);
                 break;
+            }
+
+            case DEF_GAMESTATE_FADEOUT_BEFOREINIT_RACE: {
+                 GameLoopMenue(frameDeltaTime);
+                 if (MainMenue->IsFadingOutDone()) {
+                     //we are done with fading out menue
+                     //fade in load race screen
+                     MainMenue->StartFadeIn();
+                     mGameState = DEF_GAMESTATE_FADEIN_RACELOAD_SCREEN;
+                 }
+                 break;
+            }
+
+            case DEF_GAMESTATE_FADEIN_RACELOAD_SCREEN: {
+                 GameLoopLoadRaceScreenFadeIn(frameDeltaTime);
+                 break;
             }
 
             case DEF_GAMESTATE_INITDEMO:

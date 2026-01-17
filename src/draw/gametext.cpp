@@ -137,7 +137,8 @@ void GameText::FreeTextFont(GameTextFont &pntrFont) {
 //  position = 2D position where text rendering should occur (leftmost character of text)
 //  stopAfterNrChars = optional parameter (default is -1 which means feature inactive)
 //                     If specified stops text rendering after specified number of chars
-void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position, irr::s16 stopAfterNrChars) {
+void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position,
+                            irr::video::SColor renderColor, irr::s16 stopAfterNrChars) {
   //only continue when fonts loaded ok
   if (GameTextInitializedOk && (whichFont != nullptr)) {
     char* pntr = &text[0];
@@ -148,7 +149,7 @@ void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::posi
         //draw current character
         mInfra->mDriver->draw2DImage(whichFont->CharacterVector[*pntr]->texture, correctCharPosition,
               whichFont->CharacterVector[*pntr]->charRect, 0,
-                  irr::video::SColor(255,255,255,255), true);
+                  renderColor, true);
 
         //calculate next char position
         correctCharPosition.X += whichFont->CharacterVector[*pntr]->charRect.getWidth();
@@ -159,6 +160,11 @@ void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::posi
             charCnter--;
      }
   }
+}
+
+void GameText::DrawGameText(char* text, GameTextFont *whichFont, irr::core::position2di position,
+                            irr::s16 stopAfterNrChars) {
+     DrawGameText(text, whichFont, position, irr::video::SColor(255, 255, 255, 255), stopAfterNrChars);
 }
 
 //Calculates the width in pixels of a text message when rendered using the specified font and text
@@ -418,11 +424,17 @@ irr::u32 GameText::GetWidthPixelsGameNumberText(char* numberText, GameTextFont *
 void GameText::LoadInitialFont() {
     std::vector<int> addFileOffs = {};
 
-    if (!mInfra->mGameConfig->enableDoubleResolution) {
-        //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
-        GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
-    } else {
-        GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga-x2/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
+    //for textEditor we do not have a mGameConfig object, always load the
+    //higher resolution text
+    if (mInfra->mRunningAs == INFRA_RUNNING_AS_EDITOR) {
+           GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga-x2/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
+    } else if (mInfra->mRunningAs == INFRA_RUNNING_AS_GAME) {
+            if (!mInfra->mGameConfig->enableDoubleResolution) {
+                //load white Hud banner text font smaller (SVGA), 241 characters need to be loaded
+                GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
+            } else {
+                GameMenueWhiteTextSmallSVGA = LoadGameFont((char*)"extract/fonts/smallsvga-x2/pre-osfnt0-1-", ".png", 0, 241, addFileOffs, true);
+            }
     }
 
     //was there are problem loading the text font?

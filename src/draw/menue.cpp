@@ -763,6 +763,7 @@ void Menue::SetWindowAnimationVec() {
 
     //first animation of menue -> from initial game start to Main Top Level menue open
     windowMenueAnimationStartGame = new MenueWindowAnimationVec();
+    windowMenueAnimationStartGame->animationPeriodTime = MENUE_WINDOW_ANIMATION_PERIODTIME;
     windowMenueAnimationStartGame->coordVec.clear();
     //this animation is done in 25 steps
     //coordinates are for left upper corner of drawn window / right lower corner of drawn window
@@ -794,6 +795,7 @@ void Menue::SetWindowAnimationVec() {
 
     //animation shown during transition from main menue to track selection page
     windowMenueAnimationBeforeTrackSelection = new MenueWindowAnimationVec();
+    windowMenueAnimationBeforeTrackSelection->animationPeriodTime = MENUE_WINDOW_ANIMATION_PERIODTIME;
     windowMenueAnimationBeforeTrackSelection->coordVec.clear();
     //this animation is done in 32 steps
     //coordinates are for left upper corner of drawn window / right lower corner of drawn window
@@ -832,6 +834,7 @@ void Menue::SetWindowAnimationVec() {
 
     //is shown during transition from race track selection to main menue
     windowMenueAnimationQuitTrackSelection = new MenueWindowAnimationVec();
+    windowMenueAnimationQuitTrackSelection->animationPeriodTime = MENUE_WINDOW_ANIMATION_PERIODTIME;
     windowMenueAnimationQuitTrackSelection->coordVec.clear();
     this->windowMenueAnimationQuitTrackSelection->coordVec.push_back(irr::core::recti( 25,  10, 618, 153));
     this->windowMenueAnimationQuitTrackSelection->coordVec.push_back(irr::core::recti( 39,  23, 604, 161));
@@ -860,6 +863,8 @@ void Menue::SetWindowAnimationVec() {
 
     //is shown during transition from race track selection to ship selection and vice versa
     windowMenueAnimationBetweenRaceAndShipSelection = new MenueWindowAnimationVec();
+    //Make this animation slower as the other ones
+    windowMenueAnimationBetweenRaceAndShipSelection->animationPeriodTime = MENUE_WINDOW_ANIMATION_PERIODTIME * 2.0f;
     windowMenueAnimationBetweenRaceAndShipSelection->coordVec.clear();
     this->windowMenueAnimationBetweenRaceAndShipSelection->coordVec.push_back(irr::core::recti( 24,  7, 617, 151));
     this->windowMenueAnimationBetweenRaceAndShipSelection->coordVec.push_back(irr::core::recti( 35,  7, 601, 151));
@@ -892,12 +897,12 @@ void Menue::RenderWindow(irr::core::recti position) {
     backRectPos.LowerRightCorner.Y = position.LowerRightCorner.Y - 9;
 
     //draw window background (half transparent)
-    mGame->mDriver->draw2DRectangle(irr::video::SColor(60,103,174,145), backRectPos);
+    mGame->mDriver->draw2DRectangle(mCurrentWindowBackgroundRenderColor, backRectPos);
 
     //draw left upper corner graphics element
     mGame->mDriver->draw2DImage(wndCornerElementUpperLeftTex, position.UpperLeftCorner,
           irr::core::rect<irr::s32>(0,0, wndCornerElementUpperLeftTex->getSize().Width, wndCornerElementUpperLeftTex->getSize().Height), 0,
-          irr::video::SColor(255,255,255,255), true);
+          mCurrentMainRenderColor, true);
 
     //draw right upper corner graphics element
     irr::core::position2di coord;
@@ -906,7 +911,7 @@ void Menue::RenderWindow(irr::core::recti position) {
 
     mGame->mDriver->draw2DImage(wndCornerElementUpperRightTex, coord,
           irr::core::rect<irr::s32>(0,0, wndCornerElementUpperLeftTex->getSize().Width, wndCornerElementUpperLeftTex->getSize().Height), 0,
-          irr::video::SColor(255,255,255,255), true);
+          mCurrentMainRenderColor, true);
 
     //draw right lower corner graphics element
     coord.X = position.LowerRightCorner.X - wndCornerElementLowerRightTex->getSize().Width;
@@ -914,7 +919,7 @@ void Menue::RenderWindow(irr::core::recti position) {
 
     mGame->mDriver->draw2DImage(wndCornerElementLowerRightTex, coord,
           irr::core::rect<irr::s32>(0,0, wndCornerElementLowerRightTex->getSize().Width, wndCornerElementLowerRightTex->getSize().Height), 0,
-          irr::video::SColor(255,255,255,255), true);
+          mCurrentMainRenderColor, true);
 
     //draw left lower corner graphics element
     coord.X = position.UpperLeftCorner.X;
@@ -922,38 +927,36 @@ void Menue::RenderWindow(irr::core::recti position) {
 
     mGame->mDriver->draw2DImage(wndCornerElementLowerLeftTex, coord,
           irr::core::rect<irr::s32>(0,0, wndCornerElementLowerLeftTex->getSize().Width, wndCornerElementLowerLeftTex->getSize().Height), 0,
-          irr::video::SColor(255,255,255,255), true);
+          mCurrentMainRenderColor, true);
 
     //Draw upper and left line around window
-    irr::video::SColor UpperLeftLineColor(255, 167, 191, 193);
     irr::core::position2di coord2;
     //upper line
     coord.X = position.UpperLeftCorner.X + wndCornerElementUpperLeftTex->getSize().Width;
     coord.Y = position.UpperLeftCorner.Y + 8;
     coord2.Y = coord.Y;
     coord2.X = position.LowerRightCorner.X - wndCornerElementUpperRightTex->getSize().Width - 1;
-    mGame->mDriver->draw2DLine(coord, coord2, UpperLeftLineColor);
+    mGame->mDriver->draw2DLine(coord, coord2, mCurrentWindowUpperLeftLineRenderColor);
     //left line
     coord.X = position.UpperLeftCorner.X + 9;
     coord.Y = position.UpperLeftCorner.Y + wndCornerElementUpperLeftTex->getSize().Height;
     coord2.X = coord.X;
     coord2.Y = position.LowerRightCorner.Y - wndCornerElementLowerLeftTex->getSize().Height;
-    mGame->mDriver->draw2DLine(coord, coord2, UpperLeftLineColor);
+    mGame->mDriver->draw2DLine(coord, coord2, mCurrentWindowUpperLeftLineRenderColor);
 
     //Draw lower and right line around window
-    irr::video::SColor LowerRightLineColor(255, 79, 89, 83);
     //lower line
     coord.X = position.UpperLeftCorner.X + wndCornerElementLowerLeftTex->getSize().Width;
     coord.Y = position.LowerRightCorner.Y - 10;
     coord2.Y = coord.Y;
     coord2.X = position.LowerRightCorner.X - wndCornerElementLowerRightTex->getSize().Width - 1;
-    mGame->mDriver->draw2DLine(coord, coord2, LowerRightLineColor);
+    mGame->mDriver->draw2DLine(coord, coord2, mCurrentWindowLowerRightLineRenderColor);
     //right line
     coord.X = position.LowerRightCorner.X - 10;
     coord.Y = position.UpperLeftCorner.Y + 9;
     coord2.X = coord.X;
     coord2.Y = position.LowerRightCorner.Y - 10;
-    mGame->mDriver->draw2DLine(coord, coord2, LowerRightLineColor);
+    mGame->mDriver->draw2DLine(coord, coord2, mCurrentWindowLowerRightLineRenderColor);
 }
 
 void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
@@ -1033,7 +1036,8 @@ void Menue::PrintMenueEntries() {
             for (it = currSelMenuePage->pageEntryVec.begin(); it != currSelMenuePage->pageEntryVec.end(); ++it) {
                 //if current item to print is currently selected menue entry item print it in white text color
                 if ((currSelMenueSingleEntry->entryNumber == (*it)->entryNumber) && ((*it)->isTextEntryField == false)) {
-                    mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedSelectedTextFont, (*it)->drawTextScrPosition, printCharLeft);
+                    mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedSelectedTextFont,
+                                                     (*it)->drawTextScrPosition, mCurrentMainRenderColor, printCharLeft);
 
                     if (MENUE_ENABLETYPEWRITEREFFECT) {
                         //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -1050,7 +1054,8 @@ void Menue::PrintMenueEntries() {
                     }
                 } else {
                         //item is currently not selected, draw in "greenish" color, or is a text input field entry item (is also green in original game)
-                        mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedUnselectedTextFont, (*it)->drawTextScrPosition, printCharLeft);
+                        mGame->mGameTexts->DrawGameText((*it)->entryText, (*it)->usedUnselectedTextFont, (*it)->drawTextScrPosition,
+                                                        mCurrentMainRenderColor, printCharLeft);
 
                         if (MENUE_ENABLETYPEWRITEREFFECT) {
                             //decrease number of characters left for printing in this rendering run (type writer effect) of game
@@ -1087,57 +1092,69 @@ void Menue::PrintMenueEntriesShipSelection() {
                 printCharLeft = -1;
             }
 
-          mGame->mGameTexts->DrawGameText(currSelShipName, mGame->mGameTexts->GameMenueSelectedItemFont, this->ShipNameTitle->drawTextScrPosition, printCharLeft);
+          mGame->mGameTexts->DrawGameText(currSelShipName, mGame->mGameTexts->GameMenueSelectedItemFont,
+                                          this->ShipNameTitle->drawTextScrPosition,
+                                          mCurrentMainRenderColor, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(currSelShipName));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           //print current name of selected ship color scheme
-          mGame->mGameTexts->DrawGameText(currSelShipColorSchemeName, mGame->mGameTexts->GameMenueWhiteTextSmallSVGA, currSelectedShipColorSchemeTextPos, printCharLeft);
+          mGame->mGameTexts->DrawGameText(currSelShipColorSchemeName, mGame->mGameTexts->GameMenueWhiteTextSmallSVGA,
+                                          currSelectedShipColorSchemeTextPos,
+                                          mCurrentMainRenderColor, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(currSelShipColorSchemeName));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
           //render the current selected ship stats
-          mGame->mGameTexts->DrawGameText(ShipStatSpeedLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatSpeedLabel->drawPositionTxt, printCharLeft);
+          mGame->mGameTexts->DrawGameText(ShipStatSpeedLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                          ShipStatSpeedLabel->drawPositionTxt,
+                                          mCurrentMainRenderColor, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(ShipStatSpeedLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatSpeedLabel->statBoxOutline, irr::video::SColor(255, 97, 165, 145), irr::video::SColor(255, 4, 4, 8),
+          this->RenderShipStatBoxes(ShipStatSpeedLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatSpeedLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatSpeedLabel->statNrBlocks;
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          mGame->mGameTexts->DrawGameText(ShipStatArmourLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatArmourLabel->drawPositionTxt, printCharLeft);
+          mGame->mGameTexts->DrawGameText(ShipStatArmourLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                          ShipStatArmourLabel->drawPositionTxt,
+                                          mCurrentMainRenderColor, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(ShipStatArmourLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatArmourLabel->statBoxOutline, irr::video::SColor(255, 97, 165, 145), irr::video::SColor(255, 4, 4, 8),
+          this->RenderShipStatBoxes(ShipStatArmourLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatArmourLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatArmourLabel->statNrBlocks;
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          mGame->mGameTexts->DrawGameText(ShipStatWeightLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatWeightLabel->drawPositionTxt, printCharLeft);
+          mGame->mGameTexts->DrawGameText(ShipStatWeightLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                          ShipStatWeightLabel->drawPositionTxt,
+                                          mCurrentMainRenderColor, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(ShipStatWeightLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatWeightLabel->statBoxOutline, irr::video::SColor(255, 97, 165, 145), irr::video::SColor(255, 4, 4, 8),
+          this->RenderShipStatBoxes(ShipStatWeightLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatWeightLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatWeightLabel->statNrBlocks;
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          mGame->mGameTexts->DrawGameText(ShipStatFirePowerLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA, ShipStatFirePowerLabel->drawPositionTxt, printCharLeft);
+          mGame->mGameTexts->DrawGameText(ShipStatFirePowerLabel->text, mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA,
+                                          ShipStatFirePowerLabel->drawPositionTxt,
+                                          mCurrentMainRenderColor, printCharLeft);
           printCharLeft -= (irr::u32)(strlen(ShipStatFirePowerLabel->text));
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatFirePowerLabel->statBoxOutline, irr::video::SColor(255, 97, 165, 145), irr::video::SColor(255, 4, 4, 8),
+          this->RenderShipStatBoxes(ShipStatFirePowerLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatFirePowerLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatFirePowerLabel->statNrBlocks;
           if (printCharLeft < 0)
@@ -1376,7 +1393,7 @@ void Menue::RenderRaceSelection() {
 
     //in case of current window transition calculate next animation index
     //and also check if transistion is finished
-    if ((currMenueState == MENUE_STATE_TRANSITION) && ((absoluteTime - lastAnimationUpdateAbsTime) > MENUE_WINDOW_ANIMATION_PERIODTIME)) {
+    if ((currMenueState == MENUE_STATE_TRANSITION) && ((absoluteTime - lastAnimationUpdateAbsTime) > currSelWindowAnimation->animationPeriodTime)) {
         currMenueWindowAnimationIdx++;
 
         //play sound that is active during window movement
@@ -1658,7 +1675,7 @@ void Menue::DrawBackground(bool addLogo) {
    //first draw background picture
    mGame->mDriver->draw2DImage(mGame->backgnd, irr::core::vector2di(0, 0),
                          irr::core::recti(0, 0, mGame->mScreenRes.Width, mGame->mScreenRes.Height)
-                         , 0, irr::video::SColor(255,255,255,255), true);
+                         , 0, mCurrentMainRenderColor, true);
 
    if (addLogo) {
        //draw game logo
@@ -1667,12 +1684,154 @@ void Menue::DrawBackground(bool addLogo) {
        for (int i = 0; i < sizeVec ; i++) {
            mGame->mDriver->draw2DImage(GameLogo[i]->texture, GameLogo[i]->drawScrPosition,
              irr::core::rect<irr::s32>(0,0, GameLogo[i]->sizeTex.Width, GameLogo[i]->sizeTex.Height), 0,
-             irr::video::SColor(255,255,255,255), true);
+             mCurrentMainRenderColor, true);
        }
 
        //add my additional logo text
-       mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText, mLogoExtensionStrPos);
+       mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText,
+                                        mLogoExtensionStrPos, mCurrentMainRenderColor);
    }
+}
+
+irr::video::SColor Menue::UpdateRenderColor(irr::video::SColor fullyFadedInColor) {
+    //update SColor depending on current menue
+    //fading state
+    irr::video::SColor newColor;
+
+    irr::f32 redFloat = (irr::f32)(fullyFadedInColor.getRed()) * mCurrFadingFactor;
+    irr::f32 greenFloat = (irr::f32)(fullyFadedInColor.getGreen()) * mCurrFadingFactor;
+    irr::f32 blueFloat = (irr::f32)(fullyFadedInColor.getBlue()) * mCurrFadingFactor;
+
+    irr::u32 red = (irr::u32)(redFloat);
+    irr::u32 green = (irr::u32)(greenFloat);
+    irr::u32 blue = (irr::u32)(blueFloat);
+
+    if (red < 0) {
+        red = 0;
+    }
+
+    if (red > 255) {
+        red = 255;
+    }
+
+    if (green < 0) {
+        green = 0;
+    }
+
+    if (green > 255) {
+        green = 255;
+    }
+
+    if (blue < 0) {
+        blue = 0;
+    }
+
+    if (blue > 255) {
+        blue = 255;
+    }
+
+    newColor.set(fullyFadedInColor.getAlpha(), red, green, blue);
+
+    return newColor;
+}
+
+void Menue::UpdateCurrentRenderColors() {
+    //update all current render colors
+    mCurrentMainRenderColor = UpdateRenderColor(irr::video::SColor(255, 255, 255, 255));
+    mCurrentWindowBackgroundRenderColor = UpdateRenderColor(irr::video::SColor(60,103,174,145));
+    mCurrentWindowUpperLeftLineRenderColor = UpdateRenderColor(irr::video::SColor(255, 167, 191, 193));
+    mCurrentWindowLowerRightLineRenderColor = UpdateRenderColor(irr::video::SColor(255, 79, 89, 83));
+    mCurrentCheckBoxFillColor = UpdateRenderColor(irr::video::SColor(255, 97, 165, 145));
+    mCurrentCheckBoxOutlineColor = UpdateRenderColor(irr::video::SColor(255, 4, 4, 8));
+
+    //Update SceneNodes
+    irr::f32 alphaF = (irr::f32)(255.0f * mCurrFadingFactor);
+
+    irr::u32 alpha = (irr::u32)(alphaF);
+
+    if (alpha < 0) {
+        alpha = 0;
+    }
+
+    if (alpha > 255) {
+        alpha = 255;
+    }
+
+    irr::scene::IMeshManipulator* mod = mGame->mSmgr->getMeshManipulator();
+
+    //if we are at the ship selection page currently, and fading in/out also update
+    //color of craft models
+    if (currSelMenuePage == ShipSelectionPage) {
+        //update models for all colorschemes
+        for (irr::u8 j = 0; j < this->numCraftsAvailable; j++) {
+            for (unsigned long i = 0; i < this->mGameAssets->mCraftColorSchemeNames.size(); i++) {
+                irr::scene::IMesh* mesh = this->ModelCraftsSceneNodeVec[j]->at(i)->getMesh();
+                mod->setVertexColors(mesh, mCurrentMainRenderColor);
+            }
+        }
+    } else if (currSelMenuePage == RaceTrackSelectionPage) {
+        //the same is true for race track selection page
+         for (irr::u8 i = 0; i < this->numRaceTracksAvailable; i++) {
+              irr::scene::IMesh* mesh = this->ModelTrackSceneNodeVec.at(i)->getMesh();
+              mod->setVertexColors(mesh, mCurrentMainRenderColor);
+         }
+    }
+}
+
+void Menue::StartFadeOut() {
+    mCurrFadingState = MENUE_STATE_FADING_FADINGOUT;
+}
+
+void Menue::StartFadeIn() {
+    mCurrFadingState = MENUE_STATE_FADING_FADINGIN;
+}
+
+void Menue::UpdateFading(irr::f32 frameDeltaTime) {
+    //nothing to do?
+    if ((mCurrFadingState == MENUE_STATE_FADING_FADEDIN) || (mCurrFadingState == MENUE_STATE_FADING_FADEDOUT))
+        return;
+
+    //We need to cap frame delta time, because right
+    //at the beginning after loading screen state is exited
+    //the first frame delta time we will get is very large (multiple seconds)
+    //This huge value would otherwise mess our smooth animation up
+    if (frameDeltaTime > 0.05f) {
+        frameDeltaTime = 0.05f;
+    }
+
+    //10.01.2026: Fadein/Fadeout speed needs to be adjusted by current frame rate
+    irr::f32 speedFactor = (frameDeltaTime / (irr::f32)(1.0f / 60.0f));
+
+    //currently fading out?
+    if (mCurrFadingState == MENUE_STATE_FADING_FADINGOUT) {
+        if (mCurrFadingFactor > 0.0f) {
+            mCurrFadingFactor -= 0.03f * speedFactor;
+        }
+
+        if (mCurrFadingFactor <= 0.0f) {
+            //finished fading out
+            mCurrFadingFactor = 0.0f;
+            mCurrFadingState = MENUE_STATE_FADING_FADEDOUT;
+        }
+
+        UpdateCurrentRenderColors();
+        return;
+    }
+
+    //currently fading in?
+    if (mCurrFadingState == MENUE_STATE_FADING_FADINGIN) {
+        if (mCurrFadingFactor < 1.0f) {
+            mCurrFadingFactor += 0.03f * speedFactor;
+        }
+
+        if (mCurrFadingFactor >= 1.0f) {
+            //finished fading in
+            mCurrFadingFactor = 1.0f;
+            mCurrFadingState = MENUE_STATE_FADING_FADEDIN;
+        }
+
+        UpdateCurrentRenderColors();
+    }
 }
 
 void Menue::Render(irr::f32 frameDeltaTime) {
@@ -1695,7 +1854,7 @@ void Menue::Render(irr::f32 frameDeltaTime) {
 
      //in case of current window transition calculate next animation index
      //and also check if transistion is finished
-     if ((currMenueState == MENUE_STATE_TRANSITION) && ((absoluteTime - lastAnimationUpdateAbsTime) > MENUE_WINDOW_ANIMATION_PERIODTIME)) {
+     if ((currMenueState == MENUE_STATE_TRANSITION) && ((absoluteTime - lastAnimationUpdateAbsTime) > currSelWindowAnimation->animationPeriodTime)) {
            currMenueWindowAnimationIdx++;
 
             //play sound that is active during window movement
@@ -3176,7 +3335,30 @@ Menue::Menue(Game* game, SoundEngine* soundEngine, Assets *assets) {
     blinkTextCursorVisible = false;
     blinkTextCursorNextStateChangeAbsTime = (absoluteTime + MENUE_TEXTENTRY_CURSORBLINKPERIODSEC);
 
+    SetFullyFadedIn();
+
     ShowMainMenue();
+}
+
+bool Menue::IsFadingOutDone() {
+    if (mCurrFadingState == MENUE_STATE_FADING_FADEDOUT)
+        return true;
+
+    return false;
+}
+
+bool Menue::IsFadingInDone() {
+    if (mCurrFadingState == MENUE_STATE_FADING_FADEDIN)
+        return true;
+
+    return false;
+}
+
+void Menue::SetFullyFadedIn() {
+    mCurrFadingState = MENUE_STATE_FADING_FADEDIN;
+    mCurrFadingFactor = 1.0f;
+
+    UpdateCurrentRenderColors();
 }
 
 void Menue::ShowMainMenue() {
