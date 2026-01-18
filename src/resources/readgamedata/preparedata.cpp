@@ -58,104 +58,155 @@ bool PrepareData::ExecuteNextStep() {
 
     switch (mCurrentStep) {
         case PREP_DATA_EXTRACTGAMESCREENS: {
-            ExtractGameScreens();
-            mCurrentStep = PREP_DATA_EXTRACTHUD;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME HUD");
+            if (ExtractGameScreens()) {
+                //we are done with this substep
+                currSubStep = 0;
+                mCurrentStep = PREP_DATA_EXTRACTHUD;
+                currentStepDescription.clear();
+                currentStepDescription.append("GAME HUD");
+            }
             break;
          }
 
         case PREP_DATA_EXTRACTHUD: {
-             ExtractHuds();
-             mCurrentStep = PREP_DATA_EXTRACTFONTS;
-             currentStepDescription.clear();
-             currentStepDescription.append("GAME FONTS");
+             if (ExtractHuds()) {
+                //we are done with this substep
+                currSubStep = 0;
+                mCurrentStep = PREP_DATA_EXTRACTFONTS;
+                currentStepDescription.clear();
+                currentStepDescription.append("GAME FONTS");
+             }
              break;
         }
 
         case PREP_DATA_EXTRACTFONTS: {
-            ExtractFonts();
-            mCurrentStep = PREP_DATA_EXTRACTSKIES;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME SKIES");
+            if (ExtractFonts()) {
+                //we are done with this substep
+                currSubStep = 0;
+                mCurrentStep = PREP_DATA_EXTRACTSKIES;
+                currentStepDescription.clear();
+                currentStepDescription.append("GAME SKIES");
+            }
             break;
         }
 
         case PREP_DATA_EXTRACTSKIES: {
-             ExtractSkies();
-             mCurrentStep = PREP_DATA_EXTRACTSPRITES;
-             currentStepDescription.clear();
-             currentStepDescription.append("GAME SPRITES");
+             if (ExtractSkies()) {
+                //we are done with this substep
+                currSubStep = 0;
+                mCurrentStep = PREP_DATA_EXTRACTSPRITES;
+                currentStepDescription.clear();
+                currentStepDescription.append("GAME SPRITES");
+             }
              break;
         }
 
         case PREP_DATA_EXTRACTSPRITES: {
-             ExtractSprites();
-             mCurrentStep = PREP_DATA_EXTRACTTERRAINTEXTURES;
-             currentStepDescription.clear();
-             currentStepDescription.append("GAME MINIMAPS");
+             if (ExtractSprites()) {
+                //we are done with this substep
+                currSubStep = 0;
+                mCurrentStep = PREP_DATA_EXTRACTTERRAINTEXTURES;
+                currentStepDescription.clear();
+                currentStepDescription.append("GAME TEXTURES");
+             }
              break;
         }
 
         case PREP_DATA_EXTRACTTERRAINTEXTURES: {
-            ExtractTerrainTextures();
-            mCurrentStep = PREP_DATA_EXTRACTLEVELS;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME LEVELS");
+            if (ExtractTerrainTextures()) {
+                //we are done with this substep
+                currSubStep = 0;
+                mCurrentStep = PREP_DATA_EXTRACTLEVELS;
+                currentStepDescription.clear();
+                currentStepDescription.append("GAME LEVELS");
+            }
             break;
         }
 
         case PREP_DATA_EXTRACTLEVELS: {
-            ExtractLevels();
-            mCurrentStep = PREP_DATA_EXTRACTMINIMAPS;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME MISC");
+            if (ExtractLevels()) {
+               //we are done with this substep
+               currSubStep = 0;
+               mCurrentStep = PREP_DATA_EXTRACTMINIMAPS;
+               currentStepDescription.clear();
+               currentStepDescription.append("GAME MINIMAPS");
+            }
             break;
         }
 
-    case PREP_DATA_EXTRACTMINIMAPS: {
-         ExtractMiniMaps();
-         mCurrentStep = PREP_DATA_EXTRACTMISC;
-         currentStepDescription.clear();
-         currentStepDescription.append("GAME TERRAIN TEXTURES");
-         break;
-    }
+        case PREP_DATA_EXTRACTMINIMAPS: {
+            if (ExtractMiniMaps()) {
+               //we are done with this substep
+               currSubStep = 0;
+               mCurrentStep = PREP_DATA_EXTRACTMISC;
+               currentStepDescription.clear();
+               currentStepDescription.append("GAME MISC");
+            }
+            break;
+        }
 
         case PREP_DATA_EXTRACTMISC: {
-            ExtractEditor();
-            ExtractCheatPuzzle();
-            mCurrentStep = PREP_DATA_EXTRACTMODELS;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME MODELS");
+            if (ExtractMisc()) {
+               //we are done with this substep
+               currSubStep = 0;
+               mCurrentStep = PREP_DATA_EXTRACTMODELS;
+               currentStepDescription.clear();
+               currentStepDescription.append("GAME MODELS");
+            }
             break;
         }
 
         case PREP_DATA_EXTRACTMODELS: {
-            ExtractModels();
-            mCurrentStep = PREP_DATA_EXTRACTINTRO;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME INTRO");
+            if (ExtractModels()) {
+               //we are done with this substep
+               currSubStep = 0;
+               mCurrentStep = PREP_DATA_EXTRACTINTRO;
+               currentStepDescription.clear();
+               currentStepDescription.append("GAME INTRO");
+            }
             break;
         }
 
         case PREP_DATA_EXTRACTINTRO: {
-            ExtractIntro();
-            mCurrentStep = PREP_DATA_EXTRACTAUDIO;
-            currentStepDescription.clear();
-            currentStepDescription.append("GAME AUDIO");
+            if (ExtractIntro()) {
+               //we are done with this substep
+               currSubStep = 0;
+               mCurrentStep = PREP_DATA_EXTRACTAUDIO;
+               currentStepDescription.clear();
+               currentStepDescription.append("GAME AUDIO");
+            }
             break;
         }
 
         case PREP_DATA_EXTRACTAUDIO: {
-            ExtractAudio();
-            mCurrentStep = PREP_DATA_FINISHED;
-            currentStepDescription.clear();
+            if (ExtractAudio()) {
+               //we are done with this substep
+               currSubStep = 0;
+               mCurrentStep = PREP_DATA_FINISHED;
+               currentStepDescription.clear();
+            }
             break;
         }
     }
 
     //not finished yet
     return false;
+}
+
+irr::u8 PrepareData::GetProgressBarNrBlocksFilled(irr::u8 overallNrBlocksBar) {
+    irr::f32 percentPerBlock = 100.0f / overallNrBlocksBar;
+
+    irr::f32 currProcess = ((irr::f32)(currSubStep) / (irr::f32)(nrSubSteps)) * 100.0f;
+
+    irr::u8 blocksFilled = (irr::u8)(currProcess / percentPerBlock);
+
+    if (blocksFilled < 0) {
+        blocksFilled = 0;
+    } else if (blocksFilled >= overallNrBlocksBar) {
+        blocksFilled = overallNrBlocksBar;
+    }
+
+    return blocksFilled;
 }
 
 void PrepareData::ExtractInitialData() {
@@ -199,10 +250,6 @@ PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     //data preparation steps
     CreatePalette();
 
-    //only add next line temporarily to extract level textures for level 7 up to 9
-    //from HiOctaneTools project
-    //AddOtherLevelsHiOctaneTools();
-
     //check if extraction directory is already present
     //if not create this directory
     if (IsDirectoryPresent("extract") == 1) {
@@ -218,24 +265,10 @@ PrepareData::PrepareData(InfrastructureBase* mInfraPntr) {
     //show while data is prepared, and one of the fonts
     ExtractInitialData();
 
-   /* ExtractGameScreens();
-    ExtractFonts();
-    ExtractHuds();
-    ExtractSkies();
-    ExtractSprites();
-    ExtractMiniMaps();
-    ExtractTerrainTextures();
-    ExtractLevels();
-    ExtractEditor();
-    ExtractCheatPuzzle();
-    ExtractModels();
-    ExtractIntro();
-    ExtractAudio();*/
+    currSubStep = 0;
+    nrSubSteps = 0;
 
-    //29.03.2025: instead of adding this data, lets
-    //implement support for the extended version
-    //of the game
-    //ExtractUserdata();
+    currentStepDescription.clear();
 }
 
 PrepareData::~PrepareData() {
@@ -264,59 +297,127 @@ PrepareData::~PrepareData() {
     }
 }
 
-void PrepareData::ExtractGameScreens() {
-    logging::Info("Extracting game logos...");
-    //PrepareSubDir("extract/images");
+//Returns true if this subitem is finished
+//False otherwise
+bool PrepareData::ExtractGameScreens() {
+    if (currSubStep == 0) {
+        logging::Info("Extracting game logos...");
+        nrSubSteps = 3;
+    }
 
-    ExtractGameLogoSVGA();
-    ExtractIntroductoryScreen();
-    ExtractLoadingScreenSVGA();
-    //ExtractSelectionScreenSVGA();
+    switch (currSubStep) {
+      case 0: {
+        ExtractGameLogoSVGA();
+        break;
+      }
+
+      case 1: {
+        ExtractIntroductoryScreen();
+        break;
+      }
+
+      case 2: {
+        ExtractLoadingScreenSVGA();
+        break;
+      }
+    }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
-void PrepareData::ExtractFonts() {
+bool PrepareData::ExtractFonts() {
     //extract SVGA game logo data if not all exported files present
-    logging::Info("Extracting game fonts...");
+    if (currSubStep == 0) {
+        nrSubSteps = 12;
+        logging::Info("Extracting game fonts...");
+    }
 
-    PrepareHudFontsLocation();
+    switch (currSubStep) {
+        case 0: {
+            PrepareHudFontsLocation();
+            break;
+        }
 
-    PrepareSubDir("extract/fonts/thinwhite");
-    ExtractThinWhiteFontSVGA();
+        case 1: {
+            PrepareSubDir("extract/fonts/thinwhite");
+            ExtractThinWhiteFontSVGA();
+            break;
+        }
 
-    PrepareSubDir("extract/fonts/smallsvgagreenish");
-    //create greenish font for unselected items in menue (but based for smaller text size)
-    CreateFontForUnselectedItemsInMenue(
-        "extract/fonts/smallsvga/osfnt0-1-",
-        "extract/fonts/smallsvgagreenish/green-osfnt0-1-",
-        0, 241);
+        case 2: {
+            PrepareSubDir("extract/fonts/smallsvgagreenish");
+            //create greenish font for unselected items in menue (but based for smaller text size)
+            CreateFontForUnselectedItemsInMenue(
+                "extract/fonts/smallsvga/osfnt0-1-",
+                "extract/fonts/smallsvgagreenish/green-osfnt0-1-",
+            0, 241);
+            break;
+        }
 
-    UpscaleAllImagesInDirectory("extract/fonts/smallsvgagreenish",
-        "green-osfnt0-1-", "extract/fonts/smallsvgagreenish-x2", 2);
+        case 3: {
+            UpscaleAllImagesInDirectory("extract/fonts/smallsvgagreenish",
+                "green-osfnt0-1-", "extract/fonts/smallsvgagreenish-x2", 2);
+            break;
+        }
 
-    PreProcessFontDirectory("extract/fonts/smallsvgagreenish", "green-osfnt0-1-", true, fontOutLineColor2);
-    PreProcessFontDirectory("extract/fonts/smallsvgagreenish-x2", "green-osfnt0-1-", true, fontOutLineColor2);
-   
-    PrepareSubDir("extract/fonts/large");
-    ExtractLargeFontSVGA();
+        case 4: {
+            PreProcessFontDirectory("extract/fonts/smallsvgagreenish", "green-osfnt0-1-", true, fontOutLineColor2);
+            break;
+        }
 
-    PrepareSubDir("extract/fonts/largegreenish");
-    //create greenish font for unselected items in menue
-    //based on white SVGA font already extracted for game banner text font
-    CreateFontForUnselectedItemsInMenue(
-        "extract/fonts/large/olfnt0-1-",
-        "extract/fonts/largegreenish/green-olfnt0-1-",
-        0, 241);
+        case 5: {
+            PreProcessFontDirectory("extract/fonts/smallsvgagreenish-x2", "green-osfnt0-1-", true, fontOutLineColor2);
+            break;
+        }
 
-    //03.01.2026: Also upscale fonts used in menue
-    //This scaled font is then use for doubleResolution option
-    //in menues
-    UpscaleAllImagesInDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", "extract/fonts/largegreenish-x2", 2);
+        case 6: {
+            PrepareSubDir("extract/fonts/large");
+            ExtractLargeFontSVGA();
+            break;
+        }
 
-    PreProcessFontDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", true, fontOutLineColor2);
-    PreProcessFontDirectory("extract/fonts/largegreenish-x2", "green-olfnt0-1-", true, fontOutLineColor2);
+        case 7: {
+                PrepareSubDir("extract/fonts/largegreenish");
+                //create greenish font for unselected items in menue
+                //based on white SVGA font already extracted for game banner text font
+                CreateFontForUnselectedItemsInMenue(
+                    "extract/fonts/large/olfnt0-1-",
+                    "extract/fonts/largegreenish/green-olfnt0-1-",
+                    0, 241);
+                break;
+        }
 
-    PrepareSubDir("extract/fonts/largegreen");
-    ExtractLargeGreenFontSVGA();
+        case 8: {
+            //03.01.2026: Also upscale fonts used in menue
+            //This scaled font is then use for doubleResolution option
+            //in menues
+            UpscaleAllImagesInDirectory("extract/fonts/largegreenish", "green-olfnt0-1-",
+                                        "extract/fonts/largegreenish-x2", 2);
+            break;
+        }
+
+        case 9: {
+            PreProcessFontDirectory("extract/fonts/largegreenish", "green-olfnt0-1-", true, fontOutLineColor2);
+            break;
+        }
+
+        case 10: {
+            PreProcessFontDirectory("extract/fonts/largegreenish-x2", "green-olfnt0-1-", true, fontOutLineColor2);
+            break;
+        }
+
+        case 11: {
+            PrepareSubDir("extract/fonts/largegreen");
+            ExtractLargeGreenFontSVGA();
+            break;
+        }
+    }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
 void PrepareData::MoveIndexedFilesToNewLocation(const char* srcPath, const char* srcPrefix, irr::u16 srcStartIdx,
@@ -407,32 +508,69 @@ void PrepareData::PrepareHudFontsLocation() {
     PreProcessFontDirectory("extract/fonts/hudkillcounterred", "panel0-1-", false, fontOutLineColor);
 }
 
-void PrepareData::ExtractHuds() {
-    logging::Info("Extracting 1 player HUD...");
-    PrepareSubDir("extract/hud1player");
-    ExtractHUD1PlayerSVGA();
-
-    logging::Info("Extracting 2 player HUD...");
-    PrepareSubDir("extract/hud2player");
-    ExtractHUD2PlayersSVGA();
-}
-
-void PrepareData::ExtractSkies() {
-    logging::Info("Extracting sky...");
-    PrepareSubDir("extract/sky");
-
-    for (char skyNr = '0'; skyNr <= '5'; skyNr++) {
-        ExtractSky(skyNr);
+bool PrepareData::ExtractHuds() {
+    if (currSubStep == 0) {
+        nrSubSteps = 2;
     }
 
-    //prepare upgraded sky images (not from the original game)
-    PrepareUpgradedSkyData();
+    switch (currSubStep) {
+       case 0: {
+          logging::Info("Extracting 1 player HUD...");
+          PrepareSubDir("extract/hud1player");
+          ExtractHUD1PlayerSVGA();
+          break;
+       }
+
+       case 1: {
+          logging::Info("Extracting 2 player HUD...");
+          PrepareSubDir("extract/hud2player");
+          ExtractHUD2PlayersSVGA();
+          break;
+       }
+    }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
-void PrepareData::ExtractSprites() {
-    logging::Info("Extracting sprites...");
-    PrepareSubDir("extract/sprites");
-    ExtractTmaps();
+bool PrepareData::ExtractSkies() {
+    if (currSubStep == 0) {
+        logging::Info("Extracting sky...");
+        PrepareSubDir("extract/sky");
+        nrSubSteps = 7;
+    }
+
+    if (currSubStep < 6) {
+        char skyNr = '0' + currSubStep;
+        ExtractSky(skyNr);
+    } else {
+        //prepare upgraded sky images (not from the original game)
+        PrepareUpgradedSkyData();
+    }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
+}
+
+bool PrepareData::ExtractSprites() {
+    if (currSubStep == 0) {
+        nrSubSteps = 1;
+        logging::Info("Extracting sprites...");
+        PrepareSubDir("extract/sprites");
+    }
+
+    switch(currSubStep) {
+       case 0: {
+            ExtractTmaps();
+            break;
+       }
+    }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
 //Returns true in case of success, False otherwise
@@ -805,137 +943,223 @@ void PrepareData::PrepareMapConfigData() {
     }
 }
 
-void PrepareData::ExtractMiniMaps() {
-    logging::Info("Extracting minimaps...");
-    PrepareSubDir("extract/minimaps");
-    ExtractMiniMapsSVGA();
-    StitchMiniMaps();
-}
+bool PrepareData::ExtractMiniMaps() {
+    if (currSubStep == 0) {
+        logging::Info("Extracting minimaps...");
+        PrepareSubDir("extract/minimaps");
+        nrSubSteps = 2;
+    }
 
-void PrepareData::ExtractTerrainTextures() {
-    logging::Info("Extracting terrain textures...");
-    PrepareSubDir("extract/textures");
-
-    if (!mInfra->mExtendedGame) {
-        for (char levelNr = '1'; levelNr <= '6'; levelNr++) {
-            ExtractTerrainTexture(levelNr);
+    switch(currSubStep) {
+        case 0: {
+            ExtractMiniMapsSVGA();
+            break;
         }
-    } else {
-        for (char levelNr = '1'; levelNr <= '9'; levelNr++) {
-            ExtractTerrainTexture(levelNr);
+        case 1: {
+            StitchMiniMaps();
+            break;
         }
     }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
-void PrepareData::ExtractLevels() {
-    logging::Info("Extracting levels...");
+bool PrepareData::ExtractTerrainTextures() {
+    if (currSubStep == 0) {
+        logging::Info("Extracting terrain textures...");
+        PrepareSubDir("extract/textures");
 
-    //locate the needed input level file
-    irr::io::path inputLevelFile =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-1.dat"));
-
-    if (inputLevelFile.empty()) {
-        //map file not found!
-         throw std::string("Could not locate the original games map file level0-1.dat");
+        if (!mInfra->mExtendedGame) {
+            nrSubSteps = 6;
+        } else {
+            nrSubSteps = 9;
+        }
     }
-    PrepareSubDir("extract/level0-1");
-    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-1/level0-1-unpacked.dat");
 
-    inputLevelFile =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-2.dat"));
+    char levelNr = '1' + currSubStep;
+    ExtractTerrainTexture(levelNr);
 
-    if (inputLevelFile.empty()) {
-        //map file not found!
-         throw std::string("Could not locate the original games map file level0-2.dat");
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
+}
+
+bool PrepareData::ExtractLevels() {
+    if (currSubStep == 0) {
+        logging::Info("Extracting levels...");
+        if (!mInfra->mExtendedGame) {
+            nrSubSteps = 6;
+        } else {
+            nrSubSteps = 9;
+        }
     }
-    PrepareSubDir("extract/level0-2");
-    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-2/level0-2-unpacked.dat");
 
-    inputLevelFile =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-3.dat"));
+    irr::io::path inputLevelFile;
 
-    if (inputLevelFile.empty()) {
-        //map file not found!
-         throw std::string("Could not locate the original games map file level0-3.dat");
-    }
-    PrepareSubDir("extract/level0-3");
-    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-3/level0-3-unpacked.dat");
+    switch(currSubStep) {
+        case 0: {
+            //locate the needed input level file
+            inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-1.dat"));
 
-    inputLevelFile =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-4.dat"));
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-1.dat");
+            }
+            PrepareSubDir("extract/level0-1");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-1/level0-1-unpacked.dat");
+            break;
+        }
 
-    if (inputLevelFile.empty()) {
-        //map file not found!
-         throw std::string("Could not locate the original games map file level0-4.dat");
-    }
-    PrepareSubDir("extract/level0-4");
-    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-4/level0-4-unpacked.dat");
+        case 1: {
+            inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-2.dat"));
 
-    inputLevelFile =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-5.dat"));
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-2.dat");
+            }
+            PrepareSubDir("extract/level0-2");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-2/level0-2-unpacked.dat");
+            break;
+        }
 
-    if (inputLevelFile.empty()) {
-        //map file not found!
-         throw std::string("Could not locate the original games map file level0-5.dat");
-    }
-    PrepareSubDir("extract/level0-5");
-    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-5/level0-5-unpacked.dat");
+        case 2: {
+            inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-3.dat"));
 
-    inputLevelFile =
-            mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-6.dat"));
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-3.dat");
+            }
+            PrepareSubDir("extract/level0-3");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-3/level0-3-unpacked.dat");
+            break;
+        }
 
-    if (inputLevelFile.empty()) {
-        //map file not found!
-         throw std::string("Could not locate the original games map file level0-6.dat");
-    }
-    PrepareSubDir("extract/level0-6");
-    UnpackDataFile(inputLevelFile.c_str(), "extract/level0-6/level0-6-unpacked.dat");
+        case 3: {
+            inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-4.dat"));
 
-    //if we have the extended game version we also need to extract
-    //levels 7 up to 9
-    if (mInfra->mExtendedGame) {
-        //locate the needed input level file
-        irr::io::path inputLevelFile =
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-4.dat");
+            }
+            PrepareSubDir("extract/level0-4");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-4/level0-4-unpacked.dat");
+            break;
+        }
+
+        case 4: {
+            inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-5.dat"));
+
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-5.dat");
+            }
+            PrepareSubDir("extract/level0-5");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-5/level0-5-unpacked.dat");
+            break;
+        }
+
+        case 5: {
+            inputLevelFile =
+                mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-6.dat"));
+
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-6.dat");
+            }
+            PrepareSubDir("extract/level0-6");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-6/level0-6-unpacked.dat");
+            break;
+        }
+
+        //if we have the extended game version we also need to extract
+        //levels 7 up to 9
+        case 6: {
+            //locate the needed input level file
+            inputLevelFile =
                 mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-7.dat"));
 
-        if (inputLevelFile.empty()) {
-            //map file not found!
-             throw std::string("Could not locate the original games map file level0-7.dat");
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-7.dat");
+            }
+            PrepareSubDir("extract/level0-7");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-7/level0-7-unpacked.dat");
+            break;
         }
-        PrepareSubDir("extract/level0-7");
-        UnpackDataFile(inputLevelFile.c_str(), "extract/level0-7/level0-7-unpacked.dat");
 
-        inputLevelFile =
+        case 7: {
+            inputLevelFile =
                 mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-8.dat"));
 
-        if (inputLevelFile.empty()) {
-            //map file not found!
-             throw std::string("Could not locate the original games map file level0-8.dat");
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-8.dat");
+            }
+            PrepareSubDir("extract/level0-8");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-8/level0-8-unpacked.dat");
+            break;
         }
-        PrepareSubDir("extract/level0-8");
-        UnpackDataFile(inputLevelFile.c_str(), "extract/level0-8/level0-8-unpacked.dat");
 
-        inputLevelFile =
+        case 8: {
+            inputLevelFile =
                 mInfra->LocateFileInFileList(mInfra->mOriginalGame->mapsFolder, irr::core::string<fschar_t>("level0-9.dat"));
 
-        if (inputLevelFile.empty()) {
-            //map file not found!
-             throw std::string("Could not locate the original games map file level0-9.dat");
+            if (inputLevelFile.empty()) {
+                //map file not found!
+                throw std::string("Could not locate the original games map file level0-9.dat");
+            }
+            PrepareSubDir("extract/level0-9");
+            UnpackDataFile(inputLevelFile.c_str(), "extract/level0-9/level0-9-unpacked.dat");
+            break;
         }
-        PrepareSubDir("extract/level0-9");
-        UnpackDataFile(inputLevelFile.c_str(), "extract/level0-9/level0-9-unpacked.dat");
     }
 
-    //Create additional original map config data
-    PrepareMapConfigData();
+    currSubStep++;
+
+    if (currSubStep >= nrSubSteps) {
+        //Create additional original map config data
+        PrepareMapConfigData();
+    }
+
+    return (currSubStep >= nrSubSteps);
 }
 
-void PrepareData::ExtractEditor() {
-    logging::Info("Extracting editor...");
-    PrepareSubDir("extract/editor");
-    ExtractEditorItemsLarge();
-    ExtractEditorItemsSmall();
-    ExtractEditorCursors();
+bool PrepareData::ExtractMisc() {
+    if (currSubStep == 0) {
+        nrSubSteps = 4;
+        logging::Info("Extracting Misc...");
+        PrepareSubDir("extract/editor");
+    }
+
+    switch(currSubStep) {
+        case 0: {
+            ExtractEditorItemsLarge();
+            break;
+        }
+        case 1: {
+            ExtractEditorItemsSmall();
+            break;
+        }
+        case 2: {
+            ExtractEditorCursors();
+            break;
+        }
+        case 3: {
+            ExtractCheatPuzzle();
+            break;
+        }
+    }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
 void PrepareData::ExtractCheatPuzzle() {
@@ -961,35 +1185,132 @@ void PrepareData::ExtractCheatPuzzle() {
     ConvertRawImageData(inputDatFile.c_str(), 112, 96, "extract/puzzle/puzzle.png", 4);
 }
 
-void PrepareData::ExtractModels() {
-    logging::Info("Extracting models...");
-    PrepareSubDir("extract/models");
-    ExtractModelTextures();
+bool PrepareData::ExtractModels() {
+    if (currSubStep == 0) {
+        logging::Info("Extracting models...");
+        PrepareSubDir("extract/models");
 
-    //29.12.2025: Workaround to fix orientation of numbers
-    //on top of craft; We need to mirror U texture corrdinates for
-    //Texture Id textures 31 up to 38
-    for (int idx = 31; idx < 39; idx++) {
-        mModelTexModificationVec.push_back(new ObjTexModification(idx, OBJ_EXPORT_DEF_UVMAP_FLIPU));
+        //29.12.2025: Workaround to fix orientation of numbers
+        //on top of craft; We need to mirror U texture corrdinates for
+        //Texture Id textures 31 up to 38
+        for (int idx = 31; idx < 39; idx++) {
+            mModelTexModificationVec.push_back(new ObjTexModification(idx, OBJ_EXPORT_DEF_UVMAP_FLIPU));
+        }
+
+        nrSubSteps = 12;
     }
 
-    Extra3DModels();
+    switch(currSubStep) {
+        case 0: {
+            ExtractModelTextures();
+            break;
+        }
+        case 1: {
+            ExtractNamed3DModel("barel0-", 3);
+            break;
+        }
+        case 2: {
+            ExtractNamed3DModel("bike0-", 8);
+            break;
+        }
+        case 3: {
+            ExtractNamed3DModel("car0-", 8);
+            break;
+        }
+        case 4: {
+            ExtractNamed3DModel("cone0-", 2);
+            break;
+        }
+        case 5: {
+            ExtractNamed3DModel("jet0-", 8);
+            break;
+        }
+        case 6: {
+            ExtractNamed3DModel("jugga0-", 8);
+            break;
+        }
+        case 7: {
+            ExtractNamed3DModel("marsh0-", 1);
+            break;
+        }
+        case 8: {
+            ExtractNamed3DModel("recov0-", 1);
+            break;
+        }
+        case 9: {
+            ExtractNamed3DModel("sign0-", 1);
+            break;
+        }
+        case 10: {
+            ExtractNamed3DModel("skim0-", 8);
+            break;
+        }
+        case 11: {
+            ExtractNamed3DModel("tank0-", 8);
+            break;
+        }
+    }
+
+    currSubStep++;
+
+    if (currSubStep >= nrSubSteps) {
+        //if we have the extended version of the game we also need
+        //to extract 3 more race track 3D models for the menue
+        if (!mInfra->mExtendedGame) {
+            ExtractNamed3DModel("track0-", 6);
+        } else {
+            ExtractNamed3DModel("track0-", 9);
+        }
+    }
+
+    return (currSubStep >= nrSubSteps);
 }
 
-void PrepareData::ExtractIntro() {
-    logging::Info("Extracting intro...");
-    PrepareSubDir("extract/intro");
-    PrepareIntro();
-}
+//Processes the original intro data from the game
+//in a way so that we can play it afterwards at the beginning
+//of the game using Irrlicht Engine
+bool PrepareData::ExtractIntro() {
+    std::string fliDestFileName("extract/intro/intro.fli");
 
-void PrepareData::ExtractAudio() {
-    logging::Info("Extracting sounds...");
-    PrepareSubDir("extract/sound");
-    ExtractSounds();
+    if (currSubStep == 0) {
+        logging::Info("Extracting intro...");
+        PrepareSubDir("extract/intro");
 
-    logging::Info("Extracting music...");
-    PrepareSubDir("extract/music");
-    ExtractMusic();
+        //Initially set 3 steps
+        nrSubSteps = 3;
+    }
+
+    switch(currSubStep) {
+        case 0: {
+            RepairFLI(fliDestFileName.c_str());
+            break;
+        }
+
+        case 1: {
+            //now load the FLI file and create for each frame a texture file for later
+            InitFLIProcessing(fliDestFileName.c_str());
+            //now update number of steps
+            nrSubSteps = 2 + (irr::u32)(mFLIHeader->frames);
+            break;
+        }
+
+        default: {
+          //process the next frame
+          ProcessFrame(currSubStep - 2);
+          break;
+        }
+    }
+
+    currSubStep++;
+
+    if (currSubStep >= nrSubSteps) {
+        //delete temporary "intro.fli" file
+        remove(fliDestFileName.c_str());
+
+        CleanupFLIProcessing();
+    }
+
+    return (currSubStep >= nrSubSteps);
 }
 
 void PrepareData::ExtractUserdata() {
@@ -997,28 +1318,6 @@ void PrepareData::ExtractUserdata() {
     //into folder userData from another source
     logging::Info("Extracting other stuff...");
     AddOtherLevelsHiOctaneTools();
-}
-
-void PrepareData::Extra3DModels() {
-    ExtractNamed3DModel("barel0-", 3);
-    ExtractNamed3DModel("bike0-", 8);
-    ExtractNamed3DModel("car0-", 8);
-    ExtractNamed3DModel("cone0-", 2);
-    ExtractNamed3DModel("jet0-", 8);
-    ExtractNamed3DModel("jugga0-", 8);
-    ExtractNamed3DModel("marsh0-", 1);
-    ExtractNamed3DModel("recov0-", 1);
-    ExtractNamed3DModel("sign0-", 1);
-    ExtractNamed3DModel("skim0-", 8);
-    ExtractNamed3DModel("tank0-", 8);
-
-    //if we have the extended version of the game we also need
-    //to extract 3 more race track 3D models for the menue
-    if (!mInfra->mExtendedGame) {
-        ExtractNamed3DModel("track0-", 6);
-    } else {
-        ExtractNamed3DModel("track0-", 9);
-    }
 }
 
 void PrepareData::ExtractNamed3DModel(const char* name, int n_models) {
@@ -1448,7 +1747,7 @@ void PrepareData::ExtractLargeFontSVGA() {
     //in menues
     UpscaleAllImagesInDirectory("extract/fonts/large", "olfnt0-1-", "extract/fonts/large-x2", 2);
 
-    PreProcessFontDirectory("extract/fonts/large", "olfnt0-1-", true, fontOutLineColor);
+    PreProcessFontDirectory("extract/fonts/large", "olfnt0-1-", true, fontOutLineColor, false);
     PreProcessFontDirectory("extract/fonts/large-x2", "olfnt0-1-", true, fontOutLineColor);
 }
 
@@ -1480,7 +1779,7 @@ void PrepareData::ExtractSmallFontSVGA() {
 
     UpscaleAllImagesInDirectory("extract/fonts/smallsvga", "osfnt0-1-", "extract/fonts/smallsvga-x2", 2);
 
-    PreProcessFontDirectory("extract/fonts/smallsvga", "osfnt0-1-", true, fontOutLineColor);
+    PreProcessFontDirectory("extract/fonts/smallsvga", "osfnt0-1-", true, fontOutLineColor, false);
     PreProcessFontDirectory("extract/fonts/smallsvga-x2", "osfnt0-1-", true, fontOutLineColor);
 }
 
@@ -1597,7 +1896,7 @@ bool PrepareData::DetectFontCharacterColor(irr::video::IImage* image, irr::video
 //into single image files, duplicates this files, and changes the text character color
 //for this new created image files
 void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileName, const char* destFntFileName,
-          irr::u32 fileNameNumOffset, irr::u32 numberCharacters) {
+          irr::u32 fileNameNumOffset, irr::u32 numberCharacters, bool cleanUp) {
 
     char finalpathSrc[70];
     char finalpathDest[70];
@@ -1660,6 +1959,10 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
         //close output file
         outputPic->drop();
         destImg->drop();
+
+        if (cleanUp) {
+            std::remove(finalpathSrc);
+        }
     }
 }
 
@@ -2787,11 +3090,7 @@ void PrepareData::ExtractTmaps() {
     }
 }
 
-void PrepareData::ExtractSounds() {
-    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
-    //Many of the game's files are compressed using the Rob Northern Compression format;
-    //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
-
+void PrepareData::SplitSoundDatFile() {
     //locate the needed input file
     irr::io::path inputDatFile =
             mInfra->LocateFileInFileList(mInfra->mOriginalGame->soundFolder, irr::core::string<fschar_t>("sound.dat"));
@@ -2805,7 +3104,7 @@ void PrepareData::ExtractSounds() {
 
     //first seperate data in multiple export files, new file always starts with "RNC" magic characters
     size_t counter = 0;
-    unsigned long ofilenr = 0;
+    mNrSoundFiles = 0;
     FILE* oFile = nullptr;
 
     while (counter < ByteArray.size()) {
@@ -2816,9 +3115,9 @@ void PrepareData::ExtractSounds() {
             char finalpath[50];
             char fname[20];
             strcpy(finalpath, "extract/sound/sound-packed");
-            sprintf (fname, "%0*lu.dat", 4, ofilenr);
+            sprintf (fname, "%0*lu.dat", 4, mNrSoundFiles);
             strcat(finalpath, fname);
-            ofilenr++;
+            mNrSoundFiles++;
 
             if (oFile != nullptr) {
                 //close previous file
@@ -2837,11 +3136,12 @@ void PrepareData::ExtractSounds() {
 
     //close last file
     fclose(oFile);
+}
 
-    //RNC unpack all the sound files
+void PrepareData::RNCUnpackSoundData() {
     unsigned long filecnt;
 
-    for (filecnt = 0; filecnt < ofilenr; filecnt++) {
+    for (filecnt = 0; filecnt < mNrSoundFiles; filecnt++) {
         char finalpath[50];
         char finalpathUnpacked[50];
         char fname[20];
@@ -2853,81 +3153,129 @@ void PrepareData::ExtractSounds() {
 
         UnpackDataFile(finalpath, finalpathUnpacked);
     }
+}
 
-    //****************************
-    // Sound package 1
-    //****************************
+bool PrepareData::ExtractAudio() {
+    //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
+    //Many of the game's files are compressed using the Rob Northern Compression format;
+    //some of them such as SOUND\SOUND.DAT are a concatenation of many RNC archives simply glued together.
+    if (currSubStep == 0) {
+        logging::Info("Extracting sounds...");
+        PrepareSubDir("extract/sound");
+        nrSubSteps = 7;
+    }
 
-    //read file infos for first sound package
     char infofilename1[50];
-    strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
-
     std::vector<SOUNDFILEENTRY> list;
-    ReadSoundFileEntries(infofilename1, &list);
+    list.clear();
 
     char splitfilename1[50];
-    strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
     char ofilename1[50];
-    strcpy(ofilename1, "extract/sound/sound0-");
 
-    SplitSoundFile(splitfilename1, ofilename1, &list);
+    switch(currSubStep) {
+        case 0: {
+            //Split the glued together RNC
+            //archives
+            SplitSoundDatFile();
+            break;
+        }
 
-    //****************************
-    // Sound package 2
-    //****************************
+        case 1: {
+            //RNC unpack all the sound files
+            RNCUnpackSoundData();
+            break;
+        }
 
-    strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
-    list.clear();
+        case 2: {
 
-    ReadSoundFileEntries(infofilename1, &list);
+            //****************************
+            // Sound package 1
+            //****************************
 
-    strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
-    strcpy(ofilename1, "extract/sound/sound2-");
+            //read file infos for first sound package
+            strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
+            ReadSoundFileEntries(infofilename1, &list);
 
-    SplitSoundFile(splitfilename1, ofilename1, &list);
+            strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
+            strcpy(ofilename1, "extract/sound/sound0-");
+            SplitSoundFile(splitfilename1, ofilename1, &list);
+            break;
+        }
 
-    //****************************
-    // Sound package 3
-    //****************************
+        case 3: {
+            //****************************
+            // Sound package 2
+            //****************************
 
-    strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
-    list.clear();
+            strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
+            ReadSoundFileEntries(infofilename1, &list);
 
-    ReadSoundFileEntries(infofilename1, &list);
+            strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
+            strcpy(ofilename1, "extract/sound/sound2-");
+            SplitSoundFile(splitfilename1, ofilename1, &list);
+            break;
+        }
 
-    strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
-    strcpy(ofilename1, "extract/sound/sound4-");
+        case 4: {
+            //****************************
+            // Sound package 3
+            //****************************
 
-    SplitSoundFile(splitfilename1, ofilename1, &list);
+            strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
+            ReadSoundFileEntries(infofilename1, &list);
 
-    //****************************
-    // Sound package 4
-    //****************************
-    /*
-    strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
-    strcpy(ofilename1, "extract/sound/sound6-");
+            strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
+            strcpy(ofilename1, "extract/sound/sound4-");
+            SplitSoundFile(splitfilename1, ofilename1, &list);
+            break;
+        }
 
-    SplitSoundFile(splitfilename1, ofilename1);
+//        case 5: {
+//            //****************************
+//            // Sound package 4
+//            //****************************
 
-    strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
-    strcpy(ofilename1, "extract/sound/sound7-");
+//            strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
+//            strcpy(ofilename1, "extract/sound/sound6-");
 
-    SplitSoundFile(splitfilename1, ofilename1);*/
+//            SplitSoundFile(splitfilename1, ofilename1);
 
-    //cleanup unnecessary files
-    for (filecnt = 0; filecnt < ofilenr; filecnt++) {
-        char finalpath[50];
-        char finalpathUnpacked[50];
-        char fname[20];
-        strcpy(finalpath, "extract/sound/sound-packed");
-        strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
-        sprintf (fname, "%0*lu.dat", 4, filecnt);
-        strcat(finalpath, fname);
-        strcat(finalpathUnpacked, fname);
+//            strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
+//            strcpy(ofilename1, "extract/sound/sound7-");
 
-        remove(finalpath);
-        remove(finalpathUnpacked);
+//            SplitSoundFile(splitfilename1, ofilename1);
+//            break;
+//        }
+
+        case 5: {
+            //cleanup unnecessary files
+            for (unsigned long filecnt = 0; filecnt < mNrSoundFiles; filecnt++) {
+                char finalpath[50];
+                char finalpathUnpacked[50];
+                char fname[20];
+                strcpy(finalpath, "extract/sound/sound-packed");
+                strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
+                sprintf (fname, "%0*lu.dat", 4, filecnt);
+                strcat(finalpath, fname);
+                strcat(finalpathUnpacked, fname);
+
+                remove(finalpath);
+                remove(finalpathUnpacked);
+            }
+            break;
+        }
+
+        case 6: {
+            logging::Info("Extracting music...");
+            PrepareSubDir("extract/music");
+            ExtractMusic();
+            break;
+        }
     }
+
+    currSubStep++;
+
+    return (currSubStep >= nrSubSteps);
 }
 
 uint32_t PrepareData::read_uint32_le_file (FILE *fp)
@@ -3129,8 +3477,9 @@ void PrepareData::ExtractMusic() {
             N++;
     } while (readVal == 0x01);
 
-    if (N == 0)
+    if (N == 0) {
         throw std::string("Error - No music data found");
+    }
 
     //go back to file position before last read
     fseek(iFile, lastSeekPos, SEEK_SET);
@@ -3203,10 +3552,9 @@ void PrepareData::ExtractMusic() {
 }
 
 //The following routine uses the flifix source code,
-//repairs the original games intro.dat file, and then
-//extracts the intro in single frames that we can then
-//load and play using Irrlicht
-void PrepareData::PrepareIntro() {
+//to repair the original games intro.dat file, and creates
+//a valid FLI file out of it
+void PrepareData::RepairFLI(const char* outputFLIFileName) {
     //Variables initiation
     FILE *animFile;
     FILE *destFile;
@@ -3226,7 +3574,7 @@ void PrepareData::PrepareIntro() {
     }
 
     char *srcFName = strdup(inputDatFile.c_str());
-    char *destFName = strdup("extract/intro/intro.fli");
+    char *destFName = strdup(outputFLIFileName);
 
     //we need this option to succesfully repair
     //the original games fli movie file
@@ -3252,55 +3600,79 @@ void PrepareData::PrepareIntro() {
     //Closing files
     closeFLIFiles(animFile,destFile,globOptions);
 
-    //now load the FLI file and create for each frame a texture file for later
-    FILE* f = std::fopen("extract/intro/intro.fli", "rb");
-    flic::StdioFileInterface file(f);
-    flic::Decoder decoder(&file);
-    flic::Header header;
-    if (!decoder.readHeader(header)) {
-        throw std::string("Error reading FLI header in file extract/intro/intro.fli");
-    }
-
-    std::vector<uint8_t> buffer(header.width * header.height);
-    flic::Frame frame;
-    frame.pixels = &buffer[0];
-    frame.rowstride = header.width;
-
-    char outFrameFileName[50];
-    char fname[20];
-    std::string msg("");
-
-    for (long i = 0; i < header.frames; ++i) {
-    if (!decoder.readFrame(frame)) {
-        throw std::string("Error reading frame ") + std::to_string(i) + " in file extract/intro/intro.fli";
-    }
-       //process the current decoded frame data in buffer
-
-       //create the filename for the picture output file
-       strcpy(outFrameFileName, "extract/intro/frame");
-       //28.12.2025: Change from png image format to jpg instead
-       //The image quality loss is not really visible, but instead of
-       //85.7 MB during my experiments we only need 11.9 MB on disc for the
-       //overall sequence
-       //sprintf (fname, "%0*lu.png", 4, i);
-       sprintf (fname, "%0*lu.jpg", 4, i);
-       strcat(outFrameFileName, fname);
-
-       msg.clear();
-       msg.append("Upscaling frame ");
-       msg.append(std::to_string(i));
-       msg.append("...");
-       logging::Info(msg);
-
-       //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
-       ConvertIntroFrame(buffer.data(), frame.colormap, header.width, header.height, outFrameFileName, 2);
-    }
-
-    //delete temporary "intro.fli" file
-    remove(destFName);
-
     free(srcFName);
     free(destFName);
+}
+
+//Extracts the intro in single frames that we can then
+//load and play using Irrlicht
+void PrepareData::InitFLIProcessing(const char* inputFile) {
+    FILE* f = std::fopen(inputFile, "rb");
+    mFLIFileInterface = new flic::StdioFileInterface(f);
+    mFLIDecoder = new flic::Decoder(mFLIFileInterface);
+    mFLIHeader = new flic::Header();
+    if (!mFLIDecoder->readHeader(*mFLIHeader)) {
+        std::string errMsg("Error reading FLI header in file ");
+        errMsg.append(inputFile);
+        throw errMsg;
+    }
+
+   mFLIBuffer = new std::vector<uint8_t>();
+   mFLIBuffer->resize(mFLIHeader->width * mFLIHeader->height);
+   mFLIFrame = new flic::Frame();
+
+   mFLIFrame->pixels = mFLIBuffer->data();
+   mFLIFrame->rowstride = mFLIHeader->width;
+}
+
+void PrepareData::CleanupFLIProcessing() {
+  delete mFLIFrame;
+  mFLIFrame = nullptr;
+
+  delete mFLIBuffer;
+  mFLIBuffer = nullptr;
+
+  delete mFLIHeader;
+  mFLIHeader = nullptr;
+
+  delete mFLIDecoder;
+  mFLIDecoder = nullptr;
+
+  delete mFLIFileInterface;
+  mFLIFileInterface = nullptr;
+}
+
+//Extracts a single frame
+void PrepareData::ProcessFrame(long currFrameNr) {
+    if (!mFLIDecoder->readFrame(*mFLIFrame)) {
+        std::string errMsg("Error reading frame ");
+        errMsg.append(std::to_string(currFrameNr));
+        throw errMsg;
+    }
+
+    //process the current decoded frame data in buffer
+    char outFrameFileName[50];
+    char fname[20];
+
+    //create the filename for the picture output file
+    strcpy(outFrameFileName, "extract/intro/frame");
+    //28.12.2025: Change from png image format to jpg instead
+    //The image quality loss is not really visible, but instead of
+    //85.7 MB during my experiments we only need 11.9 MB on disc for the
+    //overall sequence
+    //sprintf (fname, "%0*lu.png", 4, i);
+    sprintf (fname, "%0*lu.jpg", 4, currFrameNr);
+    strcat(outFrameFileName, fname);
+
+    std::string msg("");
+    msg.append("Upscaling frame ");
+    msg.append(std::to_string(currFrameNr));
+    msg.append("...");
+    logging::Info(msg);
+
+    //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
+    ConvertIntroFrame(mFLIBuffer->data(), mFLIFrame->colormap, mFLIHeader->width,
+                      mFLIHeader->height, outFrameFileName, 2);
 }
 
 void PrepareData::ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
@@ -3802,7 +4174,8 @@ bool PrepareData::StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& ch
     return true;
 }
 
-void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor) {
+void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor,
+                                          bool cleanUp) {
     //Create a list of files existing in specified font dir
     irr::io::IFileList* fList = mInfra->CreateFileList(irr::io::path(fontDirName));
 
@@ -3879,8 +4252,10 @@ void PrepareData::PreProcessFontDirectory(const char* fontDirName, const char* s
 
             fontChar.image->drop();
 
-            //remove old temporary file
-            remove(fList->getFullFileName(idx).c_str());
+            if (cleanUp) {
+                //remove old temporary file
+                remove(fList->getFullFileName(idx).c_str());
+            }
         }
     }
 

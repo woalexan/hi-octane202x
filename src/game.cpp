@@ -699,12 +699,23 @@ void Game::RenderDataExtractionScreen() {
      textWidth = mGameTexts->GetWidthPixelsGameText(currStepText, mGameTexts->GameMenueWhiteTextSmallSVGA);
 
      txtPos.X = mScreenRes.Width / 2 - textWidth / 2;
-     txtPos.Y += 25;
+     txtPos.Y += 50;
 
      mGameTexts->DrawGameText(currStepText, mGameTexts->GameMenueWhiteTextSmallSVGA, txtPos);
 
      free(infoText);
      free(currStepText);
+
+     txtPos.Y += 50;
+
+     irr::core::recti progressBarOutline(mScreenRes.Width / 2 - 200, txtPos.Y, mScreenRes.Width / 2 + 200, txtPos.Y + 25);
+
+     irr::u8 useNrBlocks = 30;
+     irr::u8 fillNrBlocks = mPrepareData->GetProgressBarNrBlocksFilled(useNrBlocks);
+
+     //show current progressbar
+     RenderProgressBar(progressBarOutline, irr::video::SColor(255, 97, 165, 145), irr::video::SColor(255, 4, 4, 8),
+                                useNrBlocks, fillNrBlocks);
 }
 
 void Game::GameLoopExtractData() {

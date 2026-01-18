@@ -1115,7 +1115,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatSpeedLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
+          RenderShipStatBoxes(ShipStatSpeedLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatSpeedLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatSpeedLabel->statNrBlocks;
           if (printCharLeft < 0)
@@ -1128,7 +1128,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatArmourLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
+          RenderShipStatBoxes(ShipStatArmourLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatArmourLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatArmourLabel->statNrBlocks;
           if (printCharLeft < 0)
@@ -1141,7 +1141,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatWeightLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
+          RenderShipStatBoxes(ShipStatWeightLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatWeightLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatWeightLabel->statNrBlocks;
           if (printCharLeft < 0)
@@ -1154,7 +1154,7 @@ void Menue::PrintMenueEntriesShipSelection() {
           if (printCharLeft < 0)
               printCharLeft = 0;
 
-          this->RenderShipStatBoxes(ShipStatFirePowerLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
+          RenderShipStatBoxes(ShipStatFirePowerLabel->statBoxOutline, mCurrentCheckBoxFillColor, mCurrentCheckBoxOutlineColor,
                                      ShipStatFirePowerLabel->statNrBlocks, printCharLeft);
           printCharLeft -= ShipStatFirePowerLabel->statNrBlocks;
           if (printCharLeft < 0)
@@ -1171,14 +1171,14 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
     //if no blocks should be currently rendered just exit straight away
     if ((renderOnlyNumberBlocks > 0) || (renderOnlyNumberBlocks == -1)) {
         //calculate pixelDist for each block (amount of pixels per block)
-        irr::f32 pixelDist = 
+        irr::f32 pixelDist =
             ((irr::f32)(position.LowerRightCorner.X) - (irr::f32)(position.UpperLeftCorner.X)) / (irr::f32)(nrBlocks);
         irr::u8 drawNrBlocks = entry->checkBoxNrBlocks;
 
         //if we do not render all blocks (type writer effect) we need to shorten the outline as
         //well
         if ((renderOnlyNumberBlocks < entry->checkBoxNrBlocks) && (renderOnlyNumberBlocks != -1)) {
-            position.LowerRightCorner.X -= 
+            position.LowerRightCorner.X -=
                 (irr::s32)(pixelDist * (irr::f32)(entry->checkBoxNrBlocks - renderOnlyNumberBlocks));
             drawNrBlocks = renderOnlyNumberBlocks;
         }
@@ -1232,80 +1232,6 @@ void Menue::RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, i
             }
 
             cntFilledBlocks++;
-
-            currXcoordFloat += pixelDist;
-            currXcoord = (irr::u32)(currXcoordFloat);
-            currXcoord2 = currXcoordFloat + pixelDist;
-        }
-    }
-}
-
-//  renderOnlyNumberBlocks = optional parameter (default is -1 which means feature inactive)
-//                           Only renders specified number of blocks (this feature is needed
-//                           and used for type writer effect in menue which also the original game has
-void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
-                           irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks) {
-
-    //if no blocks should be currently rendered just exit straight away
-    if ((renderOnlyNumberBlocks > 0) || (renderOnlyNumberBlocks == -1)) {
-        //define pixelDist for each block (amount of pixels per block)
-        irr::f32 pixelDist = 8.0f;
-        irr::u8 drawNrBlocks = nrBlocks;
-
-        //if we do not render all blocks (type writer effect) we need to shorten the outline as
-        //well
-        if ((renderOnlyNumberBlocks < drawNrBlocks) && (renderOnlyNumberBlocks != -1)) {
-            position.LowerRightCorner.X -= (irr::s32)(pixelDist * (irr::f32)(drawNrBlocks - renderOnlyNumberBlocks));
-            drawNrBlocks = renderOnlyNumberBlocks;
-        }
-
-        //at the beginning we need to recalculate the position from original game menue 640x400 resolution
-        //to our set game screen resolution
-      /*  position.UpperLeftCorner.X = (position.UpperLeftCorner.X * screenResolution.Width) / 640;
-        position.UpperLeftCorner.Y = (position.UpperLeftCorner.Y * screenResolution.Height) / 400;
-        position.LowerRightCorner.X = (position.LowerRightCorner.X * screenResolution.Width) / 640;
-        position.LowerRightCorner.Y = (position.LowerRightCorner.Y * screenResolution.Height) / 400;*/
-
-        //step 1: draw outline of whole element using lineColor
-        mGame->mDriver->draw2DRectangleOutline(position, lineColor);
-
-        //step 2: draw vertical lines along overall element so that
-        //we seperate the element into nrSeperations pieces, also with lineColor
-
-        irr::f32 currXcoordFloat = position.UpperLeftCorner.X + pixelDist;
-        irr::u32 currXcoord = (irr::u32)(currXcoordFloat);
-
-        irr::core::vector2d<irr::s32> startPnt(0, position.UpperLeftCorner.Y);
-        irr::core::vector2d<irr::s32> endPnt(0, position.LowerRightCorner.Y);
-
-        for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
-            startPnt.X = currXcoord;
-            endPnt.X = currXcoord;
-
-            mGame->mDriver->draw2DLine(startPnt, endPnt, lineColor);
-            currXcoordFloat += pixelDist;
-            currXcoord = (irr::u32)(currXcoordFloat);
-        }
-
-        //step 3: how many blocks need to be filled out?
-        //draw filled and unfilled blocks in one operation
-        irr::f32 currXcoord2;
-
-        currXcoordFloat = (irr::f32)(position.UpperLeftCorner.X);
-        currXcoord = (irr::u32)(currXcoordFloat);
-        currXcoord2 = currXcoordFloat + pixelDist;
-        startPnt.Y = position.UpperLeftCorner.Y + 1;
-        endPnt.Y = position.LowerRightCorner.Y - 1;
-        irr::core::recti fillPos(0,0,0,0);
-
-        for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
-            startPnt.X = currXcoord + 1;
-            endPnt.X = (irr::s32)(currXcoord2) - 1;
-            fillPos.UpperLeftCorner = startPnt;
-            fillPos.LowerRightCorner = endPnt;
-
-            //here we want to fill all blocks anyway
-            mGame->mDriver->draw2DRectangle(colorRect, fillPos);
 
             currXcoordFloat += pixelDist;
             currXcoord = (irr::u32)(currXcoordFloat);
@@ -1691,6 +1617,73 @@ void Menue::DrawBackground(bool addLogo) {
        mGame->mGameTexts->DrawGameText((char*)"202X", mGame->mGameTexts->HudBigGreenText,
                                         mLogoExtensionStrPos, mCurrentMainRenderColor);
    }
+}
+
+//  renderOnlyNumberBlocks = optional parameter (default is -1 which means feature inactive)
+//                           Only renders specified number of blocks (this feature is needed
+//                           and used for type writer effect in menue which also the original game has
+void Menue::RenderShipStatBoxes(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
+                           irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks) {
+
+    //if no blocks should be currently rendered just exit straight away
+    if ((renderOnlyNumberBlocks > 0) || (renderOnlyNumberBlocks == -1)) {
+        //define pixelDist for each block (amount of pixels per block)
+        irr::f32 pixelDist = 8.0f;
+        irr::u8 drawNrBlocks = nrBlocks;
+
+        //if we do not render all blocks (type writer effect) we need to shorten the outline as
+        //well
+        if ((renderOnlyNumberBlocks < drawNrBlocks) && (renderOnlyNumberBlocks != -1)) {
+            position.LowerRightCorner.X -= (irr::s32)(pixelDist * (irr::f32)(drawNrBlocks - renderOnlyNumberBlocks));
+            drawNrBlocks = renderOnlyNumberBlocks;
+        }
+
+        //step 1: draw outline of whole element using lineColor
+        mGame->mDriver->draw2DRectangleOutline(position, lineColor);
+
+        //step 2: draw vertical lines along overall element so that
+        //we seperate the element into nrSeperations pieces, also with lineColor
+
+        irr::f32 currXcoordFloat = position.UpperLeftCorner.X + pixelDist;
+        irr::u32 currXcoord = (irr::u32)(currXcoordFloat);
+
+        irr::core::vector2d<irr::s32> startPnt(0, position.UpperLeftCorner.Y);
+        irr::core::vector2d<irr::s32> endPnt(0, position.LowerRightCorner.Y);
+
+        for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
+            startPnt.X = currXcoord;
+            endPnt.X = currXcoord;
+
+            mGame->mDriver->draw2DLine(startPnt, endPnt, lineColor);
+            currXcoordFloat += pixelDist;
+            currXcoord = (irr::u32)(currXcoordFloat);
+        }
+
+        //step 3: how many blocks need to be filled out?
+        //draw filled and unfilled blocks in one operation
+        irr::f32 currXcoord2;
+
+        currXcoordFloat = (irr::f32)(position.UpperLeftCorner.X);
+        currXcoord = (irr::u32)(currXcoordFloat);
+        currXcoord2 = currXcoordFloat + pixelDist;
+        startPnt.Y = position.UpperLeftCorner.Y + 1;
+        endPnt.Y = position.LowerRightCorner.Y - 1;
+        irr::core::recti fillPos(0,0,0,0);
+
+        for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
+            startPnt.X = currXcoord + 1;
+            endPnt.X = (irr::s32)(currXcoord2) - 1;
+            fillPos.UpperLeftCorner = startPnt;
+            fillPos.LowerRightCorner = endPnt;
+
+            //here we want to fill all blocks anyway
+            mGame->mDriver->draw2DRectangle(colorRect, fillPos);
+
+            currXcoordFloat += pixelDist;
+            currXcoord = (irr::u32)(currXcoordFloat);
+            currXcoord2 = currXcoordFloat + pixelDist;
+        }
+    }
 }
 
 irr::video::SColor Menue::UpdateRenderColor(irr::video::SColor fullyFadedInColor) {

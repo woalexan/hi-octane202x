@@ -111,6 +111,8 @@ public:
     //false otherwise if further extraction is needed
     bool GameDataAvailable();
 
+    irr::u8 GetProgressBarNrBlocksFilled(irr::u8 overallNrBlocksBar);
+
     std::tuple<unsigned char, unsigned char, unsigned char> GetPaletteColor(unsigned char colorIndex);
 
     //void PrepareMapConfigDataFile(const char* targetFileName, const char* targetSkyFilePath, const char* targetMusicFilePath);
@@ -133,22 +135,30 @@ private:
     void UnpackDataFile(const char* packfile, const char* unpackfile);
     std::vector<unsigned char> loadRawFile(const char *filename);
 
+    irr::u32 currSubStep;
+    irr::u32 nrSubSteps;
+
     void ExtractInitialData();
 
-    void ExtractGameScreens();
-    void ExtractFonts();
-    void ExtractHuds();
-    void ExtractSkies();
-    void ExtractSprites();
-    void ExtractMiniMaps();
-    void ExtractTerrainTextures();
-    void ExtractLevels();
-    void ExtractEditor();
+    //The following methods return true if their work
+    //is done, false otherwise
+    bool ExtractGameScreens();
+    bool ExtractFonts();
+    bool ExtractHuds();
+    bool ExtractSkies();
+    bool ExtractSprites();
+    bool ExtractMiniMaps();
+    bool ExtractTerrainTextures();
+    bool ExtractLevels();
+    bool ExtractMisc();
     void ExtractCheatPuzzle();
-    void ExtractModels();
-    void ExtractIntro();
-    void ExtractAudio();
+    bool ExtractModels();
+    bool ExtractIntro();
+    bool ExtractAudio();
     void ExtractUserdata();
+
+    //extracts sound files from sound.data
+    bool ExtractSounds();
 
     void MoveIndexedFilesToNewLocation(const char* srcPath, const char* srcPrefix, irr::u16 srcStartIdx,
                                                     irr::u16 srcNrFiles, const char* targetPath, irr::u16 targetStartIdx);
@@ -164,7 +174,6 @@ private:
 
     void Extract3DModel(const char* srcFilename, const char* destFilename, const char* objName);
     void ExtractNamed3DModel(const char* name, int n_models);
-    void Extra3DModels();
 
     void UpscaleExistingImageFile(const char* srcFile, const char* destFile, int scaleFactor);
 
@@ -252,9 +261,6 @@ private:
     bool DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
             char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf);
 
-    //extracts sound files from sound.data
-    void ExtractSounds();
-
     //further split sound files
     void SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries);
 
@@ -275,9 +281,24 @@ private:
 
     bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
 
-    void PrepareIntro();
+    //Variables for Intro
+    //Processing
+    flic::StdioFileInterface* mFLIFileInterface = nullptr;
+    flic::Decoder* mFLIDecoder = nullptr;
+    flic::Header* mFLIHeader = nullptr;
+    flic::Frame* mFLIFrame = nullptr;
+    std::vector<uint8_t>* mFLIBuffer = nullptr;
+
+    void InitFLIProcessing(const char* inputFile);
+    void CleanupFLIProcessing();
+    void RepairFLI(const char* outputFLIFileName);
+    void ProcessFrame(long currFrameNr);
     void ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
                            char* outputFilename, int scaleFactor);
+
+    void SplitSoundDatFile();
+    unsigned long mNrSoundFiles;
+    void RNCUnpackSoundData();
 
     void ExtractMusic();
 
@@ -289,7 +310,7 @@ private:
     bool DetectFontCharacterColor(irr::video::IImage* image, irr::video::SColor* detectedColor);
 
     void CreateFontForUnselectedItemsInMenue(const char* sourceFntFileName, const char* destFntFileName,
-              irr::u32 fileNameNumOffset, irr::u32 numberCharacters);
+              irr::u32 fileNameNumOffset, irr::u32 numberCharacters, bool cleanUp = true);
 
     //splits additional level textures for levels 7 up to 9
     //Important note: This data is not extracted from the original
@@ -328,7 +349,8 @@ private:
 
     //Returns true in case of success, False otherwise
     bool StorePreProcessedFontCharacter(FontCharacterPreprocessInfo& character, const char* outFileName);
-    void PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline, irr::video::SColor* outLineColor);
+    void PreProcessFontDirectory(const char* fontDirName, const char* srcFilePrefix, bool addOutline,
+                                 irr::video::SColor* outLineColor, bool cleanUp = true);
 
     irr::video::SColor* fontOutLineColor;
     irr::video::SColor* fontOutLineColor2;
