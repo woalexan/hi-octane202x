@@ -334,6 +334,12 @@ private:
     void RenderCheckBox(MenueSingleEntry* entry, irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
            irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks = -1);
 
+    //  renderOnlyNumberBlocks = optional parameter (default is -1 which means feature inactive)
+    //                           Only renders specified number of blocks (this feature is needed
+    //                           and used for type writer effect in menue which also the original game has
+    void RenderShipStatBoxes(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
+                               irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks);
+
     void RenderCursor(MenueSingleEntry* textEntryField);
     void PlayMenueSound(uint8_t sndResId);
     void StopMenueSound();
@@ -596,9 +602,6 @@ private:
     void PrintMenueEntriesShipSelection();
     void UpdateShipSelectionTypeWriterEffect();
     void FinalPositionShipSelectionWheelReached(irr::u8 newPosition);
-
-    void RenderShipStatBoxes(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
-                               irr::u8 nrBlocks, irr::s8 renderOnlyNumberBlocks);
 
     //stuff for the highscore page
     std::vector<MenueTextLabel*>* highScorePageTextVec = nullptr;

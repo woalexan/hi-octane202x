@@ -2212,6 +2212,8 @@ bool InfrastructureBase::LocateOriginalGame() {
     return true;
 }
 
+
+
 bool InfrastructureBase::InitGameResourcesInitialStep() {
     /***********************************************************/
     /* Extract first game assets needed to show a first        */
@@ -2540,6 +2542,60 @@ void InfrastructureBase::CleanupAllSceneNodes() {
         //remove this sceneNode from the SceneManager
         outNodes[idx]->remove();
     }
+}
+
+void InfrastructureBase::RenderProgressBar(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
+                           irr::u8 nrBlocks, irr::s8 nrBlocksFilled) {
+
+        //define pixelDist for each block (amount of pixels per block)
+        irr::f32 pixelDist = (irr::f32)((position.LowerRightCorner.X - position.UpperLeftCorner.X)) / (irr::f32)(nrBlocks);
+        irr::u8 drawNrBlocks = nrBlocks;
+
+        //step 1: draw outline of whole element using lineColor
+        mDriver->draw2DRectangleOutline(position, lineColor);
+
+        //step 2: draw vertical lines along overall element so that
+        //we seperate the element into nrSeperations pieces, also with lineColor
+
+        irr::f32 currXcoordFloat = position.UpperLeftCorner.X + pixelDist;
+        irr::u32 currXcoord = (irr::u32)(currXcoordFloat);
+
+        irr::core::vector2d<irr::s32> startPnt(0, position.UpperLeftCorner.Y);
+        irr::core::vector2d<irr::s32> endPnt(0, position.LowerRightCorner.Y);
+
+        for (irr::u8 idx = 0; idx < drawNrBlocks; idx++) {
+            startPnt.X = currXcoord;
+            endPnt.X = currXcoord;
+
+            mDriver->draw2DLine(startPnt, endPnt, lineColor);
+            currXcoordFloat += pixelDist;
+            currXcoord = (irr::u32)(currXcoordFloat);
+        }
+
+        //step 3: how many blocks need to be filled out?
+        //draw filled and unfilled blocks in one operation
+        irr::f32 currXcoord2;
+
+        currXcoordFloat = (irr::f32)(position.UpperLeftCorner.X);
+        currXcoord = (irr::u32)(currXcoordFloat);
+        currXcoord2 = currXcoordFloat + pixelDist;
+        startPnt.Y = position.UpperLeftCorner.Y + 1;
+        endPnt.Y = position.LowerRightCorner.Y - 1;
+        irr::core::recti fillPos(0,0,0,0);
+
+        for (irr::u8 idx = 0; idx < nrBlocksFilled; idx++) {
+            startPnt.X = currXcoord + 1;
+            endPnt.X = (irr::s32)(currXcoord2) - 1;
+            fillPos.UpperLeftCorner = startPnt;
+            fillPos.LowerRightCorner = endPnt;
+
+            //here we want to fill all blocks anyway
+            mDriver->draw2DRectangle(colorRect, fillPos);
+
+            currXcoordFloat += pixelDist;
+            currXcoord = (irr::u32)(currXcoordFloat);
+            currXcoord2 = currXcoordFloat + pixelDist;
+        }
 }
 
 //Returns the number of bytes per pixel for a certain ECOLOR_FORMAT

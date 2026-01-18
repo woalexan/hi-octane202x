@@ -285,6 +285,9 @@ public:
   //Returns true in case of success, false otherwise
   bool LoadLevelConfigData(std::string levelRootPath, MapConfigStruct** outMapTarget);
 
+  void RenderProgressBar(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
+                             irr::u8 nrBlocks, irr::s8 nrBlocksFilled);
+
 private:
   //Irrlicht stuff
   bool mFullscreen;
