@@ -36,6 +36,10 @@ using namespace gui;
 #define LEVELTERRAIN_MESH_VERTEXUPDATENEEDED 1
 #define LEVELTERRAIN_MESH_VERTEXANDINDEXUPDATENEEDED 2
 
+//24.01.2026: Which region of the end of the map do we want
+//to replicate for map coordinates X < 0?
+#define LEVELTERRAIN_WIDTH_ENDOFMAP 86
+
 typedef SColor colour_func(f32 x, f32 y, f32 z);
 
 #define CELL_OPTIMIZATION_THRESHOLD 0.0f  //Optimization Threshold in percent;
@@ -185,6 +189,15 @@ public:
     LevelFile* levelRes = nullptr;
     LevelBlocks* mLevelBlocks = nullptr;
 
+    //Static terrain Mesh for map coordinates X < 0
+    //Replicates approx. a region of one third of the map width
+    TerrainTileData pTerrainTilesEndOfMap[LEVELTERRAIN_WIDTH_ENDOFMAP][LEVELFILE_HEIGHT];
+
+    //static terrain mesh and SceneNode for the Terrain Mesh
+    //for map coordinates X < 0
+    ISceneNode *StaticTerrainSceneNodeEndOfMap = nullptr;
+    SMesh *myStaticTerrainMeshEndOfMap = nullptr;
+
     irr::f32 segmentSize;
 
     irr::u16 get_width();
@@ -319,6 +332,7 @@ private:
     void UpdateTileVerticeColors(int x, int y, bool skipMeshUpdate = false);
 
     bool SetupGeometry();
+    bool SetupGeometryEndOfMap();
     void FindTerrainOptimization();
     bool Terrain_Optimization_isValid_Cell_coordinate(int xcoord, int zcoord);
     int TerrainOptimization_compareCells(MapEntry *MiddleCell, MapEntry *Neighborcell);
@@ -334,6 +348,18 @@ private:
     //this one is for dynamic terrain mesh (with morphing function)
     //seperate this mesh and keep it much smaller for performance reasons
     std::vector<MeshBufferInfoStruct*> mDynamicMeshBufferVec;
+
+    //a vector containing a MeshbufferInfoStruct (+Meshbuffer)
+    //for each possible textureId of the terrain (256 different texture Ids)
+    //This one is only used in the game to show the terrain left of
+    //map corrdinates Y = 0 (without morphing)
+    //in the original game the renderer does not care about the end of the map
+    //tile coordinates below Y = 0 simply map to coordinates Y = MapHeight - Y
+    //So in the original game if we start for example in the first level, and we try
+    //to peek over the wall on the left we will see the other end of the map rendered on
+    //the left side. I will need to try to replicate this visual, and for this I want to
+    //use the Mesh defined below
+    std::vector<MeshBufferInfoStruct*> mStaticMeshBufferEndOfMapVec;
 
     //only used for the level editor; Minimum number
     //of needed meshbuffers for each textureId so that
