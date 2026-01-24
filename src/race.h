@@ -568,6 +568,9 @@ private:
 
     void UpdateShadowLights();
 
+    void UpdateLensFlare();
+    bool mLastFrameLensFlareVisible = true;
+
     //if true attribution mode is enabled
     //This means the race (demo) is only interrupted
     //by either the user (with Escape key), or by the game

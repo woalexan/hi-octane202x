@@ -2210,6 +2210,51 @@ void Race::ControlStartPhase(irr::f32 frameDeltaTime) {
     }
 }
 
+void Race::UpdateLensFlare() {
+    //is there a line of sight between current camera
+    //and lensFlare starting location
+    //if not hide lens flare for this frame
+    flare->updateAbsolutePosition();
+    irr::core::vector3df lensPos = flare->getAbsolutePosition();
+
+    ICameraSceneNode* currCamera = mGame->mSmgr->getActiveCamera();
+
+    if (currCamera == nullptr)
+        return;
+
+    currCamera->updateAbsolutePosition();
+    irr::core::vector3df currCamPos = currCamera->getAbsolutePosition();
+
+    std::vector<irr::core::vector3di> voxels;
+    std::vector<RayHitTriangleInfoStruct*> allHitTriangles;
+
+    //with ReturnOnlyClosestTriangles = true!
+    allHitTriangles = mRay->ReturnTrianglesHitByRay( mRay->mRayTargetSelectors,
+                                  lensPos, currCamPos, 1, true);
+
+    int vecSize = (int)(allHitTriangles.size());
+
+    if (vecSize < 1) {
+        //we can see the lensflare without any obstruction
+        //lensflare is visible
+        if (mLastFrameLensFlareVisible != true) {
+            flare->setVisible(true);
+            mLastFrameLensFlareVisible = true;
+        }
+    } else {
+        //lensflare view is obstructed
+        //Hide it
+        if (mLastFrameLensFlareVisible) {
+            flare->setVisible(false);
+            mLastFrameLensFlareVisible = false;
+        }
+    }
+
+    //cleanup triangle hit information again
+    //otherwise we have a memory leak!
+    mRay->EmptyTriangleHitInfoVector(allHitTriangles);
+}
+
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //are we in Race start phase, if so also call
@@ -2272,6 +2317,11 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //update external race track cameras
     UpdateExternalCameras();
+
+    if (flare != nullptr) {
+        //Update LensFlare
+        UpdateLensFlare();
+    }
 
     //process pending triggers
     ProcessPendingTriggers();
