@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 Wolf Alexander
+ Copyright (C) 2025-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -22,6 +22,7 @@
 #include "models/column.h"
 #include "models/collectable.h"
 #include "draw/drawdebug.h"
+#include "draw/minimap.h"
 #include "input/input.h"
 #include "resources/mapentry.h"
 #include "resources/columndefinition.h"
@@ -232,6 +233,11 @@ EditorSession::~EditorSession() {
     //free all loaded textures
     delete mTexLoader;
 
+    if (mMiniMap != nullptr) {
+        delete mMiniMap;
+        mMiniMap = nullptr;
+    }
+
     if (mMapConfig != nullptr) {
         delete mMapConfig;
         mMapConfig = nullptr;
@@ -249,6 +255,26 @@ void EditorSession::UpdateAssignedLevelInfoText() {
         irr::core::stringw newLevelAssigenment(L"Level: ");
         newLevelAssigenment.append(mParentEditor->mCurrLevelWhichIsEdited->levelName.c_str());
         this->mAssignedLevelInfoText->setText(newLevelAssigenment.c_str());
+    }
+}
+
+bool EditorSession::GetMiniMapAvailable() {
+    if (mMiniMap == nullptr) {
+        return false;
+    }
+
+    return (mMiniMap->GetInitOk());
+}
+
+void EditorSession::ToggleMiniMapVisibility() {
+    if (GetMiniMapAvailable()) {
+         if (!mDrawMiniMap) {
+             mDrawMiniMap = true;
+         } else {
+             mDrawMiniMap = false;
+         }
+    } else {
+        mDrawMiniMap = false;
     }
 }
 
@@ -281,6 +307,8 @@ void EditorSession::Init() {
     }
 
     //level was loaded ok, we can continue setup
+    mMiniMap = new MiniMap(mParentEditor, irr::core::vector2di(1120, 150),
+                           mMapConfig, mLevelRootPath);
 
     //create the current mode output info text
     this->mModeInfoText = mParentEditor->mGuienv->addStaticText(L"",
@@ -662,6 +690,22 @@ void EditorSession::DrawCellVertexCross(CurrentlySelectedEditorItemInfoStruct* m
     mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos3, color);
     mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos4, color);
     mParentEditor->mDrawDebug->Draw3DLine(markerPos, markerPos5, color);
+}
+
+void EditorSession::Render2D(irr::f32 frameDeltaTime) {
+    if ((mMiniMap != nullptr) && mDrawMiniMap) {
+        std::vector<irr::core::vector2di> coordVec;
+        coordVec.clear();
+
+        ISceneNode* currCamera = mParentEditor->mSmgr->getActiveCamera();
+        if (currCamera != nullptr) {
+            irr::core::vector3df currPos = currCamera->getPosition();
+
+            coordVec.push_back(irr::core::vector2di(-currPos.X / mLevelTerrain->segmentSize, currPos.Z / mLevelTerrain->segmentSize));
+        }
+
+        mMiniMap->DrawMiniMap(frameDeltaTime, coordVec, true);
+    }
 }
 
 void EditorSession::Render() {

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 Wolf Alexander
+ Copyright (C) 2025-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -53,6 +53,7 @@ class EntityManager;
 class RegionMode;
 struct CurrentlySelectedEditorItemInfoStruct;
 struct MapConfigStruct;
+class MiniMap;
 
 /* GUI Elements
 */
@@ -186,6 +187,9 @@ private:
 
     MapConfigStruct* mMapConfig = nullptr;
 
+    MiniMap* mMiniMap = nullptr;
+    bool mDrawMiniMap = true;
+
 public:
     EditorSession(Editor* parentEditor, std::string levelRootPath, std::string levelName);
     ~EditorSession();
@@ -197,7 +201,13 @@ public:
     void Render();
     void HandleBasicInput();
 
+    bool GetMiniMapAvailable();
+
     void SetMode(EditorMode* selMode);
+
+    void Render2D(irr::f32 frameDeltaTime);
+
+    void ToggleMiniMapVisibility();
 
     //Returns true in case of success, False otherwise
     bool SaveAs(std::string levelRootPath, std::string levelName);

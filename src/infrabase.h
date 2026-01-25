@@ -179,6 +179,7 @@ public:
 
   io::path RemoveFileEndingFromFileName(io::path fileName);
   io::path GetFileEndingFromFileName(io::path fileName);
+  io::path GetFileNameFromAbsolutePath(io::path absPath);
 
   //lets create and store a direction vector for
   //later use (calculations), so that we do not have to do this

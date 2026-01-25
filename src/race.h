@@ -117,6 +117,7 @@ class Collectable;
 struct ColorStruct;
 class ShaderCallBack;
 struct MapConfigStruct;
+class MiniMap;
 
 class Race {
 public:
@@ -133,7 +134,7 @@ public:
     void HandleComputerPlayers(irr::f32 frameDeltaTime);
     void Render();
     void DrawHUD(irr::f32 frameDeltaTime);
-    void DrawMiniMap(irr::f32 frameDeltaTime);
+
     void AdvanceTime(irr::f32 frameDeltaTime);
     void Init();
     void AddPlayer(bool humanPlayer, char* name, std::string player_model);
@@ -252,7 +253,6 @@ public:
     bool mDemoMode;
 
     void PlayerCrossesFinishLineTheFirstTime();
-
     bool RaceAllowsPlayersToAttack();
 
     /*void SetPlayerLocationAndAlignToTrackHeight(Player* player, irr::core::vector3df newLocation,
@@ -290,13 +290,11 @@ public:
     //able to stop the race in attribution mode
     void InitiateExitRace();
 
+    MapConfigStruct* mMapConfig = nullptr;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
-
-    bool mMiniMapInitOk;
-
-    MapConfigStruct* mMapConfig = nullptr;
 
     void HandleExitRace();
 
@@ -312,42 +310,11 @@ private:
 
     SShadowLight* mShadowLight = nullptr;
 
-    //the image for the base of the minimap
-    //without the player location dots
-    irr::video::ITexture* baseMiniMap = nullptr;
-    irr::core::dimension2di miniMapSize;
-    irr::core::vector2d<irr::s32> miniMapDrawLocation;
     MyMusicStream* mMusicPlayer = nullptr;
 
     irr::u8 mRaceNumberOfLaps;
 
     void SetupTopRaceTrackPointerOrigin();
-
-    //holds the pixels coordinates inside the minimap texture
-    //image which are actually used by non transparent pixels
-    irr::core::rect<irr::s32> miniMapImageUsedArea;
-
-    //precalculated value for miniMap so that we safe
-    //unnecessary calculations during game
-    irr::f32 miniMapPixelPerCellW;
-    irr::f32 miniMapPixelPerCellH;
-
-    irr::f32 miniMapAbsTime = 0.0f;
-    bool miniMapBlinkActive = false;
-
-    irr::core::dimension2di CalcPlayerMiniMapPosition(Player* whichPlayer);
-
-    //Initializes the games original
-    //minimap
-    //returns true for success, false otherwise
-    bool InitMiniMap();
-
-    //Searches for the used space inside the minimap picture
-    //while removing unnecessary transparent columns of pixels
-    //Parameters:
-    //  miniMapTexture = pointer to the minimap texture
-    //In case of an unexpected error this function returns succesFlag = false, True otherwise
-    irr::core::rect<irr::s32> FindMiniMapImageUsedArea(irr::video::ITexture* miniMapTexture, bool &succesFlag);
 
     //handles the file data structure of the
     //level
@@ -383,6 +350,8 @@ private:
     bool runMorph = false;
     irr::f32 absTimeMorph = 0.0f;
 
+    MiniMap* mMiniMap = nullptr;
+
     //if true the camera is inside player1 craft
     //if false we have a free-moving camera for debugging and
     //development
@@ -411,8 +380,6 @@ private:
     void draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* texture ,
          irr::core::rect<irr::s32> sourceRect, irr::core::position2d<irr::s32> position,
          irr::core::position2d<irr::s32> rotationPoint, irr::f32 rotation, irr::core::vector2df scale, bool useAlphaChannel, irr::video::SColor color);
-
-    void removePlayerTest();
 
     void IrrlichtStats(char* text);
 
@@ -475,8 +442,6 @@ private:
     //my vector of cones
     std::vector<Cone*>* coneVec = nullptr;
 
-    std::vector<irr::video::SColor*> mMiniMapMarkerColors;
-
     void IndicateTriggerRegions();
 
     void AddTrigger(EntityItem *entity);
@@ -529,7 +494,6 @@ private:
     void CleanUpCones();
     void CleanUpMorphs();
     void CleanUpSky();
-    void CleanMiniMap();
     void CleanUpTriggers();
     void CleanUpTimers();
     void CleanUpExplosionEntities();
@@ -567,6 +531,9 @@ private:
     irr::scene::CCloudSceneNode* cloudLayer3 = nullptr;
 
     void UpdateShadowLights();
+
+    void UpdateLensFlare();
+    bool mLastFrameLensFlareVisible = true;
 
     //if true attribution mode is enabled
     //This means the race (demo) is only interrupted

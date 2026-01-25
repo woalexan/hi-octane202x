@@ -136,6 +136,8 @@ add_executable(hi-octane202x
     src/draw/hud.cpp
     src/draw/menue.h
     src/draw/menue.cpp
+    src/draw/minimap.h
+    src/draw/minimap.cpp
     src/draw/introplayer.h
     src/draw/introplayer.cpp
     src/draw/attribution.h
@@ -289,6 +291,8 @@ add_executable(hi-editor
     src/draw/drawdebug.cpp
     src/draw/gametext.h
     src/draw/gametext.cpp
+    src/draw/minimap.h
+    src/draw/minimap.cpp
     src/draw/attribution.h
     src/draw/attribution.cpp
 

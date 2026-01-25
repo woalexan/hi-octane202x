@@ -702,8 +702,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.texBaseLocation.append("extract/textures/level0-4");
         newConfig.useCustomTextures = true;
 
-        newConfig.EnableLensFlare = false;
-        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.EnableLensFlare = true;
+        newConfig.lensflareLocation.set(0.0f,80.0f,-80.0f);
         newConfig.cloudColorCenter1.set(220, 220, 220, 220);
         newConfig.cloudColorInner1.set(180, 180, 180, 180);
         newConfig.cloudColorOuter1.set(0, 0, 0, 0);
@@ -741,8 +741,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.texBaseLocation.append("extract/textures/level0-5");
         newConfig.useCustomTextures = true;
 
-        newConfig.EnableLensFlare = false;
-        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.EnableLensFlare = true;
+        newConfig.lensflareLocation.set(40.0f,80.0f,100.0f);
         newConfig.cloudColorCenter1.set(220, 220, 220, 220);
         newConfig.cloudColorInner1.set(180, 180, 180, 180);
         newConfig.cloudColorOuter1.set(0, 0, 0, 0);
@@ -812,8 +812,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.texBaseLocation.append("extract/textures/level0-7");
         newConfig.useCustomTextures = true;
 
-        newConfig.EnableLensFlare = false;
-        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.EnableLensFlare = true;
+        newConfig.lensflareLocation.set(0.0f,80.0f,-80.0f);
         newConfig.cloudColorCenter1.set(220, 220, 220, 220);
         newConfig.cloudColorInner1.set(180, 180, 180, 180);
         newConfig.cloudColorOuter1.set(0, 0, 0, 0);
@@ -844,8 +844,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.texBaseLocation.append("extract/textures/level0-8");
         newConfig.useCustomTextures = true;
 
-        newConfig.EnableLensFlare = false;
-        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.EnableLensFlare = true;
+        newConfig.lensflareLocation.set(0.0f,120.0f,-80.0f);
         newConfig.cloudColorCenter1.set(220, 220, 220, 220);
         newConfig.cloudColorInner1.set(180, 180, 180, 180);
         newConfig.cloudColorOuter1.set(0, 0, 0, 0);
@@ -877,8 +877,8 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
         newConfig.texBaseLocation.append("extract/textures/level0-9");
         newConfig.useCustomTextures = true;
 
-        newConfig.EnableLensFlare = false;
-        newConfig.lensflareLocation.set(0.0f,0.0f,0.0f);
+        newConfig.EnableLensFlare = true;
+        newConfig.lensflareLocation.set(0.0f,80.0f,-80.0f);
         newConfig.cloudColorCenter1.set(220, 220, 220, 220);
         newConfig.cloudColorInner1.set(180, 180, 180, 180);
         newConfig.cloudColorOuter1.set(0, 0, 0, 0);

@@ -63,6 +63,41 @@ void LevelTerrain::ResetTerrainTileData() {
             pTerrainTiles[i][j].vert4CurrPositionYDirty = false;
         }
     }
+
+    for (int i = 0; i < LEVELTERRAIN_WIDTH_ENDOFMAP; i++) {
+        for (int j = 0; j < levelHeight; j++) {
+            pTerrainTilesEndOfMap[i][j].vert1 = nullptr;
+            pTerrainTilesEndOfMap[i][j].vert2 = nullptr;
+            pTerrainTilesEndOfMap[i][j].vert3 = nullptr;
+            pTerrainTilesEndOfMap[i][j].vert4 = nullptr;
+            pTerrainTilesEndOfMap[i][j].vert1UVcoord.set(0.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].vert2UVcoord.set(0.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].vert3UVcoord.set(0.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].vert4UVcoord.set(0.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].myMeshBuffers.clear();
+            pTerrainTilesEndOfMap[i][j].currTileHeight = 0.0f;
+
+            //Always draw this specific tiles!
+            pTerrainTilesEndOfMap[i][j].m_draw_in_mesh = true;
+
+            pTerrainTilesEndOfMap[i][j].vert1CurrNormal.set(0.0f, 1.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].vert2CurrNormal.set(0.0f, 1.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].vert3CurrNormal.set(0.0f, 1.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].vert4CurrNormal.set(0.0f, 1.0f, 0.0f);
+            pTerrainTilesEndOfMap[i][j].myMeshBufVertexId1.clear();
+            pTerrainTilesEndOfMap[i][j].vert1CurrPositionY = 0.0f;
+            pTerrainTilesEndOfMap[i][j].vert2CurrPositionY = 0.0f;
+            pTerrainTilesEndOfMap[i][j].vert3CurrPositionY = 0.0f;
+            pTerrainTilesEndOfMap[i][j].vert4CurrPositionY = 0.0f;
+            pTerrainTilesEndOfMap[i][j].VertUpdatedUVScoord = false;
+            pTerrainTilesEndOfMap[i][j].RefreshNormals = false;
+            pTerrainTilesEndOfMap[i][j].m_optimization_cnt = 0.0f;
+            pTerrainTilesEndOfMap[i][j].vert1CurrPositionYDirty = false;
+            pTerrainTilesEndOfMap[i][j].vert2CurrPositionYDirty = false;
+            pTerrainTilesEndOfMap[i][j].vert3CurrPositionYDirty = false;
+            pTerrainTilesEndOfMap[i][j].vert4CurrPositionYDirty = false;
+        }
+    }
 }
 
 void LevelTerrain::DrawRegionOutline(MapTileRegionStruct* whichRegion, ColorStruct* whichColor) {
@@ -302,7 +337,13 @@ void LevelTerrain::FinishTerrainInitialization() {
         FindTerrainOptimization();
     }
 
-    if (SetupGeometry()) {
+    bool successGeometry = SetupGeometry();
+
+    if (!mLevelEditorMode) {
+        successGeometry = successGeometry && SetupGeometryEndOfMap();
+    }
+
+    if (successGeometry) {
          std::string infoMsg("HiOctane Terrain loaded: ");
          char hlpstr[20];
 
@@ -368,6 +409,17 @@ void LevelTerrain::FinishTerrainInitialization() {
         DynamicTerrainSceneNode->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
 
         DynamicTerrainSceneNode->setMaterialFlag(EMF_FOG_ENABLE, true);
+
+        if (!mLevelEditorMode) {
+            //create SceneNode for Terrain X < 0 coordinates
+            StaticTerrainSceneNodeEndOfMap = this->mInfra->mSmgr->addMeshSceneNode(myStaticTerrainMeshEndOfMap, 0, ID_IsNotPickable);
+
+            //we need to rotate the terrain Mesh, otherwise it is upside down
+            StaticTerrainSceneNodeEndOfMap->setRotation(core::vector3df(0.0f, 0.0f, 180.0f));
+            StaticTerrainSceneNodeEndOfMap->setMaterialFlag(EMF_LIGHTING, mEnableLightning);
+
+            StaticTerrainSceneNodeEndOfMap->setMaterialFlag(EMF_FOG_ENABLE, true);
+        }
     }
 }
 
@@ -393,6 +445,11 @@ LevelTerrain::LevelTerrain(InfrastructureBase* infra, bool levelEditorMode, Leve
    //level texture Id
    mIrrMeshBuf->InitializeMeshBufferInfoStructs(mStaticMeshBufferVec);
    mIrrMeshBuf->InitializeMeshBufferInfoStructs(mDynamicMeshBufferVec);
+
+   if (!mLevelEditorMode) {
+       //only in game we also need this MeshBufferInfoStruct
+       mIrrMeshBuf->InitializeMeshBufferInfoStructs(mStaticMeshBufferEndOfMapVec);
+   }
 
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
 
@@ -438,6 +495,13 @@ LevelTerrain::~LevelTerrain() {
     DynamicTerrainSceneNode = nullptr;
   }
 
+  if (!mLevelEditorMode) {
+      if (StaticTerrainSceneNodeEndOfMap != nullptr) {
+        StaticTerrainSceneNodeEndOfMap->remove();
+        StaticTerrainSceneNodeEndOfMap = nullptr;
+      }
+  }
+
   //free static terrain mesh TerrainMesh
   if (myStaticTerrainMesh != nullptr) {
     this->mInfra->mSmgr->getMeshCache()->removeMesh(myStaticTerrainMesh);
@@ -449,6 +513,13 @@ LevelTerrain::~LevelTerrain() {
     this->mInfra->mSmgr->getMeshCache()->removeMesh(myDynamicTerrainMesh);
     myDynamicTerrainMesh = nullptr;
   }
+
+   if (!mLevelEditorMode) {
+       if (myStaticTerrainMeshEndOfMap != nullptr) {
+         this->mInfra->mSmgr->getMeshCache()->removeMesh(myStaticTerrainMeshEndOfMap);
+         myStaticTerrainMeshEndOfMap = nullptr;
+       }
+   }
 
   int levelWidth = this->levelRes->Width();
   int levelHeight = this->levelRes->Height();
@@ -496,10 +567,64 @@ LevelTerrain::~LevelTerrain() {
             pTerrainTiles[i][j].vert4 = nullptr;
          }
        }
-    }
+  }
+
+  if (!mLevelEditorMode) {
+      //free all terrain meshbuffers, etc...
+      //from EndOfMap
+      int idxHelper;
+
+      for (int j = 0; j < levelHeight; j++) {
+         idxHelper = 0;
+         for (int i = (levelWidth - LEVELTERRAIN_WIDTH_ENDOFMAP); i < levelWidth; i++) {
+              //are there any pointers to meshbuffers inside we
+              //want to clear?
+              if (pTerrainTilesEndOfMap[idxHelper][j].myMeshBuffers.size() > 0) {
+                    for (itMesh = pTerrainTilesEndOfMap[idxHelper][j].myMeshBuffers.begin(); itMesh != pTerrainTilesEndOfMap[idxHelper][j].myMeshBuffers.end(); ) {
+                        pntrMeshBuf = (*itMesh);
+                        itMesh = pTerrainTilesEndOfMap[idxHelper][j].myMeshBuffers.erase(itMesh);
+
+                        //Next line commented out, does crash program
+                        //what is wrong here?
+                        //pntrMeshBuf->drop();
+                    }
+              }
+
+             //free created vertices
+             if (pTerrainTilesEndOfMap[idxHelper][j].vert1 != nullptr) {
+                delete pTerrainTilesEndOfMap[idxHelper][j].vert1;
+                pTerrainTilesEndOfMap[idxHelper][j].vert1 = nullptr;
+             }
+
+             //free created vertices
+             if (pTerrainTilesEndOfMap[idxHelper][j].vert2 != nullptr) {
+                delete pTerrainTilesEndOfMap[idxHelper][j].vert2;
+                pTerrainTilesEndOfMap[idxHelper][j].vert2 = nullptr;
+             }
+
+             //free created vertices
+             if (pTerrainTilesEndOfMap[idxHelper][j].vert3 != nullptr) {
+                delete pTerrainTilesEndOfMap[idxHelper][j].vert3;
+                pTerrainTilesEndOfMap[idxHelper][j].vert3 = nullptr;
+             }
+
+             //free created vertices
+             if (pTerrainTilesEndOfMap[idxHelper][j].vert4 != nullptr) {
+                delete pTerrainTilesEndOfMap[idxHelper][j].vert4;
+                pTerrainTilesEndOfMap[idxHelper][j].vert4 = nullptr;
+             }
+
+             idxHelper++;
+           }
+      }
+  }
 
   mIrrMeshBuf->CleanupMeshBufferInfoStructs(mStaticMeshBufferVec);
   mIrrMeshBuf->CleanupMeshBufferInfoStructs(mDynamicMeshBufferVec);
+
+  if (!mLevelEditorMode) {
+       mIrrMeshBuf->CleanupMeshBufferInfoStructs(mStaticMeshBufferEndOfMapVec);
+  }
 
   delete mTerrainMeshStats;
 }
@@ -1858,6 +1983,167 @@ bool LevelTerrain::SetupGeometry() {
    Size.X = levelRes->Width() * segmentSize;
    Size.Y = max;
    Size.Z = levelRes->Height() * segmentSize;
+
+   return true;
+}
+
+bool LevelTerrain::SetupGeometryEndOfMap() {
+    int x, z = 0;
+
+    int Width = levelRes->Width();
+    int Height = levelRes->Height();
+
+    core::vector3df normal;
+
+    TerrainTileData* tile;
+    std::vector<vector2d<irr::f32>> newuvs;
+
+    MapEntry *a;
+    MapEntry *b;
+    MapEntry *c;
+    MapEntry *d;
+
+    int idxHelper;
+    int xCoordHelper;
+    TerrainTileData* origTile;
+
+    /********************************************
+     * Setup vertices for this special tiles    *
+     ********************************************/
+
+    for (z = 0; z < Height; z++) {
+       idxHelper = 0;
+       xCoordHelper = LEVELTERRAIN_WIDTH_ENDOFMAP - 1;
+      for (x = (Width - LEVELTERRAIN_WIDTH_ENDOFMAP); x < Width; x++) {
+        // 4 vertices - need separate UVs so cannot share
+        a = GetMapEntry(x , z);
+        b = GetMapEntry(x + 1, z);
+        c = GetMapEntry(x + 1, z + 1);
+        d = GetMapEntry(x , z + 1);
+
+        tile = &pTerrainTilesEndOfMap[idxHelper][z];
+        origTile = &pTerrainTiles[x][z];
+
+        //Set the same vertex color data as the original tile
+        tile->vert1Color = origTile->vert1Color;
+        tile->vert2Color = origTile->vert2Color;
+        tile->vert3Color = origTile->vert3Color;
+        tile->vert4Color = origTile->vert4Color;
+
+        tile->vert1ColorInitial = origTile->vert1ColorInitial;
+        tile->vert2ColorInitial = origTile->vert2ColorInitial;
+        tile->vert3ColorInitial = origTile->vert3ColorInitial;
+        tile->vert4ColorInitial = origTile->vert4ColorInitial;
+
+        //create 4 irrlicht vertices for this tile, regardless if we show the tile later or not!
+        tile->vert1 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert1Color, 0.0f, 0.0f);
+        tile->vert2 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert2Color, 0.0f, 0.0f);
+        tile->vert3 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert3Color, 0.0f, 0.0f);
+        tile->vert4 = new video::S3DVertex(0.0f,0.0f,0.0f, 0.0f, 0.0f, 0.0f, tile->vert4Color, 0.0f, 0.0f);
+
+        tile->vert1->Pos.set(- (xCoordHelper + 1)      * segmentSize, -irr::f32(a->m_Height), z * segmentSize);
+        tile->vert1CurrPositionY = tile->vert1->Pos.Y;
+        tile->vert1CurrPositionYDirty = false;
+
+        tile->vert2->Pos.set(- xCoordHelper * segmentSize, -irr::f32(b->m_Height), z * segmentSize);
+        tile->vert2CurrPositionY = tile->vert2->Pos.Y;
+        tile->vert2CurrPositionYDirty = false;
+
+        tile->vert3->Pos.set(- xCoordHelper * segmentSize, -irr::f32(c->m_Height), (z + 1) * segmentSize);
+        tile->vert3CurrPositionY = tile->vert3->Pos.Y;
+        tile->vert3CurrPositionYDirty = false;
+
+        tile->vert4->Pos.set(- (xCoordHelper + 1)       * segmentSize, -irr::f32(d->m_Height), (z + 1) * segmentSize);
+        tile->vert4CurrPositionY = tile->vert4->Pos.Y;
+        tile->vert4CurrPositionYDirty = false;
+
+        //precalculate averaged tile height, this value will be for example used later
+        //for player craft calculations...
+        tile->currTileHeight = GetAveragedTileHeight(x, z);
+
+        //texture atlas 4 UVs
+        newuvs = MakeUVs(a->GetTextureModification());
+
+        tile->vert1->TCoords = newuvs[0];
+        tile->vert1UVcoord = newuvs[0];
+
+        tile->vert2->TCoords = newuvs[1];
+        tile->vert2UVcoord = newuvs[1];
+
+        tile->vert3->TCoords = newuvs[2];
+        tile->vert3UVcoord = newuvs[2];
+
+        tile->vert4->TCoords = newuvs[3];
+        tile->vert4UVcoord = newuvs[3];
+
+        tile->VertUpdatedUVScoord = false;
+
+        // add normals
+        normal = computeNormalFromMapEntries(x    , z    , 1.0f);
+        tile->vert1->Normal = normal;
+        tile->vert1CurrNormal = normal;
+
+        normal = computeNormalFromMapEntries(x + 1, z    , 1.0f);
+        tile->vert2->Normal = normal;
+        tile->vert2CurrNormal = normal;
+
+        normal = computeNormalFromMapEntries(x + 1, z + 1, 1.0f);
+        tile->vert3->Normal = normal;
+        tile->vert3CurrNormal = normal;
+
+        normal = computeNormalFromMapEntries(x    , z + 1, 1.0f);
+        tile->vert4->Normal = normal;
+        tile->vert4CurrNormal = normal;
+
+        tile->RefreshNormals = false;
+
+        idxHelper++;
+        xCoordHelper--;
+      }
+    }
+
+    //now add all Terrain cells
+    for (z = 0; z < Height; z++) {
+        idxHelper = 0;
+        for (x = (Width - LEVELTERRAIN_WIDTH_ENDOFMAP); x < Width; x++) {
+          a = GetMapEntry(x , z);
+
+          tile = &pTerrainTilesEndOfMap[idxHelper][z];
+          idxHelper++;
+
+          mIrrMeshBuf->AddMeshBufferTile(mStaticMeshBufferEndOfMapVec, tile, a->m_TextureId, *mTerrainMeshStats);
+      }
+    }
+
+    //create Mesh for the static Terrain for X < 0 coordinates
+
+    //first make the Mesh
+    myStaticTerrainMeshEndOfMap = new SMesh;
+    myStaticTerrainMeshEndOfMap->setHardwareMappingHint(EHM_DYNAMIC, EBT_VERTEX);
+
+    std::vector<irr::scene::SMeshBuffer*> bufList;
+    std::vector<irr::scene::SMeshBuffer*>::iterator bufIt;
+
+    int nrTextures = mIrrMeshBuf->GetNrTextures();
+
+    for (int currTexId = 0; currTexId < nrTextures; currTexId++) {
+
+        bufList = mIrrMeshBuf->ReturnAllMeshBuffersForTextureId(mStaticMeshBufferEndOfMapVec, currTexId);
+
+        for (bufIt = bufList.begin(); bufIt != bufList.end(); ++bufIt) {
+              (*bufIt)->BoundingBox.reset(0,0,0);
+              (*bufIt)->recalculateBoundingBox();
+
+              //add SMeshbuffer to overall terrain mesh
+              myStaticTerrainMeshEndOfMap->addMeshBuffer((*bufIt));
+
+              myStaticTerrainMeshEndOfMap->recalculateBoundingBox();
+        }
+   }
+
+   //mark Terrain mesh as dirty, so that it is transfered again to graphics card
+   myStaticTerrainMeshEndOfMap->setDirty();
+   myStaticTerrainMeshEndOfMap->recalculateBoundingBox();
 
    return true;
 }

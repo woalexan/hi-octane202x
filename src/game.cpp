@@ -1166,7 +1166,6 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     //2nd draw HUD over the scene, needs to be done at the end
     mCurrentRace->DrawHUD(frameDeltaTime);
-    mCurrentRace->DrawMiniMap(frameDeltaTime);
 
     if (mAttributionRunning) {
         mAttribution->Update(frameDeltaTime);
