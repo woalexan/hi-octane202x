@@ -201,6 +201,9 @@ void Editor::UpdateMenueEntries() {
         idx = mMenu->addItem(L"View", -1, true, true);
         mViewMenu = mMenu->getSubMenu(idx);
 
+        idx = mMenu->addItem(L"Minimap", -1, true, true);
+        mMiniMapMenu = mMenu->getSubMenu(idx);
+
         idx = mMenu->addItem(L"Test", -1, true, true);
         mTestMenu = mMenu->getSubMenu(idx);
 
@@ -213,6 +216,7 @@ void Editor::UpdateMenueEntries() {
         mEditMenu = nullptr;
         mModeMenu = nullptr;
         mViewMenu = nullptr;
+        mMiniMapMenu = nullptr;
         mTestMenu = nullptr;
     }
 
@@ -222,6 +226,7 @@ void Editor::UpdateMenueEntries() {
         PopulateEditMenueEntries();
         PopulateModeMenueEntries();
         PopulateViewMenueEntries();
+        PopulateMiniMapMenueEntries();
         PopulateTestMenueEntries();
     }
 
@@ -263,7 +268,7 @@ void Editor::PopulateFileMenueEntries() {
 
     if (mCurrentSession != nullptr) {
         mFileMenu->addItem(L"Save level", GUI_ID_SAVE_LEVEL);
-        mFileMenu->addItem(L"Save as level", GUI_ID_SAVEAS_LEVEL);
+        mFileMenu->addItem(L"Save level as", GUI_ID_SAVEAS_LEVEL);
     }
 
     mFileMenu->addSeparator();
@@ -297,6 +302,18 @@ void Editor::PopulateModeMenueEntries() {
     mModeMenu->addItem(L"Texturing", GUI_ID_MODE_TEXTURING, true, false);
     mModeMenu->addItem(L"Entity", GUI_ID_MODE_ENTITYMODE, true, false);
     mModeMenu->addItem(L"Region", GUI_ID_MODE_REGION, true, false);
+}
+
+void Editor::PopulateMiniMapMenueEntries() {
+    if (mMiniMapMenu == nullptr)
+        return;
+
+    /*************************************
+     * Submenue Minimap                  *
+     *************************************/
+    bool mapInitOk = mCurrentSession->GetMiniMapAvailable();
+
+    mMiniMapMenu->addItem(L"Show", GUI_ID_MINIMAP_SHOW, mapInitOk, false, mapInitOk, true);
 }
 
 void Editor::PopulateTestMenueEntries() {
@@ -581,15 +598,9 @@ bool Editor::SaveAsLevel(bool saveAsNewLevel) {
     bool success = true;
 
     if (!simpleSave) {
-            //first copy all level terrain textures
+            //copy possible user supplied custom terrain textures
             //from current level to target level
-            success = CopyLevelTextures(currOpenLevelRootDir, targetLevelRootDir);
-
-            if (!success) {
-                logging::Error("SaveAsLevel: Level terrain texture copy operation failed");
-            } else {
-                logging::Info("SaveAsLevel: Level terrain texture copy operation was succesfull");
-            }
+            success = CopyExistingUserLevelTextures(currOpenLevelRootDir, targetLevelRootDir);
     }
 
     //Save the level file itself as well
@@ -750,6 +761,11 @@ void Editor::OnMenuItemSelected( IGUIContextMenu* menu )
         case GUI_ID_INFO_WRITETABLE_COLUMNS:
         case GUI_ID_INFO_WRITETABLE_REGIONS: {
             DebugPrintTable(id);
+        }
+
+        case GUI_ID_MINIMAP_SHOW: {
+            mCurrentSession->ToggleMiniMapVisibility();
+            break;
         }
 
         case GUI_ID_TEST_MODIFYMAPFILE: {
@@ -1648,6 +1664,8 @@ void Editor::EditorLoopSession(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->Profile(mTimeProfiler->tIntRender3DScene);
 
+    mCurrentSession->Render2D(frameDeltaTime);
+
     //render log window
     mLogger->Render();
 
@@ -1995,7 +2013,7 @@ void Editor::CheckForNumberEditBoxEvent(irr::s32 receivedGuiId) {
 }
 
 //Returns true in case of success, False otherwise
-bool Editor::CopyLevelTextures(std::string originMapFolder, std::string targetMapFolder) {
+bool Editor::CopyExistingUserLevelTextures(std::string originMapFolder, std::string targetMapFolder) {
     //if origin directory is not present, fail operation
     if (IsDirectoryPresent(originMapFolder.c_str()) == -1) {
         return false;
@@ -2006,37 +2024,69 @@ bool Editor::CopyLevelTextures(std::string originMapFolder, std::string targetMa
         return false;
     }
 
-    //there should be 256 texture files, one for each Texture Id
+    //Create a list of files existing in specified origin directory
+    irr::io::IFileList* fList = this->CreateFileList(irr::io::path(originMapFolder.c_str()));
+
+    if (fList == nullptr) {
+        logging::Warning("CopyExistingUserLevelTextures: Can not search for user specified texture files, Fallback to default textures");
+        return true;
+    }
+
+    io::path fileEnding;
+    io::path fileName;
+    irr::u32 customLevelTexturesCopied = 0;
+
+    //there are 256 texture files where the user could have supplied
+    //an alternative image we need to copy to the new target directory
+    //see if we find replacement images, if so copy it
     for (int tileIdx = 0; tileIdx < 256; tileIdx++) {
         std::stringstream fpOrigin;
-        fpOrigin << originMapFolder << "tex" << std::setw(4) << std::setfill('0') << tileIdx << ".png";
+        fpOrigin << "tex" << std::setw(4) << std::setfill('0') << tileIdx;
         std::string finalpathOrigin = fpOrigin.str();
 
-        std::stringstream fpTarget;
-        fpTarget << targetMapFolder << "tex" << std::setw(4) << std::setfill('0') << tileIdx << ".png";
-        std::string finalpathTarget = fpTarget.str();
+        //is there a file with this name?
+        //See additional parameter true, we need to ignore the file ending!
+        irr::io::path alternativeTexFile =
+                 this->LocateFileInFileList(fList, irr::core::string<fschar_t>(finalpathOrigin.c_str()), true);
 
-        //only execute operation if file exists, otherwise fail
-        if (FileExists(finalpathOrigin.c_str()) == 1) {
-            //origin file exists
+        if (!alternativeTexFile.empty()) {
+                 //There is a possible alternative texture file to copy, check further if file ending is usable
+                 fileEnding = this->GetFileEndingFromFileName(alternativeTexFile);
 
-            //Returns 1 in case of unexpected error, 0 for success
-            if (copy_file(finalpathOrigin.c_str(), finalpathTarget.c_str()) == 1) {
-                //copy failed
-                return false;
-            }
-        } else {
-            //Expected origin file is missing, Fail
-            return false;
+                 if (fileEnding.equals_ignore_case("png") || fileEnding.equals_ignore_case("jpg") ||
+                         fileEnding.equals_ignore_case("bmp") || fileEnding.equals_ignore_case("tga")
+                            || fileEnding.equals_ignore_case("pcx")) {
+                       //file is usable, copy file to new map location
+                       std::string targetFileName(targetMapFolder);
+                       fileName = this->GetFileNameFromAbsolutePath(alternativeTexFile);
+                       targetFileName.append(fileName.c_str());
+                       if (copy_file(alternativeTexFile.c_str(), targetFileName.c_str()) == 1) {
+                           //copy failed
+                           std::string warningMsg("Copy custom texture file ");
+                           warningMsg.append(alternativeTexFile.c_str());
+                           warningMsg.append("failed");
+                           logging::Warning(warningMsg);
+                       } else {
+                            customLevelTexturesCopied++;
+                       }
+                }
         }
     }
 
-    //copying of all textures was succesfull
+    if (customLevelTexturesCopied > 0) {
+        std::string infoMsg("Copied ");
+        infoMsg += std::to_string(customLevelTexturesCopied);
+        infoMsg.append(" user supplied terrain texture files");
+        logging::Info(infoMsg);
+    } else {
+        logging::Info("No user supplied custom terrain texture files were found");
+    }
+
     return true;
 }
 
 //Returns true in case of success, False otherwise
-bool Editor::CreateDefaultMapConfigFile(std::string targetMapFolder) {
+bool Editor::CreateDefaultMapConfigFile(irr::u32 newLevelStype, std::string targetMapFolder) {
    irr::io::path configFilePath = GetMapConfigFileName(targetMapFolder);
 
     MapConfigStruct newConfig;
@@ -2064,6 +2114,32 @@ bool Editor::CreateDefaultMapConfigFile(std::string targetMapFolder) {
     newConfig.minimapCalSet = false;
     newConfig.minimapCalStartVal.set(0, 0);
     newConfig.minimapCalEndVal.set(0, 0);
+
+    //Setup correct texture path for level depending
+    //on the new level environment
+    newConfig.texBaseLocation = "extract/textures/";
+    newConfig.useCustomTextures = true;
+
+    switch (newLevelStype) {
+       case DEF_EDITOR_NEWLEVELSTYLE_ROCK: {
+           newConfig.texBaseLocation.append("level0-1");
+           break;
+       }
+
+       case DEF_EDITOR_NEWLEVELSTYLE_VEGETATION: {
+            newConfig.texBaseLocation.append("level0-2");
+            break;
+       }
+
+        case DEF_EDITOR_NEWLEVELSTYLE_SNOW: {
+             newConfig.texBaseLocation.append("level0-3");
+             break;
+        }
+
+        default: {
+           return false;
+        }
+    }
 
     if (!WriteMapConfigFile(std::string(configFilePath.c_str()), &newConfig)) {
         return false;
@@ -2113,24 +2189,24 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
 
     //copy the level textures depending on the selected
     //level graphics style
-    std::string originLevel("extract/");
+    //std::string originLevel("extract/textures/");
     std::string originLevelFile("extract/");
 
     switch (newLevelStype) {
        case DEF_EDITOR_NEWLEVELSTYLE_ROCK: {
-           originLevel.append("level0-1/");
+      //     originLevel.append("level0-1/");
            originLevelFile.append("level0-1/level0-1-unpacked.dat");
            break;
        }
 
        case DEF_EDITOR_NEWLEVELSTYLE_VEGETATION: {
-            originLevel.append("level0-2/");
+      //      originLevel.append("level0-2/");
             originLevelFile.append("level0-2/level0-2-unpacked.dat");
             break;
        }
 
         case DEF_EDITOR_NEWLEVELSTYLE_SNOW: {
-             originLevel.append("level0-3/");
+       //      originLevel.append("level0-3/");
              originLevelFile.append("level0-3/level0-3-unpacked.dat");
              break;
         }
@@ -2146,10 +2222,10 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
     mCurrLevelWhichIsEdited = nullptr;
 
     //now copy the textures from Origin to Target (new level)
-    if (!CopyLevelTextures(originLevel, mapSubFolder)) {
+   /* if (!CopyLevelTextures(originLevel, mapSubFolder)) {
         logging::Error("CreateNewEmptyLevel: Copy of terrain textures failed");
         return false;
-    }
+    }*/
 
     std::string newLevelFileName("");
     newLevelFileName.append(mapSubFolder);
@@ -2162,7 +2238,7 @@ bool Editor::CreateNewEmptyLevel(irr::u32 newLevelStype, std::string outputMapNa
     }
 
     //Create a default mapconfig file
-    if (!CreateDefaultMapConfigFile(mapSubFolder)) {
+    if (!CreateDefaultMapConfigFile(newLevelStype, mapSubFolder)) {
         logging::Error("Failed to create default mapconfig.xml file!");
         return false;
     }

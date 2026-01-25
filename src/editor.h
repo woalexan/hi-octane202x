@@ -91,6 +91,8 @@ enum
     GUI_ID_VIEW_ENTITY_EFFECTS,
     GUI_ID_VIEW_ENTITY_MORPHS,
 
+    GUI_ID_MINIMAP_SHOW,
+
     GUI_ID_TEST_MODIFYMAPFILE,
     GUI_ID_TEST_ADDNOCPUPLAYERS,
     GUI_ID_TEST_TESTHIOCTANCE20XX,
@@ -296,6 +298,7 @@ private:
     gui::IGUIContextMenu* mEditMenu = nullptr;
     gui::IGUIContextMenu* mModeMenu = nullptr;
     gui::IGUIContextMenu* mViewMenu = nullptr;
+    gui::IGUIContextMenu* mMiniMapMenu = nullptr;
     gui::IGUIContextMenu* mTestMenu = nullptr;
     gui::IGUIContextMenu* mInfoMenu = nullptr;
 
@@ -305,6 +308,7 @@ private:
     void PopulateEditMenueEntries();
     void PopulateModeMenueEntries();
     void PopulateViewMenueEntries();
+    void PopulateMiniMapMenueEntries();
     void PopulateTestMenueEntries();
     void PopulateInfoMenueEntries();
 
@@ -316,7 +320,7 @@ private:
     bool PrepareUserMapsFolder();
 
     //Returns true in case of success, False otherwise
-    bool CopyLevelTextures(std::string originMapFolder, std::string targetMapFolder);
+    bool CopyExistingUserLevelTextures(std::string originMapFolder, std::string targetMapFolder);
 
     irr::u32 mNewLevelStyleSelector = DEF_EDITOR_NEWLEVELSTYLE_ROCK;
 
@@ -330,7 +334,7 @@ private:
     void DebugPrintTable(irr::s32 id);
 
     //Returns true in case of success, False otherwise
-    bool CreateDefaultMapConfigFile(std::string targetMapFolder);
+    bool CreateDefaultMapConfigFile(irr::u32 newLevelStype, std::string targetMapFolder);
 public:
     irr::video::ITexture* backgnd = nullptr;
 

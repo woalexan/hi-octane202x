@@ -1819,6 +1819,24 @@ io::path InfrastructureBase::RemoveFileEndingFromFileName(io::path fileName) {
     return result;
 }
 
+io::path InfrastructureBase::GetFileNameFromAbsolutePath(io::path absPath) {
+    io::path fileName("");
+
+    //returns -1 if char not found
+    irr::s32 lastSlash = absPath.findLast('/');
+
+    if (lastSlash != -1) {
+        //Remove the path before the file name
+        irr::s32 len = (irr::s32)(absPath.size() - lastSlash);
+        fileName.append(absPath.subString((irr::u32)(lastSlash) + 1, len - 1));
+
+        return fileName;
+    }
+
+    //absPath is already a relative filename
+    return absPath;
+}
+
 io::path InfrastructureBase::GetFileEndingFromFileName(io::path fileName) {
     io::path result("");
 
@@ -2211,8 +2229,6 @@ bool InfrastructureBase::LocateOriginalGame() {
     //all ok
     return true;
 }
-
-
 
 bool InfrastructureBase::InitGameResourcesInitialStep() {
     /***********************************************************/
