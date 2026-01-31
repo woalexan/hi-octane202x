@@ -10,8 +10,9 @@
 #include "drawdebug.h"
 #include <cmath>
 
-DrawDebug::DrawDebug(irr::video::IVideoDriver *driver) {
+DrawDebug::DrawDebug(irr::scene::ISceneManager* sceneManager, irr::video::IVideoDriver *driver) {
     myDriver = driver;
+    mySmgr = sceneManager;
 
     red = AddColor(255,255,0,0);
     green = AddColor(255,0,255,0);
@@ -32,6 +33,8 @@ DrawDebug::DrawDebug(irr::video::IVideoDriver *driver) {
     XAxis = new irr::core::vector3df(10.0f, 0.0f, 0.0f);
     YAxis = new irr::core::vector3df(0.0f, 10.0f, 0.0f);
     ZAxis = new irr::core::vector3df(0.0f, 0.0f, 10.0f);
+
+    InitCubeMesh();
 }
 
 ColorStruct* DrawDebug::AddColor(irr::u32 alpha, irr::u32 r, irr::u32 g, irr::u32 b) {
@@ -85,6 +88,8 @@ void DrawDebug::Draw3DRectangle(irr::core::vector3df v1, irr::core::vector3df v2
 }
 
 DrawDebug::~DrawDebug() {
+    CleanupAllCubeMesh();
+
     delete ZAxis;
     delete YAxis;
     delete XAxis;
@@ -153,4 +158,99 @@ void DrawDebug::DrawAround3DBoundingBox(irr::core::aabbox3df* boundingBox, Color
     myDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
 
     myDriver->draw3DBox(*boundingBox);
+}
+
+void DrawDebug::InitCubeMesh() {
+    //create a simple small Cube Mesh for Waypoint and
+    //Wallsegment Editor Entity item objects
+    mCubeMeshVec.clear();
+
+    //Important note: Keep cube with Color White at the first position of the std::Vector!
+    mCubeMeshVec.push_back(std::make_pair(white, CreateCubeMesh(0.2f, white)));
+
+    //order of all remaining colors does not matter!
+    mCubeMeshVec.push_back(std::make_pair(grey, CreateCubeMesh(0.2f, grey)));
+    mCubeMeshVec.push_back(std::make_pair(orange, CreateCubeMesh(0.2f, orange)));
+    mCubeMeshVec.push_back(std::make_pair(red, CreateCubeMesh(0.2f, red)));
+    mCubeMeshVec.push_back(std::make_pair(colorShieldCharger, CreateCubeMesh(0.2f, colorShieldCharger)));
+    mCubeMeshVec.push_back(std::make_pair(colorFuelCharger, CreateCubeMesh(0.2f, colorFuelCharger)));
+    mCubeMeshVec.push_back(std::make_pair(colorAmmoCharger, CreateCubeMesh(0.2f, colorAmmoCharger)));
+}
+
+//If specified color is not available, returns a white cube
+irr::scene::IMesh* DrawDebug::GetCubeMeshWithColor(ColorStruct* whichColor) {
+    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>>::iterator it;
+
+    for (it = mCubeMeshVec.begin(); it != mCubeMeshVec.end(); ++it) {
+        if ((*it).first == whichColor) {
+            //correct cube Mesh with this color found
+            return (*it).second;
+        }
+    }
+
+    //correct color not found, return white cube
+    //which is at index0
+    return mCubeMeshVec.at(0).second;
+}
+
+irr::scene::IMesh* DrawDebug::CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor) {
+   //This Source code was copied from Irrlicht source code
+   //CGeometryCreator.cpp, function CGeometryCreator::createCubeMesh
+   irr::scene::SMeshBuffer* buffer = new irr::scene::SMeshBuffer();
+
+   // Create indices
+   const irr::u16 u[36] = {   0,2,1,   0,3,2,   1,5,4,   1,2,5,   4,6,7,   4,5,6,
+             7,3,0,   7,6,3,   9,5,2,   9,8,5,   0,11,10,   0,10,7};
+
+   buffer->Indices.set_used(36);
+
+   for (irr::u32 i=0; i<36; ++i)
+       buffer->Indices[i] = u[i];
+
+   // Create vertices
+   buffer->Vertices.reallocate(12);
+
+   buffer->Vertices.push_back(irr::video::S3DVertex(0,0,0, -1,-1,-1, *cubeColor->color, 0, 1));
+   buffer->Vertices.push_back(irr::video::S3DVertex(1,0,0,  1,-1,-1, *cubeColor->color, 1, 1));
+   buffer->Vertices.push_back(irr::video::S3DVertex(1,1,0,  1, 1,-1, *cubeColor->color, 1, 0));
+   buffer->Vertices.push_back(irr::video::S3DVertex(0,1,0, -1, 1,-1, *cubeColor->color, 0, 0));
+   buffer->Vertices.push_back(irr::video::S3DVertex(1,0,1,  1,-1, 1, *cubeColor->color, 0, 1));
+   buffer->Vertices.push_back(irr::video::S3DVertex(1,1,1,  1, 1, 1, *cubeColor->color, 0, 0));
+   buffer->Vertices.push_back(irr::video::S3DVertex(0,1,1, -1, 1, 1, *cubeColor->color, 1, 0));
+   buffer->Vertices.push_back(irr::video::S3DVertex(0,0,1, -1,-1, 1, *cubeColor->color, 1, 1));
+   buffer->Vertices.push_back(irr::video::S3DVertex(0,1,1, -1, 1, 1, *cubeColor->color, 0, 1));
+   buffer->Vertices.push_back(irr::video::S3DVertex(0,1,0, -1, 1,-1, *cubeColor->color, 1, 1));
+   buffer->Vertices.push_back(irr::video::S3DVertex(1,0,1,  1,-1, 1, *cubeColor->color, 1, 0));
+   buffer->Vertices.push_back(irr::video::S3DVertex(1,0,0,  1,-1,-1, *cubeColor->color, 0, 0));
+
+   // Recalculate bounding box
+   buffer->BoundingBox.reset(0,0,0);
+
+   for (irr::u32 i=0; i<12; ++i)
+    {
+        buffer->Vertices[i].Pos -= irr::core::vector3df(0.5f, 0.5f, 0.5f);
+        buffer->Vertices[i].Pos *= size;
+        buffer->BoundingBox.addInternalPoint(buffer->Vertices[i].Pos);
+    }
+
+    irr::scene::SMesh* mesh = new irr::scene::SMesh;
+    mesh->addMeshBuffer(buffer);
+    buffer->drop();
+
+    mesh->recalculateBoundingBox();
+    return mesh;
+}
+
+void DrawDebug::CleanupAllCubeMesh() {
+    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>>::iterator it;
+    irr::scene::IMesh* meshPntr = nullptr;
+
+    for (it = mCubeMeshVec.begin(); it != mCubeMeshVec.end(); ) {
+           meshPntr = (*it).second;
+
+           it = mCubeMeshVec.erase(it);
+
+           //get rid of the custom mesh from the Meshcache
+           mySmgr->getMeshCache()->removeMesh(meshPntr);
+    }
 }

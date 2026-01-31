@@ -581,7 +581,7 @@ bool InfrastructureBase::InitStage2() {
     mGuienv = mDevice->getGUIEnvironment();
 
     //create a DrawDebug object
-    mDrawDebug = new DrawDebug(mDriver);
+    mDrawDebug = new DrawDebug(mSmgr, mDriver);
 
     if ((mRunningAs == INFRA_RUNNING_AS_EDITOR) ||
             ((mRunningAs == INFRA_RUNNING_AS_GAME) && (mGameConfig->enableDoubleResolution))) {
@@ -600,6 +600,11 @@ bool InfrastructureBase::InitStage2() {
 
     //"Random" seed for "random" number generator
     srand(mDevice->getTimer()->getRealTime());
+
+    if (mRunningAs == INFRA_RUNNING_AS_GAME) {
+        //Hide the mouse cursor
+        mDevice->getCursorControl()->setVisible(false);
+    }
 
     return true;
 }

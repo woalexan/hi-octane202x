@@ -18,6 +18,7 @@
 #include "draw/gametext.h"
 #include "race.h"
 #include "utils/tprofile.h"
+#include "utils/gamedbgwnd.h"
 #include "draw/attribution.h"
 
 void Game::StopTime() {
@@ -176,12 +177,145 @@ bool Game::InitGameStep1() {
     return true;
 }
 
+//if function returns true the close action should be interrupted
+bool Game::OnElementClose(irr::s32 elementId) {
+  //std::cout << "Element Close " << elementId << std::endl;
+
+  //prevent that user can close the debugging window
+  //otherwise the program will crash the next time we need the
+  //window again; just hide the window and interrupt the close call
+  if (mCurrentRace != nullptr) {
+      if (mCurrentRace->mDbgWindow != nullptr) {
+            mCurrentRace->mDbgWindow->HideWindow();
+
+            return true;
+      }
+  }
+
+  return false;
+}
+
+//overwrite HandleGuiEvent method for Game
+//returns true if Gui Event should be canceled
+bool Game::HandleGuiEvent(const irr::SEvent& event) {
+    irr::s32 id = event.GUIEvent.Caller->getID();
+
+    switch(event.GUIEvent.EventType)
+    {
+     /*   case EGET_BUTTON_CLICKED: {
+            // a button was clicked
+            OnButtonClicked(id);
+            break;
+        }*/
+
+        case EGET_CHECKBOX_CHANGED: {
+            //a checkbox was changed
+            if ((mCurrentRace != nullptr) && (mDbgUnlocked) && (mCurrentRace->mDbgWindow != nullptr)) {
+                mCurrentRace->mDbgWindow->OnCheckBoxChanged(id);
+            }
+            break;
+        }
+/*
+        case EGET_SCROLL_BAR_CHANGED: {
+            //a scrollbar was moved
+            OnScrollbarMoved(id);
+            break;
+        }
+
+        case EGET_ELEMENT_FOCUSED: {
+            //an element got the focus
+            OnElementFocused(id);
+            break;
+        }
+
+        case EGET_ELEMENT_FOCUS_LOST: {
+            //an element lost the focus
+            //for the EditorBox I want to use
+            //this event to know when the user
+            //stops editing to trigger an update
+            OnElementFocusLost(id);
+            break;
+        }
+
+        case EGET_ELEMENT_HOVERED: {
+            //user hovered over an element
+            OnElementHovered(id);
+            break;
+        }
+
+        case EGET_ELEMENT_LEFT : {
+            //user left an element
+            OnElementLeft(id);
+            break;
+        }
+
+        case EGET_COMBO_BOX_CHANGED: {
+            //user changed a combobox selection
+            OnComboBoxChanged((IGUIComboBox*)event.GUIEvent.Caller);
+            break;
+        }
+
+        case EGET_TABLE_CHANGED: {
+            //user changed selection in a table
+            OnTableSelected(id);
+            break;
+        }*/
+
+         case EGET_ELEMENT_CLOSED: {
+            //user tried to close an Ui element/window
+            if (OnElementClose(id)) {
+                //we want to prevent closing this element
+                return true;
+            }
+
+            //we do not want to cancel this event
+            return false;
+        }
+
+        /*case EGET_EDITBOX_ENTER: {
+            //user pressed Enter in an EditBox
+            OnEditBoxEnterEvent((IGUIEditBox*)event.GUIEvent.Caller);
+            break;
+        }
+
+        case EGET_EDITBOX_CHANGED: {
+            //user changed text of an EditBox
+            OnEditBoxTextChanged(id);
+            break;
+        }
+
+        case EGET_MESSAGEBOX_YES: {
+            //User pressed yes in a MessageBox
+            OnMessageBoxYes(id);
+            break;
+        }
+
+        case EGET_MESSAGEBOX_NO: {
+            //User pressed no in a MessageBox
+            OnMessageBoxNo(id);
+            break;
+        }
+
+        case EGET_TAB_CHANGED: {
+            OnTabChanged(id);
+            break;
+        }*/
+
+        default: {
+                break;
+        }
+     }
+
+    //we do not want to cancel this event
+    return false;
+}
+
 //This function allows to quickly enter a race for
 //game debugging, and to skip the menue etc.
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 1;
+    nextRaceLevelNr = 2;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -195,6 +329,7 @@ void Game::SetupDebugGame() {
     //add computer players?
     mGameAssets->SetComputerPlayersEnabled(false);
 
+    mDbgUnlocked = true;
     mGameState = DEF_GAMESTATE_INITRACE;
 }
 
@@ -209,6 +344,7 @@ void Game::SetupDebugDemo() {
     //in demo mode computer players need to be enabled!
     mGameAssets->SetComputerPlayersEnabled(true);
 
+    mDbgUnlocked = true;
     mGameState = DEF_GAMESTATE_INITDEMO;
 }
 
@@ -983,7 +1119,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->StartOfGameLoop();
 
-    mCurrentRace->HandleBasicInput();
+    if (mDbgUnlocked) {
+        mCurrentRace->HandleDebugInput();
+    }
 
     if (mAdvanceFrameMode) {   
         if (mAdvanceFrameCnt > 0) {
@@ -1287,6 +1425,11 @@ void Game::GameLoopInitStep2() {
            return;
         }
 
+        if (mDbgUnlocked) {
+            //Unhide the mouse cursor
+            mDevice->getCursorControl()->setVisible(true);
+        }
+
         mGameState = DEF_GAMESTATE_INTRO;
     }
 }
@@ -1552,6 +1695,7 @@ bool Game::ParseCommandLineForGame() {
     std::vector<std::string>::iterator it;
     std::string substr("test");
     std::string subStr2("nocpu");
+    std::string subStr3("debug");
     irr::u8 currIdx = 0;
 
     for (it = mCLIVec.begin(); it != mCLIVec.end(); ++it) {
@@ -1587,6 +1731,13 @@ bool Game::ParseCommandLineForGame() {
         if ((*it).find(subStr2) != std::string::npos && ((*it).size() == subStr2.size())) {
                mTestMapModeNoCpuPlayers = true;
                logging::Info("Disabled Cpu Players during map test mode");
+        }
+
+        //if one parameter contains substring "debug"
+        //unlock debugging functions in game
+        if ((*it).find(subStr3) != std::string::npos && ((*it).size() == subStr3.size())) {
+               mDbgUnlocked = true;
+               logging::Info("Unlocked debugging functions in game");
         }
 
         currIdx++;

@@ -133,11 +133,12 @@ public:
 
     irr::f32 dbgDistVec = 0.0f;
 
-    void DebugDraw();
+    void DebugDrawCurrentSegment();
+    void DebugDrawPathHistory();
 
-     irr::core::vector3df mLocationChargingStall;
+    irr::core::vector3df mLocationChargingStall;
 
-     irr::f32 mLocalOffset = 0.0f;
+    irr::f32 mLocalOffset = 0.0f;
 
 private:
     Player* mParentPlayer = nullptr;

@@ -23,6 +23,7 @@
 #include "utils/ray.h"
 #include "utils/worldaware.h"
 #include "utils/fileutils.h"
+#include "utils/gamedbgwnd.h"
 
 #include "draw/hud.h"
 
@@ -226,6 +227,10 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
 
     mRaceNumberOfLaps = nrLaps;
 
+    if (parentGame->mDbgUnlocked) {
+        mDbgWindow = new GameDbgWnd(this);
+    }
+
     if (skipStart) {
         this->mCurrentPhase = DEF_RACE_PHASE_RACING;
     } else {
@@ -274,6 +279,8 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     //my vector of cones on the race track
     coneVec = new std::vector<Cone*>;
     coneVec->clear();
+
+    mDbgWaypntSceneNodeVec.clear();
 
     mPlayerVec.clear();
     mPlayerPhysicObjVec.clear();
@@ -433,6 +440,141 @@ void Race::IrrlichtStats(char* text) {
     fclose(oFile);
 }
 
+void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
+  switch (debugFlag) {
+      case DEF_RACE_DBG_ALL: {
+          DebugShowWallSegments = enable;
+          DebugShowWallCollisionMesh = enable;
+          DebugShowWaypoints = enable;
+          DebugShowFreeMovementSpace = enable;
+          DebugShowCheckpoints = enable;
+          DebugShowRegionsAndPointOfInterest = enable;
+          DebugShowTriggerRegions = enable;
+          DebugShowTriggerEvents = enable;
+          AllowStartMorphsPerKey = enable;
+          DebugShowChargingStationInfo = enable;
+          break;
+      }
+      case DEF_RACE_DBG_WALLSEGMENTS: {
+          DebugShowWallSegments = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_WALLCOLLISIONMESH: {
+          DebugShowWallCollisionMesh = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_WAYPOINTLINKS: {
+          DebugShowWaypoints = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_WAYPOINTLINKSSPACE: {
+          DebugShowFreeMovementSpace = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_CHECKPOINTS: {
+          DebugShowCheckpoints = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_POI: {
+          DebugShowRegionsAndPointOfInterest = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_TRIGGERREGIONS: {
+          DebugShowTriggerRegions = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_LOGTRIGGEREVENTS: {
+          DebugShowTriggerEvents = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_ACTIVATEMORPHKEYTRG: {
+          AllowStartMorphsPerKey = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_CHARGINGSTATIONINFO: {
+          DebugShowChargingStationInfo = enable;
+          break;
+      }
+
+      default: {
+          break;
+      }
+  }
+
+  if (DebugShowWallCollisionMesh) {
+      wallCollisionMeshSceneNode->setVisible(true);
+  } else {
+      wallCollisionMeshSceneNode->setVisible(false);
+  }
+
+  SetDbgWayPointSceneNodesVisible(DebugShowWaypoints);
+}
+
+void Race::SetDbgWayPointSceneNodesVisible(bool visible) {
+    std::vector<irr::scene::IMeshSceneNode*>::iterator it;
+
+    for (it = mDbgWaypntSceneNodeVec.begin(); it != mDbgWaypntSceneNodeVec.end(); ++it) {
+        (*it)->setVisible(visible);
+    }
+}
+
+bool Race::GetDebugFlag(irr::u8 debugFlag) {
+    switch (debugFlag) {
+        case DEF_RACE_DBG_WALLSEGMENTS: {
+            return (DebugShowWallSegments);
+        }
+
+        case DEF_RACE_DBG_WALLCOLLISIONMESH: {
+            return (DebugShowWallCollisionMesh);
+        }
+
+        case DEF_RACE_DBG_WAYPOINTLINKS: {
+            return (DebugShowWaypoints);
+        }
+
+        case DEF_RACE_DBG_WAYPOINTLINKSSPACE: {
+            return (DebugShowFreeMovementSpace);
+        }
+
+        case DEF_RACE_DBG_CHECKPOINTS: {
+            return (DebugShowCheckpoints);
+        }
+
+        case DEF_RACE_DBG_POI: {
+            return (DebugShowRegionsAndPointOfInterest);
+        }
+
+        case DEF_RACE_DBG_TRIGGERREGIONS: {
+            return (DebugShowTriggerRegions);
+        }
+
+        case DEF_RACE_DBG_LOGTRIGGEREVENTS: {
+            return (DebugShowTriggerEvents);
+        }
+
+        case DEF_RACE_DBG_ACTIVATEMORPHKEYTRG: {
+            return (AllowStartMorphsPerKey);
+        }
+
+        case DEF_RACE_DBG_CHARGINGSTATIONINFO: {
+            return (DebugShowChargingStationInfo);
+        }
+
+        default: {
+            return (false);
+        }
+    }
+}
+
 Race::~Race() {
     //unregister existing HUD in all players
     std::vector<Player*>::iterator it;
@@ -486,6 +628,11 @@ Race::~Race() {
 
     delete mPath;
 
+    if (mGame->mDbgUnlocked) {
+        delete mDbgWindow;
+        mDbgWindow = nullptr;
+    }
+
     CleanUpMorphs();
     CleanUpSteamFountains();
     CleanUpCollectableSpawners();
@@ -493,6 +640,10 @@ Race::~Race() {
 
     CleanUpRecoveryVehicles();
     CleanUpCones();
+
+    if (mGame->mDbgUnlocked) {
+        CleanUpDbgWayPointSceneNodes();
+    }
 
     CleanUpWayPointLinks(*this->wayPointLinkVec);
     CleanUpAllCheckpoints();
@@ -1727,6 +1878,36 @@ void Race::Init() {
     //this->mLevelRes->Save(testsaveName);
 }
 
+void Race::RemovePlayer(Player* whichPlayer) {
+//    HUD* plHUD;
+//    //get possible pointer from player than an HUD
+//    //if no HUD connection is there we will get nullptr
+//    plHUD = player2->GetMyHUD();
+
+//    //player has an HUD attached
+//    if (plHUD != nullptr) {
+//        //tell HUD to stop monitoring player we want to remove
+//        plHUD->SetMonitorWhichPlayer(nullptr);
+
+//        //remove HUD pnter also from player object
+//        //we want to remove
+//        player2->SetMyHUD(nullptr);
+//    }
+
+//    //remove Player2 from physics
+//    mPhysics->RemoveObject(player2->Player_node);
+
+//    //reset pointer in player to physics-object
+//    player2->SetPlayerObject(nullptr);
+
+//    //remove Scenenode from Irrlicht SceneManager
+//    player2->Player_node->remove();
+
+//    delete player2;
+
+//    player2Removed = true;
+}
+
 void Race::SetupTopRaceTrackPointerOrigin() {
     //get race track terrain bounding box
     this->mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
@@ -2087,7 +2268,7 @@ void Race::PlayerEnteredCraftTriggerRegion(Player* whichPlayer, MapTileRegionStr
         sprintf(triggerID, "%d", whichRegion->regionId);
         strcat(triggerMessage, triggerID);
 
-        whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f, false);
+        mGame->mLogger->AddLogMessage(triggerMessage);
     }
 
     //store trigger in pending trigger list, for processing during
@@ -2105,7 +2286,7 @@ void Race::PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStru
        sprintf(triggerID, "%d", whichRegion->regionId);
        strcat(triggerMessage, triggerID);
 
-       whichPlayer->ShowPlayerBigGreenHudText(triggerMessage, 5.0f, false);
+       mGame->mLogger->AddLogMessage(triggerMessage);
     }
 
     //store trigger in pending trigger list, for processing during
@@ -2124,7 +2305,7 @@ void Race::TimedTriggerOccured(Timer* whichTimer) {
         sprintf(triggerID, "%d", whichTimer->mEntityItem->getTargetGroup());
         strcat(triggerMessage, triggerID);
 
-        this->mPlayerVec.at(0)->ShowPlayerBigGreenHudText(triggerMessage, 5.0f, false);
+        mGame->mLogger->AddLogMessage(triggerMessage);
     }
 
     //store trigger in pending trigger list, for processing during
@@ -2259,23 +2440,23 @@ void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
     }
 }
 
-void Race::HandleBasicInput() {
+void Race::HandleDebugInput() {
 
     //only for debugging purposes, to trigger
     //a breakpoint via a keyboard press
     DebugHitBreakpoint = false;
 
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F2)) {
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F1)) {
       this->mGame->StopTime();
     }
 
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F1)) {
-        this->mGame->StartTime();
-    }
-
-    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F3))
+    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F2))
     {
          this->mGame->AdvanceFrame(1);
+    }
+
+    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F3)) {
+        this->mGame->StartTime();
     }
 
     if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F4))
@@ -2295,6 +2476,15 @@ void Race::HandleBasicInput() {
 
     if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_F5))
     {
+        if (mDbgWindow != nullptr) {
+            if (!mDbgWindow->IsWindowVisible()) {
+                mGame->StopTime();
+                mDbgWindow->OpenWindow();
+            } else {
+                mDbgWindow->HideWindow();
+                mGame->StartTime();
+            }
+        }
       //  this->mPlayerVec.at(0)->mPlayerStats->currRocketUpgradeLevel = 3;
       //   this->mPlayerVec.at(0)->StartDbgRecording();
         /*if (testtrans < 255)
@@ -2315,7 +2505,7 @@ void Race::HandleBasicInput() {
 
     if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_3))
     {
-        DebugSelectPlayer(2);
+       DebugSelectPlayer(2);
     }
 
     if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_4))
@@ -2370,19 +2560,21 @@ void Race::HandleBasicInput() {
         }
     }
 
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
-        //24.03.2025: Add a final race phase where we wait until
-        //all currently working animators are finished
-        //this->exitRace = true;
-        InitiateExitRace();
+    if (AllowStartMorphsPerKey) {
+           if(mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_M))
+           {
+                runMorph = true;
+           }
     }
 
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
-        if (this->currPlayerFollow != nullptr)
-        {
-            this->currPlayerFollow->ChangeViewMode();
-        }
-    }
+   if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
+       //this->mWorldAware->WriteOneDbgPic = true;
+   }
+
+   if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
+       //toggle collision resolution active state
+       mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
+   }
 }
 
 //unfortunetly it seems we can not remove SceneNodes from SceneManager
@@ -2474,27 +2666,19 @@ void Race::HandleInput(irr::f32 deltaTime) {
              }
      }
 
-     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_R)) {
-         if (currPlayerFollow != nullptr) {
-            this->SpawnCollectiblesForPlayer(currPlayerFollow);
+     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
+         //24.03.2025: Add a final race phase where we wait until
+         //all currently working animators are finished
+         //this->exitRace = true;
+         InitiateExitRace();
+     }
+
+     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_F)) {
+         if (this->currPlayerFollow != nullptr)
+         {
+             this->currPlayerFollow->ChangeViewMode();
          }
      }
-
-     if (AllowStartMorphsPerKey) {
-            if(mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_M))
-            {
-                 runMorph =true;
-            }
-     }
-
-    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
-        //this->mWorldAware->WriteOneDbgPic = true;
-    }
-
-    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
-        //toggle collision resolution active state
-        mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
-    } 
 }
 
 //the routine below is from:
@@ -2714,10 +2898,10 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
         //draw lines a little bit raised from Terrain, so that the are better visible
         irr::core::vector3df incY(0.0f, 0.15f, 0.0f);
 
-        mGame->mDrawDebug->Draw3DLine(
-                    (*WayPointLink_iterator)->pLineStruct->A + incY,
-                    (*WayPointLink_iterator)->pLineStruct->B + incY,
-                    (*WayPointLink_iterator)->pLineStruct->color);
+        mGame->mDrawDebug->Draw3DArrow((*WayPointLink_iterator)->pLineStruct->A + incY,
+                                        (*WayPointLink_iterator)->pLineStruct->B + incY,
+                                        0.5f,
+                                        (*WayPointLink_iterator)->pLineStruct->color, 0.1f);
 
         if (drawFreeMovementSpace) {
             //also draw min/max offset shift limit lines for graphical representation of possible computer player
@@ -2747,21 +2931,59 @@ void Race::Render() {
         DrawSky();
     }
 
-    //draw 3D world coordinate axis with arrows
-    mGame->mDrawDebug->DrawWorldCoordinateSystemArrows();
+    if (mGame->mDbgUnlocked) {
+        //draw 3D world coordinate axis with arrows
+        mGame->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
-    //draw currently active world coordinate forces on player ship
-    //playerPhysicsObj->DebugDrawCurrentWorldCoordForces(mDrawDebug, mDrawDebug->green, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
-    //player2PhysicsObj->DebugDrawCurrentWorldCoordForces(mDrawDebug, mDrawDebug->green, PHYSIC_DBG_FORCETYPE_COLLISIONRESOLUTION);
+        if (DebugShowWaypoints) {
+            DebugDrawWayPointLinks(DebugShowFreeMovementSpace);
+        }
 
-    std::list<LineStruct*>::iterator Linedraw_iterator;
-    std::vector<CheckPointInfoStruct*>::iterator CheckPoint_iterator;
+        std::list<LineStruct*>::iterator Linedraw_iterator;
+        std::vector<LineStruct*>::iterator Linedraw_iterator2;
+        std::vector<CheckPointInfoStruct*>::iterator CheckPoint_iterator;
 
-    std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
+        if (DebugShowWallSegments) {
+          //draw all wallsegments for debugging purposes
+         for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
+              mGame->mDrawDebug->Draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B, mGame->mDrawDebug->red);
+           }
+         }
 
-    if (DebugShowWaypoints) {
-        DebugDrawWayPointLinks(DebugShowFreeMovementSpace);
-     }
+        if (DebugShowCheckpoints) {
+          //draw all checkpoint lines for debugging purposes
+          for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
+              mGame->mDrawDebug->Draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B, mGame->mDrawDebug->blue);
+          }
+        }
+
+        if (DebugShowRegionsAndPointOfInterest) {
+                std::list<MapPointOfInterest>::iterator it;
+
+                for (it = this->mLevelRes->PointsOfInterest.begin(); it != this->mLevelRes->PointsOfInterest.end(); ++it) {
+                    mGame->mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
+                                           this->mGame->mDrawDebug->pink);
+                }
+
+                mLevelTerrain->DrawMapRegions();
+        }
+
+        if (DebugShowTriggerRegions) {
+            IndicateTriggerRegions();
+        }
+
+        if (DebugShowChargingStationInfo) {
+            std::vector<ChargingStation*>::iterator itCharge;
+
+            for (itCharge = mChargingStationVec->begin(); itCharge != mChargingStationVec->end(); ++itCharge) {
+                (*itCharge)->DebugDraw();
+            }
+        }
+
+        if (currPlayerFollow != nullptr) {
+            currPlayerFollow->DebugDraw();
+        }
+    }
 
    /* if ((currPlayerFollow != nullptr) && (currPlayerFollow->currClosestWayPointLink.first != nullptr)) {
         mDrawDebug->Draw3DLine(
@@ -2774,22 +2996,6 @@ void Race::Render() {
                     + currPlayerFollow->currClosestWayPointLink.first->offsetDirVec * currPlayerFollow->mCpFollowedWayPointLinkCurrentSpaceLeftSide,
                     this->mDrawDebug->brown);
     }*/
-
-    std::vector<LineStruct*>::iterator Linedraw_iterator2;
-
-    if (DebugShowWallSegments) {
-      //draw all wallsegments for debugging purposes
-     for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-          mGame->mDrawDebug->Draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B, mGame->mDrawDebug->red);
-       }
-     }
-
-    if (DebugShowCheckpoints) {
-      //draw all checkpoint lines for debugging purposes
-      for(CheckPoint_iterator = checkPointVec->begin(); CheckPoint_iterator != checkPointVec->end(); ++CheckPoint_iterator) {
-          mGame->mDrawDebug->Draw3DLine((*CheckPoint_iterator)->pLineStruct->A, (*CheckPoint_iterator)->pLineStruct->B, mGame->mDrawDebug->blue);
-      }
-    }
 
       //mPhysics->DrawSelectedCollisionMeshTriangles(player->phobj->GetCollisionArea());
       //mPhysics->DrawSelectedRayTargetMeshTriangles(TestRayTrianglesSelector);
@@ -2833,66 +3039,6 @@ void Race::Render() {
                              this->player->mHMapCollPntData.backRight45deg->planePnt2,
                              this->mDrawDebug->blue);*/
 
-      /*
-      if (this->player->minCeilingFound) {
-        mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->dbgCurrCeilingMinPos,
-                             this->mDrawDebug->red);
-      }
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor->wCoordPnt1, this->player->cameraSensor->wCoordPnt2,
-                                   this->mDrawDebug->green);
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor2->wCoordPnt1, this->player->cameraSensor2->wCoordPnt2,
-                                   this->mDrawDebug->green);
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor3->wCoordPnt1, this->player->cameraSensor3->wCoordPnt2,
-                                   this->mDrawDebug->green);
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor4->wCoordPnt1, this->player->cameraSensor4->wCoordPnt2,
-                                   this->mDrawDebug->green);
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor5->wCoordPnt1, this->player->cameraSensor5->wCoordPnt2,
-                                   this->mDrawDebug->green);
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor6->wCoordPnt1, this->player->cameraSensor6->wCoordPnt2,
-                                   this->mDrawDebug->green);
-
-      mDrawDebug->Draw3DLine(this->player->cameraSensor7->wCoordPnt1, this->player->cameraSensor7->wCoordPnt2,
-                                   this->mDrawDebug->green);*/
-
-      /*
-      if (currPlayerFollow != nullptr) {
-
-            if (currPlayerFollow->mPathHistoryVec.size() > 0) {
-              std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
-
-             for (itPathEl = currPlayerFollow->mPathHistoryVec.begin(); itPathEl != currPlayerFollow->mPathHistoryVec.end(); ++itPathEl) {
-                   mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
-              }
-
-             //     mDrawDebug->Draw3DLine(player2->mFollowPath.at(0)->pLineStruct->A, player2->mFollowPath.at(0)->pLineStruct->B, this->mDrawDebug->blue);
-          }
-      }*/
-
-    /*  if (currPlayerFollow != nullptr) {
-          if (!currPlayerFollow->mHumanPlayer) {
-              currPlayerFollow->mCpuPlayer->DebugDraw();
-          }
-      }*/
-
-      //  mDrawDebug->Draw3DLine(topRaceTrackerPointerOrigin, this->mPlayerVec.at(1)->mCpuPlayer->mLocationChargingStall, this->mDrawDebug->orange);
-
-
-      /*if (currPlayerFollow != nullptr) {
-
-              if (this->currPlayerFollow->mCpAvailWayPointLinks.size() > 0) {
-                  std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
-
-                  for (itPathEl = currPlayerFollow->mCpAvailWayPointLinks.begin(); itPathEl != currPlayerFollow->mCpAvailWayPointLinks.end(); ++itPathEl) {
-                       mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, this->mDrawDebug->red);
-                  }
-              }
-        }*/
 
     /*  if (this->player2->mCpCollectablesSeenByPlayer.size() > 0) {
           std::vector<Collectable*>::iterator itColl;
@@ -2921,16 +3067,7 @@ void Race::Render() {
               }
         }*/
 
-        if (DebugShowRegionsAndPointOfInterest) {
-                std::list<MapPointOfInterest>::iterator it;
 
-                for (it = this->mLevelRes->PointsOfInterest.begin(); it != this->mLevelRes->PointsOfInterest.end(); ++it) {
-                    mGame->mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it).Position,
-                                           this->mGame->mDrawDebug->pink);
-                }
-
-                mLevelTerrain->DrawMapRegions();
-        }
      /*
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt1, this->mDrawDebug->red);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt2, this->mDrawDebug->cyan);
@@ -2938,17 +3075,6 @@ void Race::Render() {
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
        /* if (currPlayerFollow != nullptr) {
-
-
-            if (currPlayerFollow->currClosestWayPointLink.first != nullptr) {
-                mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->A,
-                                       mDrawDebug->cyan);
-
-                mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.first->pLineStruct->B,
-                                       mDrawDebug->red);
-
-                mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, currPlayerFollow->currClosestWayPointLink.second,
-                                       mDrawDebug->blue);
          */
                /* if (currPlayerFollow->cPCurrentFollowSeg != nullptr) {
                     irr::core::vector3df incY2(0.0f, 0.15f, 0.0f);
@@ -2978,47 +3104,21 @@ void Race::Render() {
         //}
 
         //DebugShowAllObstaclePlayers();
+}
 
-      /*  if (currPlayerFollow != nullptr) {
-            mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, currPlayerFollow->phobj->physicState.position,
-                                   this->mDrawDebug->orange);
-        }*/
+void Race::UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable) {
+    std::vector<Player*>::iterator it;
 
-      /*  std::vector<Player*>::iterator it;
-        bool playerTrouble;
+    for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
+        (*it)->SetDebugFlag(debugFlag, enable);
+    }
+}
 
-        mPlayersInTrouble = 0;
+bool Race::GetPlayersDbgFlagState(irr::u8 debugFlag) {
+    if (mPlayerVec.size() < 1)
+        return false;
 
-        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
-            playerTrouble = false;
-            if (isnan((*it)->phobj->physicState.position.X) == 1)
-                playerTrouble = true;
-
-            if (isnan((*it)->phobj->physicState.position.Y) == 1)
-                playerTrouble = true;
-
-            if (isnan((*it)->phobj->physicState.position.Z) == 1)
-                playerTrouble = true;
-
-            if (playerTrouble) {
-                mPlayersInTrouble++;
-            } else {
-
-                mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, (*it)->phobj->physicState.position,
-                                       this->mDrawDebug->red);
-            }
-        }*/
-
-        if (DebugShowTriggerRegions) {
-            IndicateTriggerRegions();
-        }
-
-      /*  if (mChargingStationVec->size() > 0) {
-            std::vector<ChargingStation*>::iterator it;
-            for (it = mChargingStationVec->begin(); it != mChargingStationVec->end(); ++it) {
-                (*it)->DebugDraw();
-            }
-        }*/
+    return mPlayerVec.at(0)->GetDebugFlag(debugFlag);
 }
 
 void Race::DebugShowAllObstaclePlayers() {
@@ -3837,10 +3937,6 @@ void Race::createWallCollisionData() {
     //hide the collision mesh that the player does not see it
     wallCollisionMeshSceneNode->setVisible(false);
 
-    if (DebugShowWallCollisionMesh) {
-        wallCollisionMeshSceneNode->setVisible(true);
-    }
-
     wallCollisionMeshSceneNode->setMaterialFlag(EMF_BACK_FACE_CULLING, true);
     //wallCollisionMeshSceneNode->setDebugDataVisible(EDS_BBOX);
 }
@@ -4168,6 +4264,36 @@ void Race::UpdateSoundListener() {
     }
 }
 
+ColorStruct* Race::GetColorForWayPointType(Entity::EntityType whichType) {
+    switch (whichType) {
+        case Entity::EntityType::WaypointAmmo: {
+           return(mGame->mDrawDebug->colorAmmoCharger);
+        }
+
+        case Entity::EntityType::WaypointFuel: {
+            return(mGame->mDrawDebug->colorFuelCharger);
+        }
+
+        case Entity::EntityType::WaypointShield: {
+            return(mGame->mDrawDebug->colorShieldCharger);
+        }
+
+        case Entity::EntityType::WaypointFast: {
+            return(mGame->mDrawDebug->orange);
+        }
+
+        //default use grey
+        case Entity::EntityType::WaypointShortcut:
+        case Entity::EntityType::WaypointSpecial1:
+        case Entity::EntityType::WaypointSpecial2:
+        case Entity::EntityType::WaypointSpecial3:
+        case Entity::EntityType::WaypointSlow:
+        default: {
+           return(mGame->mDrawDebug->grey);
+        }
+    }
+}
+
 void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
     //irr::f32 boxSize = 0.04f;
 
@@ -4241,6 +4367,33 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
 
     //we also keep a list of all waypoint pointers
     ENTWaypoints_List->push_back(entity);
+
+    //add cubes for debugging?
+    if (mGame->mDbgUnlocked) {
+        irr::scene::IMesh* wMesh = nullptr;
+
+        wMesh = mGame->mDrawDebug->GetCubeMeshWithColor(GetColorForWayPointType(entity->getEntityType()));
+
+        //use the prepared cubeMesh to render this waypoint in the level
+        irr::scene::IMeshSceneNode* newNode = mGame->mSmgr->addMeshSceneNode(wMesh);
+
+        newNode->setScale(irr::core::vector3d<irr::f32>(1,1,1));
+        newNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+
+        newNode->setPosition(entity->getCenter() + irr::core::vector3df(0.0f, DbgWaypointCubeHeightDistance, 0.0f));
+        newNode->setVisible(false);
+
+        mDbgWaypntSceneNodeVec.push_back(newNode);
+    }
+}
+
+void Race::CleanUpDbgWayPointSceneNodes() {
+    std::vector<irr::scene::IMeshSceneNode*>::iterator it;
+
+    for (it = mDbgWaypntSceneNodeVec.begin(); it != mDbgWaypntSceneNodeVec.end(); ++it) {
+         //remove SceneNode
+         (*it)->remove();
+    }
 }
 
 void Race::AddTimer(EntityItem *entity) {

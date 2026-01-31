@@ -92,17 +92,11 @@ private:
      void RemoveUnusedEntityTableEntries();
      void RestoreEntityItemLinks();
 
-     irr::scene::IMesh* CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor);
-
      void CleanupCustomMesh(EditorEntity* whichEntity);
      void UpdateCustomMesh(EditorEntity* whichEntity);
      void CleanupAllCustomMesh();
-     void CleanupAllCubeMesh();
 
      //Different defined colors for the cube Entities
-
-     //If specified color is not available, returns a white cube
-     irr::scene::IMesh* GetCubeMeshWithColor(ColorStruct* whichColor);
      void DrawWayPointLinks();
      void DrawWallSegments();
 
@@ -207,10 +201,6 @@ public:
 
     //Stores an empty image
     irr::video::ITexture* mTexImageEmpty = nullptr;
-
-    //a simple Cube Mesh for Waypoint and Wallsegment level Editor
-    //entity items
-    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>> mCubeMeshVec;
 
     //a simple box Mesh for selection of SteamFountains
     irr::scene::IMesh* mSteamFountainMesh;

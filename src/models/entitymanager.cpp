@@ -21,22 +21,6 @@
 #include "../resources/levelfile.h"
 #include "irrlicht.h"
 
-//If specified color is not available, returns a white cube
-irr::scene::IMesh* EntityManager::GetCubeMeshWithColor(ColorStruct* whichColor) {
-    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>>::iterator it;
-
-    for (it = mCubeMeshVec.begin(); it != mCubeMeshVec.end(); ++it) {
-        if ((*it).first == whichColor) {
-            //correct cube Mesh with this color found
-            return (*it).second;
-        }
-    }
-
-    //correct color not found, return white cube
-    //which is at index0
-    return mCubeMeshVec.at(0).second;
-}
-
 IMesh* EntityManager::CreateSelectionMeshBox(irr::core::vector3df scaleFactors, irr::video::SColor boxColor) {
 
     //Some TriggerCraft and TriggerRocket entities have an OffsetX and OffsetY value of 0
@@ -54,7 +38,7 @@ IMesh* EntityManager::CreateSelectionMeshBox(irr::core::vector3df scaleFactors, 
     }
 
     //the specified color here does not matter, is replaced afterwards anyway
-    irr::scene::IMesh* mesh = CreateCubeMesh(1.0f, mInfra->mDrawDebug->pink);
+    irr::scene::IMesh* mesh = mInfra->mDrawDebug->CreateCubeMesh(1.0f, mInfra->mDrawDebug->pink);
 
     irr::scene::IMeshManipulator* meshManipulator = mInfra->mDriver->getMeshManipulator();
     meshManipulator->scale(mesh, scaleFactors);
@@ -62,20 +46,6 @@ IMesh* EntityManager::CreateSelectionMeshBox(irr::core::vector3df scaleFactors, 
     meshManipulator->setVertexColorAlpha(mesh, boxColor.getAlpha());
 
     return mesh;
-}
-
-void EntityManager::CleanupAllCubeMesh() {
-    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>>::iterator it;
-    irr::scene::IMesh* meshPntr = nullptr;
-
-    for (it = mCubeMeshVec.begin(); it != mCubeMeshVec.end(); ) {
-           meshPntr = (*it).second;
-
-           it = mCubeMeshVec.erase(it);
-
-           //get rid of the custom mesh from the Meshcache
-           mInfra->mSmgr->getMeshCache()->removeMesh(meshPntr);
-    }
 }
 
 EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks,
@@ -89,55 +59,17 @@ EntityManager::EntityManager(InfrastructureBase* infra, LevelFile* levelRes, Lev
     mEntityVec.clear();
     mSteamFountainVec.clear();
 
-    //create a simple small Cube Mesh for Waypoint and
-    //Wallsegment Editor Entity item objects
-    mCubeMeshVec.clear();
-
-    //Important note: Keep cube with Color White at the first position of the std::Vector!
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->white, CreateCubeMesh(0.2f, mInfra->mDrawDebug->white)));
-
-    //order of all remaining colors does not matter!
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->grey, CreateCubeMesh(0.2f, mInfra->mDrawDebug->grey)));
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->orange, CreateCubeMesh(0.2f, mInfra->mDrawDebug->orange)));
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->red, CreateCubeMesh(0.2f, mInfra->mDrawDebug->red)));
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorShieldCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorShieldCharger)));
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorFuelCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorFuelCharger)));
-    mCubeMeshVec.push_back(std::make_pair(mInfra->mDrawDebug->colorAmmoCharger, CreateCubeMesh(0.2f, mInfra->mDrawDebug->colorAmmoCharger)));
-
     //Create the box mesh for surrounding SteamFountains
     mSteamFountainMesh = CreateSelectionMeshBox(irr::core::vector3df(1.0f, 4.0f, 1.0f),
         DEF_EDITOR_ENTITYMANAGER_STEAMFOUNTAIN_SELMESHBOXCOLOR);
 
     mSelectionMeshVec.clear();
-     
-    //    //create empty checkpoint info vector
-    //    checkPointVec = new std::vector<CheckPointInfoStruct*>;
-    //    checkPointVec->clear();
-
-          //create an empty waypoint link info vector
-    //    wayPointLinkVec = new std::vector<WayPointLinkInfoStruct*>;
-    //    wayPointLinkVec->clear();
-
-    //    steamFountainVec = new std::vector<SteamFountain*>;
-    //    steamFountainVec->clear();
-
-    //    //my vector of recovery vehicles
-    //    recoveryVec = new std::vector<Recovery*>;
-    //    recoveryVec->clear();
-
-    //    //my vector of cones on the race track
-    //    coneVec = new std::vector<Cone*>;
-    //    coneVec->clear();
-
-    //    mTimerVec.clear();
-    //    mExplosionEntityVec.clear();
 }
 
 EntityManager::~EntityManager() {
     CleanUpMorphs();
 
     CleanupAllCustomMesh();
-    CleanupAllCubeMesh();
 
     CleanUpEntities();
 
@@ -393,54 +325,6 @@ void EntityManager::SetVisible(irr::u8 whichEntityClass, bool visible) {
             break;
         }
     }
-}
-
-irr::scene::IMesh* EntityManager::CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor) {
-   //This Source code was copied from Irrlicht source code
-   //CGeometryCreator.cpp, function CGeometryCreator::createCubeMesh
-   SMeshBuffer* buffer = new SMeshBuffer();
-
-   // Create indices
-   const u16 u[36] = {   0,2,1,   0,3,2,   1,5,4,   1,2,5,   4,6,7,   4,5,6,
-             7,3,0,   7,6,3,   9,5,2,   9,8,5,   0,11,10,   0,10,7};
-
-   buffer->Indices.set_used(36);
-
-   for (u32 i=0; i<36; ++i)
-       buffer->Indices[i] = u[i];
-
-   // Create vertices
-   buffer->Vertices.reallocate(12);
-
-   buffer->Vertices.push_back(video::S3DVertex(0,0,0, -1,-1,-1, *cubeColor->color, 0, 1));
-   buffer->Vertices.push_back(video::S3DVertex(1,0,0,  1,-1,-1, *cubeColor->color, 1, 1));
-   buffer->Vertices.push_back(video::S3DVertex(1,1,0,  1, 1,-1, *cubeColor->color, 1, 0));
-   buffer->Vertices.push_back(video::S3DVertex(0,1,0, -1, 1,-1, *cubeColor->color, 0, 0));
-   buffer->Vertices.push_back(video::S3DVertex(1,0,1,  1,-1, 1, *cubeColor->color, 0, 1));
-   buffer->Vertices.push_back(video::S3DVertex(1,1,1,  1, 1, 1, *cubeColor->color, 0, 0));
-   buffer->Vertices.push_back(video::S3DVertex(0,1,1, -1, 1, 1, *cubeColor->color, 1, 0));
-   buffer->Vertices.push_back(video::S3DVertex(0,0,1, -1,-1, 1, *cubeColor->color, 1, 1));
-   buffer->Vertices.push_back(video::S3DVertex(0,1,1, -1, 1, 1, *cubeColor->color, 0, 1));
-   buffer->Vertices.push_back(video::S3DVertex(0,1,0, -1, 1,-1, *cubeColor->color, 1, 1));
-   buffer->Vertices.push_back(video::S3DVertex(1,0,1,  1,-1, 1, *cubeColor->color, 1, 0));
-   buffer->Vertices.push_back(video::S3DVertex(1,0,0,  1,-1,-1, *cubeColor->color, 0, 0));
-
-   // Recalculate bounding box
-   buffer->BoundingBox.reset(0,0,0);
-
-   for (u32 i=0; i<12; ++i)
-    {
-        buffer->Vertices[i].Pos -= core::vector3df(0.5f, 0.5f, 0.5f);
-        buffer->Vertices[i].Pos *= size;
-        buffer->BoundingBox.addInternalPoint(buffer->Vertices[i].Pos);
-    }
-
-    SMesh* mesh = new SMesh;
-    mesh->addMeshBuffer(buffer);
-    buffer->drop();
-
-    mesh->recalculateBoundingBox();
-    return mesh;
 }
 
 void EntityManager::DrawWayPointLinks() {
@@ -902,7 +786,7 @@ void EntityManager::CreateEntity(EntityItem* p_entity) {
         EditorEntity* newEntity;
         irr::scene::IMesh* wMesh = nullptr;
 
-        wMesh = GetCubeMeshWithColor(GetColorForWayPointType(type));
+        wMesh = mInfra->mDrawDebug->GetCubeMeshWithColor(GetColorForWayPointType(type));
 
         //use the prepared cubeMesh for Waypoint editor entity items
         newEntity = new EditorEntity(this, p_entity, wMesh);
@@ -939,7 +823,7 @@ void EntityManager::CreateEntity(EntityItem* p_entity) {
         EditorEntity* newEntity;
         irr::scene::IMesh* wMesh = nullptr;
 
-        wMesh = GetCubeMeshWithColor(mInfra->mDrawDebug->red);
+        wMesh = mInfra->mDrawDebug->GetCubeMeshWithColor(mInfra->mDrawDebug->red);
 
         //use the prepared cubeMesh for WallPointSegments as well
         newEntity = new EditorEntity(this, p_entity, wMesh);

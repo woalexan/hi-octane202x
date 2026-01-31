@@ -253,6 +253,8 @@ add_executable(hi-octane202x
     src/utils/boundingbox/matrix.h
     src/utils/boundingbox/collision.h
     src/utils/boundingbox/collision.cpp
+    src/utils/gamedbgwnd.h
+    src/utils/gamedbgwnd.cpp
 
     src/xeffects/XEffects.h
     src/xeffects/CScreenQuad.h

@@ -13,10 +13,7 @@ Logger::Logger(irr::gui::IGUIEnvironment* guienvPntr, irr::core::rect<irr::s32> 
     this->logTextOutputWindow = mGuiEnv->addStaticText(L"",
            mCurrentLogTextOutputWindowPos, false, true, nullptr, -1, true);
 
-    //we need to deactivate word wrap because if we do not
-    //there seems to be an Irrlicht bug or problem
-    //that causes an unexpected malloc assert problems somehow
-    this->logTextOutputWindow->setWordWrap(false);
+    this->logTextOutputWindow->setWordWrap(true);
 
     //how many lines of log messages can we max show at a time
     //depends on the current logWindow size, and font height
