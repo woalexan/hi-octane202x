@@ -31,6 +31,27 @@
 #define DEF_GAME_STARTRACE 0
 #define DEF_GAME_STARTDEMO 1
 
+// Values used to identify individual GUI elements
+enum
+{
+    GUI_ID_LEVEL_SHOWWALLSEGMENTLINES_CHECKBOX  = 0x20000,
+    GUI_ID_LEVEL_SHOWWALLCOLLISIONMESH_CHECKBOX,
+    GUI_ID_LEVEL_SHOWWAYPOINTLINKS_CHECKBOX,
+    GUI_ID_LEVEL_SHOWWAYPOINTLINKSSPACE_CHECKBOX,
+    GUI_ID_LEVEL_SHOWCHECKPOINTS_CHECKBOX,
+    GUI_ID_LEVEL_SHOWPOI_CHECKBOX,
+    GUI_ID_LEVEL_SHOWTRIGGERREGIONS_CHECKBOX,
+    GUI_ID_LEVEL_LOGTRIGGEREVENTS_CHECKBOX,
+    GUI_ID_LEVEL_ACTIVATEMORPHKEYTRG_CHECKBOX,
+    GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX,
+
+    GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX,
+    GUI_ID_MOVEMENT_ACTINGFORCES_CHECKBOX,
+    GUI_ID_MOVEMENT_CPU_CURRSEGMENT_CHECKBOX,
+    GUI_ID_MOVEMENT_CPU_PATHHISTORY_CHECKBOX,
+    GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX
+};
+
 /************************
  * Forward declarations *
  ************************/
@@ -151,6 +172,8 @@ private:
 
     bool mAttributionRunning = false;
 
+    bool OnElementClose(irr::s32 elementId);
+
 public:
     irr::video::ITexture* backgnd = nullptr;
 
@@ -167,6 +190,8 @@ public:
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;
 
+    bool mDbgUnlocked = false;
+
     //Returns true for success, false for error occured
     bool InitGameStep1();
     bool InitGameStep2();
@@ -178,6 +203,10 @@ public:
     void StopTime();
     void StartTime();
     void AdvanceFrame(irr::s32 advanceFrameCount);
+
+    //overwrite HandleGuiEvent method for Game
+    //returns true if Gui Event should be canceled
+    virtual bool HandleGuiEvent(const irr::SEvent& event);
 
     Game(int argc, char **argv);
     virtual ~Game();

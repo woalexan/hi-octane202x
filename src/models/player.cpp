@@ -20,6 +20,7 @@
 #include "../audio/sound.h"
 #include "../draw/hud.h"
 #include "../utils/logger.h"
+#include "../draw/drawdebug.h"
 #include "camera.h"
 #include "../utils/movingavg.h"
 #include "../race.h"
@@ -3664,5 +3665,139 @@ void Player::HandleShield() {
 
     if (mPlayerStats->shieldVal >= (mPlayerStats->shieldMax * 0.5f)) {
           mLowShieldWarningAlreadyShown = false;
+    }
+}
+
+void Player::SetDebugFlag(irr::u8 debugFlag, bool enable) {
+  switch (debugFlag) {
+      case DEF_PLAYER_DBG_ALL: {
+          mDebugDrawCurrWayPointLink = enable;
+          mDebugDrawActingForces = enable;
+          mDebugDrawCPUCurrSegment = enable;
+          mDebugDrawCPUPathHistory = enable;
+          mDebugDrawFreeSpace = enable;
+          break;
+      }
+      case DEF_PLAYER_DBG_CURRWAYPOINTLINK: {
+          mDebugDrawCurrWayPointLink = enable;
+          break;
+      }
+
+      case DEF_PLAYER_DBG_ACTINGFORCES: {
+          mDebugDrawActingForces = enable;
+          break;
+      }
+
+      case DEF_PLAYER_DBG_CPU_CURRSEGMENT: {
+          mDebugDrawCPUCurrSegment = enable;
+          break;
+      }
+
+      case DEF_PLAYER_DBG_CPU_PATHHISTORY: {
+          mDebugDrawCPUPathHistory = enable;
+          break;
+      }
+
+      case DEF_PLAYER_DBG_FREESPACE: {
+          mDebugDrawFreeSpace = enable;
+          break;
+      }
+
+      default: {
+          break;
+      }
+  }
+}
+
+bool Player::GetDebugFlag(irr::u8 debugFlag) {
+    switch (debugFlag) {
+        case DEF_PLAYER_DBG_CURRWAYPOINTLINK: {
+            return (mDebugDrawCurrWayPointLink);
+        }
+
+        case DEF_PLAYER_DBG_ACTINGFORCES: {
+            return (mDebugDrawActingForces);
+        }
+
+        case DEF_PLAYER_DBG_CPU_CURRSEGMENT: {
+            return (mDebugDrawCPUCurrSegment);
+        }
+
+        case DEF_PLAYER_DBG_CPU_PATHHISTORY: {
+            return (mDebugDrawCPUPathHistory);
+        }
+
+        case DEF_PLAYER_DBG_FREESPACE: {
+            return (mDebugDrawFreeSpace);
+        }
+
+        default: {
+            return (false);
+        }
+    }
+}
+
+void Player::DebugDrawFreeSpace() {
+    irr::core::vector3df midPnt = phobj->physicState.position;
+    irr::core::vector3df leftPnt = midPnt - craftSidewaysToRightVec * mCraftDistanceAvailLeft;
+
+    //increase Y coordinate slightly, too not get flicker effect between
+    //drawn lines and terrain tiles itself
+    irr::core::vector2di cell;
+    leftPnt.Y = mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(leftPnt.X, leftPnt.Z, cell) + 0.1f;
+
+    mRace->mGame->mDrawDebug->Draw3DLine(midPnt, leftPnt, mRace->mGame->mDrawDebug->red);
+
+    irr::core::vector3df rightPnt = midPnt + craftSidewaysToRightVec * mCraftDistanceAvailRight;
+
+    rightPnt.Y = mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(rightPnt.X, rightPnt.Z, cell) + 0.1f;
+
+    mRace->mGame->mDrawDebug->Draw3DLine(midPnt, rightPnt, mRace->mGame->mDrawDebug->red);
+
+    irr::core::vector3df frontPnt = midPnt + craftForwardDirVec * mCraftDistanceAvailFront;
+
+    frontPnt.Y = mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(frontPnt.X, frontPnt.Z, cell) + 0.1f;
+
+    mRace->mGame->mDrawDebug->Draw3DLine(midPnt, frontPnt, mRace->mGame->mDrawDebug->red);
+
+    irr::core::vector3df backPnt = midPnt - craftForwardDirVec * mCraftDistanceAvailBack;
+
+    backPnt.Y = mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(backPnt.X, backPnt.Z, cell) + 0.1f;
+
+    mRace->mGame->mDrawDebug->Draw3DLine(midPnt, backPnt, mRace->mGame->mDrawDebug->red);
+}
+
+void Player::DebugDraw() {
+    if (mDebugDrawCurrWayPointLink) {
+        if (currClosestWayPointLink.first != nullptr) {
+             mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.first->pLineStruct->A,
+                                   mRace->mGame->mDrawDebug->cyan);
+
+             mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.first->pLineStruct->B,
+                                   mRace->mGame->mDrawDebug->red);
+
+             mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.second,
+                                   mRace->mGame->mDrawDebug->blue);
+        }
+    }
+
+    if (mDebugDrawActingForces) {
+        //draw currently active world coordinate forces on player ship
+        phobj->DebugDrawCurrentWorldCoordForces(mRace->mGame->mDrawDebug,
+                                                mRace->mGame->mDrawDebug->green, PHYSIC_DBG_FORCETYPE_GENERICALL);
+    }
+
+    if (mDebugDrawFreeSpace) {
+        DebugDrawFreeSpace();
+    }
+
+    if (!mHumanPlayer && (mCpuPlayer != nullptr)) {
+       if (mDebugDrawCPUPathHistory) {
+           mCpuPlayer->DebugDrawPathHistory();
+       }
+
+       if (mDebugDrawCPUCurrSegment) {
+           mCpuPlayer->DebugDrawCurrentSegment();
+       }
     }
 }

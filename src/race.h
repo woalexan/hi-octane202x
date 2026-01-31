@@ -38,6 +38,8 @@ const irr::f32 DEF_RACE_FINISHED_WAITTIME_SEC = 7.0f;
 //in demo mode, until change to the next scene
 const irr::f32 DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER = 10.0f;
 
+const irr::f32 DbgWaypointCubeHeightDistance = 0.3f;
+
 #define DEF_RACE_DAMAGETYPE_UNDEF 0
 #define DEF_RACE_DAMAGETYPE_MGUN 1
 #define DEF_RACE_DAMAGETYPE_MISSILE 2
@@ -46,6 +48,18 @@ const irr::f32 DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER = 10.0f;
 #define DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE 1
 #define DEF_RACE_PHASE_RACING 2
 #define DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE 3
+
+#define DEF_RACE_DBG_ALL 0
+#define DEF_RACE_DBG_WALLSEGMENTS 1
+#define DEF_RACE_DBG_WALLCOLLISIONMESH 2
+#define DEF_RACE_DBG_WAYPOINTLINKS 3
+#define DEF_RACE_DBG_WAYPOINTLINKSSPACE 4
+#define DEF_RACE_DBG_CHECKPOINTS 5
+#define DEF_RACE_DBG_POI 6
+#define DEF_RACE_DBG_TRIGGERREGIONS 7
+#define DEF_RACE_DBG_LOGTRIGGEREVENTS 8
+#define DEF_RACE_DBG_ACTIVATEMORPHKEYTRG 9
+#define DEF_RACE_DBG_CHARGINGSTATIONINFO 10
 
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
@@ -118,6 +132,7 @@ struct ColorStruct;
 class ShaderCallBack;
 struct MapConfigStruct;
 class MiniMap;
+class GameDbgWnd;
 
 class Race {
 public:
@@ -130,7 +145,7 @@ public:
     bool ready;
 
     void HandleInput(irr::f32 deltaTime);
-    void HandleBasicInput();
+    void HandleDebugInput();
     void HandleComputerPlayers(irr::f32 frameDeltaTime);
     void Render();
     void DrawHUD(irr::f32 frameDeltaTime);
@@ -139,6 +154,9 @@ public:
     void Init();
     void AddPlayer(bool humanPlayer, char* name, std::string player_model);
     void End();
+
+    void SetDebugFlag(irr::u8 debugFlag, bool enable);
+    bool GetDebugFlag(irr::u8 debugFlag);
 
     std::vector<RaceStatsEntryStruct*>* RetrieveFinalRaceStatistics();
     void CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr);
@@ -200,6 +218,8 @@ public:
     HUD *Hud1Player = nullptr;
 
     bool DebugHitBreakpoint = false;
+
+    GameDbgWnd* mDbgWindow = nullptr;
 
     //debugging function which allows to draw a rectangle around a selected
     //tile of the heightmap of the terrain level
@@ -290,7 +310,12 @@ public:
     //able to stop the race in attribution mode
     void InitiateExitRace();
 
+    void RemovePlayer(Player* whichPlayer);
+
     MapConfigStruct* mMapConfig = nullptr;
+
+    void UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable);
+    bool GetPlayersDbgFlagState(irr::u8 debugFlag);
 
 private:
     std::string mLevelRootPath;
@@ -327,11 +352,6 @@ private:
     //which are needed by computer player control functions
     WorldAwareness* mWorldAware = nullptr;
 
-    //the main player object
-
-    //Player physics object
-    PhysicsObject* playerPhysicsObj = nullptr;
-
     //vector for player physic objects
     std::vector<PhysicsObject*> mPlayerPhysicObjVec;
 
@@ -361,13 +381,16 @@ private:
     bool DebugShowWaypoints = false;
     bool DebugShowFreeMovementSpace = false;
 
-    bool DebugShowWallCollisionMesh = false;
-    bool DebugShowCheckpoints = false;
     bool DebugShowWallSegments = false;
+    bool DebugShowWallCollisionMesh = false;
+
+    bool DebugShowCheckpoints = false;
     bool DebugShowRegionsAndPointOfInterest = false;
     bool DebugShowTriggerRegions = false;
     bool DebugShowTriggerEvents = false;
     bool AllowStartMorphsPerKey = false;
+
+    bool DebugShowChargingStationInfo = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
@@ -389,6 +412,10 @@ private:
     void AddExplosionEntity(EntityItem *entity);
 
     void AddWayPoint(EntityItem *entity, EntityItem *next);
+    ColorStruct* GetColorForWayPointType(Entity::EntityType whichType);
+    std::vector<irr::scene::IMeshSceneNode*> mDbgWaypntSceneNodeVec;
+    void SetDbgWayPointSceneNodesVisible(bool visible);
+    void CleanUpDbgWayPointSceneNodes();
 
     std::list<EntityItem*> *ENTWallsegments_List = nullptr;
     std::list<EntityItem*> *ENTTriggers_List = nullptr;

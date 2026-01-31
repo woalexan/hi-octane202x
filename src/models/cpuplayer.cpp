@@ -540,19 +540,28 @@ bool CpuPlayer::DoIWantToChargeAmmo() {
     return false;
 }
 
-void CpuPlayer::DebugDraw() {
-
- /* mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt1, this->mParentPlayer->mRace->mDrawDebug->green);
-  mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt2, this->mParentPlayer->mRace->mDrawDebug->red);
-  mParentPlayer->mRace->mDrawDebug->Draw3DLine(this->mParentPlayer->mRace->topRaceTrackerPointerOrigin, debugPathPnt3, this->mParentPlayer->mRace->mDrawDebug->blue);*/
-
+void CpuPlayer::DebugDrawCurrentSegment() {
   if (mCurrentPathSeg.size() > 0) {
        std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
 
        for (itPathEl = mCurrentPathSeg.begin(); itPathEl != mCurrentPathSeg.end(); ++itPathEl) {
-             mParentPlayer->mRace->mGame->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A, (*itPathEl)->pLineStruct->B, (*itPathEl)->pLineStruct->color);
+             mParentPlayer->mRace->mGame->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A,
+                                                                 (*itPathEl)->pLineStruct->B,
+                                                                 (*itPathEl)->pLineStruct->color);
         }
   }
+}
+
+void CpuPlayer::DebugDrawPathHistory() {
+    if (mPathHistoryVec.size() > 0) {
+        std::vector<WayPointLinkInfoStruct*>::iterator itPathEl;
+
+        for (itPathEl = mPathHistoryVec.begin(); itPathEl != mPathHistoryVec.end(); ++itPathEl) {
+           mParentPlayer->mRace->mGame->mDrawDebug->Draw3DLine((*itPathEl)->pLineStruct->A,
+                                                               (*itPathEl)->pLineStruct->B,
+                                                               (*itPathEl)->pLineStruct->color);
+       }
+    }
 }
 
 WayPointLinkInfoStruct* CpuPlayer::CpPlayerWayPointLinkSelectionLogic(std::vector<WayPointLinkInfoStruct*> availLinks) {

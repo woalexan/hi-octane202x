@@ -11,6 +11,7 @@
 #define DRAWDEBUG_H
 
 #include <irrlicht.h>
+#include <vector>
 
 struct ColorStruct {
     irr::video::SColor* color;
@@ -20,7 +21,7 @@ struct ColorStruct {
 class DrawDebug {
 
 public:
-    DrawDebug(irr::video::IVideoDriver *driver);
+    DrawDebug(irr::scene::ISceneManager* sceneManager, irr::video::IVideoDriver *driver);
     ~DrawDebug();
     void DrawWorldCoordinateSystemArrows();
     void Draw3DArrow(irr::core::vector3df startPos, irr::core::vector3df arrowPosition, irr::f32 arrowOffset,
@@ -31,6 +32,10 @@ public:
     void Draw3DRectangle(irr::core::vector3df v1, irr::core::vector3df v2, irr::core::vector3df v3, irr::core::vector3df v4,
                          ColorStruct* color);
     void DrawAround3DBoundingBox(irr::core::aabbox3df* boundingBox, ColorStruct* color);
+
+    //If specified color is not available, returns a white cube
+    irr::scene::IMesh* GetCubeMeshWithColor(ColorStruct* whichColor);
+    irr::scene::IMesh* CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor);
 
     //colors for drawing debug arrows, lines etc
     ColorStruct* red = nullptr;
@@ -52,6 +57,7 @@ public:
 
 private:
     irr::video::IVideoDriver* myDriver = nullptr;
+    irr::scene::ISceneManager* mySmgr = nullptr;
 
     irr::core::vector3df GetOrthogonalVector(irr::core::vector3df inVec);
 
@@ -62,6 +68,12 @@ private:
 
     ColorStruct* AddColor(irr::u32 alpha, irr::u32 r, irr::u32 g, irr::u32 b);
     void CleanUpColor(ColorStruct* whichColor);
+
+    //a simple Cube Mesh for Waypoint and Wallsegment level Editor
+    //entity items
+    std::vector<std::pair<ColorStruct*, irr::scene::IMesh*>> mCubeMeshVec;
+    void InitCubeMesh();
+    void CleanupAllCubeMesh();
 };
 
 #endif // DRAWDEBUG_H

@@ -365,7 +365,7 @@ void PhysicsObject::DebugDrawCurrentWorldCoordForces(DrawDebug* drawDebugObj, Co
          if ((dbgForceClassification == PHYSIC_DBG_FORCETYPE_GENERICALL) || (dbgForceClassification == (*it).DbgForceType)) {
             drawDebugObj->Draw3DLine((*it).DbgLastArmVecStart, (*it).DbgLastArmVecEnd, drawDebugObj->pink);
             drawDebugObj->Draw3DLine((*it).DbgFTorqueStart, (*it).DbgFTorqueEnd, drawDebugObj->brown);
-            drawDebugObj->Draw3DArrow((*it).ForceStartPoint, (*it).ForceEndPoint, 0.0f, Color);
+            drawDebugObj->Draw3DArrow((*it).ForceStartPoint, (*it).ForceEndPoint, 0.0f, Color, 0.1f);
          }
      }
 }

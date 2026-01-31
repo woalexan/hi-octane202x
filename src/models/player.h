@@ -56,6 +56,13 @@ const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
 #define CAMERA_EXTERNALVIEW 2
 #define CAMERA_PLAYER_SIDELOOKING 3
 
+#define DEF_PLAYER_DBG_ALL 0
+#define DEF_PLAYER_DBG_CURRWAYPOINTLINK 1
+#define DEF_PLAYER_DBG_ACTINGFORCES 2
+#define DEF_PLAYER_DBG_CPU_CURRSEGMENT 3
+#define DEF_PLAYER_DBG_CPU_PATHHISTORY 4
+#define DEF_PLAYER_DBG_FREESPACE 5
+
 /************************
  * Forward declarations *
  ************************/
@@ -268,6 +275,9 @@ public:
 
     void StartDbgRecording();
     void EndDbgRecording();
+
+    void SetDebugFlag(irr::u8 debugFlag, bool enable);
+    bool GetDebugFlag(irr::u8 debugFlag);
 
     bool firstNoKeyPressed = false;
 
@@ -647,6 +657,8 @@ public:
     bool IsCurrentlyChargingShield();
     bool IsCurrentlyChargingAmmo();
 
+    void DebugDraw();
+
 private:
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* PlayerMesh = nullptr;
@@ -775,6 +787,14 @@ private:
     void HandleShield();
 
     void UpdateInternalCoordVariables();
+
+    bool mDebugDrawCurrWayPointLink = false;
+    bool mDebugDrawActingForces = false;
+    bool mDebugDrawCPUCurrSegment = false;
+    bool mDebugDrawCPUPathHistory = false;
+    bool mDebugDrawFreeSpace = false;
+
+    void DebugDrawFreeSpace();
 
 public:
 
