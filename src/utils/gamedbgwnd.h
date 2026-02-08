@@ -49,6 +49,8 @@ struct GUIGameDbgWnd
     irr::gui::IGUICheckBox* ShowPlayerCPUCurrentSegment;
     irr::gui::IGUICheckBox* ShowPlayerCPUPathHistory;
     irr::gui::IGUICheckBox* ShowPlayerFreeSpace;
+    irr::gui::IGUICheckBox* ShowPlayerParallelWayPointLinks;
+    irr::gui::IGUICheckBox* TakeOverCpuControl;
 };
 
 class GameDbgWnd {

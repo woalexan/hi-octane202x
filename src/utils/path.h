@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -13,6 +13,26 @@
 #include "irrlicht.h"
 #include <vector>
 #include "../definitions.h"
+
+//Main waypoint link in the middle, one additional
+//link left and right of it
+#define DEF_PATH_NR_PARALLEL_LINKS 3
+
+//Integer value for a parallel waypoint link
+//path that is obstructed (for example by Terrain)
+//and can not be used at all
+#define DEF_PATH_UNUSABLE 99
+
+//The (real world) distance between two parallel
+//waypoint links, needs to be absolute minimum 1.0f,
+//because each craft is 1.0f wide, so that 2 craft
+//can fly next to each other; but choose higher value
+const irr::f32 DEF_PATH_DIST_PARALLEL_LINKS = 1.5f;
+
+//Safety distance which we want to keep to Terrain for
+//parallel waypoint links; Is considered when parallel waypoint
+//links are initialized
+const irr::f32 DEF_PATH_SAFETYDISTANCE = 0.7f;
 
 /************************
  * Forward declarations *
@@ -55,6 +75,13 @@ struct WayPointLinkInfoStruct {
     //via waypoint entities)
     LineStruct* pLineStruct = nullptr;
 
+    //If a waypoint link (parallel) path is already reserved by a
+    //player for moving through this value contains the player number (starting
+    //with index 0), if non reserved contains value 0, and if parallel
+    //waypoint link is not useable due to a physical obstruction (Terrain etc...)
+    //contains value DEF_PATH_UNUSABLE
+    irr::u8 reservedByPlayer[DEF_PATH_NR_PARALLEL_LINKS];
+
     //Idea: extend the lines a little bit further outwards at
     //both ends, so that when we project the players position on
     //the different segments later we always find a valid segment
@@ -96,23 +123,12 @@ struct WayPointLinkInfoStruct {
 
     //maximum possible offset waypoint link path shift
     //in positive direction (towards right side if looking in race
-    //direction) at start entity
-    irr::f32 maxOffsetShiftStart;
+    //direction)
+    irr::f32 maxOffsetShift;
 
     //minimum possible offset waypoint link path shift (negative)
     //tells us who far we can offset to the left of waypoint link
-    //at start entity
-    irr::f32 minOffsetShiftStart;
-
-    //maximum possible offset waypoint link path shift
-    //in positive direction (towards right side if looking in race
-    //direction) at end entity
-    irr::f32 maxOffsetShiftEnd;
-
-    //minimum possible offset waypoint link path shift (negative)
-    //tells us who far we can offset to the left of waypoint link
-    //at end entity
-    irr::f32 minOffsetShiftEnd;
+    irr::f32 minOffsetShift;
 };
 
 class Path {
@@ -194,6 +210,8 @@ public:
     //returns a vector containing all charging stations
     //which a certain defined waypoint link intersects
     std::vector<ChargingStation*> WhichChargingStationsDoesAWayPointLinkIntersect(WayPointLinkInfoStruct* whichLink);
+
+    irr::core::vector3df ProjectPointOnLine(irr::core::vector3df point, irr::core::line3df line);
 
 private:
     Race* mRace = nullptr;

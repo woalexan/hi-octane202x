@@ -1802,12 +1802,12 @@ void Assets::InitCpPilots() {
     //this players are all only used as computer players
     //do not change the order of this pilots below!
     AddPilot((char*)("BARNSY"), false, (char*)("BESERKER"));
-    AddPilot((char*)("SHUNTLY"), false, (char*)("JUGGA"));
+   /* AddPilot((char*)("SHUNTLY"), false, (char*)("JUGGA"));
     AddPilot((char*)("COPSE"), false, (char*)("VAMPYR"));
     AddPilot((char*)("MANNY"), false, (char*)("OUTRIDER"));
     AddPilot((char*)("MCLALIN"), false, (char*)("FLEXIWING"));
     AddPilot((char*)("MAD"), false, (char*)("KD-1 SPEEDER"));
-    AddPilot((char*)("ATROW"), false, (char*)("BESERKER"));
+    AddPilot((char*)("ATROW"), false, (char*)("BESERKER"));*/
 }
 
 void Assets::SetComputerPlayersEnabled(bool enabled) {

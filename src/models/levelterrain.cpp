@@ -2755,6 +2755,59 @@ void LevelTerrain::ResetTextureCompleteTerrain(int newTexId) {
     }
 }
 
+void LevelTerrain::DrawLineOnTerrain(irr::core::vector3df startPnt, irr::core::vector3df endPnt, ColorStruct* color, irr::f32 stepSize) {
+   //how many steps do we need?
+   irr::f32 lineLen = (endPnt - startPnt).getLength();
+   irr::s32 steps = lineLen / stepSize;
+
+   irr::core::vector3df dirVec = (endPnt - startPnt).normalize();
+   irr::core::vector3df currStart = startPnt;
+   irr::core::vector3df currEnd;
+
+   mInfra->mDriver->setMaterial(*color->material);
+
+   irr::core::vector2di outCell;
+
+   for (irr::s32 stepIdx = 0; stepIdx < steps; stepIdx++) {
+        currEnd = currStart + dirVec * stepSize;
+
+        //find correct Y-coordinates depending on the Terrain
+        currStart.Y = GetCurrentTerrainHeightForWorldCoordinate(currStart.X, currStart.Z, outCell) + 0.15f;
+        currEnd.Y = GetCurrentTerrainHeightForWorldCoordinate(currEnd.X, currEnd.Z, outCell) + 0.15f;
+
+        //draw the current line segment
+        mInfra->mDriver->draw3DLine(currStart, currEnd);
+
+        currStart += dirVec * stepSize;
+   }
+}
+
+void LevelTerrain::Draw3DArrowOnTerrain(irr::core::vector3df startPos, irr::core::vector3df arrowPosition, irr::f32 arrowOffset, ColorStruct* color, irr::f32 arrowSize,
+                                     irr::f32 stepSize) {
+    mInfra->mDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
+
+    mInfra->mDriver->setMaterial(*color->material);
+
+    //draw the line itself
+    DrawLineOnTerrain(startPos, arrowPosition, color, stepSize);
+
+    irr::core::vector3df dirVec = (startPos - arrowPosition);
+    dirVec.normalize();
+
+    irr::core::vector3df dp = arrowPosition + dirVec * arrowSize + dirVec * arrowOffset;
+
+    irr::core::vector3df oneNormal = mInfra->mDrawDebug->GetOrthogonalVector(dp);
+    oneNormal.normalize();
+
+    irr::core::vector3df otherVec = dp.crossProduct(oneNormal);
+    otherVec.normalize();
+
+    mInfra->mDriver->draw3DLine(arrowPosition, dp + oneNormal * arrowSize);
+    mInfra->mDriver->draw3DLine(arrowPosition, dp - oneNormal * arrowSize);
+    mInfra->mDriver->draw3DLine(arrowPosition, dp + otherVec * arrowSize);
+    mInfra->mDriver->draw3DLine(arrowPosition, dp - otherVec * arrowSize);
+}
+
 void LevelTerrain::DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, ColorStruct* color) {
     irr::core::vector3df pos1 = pTerrainTiles[selCellCoordinate.X][selCellCoordinate.Y].vert1->Pos;
     pos1.X = -pos1.X;

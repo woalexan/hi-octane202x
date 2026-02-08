@@ -29,9 +29,9 @@
 
 #define CP_MISSION_WAITFORRACESTART 0
 #define CP_MISSION_FINISHLAPS 1
-
-const irr::f32 CP_PLAYER_FAST_SPEED = 13.0f;
-const irr::f32 CP_PLAYER_SLOW_SPEED = 9.0f;
+                                                //restore commented out speed values later!
+const irr::f32 CP_PLAYER_FAST_SPEED = 5.0f;      //13.0f;
+const irr::f32 CP_PLAYER_SLOW_SPEED = 4.0f;     //9.0f;
 
 const irr::f32 CP_PLAYER_DEACCEL_RATE_DEFAULT = 0.1f;
 const irr::f32 CP_PLAYER_ACCEL_RATE_DEFAULT = 0.07f;
@@ -92,6 +92,7 @@ public:
     void RunPlayerLogic(irr::f32 deltaTime);
     void WasDestroyed();
     void CpTakeOverHuman();
+    void CpStop();
     void FreedFromRecoveryVehicleAgain();
 
     bool IsCurrentlyStuck();
@@ -204,6 +205,9 @@ private:
     void CpPlayerHandleAttack();
 
     void FollowPathDefineNextSegment(WayPointLinkInfoStruct* nextLink, irr::f32 startOffsetWay, bool updatePathReachedEndWayPointLink = false);
+    void DefineSegmentTowardsWayPointLink(WayPointLinkInfoStruct* whichLink);
+
+    void CreateNewSegmentPath(irr::core::vector3df start3DPnt, irr::core::vector3df cntrl3DPnt, irr::core::vector3df end3DPnt, bool goThrough);
 
     irr::f32 computerPlayerTargetSpeed = 0.0f;
     irr::f32 computerPlayerCurrentSpeed = 0.0f;
@@ -277,9 +281,11 @@ private:
     //players stuck; Set true for final release to handle
     //random cases where computer players really get stuck, so that
     //races can for sure finish
-    bool CpEnableStuckDetection = true;
+    bool CpEnableStuckDetection = false;
 
-    bool computerPlayersAttack = true;
+    bool computerPlayersAttack = false;
+
+    bool mLockedToWayPoints = false;
 };
 
 #endif // CPUPLAYER_H

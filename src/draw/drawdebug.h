@@ -37,6 +37,8 @@ public:
     irr::scene::IMesh* GetCubeMeshWithColor(ColorStruct* whichColor);
     irr::scene::IMesh* CreateCubeMesh(irr::f32 size, ColorStruct* cubeColor);
 
+    irr::core::vector3df GetOrthogonalVector(irr::core::vector3df inVec);
+
     //colors for drawing debug arrows, lines etc
     ColorStruct* red = nullptr;
     ColorStruct* green = nullptr;
@@ -58,8 +60,6 @@ public:
 private:
     irr::video::IVideoDriver* myDriver = nullptr;
     irr::scene::ISceneManager* mySmgr = nullptr;
-
-    irr::core::vector3df GetOrthogonalVector(irr::core::vector3df inVec);
 
     //coordinates for drawing 3D world coordinate system with arrows
     irr::core::vector3df *XAxis = nullptr;

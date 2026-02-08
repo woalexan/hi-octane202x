@@ -362,6 +362,17 @@ void Player::CpTakeOverHuman() {
     mCpuPlayer->CpTakeOverHuman();
 }
 
+void Player::CpStop() {
+    //reconfigure physics model for human behavior
+    this->mRace->SetupPhysicsObjectParameters(*this->phobj, true);
+
+    //start being a "human" player
+    mHumanPlayer = true;
+
+    LogMessage((char*)"Control handed over to human");
+    mCpuPlayer->CpStop();
+}
+
 void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
     //lets repair (refuel) the player
     if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_EMPTYFUEL) {
@@ -3770,11 +3781,14 @@ void Player::DebugDrawFreeSpace() {
 void Player::DebugDraw() {
     if (mDebugDrawCurrWayPointLink) {
         if (currClosestWayPointLink.first != nullptr) {
-             mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.first->pLineStruct->A,
+           /*  mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.first->pLineStruct->A,
                                    mRace->mGame->mDrawDebug->cyan);
 
              mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.first->pLineStruct->B,
-                                   mRace->mGame->mDrawDebug->red);
+                                   mRace->mGame->mDrawDebug->red);*/
+
+             mRace->mGame->mDrawDebug->Draw3DLine(currClosestWayPointLink.first->pLineStruct->A, currClosestWayPointLink.first->pLineStruct->B,
+                                   mRace->mGame->mDrawDebug->cyan);
 
              mRace->mGame->mDrawDebug->Draw3DLine(phobj->physicState.position, currClosestWayPointLink.second,
                                    mRace->mGame->mDrawDebug->blue);

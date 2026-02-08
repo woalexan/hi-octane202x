@@ -73,19 +73,19 @@ bool Recovery::WayPointLinkAcceptableForDropOf(WayPointLinkInfoStruct* link) {
     if (link == nullptr)
         return false;
 
-    irr::f32 minDistanceRight = link->maxOffsetShiftEnd;
+    irr::f32 minDistanceRight = link->maxOffsetShift;
 
-    if (link->maxOffsetShiftStart < minDistanceRight) {
+    /*if (link->maxOffsetShiftStart < minDistanceRight) {
         minDistanceRight = link->maxOffsetShiftStart;
-    }
+    }*/
 
     //the values in minOffset variables are negative!
     //keep this is mind; so smaller space is actually more positive
-    irr::f32 minDistanceLeft = link->minOffsetShiftEnd;
+    irr::f32 minDistanceLeft = link->minOffsetShift;
 
-    if (link->minOffsetShiftStart > minDistanceLeft) {
+    /*if (link->minOffsetShiftStart > minDistanceLeft) {
         minDistanceLeft = link->minOffsetShiftStart;
-    }
+    }*/
 
     //only pick this waypoint link as a drop of target if both
     //free spaces left and right are higher then a certain threshold

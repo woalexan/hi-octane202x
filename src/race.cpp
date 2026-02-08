@@ -441,18 +441,22 @@ void Race::IrrlichtStats(char* text) {
 }
 
 void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
+  bool lastDbgTakeOverCpuControl = DebugTakeOverCpuControl;
+
   switch (debugFlag) {
       case DEF_RACE_DBG_ALL: {
           DebugShowWallSegments = enable;
           DebugShowWallCollisionMesh = enable;
           DebugShowWaypoints = enable;
           DebugShowFreeMovementSpace = enable;
+          DebugShowParallelWayPointLinks = enable;
           DebugShowCheckpoints = enable;
           DebugShowRegionsAndPointOfInterest = enable;
           DebugShowTriggerRegions = enable;
           DebugShowTriggerEvents = enable;
           AllowStartMorphsPerKey = enable;
           DebugShowChargingStationInfo = enable;
+          DebugTakeOverCpuControl = enable;
           break;
       }
       case DEF_RACE_DBG_WALLSEGMENTS: {
@@ -505,6 +509,16 @@ void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
           break;
       }
 
+      case DEF_RACE_DBG_TAKEOVERCPUCONTROL: {
+              DebugTakeOverCpuControl = enable;
+              break;
+      }
+
+      case DEF_RACE_DBG_SHOWPARALLELWAYPOINTLINKS: {
+              DebugShowParallelWayPointLinks = enable;
+              break;
+      }
+
       default: {
           break;
       }
@@ -514,6 +528,10 @@ void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
       wallCollisionMeshSceneNode->setVisible(true);
   } else {
       wallCollisionMeshSceneNode->setVisible(false);
+  }
+
+  if (DebugTakeOverCpuControl != lastDbgTakeOverCpuControl) {
+    HandoverCpuPlayer(DebugTakeOverCpuControl);
   }
 
   SetDbgWayPointSceneNodesVisible(DebugShowWaypoints);
@@ -567,6 +585,14 @@ bool Race::GetDebugFlag(irr::u8 debugFlag) {
 
         case DEF_RACE_DBG_CHARGINGSTATIONINFO: {
             return (DebugShowChargingStationInfo);
+        }
+
+        case DEF_RACE_DBG_TAKEOVERCPUCONTROL: {
+                return (DebugTakeOverCpuControl);
+        }
+
+        case DEF_RACE_DBG_SHOWPARALLELWAYPOINTLINKS: {
+                return (DebugShowParallelWayPointLinks);
         }
 
         default: {
@@ -1364,6 +1390,10 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
 
     //start engine sound for new player
     this->mSoundEngine->StartEngineSoundForPlayer(newPlayer);
+
+    if (humanPlayer) {
+        currCntrlPlayer = newPlayer;
+    }
 }
 
 void Race::SetupPhysicsObjectParameters(PhysicsObject &phyObj, bool humanPlayer) {
@@ -1735,6 +1765,36 @@ void Race::HandleCraftHeightMapCollisions(irr::f32 deltaTime, PhysicsObject* whi
     }
 }
 
+void Race::InitWayPointLinkOffsetPaths() {
+    irr::f32 currOffset;
+    irr::s32 middleOffset = ((DEF_PATH_NR_PARALLEL_LINKS - 1) / 2);
+    irr::s32 safetyDist = DEF_PATH_SAFETYDISTANCE;
+
+    std::vector<WayPointLinkInfoStruct*>::iterator it;
+
+    for (it = wayPointLinkVec->begin(); it != wayPointLinkVec->end(); ++it) {
+        for (irr::s32 idx = 0; idx < DEF_PATH_NR_PARALLEL_LINKS; idx++) {
+            currOffset = (irr::f32)(idx - middleOffset) * DEF_PATH_DIST_PARALLEL_LINKS;
+
+            //first mark as not reserved
+            (*it)->reservedByPlayer[idx] = 0;
+
+            if (currOffset < ((*it)->minOffsetShift + safetyDist)) {
+                //This parallel waypoint link is not usable,
+                //because it is obstructed
+                (*it)->reservedByPlayer[idx] = DEF_PATH_UNUSABLE;
+                continue;
+            }
+
+            if (currOffset > ((*it)->maxOffsetShift - safetyDist)) {
+                //This parallel waypoint link is not usable,
+                //because it is obstructed
+                (*it)->reservedByPlayer[idx] = DEF_PATH_UNUSABLE;
+            }
+        }
+    }
+}
+
 void Race::Init() {
     //we want to adjust the keymap for the free movable camera
     SKeyMap keyMap[4];
@@ -1761,7 +1821,7 @@ void Race::Init() {
     if (mGame->mGameConfig->enableDoubleResolution) {
         distCorner *= 2;
     }
-        
+
     //level was loaded ok, we can continue setup
     mMiniMap = new MiniMap(mGame, irr::core::vector2di(mGame->mScreenRes.Width - distCorner, mGame->mScreenRes.Height - distCorner),
                            mMapConfig, mLevelRootPath);
@@ -1853,6 +1913,11 @@ void Race::Init() {
     //now use the new world aware class to further analyze all
     //waypoint links for computer player movement control later
     mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
+
+    //use the new waypoint link offset data
+    //from the step before to prefill (initialize) the
+    //waypoint link internal data
+    InitWayPointLinkOffsetPaths();
 
     //create my ExplosionLauncher
     mExplosionLauncher = new ExplosionLauncher(this, mGame->mSmgr, mGame->mDriver);
@@ -2071,6 +2136,16 @@ void Race::UpdateLensFlare() {
     mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 }
 
+void Race::UpdatePlayerCamera(irr::f32 frameDeltaTime) {
+    if (!mDemoMode) {
+        //camera control normal race
+        ManagePlayerCamera();
+    } else {
+        //camera control for demo mode
+        ManageCameraDemoMode(frameDeltaTime);
+    }
+}
+
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //are we in Race start phase, if so also call
@@ -2169,14 +2244,6 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mPhysics->AdvancePhysicsTime(physicsFrameDeltaTime);
 
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntAdvancePhysics);
-
-    if (!mDemoMode) {
-        //camera control normal race
-        ManagePlayerCamera();
-    } else {
-        //camera control for demo mode
-        ManageCameraDemoMode(frameDeltaTime);
-    }
 
     for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
           (*itPlayer)->AfterPhysicsUpdate();
@@ -2482,7 +2549,6 @@ void Race::HandleDebugInput() {
                 mDbgWindow->OpenWindow();
             } else {
                 mDbgWindow->HideWindow();
-                mGame->StartTime();
             }
         }
       //  this->mPlayerVec.at(0)->mPlayerStats->currRocketUpgradeLevel = 3;
@@ -2621,48 +2687,48 @@ void Race::HandleExitRace() {
 }
 
 void Race::HandleInput(irr::f32 deltaTime) {
-     if (mPlayerVec.at(0)->mHumanPlayer) {
+     if (currCntrlPlayer != nullptr) {
             bool playerNoTurningKeyPressed = true;
 
              if(mGame->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
-                mPlayerVec.at(0)->Forward(deltaTime);
+                currCntrlPlayer->Forward(deltaTime);
              }
 
              if(mGame->mEventReceiver->IsKeyDown(irr::KEY_DOWN))
              {
-                mPlayerVec.at(0)->Backward(deltaTime);
+                currCntrlPlayer->Backward(deltaTime);
              }
 
              if(mGame->mEventReceiver->IsKeyDown(irr::KEY_SPACE))
              {
-                mPlayerVec.at(0)->IsSpaceDown(true, deltaTime);
+                currCntrlPlayer->IsSpaceDown(true, deltaTime);
              } else {
-                mPlayerVec.at(0)->IsSpaceDown(false, deltaTime);
+                currCntrlPlayer->IsSpaceDown(false, deltaTime);
              }
 
              if(mGame->mEventReceiver->IsKeyDown(irr::KEY_LEFT)) {
-                  mPlayerVec.at(0)->Left();
-                  mPlayerVec.at(0)->firstNoKeyPressed = true;
+                  currCntrlPlayer->Left();
+                  currCntrlPlayer->firstNoKeyPressed = true;
                   playerNoTurningKeyPressed = false;
              }
              if(mGame->mEventReceiver->IsKeyDown(irr::KEY_RIGHT)) {
-                  mPlayerVec.at(0)->Right();
-                  mPlayerVec.at(0)->firstNoKeyPressed = true;
+                  currCntrlPlayer->Right();
+                  currCntrlPlayer->firstNoKeyPressed = true;
                   playerNoTurningKeyPressed = false;
              }
 
              //if player has not pressed any turning key run this code
              //as well
              if (playerNoTurningKeyPressed) {
-                 mPlayerVec.at(0)->NoTurningKeyPressed();
+                 currCntrlPlayer->NoTurningKeyPressed();
              }
 
              if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
-                 mPlayerVec.at(0)->mMGun->Trigger();
+                 currCntrlPlayer->mMGun->Trigger();
              }
 
              if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
-                 mPlayerVec.at(0)->mMissileLauncher->Trigger();
+                 currCntrlPlayer->mMissileLauncher->Trigger();
              }
      }
 
@@ -2893,33 +2959,69 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
 void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
     std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
 
+    irr::f32 currOffset;
+    irr::s32 middleOffset = ((DEF_PATH_NR_PARALLEL_LINKS - 1) / 2);
+    irr::s32 idx;
+    ColorStruct* color;
+
     //draw all connections between map waypoints for debugging purposes;
     for(WayPointLink_iterator = wayPointLinkVec->begin(); WayPointLink_iterator != wayPointLinkVec->end(); ++WayPointLink_iterator) {
-        //draw lines a little bit raised from Terrain, so that the are better visible
-        irr::core::vector3df incY(0.0f, 0.15f, 0.0f);
+       /* if (*WayPointLink_iterator != mPlayerVec.at(0)->currClosestWayPointLink.first) {
+            continue;
+        }*/
 
-        mGame->mDrawDebug->Draw3DArrow((*WayPointLink_iterator)->pLineStruct->A + incY,
-                                        (*WayPointLink_iterator)->pLineStruct->B + incY,
-                                        0.5f,
-                                        (*WayPointLink_iterator)->pLineStruct->color, 0.1f);
+        //draw lines a little bit raised from Terrain, so that the are better visible
+        irr::core::vector3df incY(0.0f, 0.25f, 0.0f);
+
+        if (!DebugShowParallelWayPointLinks) {
+                mLevelTerrain->Draw3DArrowOnTerrain((*WayPointLink_iterator)->pLineStruct->A + incY,
+                                                (*WayPointLink_iterator)->pLineStruct->B + incY,
+                                                0.5f,
+                                                (*WayPointLink_iterator)->pLineStruct->color, 0.1f);
+        }
 
         if (drawFreeMovementSpace) {
-            //also draw min/max offset shift limit lines for graphical representation of possible computer player
-            //movement area
-            mGame->mDrawDebug->Draw3DLine(
-                        (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
-                        (*WayPointLink_iterator)->minOffsetShiftStart,
-                        (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
-                        (*WayPointLink_iterator)->minOffsetShiftEnd,
-                        this->mGame->mDrawDebug->blue);
+                    //also draw min/max offset shift limit lines for graphical representation of possible computer player
+                    //movement area
+                    mLevelTerrain->DrawLineOnTerrain(
+                                (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
+                                (*WayPointLink_iterator)->minOffsetShift,
+                                (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
+                                (*WayPointLink_iterator)->minOffsetShift,
+                                this->mGame->mDrawDebug->blue);
 
-            mGame->mDrawDebug->Draw3DLine(
-                        (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
-                        (*WayPointLink_iterator)->maxOffsetShiftStart,
-                        (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
-                        (*WayPointLink_iterator)->maxOffsetShiftEnd,
-                        this->mGame->mDrawDebug->red);
+                    mLevelTerrain->DrawLineOnTerrain(
+                                (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec *
+                                (*WayPointLink_iterator)->maxOffsetShift,
+                                (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec *
+                                (*WayPointLink_iterator)->maxOffsetShift,
+                                this->mGame->mDrawDebug->pink);
         }
+
+
+        if (DebugShowParallelWayPointLinks) {
+            for (idx = 0; idx < DEF_PATH_NR_PARALLEL_LINKS; idx++) {
+                    if ((*WayPointLink_iterator)->reservedByPlayer[idx] == DEF_PATH_UNUSABLE) {
+                        continue;
+                    }
+
+                    currOffset = (irr::f32)(idx - middleOffset) * DEF_PATH_DIST_PARALLEL_LINKS;
+
+                    if ((*WayPointLink_iterator)->reservedByPlayer[idx] == 0) {
+                        //parallel waypoint link is currently not used
+                        color = mGame->mDrawDebug->grey;
+                    } else {
+                        //parallel waypoint link has currently a reservation from
+                        //a player
+                        color = mGame->mDrawDebug->pink;
+                    }
+
+                    mLevelTerrain->DrawLineOnTerrain(
+                                (*WayPointLink_iterator)->pLineStruct->A + incY + (*WayPointLink_iterator)->offsetDirVec * currOffset,
+                                (*WayPointLink_iterator)->pLineStruct->B + incY + (*WayPointLink_iterator)->offsetDirVec * currOffset,
+                                color);
+                }
+       }
     }
 }
 
@@ -2946,7 +3048,7 @@ void Race::Render() {
         if (DebugShowWallSegments) {
           //draw all wallsegments for debugging purposes
          for(Linedraw_iterator2 = ENTWallsegmentsLine_List->begin(); Linedraw_iterator2 != ENTWallsegmentsLine_List->end(); ++Linedraw_iterator2) {
-              mGame->mDrawDebug->Draw3DLine((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B, mGame->mDrawDebug->red);
+              mLevelTerrain->DrawLineOnTerrain((*Linedraw_iterator2)->A, (*Linedraw_iterator2)->B, mGame->mDrawDebug->red);
            }
          }
 
@@ -2984,6 +3086,37 @@ void Race::Render() {
             currPlayerFollow->DebugDraw();
         }
     }
+
+    /*mGame->mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgBezStart,
+                           this->mGame->mDrawDebug->pink);
+
+    mGame->mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgBezCntrl,
+                           this->mGame->mDrawDebug->orange);
+
+    mGame->mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgBezEnd,
+                           this->mGame->mDrawDebug->red);*/
+
+    /*irr::core::vector3df projPnt = mPath->ProjectPointOnLine(currPlayerFollow->phobj->physicState.position,
+                                                             wayPointLinkVec->at(0)->pLineStruct->irrLine);
+
+    bool PntAtLine = wayPointLinkVec->at(0)->pLineStruct->irrLine.isPointBetweenStartAndEnd(projPnt);
+
+    irr::core::vector3df closestPnt = wayPointLinkVec->at(0)->pLineStruct->irrLine.getClosestPoint(currPlayerFollow->phobj->physicState.position);
+
+    mGame->mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, closestPnt,
+                           this->mGame->mDrawDebug->green);*/
+
+    /*if (PntAtLine) {
+    mGame->mDrawDebug->Draw3DLine(wayPointLinkVec->at(0)->pLineStruct->irrLine.start, wayPointLinkVec->at(0)->pLineStruct->irrLine.end,
+                           this->mGame->mDrawDebug->green);
+    } else {
+        mGame->mDrawDebug->Draw3DLine(wayPointLinkVec->at(0)->pLineStruct->irrLine.start, wayPointLinkVec->at(0)->pLineStruct->irrLine.end,
+                               this->mGame->mDrawDebug->blue);
+    }*/
+
+
+    /*mGame->mDrawDebug->Draw3DLine(currPlayerFollow->phobj->physicState.position, projPnt,
+                           this->mGame->mDrawDebug->pink);*/
 
    /* if ((currPlayerFollow != nullptr) && (currPlayerFollow->currClosestWayPointLink.first != nullptr)) {
         mDrawDebug->Draw3DLine(
@@ -3157,7 +3290,28 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
             currPlayerFollow->DebugSelectionBox(mGame->mDebugRace || mGame->mDebugDemoMode);
       // }
 
-       Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);   
+       Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);
+    }
+}
+
+void Race::HandoverCpuPlayer(bool handedOver) {
+    //handle possible Cpu player takeover
+    if (!handedOver) {
+        if (currCntrlPlayer != mPlayerVec.at(0)) {
+            currCntrlPlayer->CpTakeOverHuman();
+        }
+
+        if (mPlayerVec.at(0)->mHumanPlayer) {
+           currCntrlPlayer = mPlayerVec.at(0);
+        }
+    } else
+     {
+        if (!currPlayerFollow->mHumanPlayer) {
+            //"Deactivate" computer player
+            currPlayerFollow->CpStop();
+        }
+
+        currCntrlPlayer = currPlayerFollow;
     }
 }
 
@@ -4312,6 +4466,7 @@ void Race::AddWayPoint(EntityItem *entity, EntityItem *next) {
 
         line->A = entity->getCenter();
         line->B = next->getCenter();
+        line->irrLine.setLine(line->A, line->B);
 
         //line->name.clear();
         //line->name.append("Waypoint line ");

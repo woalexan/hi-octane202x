@@ -68,7 +68,7 @@
  
  Other source code in this file:
     
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -138,7 +138,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
     irr::core::vector3df coord3D;
     std::vector<irr::core::vector2di> cells;
     irr::f32 minVal;
-    //irr::f32 testOffset;
+    irr::f32 testOffset;
     irr::f32 resolution = 0.2f;
 
     irr::f32 distStartEntityTextureId = FLT_MAX;
@@ -162,7 +162,9 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //As a solution I decided to use the CastRayDDA visited cells from the last function call, revisit all of this cells, and check when we
         //leave the valid textureID range of "roads" in the game
         //This should help for this locations
-        FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
+
+        //08.02.2026: temporarily commented out
+        //FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
 
         //do the same from the end entity
         coord3D = (*it)->pLineStruct->B;
@@ -173,21 +175,24 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             distEndEntity = rayInfo.HitDistance;
         }
 
-        FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
+        //08.02.2026: temporarily commented out
+        //FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
 
         //which is the minimum of the results?
         minVal = distStartEntity;
         //minVal = FLT_MAX;
 
-        if (distStartEntityTextureId < minVal) {
+        //08.02.2026: temporarily commented out
+        /*if (distStartEntityTextureId < minVal) {
             minVal = distStartEntityTextureId;
-        }
+        }*/
 
-        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
-        if (minVal < 0.0f)
+      /*  minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;*/
+     /*   if (minVal < 0.0f) {
             minVal = 0.0f;
+        }*/
 
-        (*it)->maxOffsetShiftStart = minVal;
+        (*it)->maxOffsetShift = minVal;
 
         minVal = distEndEntity;
         //minVal = FLT_MAX;
@@ -196,15 +201,20 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             minVal = distEndEntity;
         }*/
 
-        if (distEndEntityTextureId < minVal) {
+        /*if (distEndEntityTextureId < minVal) {
             minVal = distEndEntityTextureId;
         }
 
-        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
-        if (minVal < 0.0f)
+        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;*/
+       /* if (minVal < 0.0f) {
             minVal = 0.0f;
+        }*/
 
-        (*it)->maxOffsetShiftEnd = minVal;
+        if (minVal < (*it)->maxOffsetShift) {
+            (*it)->maxOffsetShift = minVal;
+        }
+
+        //(*it)->maxOffsetShiftEnd = minVal;
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
         //we can find out by shooting rays in parallel to the original waypoint link, but with
@@ -212,14 +222,17 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //for each iteration we determine after which distance we hit something
         //if we hit something in a distance less then the original length of the waypoint link, then
         //hit hit an obstacle on the way
-      /*  testOffset = resolution;
+        testOffset = (*it)->maxOffsetShift;
 
         coord3D = (*it)->pLineStruct->A;
-        bool hitEnd = false;
+        bool goThroughStart = false;
 
-        while ((testOffset < minVal) && (!hitEnd)) {
+        while ((testOffset > 0.0f) && (!goThroughStart)) {
+            cells.clear();
             rayInfo = this->CastRayDDA(*dynamicWorld, coord3D + testOffset * (*it)->offsetDirVec,
                                        (*it)->LinkDirectionVec, 1000.0f, cells);
+
+            goThroughStart = true;
 
             if (rayInfo.HitType == RAY_HIT_TERRAIN) {
                 //ray hit distance significantly shorter then original waypoint link
@@ -227,30 +240,33 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
                 if (rayInfo.HitDistance < (0.9 * (*it)->length3D)) {
                     //we seem to have hit an obstacle on the way -> we can not
                     //go further to the right
-                    hitEnd = true;
+                    goThroughStart = false;
                 }
             }
 
-            if (!hitEnd) {
-                testOffset += resolution;
+            if (!goThroughStart) {
+                testOffset -= resolution;
             }
         }
 
         //if we found an additional obstacle from the side
         //and its making the available space smaller, then
         //make it the new limitiation
-        if (hitEnd && (testOffset < minVal)) {
-            minVal = testOffset;
+        if (!goThroughStart && (testOffset < (*it)->maxOffsetShift)) {
+            (*it)->maxOffsetShift = testOffset;
         }
-
-        //minVal has now the minimum we found inside
-        (*it)->maxOffsetShift = minVal;*/
 
         //*************************************************************/
         /* repeat everything, but this time for direction to the left */
         /* use world aware to shoot one 2D ray from start entity      */
         /* towards right side to see how far we can go                */
         /**************************************************************/
+
+        distStartEntity = FLT_MAX;
+        distEndEntity = FLT_MAX;
+
+        distStartEntityTextureId = FLT_MAX;
+        distEndEntityTextureId = FLT_MAX;
 
         coord3D = (*it)->pLineStruct->A;
 
@@ -260,7 +276,8 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             distStartEntity = rayInfo.HitDistance;
         }
 
-        FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
+         //08.02.2026: temporarily commented out
+        //FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
 
         //do the same from the end entity
         coord3D = (*it)->pLineStruct->B;
@@ -271,23 +288,30 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             distEndEntity = rayInfo.HitDistance;
         }
 
-        FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
+        //08.02.2026: temporarily commented out
+        //FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
 
         //which is the minimum of the results?
         minVal = distStartEntity;
         //  minVal = FLT_MAX;
 
-        if (distStartEntityTextureId < minVal) {
-            minVal = distStartEntityTextureId;
+        if (distEndEntity < minVal) {
+            minVal = distEndEntity;
         }
 
-        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
-        if (minVal < 0.0f)
+        //08.02.2026: temporarily commented out
+      /*  if (distStartEntityTextureId < minVal) {
+            minVal = distStartEntityTextureId;
+        }*/
+
+        /*minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
+        if (minVal < 0.0f) {
             minVal = 0.0f;
+        }*/
 
-        (*it)->minOffsetShiftStart = -minVal;
+        (*it)->minOffsetShift = -minVal;
 
-        minVal = distEndEntity;
+       // minVal = distEndEntity;
         //  minVal = FLT_MAX;
 
 
@@ -295,7 +319,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             minVal = distEndEntity;
         }*/
 
-        if (distEndEntityTextureId < minVal) {
+       /* if (distEndEntityTextureId < minVal) {
             minVal = distEndEntityTextureId;
         }
 
@@ -303,7 +327,7 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         if (minVal < 0.0f)
             minVal = 0.0f;
 
-        (*it)->minOffsetShiftEnd = -minVal;
+        (*it)->minOffsetShiftEnd = -minVal;*/
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
         //we can find out by shooting rays in parallel to the original waypoint link, but with
@@ -311,14 +335,17 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //for each iteration we determine after which distance we hit something
         //if we hit something in a distance less then the original length of the waypoint link, then
         //hit hit an obstacle on the way
-       /* testOffset = resolution;
+        testOffset = -(*it)->minOffsetShift;
 
         coord3D = (*it)->pLineStruct->A;
-        hitEnd = false;
+        goThroughStart = false;
 
-        while ((testOffset < minVal) && (!hitEnd)) {
+        while ((testOffset > 0.0f) && (!goThroughStart)) {
+            cells.clear();
             rayInfo = this->CastRayDDA(*dynamicWorld, coord3D - testOffset * (*it)->offsetDirVec,
                                        (*it)->LinkDirectionVec, 1000.0f, cells);
+
+            goThroughStart = true;
 
             if (rayInfo.HitType == RAY_HIT_TERRAIN) {
                 //ray hit distance significantly shorter then original waypoint link
@@ -326,27 +353,21 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
                 if (rayInfo.HitDistance < (0.9 * (*it)->length3D)) {
                     //we seem to have hit an obstacle on the way -> we can not
                     //go further to the left
-                    hitEnd = true;
+                    goThroughStart = true;
                 }
             }
 
-            if (!hitEnd) {
-                testOffset += resolution;
+            if (!goThroughStart) {
+                testOffset -= resolution;
             }
-
+        }
 
         //if we found an additional obstacle from the side
         //and its making the available space smaller, then
         //make it the new limitiation
-        if (hitEnd && (testOffset < minVal)) {
-            minVal = testOffset;
+        if (!goThroughStart && (testOffset < (-(*it)->minOffsetShift))) {
+            (*it)->minOffsetShift = -testOffset;
         }
-
-        //minVal has now the minimum we found inside
-        //a movement towards the left is negative for us later
-        //for reverse the sign
-        (*it)->minOffsetShift = -minVal;
-        */
     }
 }
 

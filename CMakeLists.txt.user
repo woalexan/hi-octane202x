@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.12.0, 2026-01-31T16:56:33. -->
+<!-- Written by QtCreator 4.12.0, 2026-02-07T18:31:45. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -340,7 +340,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">hi-octane202x</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.hi-octane202x</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">hi-octane202x</value>
-    <value type="QString" key="RunConfiguration.Arguments"></value>
+    <value type="QString" key="RunConfiguration.Arguments">debug</value>
     <value type="bool" key="RunConfiguration.Arguments.multi">false</value>
     <value type="QString" key="RunConfiguration.OverrideDebuggerStartup"></value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>

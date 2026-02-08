@@ -75,7 +75,7 @@ std::vector<WayPointLinkInfoStruct*> Bezier::QuadBezierCurveGetSegments(irr::cor
            drawPnt1.Z,
            outCell);
 
-  for (irr::f32 t = resolution; t < 1.0f; t += resolution) {
+  for (irr::f32 t = resolution; t <= 1.25f; t += resolution) {
       if (!goThrough) {
          helper2D = QuadBezierPoint(startPnt, endPnt, cntrlPoint, t);
       } else {
@@ -97,6 +97,7 @@ std::vector<WayPointLinkInfoStruct*> Bezier::QuadBezierCurveGetSegments(irr::cor
     LineStruct* newLineStr = new LineStruct();
     newLineStr->A = drawPnt1;
     newLineStr->B = drawPnt2;
+    newLineStr->irrLine.setLine(newLineStr->A, newLineStr->B);
 
     //set white as default color
     newLineStr->color = color;

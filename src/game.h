@@ -44,12 +44,14 @@ enum
     GUI_ID_LEVEL_LOGTRIGGEREVENTS_CHECKBOX,
     GUI_ID_LEVEL_ACTIVATEMORPHKEYTRG_CHECKBOX,
     GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX,
+    GUI_ID_LEVEL_SHOWPARALLELWAYPOINTLINKS_CHECKBOX,
 
     GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX,
     GUI_ID_MOVEMENT_ACTINGFORCES_CHECKBOX,
     GUI_ID_MOVEMENT_CPU_CURRSEGMENT_CHECKBOX,
     GUI_ID_MOVEMENT_CPU_PATHHISTORY_CHECKBOX,
-    GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX
+    GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX,
+    GUI_ID_MOVEMENT_CPU_TAKEOVERCONTROL_CHECKBOX
 };
 
 /************************
@@ -183,7 +185,7 @@ public:
 
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging
-    bool mDebugRace = false;
+    bool mDebugRace = true;
     bool mDebugDemoMode = false;
 
     bool enableLightning = false;

@@ -42,7 +42,7 @@ struct LineStruct {
   irr::core::vector3d<irr::f32> A, B;
   ColorStruct *color = nullptr;
 
-  //irr::core::line3df *debugLine = NULL;
+  irr::core::line3df irrLine;
 };
 
 enum {

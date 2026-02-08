@@ -237,6 +237,8 @@ public:
     bool IsCurrentlyStuck();
 
     void ExecuteCpPlayerLogic(irr::f32 deltaTime);
+    void CpStop();
+    void CpTakeOverHuman();
 
     void GetHeightRaceTrackBelowCraft(irr::f32 &front, irr::f32 &back, irr::f32 &left, irr::f32 &right);
     irr::f32 currHeightFront;
@@ -777,7 +779,6 @@ private:
 
     void UpdateHUDState();
     void FinishedRace();
-    void CpTakeOverHuman();
 
     irr::u8 mCurrentRiccosSound = 0;
     void PlayMGunShootsAtUsSound();
@@ -793,6 +794,7 @@ private:
     bool mDebugDrawCPUCurrSegment = false;
     bool mDebugDrawCPUPathHistory = false;
     bool mDebugDrawFreeSpace = false;
+    bool mDebugTakeOverCpuControl = false;
 
     void DebugDrawFreeSpace();
 

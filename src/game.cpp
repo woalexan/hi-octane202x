@@ -315,7 +315,7 @@ bool Game::HandleGuiEvent(const irr::SEvent& event) {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 2;
+    nextRaceLevelNr = 3;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -1137,6 +1137,8 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
         //advance race time, execute physics, move players...
         mCurrentRace->AdvanceTime(frameDeltaTime);
     }
+
+    mCurrentRace->UpdatePlayerCamera(frameDeltaTime);
 
     if (!this->mTimeStopped) {
         //handle main player keyboard input

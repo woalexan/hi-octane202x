@@ -60,6 +60,8 @@ const irr::f32 DbgWaypointCubeHeightDistance = 0.3f;
 #define DEF_RACE_DBG_LOGTRIGGEREVENTS 8
 #define DEF_RACE_DBG_ACTIVATEMORPHKEYTRG 9
 #define DEF_RACE_DBG_CHARGINGSTATIONINFO 10
+#define DEF_RACE_DBG_TAKEOVERCPUCONTROL 11
+#define DEF_RACE_DBG_SHOWPARALLELWAYPOINTLINKS 12
 
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
@@ -194,6 +196,7 @@ public:
     void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = nullptr);
 
     Player* currPlayerFollow = nullptr;
+    Player* currCntrlPlayer = nullptr;
 
     //handles the columns (made of blocks)
     //of the level
@@ -317,6 +320,12 @@ public:
     void UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable);
     bool GetPlayersDbgFlagState(irr::u8 debugFlag);
 
+    void UpdatePlayerCamera(irr::f32 frameDeltaTime);
+
+    irr::core::vector3df dbgBezStart;
+    irr::core::vector3df dbgBezCntrl;
+    irr::core::vector3df dbgBezEnd;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -380,6 +389,7 @@ private:
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = false;
     bool DebugShowFreeMovementSpace = false;
+    bool DebugShowParallelWayPointLinks = false;
 
     bool DebugShowWallSegments = false;
     bool DebugShowWallCollisionMesh = false;
@@ -391,11 +401,14 @@ private:
     bool AllowStartMorphsPerKey = false;
 
     bool DebugShowChargingStationInfo = false;
+    bool DebugTakeOverCpuControl = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
     bool LoadLevel();
     void createLevelEntities();
+
+    void InitWayPointLinkOffsetPaths();
 
     void DrawSky();
     void DrawTestShape();
@@ -568,6 +581,8 @@ private:
     //loop itself (when attribution is finished); The
     //finished race does not end the demo (attribution mode)
     bool mAttributionMode;
+
+    void HandoverCpuPlayer(bool handedOver);
 };
 
 #endif // RACE_H

@@ -207,6 +207,9 @@ public:
     bool IsIlluminationEnabled();
 
     void DrawOutlineSelectedCell(irr::core::vector2di selCellCoordinate, ColorStruct* color);
+    void DrawLineOnTerrain(irr::core::vector3df startPnt, irr::core::vector3df endPnt, ColorStruct* color, irr::f32 stepSize = 1.0f);
+    void Draw3DArrowOnTerrain(irr::core::vector3df startPos, irr::core::vector3df arrowPosition, irr::f32 arrowOffset, ColorStruct* color, irr::f32 arrowSize,
+                                         irr::f32 stepSize = 1.0f);
 
     irr::f32 GetCurrentTerrainHeightForWorldCoordinate(irr::f32 x, irr::f32 z, vector2di &outCellCoord);
     irr::f32 GetHeightInterpolated(irr::f32 x, irr::f32 z);

@@ -81,6 +81,14 @@ GameDbgWnd::~GameDbgWnd() {
         mGuiGameDbgWnd.ShowPlayerFreeSpace->remove();
     }
 
+    if (mGuiGameDbgWnd.ShowPlayerParallelWayPointLinks != nullptr) {
+        mGuiGameDbgWnd.ShowPlayerParallelWayPointLinks->remove();
+    }
+
+    if (mGuiGameDbgWnd.TakeOverCpuControl != nullptr) {
+        mGuiGameDbgWnd.TakeOverCpuControl->remove();
+    }
+
     if (mGuiGameDbgWnd.LevelTab != nullptr) {
         mGuiGameDbgWnd.LevelTab->remove();
     }
@@ -171,6 +179,11 @@ void GameDbgWnd::CreateWindow() {
     mGuiGameDbgWnd.ShowChargingStationInfo = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
                                                                                            mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX, L"Charging Station");
 
+    pos.Y += height;
+    currState = mParentRace->GetDebugFlag(DEF_RACE_DBG_SHOWPARALLELWAYPOINTLINKS);
+    mGuiGameDbgWnd.ShowPlayerParallelWayPointLinks = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
+                                                                                           mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWPARALLELWAYPOINTLINKS_CHECKBOX, L"Parallel WayLinks");
+
     /***********************************
      * Create the Movement Tab items   *
      ***********************************/
@@ -201,6 +214,14 @@ void GameDbgWnd::CreateWindow() {
     mGuiGameDbgWnd.ShowPlayerFreeSpace = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
                                                                                          mGuiGameDbgWnd.MovementTab, GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX, L"Free Space");
 
+    pos.X = initialPos.X + width + columnSpacing;
+    pos.Y = initialPos.Y;
+    currState = mParentRace->GetDebugFlag(DEF_RACE_DBG_TAKEOVERCPUCONTROL);
+    mGuiGameDbgWnd.TakeOverCpuControl = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
+                                                                                           mGuiGameDbgWnd.MovementTab, GUI_ID_MOVEMENT_CPU_TAKEOVERCONTROL_CHECKBOX, L"Takeover CPU Control");
+
+
+
     //move window to a better start location
     Window->move(irr::core::vector2d<irr::s32>(250,50));
 }
@@ -213,6 +234,13 @@ void GameDbgWnd::HideWindow() {
     Window->setVisible(false);
 
     mWindowHidden = true;
+
+    scene::ICameraSceneNode * camera =
+            mParentRace->mGame->mDevice->getSceneManager()->getActiveCamera();
+
+    if (camera) {
+       camera->setInputReceiverEnabled(true);
+    }
 }
 
 bool GameDbgWnd::IsWindowVisible() {
@@ -230,6 +258,13 @@ void GameDbgWnd::OpenWindow() {
        Window->setVisible(true);
 
        mWindowHidden = false;
+   }
+
+   scene::ICameraSceneNode * camera =
+           mParentRace->mGame->mDevice->getSceneManager()->getActiveCamera();
+
+   if (camera) {
+      camera->setInputReceiverEnabled(false);
    }
 }
 
@@ -252,6 +287,8 @@ void GameDbgWnd::OnCheckBoxChanged(irr::s32 checkboxId) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_LOGTRIGGEREVENTS, mGuiGameDbgWnd.LogTriggerEvents->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_ACTIVATEMORPHKEYTRG_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_ACTIVATEMORPHKEYTRG, mGuiGameDbgWnd.ActivateMorphKeyTrg->isChecked());
+    } else if (checkboxId == GUI_ID_LEVEL_SHOWPARALLELWAYPOINTLINKS_CHECKBOX) {
+        mParentRace->SetDebugFlag(DEF_RACE_DBG_SHOWPARALLELWAYPOINTLINKS, mGuiGameDbgWnd.ShowPlayerParallelWayPointLinks->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_CHARGINGSTATIONINFO, mGuiGameDbgWnd.ShowChargingStationInfo->isChecked());
     } else if (checkboxId == GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX) {
@@ -264,5 +301,7 @@ void GameDbgWnd::OnCheckBoxChanged(irr::s32 checkboxId) {
         mParentRace->UpdatePlayersDbgFlag(DEF_PLAYER_DBG_CPU_PATHHISTORY, mGuiGameDbgWnd.ShowPlayerCPUPathHistory->isChecked());
     } else if (checkboxId == GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX) {
         mParentRace->UpdatePlayersDbgFlag(DEF_PLAYER_DBG_FREESPACE, mGuiGameDbgWnd.ShowPlayerFreeSpace->isChecked());
+    } else if (checkboxId == GUI_ID_MOVEMENT_CPU_TAKEOVERCONTROL_CHECKBOX) {
+        mParentRace->SetDebugFlag(DEF_RACE_DBG_TAKEOVERCPUCONTROL, mGuiGameDbgWnd.TakeOverCpuControl->isChecked());
     }
 }
