@@ -267,14 +267,14 @@ void MachineGun::Update(irr::f32 DeltaTime) {
             }
 
             if ((*it)->mShotSound != nullptr) {
-                if ((*it)->mShotSound->getStatus() == (*it)->mShotSound->Stopped) {
+                if ((*it)->mShotSound->getStatus() == sf::SoundSource::Status::Stopped) {
                     (*it)->mShotSound = nullptr;
                 }
             }
     }
 
     if (mShotFailSound != nullptr) {
-            if (mShotFailSound->getStatus() == mShotFailSound->Stopped) {
+            if (mShotFailSound->getStatus() == sf::SoundSource::Status::Stopped) {
                 mShotFailSound = nullptr;
             }
     }

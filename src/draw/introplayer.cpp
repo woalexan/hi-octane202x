@@ -36,8 +36,8 @@ void IntroPlayer::RenderIntro(irr::f32 frameDeltaTime) {
         //currIntroFrame = 0;
 
         //stop the game intro music again
-        if ((mMusicPlayer->getStatus() == mMusicPlayer->Playing) ||
-           (mMusicPlayer->getStatus() == mMusicPlayer->Paused)) {
+        if ((mMusicPlayer->getStatus() == sf::SoundSource::Status::Playing) ||
+           (mMusicPlayer->getStatus() == sf::SoundSource::Status::Paused)) {
                 //stop music
                 mMusicPlayer->StopPlay();
         }
@@ -96,22 +96,13 @@ void IntroPlayer::RenderIntro(irr::f32 frameDeltaTime) {
             //time to trigger the next sound event?
             if (introAbsTimeSound >= pntr->triggerAbsTime) {
                 //looping sound?
-                if (!pntr->looping) {
-                    mSoundEngine->PlaySound(pntr->soundResId);
-                } else {
-                    //is a looping sound
-                    //we need the sound buffer pointer to be able to
-                    //stop the sound later
-                    pntr->soundBufPntr =
-                            mSoundEngine->PlaySound(pntr->soundResId, true);
-                    pntr->loopSoundActive = true;
-                }
+	         pntr->soundBufPntr = mSoundEngine->PlaySound(pntr->soundResId, pntr->looping ? true : false);
+	         pntr->loopSoundActive = pntr->looping ? true : false;
 
                 //is there one additional intro sound trigger event available
                 //if so set index to next event
-                if (currIdxSoundEventVec < numSoundEvents) {
+                if (currIdxSoundEventVec < numSoundEvents)
                     currIdxSoundEventVec++;
-                }
             }
         }
 
@@ -255,7 +246,8 @@ void IntroPlayer::IntroProcessLoopingSounds(irr::f32 currSoundPlayingTime) {
       if ((*it)->loopSoundActive) {
           //is it time to stop the looping sound
           if (currSoundPlayingTime >= (*it)->endLoopingAbsTime) {
-              (*it)->soundBufPntr->stop();
+              if ((*it)->soundBufPntr != nullptr)
+                       (*it)->soundBufPntr->stop();
               (*it)->loopSoundActive = false;
           }
       }

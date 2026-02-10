@@ -21,7 +21,7 @@ void SoundEngine::StopAllSounds() {
         enum sf::SoundSource::Status stat;
         for (it = SoundVec->begin(); it != SoundVec->end(); ++it) {
             stat = (*it)->getStatus();
-            if ((stat == (*it)->Playing) || (stat == (*it)->Paused)) {
+            if ((stat == sf::SoundSource::Status::Playing) || (stat == sf::SoundSource::Status::Paused)) {
                 (*it)->stop();
             }
         }
@@ -36,7 +36,7 @@ bool SoundEngine::IsAnySoundPlaying() {
         enum sf::SoundSource::Status stat;
         for (it = SoundVec->begin(); it != SoundVec->end(); ++it) {
             stat = (*it)->getStatus();
-            if (stat == (*it)->Playing)
+            if (stat == sf::SoundSource::Status::Playing)
                 return true;
             }
         }
@@ -47,7 +47,7 @@ bool SoundEngine::IsAnySoundPlaying() {
 
     for (it = this->mEngineSoundVector.begin(); it != this->mEngineSoundVector.end(); ++it) {
         if ((*it).second != nullptr) {
-            if ((*it).second->getStatus() == ((*it).second->Playing))
+            if ((*it).second->getStatus() == sf::SoundSource::Status::Playing)
                 return true;
         }
     }
@@ -56,18 +56,21 @@ bool SoundEngine::IsAnySoundPlaying() {
 }
 
 void SoundEngine::RequestEngineSoundForPlayer(Player* player) {
-    SoundResEntry* pntr = SearchSndRes(SRES_GAME_LARGECAR);
+	SoundResEntry* pntr = SearchSndRes(SRES_GAME_LARGECAR);
+	if(pntr != nullptr)
+	{
+		sf::Sound *newEngineSound = new sf::Sound(*pntr->pntrSoundBuf);
+		if(newEngineSound != nullptr)
+		{
+			newEngineSound->setVolume(mSoundVolume);
+			newEngineSound->setLooping(true);
 
-    sf::Sound *newEngineSound = new sf::Sound();
+			//make sound source location absolute to listener
+			newEngineSound->setRelativeToListener(false);
 
-    newEngineSound->setVolume(mSoundVolume);
-    newEngineSound->setBuffer(*pntr->pntrSoundBuf);
-    newEngineSound->setLoop(true);
-
-    //make sound source location absolute to listener
-    newEngineSound->setRelativeToListener(false);
-
-    this->mEngineSoundVector.push_back(std::make_pair(player, newEngineSound));
+			this->mEngineSoundVector.push_back(std::make_pair(player, newEngineSound));
+		}
+	}
 }
 
 void SoundEngine::StartEngineSoundForPlayer(Player* player) {
@@ -89,7 +92,7 @@ void SoundEngine::StartEngineSoundForPlayer(Player* player) {
 
 //with directional sound effect, engine sound in this case has also a location
 //used for all the players that are not controlled by the human player
-void SoundEngine::SetPlayerSpeed(Player* player, float speed, float maxSpeed, irr::core::vector3df playerLocation, bool spatialSound) {
+void SoundEngine::SetPlayerSpeed(Player* player, float speed, float maxSpeed, const irr::core::vector3df playerLocation, bool spatialSound) {
     //which players engine sound needs to be updated?
     std::vector<std::pair<Player*, sf::Sound*>>::iterator it;
 
@@ -101,7 +104,7 @@ void SoundEngine::SetPlayerSpeed(Player* player, float speed, float maxSpeed, ir
             (*it).second->setPitch(float(0.6) + (speed/maxSpeed) * float(0.8));
 
             //update sound source position
-            (*it).second->setPosition(playerLocation.X, playerLocation.Y, playerLocation.Z);
+            (*it).second->setPosition(reinterpret_cast<const sf::Vector3f&>(playerLocation));
 
             if (!spatialSound) {
                 (*it).second->setAttenuation(0.0f);
@@ -153,10 +156,11 @@ void SoundEngine::StopEngineSoundForPlayer(Player* player) {
 }
 
 void SoundEngine::UpdateListenerLocation(irr::core::vector3df location, irr::core::vector3df frontDirVec) {
-   sf::Listener::setPosition(location.X, location.Y, location.Z);
+   sf::Listener::setPosition(reinterpret_cast<sf::Vector3f&>(location));
 
    frontDirVec.normalize();
-   sf::Listener::setDirection(frontDirVec.X, frontDirVec.Y, -frontDirVec.Z);
+   frontDirVec.Z*=-1;
+   sf::Listener::setDirection(reinterpret_cast<sf::Vector3f&>(frontDirVec));
 }
 
 SoundEngine::SoundEngine(Game* gamePnter) {
@@ -198,7 +202,7 @@ sf::Sound* SoundEngine::GetFreeSoundSource() {
     if (this->SoundVec->size() > 0) {
         std::vector<sf::Sound*>::iterator it;
         for (it = this->SoundVec->begin(); it != this->SoundVec->end(); ++it) {
-           if ((*it)->getStatus() == (*it)->Stopped) {
+           if ((*it)->getStatus() == sf::SoundSource::Status::Stopped) {
                //found useful source
                return (*it);
            }
@@ -210,15 +214,21 @@ sf::Sound* SoundEngine::GetFreeSoundSource() {
     //playing
     //can we create a new one?
     if (this->mNrSoundSources < SOUND_MAXNR) {
-        sf::Sound *newSnd = new sf::Sound();
+        SoundResEntry* pntr = SearchSndRes(SRES_GAME_LARGECAR);
+	sf::Sound *newSnd = nullptr;
+	if(pntr != nullptr)
+	{
+		newSnd = new sf::Sound(*pntr->pntrSoundBuf);
+		if(newSnd != nullptr)
+		{
+			//also set current sound volue
+			newSnd->setVolume(mSoundVolume);
 
-        //also set current sound volue
-        newSnd->setVolume(mSoundVolume);
-
-        this->SoundVec->push_back(newSnd);
-        this->mNrSoundSources++;
-
-        return newSnd;
+			this->SoundVec->push_back(newSnd);
+			this->mNrSoundSources++;
+		}
+	}
+	return newSnd;
     }
 
     //already too much sounds, do not do
@@ -290,9 +300,9 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
             if (sndPntr != nullptr) {
                 //we found a free sound source to play buffer
                 sndPntr->setBuffer(*pntr->pntrSoundBuf);
-                sndPntr->setLoop(looping);
+                sndPntr->setLooping(looping);
                 sndPntr->setPitch(playPitch);
-                sndPntr->setPosition(sourceLocation.X, sourceLocation.Y, sourceLocation.Z);
+                sndPntr->setPosition(reinterpret_cast<sf::Vector3f&>(sourceLocation));
 
                 //if this is a non localized sound source also set sound attenuation
                 //over distance to 0, to make sure sounds are not getting more faint over distance
@@ -317,7 +327,7 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
 
 void SoundEngine::StopLoopingSound(sf::Sound* pntrSound) {
     if (pntrSound != nullptr) {
-        if (pntrSound->getStatus() == pntrSound->Playing) {
+        if (pntrSound->getStatus() == sf::SoundSource::Status::Playing) {
             pntrSound->stop();
         }
     }

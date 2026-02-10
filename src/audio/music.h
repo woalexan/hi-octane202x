@@ -51,7 +51,7 @@ private:
     //Its kind of dirty that we used two buffers
     //but leave it like this right now
     uint8_t *buffer = nullptr; /* Audio buffer */
-    sf::Int16 *sfBuffer = nullptr;
+    int16_t *sfBuffer = nullptr;
 
     struct ADL_MIDIPlayer *midi_player = nullptr;
     struct ADLMIDI_AudioFormat s_audioFormat;

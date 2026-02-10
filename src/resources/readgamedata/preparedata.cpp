@@ -1398,7 +1398,7 @@ void PrepareData::ExtractGameLogoSVGA() {
 
     for (int idx = 0; idx < 6; idx++) {
            strcpy(finalpathSrc, "extract/images/logo0-1-");
-           sprintf (fname, "%0*ld.png", 4, idx);
+           sprintf (fname, "%0*ld.png", 4, (ssize_t)idx);
            strcat(finalpathSrc, fname);
 
            strcpy(finalpathDest, "extract/images/logo0-1-x2-");
@@ -2613,9 +2613,6 @@ bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
 
                    xbrz::scale(scaleFactor, &imageData[0], &imageDataUp[0], sizex, sizey, xbrz::ColorFormat::ARGB, xbrz::ScalerCfg(), 0, sizey);
 
-                   //release the pointers, we do not need them anymore
-                   img->unlock();
-                   imgUp->unlock();
                 }*/
 
             strcpy(finalpath, exportDir);
@@ -2656,13 +2653,12 @@ bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilena
     irr::u16 sizex;
     irr::u16 sizey;
 
-    if (iFile != nullptr)
-    {
-        //read picture information
-        fread(&unknown, sizeof(unknown), 1, iFile);
-        fread(&sizex, sizeof(sizex), 1, iFile);
-        fread(&sizey, sizeof(sizey), 1, iFile);
-    } else return false;
+    //read the picture information now
+    if (                                    iFile  == nullptr ||
+        fread(&unknown, sizeof(unknown), 1, iFile) != 1       ||
+        fread(&sizex  , sizeof(sizex)  , 1, iFile) != 1       ||
+        fread(&sizey  , sizeof(sizey)  , 1, iFile) != 1         )
+	return false;
 
     //6 bytes of the file is needed for picture information above
     if ((size - 6) != (sizex*sizey)) {

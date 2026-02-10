@@ -204,7 +204,7 @@ void Missile::Update(irr::f32 DeltaTime) {
         //after explision sound was finished playing
         if (mParentLauncher->mParent->mRace->mSoundEngine->GetIsSoundActive()) {
             if (mExplodeSound != nullptr) {
-                if (mExplodeSound->getStatus() == mExplodeSound->Stopped) {
+                if (mExplodeSound->getStatus() == sf::SoundSource::Status::Stopped) {
                     mExplodeSound = nullptr;
                 }
             } else {
@@ -549,7 +549,7 @@ void MissileLauncher::Update(irr::f32 DeltaTime) {
    }
 
     if (mShotSound != nullptr) {
-        if (mShotSound->getStatus() == mShotSound->Stopped) {
+        if (mShotSound->getStatus() == sf::SoundSource::Status::Stopped) {
             mShotSound = nullptr;
         }
     }

@@ -1587,7 +1587,7 @@ void Player::Collided() {
 
 void Player::AfterPhysicsUpdate() {
     if (CollisionSound != nullptr) {
-        if (CollisionSound->getStatus() == CollisionSound->Stopped) {
+        if (CollisionSound->getStatus() == sf::SoundSource::Status::Stopped) {
             CollisionSound = nullptr;
         }
     }

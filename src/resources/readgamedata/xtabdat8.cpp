@@ -206,7 +206,7 @@ int create_images_dattab_idx(IMAGELIST* images,char* datfname,char* tabfname,int
             logging::Error("Warning - this is 8bpp extractor!");
         }
         else {
-            snprintf(hlpstr, 500, "The DAT file informs of %ld pictures with 8bpp.", datf.count);
+            snprintf(hlpstr, 500, "The DAT file informs of %d pictures with 8bpp.", datf.count);
             msg.clear();
             msg.append(hlpstr);
             logging::Info(msg);
@@ -279,7 +279,7 @@ void DebugWriteTabFileContentsCsvTable(char* tabFileName, TABFILE* tabf) {
     for (entrynum=0;entrynum<tabf->count;entrynum++)
     {
         TABFILE_ITEM *curitm=&(tabf->items[entrynum]);
-        fprintf(oFile, "%lu;%u;%u\n", curitm->offset, curitm->width, curitm->height);
+        fprintf(oFile, "%lu;%u;%u\n", (size_t)curitm->offset, curitm->width, curitm->height);
     }
 
     //close file
@@ -406,7 +406,7 @@ int read_dattab_images(IMAGELIST* images,unsigned long* readcount,TABFILE* tabf,
         item->data=nullptr;
         item->alpha=nullptr;
         if (verbose) { 
-            snprintf(hlpstr, 500, "Preparing picture%6lu from %06lx, %ux%u...", picnum, tabitem->offset, tabitem->width, tabitem->height); 
+            snprintf(hlpstr, 500, "Preparing picture%6lu from %06lx, %ux%u...", picnum, (size_t)tabitem->offset, tabitem->width, tabitem->height); 
             msg.clear();
             msg.append(hlpstr);
             logging::Info(msg);

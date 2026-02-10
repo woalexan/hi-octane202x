@@ -11,24 +11,30 @@ This source code will only run if the user does possess and supply it with the o
 
 #### Prerequisites
 - game data
-- cmake
+- cmake >= 3.10
 - Irrlicht 1.8.5
-- SFML 2.6.2
+- SFML >= 3.0.1
 - libADLMIDI 1.5.1
 - freetype2 2.10.4
 
 The library versions listed above are known to result in successful compilation. Other library versions may work too. If you have problems with the freetype library or you do not want to use it you can comment out the define for `USE_FREETYPE` in file `definitions.h`. Only drawback will be that Irrlicht has to fall back on the integrated Gui font, which is very small and therefore could be difficult to read.
 
+#### Prepare
+- copy the original game data to `build/originalgame`
+- copy `HIOCTANE.CD` to `build/orginalgame/hioctane.cd`
+
 #### Compile
-Change to the `build` directory and run
-```bash
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
+```sh
+cmake -DCMAKE_BUILD_TYPE=Release -B build
+make install
 ```
 A successful build will place the `hi-octane202x` and `hi-editor` binary in the build directory.
-
 #### Run
-After copying the game data files into `build/originalgame`, you can run the game by invoking `./hi-octane202x` in the build directory. I was only able to test two different original versions of the game, and I am almost sure there are other versions out there which will at the beginning not work without further modifications. If this is the case please let me know, so that I fix the issue.
+```sh
+cd build
+./hi-octane202x
+```
+I was only able to test two different original versions of the game, and I am almost sure there are other versions out there which will at the beginning not work without further modifications. If this is the case please let me know, so that I fix the issue.
 
 #### Data extraction
 During the first start of the game the original games data is extracted into subfolder `build/extract`, and then loaded from there. If for any reason an error occured during first data extraction, and you want to try again, or you want to reextract the data again, you only need to erase the subfolder `build/extract`, and restart the game. Every time the game is started it checks if this subfolder is still present. If this is not the case then all the data is extracted again.
@@ -36,7 +42,7 @@ During the first start of the game the original games data is extracted into sub
 Please do not delete the original games folder, even after data extraction it is still needed afterwards during each start of the project.
 
 #### Environment
-I mainly develop and test under Linux using OpenGl. This means in this environment the project will compile most likely. From time to time I do additional test runs using a Windows Notebook using Visual Studio Community and MSVC compiler, and in most cases I have to first fix smaller issues again. This means compiling this project under Windows will be more prone to problems, and will most likely not work all the time without small issues. Thank you for your understanding if something does not work one day.
+I mainly develop and test under Linux using OpenGL. This means in this environment the project will compile most likely. From time to time I do additional test runs using a Windows Notebook using Visual Studio Community and MSVC compiler, and in most cases I have to first fix smaller issues again. This means compiling this project under Windows will be more prone to problems, and will most likely not work all the time without small issues. Thank you for your understanding if something does not work one day.
 
 Irrlicht technically would also support Direct3D, but the only attempt I tried failed. But because Direct3D is not significant for me, I will postpone solving this issue to the distant future.
 

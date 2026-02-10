@@ -3141,13 +3141,13 @@ void LevelBlocks::CreateBlockPreview(irr::video::ITexture& outputFrontTexture, i
      if (!mInfra->mBlockPreviewEnabled)
          return;
 
-     mInfra->mDriver->beginScene(false,false, 0);
+     mInfra->mDriver->beginScene(false,false, 0, SExposedVideoData(),0);
 
      ICameraSceneNode* currCamera = mInfra->mSmgr->getActiveCamera();
 
      // draw scene into render target
      // set render target texture
-     this->mInfra->mDriver->setRenderTarget(mRenderToTargetTex, true, true, video::SColor(0,0,0,255));
+     this->mInfra->mDriver->setRenderTarget(mRenderToTargetTex, (bool)true, (bool)true, video::SColor(0,0,0,255));
 
      //set front preview camera as active camera
      this->mInfra->mSmgr->setActiveCamera(mPreviewCameraFront);
@@ -3162,7 +3162,7 @@ void LevelBlocks::CreateBlockPreview(irr::video::ITexture& outputFrontTexture, i
      mInfra->CopyTexture(mRenderToTargetTex, &outputFrontTexture);
 
      //set the render to target texture again as render target, this will clear the render target texture again
-     this->mInfra->mDriver->setRenderTarget(mRenderToTargetTex, true, true, video::SColor(0,0,0,255));
+     this->mInfra->mDriver->setRenderTarget(mRenderToTargetTex, (bool)true, (bool)true, video::SColor(0,0,0,255));
 
      //set back preview camera as active camera
      this->mInfra->mSmgr->setActiveCamera(mPreviewCameraBack);
@@ -3177,7 +3177,7 @@ void LevelBlocks::CreateBlockPreview(irr::video::ITexture& outputFrontTexture, i
      mInfra->CopyTexture(mRenderToTargetTex, &outputBackTexture);
 
      // set back old render target
-     mInfra->mDriver->setRenderTarget(0, false, false, 0);
+     mInfra->mDriver->setRenderTarget(nullptr, (bool)false, (bool)false,  (irr::video::SColor)0);
 
      //restore initial camera
      if (currCamera != nullptr) {
