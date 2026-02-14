@@ -259,6 +259,11 @@ public:
                                            141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 154, 155,
                                            96, 4};
 
+    //definition of road curbside texture elements
+    //is used for further restrict CpuPlayer movement
+    std::vector<irr::s32> roadCurbSideTexIdsVec = {65, 81, 86, 124, 126, 140, 141, 146, 145, 148, 149,
+                                                   151, 154, 155};
+
     //some more additional texture IDs for roads which would disturb
     //the minimap creation if we would add them to roadTexIdsVec directly
     //but we need them in worldaware to properly detect the local width of the race track
@@ -273,6 +278,7 @@ public:
                                            96, 4};
 
     bool IsRoadTexture(irr::s32 texture, bool addExtendedTextures = false);
+    bool IsRoadCurbSideTexture(irr::s32 texture);
     bool IsChargingStationTexture(irr::s32 texture);
 
     //if onlyUpdateMesh optional parameter is true, the low level data in the map is not modified

@@ -87,12 +87,12 @@
 #include "../resources/columndefinition.h"
 #include "../resources/mapentry.h"
 
-//returns true if a track end was identified
-bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> cells,
+//returns true if a track curbside was identified, False otherwise
+bool WorldAwareness::FindTrackCurbsideAlongCastRay(std::vector<irr::core::vector2di> cells,
                                               irr::core::vector3df rayStartPoint3D, irr::f32 &distanceToEnd) {
 
     irr::s16 nrCells;
-    bool isRoadTexture;
+    bool isRoadCurbSideTexture;
     MapEntry* mapEntry;
     irr::core::vector3df endRoadTextureID3DPos;
 
@@ -101,10 +101,10 @@ bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> 
     for (irr::s16 cellIdx = 0; cellIdx < nrCells; cellIdx++) {
         mapEntry = this->mRace->mLevelTerrain->GetMapEntry(cells.at(cellIdx).X, cells.at(cellIdx).Y);
 
-        //you must enable extended texture IDs here, to make it work correctly
-        isRoadTexture = this->mRace->mLevelTerrain->IsRoadTexture(mapEntry->m_TextureId, true);
+        //do we find a road curbside texture Id?
+        isRoadCurbSideTexture = this->mRace->mLevelTerrain->IsRoadCurbSideTexture(mapEntry->m_TextureId);
 
-        if (!isRoadTexture) {
+        if (isRoadCurbSideTexture) {
             endRoadTextureID3DPos.X = -cells.at(cellIdx).X * DEF_SEGMENTSIZE;
             endRoadTextureID3DPos.Y = rayStartPoint3D.Y; //just take Y the same as of starting point, so that
                                                          //Y coordinate does not affect the calculated length
@@ -112,11 +112,11 @@ bool WorldAwareness::FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> 
 
             distanceToEnd = (endRoadTextureID3DPos - rayStartPoint3D).getLength();
 
-            break;
+            return true;
         }
     }
 
-    //no road end found
+    //no road curbside found
     return false;
 }
 
@@ -159,12 +159,17 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
         //at some map locations from the original game (for example level 3, shortly after the race finish line on the right side) there
         //are the wallsegments missing towards the lower areas). This means at this location we need another solution again to be able
         //to properly detect the road there, and the area where we can move freely as a computer player
-        //As a solution I decided to use the CastRayDDA visited cells from the last function call, revisit all of this cells, and check when we
-        //leave the valid textureID range of "roads" in the game
+        //As a solution I decided to use the CastRayDDA visited cells from the last function call, revisit all of this cells, and check if we
+        //find a road curbside texture Id. Which will prevent CpuPlayer movement there.
         //This should help for this locations
 
-        //08.02.2026: temporarily commented out
-        //FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
+       /* bool curbSideFound = FindTrackCurbsideAlongCastRay(cells, coord3D, distStartEntityTextureId);
+
+        if (curbSideFound) {
+            if (distStartEntityTextureId < distStartEntity) {
+                distStartEntity = distStartEntityTextureId;
+            }
+        }*/
 
         //do the same from the end entity
         coord3D = (*it)->pLineStruct->B;
@@ -175,46 +180,22 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             distEndEntity = rayInfo.HitDistance;
         }
 
-        //08.02.2026: temporarily commented out
-        //FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
+        /*curbSideFound = FindTrackCurbsideAlongCastRay(cells, coord3D, distEndEntityTextureId);
+
+        if (curbSideFound) {
+            if (distEndEntityTextureId < distEndEntity) {
+                distEndEntity = distEndEntityTextureId;
+            }
+        }*/
 
         //which is the minimum of the results?
         minVal = distStartEntity;
-        //minVal = FLT_MAX;
 
-        //08.02.2026: temporarily commented out
-        /*if (distStartEntityTextureId < minVal) {
-            minVal = distStartEntityTextureId;
-        }*/
-
-      /*  minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;*/
-     /*   if (minVal < 0.0f) {
-            minVal = 0.0f;
-        }*/
+        if (distEndEntity < minVal) {
+            minVal = distEndEntity;
+        }
 
         (*it)->maxOffsetShift = minVal;
-
-        minVal = distEndEntity;
-        //minVal = FLT_MAX;
-
-        /*if (distEndEntity < minVal) {
-            minVal = distEndEntity;
-        }*/
-
-        /*if (distEndEntityTextureId < minVal) {
-            minVal = distEndEntityTextureId;
-        }
-
-        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;*/
-       /* if (minVal < 0.0f) {
-            minVal = 0.0f;
-        }*/
-
-        if (minVal < (*it)->maxOffsetShift) {
-            (*it)->maxOffsetShift = minVal;
-        }
-
-        //(*it)->maxOffsetShiftEnd = minVal;
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
         //we can find out by shooting rays in parallel to the original waypoint link, but with
@@ -276,8 +257,13 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             distStartEntity = rayInfo.HitDistance;
         }
 
-         //08.02.2026: temporarily commented out
-        //FindTrackEndAlongCastRay(cells, coord3D, distStartEntityTextureId);
+       /* curbSideFound = FindTrackCurbsideAlongCastRay(cells, coord3D, distStartEntityTextureId);
+
+        if (curbSideFound) {
+            if (distStartEntityTextureId < distStartEntity) {
+                distStartEntity = distStartEntityTextureId;
+            }
+        }*/
 
         //do the same from the end entity
         coord3D = (*it)->pLineStruct->B;
@@ -288,46 +274,22 @@ void WorldAwareness::PreAnalyzeWaypointLinksOffsetRange() {
             distEndEntity = rayInfo.HitDistance;
         }
 
-        //08.02.2026: temporarily commented out
-        //FindTrackEndAlongCastRay(cells, coord3D, distEndEntityTextureId);
+       /* curbSideFound = FindTrackCurbsideAlongCastRay(cells, coord3D, distEndEntityTextureId);
+
+        if (curbSideFound) {
+            if (distEndEntityTextureId < distEndEntity) {
+                distEndEntity = distEndEntityTextureId;
+            }
+        }*/
 
         //which is the minimum of the results?
         minVal = distStartEntity;
-        //  minVal = FLT_MAX;
 
         if (distEndEntity < minVal) {
             minVal = distEndEntity;
         }
 
-        //08.02.2026: temporarily commented out
-      /*  if (distStartEntityTextureId < minVal) {
-            minVal = distStartEntityTextureId;
-        }*/
-
-        /*minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
-        if (minVal < 0.0f) {
-            minVal = 0.0f;
-        }*/
-
         (*it)->minOffsetShift = -minVal;
-
-       // minVal = distEndEntity;
-        //  minVal = FLT_MAX;
-
-
-        /*if (distEndEntity < minVal) {
-            minVal = distEndEntity;
-        }*/
-
-       /* if (distEndEntityTextureId < minVal) {
-            minVal = distEndEntityTextureId;
-        }
-
-        minVal -= WA_CP_PLAYER_NAVIGATIONAREASAFETYDISTANCE;
-        if (minVal < 0.0f)
-            minVal = 0.0f;
-
-        (*it)->minOffsetShiftEnd = -minVal;*/
 
         //now check if there is any obstacle from the side pointing towards the waypoint link
         //we can find out by shooting rays in parallel to the original waypoint link, but with
@@ -1290,11 +1252,128 @@ WorldAwareness::WorldAwareness(irr::IrrlichtDevice* device, irr::video::IVideoDr
        mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
                 irr::core::dimension2d<irr::u32>(worldSizeX, worldSizeY));
 
+   //create a new image for the waypointLink
+   //world, this one is based on the staticWorld, but contains
+   //more obstacles at the road edges based on texture Id of the tiles
+   wayPointLinkWorld =
+       mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
+                irr::core::dimension2d<irr::u32>(worldSizeX, worldSizeY));
+
    if (WA_ALLOW_DEBUGGING) {
         //create a new image for world debugging
         debugWorld =  mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8,
                                       irr::core::dimension2d<irr::u32>(worldSizeX, worldSizeY));
    }
+
+   //add even more obstacle information for WaypointLink
+   //initialization for Cpu Player
+   CreateWayPointLinkWorld();
+}
+
+void WorldAwareness::CreateWayPointLinkWorld() {
+    //first copy static world into waypoint link world
+    staticWorld->copyTo(wayPointLinkWorld);
+
+    //create more obstacles for CpuPlayers based on
+    //defined road curbside texture Ids
+    //go through every terrain cell, check its texture Id
+    //If road curbside element block this terrain cell for
+    //Cpu player in level
+    mWayPointLinksWorldMap = new std::vector<uint8_t>();
+
+    int currIdxX;
+    int currIdxY = 0;
+    int maxX = mRace->mLevelTerrain->get_width();
+    int maxY = mRace->mLevelTerrain->get_heigth();
+
+    int sqrIdxX;
+    int sqrIdxY;
+
+    irr::s32 texId;
+    MapEntry* mapEntry;
+
+    irr::core::vector3df vert1;
+    irr::core::vector3df vert3;
+
+    for (currIdxX = 0; currIdxX < maxX; currIdxX++)
+      for (currIdxY = 0; currIdxY < maxY; currIdxY++) {
+          mapEntry = mRace->mLevelTerrain->GetMapEntry(currIdxX, currIdxY);
+          if (mapEntry != nullptr) {
+             texId = mapEntry->m_TextureId;
+
+              if (mRace->mLevelTerrain->IsRoadCurbSideTexture(texId)) {
+                  vert1 = mRace->mLevelTerrain->pTerrainTiles[currIdxX][currIdxY].vert1->Pos;
+                  vert3 = mRace->mLevelTerrain->pTerrainTiles[currIdxX][currIdxY].vert3->Pos;
+
+                  //we have a road curbside texture here, block this cell for CpuPlayer
+                  DrawRectangle(*wayPointLinkWorld,
+                                *colorRed,
+                                vert1.X * PixelScaleFactor,
+                                vert1.Z * PixelScaleFactor,
+                                vert3.X * PixelScaleFactor,
+                                vert3.Z * PixelScaleFactor);
+              }
+          }
+    }
+
+    //only for debugging, save picture on disk
+    //DebugSavePicture((char*)"dbgwayPointLinkWorld.png", wayPointLinkWorld);
+
+    return;
+
+    //08.02.2026: Continue working below!
+
+
+    int sqrIdxEx;
+    int sqrIdxEy;
+
+    //resize vector correctly
+    mWayPointLinksWorldMap->resize(maxX * maxY);
+
+    irr::video::SColor currCol;
+    bool oF;
+
+    //go through all map entry coordinates, too see if we have an obstacle
+    //in the square with PixelScaleFactor pixels times PixelScaleFactor pixels
+    for (currIdxX = 0; currIdxX < maxX; currIdxX++)
+      for (currIdxY = 0; currIdxY < maxY; currIdxY++) {
+
+          //which is the last pixel we need to check
+          sqrIdxEx = (currIdxX + 1) * PixelScaleFactor;
+          sqrIdxEy = (currIdxY + 1) * PixelScaleFactor;
+
+          oF = false;
+
+          //check the current locations pixel square for obstacle
+          for (sqrIdxX = currIdxX * PixelScaleFactor; sqrIdxX < sqrIdxEx; sqrIdxX++)
+            for (sqrIdxY = currIdxY * PixelScaleFactor; sqrIdxY < sqrIdxEy; sqrIdxY++) {
+               currCol = staticWorld->getPixel(sqrIdxX, sqrIdxY);
+
+               if (currCol != *colorEmptySpace) {
+                   //we found an obstacle
+                   mStaticWorldMap->at(currIdxX + currIdxY * maxX) = 1;
+                   oF = true;
+
+                   //we can break out of this two innermost nested loops
+                   sqrIdxX = sqrIdxEx;
+                   break;
+               }
+            }
+
+          if (!oF) {
+              //no obstacle found withhin PixelScaleFactor x PixelScaleFactor area
+              mWayPointLinksWorldMap->at(currIdxX + currIdxY * maxX) = 0;
+          }
+       }
+
+    //map creation finished
+
+
+
+
+
+    //only for debugging, save picture on disk
+  //  DebugSavePicture((char*)"dbgDynamicWorld.png", dynamicWorld);
 }
 
 void WorldAwareness::CreateDynamicWorld(Player* whichPlayer) {
@@ -1324,6 +1403,7 @@ WorldAwareness::~WorldAwareness() {
 
     delete mStaticWorldMap;
     delete mDynamicWorldMap;
+    delete mWayPointLinksWorldMap;
 
     delete colorRed;
     delete colorEmptySpace;
@@ -1339,4 +1419,7 @@ WorldAwareness::~WorldAwareness() {
 
         delete pntrColor;
     }
+
+    dynamicWorld->drop();
+    wayPointLinkWorld->drop();
 }

@@ -689,6 +689,20 @@ bool LevelTerrain::IsRoadTexture(irr::s32 texture, bool addExtendedTextures) {
     return false;
 }
 
+
+//Returns true if input texture is a road curbside texture
+//according to a predefined list
+bool LevelTerrain::IsRoadCurbSideTexture(irr::s32 texture) {
+    for (std::vector<irr::s32>::iterator itTex = roadCurbSideTexIdsVec.begin(); itTex != roadCurbSideTexIdsVec.end(); ++itTex) {
+        if ((*itTex) == texture) {
+            //texture found, exit
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool LevelTerrain::IsChargingStationTexture(irr::s32 texture) {
     //bool found;
     //std::vector<irr::s32>::iterator it2;

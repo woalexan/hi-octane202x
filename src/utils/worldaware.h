@@ -123,12 +123,14 @@ private:
     irr::IrrlichtDevice* mDevice = nullptr;
 
     irr::video::IImage* staticWorld = nullptr;
+    irr::video::IImage* wayPointLinkWorld = nullptr;
     irr::video::IImage* dynamicWorld = nullptr;
     irr::video::IImage* debugWorld = nullptr;
 
     //irr::core::plane3d<irr::f32>* XZPlane;
 
     void CreateStaticWorld();
+    void CreateWayPointLinkWorld();
     void CreateDynamicWorld(Player* whichPlayer);
 
     irr::u32 worldSizeX;
@@ -177,11 +179,16 @@ private:
     //player in this tile;
     std::vector<uint8_t>* mDynamicWorldMap = nullptr;
 
+    //World map contains info about static
+    //Terrain and Cubes + road curbside blocks. 0 means in the tile there is no obstacle
+    //1 means there is an obstacle
+    std::vector<uint8_t>* mWayPointLinksWorldMap = nullptr;
+
     void CreateStaticWorldMap();
     void UpdateDynamicWorldMap(Player* whichPlayer);
 
-    //returns true if a track end was identified
-    bool FindTrackEndAlongCastRay(std::vector<irr::core::vector2di> cells,
+    //returns true if a track curbside was identified, False otherwise
+    bool FindTrackCurbsideAlongCastRay(std::vector<irr::core::vector2di> cells,
                                   irr::core::vector3df rayStartPoint3D, irr::f32 &distanceToEnd);
     
 public:
