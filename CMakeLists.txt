@@ -1,9 +1,53 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 project(hi-octane202x LANGUAGES CXX)
 
-if(NOT CMAKE_COMPILE_WARNING_AS_ERROR)
-        set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
+if( NOT CMAKE_BUILD_TYPE )
+        set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE )
+endif()
+
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(GNUInstallDirs)
+
+if( NOT CMAKE_OPTIMIZATION_LEVEL )
+	set( CMAKE_OPTIMIZATION_LEVEL 3 CACHE STRING "Choose the optimization level of build." FORCE )
+endif()
+
+if( CMAKE_BUILD_BINARY_STRIP )
+	add_link_options(-Wl,-s)
+endif()
+
+if( CMAKE_BUILD_TYPE EQUAL Debug )
+	add_compile_options(-g)
+endif()
+
+if( CMAKE_GENERATOR_PLATFORM STREQUAL "x64" OR CMAKE_GENERATOR_PLATFORM STREQUAL "x86_64" OR CMAKE_GENERATOR_PLATFORM STREQUAL "AMD64" )
+	add_compile_options(-mfpmath=sse)
+endif()
+
+add_compile_options(-march=native)
+add_compile_options(-O${CMAKE_OPTIMIZATION_LEVEL})
+add_compile_options(-fopenmp-simd)
+add_compile_options(-ftree-vectorize)
+add_compile_options(-fno-rtti)
+#add_compile_options(-fno-exceptions)
+#add_compile_options(-Wno-gnu-alignof-expression)
+add_compile_options(-D_FILE_OFFSET_BITS=64)
+add_compile_options(-fdata-sections)
+add_compile_options(-fpermissive)
+add_compile_options(-ffunction-sections)
+add_compile_options(-Wno-array-bounds)
+add_compile_options(-Wno-unused-parameter)
+add_compile_options(-Wno-unused-result)
+add_compile_options(-Wno-pedantic)
+add_compile_options(-Wno-narrowing)
+add_link_options(-Wl,--gc-sections)
+#add_link_options(-Wl,--print-gc-sections)
 endif()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -17,7 +61,16 @@ if (SFML_STATIC_LIBRARIES)
         add_definitions(-DSFML_STATIC)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(SFML 3 REQUIRED COMPONENTS Audio Network)
+
+# If found, include and link; otherwise output error message
+if(SFML_FOUND)
+        include_directories(${SFML_INCLUDE_DIR})
+else()
+        set(SFML_ROOT "" CACHE PATH "SFML top-level directory")
+        message("\n-> SFML directory not found. Set SFML_ROOT to SFML's top-level path (containing \"include\" and \"lib\" directories).")
+        message("-> Make sure the SFML libraries with the same configuration (Release/Debug, Static/Dynamic) exist.\n")
+endif()
 
 find_package(Irrlicht REQUIRED)
 
@@ -41,26 +94,6 @@ else()
         message("-> Make sure the Adlmidi libraries with the same configuration (Release/Debug, Static/Dynamic) exist.\n")
 endif()
 
-###########################
-
-# The following text was taken from SFML-Game-Development-Book Start
-# Find SFML
-# Note: SFML_STATIC_LIBRARIES determines which libraries are found by find_package()
-find_package(SFML 2 REQUIRED COMPONENTS audio system network)
-
-# If found, include and link; otherwise output error message
-if(SFML_FOUND)
-        include_directories(${SFML_INCLUDE_DIR})
-else()
-        set(SFML_ROOT "" CACHE PATH "SFML top-level directory")
-        message("\n-> SFML directory not found. Set SFML_ROOT to SFML's top-level path (containing \"include\" and \"lib\" directories).")
-        message("-> Make sure the SFML libraries with the same configuration (Release/Debug, Static/Dynamic) exist.\n")
-endif()
-
-# SFML-Game-Development-Book End
-
-###########################
-
 find_package(Freetype)
 
 if(Freetype_FOUND)
@@ -70,8 +103,7 @@ endif()
 
 find_package(Threads REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(EXECUTABLE_OUTPUT_PATH "build")
 
 add_executable(hi-octane202x
     src/definitions.h
@@ -414,11 +446,11 @@ if(UNIX)
 endif()
 
 TARGET_LINK_LIBRARIES(hi-octane202x ${IRRLICHT_LIBRARY})
-TARGET_LINK_LIBRARIES(hi-octane202x ${SFML_LIBRARIES})
+TARGET_LINK_LIBRARIES(hi-octane202x SFML::Audio SFML::Network)
 TARGET_LINK_LIBRARIES(hi-octane202x ${ADLMIDI_LIBRARY})
 
 TARGET_LINK_LIBRARIES(hi-editor ${IRRLICHT_LIBRARY})
-TARGET_LINK_LIBRARIES(hi-editor ${SFML_LIBRARIES})
+TARGET_LINK_LIBRARIES(hi-editor SFML::Audio SFML::Network)
 
 if(Freetype_FOUND)
     MESSAGE(STATUS "FREETYPE_LIBRARIES = ${FREETYPE_LIBRARIES}")
@@ -426,26 +458,12 @@ if(Freetype_FOUND)
     TARGET_LINK_LIBRARIES(hi-octane202x ${FREETYPE_LIBRARIES})
 endif()
 
-###########################
-
-# The following text was taken from SFML-Game-Development-Book Start
-
 # Build static or shared libraries? Set chapter-specific DLL import macro
 if(SFML_STATIC_LIBRARIES)
         set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS "SFML_STATIC")
 endif()
 
-# Link SFML. For versions < 2.2, SFML_DEPENDENCIES is not defined, and we do not need to link dependencies
-if(SFML_VERSION_MINOR LESS 2)
-set(SFML_DEPENDENCIES "")
-endif()
-target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
-
-# SFML-Game-Development-Book End
-
-###########################
-
 target_link_libraries(hi-editor ${CMAKE_THREAD_LIBS_INIT})
 
-file(COPY media DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY shaders DESTINATION ${CMAKE_BINARY_DIR})
+install(DIRECTORY media DESTINATION ${CMAKE_BINARY_DIR}/build)
+install(DIRECTORY shaders DESTINATION ${CMAKE_BINARY_DIR}/build)

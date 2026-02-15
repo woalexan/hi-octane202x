@@ -15,7 +15,7 @@
  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
-
+#include <algorithm>
 #include "utils/physics.h"
 #include "utils/tprofile.h"
 #include "utils/bezier.h"
@@ -350,13 +350,13 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Mesh count loaded: ");
-    snprintf(hlpstr, 500, "%lu", mGame->mSmgr->getMeshCache()->getMeshCount());
+    snprintf(hlpstr, 500, "%zu", (size_t)mGame->mSmgr->getMeshCache()->getMeshCount());
     msg.append(hlpstr);
     logging::Info(msg);
 
     msg.clear();
     msg.append("Textures loaded: ");
-    snprintf(hlpstr, 500, "%lu", mGame->mSmgr->getVideoDriver()->getTextureCount());
+    snprintf(hlpstr, 500, "%zu", (size_t)mGame->mSmgr->getVideoDriver()->getTextureCount());
     msg.append(hlpstr);
     logging::Info(msg);
 
@@ -367,7 +367,7 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Scenenode count (all): ");
-    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    snprintf(hlpstr, 500, "%zu", (size_t)outNodes.size());
     msg.append(hlpstr);
     logging::Info(msg);
 
@@ -378,7 +378,7 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Scenenode count (Billboard): ");
-    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    snprintf(hlpstr, 500, "%zu", (size_t)outNodes.size());
     msg.append(hlpstr);
     logging::Info(msg);
 
@@ -387,7 +387,7 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Scenenode count (Mesh): ");
-    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    snprintf(hlpstr, 500, "%zu", (size_t)outNodes.size());
     msg.append(hlpstr);
     logging::Info(msg);
 
@@ -398,7 +398,7 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Scenenode count (light): ");
-    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    snprintf(hlpstr, 500, "%zu", (size_t)outNodes.size());
     msg.append(hlpstr);
     logging::Info(msg);
     
@@ -409,7 +409,7 @@ void Race::IrrlichtStats(char* text) {
 
     msg.clear();
     msg.append("Scenenode count (camera): ");
-    snprintf(hlpstr, 500, "%lu", outNodes.size());
+    snprintf(hlpstr, 500, "%zu", (size_t)outNodes.size());
     msg.append(hlpstr);
     logging::Info(msg);
 
@@ -1111,8 +1111,8 @@ void Race::CleanUpTriggers() {
 }
 
 void Race::StopMusic() {
-    if ((mMusicPlayer->getStatus() == mMusicPlayer->Playing) ||
-       (mMusicPlayer->getStatus() == mMusicPlayer->Paused)) {
+    if ((mMusicPlayer->getStatus() == sf::SoundSource::Status::Playing) ||
+       (mMusicPlayer->getStatus() == sf::SoundSource::Status::Paused)) {
             //stop music
             mMusicPlayer->StopPlay();
     }

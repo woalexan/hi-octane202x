@@ -170,11 +170,11 @@ MyMusicStream::MyMusicStream(Game* gamePnter, unsigned int sampleRate) {
 
     //allocate buffer
     buffer = new uint8_t[MUSIC_BUFSIZE];
-    sfBuffer = new sf::Int16[MUSIC_BUFSIZE / 2];
+    sfBuffer = new int16_t[MUSIC_BUFSIZE / 2];
 
     //configure SFML audio output settings
     //we want 2 channels and a specified sample rate
-    this->initialize(2, mSampleRate);
+    this->initialize((uint32_t)2, mSampleRate, { sf::SoundChannel::FrontLeft, sf::SoundChannel::FrontRight });
 
     /* Initialize ADLMIDI */
     midi_player = adl_init(mSampleRate);
@@ -255,7 +255,7 @@ bool MyMusicStream::StartPlay() {
         return false;
 
     //already playing?
-    if (this->getStatus() == this->Playing)
+    if (this->getStatus() == sf::SoundSource::Status::Playing)
         return true;
 
     //only play if we have a volume set
@@ -272,10 +272,10 @@ bool MyMusicStream::StopPlay() {
         return false;
 
     //music already stopped?
-    if (this->getStatus() == this->Stopped)
+    if (this->getStatus() == sf::SoundSource::Status::Stopped)
          return true;
 
-    if (this->getStatus() != this->Playing)
+    if (this->getStatus() != sf::SoundSource::Status::Playing)
         return false;
 
     //stop playing music
@@ -287,7 +287,7 @@ bool MyMusicStream::StopPlay() {
 MyMusicStream::~MyMusicStream() {
     //if we are right now playing music
     //stop it
-    if (this->getStatus() == this->Playing) {
+    if (this->getStatus() == sf::SoundSource::Status::Playing) {
         this->StopPlay();
     }
 
@@ -320,7 +320,7 @@ bool MyMusicStream::onGetData(Chunk& data)
 
     //convert from one buffer to the other
     for (int idx = 0; idx < samples_count; idx++) {
-        sfBuffer[idx] = sf::Int16(buffer[idxSource]) + (((sf::Int16)(buffer[idxSource + 1])) << 8);
+        sfBuffer[idx] = int16_t(buffer[idxSource]) + (((int16_t)(buffer[idxSource + 1])) << 8);
         idxSource += 2;
     }
 

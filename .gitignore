@@ -1,6 +1,10 @@
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
 
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
 cmake-build-*/
 build/*
 !build/originalgame
@@ -80,6 +84,9 @@ out/
 # --------
 *.dll
 *.exe
+hi-octane202x
+hi-editor
+hi-octane202x.xml
 
 # IntelliJ IDE files
 .idea

@@ -7,6 +7,7 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 
+#include <algorithm>
 #include "path.h"
 #include "../utils/physics.h"
 #include "../race.h"

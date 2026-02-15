@@ -57,7 +57,7 @@ void displayMainHeaderInfo(FLIMainHeader *animHeader,ulong hStart, ulong fSize)
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Filesize from header: %7lu    Real filesize:%lu", animHeader->size, fSize);
+  snprintf(hlpstr, 500, "Filesize from header: %7zu    Real filesize:%zu", (size_t)animHeader->size, fSize);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
@@ -119,27 +119,27 @@ void displayAddHeaderInfo(FLIAddHeader *animAddHeader,ulong hEnd)
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Unknown value: %14lu    Usually 0;no estimations", animAddHeader->next);
+  snprintf(hlpstr, 500, "Unknown value: %14zu    Usually 0;no estimations", (size_t)animAddHeader->next);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Date/Time of creation:%7lu    No estimations", animAddHeader->frit);
+  snprintf(hlpstr, 500, "Date/Time of creation:%7zu    No estimations", (size_t)animAddHeader->frit);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Creator: %20lu    No estimations", animAddHeader->creator);
+  snprintf(hlpstr, 500, "Creator: %20zu    No estimations", (size_t)animAddHeader->creator);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Date/Time of last change:%4lu    No estimations", animAddHeader->lastchange);
+  snprintf(hlpstr, 500, "Date/Time of last change:%4zu    No estimations", (size_t)animAddHeader->lastchange);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Serial number: %14lu    No estimations", animAddHeader->changerserial);
+  snprintf(hlpstr, 500, "Serial number: %14zu    No estimations", (size_t)animAddHeader->changerserial);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
@@ -170,12 +170,12 @@ void displayAddHeaderInfo(FLIAddHeader *animAddHeader,ulong hEnd)
   //printf("Offset of frame 1: %10lu    (no estimations)\n",animAddHeader->frame1);
   //printf("Offset of frame 2: %10lu    (no estimations)\n",animAddHeader->frame2);
 
-  snprintf(hlpstr, 500, "Offset of frame 1: %10lu    (no estimations)", animAddHeader->frame1);
+  snprintf(hlpstr, 500, "Offset of frame 1: %10zu    (no estimations)", (size_t)animAddHeader->frame1);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
 
-  snprintf(hlpstr, 500, "Offset of frame 2: %10lu    (no estimations)", animAddHeader->frame2);
+  snprintf(hlpstr, 500, "Offset of frame 2: %10zu    (no estimations)", (size_t)animAddHeader->frame2);
   msg.clear();
   msg.append(hlpstr);
   logging::Info(msg);
@@ -214,7 +214,7 @@ void displayFrameInfo(FLIFrameHeader *currFrameHdr,ulong frameNumber,ulong total
     msg.append(hlpstr);
     logging::Info(msg);
 
-    snprintf(hlpstr, 500, "  Bytes in frame: %11lu    Shall be <framesize+palsize", currFrameHdr->size);
+    snprintf(hlpstr, 500, "  Bytes in frame: %11zu    Shall be <framesize+palsize", (size_t)currFrameHdr->size);
     msg.clear();
     msg.append(hlpstr);
     logging::Info(msg);
@@ -266,7 +266,7 @@ void displayChunkInfo(FLIChunkHeader *currChunkHdr,ulong chunkNumber,ulong hStar
 
     msg.clear();
     msg.append("    Bytes in chunk:");
-    snprintf(hlpstr1, 30, "%10lu", currChunkHdr->size);
+    snprintf(hlpstr1, 30, "%10zu", (size_t)currChunkHdr->size);
     msg.append(hlpstr1);
     msg.append("    ( <");
     snprintf(hlpstr1, 30, "%lu", (unsigned long)(MaxAnimWidth * MaxAnimHeight));

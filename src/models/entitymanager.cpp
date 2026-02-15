@@ -1593,7 +1593,7 @@ void EntityManager::CreateModelPreview(char* modelFileName, irr::core::vector3df
      irr::scene::ICameraSceneNode* newCamera = mInfra->mSmgr->addCameraSceneNode(0, camPos, camLookAtPos, -1, false);
      newCamera->setAspectRatio(1.0f);
 
-     mInfra->mDriver->beginScene(false,false, 0);
+     mInfra->mDriver->beginScene((bool)false,(bool)false, (irr::video::SColor)0);
 
      //store the current camera selection
      ICameraSceneNode* currCamera = mInfra->mSmgr->getActiveCamera();
@@ -1612,7 +1612,7 @@ void EntityManager::CreateModelPreview(char* modelFileName, irr::core::vector3df
      mInfra->CopyTexture(mRenderToTargetTex, &outputTexture);
 
      // set back old render target
-     mInfra->mDriver->setRenderTarget(0, false, false, 0);
+     mInfra->mDriver->setRenderTarget(nullptr, false, false, (irr::video::SColor)0);
 
      //restore initial camera
      if (currCamera != nullptr) {
