@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -11,8 +11,39 @@
 #include <iostream>
 #include "../utils/logging.h"
 
-bool SoundEngine::getSoundResourcesLoadOk() {
-    return mSoundResourcesLoadOk;
+SoundResource::SoundResource(std::string fileName, u_int8_t soundResId) {
+    //Store my sound resource Id so that we know
+    //what I contain
+    mSoundResId = soundResId;
+
+    if (!mSoundBuf.loadFromFile(fileName)) {
+            std::string errMsg("LoadSoundResouce: Could not load sound resource file ");
+            errMsg.append(fileName);
+            logging::Error(errMsg);
+
+            loadOk = false;
+    }
+
+    std::string infoMsg("LoadSoundResouce: Succesfully loaded sound resource file ");
+    infoMsg.append(fileName);
+    logging::Info(infoMsg);
+
+    loadOk = true;
+}
+
+SoundResource::~SoundResource() {
+}
+
+bool SoundEngine::GetSoundResourcesLoadOk() {
+    std::vector<SoundResource*>::iterator it;
+
+    for (it = this->SoundResVec->begin(); it != this->SoundResVec->end(); ++it) {
+       if (!(*it)->loadOk) {
+           return false;
+       }
+    }
+
+    return true;
 }
 
 void SoundEngine::StopAllSounds() {
@@ -56,10 +87,10 @@ bool SoundEngine::IsAnySoundPlaying() {
 }
 
 void SoundEngine::RequestEngineSoundForPlayer(Player* player) {
-	SoundResEntry* pntr = SearchSndRes(SRES_GAME_LARGECAR);
-	if(pntr != nullptr)
+    SoundResource* res = SearchSndRes(SRES_GAME_LARGECAR);
+    if ((res != nullptr) && (res->loadOk))
 	{
-		sf::Sound *newEngineSound = new sf::Sound(*pntr->pntrSoundBuf);
+        sf::Sound *newEngineSound = new sf::Sound(res->mSoundBuf);
 		if(newEngineSound != nullptr)
 		{
 			newEngineSound->setVolume(mSoundVolume);
@@ -167,7 +198,7 @@ SoundEngine::SoundEngine(Game* gamePnter) {
     mGame = gamePnter;
 
     //create new vector where we can store our soundbuffers/soundresources
-    SoundResVec = new std::vector<SoundResEntry*>();
+    SoundResVec = new std::vector<SoundResource*>();
 
     //create new vector where we can store sound sources
     SoundVec = new std::vector<sf::Sound*>();
@@ -179,14 +210,14 @@ SoundEngine::SoundEngine(Game* gamePnter) {
 
 //searches for a sound resource entry with a certain specified sound ID
 //if no sound under this sound ID is found returns nullptr
-SoundResEntry* SoundEngine::SearchSndRes(uint8_t soundResId) {
+SoundResource* SoundEngine::SearchSndRes(uint8_t soundResId) {
     if (this->SoundResVec->size() < 1)
         return nullptr;
 
-    std::vector<SoundResEntry*>::iterator it;
+    std::vector<SoundResource*>::iterator it;
 
     for (it = this->SoundResVec->begin(); it != this->SoundResVec->end(); ++it) {
-        if ((*it)->soundResId == soundResId) {
+        if ((*it)->mSoundResId == soundResId) {
             //found the correct sound resource entry
             return (*it);
         }
@@ -196,7 +227,7 @@ SoundResEntry* SoundEngine::SearchSndRes(uint8_t soundResId) {
     return nullptr;
 }
 
-sf::Sound* SoundEngine::GetFreeSoundSource() {
+sf::Sound* SoundEngine::GetFreeSoundSource(SoundResource* resToPlay) {
     //if we have already sources available try to
     //reuse an already existing inactive source
     if (this->SoundVec->size() > 0) {
@@ -214,21 +245,15 @@ sf::Sound* SoundEngine::GetFreeSoundSource() {
     //playing
     //can we create a new one?
     if (this->mNrSoundSources < SOUND_MAXNR) {
-        SoundResEntry* pntr = SearchSndRes(SRES_GAME_LARGECAR);
-	sf::Sound *newSnd = nullptr;
-	if(pntr != nullptr)
-	{
-		newSnd = new sf::Sound(*pntr->pntrSoundBuf);
-		if(newSnd != nullptr)
-		{
-			//also set current sound volue
-			newSnd->setVolume(mSoundVolume);
+        sf::Sound *newSnd = new sf::Sound(resToPlay->mSoundBuf);
 
-			this->SoundVec->push_back(newSnd);
-			this->mNrSoundSources++;
-		}
-	}
-	return newSnd;
+        //also set current sound volue
+        newSnd->setVolume(mSoundVolume);
+
+        this->SoundVec->push_back(newSnd);
+        this->mNrSoundSources++;
+
+        return newSnd;
     }
 
     //already too much sounds, do not do
@@ -292,14 +317,15 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
         return nullptr;
 
     //first search resource
-    SoundResEntry* pntr = SearchSndRes(soundResId);
+    SoundResource* res = SearchSndRes(soundResId);
 
-    if (pntr != nullptr) {
-        //if found the sound resource to play
-            sf::Sound* sndPntr = GetFreeSoundSource();
+    if ((res != nullptr) && (res->loadOk)) {
+        //we found the sound resource to play
+            sf::Sound* sndPntr = GetFreeSoundSource(res);
             if (sndPntr != nullptr) {
                 //we found a free sound source to play buffer
-                sndPntr->setBuffer(*pntr->pntrSoundBuf);
+                //or a new one was created for us
+                sndPntr->setBuffer(res->mSoundBuf);
                 sndPntr->setLooping(looping);
                 sndPntr->setPitch(playPitch);
                 sndPntr->setPosition(reinterpret_cast<sf::Vector3f&>(sourceLocation));
@@ -334,25 +360,21 @@ void SoundEngine::StopLoopingSound(sf::Sound* pntrSound) {
 }
 
 //returns true if successful, false otherwise
-bool SoundEngine::LoadSoundResourcesIntro() {
-    bool initOk = true;
-
+void SoundEngine::LoadSoundResourcesIntro() {
     //load all the intro sounds as well
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_FIRE, SRES_INTRO_FIRE);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_EXPLODE, SRES_INTRO_EXPLODE);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_TURBO, SRES_INTRO_TURBO);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_SMALLCAR, SRES_INTRO_SMALLCAR);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_SCRAPE2, SRES_INTRO_SCRAPE2);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_RICCOS, SRES_INTRO_RICCOS);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_PAST, SRES_INTRO_PAST);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_MISSILE, SRES_INTRO_MISSILE);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_MINIGUN, SRES_INTRO_MINIGUN);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_HELEHIT, SRES_INTRO_HELEHIT);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_FIREPAST, SRES_INTRO_FIREPAST);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_CURTAIN, SRES_INTRO_CURTAIN);
-    initOk &= initOk && LoadSoundResource(SFILE_INTRO_BOOSTER, SRES_INTRO_BOOSTER);
-
-    return initOk;
+    LoadSoundResource(std::string(SFILE_INTRO_FIRE), SRES_INTRO_FIRE);
+    LoadSoundResource(std::string(SFILE_INTRO_EXPLODE), SRES_INTRO_EXPLODE);
+    LoadSoundResource(std::string(SFILE_INTRO_TURBO), SRES_INTRO_TURBO);
+    LoadSoundResource(std::string(SFILE_INTRO_SMALLCAR), SRES_INTRO_SMALLCAR);
+    LoadSoundResource(std::string(SFILE_INTRO_SCRAPE2), SRES_INTRO_SCRAPE2);
+    LoadSoundResource(std::string(SFILE_INTRO_RICCOS), SRES_INTRO_RICCOS);
+    LoadSoundResource(std::string(SFILE_INTRO_PAST), SRES_INTRO_PAST);
+    LoadSoundResource(std::string(SFILE_INTRO_MISSILE), SRES_INTRO_MISSILE);
+    LoadSoundResource(std::string(SFILE_INTRO_MINIGUN), SRES_INTRO_MINIGUN);
+    LoadSoundResource(std::string(SFILE_INTRO_HELEHIT), SRES_INTRO_HELEHIT);
+    LoadSoundResource(std::string(SFILE_INTRO_FIREPAST), SRES_INTRO_FIREPAST);
+    LoadSoundResource(std::string(SFILE_INTRO_CURTAIN), SRES_INTRO_CURTAIN);
+    LoadSoundResource(std::string(SFILE_INTRO_BOOSTER), SRES_INTRO_BOOSTER);
 }
 
 void SoundEngine::UnLoadSoundResourcesIntro() {
@@ -374,49 +396,46 @@ void SoundEngine::UnLoadSoundResourcesIntro() {
 
 //Loads the available sound resources for the game
 void SoundEngine::LoadSoundResources() {
-    mSoundResourcesLoadOk = true;
-
     //load all the sound resource files we need for this game
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT1, SRES_MENUE_TYPEWRITEREFFECT1);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_TYPEWRITEREFFECT2, SRES_MENUE_TYPEWRITEREFFECT2);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_SELECTOTHERITEM, SRES_MENUE_SELECTOTHERITEM);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_CHANGECHECKBOXVAL, SRES_MENUE_CHANGECHECKBOXVAL);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_MENUE_WINDOWMOVEMENT, SRES_MENUE_WINDOWMOVEMENT);
+    LoadSoundResource(std::string(SFILE_MENUE_TYPEWRITEREFFECT1), SRES_MENUE_TYPEWRITEREFFECT1);
+    LoadSoundResource(std::string(SFILE_MENUE_TYPEWRITEREFFECT2), SRES_MENUE_TYPEWRITEREFFECT2);
+    LoadSoundResource(std::string(SFILE_MENUE_SELECTOTHERITEM), SRES_MENUE_SELECTOTHERITEM);
+    LoadSoundResource(std::string(SFILE_MENUE_CHANGECHECKBOXVAL), SRES_MENUE_CHANGECHECKBOXVAL);
+    LoadSoundResource(std::string(SFILE_MENUE_WINDOWMOVEMENT), SRES_MENUE_WINDOWMOVEMENT);
 
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_PICKUP, SRES_GAME_PICKUP);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_REFUEL, SRES_GAME_REFUEL);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_LARGECAR, SRES_GAME_LARGECAR);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_WARNING, SRES_GAME_WARNING);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_TURBO, SRES_GAME_TURBO);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_BOOSTER, SRES_GAME_BOOSTER);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk &&LoadSoundResource(SFILE_GAME_COLLIDED, SRES_GAME_COLLISION);
+    LoadSoundResource(std::string(SFILE_GAME_PICKUP), SRES_GAME_PICKUP);
+    LoadSoundResource(std::string(SFILE_GAME_REFUEL), SRES_GAME_REFUEL);
+    LoadSoundResource(std::string(SFILE_GAME_LARGECAR), SRES_GAME_LARGECAR);
+    LoadSoundResource(std::string(SFILE_GAME_WARNING), SRES_GAME_WARNING);
+    LoadSoundResource(std::string(SFILE_GAME_TURBO), SRES_GAME_TURBO);
+    LoadSoundResource(std::string(SFILE_GAME_BOOSTER), SRES_GAME_BOOSTER);
+    LoadSoundResource(std::string(SFILE_GAME_COLLIDED), SRES_GAME_COLLISION);
 
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MGUN_SINGLESHOT, SRES_GAME_MGUN_SINGLESHOT);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MGUN_SHOTFAILED, SRES_GAME_MGUN_SHOTFAILED);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MGUN_LONGSHOT, SRES_GAME_MGUN_LONGSHOT);
+    LoadSoundResource(std::string(SFILE_GAME_MGUN_SINGLESHOT), SRES_GAME_MGUN_SINGLESHOT);
+    LoadSoundResource(std::string(SFILE_GAME_MGUN_SHOTFAILED), SRES_GAME_MGUN_SHOTFAILED);
+    LoadSoundResource(std::string(SFILE_GAME_MGUN_LONGSHOT), SRES_GAME_MGUN_LONGSHOT);
 
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_MISSILE_SHOT, SRES_GAME_MISSILE_SHOT);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_EXPLODE, SRES_GAME_EXPLODE);
+    LoadSoundResource(std::string(SFILE_GAME_MISSILE_SHOT), SRES_GAME_MISSILE_SHOT);
+    LoadSoundResource(std::string(SFILE_GAME_EXPLODE), SRES_GAME_EXPLODE);
 
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_FINALLAP, SRES_GAME_FINALLAP);
+    LoadSoundResource(std::string(SFILE_GAME_FINALLAP), SRES_GAME_FINALLAP);
 
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_RICCO1, SRES_GAME_RICCO1);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_RICCO2, SRES_GAME_RICCO2);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_RICCO3, SRES_GAME_RICCO3);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_LOCKON, SRES_GAME_LOCKON);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_START1, SRES_GAME_START1);
-    mSoundResourcesLoadOk &= mSoundResourcesLoadOk && LoadSoundResource(SFILE_GAME_START2, SRES_GAME_START2);
+    LoadSoundResource(std::string(SFILE_GAME_RICCO1), SRES_GAME_RICCO1);
+    LoadSoundResource(std::string(SFILE_GAME_RICCO2), SRES_GAME_RICCO2);
+    LoadSoundResource(std::string(SFILE_GAME_RICCO3), SRES_GAME_RICCO3);
+    LoadSoundResource(std::string(SFILE_GAME_LOCKON), SRES_GAME_LOCKON);
+    LoadSoundResource(std::string(SFILE_GAME_START1), SRES_GAME_START1);
+    LoadSoundResource(std::string(SFILE_GAME_START2), SRES_GAME_START2);
 }
 
 //Loads a single specified sound resource
-bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
+bool SoundEngine::LoadSoundResource(std::string fileName, uint8_t soundResId) {
     //first make sure the specified new sound resource ID is not
     //existing yet
     if (SearchSndRes(soundResId) != nullptr) {
         //is already existing, output error
         char strhlp[10];
         snprintf(strhlp, 10, "%u", soundResId);
-        //std::cout << "LoadSoundResouce: Sound resource with Id " << soundResId << " already existing. Error!" << std::endl;
         std::string errMsg("LoadSoundResouce: Sound resource with Id ");
         errMsg.append(strhlp);
         errMsg.append(" already existing!");
@@ -426,77 +445,38 @@ bool SoundEngine::LoadSoundResource(char *fileName, uint8_t soundResId) {
     }
 
     //we do not have this resouce ID yet => all ok
-    sf::SoundBuffer* newBuf = new sf::SoundBuffer();
-    SoundResEntry* newRes = new SoundResEntry();
-    newRes->soundResId = soundResId;
-    newRes->pntrSoundBuf = newBuf;
-    std::string fileNameStr(fileName);
-
-    if ((newRes != nullptr) && (newBuf != nullptr)) {
-        if (!newRes->pntrSoundBuf->loadFromFile(fileNameStr)) {
-            std::string errMsg("LoadSoundResouce: Could not load sound resource file ");
-            errMsg.append(fileName);
-            logging::Error(errMsg);
-            //std::cout << "LoadSoundResouce: Could not load sound resource file " << fileName << std::endl;
-            return false;
-        }
-    } else {
-        std::string errMsg("LoadSoundResouce: Could not load sound resource file ");
-        errMsg.append(fileName);
-        logging::Error(errMsg);
-        //std::cout << "LoadSoundResouce: Could not load sound resource file " << fileName << std::endl;
-        return false;
-    }
+    SoundResource* newRes = new SoundResource(fileName, soundResId);
 
     //add new resource to vector
     this->SoundResVec->push_back(newRes);
-    std::string infoMsg("LoadSoundResouce: Succesfully loaded sound resource file ");
-    infoMsg.append(fileName);
-    logging::Info(infoMsg);
-    //std::cout << "LoadSoundResouce: Succesfully loaded sound resource file " << fileName << std::endl;
 
     return true;
 }
 
 //Deletes a sound resource again
 void SoundEngine::DeleteSoundResource(uint8_t soundResId) {
-   SoundResEntry* pntr;
-
-   if (this->SoundResVec->size() < 1) {
-       std::string errMsg("DeleteSoundResource: Specified sound resource ID (");
-       char strhlp[10];
-       snprintf(strhlp, 10, "%u", soundResId);
-       errMsg.append(strhlp);
-       errMsg.append(") for deletion does not exist!");
-       logging::Error(errMsg);
-
-       //std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
-       return;
-   }
-
-   std::vector<SoundResEntry*>::iterator it;
+   SoundResource* resource = nullptr;
    bool found = false;
 
-   for (it = this->SoundResVec->begin(); it != this->SoundResVec->end(); ++it) {
-       if ((*it)->soundResId == soundResId) {
-           //found the correct sound resource entry
-           pntr = (*it);
-           it = SoundResVec->erase(it);
+   if (this->SoundResVec->size() > 0) {
+       std::vector<SoundResource*>::iterator it;
 
-           //delete sound buffer as well
-           delete pntr->pntrSoundBuf;
+       for (it = this->SoundResVec->begin(); it != this->SoundResVec->end(); ++it) {
+           if ((*it)->mSoundResId == soundResId) {
+               //found the correct sound resource entry
+               resource = (*it);
+               it = SoundResVec->erase(it);
 
-           //delete entry struct
-           delete pntr;
+               //delete the resource
+               delete resource;
 
-           found = true;
-
-           break;
+               found = true;
+               break;
+           }
        }
    }
 
-   if (!found) {
-       //std::cout << "DeleteSoundResource: Specified sound resource ID (" << soundResId << ") for deletion does not exist." << std::endl;
+   if ((resource == nullptr) || (!found)) {
        std::string errMsg("DeleteSoundResource: Specified sound resource ID (");
        char strhlp[10];
        snprintf(strhlp, 10, "%u", soundResId);

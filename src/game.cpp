@@ -63,7 +63,7 @@ bool Game::LoadGameData() {
     //load all sound resource files
     gameSoundEngine->LoadSoundResources();
 
-    if (!gameSoundEngine->getSoundResourcesLoadOk()) {
+    if (!gameSoundEngine->GetSoundResourcesLoadOk()) {
         logging::Error("Sound resource init failed!"); 
         return false;
     }
