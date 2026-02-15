@@ -120,8 +120,9 @@ IntroPlayer::~IntroPlayer() {
 bool IntroPlayer::Init() {
     //first we need to load the additional intro
     //sound files
-    if (!mSoundEngine->LoadSoundResourcesIntro()) {
-        return false;
+    mSoundEngine->LoadSoundResourcesIntro();
+    if (!mSoundEngine->GetSoundResourcesLoadOk()) {
+         return false;
     }
 
     //first we need to load all textures (each frame is a texture) for the game intro

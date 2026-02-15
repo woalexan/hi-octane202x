@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -15,45 +15,45 @@
 #include <cstdint>
 
 //File name definition
-#define SFILE_MENUE_TYPEWRITEREFFECT1 (char*)"extract/sound/sound2-PRINTTYP.WAV"
-#define SFILE_MENUE_TYPEWRITEREFFECT2 (char*)"extract/sound/sound2-PRINTRET.WAV"
-#define SFILE_MENUE_SELECTOTHERITEM (char*)"extract/sound/sound2-CHANGE.WAV"
-#define SFILE_MENUE_CHANGECHECKBOXVAL (char*)"extract/sound/sound2-SELECT.WAV"
-#define SFILE_MENUE_WINDOWMOVEMENT (char*)"extract/sound/sound2-REFUEL.WAV"
-#define SFILE_GAME_PICKUP (char*)"extract/sound/sound2-PICKUP.WAV"
-#define SFILE_GAME_REFUEL (char*)"extract/sound/sound2-REFUEL.WAV"
-#define SFILE_GAME_LARGECAR (char*)"extract/sound/sound4-LARGECAR.WAV"
-#define SFILE_GAME_WARNING (char*)"extract/sound/sound2-WARNING.WAV"
-#define SFILE_GAME_TURBO (char*)"extract/sound/sound4-TURBO.WAV"
-#define SFILE_GAME_BOOSTER (char*)"extract/sound/sound4-BOOSTER.WAV"
-#define SFILE_GAME_COLLIDED (char*)"extract/sound/sound4-HELEHIT.WAV"
-#define SFILE_GAME_MGUN_SINGLESHOT (char*)"extract/sound/sound2-MINISHOT.WAV"
-#define SFILE_GAME_MGUN_SHOTFAILED (char*)"extract/sound/sound2-MINBLANK.WAV"
-#define SFILE_GAME_MGUN_LONGSHOT (char*)"extract/sound/sound4-MINIGUN.WAV"
-#define SFILE_GAME_MISSILE_SHOT (char*)"extract/sound/sound2-MISSILE.WAV"
-#define SFILE_GAME_EXPLODE (char*)"extract/sound/sound2-EXPLODE.WAV"
-#define SFILE_GAME_FINALLAP (char*)"extract/sound/sound2-STUNT720.WAV"
-#define SFILE_GAME_RICCO1 (char*)"extract/sound/sound2-RICCO1.WAV"
-#define SFILE_GAME_RICCO2 (char*)"extract/sound/sound2-RICCO2.WAV"
-#define SFILE_GAME_RICCO3 (char*)"extract/sound/sound2-RICCO3.WAV"
-#define SFILE_GAME_LOCKON (char*)"extract/sound/sound2-LOCKON4.WAV"
-#define SFILE_GAME_START1 (char*)"extract/sound/sound2-START1.WAV"
-#define SFILE_GAME_START2 (char*)"extract/sound/sound2-START2.WAV"
+#define SFILE_MENUE_TYPEWRITEREFFECT1 "extract/sound/sound2-PRINTTYP.WAV"
+#define SFILE_MENUE_TYPEWRITEREFFECT2 "extract/sound/sound2-PRINTRET.WAV"
+#define SFILE_MENUE_SELECTOTHERITEM "extract/sound/sound2-CHANGE.WAV"
+#define SFILE_MENUE_CHANGECHECKBOXVAL "extract/sound/sound2-SELECT.WAV"
+#define SFILE_MENUE_WINDOWMOVEMENT "extract/sound/sound2-REFUEL.WAV"
+#define SFILE_GAME_PICKUP "extract/sound/sound2-PICKUP.WAV"
+#define SFILE_GAME_REFUEL "extract/sound/sound2-REFUEL.WAV"
+#define SFILE_GAME_LARGECAR "extract/sound/sound4-LARGECAR.WAV"
+#define SFILE_GAME_WARNING "extract/sound/sound2-WARNING.WAV"
+#define SFILE_GAME_TURBO "extract/sound/sound4-TURBO.WAV"
+#define SFILE_GAME_BOOSTER "extract/sound/sound4-BOOSTER.WAV"
+#define SFILE_GAME_COLLIDED "extract/sound/sound4-HELEHIT.WAV"
+#define SFILE_GAME_MGUN_SINGLESHOT "extract/sound/sound2-MINISHOT.WAV"
+#define SFILE_GAME_MGUN_SHOTFAILED "extract/sound/sound2-MINBLANK.WAV"
+#define SFILE_GAME_MGUN_LONGSHOT "extract/sound/sound4-MINIGUN.WAV"
+#define SFILE_GAME_MISSILE_SHOT "extract/sound/sound2-MISSILE.WAV"
+#define SFILE_GAME_EXPLODE "extract/sound/sound2-EXPLODE.WAV"
+#define SFILE_GAME_FINALLAP "extract/sound/sound2-STUNT720.WAV"
+#define SFILE_GAME_RICCO1 "extract/sound/sound2-RICCO1.WAV"
+#define SFILE_GAME_RICCO2 "extract/sound/sound2-RICCO2.WAV"
+#define SFILE_GAME_RICCO3 "extract/sound/sound2-RICCO3.WAV"
+#define SFILE_GAME_LOCKON "extract/sound/sound2-LOCKON4.WAV"
+#define SFILE_GAME_START1 "extract/sound/sound2-START1.WAV"
+#define SFILE_GAME_START2 "extract/sound/sound2-START2.WAV"
 
 //the sound0 files seem to be the audio files for the intro
-#define SFILE_INTRO_FIRE (char*)"extract/sound/sound0-FIRE.WAV"
-#define SFILE_INTRO_EXPLODE (char*)"extract/sound/sound0-EXPLODE.WAV"
-#define SFILE_INTRO_TURBO (char*)"extract/sound/sound0-TURBO.WAV"
-#define SFILE_INTRO_SMALLCAR (char*)"extract/sound/sound0-SMALLCAR.WAV"
-#define SFILE_INTRO_SCRAPE2 (char*)"extract/sound/sound0-SCRAPE2.WAV"
-#define SFILE_INTRO_RICCOS (char*)"extract/sound/sound0-RICCOS.WAV"
-#define SFILE_INTRO_PAST (char*)"extract/sound/sound0-PAST.WAV"
-#define SFILE_INTRO_MISSILE (char*)"extract/sound/sound0-MISSILE.WAV"
-#define SFILE_INTRO_MINIGUN (char*)"extract/sound/sound0-MINIGUN.WAV"
-#define SFILE_INTRO_HELEHIT (char*)"extract/sound/sound0-HELEHIT.WAV"
-#define SFILE_INTRO_FIREPAST (char*)"extract/sound/sound0-FIREPAST.WAV"
-#define SFILE_INTRO_CURTAIN (char*)"extract/sound/sound0-CURTAIN.WAV"
-#define SFILE_INTRO_BOOSTER (char*)"extract/sound/sound0-BOOSTER.WAV"
+#define SFILE_INTRO_FIRE "extract/sound/sound0-FIRE.WAV"
+#define SFILE_INTRO_EXPLODE "extract/sound/sound0-EXPLODE.WAV"
+#define SFILE_INTRO_TURBO "extract/sound/sound0-TURBO.WAV"
+#define SFILE_INTRO_SMALLCAR "extract/sound/sound0-SMALLCAR.WAV"
+#define SFILE_INTRO_SCRAPE2 "extract/sound/sound0-SCRAPE2.WAV"
+#define SFILE_INTRO_RICCOS "extract/sound/sound0-RICCOS.WAV"
+#define SFILE_INTRO_PAST "extract/sound/sound0-PAST.WAV"
+#define SFILE_INTRO_MISSILE "extract/sound/sound0-MISSILE.WAV"
+#define SFILE_INTRO_MINIGUN "extract/sound/sound0-MINIGUN.WAV"
+#define SFILE_INTRO_HELEHIT "extract/sound/sound0-HELEHIT.WAV"
+#define SFILE_INTRO_FIREPAST "extract/sound/sound0-FIREPAST.WAV"
+#define SFILE_INTRO_CURTAIN "extract/sound/sound0-CURTAIN.WAV"
+#define SFILE_INTRO_BOOSTER "extract/sound/sound0-BOOSTER.WAV"
 
 #define SRES_NORES 0
 #define SRES_MENUE_TYPEWRITEREFFECT1 1
@@ -105,9 +105,15 @@
 class Player;
 class Game;
 
-struct SoundResEntry {
-    sf::SoundBuffer* pntrSoundBuf = nullptr;
-    uint8_t soundResId;
+class SoundResource {
+public:
+    SoundResource(std::string fileName, u_int8_t soundResId);
+    ~SoundResource();
+
+    bool loadOk;
+
+    uint8_t mSoundResId;
+    sf::SoundBuffer mSoundBuf;
 };
 
 class SoundEngine {
@@ -115,7 +121,7 @@ public:
   SoundEngine(Game* gamePnter);
   ~SoundEngine();
 
-  bool getSoundResourcesLoadOk();
+  bool GetSoundResourcesLoadOk();
 
   //play sound with localized sound source
   sf::Sound* PlaySound(uint8_t soundResId, irr::core::vector3df sourceLocation, bool looping = false);
@@ -153,7 +159,7 @@ public:
   void UpdateListenerLocation(irr::core::vector3df location, irr::core::vector3df frontDirVec);
 
   //returns true if successful, false otherwise
-  bool LoadSoundResourcesIntro();
+  void LoadSoundResourcesIntro();
   void UnLoadSoundResourcesIntro();
 
   void LoadSoundResources();
@@ -162,21 +168,20 @@ private:
   //pointer to Game
   Game* mGame = nullptr;
 
-  bool mSoundResourcesLoadOk = false;
   bool mPlaySound = true;
 
   sf::Sound* PlaySound(uint8_t soundResId, bool localizedSoundSource, irr::core::vector3df sourceLocation, irr::f32 playPitch, bool looping = false);
 
-  bool LoadSoundResource(char* fileName, uint8_t soundResId);
+  bool LoadSoundResource(std::string fileName, uint8_t soundResId);
   void DeleteSoundResource(uint8_t soundResId);
 
-  sf::Sound* GetFreeSoundSource();
+  sf::Sound* GetFreeSoundSource(SoundResource* resToPlay);
 
-  //searches for a sound buffer resource entry with a certain specified sound ID
+  //searches for a sound resource entry with a certain specified sound ID
   //if no sound under this sound ID is found returns nullptr
-  SoundResEntry* SearchSndRes(uint8_t soundResId);
+  SoundResource* SearchSndRes(uint8_t soundResId);
 
-  std::vector<SoundResEntry*> *SoundResVec = nullptr;
+  std::vector<SoundResource*> *SoundResVec = nullptr;
   std::vector<sf::Sound*> *SoundVec = nullptr;
 
   uint8_t mNrSoundSources = 0;

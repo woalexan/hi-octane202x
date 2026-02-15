@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -149,10 +149,6 @@ void MyMusicStream::SetVolume(float newVolume) {
         //we want to play music
         mVolume = newVolume;
         this->setVolume(newVolume);
-
-        if (!mMusicPlaying) {
-          this->StartPlay();
-        }
     }
 }
 
@@ -175,6 +171,14 @@ MyMusicStream::MyMusicStream(Game* gamePnter, unsigned int sampleRate) {
     //configure SFML audio output settings
     //we want 2 channels and a specified sample rate
     this->initialize((uint32_t)2, mSampleRate, { sf::SoundChannel::FrontLeft, sf::SoundChannel::FrontRight });
+
+    //15.02.2026: Important: After upgrade to SFML3 we need to make sure
+    //to disable sound Spatialization, because otherwise we will not hear music
+    //in the game itself
+    this->setRelativeToListener(true);
+    this->setAttenuation(0.0f);
+    this->setDirectionalAttenuationFactor(0.0f);
+    this->setSpatializationEnabled(false);
 
     /* Initialize ADLMIDI */
     midi_player = adl_init(mSampleRate);
@@ -236,8 +240,6 @@ bool MyMusicStream::loadGameMusicFile(const char* fileName) {
             errMsg.append(" :");
             errMsg.append(adl_errorInfo(midi_player));
             logging::Error(errMsg);
-
-            //fprintf(stderr, "Couldn't open music file: %s\n", adl_errorInfo(midi_player));
 
             this->mMusicLoaded = false;
             return false;
@@ -332,8 +334,6 @@ bool MyMusicStream::onGetData(Chunk& data)
 }
 
 void MyMusicStream::onSeek(sf::Time timeOffset) {
-      //std::cout << "MyMusicStream::onSeek Please implement me!" << std::endl;
-      logging::Info("MyMusicStream::onSeek Please implement me!");
 }
 
 
