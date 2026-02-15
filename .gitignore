@@ -84,3 +84,7 @@ out/
 # IntelliJ IDE files
 .idea
 
+#QtCreator files
+CMakeLists.txt.user
+CMakeLists.txt.user*
+
