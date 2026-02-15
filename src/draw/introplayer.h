@@ -13,6 +13,7 @@
 #include "irrlicht.h"
 #include <vector>
 #include "SFML/Audio.hpp"
+#include <cstdint>
 
 //this struct holds the information for a sound trigger event
 //used during the games intro playing

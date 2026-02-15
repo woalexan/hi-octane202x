@@ -12,6 +12,7 @@
 
 #include "SFML/Audio.hpp"
 #include "adlmidi.h"
+#include <cstdint>
 
 #define MUSIC_BUFSIZE 8192
 #define MUSIC_INSTRFILE_PATH "extract/InstrOPL.wopl"
