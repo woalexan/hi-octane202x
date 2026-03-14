@@ -33,6 +33,7 @@
 
 //Because the code was initially not working for me I did other changes to the source code as
 //well to make it work. Therefore this is not the 100% original source code of the author anymore
+//I also added additional useful functions afterwards
 
 #include "crc32.h"
 
@@ -73,6 +74,14 @@ int16_t ConvertByteArray_ToInt16(std::vector<uint8_t> bytes, unsigned int start_
     int16_t result;
 
     result = static_cast<int16_t>((bytes.at(start_position+1) << 8) + bytes.at(start_position));
+    return (result);
+}
+
+int32_t ConvertByteArray_ToInt32(std::vector<uint8_t> bytes, unsigned int start_position) {
+    int32_t result;
+
+    result = static_cast<int32_t>(((bytes.at(start_position+3) << 24) + (bytes.at(start_position+2) << 16) +
+                                   bytes.at(start_position+1) << 8) + bytes.at(start_position));
     return (result);
 }
 

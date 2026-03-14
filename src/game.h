@@ -44,6 +44,7 @@ enum
     GUI_ID_LEVEL_LOGTRIGGEREVENTS_CHECKBOX,
     GUI_ID_LEVEL_ACTIVATEMORPHKEYTRG_CHECKBOX,
     GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX,
+    GUI_ID_LEVEL_SHOWCLONERECORDING_CHECKBOX,
 
     GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX,
     GUI_ID_MOVEMENT_ACTINGFORCES_CHECKBOX,
@@ -74,8 +75,6 @@ private:
     irr::gui::IGUIStaticText* dbgTimeProfiler = nullptr;
     irr::gui::IGUIStaticText* dbgText = nullptr;
     irr::gui::IGUIStaticText* dbgText2 = nullptr;
-
-    Assets* mGameAssets = nullptr;
 
     //SFML related, Audio, Music
     MyMusicStream* gameMusicPlayer = nullptr;
@@ -176,6 +175,8 @@ private:
 
 public:
     irr::video::ITexture* backgnd = nullptr;
+
+    Assets* mGameAssets = nullptr;
 
     bool mUseXEffects;
 

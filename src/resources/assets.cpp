@@ -409,6 +409,29 @@ int32_t Assets::ConvertByteArray_ToInt32(char* bytes, size_t start_position) {
     return (result);
 }
 
+int16_t Assets::ConvertByteArray_ToInt16(char* bytes, size_t start_position) {
+    int16_t result;
+
+    result = static_cast<int16_t>(  (bytes[start_position + 1] << 8) +
+                                    (bytes[start_position]));
+    return (result);
+}
+
+u_int16_t Assets::ConvertByteArray_ToUInt16(char* bytes, size_t start_position) {
+    u_int16_t result;
+
+    result = ((unsigned char)(bytes[start_position + 1]) << 8) +
+             (unsigned char)(bytes[start_position]);
+    return (result);
+}
+
+irr::f32 Assets::ConvertByteArray_ToFloat(char* bytes, size_t start_position) {
+    irr::f32 result;
+
+    result = (((float)((unsigned char)(bytes[start_position]))) / 256.0f) + (float)((unsigned char)(bytes[start_position + 1]));
+    return (result);
+}
+
 void Assets::ConvertInt32_ToByteArray(char* outBytes, size_t start_position, int32_t inputVal) {
     uint8_t byteLSB = (uint8_t)(inputVal & 0xFF);
     uint8_t byteLeftOfLSB = (uint8_t)((inputVal >> 8) & 0xFF);
@@ -2863,3 +2886,90 @@ void Assets::CreateNewConfigFileContents(char** targetBuf, size_t &outNewSizeByt
        (*targetBuf)[(*it).first] = (irr::u8)((*it).second);
     }
 }
+
+CloneCoord3D Assets::DecodeCloneCoord3D(char** targetBuf, size_t index) {
+    CloneCoord3D new3Dcoord;
+
+    new3Dcoord.XPos = ConvertByteArray_ToFloat(*targetBuf, index);
+    new3Dcoord.YPos = ConvertByteArray_ToFloat(*targetBuf, index + 2);
+    new3Dcoord.ZPos = ConvertByteArray_ToFloat(*targetBuf, index + 4);
+
+    return new3Dcoord;
+}
+
+CloneAngle Assets::DecodeCloneAngle(char** targetBuf, size_t index) {
+    CloneAngle newAngle;
+
+    newAngle.XY = ConvertByteArray_ToFloat(*targetBuf, index + 6);
+    newAngle.ZY = ConvertByteArray_ToFloat(*targetBuf, index + 8);
+    newAngle.XZ = ConvertByteArray_ToFloat(*targetBuf, index + 10);
+
+    return newAngle;
+}
+
+u_int8_t Assets::DecodeCloneVelocity(char** targetBuf, size_t index) {
+    u_int8_t vel = (u_int8_t)((*targetBuf)[index]);
+
+    return vel;
+}
+
+//Returns nullptr in case for this race track currently
+//no clone recording is available
+//whichRaceTrackNr = 0 for first level
+CloneRecording* Assets::ReadCloneRecordingData(u_int8_t whichRaceTrackNr) {
+    //Standard (non extended) game does not have the clone race feature
+    //in this case simply return nullptr
+    if (!mGame->mExtendedGame) {
+        logging::Error("Assets::ReadCloneRecordingData: Standard (non extended) game does not have a clone race feature!");
+        return nullptr;
+    }
+
+    if (whichRaceTrackNr > 8) {
+        logging::Error("Assets::ReadCloneRecordingData: Invalid level number!");
+        return nullptr;
+    }
+
+    //How many data points for a clone recording are available for a certain
+    //race track is stored at the following config.dat file location, if there is no
+    //recording we will read value 0
+    //Locations level1: 0x644B, level2: 0x9B0D, level3: 0xD1CF, level4: 0x10891, level5: 0x13F53
+    //level6: 0x17615, level7: 0x1ACD7, level8: 0x1E399, level9: 0x21A5B
+
+    //The game does store a copy of the crafts current position and orientation (rotation) in this recording
+    //data every two counts of the current race time. With counts of race time I mean the integer number on the left
+    //lower corner of the HUD when racing.
+    u_int16_t nrRecordingEntries = ConvertByteArray_ToUInt16(currentConfigFileDataByteArray, 0x644B + 14018 * whichRaceTrackNr);
+
+    //is there an existing entry?
+    //zero means no entry
+    if (nrRecordingEntries == 0) {
+        return nullptr;
+    }
+
+    //There is an entry
+    //Read the clone recording data
+    CloneRecording* nRec = new CloneRecording();
+    nRec->NrRecordingDataEntries = nrRecordingEntries;
+
+    //in which lap number was this recording achieved?
+    nRec->NrLapRecordWasAchieved = (u_int8_t)(currentConfigFileDataByteArray[0x644B + 14018 * whichRaceTrackNr + 10]);
+
+    //Reserve the necessary data
+    nRec->AngleVec.resize(nrRecordingEntries);
+    nRec->CoordVec.resize(nrRecordingEntries);
+    nRec->SpeedVec.resize(nrRecordingEntries);
+
+    //The clone recording raw data is stored at the following config.dat file offsets:
+    //level1: 0x2D97, level2: 0x6459, level3: 0x9B1B, level4: 0xD1DD
+    //level5: 0x1089F, level6: 0x13F61, level7: 0x17623, level8: 0x1ACE5, level9: 0x1E3A7
+    size_t dataStartOffs = 0x2D97 + 14018 * whichRaceTrackNr;
+
+    for (u_int16_t idx = 0; idx < nrRecordingEntries; idx++) {
+        nRec->SpeedVec[idx] = DecodeCloneVelocity(&currentConfigFileDataByteArray, dataStartOffs + 12 + idx * 14);
+        nRec->CoordVec[idx] = DecodeCloneCoord3D(&currentConfigFileDataByteArray, dataStartOffs + idx * 14);
+        nRec->AngleVec[idx] = DecodeCloneAngle(&currentConfigFileDataByteArray, dataStartOffs + idx * 14);
+    }
+
+    return nRec;
+}
+

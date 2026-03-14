@@ -315,7 +315,7 @@ bool Game::HandleGuiEvent(const irr::SEvent& event) {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 2;
+    nextRaceLevelNr = 1;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -1156,7 +1156,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     if (DebugShowVariableBoxes) {
 
-        wchar_t* text2 = new wchar_t[400];
+           wchar_t* text2 = new wchar_t[400];
 
            /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
                         mCurrentRace->player->dbgCameraVal,

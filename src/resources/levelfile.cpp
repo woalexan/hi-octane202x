@@ -2,8 +2,11 @@
  The source code in this file was based on/derived from/translated from
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
- 
- Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++, and extended with some new code)
+
+ Since starting of Feb 2026 I was able to add additional source code based on the new insights gained
+ into the original game thanks to the great efforts of Aybe. Thank you very much!
+
+ Copyright (C) 2024-2026 Wolf Alexander       (I did just translation to C++, and extended with some new code)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -21,17 +24,22 @@
 #include "mapentry.h"
 #include "entityitem.h"
 #include <iterator>
+#include "../utils/crc32.h"
 #include "../infrabase.h"
 #include "../definitions.h"
 
-/* LevelFile Layout
+/* LevelFile Layout, 21.02.2026: Updated table using new insights into the original game (Thank you Aybe)
 
-   Offset 0          => Offset 23      Unknown data (24 Bytes)
-1. Offset 24         => Offset 95999   Entity-Table (stores 3999 Entities)
-   Offset 96000      => Offset 98037   Unknown data (I believe not used, contains value that just increases), 2037 bytes
-2. Offset 98038      => Offset 124635  Column-Definitions (stores 1023 Column Definitions)
-3. Offset 124636     => Offset 124651  Unknown data (16 Bytes)
-   Offset 124652     => Offset 141019  Block-Definitions  (stores 1023 Block Definitions)
+   Offset 0          => Offset 23      A first entity entry (24 Bytes), is it actually used in game? First entity actually visibily used in level is at Offset 24!
+1. Offset 24         => Offset 95999   "Used" Entity-Table (stores 3999 Entities)
+   Offset 96000      => Offset 98011   "ThingList" ThingsFree. The original game uses this list during run time to know which of the max possible 1000 Things (Entities)
+                                       currently exist, and which not. Data contains an index for each thing that points to another part of memory which actually holds
+                                       the data for this thing. Therefore in the levelfile in this region we mostly see a number increasing by 1 each time.
+                                       This increasing number is the index into the other memory region. 2011 bytes
+   Offset 98012      => Offset 98037   A first column def. entry (26 Bytes), is it actually used in game? First entry actually visibily used in level is at Offset 98038
+2. Offset 98038      => Offset 124635  "Used" Column-Definitions (stores 1023 Column Definitions)
+   Offset 124636     => Offset 124651  A first block def. entry (16 Bytes), is it actually used in game? First entry actually visibily used in level is at Offset 124652
+3. Offset 124652     => Offset 141019  Block-Definitions  (stores 1023 Block Definitions)
    Offset 141020     => Offset 246923  Unknown data (105904 bytes)
 4. Offset 246924     => Offset 247603  Region-Definitions (stores 8 Region Definitions)
    Offset 247604     => Offset 404619  Unknown data (157016 bytes)
@@ -103,6 +111,10 @@ LevelFile::LevelFile(InfrastructureBase* infra, std::string filename, bool runAs
     ready_result &= loadUnknownTableAtOffset(124636, 16, unknownTable124636Data);
     ready_result &= loadUnknownTableAtOffset(141020, 105904, unknownTable141020Data);
     ready_result &= loadUnknownTableAtOffset(247604, 157016, unknownTable247604Data);
+
+    //21.02.2026: Load until now unknown data into newly found structs as well
+    //If this structs are found to be used and useful remove the unknown table stuff above
+    ready_result &= loadThingListData();
 
     this->m_Ready = ready_result;
 
@@ -203,6 +215,11 @@ LevelFile::~LevelFile() {
            delete pntrRegion;
     }
 
+    if (mThingList != nullptr) {
+        delete mThingList;
+        mThingList = nullptr;
+    }
+
     //delete all MapEntry objects
     for (int y = 0; y < Height(); y++) {
      for (int x = 0; x < Width(); x++) {
@@ -292,6 +309,39 @@ bool LevelFile::loadEntitiesTable() {
             std::cout << "Unexpected difference in written entity data!" << std::endl << std::flush;
         }*/
       }
+
+    return(true);
+}
+
+bool LevelFile::loadThingListData() {
+    //Create a new "ThingList" struct
+    mThingList = new ThingListStruct;
+
+    std::vector<uint8_t>::const_iterator startslice;
+    std::vector<uint8_t>::const_iterator endslice;
+    std::vector<uint8_t> dataslice;
+
+    //data starts at Offset 96000      => Offset 98011
+    startslice = this->m_bytes.begin() + 96000;
+    endslice = this->m_bytes.begin() + 96000 + 2012; //2011 bytes long
+
+    dataslice.assign(startslice, endslice);
+
+    unsigned int currOff = 0;
+
+    for (size_t idx = 0; idx < 1000; idx++) { //There are 1000 Things in the ThingsList
+        mThingList->Thing[idx] = ConvertByteArray_ToInt16(dataslice, currOff);
+
+        currOff += 2;
+    }
+
+    mThingList->Index = ConvertByteArray_ToInt32(dataslice, currOff);
+    currOff += 4;
+
+    mThingList->Sector = static_cast<uint32_t>(ConvertByteArray_ToInt32(dataslice, currOff));
+    currOff += 4;
+
+    mThingList->Group = static_cast<uint32_t>(ConvertByteArray_ToInt32(dataslice, currOff));
 
     return(true);
 }
