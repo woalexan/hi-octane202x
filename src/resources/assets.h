@@ -177,6 +177,35 @@ struct ChampionshipSaveGameInfoStruct {
     char* championshipName = nullptr;
 };
 
+//08.03.2026: To be honest the coordinate system
+//in this project is a mess, because I believe I did
+//not pick the correct axes order at the start of the project
+//So I can not really tell if the axes names below do really
+//fit to the original game or not
+//But as long as it works with this project it is ok for
+//me. Please excuse the mess. Maybe one day I will fix this,
+//even though this would mean many many changes in a lot of
+//files
+struct CloneCoord3D {
+    irr::f32 XPos;
+    irr::f32 YPos;
+    irr::f32 ZPos;
+};
+
+struct CloneAngle {
+    irr::f32 XY;
+    irr::f32 ZY;
+    irr::f32 XZ;
+};
+
+struct CloneRecording {
+    u_int16_t NrRecordingDataEntries;
+    u_int8_t NrLapRecordWasAchieved;
+    std::vector<u_int8_t> SpeedVec;
+    std::vector<CloneCoord3D> CoordVec;
+    std::vector<CloneAngle> AngleVec;
+};
+
 class Assets {
 public:
     Assets(Game* game, bool updateGameConfigFile);
@@ -330,6 +359,11 @@ public:
     std::vector<ChampionshipSaveGameInfoStruct*> mChampionshipSavegameInfoVec;
     void CleanUpChampionshipSaveGameInfo();
 
+    //Returns nullptr in case for this race track currently
+    //no clone recording is available
+    //whichRaceTrackNr = 0 for first level
+    CloneRecording* ReadCloneRecordingData(u_int8_t whichRaceTrackNr);
+
 private:
     Game* mGame = nullptr;
 
@@ -391,7 +425,10 @@ private:
     bool ReadGameConfigFile(char* filename, char** targetBuf, size_t &outBufSize);
     bool WriteGameConfigFile(char* filename, char** sourceBuf, size_t inBufSize);
 
+    int16_t ConvertByteArray_ToInt16(char* bytes, size_t start_position);
     int32_t ConvertByteArray_ToInt32(char* bytes, size_t start_position);
+    u_int16_t ConvertByteArray_ToUInt16(char* bytes, size_t start_position);
+    irr::f32 ConvertByteArray_ToFloat(char* bytes, size_t start_position);
     void ConvertInt32_ToByteArray(char* outBytes, size_t start_position, int32_t inputVal);
     void ReadNullTerminatedString(char* bytes, size_t start_position, char** outString, irr::u8 maxStrLen);
     void WriteNullTerminatedString(char* bytes, size_t start_position, char* writeString, irr::u8 maxStrLen);
@@ -531,6 +568,11 @@ private:
 
     bool SearchChampionshipSaveGameSlot(irr::u8 whichSlotNr, char** championshipNameOutBuf);
     void ResetChampionShipOverallPointTable();
+
+    //Clone Race reading stuff
+    CloneCoord3D DecodeCloneCoord3D(char** targetBuf, size_t index);
+    CloneAngle DecodeCloneAngle(char** targetBuf, size_t index);
+    u_int8_t DecodeCloneVelocity(char** targetBuf, size_t index);
 };
 
 #endif // ASSETS_H

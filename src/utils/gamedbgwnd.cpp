@@ -61,6 +61,10 @@ GameDbgWnd::~GameDbgWnd() {
         mGuiGameDbgWnd.ShowChargingStationInfo->remove();
     }
 
+    if (mGuiGameDbgWnd.ShowCloneRecording != nullptr) {
+        mGuiGameDbgWnd.ShowCloneRecording->remove();
+    }
+
     if (mGuiGameDbgWnd.ShowCurrWayPointLink != nullptr) {
         mGuiGameDbgWnd.ShowCurrWayPointLink->remove();
     }
@@ -171,6 +175,11 @@ void GameDbgWnd::CreateWindow() {
     mGuiGameDbgWnd.ShowChargingStationInfo = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
                                                                                            mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX, L"Charging Station");
 
+    pos.Y += height;
+    currState = mParentRace->GetDebugFlag(DEF_RACE_DBG_SHOWCLONERECORDING);
+    mGuiGameDbgWnd.ShowCloneRecording = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
+                                                                                           mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWCLONERECORDING_CHECKBOX, L"Clone Recording");
+
     /***********************************
      * Create the Movement Tab items   *
      ***********************************/
@@ -213,6 +222,13 @@ void GameDbgWnd::HideWindow() {
     Window->setVisible(false);
 
     mWindowHidden = true;
+
+    scene::ICameraSceneNode * camera =
+              mParentRace->mGame->mDevice->getSceneManager()->getActiveCamera();
+
+      if (camera) {
+         camera->setInputReceiverEnabled(true);
+      }
 }
 
 bool GameDbgWnd::IsWindowVisible() {
@@ -230,6 +246,13 @@ void GameDbgWnd::OpenWindow() {
        Window->setVisible(true);
 
        mWindowHidden = false;
+
+       scene::ICameraSceneNode * camera =
+                 mParentRace->mGame->mDevice->getSceneManager()->getActiveCamera();
+
+         if (camera) {
+            camera->setInputReceiverEnabled(false);
+         }
    }
 }
 
@@ -246,6 +269,8 @@ void GameDbgWnd::OnCheckBoxChanged(irr::s32 checkboxId) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_CHECKPOINTS, mGuiGameDbgWnd.ShowCheckpoints->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWPOI_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_POI, mGuiGameDbgWnd.ShowPOI->isChecked());
+    } else if (checkboxId == GUI_ID_LEVEL_SHOWCLONERECORDING_CHECKBOX) {
+        mParentRace->SetDebugFlag(DEF_RACE_DBG_SHOWCLONERECORDING, mGuiGameDbgWnd.ShowCloneRecording->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWTRIGGERREGIONS_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_TRIGGERREGIONS, mGuiGameDbgWnd.ShowTriggerRegions->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_LOGTRIGGEREVENTS_CHECKBOX) {

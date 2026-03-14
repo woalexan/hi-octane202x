@@ -42,6 +42,7 @@ struct GUIGameDbgWnd
     irr::gui::IGUICheckBox* LogTriggerEvents;
     irr::gui::IGUICheckBox* ActivateMorphKeyTrg;
     irr::gui::IGUICheckBox* ShowChargingStationInfo;
+    irr::gui::IGUICheckBox* ShowCloneRecording;
 
     //Movement Tab items
     irr::gui::IGUICheckBox* ShowCurrWayPointLink;

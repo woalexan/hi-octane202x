@@ -1,6 +1,6 @@
 /* This source code was taken/translated to C++ by myself from the following website (original authors site)
  * // http://sanity-free.org/12/crc32_implementation_in_csharp.html
- 
+
  This website does not mention any license here. The original author has also created a Github
  project for Crc calculations, from which I have copied the license text here (even though my code
  is derived from the authors website and not from the Github project)
@@ -11,7 +11,7 @@
 // Author:
 //       steve whitley <steve@nullfx.com>
 //
-// Copyright (c) 2017 
+// Copyright (c) 2017
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@
 
 //Because the code was initially not working for me I did other changes to the source code as
 //well to make it work. Therefore this is not the 100% original source code of the author anymore
+//I also added additional useful functions afterwards
 
 #ifndef CRC32_H
 #define CRC32_H
@@ -42,6 +43,7 @@
 #include <vector>
 #include <cstdint>
 
+int32_t ConvertByteArray_ToInt32(std::vector<uint8_t> bytes, unsigned int start_position);
 int16_t ConvertByteArray_ToInt16(std::vector<uint8_t> bytes, unsigned int start_position);
 void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex);
 void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex, bool dividerHighByte = false);

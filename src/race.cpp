@@ -48,6 +48,7 @@
 #include "models/collectablespawner.h"
 #include "draw/drawdebug.h"
 #include "draw/minimap.h"
+#include "resources/assets.h"
 #include "models/steamfountain.h"
 #include "scenenodes/CLensFlareSceneNode.h"
 
@@ -440,6 +441,44 @@ void Race::IrrlichtStats(char* text) {
     fclose(oFile);
 }
 
+void Race::InitCloneRecordingView(bool enable) {
+    //If clone recording not yet loaded, try to load it
+    if (enable && (mCloneRecording == nullptr)) {
+        //if this is not the extended game, no ingame
+        //clonerace available, and therefore also no clone recording data
+        if (!this->mGame->mExtendedGame) {
+            return;
+        }
+
+        //are we in a original game level where we can use
+        //an available recording in config.dat?
+        size_t fPos = mLevelRootPath.find("extract/level0-");
+
+        if (fPos != std::string::npos) {
+            //yes, we are in a default level, which number?
+            size_t minusPos = mLevelRootPath.find("-");
+
+            if (minusPos == std::string::npos) {
+                return;
+            }
+
+            u_int8_t levelNr = (u_int8_t)(mLevelRootPath[minusPos + 1] - 0x30);
+
+            //try to load a possible existing recording
+            //if not present will return nullptr
+            mCloneRecording = mGame->mGameAssets->ReadCloneRecordingData(levelNr - 1);
+        } else {
+            //this is a custom level, no recording of original
+            //game available, exit here
+            return;
+        }
+    }
+
+    if (enable && (CloneShip == nullptr)) {
+         CloneShip = mGame->mSmgr->addMeshSceneNode(mGame->mGameAssets->mCraftVec->at(0)->MeshCraft.at(0));
+    }
+}
+
 void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
   switch (debugFlag) {
       case DEF_RACE_DBG_ALL: {
@@ -453,8 +492,11 @@ void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
           DebugShowTriggerEvents = enable;
           AllowStartMorphsPerKey = enable;
           DebugShowChargingStationInfo = enable;
+          DebugShowCloneRecording = enable;
+          InitCloneRecordingView(enable);
           break;
       }
+
       case DEF_RACE_DBG_WALLSEGMENTS: {
           DebugShowWallSegments = enable;
           break;
@@ -502,6 +544,12 @@ void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
 
       case DEF_RACE_DBG_CHARGINGSTATIONINFO: {
           DebugShowChargingStationInfo = enable;
+          break;
+      }
+
+      case DEF_RACE_DBG_SHOWCLONERECORDING: {
+          DebugShowCloneRecording = enable;
+          InitCloneRecordingView(enable);
           break;
       }
 
@@ -569,6 +617,10 @@ bool Race::GetDebugFlag(irr::u8 debugFlag) {
             return (DebugShowChargingStationInfo);
         }
 
+        case DEF_RACE_DBG_SHOWCLONERECORDING: {
+            return (DebugShowCloneRecording);
+        }
+
         default: {
             return (false);
         }
@@ -599,6 +651,12 @@ Race::~Race() {
     //delete ray intersection object
     delete mRay;
 
+    //free an existing possible Clonerecording
+    if (mCloneRecording != nullptr) {
+        delete mCloneRecording;
+        mCloneRecording = nullptr;
+    }
+
     //free all players
     Player* playerPntr;
 
@@ -625,6 +683,10 @@ Race::~Race() {
 
     //free the mesh
     mGame->mSmgr->getMeshCache()->removeMesh(wallCollisionMesh);
+
+    if (CloneShip != nullptr) {
+        CloneShip->remove();
+    }
 
     delete mPath;
 
@@ -2575,6 +2637,25 @@ void Race::HandleDebugInput() {
        //toggle collision resolution active state
        mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
    }
+
+   if ((mCloneRecording != nullptr) && DebugShowCloneRecording) {
+           if (mGame->mEventReceiver->IsKeyDown(irr::KEY_COMMA)) {
+               mCloneShipCurrentIdx--;
+
+               if (mCloneShipCurrentIdx < 0) {
+                   mCloneShipCurrentIdx = 0;
+               }
+           }
+
+           if (mGame->mEventReceiver->IsKeyDown(irr::KEY_PERIOD)) {
+               mCloneShipCurrentIdx++;
+               size_t maxIndex = mCloneRecording->NrRecordingDataEntries;
+
+               if (mCloneShipCurrentIdx >= maxIndex ) {
+                   mCloneShipCurrentIdx = (maxIndex - 1);
+               }
+           }
+   }
 }
 
 //unfortunetly it seems we can not remove SceneNodes from SceneManager
@@ -2890,6 +2971,29 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
     mMiniMap->DrawMiniMap(frameDeltaTime, coordVec, mPlayerVec.at(0)->mHumanPlayer);
 }
 
+void Race::DebugDrawClonePath(CloneRecording* recording) {
+    if (recording == nullptr)
+        return;
+
+    std::vector<CloneCoord3D>::iterator it;
+
+    if (recording->CoordVec.size() < 1) {
+        return;
+    }
+
+    std::vector<CloneCoord3D> path = recording->CoordVec;
+
+    irr::core::vector3df lastPos(-path.at(0).XPos, path.at(0).ZPos, path.at(0).YPos);
+    irr::core::vector3df currPos;
+
+    for (it = path.begin() + 1; it != path.end(); ++it) {
+        currPos.set(-(*it).XPos, (*it).ZPos, (*it).YPos);
+
+        mGame->mDrawDebug->Draw3DArrow(lastPos, currPos, 0.0f, mGame->mDrawDebug->cyan, 0.1f);
+        lastPos = currPos;
+    }
+}
+
 void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
     std::vector<WayPointLinkInfoStruct*>::iterator WayPointLink_iterator;
 
@@ -2921,6 +3025,72 @@ void Race::DebugDrawWayPointLinks(bool drawFreeMovementSpace) {
                         this->mGame->mDrawDebug->red);
         }
     }
+}
+
+void Race::DebugDrawCloneShip(CloneRecording* recording, size_t atIndex, irr::scene::ISceneNode* moveWhichNode) {
+    if ((recording == nullptr) || (moveWhichNode == nullptr)) {
+        return;
+    }
+
+    //index invalid!
+    if (atIndex >= recording->NrRecordingDataEntries) {
+        return;
+    }
+
+    irr::core::matrix4 n;
+    n.setRotationDegrees(irr::core::vector3df(0.0f, 0.0f, 0.0f));
+    moveWhichNode->setRotation(n.getRotationDegrees());
+
+    irr::f32 roll;
+    irr::f32 pitch;
+    irr::f32 yaw;
+
+    roll = recording->AngleVec.at(atIndex).XZ;
+    pitch = -recording->AngleVec.at(atIndex).ZY;
+    yaw = recording->AngleVec.at(atIndex).XY;
+
+    roll = (roll / 255.0f) * 360.0f;
+    pitch = (pitch / 255.0f) * 360.0f;
+    yaw = (yaw / 255.0f) * 360.0f;
+
+    //take care about the model 3D orientation
+    ModelYaw(moveWhichNode, yaw);
+    ModelPitch(moveWhichNode, pitch);
+    ModelRoll(moveWhichNode, roll);
+
+    //finally move model to new 3D Position
+    irr::core::vector3df newPos(-recording->CoordVec.at(atIndex).XPos, recording->CoordVec.at(atIndex).ZPos, recording->CoordVec.at(atIndex).YPos);
+    moveWhichNode->setPosition(newPos);
+}
+
+//--- rotate node relative to its current rotation -used in turn,pitch,roll ---
+void Race::ModelRotate(irr::scene::ISceneNode *node, irr::core::vector3df rot)
+{
+    irr::core::matrix4 m;
+    m.setRotationDegrees(node->getRotation());
+    irr::core::matrix4 n;
+    n.setRotationDegrees(rot);
+    m *= n;
+    node->setRotation(m.getRotationDegrees());
+    node->updateAbsolutePosition();
+}
+
+//--- turn ship left or right ---
+void Race::ModelYaw(irr::scene::ISceneNode *node, irr::f32 rot)
+{
+    ModelRotate(node, irr::core::vector3df(0.0f, rot, 0.0f) );
+}
+
+//--- pitch ship up or down ---
+void Race::ModelPitch(irr::scene::ISceneNode *node, irr::f32 rot)
+{
+    ModelRotate(node, irr::core::vector3df(rot, 0.0f, 0.0f) );
+}
+
+//--- roll ship left or right ---
+void Race::ModelRoll(irr::scene::ISceneNode *node, irr::f32 rot)
+{
+    ModelRotate(node, irr::core::vector3df(0.0f, 0.0f, rot) );
 }
 
 void Race::Render() {
@@ -2982,6 +3152,11 @@ void Race::Render() {
 
         if (currPlayerFollow != nullptr) {
             currPlayerFollow->DebugDraw();
+        }
+
+        if (DebugShowCloneRecording && (mCloneRecording != nullptr)) {
+            DebugDrawClonePath(mCloneRecording);
+            DebugDrawCloneShip(mCloneRecording, mCloneShipCurrentIdx, CloneShip);
         }
     }
 

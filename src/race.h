@@ -60,6 +60,7 @@ const irr::f32 DbgWaypointCubeHeightDistance = 0.3f;
 #define DEF_RACE_DBG_LOGTRIGGEREVENTS 8
 #define DEF_RACE_DBG_ACTIVATEMORPHKEYTRG 9
 #define DEF_RACE_DBG_CHARGINGSTATIONINFO 10
+#define DEF_RACE_DBG_SHOWCLONERECORDING 11
 
 struct RaceStatsEntryStruct {
     //player names in Hi-Octane are limited
@@ -133,6 +134,9 @@ class ShaderCallBack;
 struct MapConfigStruct;
 class MiniMap;
 class GameDbgWnd;
+struct CloneCoord3D;
+struct CloneAngle;
+struct CloneRecording;
 
 class Race {
 public:
@@ -329,6 +333,11 @@ private:
 
     irr::s32 shaderMaterial1;
 
+    //A irrlicht model to experiment with
+    //the clone ship mode and craft movement
+    //recording
+    irr::scene::IMeshSceneNode *CloneShip = nullptr;
+
     //ShadowMap settings
     E_FILTER_TYPE mShadowMapFilterType;
     irr::u32 mShadowMapResolution;
@@ -391,6 +400,7 @@ private:
     bool AllowStartMorphsPerKey = false;
 
     bool DebugShowChargingStationInfo = false;
+    bool DebugShowCloneRecording = false;
 
     void createEntity(EntityItem *p_entity, LevelFile *levelRes, LevelTerrain *levelTerrain, LevelBlocks* levelBlocks, irr::video::IVideoDriver *driver);
     bool LoadSkyImage(irr::video::IVideoDriver* driver, irr::core::dimension2d<irr::u32> screenResolution);
@@ -557,6 +567,9 @@ private:
     irr::scene::CCloudSceneNode* cloudLayer2 = nullptr;
     irr::scene::CCloudSceneNode* cloudLayer3 = nullptr;
 
+    void DebugDrawClonePath(CloneRecording* recording);
+    void DebugDrawCloneShip(CloneRecording* recording, size_t atIndex, irr::scene::ISceneNode* moveWhichNode);
+
     void UpdateShadowLights();
 
     void UpdateLensFlare();
@@ -568,6 +581,18 @@ private:
     //loop itself (when attribution is finished); The
     //finished race does not end the demo (attribution mode)
     bool mAttributionMode;
+
+    void ModelRotate(irr::scene::ISceneNode *node, irr::core::vector3df rot);
+    void ModelYaw(irr::scene::ISceneNode *node, irr::f32 rot);
+    void ModelPitch(irr::scene::ISceneNode *node, irr::f32 rot);
+    void ModelRoll(irr::scene::ISceneNode *node, irr::f32 rot);
+
+    //nullptr means no clone recording is loaded
+    CloneRecording* mCloneRecording = nullptr;
+
+    void InitCloneRecordingView(bool enable);
+
+    irr::s32 mCloneShipCurrentIdx = 0;
 };
 
 #endif // RACE_H

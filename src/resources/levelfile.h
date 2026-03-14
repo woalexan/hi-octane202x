@@ -2,8 +2,11 @@
  The source code in this file was based on/derived from/translated from
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
+
+ Since starting of Feb 2026 I was able to add additional source code based on the new insights gained
+ into the original game thanks to the great efforts of Aybe. Thank you very much!
  
- Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++, and extended with some new code)
+ Copyright (C) 2024-2026 Wolf Alexander       (I did just translation to C++, and extended with some new code)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -72,6 +75,19 @@ struct MapTileRegionStruct {
 struct ColumnsStruct {
       irr::core::vector3d<float> Vector3;
       ColumnDefinition *Columns = nullptr;
+};
+
+//21.02.2026: Below I will start to add structs which I am only aware about now,
+//because of newly gained insight into the original game thanks to the great effort of Aybe!
+//I really appreciate this support, Thank you very much!
+//I am not yet really sure who all of this is used at the end, but I want to update my project
+//based on the new insights gained.
+
+struct ThingListStruct {
+    int16_t Thing[1000];
+    int32_t Index;
+    uint32_t Sector;
+    uint32_t Group;
 };
 
 class LevelFile {
@@ -228,6 +244,10 @@ private:
     //Returns true if succesfull created, false otherwise
     bool AddPOI(MapTileRegionStruct* newRegion);
 
+    //TODO 21.02.2026: Figure out if the following data is actually used by
+    //Hioctane itself; If not used maybe remove afterwards again
+    ThingListStruct* mThingList = nullptr;
+
 protected:
      std::string m_Filename;
      std::string m_Name;
@@ -246,6 +266,7 @@ protected:
      bool loadBlockTexTable();
      bool loadColumnsTable();
      bool loadMapEntries();
+     bool loadThingListData();
 
      bool loadMapRegions();
      bool loadUnknownTableAtOffset(size_t offset, size_t bytes, std::vector<uint8_t> &targetTable);
