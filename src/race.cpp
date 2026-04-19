@@ -24,6 +24,7 @@
 #include "utils/worldaware.h"
 #include "utils/fileutils.h"
 #include "utils/gamedbgwnd.h"
+#include "utils/vcalc.h"
 
 #include "draw/hud.h"
 
@@ -755,6 +756,11 @@ Race::~Race() {
     if (mMapConfig != nullptr) {
         delete mMapConfig;
         mMapConfig = nullptr;
+    }
+
+    if (mVCalc != nullptr) {
+        delete mVCalc;
+        mVCalc = nullptr;
     }
 
     //IrrlichtStats((char*)("After race cleanup"));
@@ -1933,6 +1939,8 @@ void Race::Init() {
 
     ready = true;
 
+    //this->mVCalc->Verify_vanilla_calculations();
+
     //this->mGame->StopTime();
   
     //only to test if we can save a levelfile properly!
@@ -2633,6 +2641,10 @@ void Race::HandleDebugInput() {
        //this->mWorldAware->WriteOneDbgPic = true;
    }
 
+   if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
+      // mVCalc->Update();
+   }
+
    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
        //toggle collision resolution active state
        mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
@@ -3279,6 +3291,8 @@ void Race::Render() {
         //}
 
         //DebugShowAllObstaclePlayers();
+
+    // mVCalc->DebugDraw();
 }
 
 void Race::UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable) {
@@ -3615,6 +3629,13 @@ bool Race::LoadLevel() {
    //we can only set levelBlocks afterwards in Terrain
    //unfortunetly! do not forget it!
    mLevelTerrain->SetLevelBlocks(mLevelBlocks);
+
+   //Add the original game calculation low level routines and mechanics I tried to
+   //reproduce to be hopefully working together with this existing project
+   mVCalc = new VCalculations(mGame, mLevelRes, mLevelTerrain, mLevelBlocks);
+
+   //Add test thing
+  // mVCalc->AddTestObject(irr::core::vector3df(-10.0f, 11.5f, 60.0f));
 
    if (!SetupSky()) {
        return false;

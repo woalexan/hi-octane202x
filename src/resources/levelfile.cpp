@@ -42,7 +42,9 @@
 3. Offset 124652     => Offset 141019  Block-Definitions  (stores 1023 Block Definitions)
    Offset 141020     => Offset 246923  Unknown data (105904 bytes)
 4. Offset 246924     => Offset 247603  Region-Definitions (stores 8 Region Definitions)
-   Offset 247604     => Offset 404619  Unknown data (157016 bytes)
+   Offset 247604     => Offset 357667  Unknown data (110064 bytes)
+   Offset 357668     => Offset 358180  ColideTypes[256] array ("Friction Values") (512 bytes)
+   Offset 358181     => Offset 404619  Unknown data (46439 bytes)
 5. Offset 404620     => Offset 896140  Tile-Data (256 x 160 Tiles)
 
 */
@@ -103,7 +105,7 @@ LevelFile::LevelFile(InfrastructureBase* infra, std::string filename, bool runAs
     }
 
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMapEntries() && loadEntitiesTable() &&
-            loadMapRegions();
+            loadMapRegions() && loadFrictionTable();
 
     //also load unknown table data
     ready_result &= loadUnknownTableAtOffset(0, 24, unknownTable0Data);
@@ -345,6 +347,55 @@ bool LevelFile::loadThingListData() {
 
     return(true);
 }
+
+uint16_t LevelFile::GetFrictionValue(int x, int y) {
+    MapEntry* entry = pMap[x][y];
+    int16_t texId;
+
+
+    if (entry == nullptr)
+        return 0;
+
+    //no column?
+    if (entry->get_Column() == nullptr) {
+        //get texture Id from tile itself
+        texId = entry->m_TextureId;
+    } else {
+        //there is a column, get base textureId from
+        //the column def itself
+        texId = entry->get_Column()->get_FloorTextureID();
+    }
+
+    //invalid index?
+    if ((texId < 0) || (texId > 255)) {
+        return 0;
+    }
+
+    //return the friction value for this type of
+    //tile with this texture Id
+    return (frictionTable[texId]);
+}
+
+bool LevelFile::loadFrictionTable() {
+     frictionTable.clear();
+
+     uint16_t val;
+     uint8_t lowByte;
+     uint8_t highByte;
+     int baseOffset;
+
+     for (int i = 0; i < 256; i++) {
+         baseOffset = 0x57524 + i * 2;
+         lowByte = m_bytes.at(baseOffset + 1);
+         highByte = m_bytes.at(baseOffset);
+
+         val = (lowByte) | (highByte << 8);
+
+         frictionTable.push_back(val);
+     }
+
+   return(true);
+ }
 
 bool LevelFile::loadBlockTexTable() {
     std::vector<uint8_t>::const_iterator startslice;

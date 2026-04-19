@@ -123,6 +123,8 @@ public:
     //nullptr
     MapTileRegionStruct* GetRegionStructForRegionId(irr::u8 regionId);
 
+    uint16_t GetFrictionValue(int x, int y);
+
     std::vector<ColumnsStruct> Columns;
 
     //table starts at 0 offset until 23 offset, and is 24 bytes long
@@ -138,6 +140,8 @@ public:
     std::vector<uint8_t> unknownTable141020Data;
 
     std::vector<uint8_t> regionTable;  //this table has 680 bytes (contains region definitions for the level)
+    std::vector<uint16_t> frictionTable; //this table has 256 entries with each 2 bytes, each tile type (texture id)
+                                         //has a friction value assigned inside this table
 
     //table starts at 247604 offset until 404619 offset, and is 157015 bytes long
     std::vector<uint8_t> unknownTable247604Data;
@@ -266,6 +270,7 @@ protected:
      bool loadBlockTexTable();
      bool loadColumnsTable();
      bool loadMapEntries();
+     bool loadFrictionTable();
      bool loadThingListData();
 
      bool loadMapRegions();
