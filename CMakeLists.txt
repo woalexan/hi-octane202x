@@ -278,6 +278,8 @@ add_executable(hi-octane202x
     src/utils/logging.h
     src/utils/movingavg.h
     src/utils/movingavg.cpp
+    src/utils/vcalc.h
+    src/utils/vcalc.cpp
 
     src/utils/boundingbox/coord_frame.h
     src/utils/boundingbox/basis.h

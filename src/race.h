@@ -137,6 +137,7 @@ class GameDbgWnd;
 struct CloneCoord3D;
 struct CloneAngle;
 struct CloneRecording;
+class VCalculations;
 
 class Race {
 public:
@@ -182,6 +183,8 @@ public:
     LevelTerrain *mLevelTerrain = nullptr;
 
     Bezier *testBezier = nullptr;
+
+    VCalculations *mVCalc = nullptr;
 
     Ray *mRay = nullptr;
 

@@ -5,6 +5,17 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
+### Update 19.04.2026
+Currently the visible project progress on Github almost came to a standstill, but this does not mean that the project has stopped.
+I gained much deeper insight into the workings of the original game, and currently I still try to learn how everything works together, and also try
+to apply this information to make this project hopefully better in the future.
+
+This will be a lengthy and difficult process for me, as I will need to rewrite and replace a lot of already existing source code in the coming months and
+years. But to be honest this is the only way to make my current project more true to the original and to do it justice.
+
+Also Thank you for your understanding in case I temporarily break this project in the near future while doing bigger changes in the implementation. I will try to avoid it, but
+I am almost certain this will happen.
+
 ![level3_25122025](screenshots/level3-25122025.png)
 
 ## Getting Started

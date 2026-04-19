@@ -28,6 +28,8 @@ ColumnDefinition::ColumnDefinition(int id, int offset, std::vector<uint8_t> byte
   //Byte 0:   Shape (is a byte, where each bit tells the game if a block position in the column is currently used or is empty;
   //          A high bit means the block is used, a low bit means empty space. The Lsb is block at lowest location (next to race track)
   //          The MSB is the highest block H at the top of the column)
+  //          30.03.2026: After studying the original game more I believe this field is called "SolidMask" there (according to symbol file),
+  //          and is used for collision detection; If bit for block in SolidMask is set there, something can collide at this location
   //Byte 1:   Unknown4 (in all 9 existing maps there is not a single place where this value is not zero; seems to be reserved for the future, but was never used)
   //          Or it belongs to Byte 0, but because range of values in Byte 0 are so limited it is not actually used
   //Byte 2:   Floor Texture ID (if between two columns only the floor texture Id differs both columns use different column definitions)
