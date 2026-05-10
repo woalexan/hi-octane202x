@@ -38,6 +38,7 @@
 #include "../infrabase.h"
 #include "../utils/logging.h"
 #include "../draw/drawdebug.h"
+#include <cmath>
 
 VCalculations::VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks)
 {
@@ -50,7 +51,7 @@ VCalculations::VCalculations(InfrastructureBase* infra, LevelFile* levelFile, Le
 }
 
 void VCalculations::AddTestObject(irr::core::vector3df position) {
-    this->testThing1 = new TestThing();
+    this->testThing1 = new ThingDataStruct();
     testThing1->Position = position;
     testThing1->Stationary = false;
     /*testThing1->Movement.SpeedActual =
@@ -59,7 +60,6 @@ void VCalculations::AddTestObject(irr::core::vector3df position) {
 
     //move_displacement_set(testThing1->Displacement, 90.0f, 135.0f, 1.0f);
     move_displacement_set(testThing1->Displacement, 150.0f, 135.0f, 1.0f);
-
 
     testThing1->Life = 200;
 
@@ -84,174 +84,18 @@ void VCalculations::Update() {
     UpdateTestObject(0.1f, *testThing1);
 }
 
-void VCalculations::DebugDrawDisplacement(TestThing* whichThing) {
-    irr::core::vector3df dirVec = whichThing->Displacement;
+void VCalculations::DebugDrawDisplacement(ThingDataStruct& whichThing) {
+    irr::core::vector3df dirVec = whichThing.Displacement;
     dirVec.normalize();
 
-    mInfra->mDrawDebug->Draw3DLine(whichThing->Position, whichThing->Position + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mInfra->mDrawDebug->orange);
+    mInfra->mDrawDebug->Draw3DLine(whichThing.Position, whichThing.Position + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mInfra->mDrawDebug->orange);
 }
 
 void VCalculations::DebugDraw() {
-    DebugDrawDisplacement(testThing1);
+    DebugDrawDisplacement(*testThing1);
 }
 
-//Convert a float into a fixed point number (8.8 format)
-int16_t VCalculations::FloatToFixedPoint8D8(irr::f32 floatVal) {
-    int16_t result = (int16_t)(floatVal) << 8;
-    result &= 0xFF00;
-
-    irr::f32 remainder = floatVal - (irr::f32)(result);
-    int16_t remainderInt = (int16_t)(remainder * 256.0f);
-
-    result |= remainderInt;
-    return result;
-}
-
-//Convert a fixed point number (8.8 format) to a float
-irr::f32 VCalculations::FixedPointToFloat8D8(int16_t fixedPntVal) {
-    irr::f32 result = (irr::f32)((fixedPntVal >> 8) & 0x00FF);
-    int16_t remainderInt = (int16_t)(fixedPntVal & 0x00FF);
-
-    result += (irr::f32)(remainderInt / 256.0f);
-    return result;
-}
-
-//Convert a float into a fixed point number (16.16 format)
-int32_t VCalculations::FloatToFixedPoint16D16(irr::f32 floatVal) {
-    int32_t result = (int32_t)(floatVal) << 16;
-    result &= 0xFFFF0000;
-
-    irr::f32 remainder = floatVal - (irr::f32)(result);
-    int32_t remainderInt = (int32_t)(remainder * 65536.0f);
-
-    result |= remainderInt;
-    return result;
-}
-
-//Convert a fixed point number (16.16 format) to a float
-irr::f32 VCalculations::FixedPointToFloat16D16(int32_t fixedPntVal) {
-    irr::f32 result = (irr::f32)((fixedPntVal >> 16) & 0x0000FFFF);
-    int32_t remainderInt = (int32_t)(fixedPntVal & 0x0000FFFF);
-
-    result += (irr::f32)(remainderInt / 65536.0f);
-    return result;
-}
-
-//original "raw" angles (for example in thing->Movement.Angle.ZY, is struct Angle)
-//contain the absolute angle for a unit circle of 256.0, in fixed point
-//arithmetic format of 8.8
-//this function simply converts this angle into a floating point angle value
-//with a unit circle of 360.0f I use in my project and Irrlicht
-irr::f32 VCalculations::VanillaRawAngleToMyFloatingAngle(uint16_t rawVanillaAngle) {
-   uint16_t val = ((uint16_t)(rawVanillaAngle) & 0xFF00) >> 8;
-   irr::f32 result = (irr::f32)(val);
-
-   val = ((uint16_t)(rawVanillaAngle) & 0x00FF);
-   result += (irr::f32)(val) / 256.0f;
-
-   result = (result / 256.0f) * 360.0f;
-
-   if (result > 360.0f) {
-       result -= 360.0f;
-   }
-
-   if (result < 0.0f) {
-       result += 360.0f;
-   }
-
-   return result;
-}
-
-//Helper function to test one specific case for Verify_collide_map function
-bool VCalculations::Verify_collide_map_step(int16_t posXFixedPnt, int16_t posZFixedPnt, int16_t expYResultFixedPnt, int16_t whichSeqCaseTested) {
-    irr::f32 posX = -FixedPointToFloat8D8(posXFixedPnt);
-    irr::f32 posZ = FixedPointToFloat8D8(posZFixedPnt);
-
-    irr::f32 posYRes = collide_map(posX, posZ);
-    int16_t posYResInt = FloatToFixedPoint8D8(posYRes);
-
-    int16_t errorInt = abs(posYResInt - expYResultFixedPnt);
-
-    //allow maximum 1 count deviation in terms of fixed point
-    //fractional part between my floating point calculation
-    //and the expected result from the original game (using fixed point calculation)
-    if (errorInt > 1) {
-        std::string infoTxt("Verify_collide_map_step: Testcase for following sequence failed: ");
-        infoTxt += std::to_string((int)(whichSeqCaseTested));
-        infoTxt += " Difference: ";
-        infoTxt += std::to_string((int)(expYResultFixedPnt - posYResInt));
-        infoTxt += " dec!";
-
-        logging::Error(infoTxt);
-        return false;
-    }
-
-    return true;
-}
-
-//Returns true of verify collide map works as expected, False
-//otherwise
-//Important: Only works correctly if unmodified (original) level1
-//file is loaded
-bool VCalculations::Verify_collide_map() {
-    bool overallResult = true;
-
-    //Sequence case 1 Testcases
-    overallResult &= Verify_collide_map_step(0x133A, 0x6F7C, 0x0C7D, 1);
-    overallResult &= Verify_collide_map_step(0x136B, 0x6FB2, 0x0CA5, 1);
-    overallResult &= Verify_collide_map_step(0x1308, 0x6FDA, 0x0CC3, 1);
-
-    //Sequence case 2 Testcases
-    overallResult &= Verify_collide_map_step(0x139E, 0x6F46, 0x0C54, 2);
-    overallResult &= Verify_collide_map_step(0x1352, 0x6F33, 0x0C46, 2);
-    overallResult &= Verify_collide_map_step(0x139D, 0x6F3A, 0x0C4B, 2);
-
-    //Sequence case 3 Testcases
-    overallResult &= Verify_collide_map_step(0x0B80, 0x7280, 0x0EC0, 3);
-    overallResult &= Verify_collide_map_step(0x139D, 0x6E6A, 0x0BB9, 3);
-    overallResult &= Verify_collide_map_step(0x136A, 0x6EC9, 0x0BFA, 3);
-
-    //Sequence case 4 Testcases
-    overallResult &= Verify_collide_map_step(0x1352, 0x6E8A, 0x0BCE, 4);
-    overallResult &= Verify_collide_map_step(0x1352, 0x6E70, 0x0BBD, 4);
-    overallResult &= Verify_collide_map_step(0x1352, 0x6E63, 0x0BB4, 4);
-
-    if (overallResult) {
-        logging::Info("Verify_collide_map: All testcases pass");
-        return true;
-    } else {
-        logging::Error("Verify_collide_map: At least one testcase failed");
-    }
-
-    return false;
-}
-
-//Returns true if all vanilla calculations work as expected, False otherwise
-//Important: Only works correctly if unmodified (original) level1
-//file is loaded
-bool VCalculations::Verify_vanilla_calculations() {
-    bool overallResult = true;
-
-    //Verify_collide_map
-    overallResult &= Verify_collide_map();
-
-    //Verify_move_displacement_set
-    overallResult &= Verify_move_displacement_set();
-
-    //Verify_move_xyz
-    overallResult &= Verify_move_xyz();
-
-    if (overallResult) {
-        logging::Info("Verify_vanilla_calculations: All testcases pass");
-        return true;
-    } else {
-        logging::Error("Verify_vanilla_calculations: At least one testcase failed");
-    }
-
-    return false;
-}
-
-int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, TestThing& whichThing) {
+int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, ThingDataStruct& whichThing) {
    irr::core::vector3df intPosition;
    irr::core::vector3df intDisplacement;
    irr::f32 XPos;
@@ -373,6 +217,10 @@ int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, TestThing& whichThing
    return 0;
 }
 
+/***************************************************
+ * Map Collide stuff                               *
+ ***************************************************/
+
 //Input position: Enter coordinates according to my game drawing coordinate
 //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
 //Returns the tile raw friction table value
@@ -394,6 +242,52 @@ uint16_t VCalculations::map_colide_type(irr::core::vector3df position) {
     return (mLevelFile->GetFrictionValue(intX, intY));
 }
 
+//Helper function for function verification
+bool VCalculations::Verify_map_colide_type_step(int tileX, int tileY, uint16_t expResult,
+            int16_t whichSeqCaseTested) {
+
+    //construct a 3D position where we can find this tile
+    //in level1
+    irr::core::vector3df pos;
+    pos.X = -tileX * mLevelTerrain->segmentSize - 0.5f;
+    pos.Z = tileY * mLevelTerrain->segmentSize + 0.5f;
+
+    uint16_t result = map_colide_type(pos);
+
+    if (expResult != result) {
+        std::string infoTxt("Verify_map_colide_type_step: Testcase for following sequence failed: ");
+        infoTxt += std::to_string((int)(whichSeqCaseTested));
+        infoTxt += " Result Difference: ";
+        infoTxt += std::to_string((int)(result - expResult));
+        infoTxt += " dec!";
+
+        logging::Error(infoTxt);
+        return false;
+    }
+
+    return true;
+}
+
+//Returns true if map_colide_type works as expected, False
+//otherwise
+//This function can only work if the unmodified original level1 is loaded
+//as the result is based on the loaded level file
+bool VCalculations::Verify_map_colide_type() {
+    bool overallResult = true;
+
+    overallResult &= Verify_map_colide_type_step(25, 102, 0x1C01, 1); //checks for TextureId 0 (Dirt)
+    overallResult &= Verify_map_colide_type_step(12, 92,  0x0804, 2);  //checks for road Tile (Texture Id 144)
+
+    if (overallResult) {
+        logging::Info("Verify_map_colide_type: All testcases pass");
+        return true;
+    } else {
+        logging::Error("Verify_map_colide_type: At least one testcase failed");
+    }
+
+    return false;
+}
+
 //Input position: Enter coordinates according to my game drawing coordinate
 //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
 //Returns the tile friction value at the specified location
@@ -403,6 +297,51 @@ uint16_t VCalculations::map_colide_friction(irr::core::vector3df position) {
     //get and return the friction value of the current loaded
     //map
     return ((rawVal & 0x3C00) >> 10);
+}
+
+//Helper function for function verification
+bool VCalculations::Verify_map_colide_friction_step(int tileX, int tileY, uint16_t expResult,
+            int16_t whichSeqCaseTested) {
+
+    //construct a 3D position where we can find this tile
+    //in level1
+    irr::core::vector3df pos;
+    pos.X = -tileX * mLevelTerrain->segmentSize - 0.5f;
+    pos.Z = tileY * mLevelTerrain->segmentSize + 0.5f;
+
+    uint16_t result = map_colide_friction(pos);
+
+    if (expResult != result) {
+        std::string infoTxt("Verify_map_colide_friction_step: Testcase for following sequence failed: ");
+        infoTxt += std::to_string((int)(whichSeqCaseTested));
+        infoTxt += " Result Difference: ";
+        infoTxt += std::to_string((int)(result - expResult));
+        infoTxt += " dec!";
+
+        logging::Error(infoTxt);
+        return false;
+    }
+
+    return true;
+}
+
+//Returns true if map_colide_friction works as expected, False
+//otherwise
+//This function can only work if the unmodified original level1 is loaded
+//as the result is based on the loaded level file
+bool VCalculations::Verify_map_colide_friction() {
+    bool overallResult = true;
+
+    overallResult &= Verify_map_colide_friction_step(0x0B, 0x5C, 0x02, 1); //checks for TextureId 144 (road tile)
+
+    if (overallResult) {
+        logging::Info("Verify_map_colide_friction: All testcases pass");
+        return true;
+    } else {
+        logging::Error("Verify_map_colide_friction: At least one testcase failed");
+    }
+
+    return false;
 }
 
 //Function programmed to have similar behavior as function "collide_map"
@@ -477,6 +416,70 @@ irr::f32 VCalculations::collide_map(irr::f32 posX, irr::f32 posZ)  //06.04.2026:
 
     yRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
     return yRes;
+}
+
+//Helper function to test one specific case for Verify_collide_map function
+bool VCalculations::Verify_collide_map_step(int16_t posXFixedPnt, int16_t posZFixedPnt, int16_t expYResultFixedPnt, int16_t whichSeqCaseTested) {
+    irr::f32 posX = -FixedPointToFloat8D8(posXFixedPnt);
+    irr::f32 posZ = FixedPointToFloat8D8(posZFixedPnt);
+
+    irr::f32 posYRes = collide_map(posX, posZ);
+    int16_t posYResInt = FloatToFixedPoint8D8(posYRes);
+
+    int16_t errorInt = abs(posYResInt - expYResultFixedPnt);
+
+    //allow maximum 1 count deviation in terms of fixed point
+    //fractional part between my floating point calculation
+    //and the expected result from the original game (using fixed point calculation)
+    if (errorInt > 1) {
+        std::string infoTxt("Verify_collide_map_step: Testcase for following sequence failed: ");
+        infoTxt += std::to_string((int)(whichSeqCaseTested));
+        infoTxt += " Difference: ";
+        infoTxt += std::to_string((int)(expYResultFixedPnt - posYResInt));
+        infoTxt += " dec!";
+
+        logging::Error(infoTxt);
+        return false;
+    }
+
+    return true;
+}
+
+//Returns true of verify collide map works as expected, False
+//otherwise
+//Important: Only works correctly if unmodified (original) level1
+//file is loaded
+bool VCalculations::Verify_collide_map() {
+    bool overallResult = true;
+
+    //Sequence case 1 Testcases
+    overallResult &= Verify_collide_map_step(0x133A, 0x6F7C, 0x0C7D, 1);
+    overallResult &= Verify_collide_map_step(0x136B, 0x6FB2, 0x0CA5, 1);
+    overallResult &= Verify_collide_map_step(0x1308, 0x6FDA, 0x0CC3, 1);
+
+    //Sequence case 2 Testcases
+    overallResult &= Verify_collide_map_step(0x139E, 0x6F46, 0x0C54, 2);
+    overallResult &= Verify_collide_map_step(0x1352, 0x6F33, 0x0C46, 2);
+    overallResult &= Verify_collide_map_step(0x139D, 0x6F3A, 0x0C4B, 2);
+
+    //Sequence case 3 Testcases
+    overallResult &= Verify_collide_map_step(0x0B80, 0x7280, 0x0EC0, 3);
+    overallResult &= Verify_collide_map_step(0x139D, 0x6E6A, 0x0BB9, 3);
+    overallResult &= Verify_collide_map_step(0x136A, 0x6EC9, 0x0BFA, 3);
+
+    //Sequence case 4 Testcases
+    overallResult &= Verify_collide_map_step(0x1352, 0x6E8A, 0x0BCE, 4);
+    overallResult &= Verify_collide_map_step(0x1352, 0x6E70, 0x0BBD, 4);
+    overallResult &= Verify_collide_map_step(0x1352, 0x6E63, 0x0BB4, 4);
+
+    if (overallResult) {
+        logging::Info("Verify_collide_map: All testcases pass");
+        return true;
+    } else {
+        logging::Error("Verify_collide_map: At least one testcase failed");
+    }
+
+    return false;
 }
 
 //Function programmed to have similar behavior as function "map_floor"
@@ -697,6 +700,40 @@ int8_t VCalculations::map_colide_direction(irr::core::vector3df oldPosition, irr
 }
 
 //This function was written to behave similar to the function
+//map_colide_direction_xy in the original game
+int8_t VCalculations::map_colide_direction_xy(irr::core::vector3df oldPosition, irr::core::vector3df newPosition)
+{
+    irr::core::vector3df position;
+
+    int8_t result = map_colide(newPosition);
+    if (!result) {
+        return 0;
+    }
+
+    position.X = newPosition.X;
+    position.Y = oldPosition.Y;
+    position.Z = oldPosition.Z;
+
+    if ((map_colide(position) & 0x10) != 0) {
+        result |= 1u;
+    }
+
+    position.X = oldPosition.X;
+    position.Y = newPosition.Y;
+    position.Z = oldPosition.Z;
+
+    if ((map_colide(position) & 0x10) != 0) {
+        result |= 2u;
+    }
+
+    return (result & 0xF7);
+}
+
+/***************************************************
+ * Movement stuff                                  *
+ ***************************************************/
+
+//This function was written to behave similar to the function
 //move_displacement_xyz in the original game
 //moves a 3D position by a certain displacement, direction
 //is also defined by the sign
@@ -745,6 +782,54 @@ void VCalculations::move_displacement_slope(irr::core::vector3df position,
 
         displacement.X += pntr->vert4CurrPositionY;
         displacement.Z += pntr->vert4CurrPositionY;
+    }
+}
+
+//In original game: angleXY and angleZY are a 16 bit integer, with range from 0 up to 0xFFFF
+//Angles have 8.8 Fixed Point Format; contain the absolute angle on a unit circle with 256 steps for a whole circle;
+//In the original game this integer value is then divided further by a factor of 32 (shift 5 bits to the right)
+//to get the index into the original sine table
+//Speed is a fixed point number with 8.8 format;
+//In my project: angleXY and angleZY is the absolute angle in deg, range 0.0f up to 360.0f
+//speed has a possible range from 0.0 up to 255.99609375, resolution in original game
+//is 0.00390625 for speed
+int8_t VCalculations::move_displacement_set(irr::core::vector3df& position, irr::f32 angleXY,
+                             irr::f32 angleZY, irr::f32 speed) {   //18.04.2026: Function verified to be correct
+
+    irr::f32 v4 = speed;
+
+    //Displacement = Change in position from one iteration to the next => first derivation of position
+
+    //1: Very small speed => no displacement
+    //2: Very steep movement upwards (angleZY <<) => no upwards/downward movement anymore in Z-direction
+
+    //if smaller then speed resolution in original game
+    //then speed is basically zero
+    if (fabs(speed) < 0.00390625f) {
+        //almost no speed, no displacement anymore => stop movement of object
+        position.set(0.0f, 0.0f, 0.0f);
+        return 0;
+    } else {
+        if (!(fabs(angleZY) < 0.175784)) {
+            irr::f32 angle = (angleZY / 180.0f) * M_PI;
+            //position.Z (displacement in Z-direction) is the first derivation, therefore we get -sin here
+            position.Z = -speed * sin(angle);
+            //displacement vector component (first derivation) in XY-Plane, initial sin becomes cos because
+            //of derivation => checks out
+            v4 = speed * cos(angle);
+        } else {
+            //object moves very steep upwards to sky, set
+            //zero displacement for Z-axis
+            position.Z = 0.0f;
+        }
+
+        //now further seperate components in XY-Plane
+        //angleXY = angle starting from X-Axis going towards Y-Axis
+        irr::f32 angle2 = (angleXY / 180.0f) * M_PI;
+        position.X = v4 * sin(angle2);
+        position.Y = -v4 * cos(angle2);
+
+        return 1;
     }
 }
 
@@ -842,44 +927,33 @@ bool VCalculations::Verify_move_displacement_set() {
 //In my project: angleXY and angleZY is the absolute angle in deg, range 0.0f up to 360.0f
 //speed has a possible range from 0.0 up to 255.99609375, resolution in original game
 //is 0.00390625 for speed
-int8_t VCalculations::move_displacement_set(irr::core::vector3df& position, irr::f32 angleXY,
-                             irr::f32 angleZY, irr::f32 speed) {   //18.04.2026: Function verified to be correct
+int8_t VCalculations::move_xyz(irr::core::vector3df& position, irr::f32 angleXY,
+                             irr::f32 angleZY, irr::f32 speed) {
 
     irr::f32 v4 = speed;
 
-    //Displacement = Change in position from one iteration to the next => first derivation of position
-
-    //1: Very small speed => no displacement
-    //2: Very steep movement upwards (angleZY <<) => no upwards/downward movement anymore in Z-direction
-
-    //if smaller then speed resolution in original game
-    //then speed is basically zero
+    //if speed is way too low we do not need to move, just exit
     if (fabs(speed) < 0.00390625f) {
-        //almost no speed, no displacement anymore => stop movement of object
-        position.set(0.0f, 0.0f, 0.0f);
         return 0;
-    } else {
-        if (!(fabs(angleZY) < 0.175784)) {
-            irr::f32 angle = (angleZY / 180.0f) * M_PI;
-            //position.Z (displacement in Z-direction) is the first derivation, therefore we get -sin here
-            position.Z = -speed * sin(angle);
-            //displacement vector component (first derivation) in XY-Plane, initial sin becomes cos because
-            //of derivation => checks out
-            v4 = speed * cos(angle);
-        } else {
-            //object moves very steep upwards to sky, set
-            //zero displacement for Z-axis
-            position.Z = 0.0f;
-        }
-
-        //now further seperate components in XY-Plane
-        //angleXY = angle starting from X-Axis going towards Y-Axis
-        irr::f32 angle2 = (angleXY / 180.0f) * M_PI;
-        position.X = v4 * sin(angle2);
-        position.Y = -v4 * cos(angle2);
-
-        return 1;
     }
+
+    if (!(fabs(angleZY) < 0.175784)) {
+            irr::f32 angle = (angleZY / 180.0f) * M_PI;
+            position.Z -= speed * sin(angle);
+            v4 = speed * cos(angle);
+    }
+
+    irr::f32 angle2 = (angleXY / 180.0f) * M_PI;
+    position.X += v4 * sin(angle2);
+    //TODO: The implementation in the original game looks
+    //like the next line was implemented, but then a jump operation
+    //jumps over it, which renders it inactive at the end
+    //According to one debugging session the value for position.Y
+    //really seems to be not modified. So I need to comment the next
+    //line out as well, until I understand the situation better
+    //position.Y -= v4 * cos(angle2);
+
+    return 1;
 }
 
 //Helper function for function verification
@@ -960,39 +1034,197 @@ bool VCalculations::Verify_move_xyz() {
     return false;
 }
 
-//In original game: angleXY and angleZY are a 16 bit integer, with range from 0 up to 0xFFFF
-//Angles have 8.8 Fixed Point Format; contain the absolute angle on a unit circle with 256 steps for a whole circle;
-//In the original game this integer value is then divided further by a factor of 32 (shift 5 bits to the right)
-//to get the index into the original sine table
-//Speed is a fixed point number with 8.8 format;
-//In my project: angleXY and angleZY is the absolute angle in deg, range 0.0f up to 360.0f
-//speed has a possible range from 0.0 up to 255.99609375, resolution in original game
-//is 0.00390625 for speed
-int8_t VCalculations::move_xyz(irr::core::vector3df& position, irr::f32 angleXY,
-                             irr::f32 angleZY, irr::f32 speed) {
+/***************************************************
+ * Distance calculation stuff                      *
+ ***************************************************/
 
-    irr::f32 v4 = speed;
-
-    //if speed is way too low we do not need to move, just exit
-    if (fabs(speed) < 0.00390625f) {
-        return 0;
-    }
-
-    if (!(fabs(angleZY) < 0.175784)) {
-            irr::f32 angle = (angleZY / 180.0f) * M_PI;
-            position.Z -= speed * sin(angle);
-            v4 = speed * cos(angle);
-    }
-
-    irr::f32 angle2 = (angleXY / 180.0f) * M_PI;
-    position.X += v4 * sin(angle2);
-    //TODO: The implementation in the original game looks
-    //like the next line was implemented, but then a jump operation
-    //jumps over it, which renders it inactive at the end
-    //According to one debugging session the value for position.Y
-    //really seems to be not modified. So I need to comment the next
-    //line out as well, until I understand the situation better
-    //position.Y -= v4 * cos(angle2);
-
-    return 1;
+irr::f32 VCalculations::distance_get_xyz(irr::core::vector3df position1, irr::core::vector3df position2) {
+    //simply let Irrlicht do it :)
+    return ((position2-position1).getLength());
 }
+
+/***************************************************
+ * Angle calculation stuff                         *
+ ***************************************************/
+
+//Careful: This function returns the angle in degress for a 360° unit circle
+//The original game uses inside a 256° (step) unit circle!
+irr::f32 VCalculations::arctanPlusMultiply32(irr::f32 x, irr::f32 y) {
+    irr::f32 result = atan2(x, y);
+
+    //convert result from RAD to deg
+    result = (result / irr::core::PI) * 180.0f;
+
+    //I compared the results from the "normal" atan2 function
+    //with the results from the arctan function in the original game
+    //for some iterations (stepping with emulator), and saw that I have
+    //to additionally to do the follow to make the results fit
+    if (result >= 0.0) {
+        result = (180.0f - result);
+    } else {
+        result = (-180.0f - result);
+    }
+
+    return result;
+}
+
+//Helper function for function verification
+bool VCalculations::Verify_arctanPlusMultiply32(int16_t xVal, int16_t yVal, int16_t expResult,
+            int16_t whichSeqCaseTested) {
+    irr::f32 inputValX = FixedPointToFloat8D8(xVal);
+    irr::f32 inputValY = FixedPointToFloat8D8(yVal);
+
+    //Careful: This function returns the angle in degress for a 360° unit circle
+    //The original game uses inside a 256° (step) unit circle!
+    irr::f32 angleResultFloating = arctanPlusMultiply32(inputValX, inputValY);
+    angleResultFloating = (angleResultFloating / 360.0f) * 256.0f;
+
+    int16_t angleResultFixed256UnitCircle = FloatToFixedPoint8D8(angleResultFloating);
+
+    int32_t errorAngle = abs(expResult - angleResultFixed256UnitCircle);
+
+    //allow maximum 0.1° error between my solution and the original implementation
+    if (errorAngle > 18) {
+        std::string infoTxt("Verify_arctanPlusMultiply32: Testcase for following sequence failed: ");
+        infoTxt += std::to_string((int)(whichSeqCaseTested));
+        infoTxt += " Angle Difference: ";
+        infoTxt += std::to_string((int)(expResult - angleResultFixed256UnitCircle));
+        infoTxt += " dec!";
+
+        logging::Error(infoTxt);
+        return false;
+    }
+
+    return true;
+}
+
+//Returns true of verify arctanPlusMultiply32 works as expected, False
+//otherwise
+bool VCalculations::Verify_arctanPlusMultiply32() {
+    bool overallResult = true;
+
+    //Test data captured in original game using emulator and debugger
+    overallResult &= Verify_arctanPlusMultiply32(0x1200, 0x0000, 0x4000, 1);
+    overallResult &= Verify_arctanPlusMultiply32(0x200, 0x100, 0x52E0, 2);
+    overallResult &= Verify_arctanPlusMultiply32(0xFD00, 0x600, 0x92E0, 3);
+    overallResult &= Verify_arctanPlusMultiply32(0xFA00, 0x500, 0xA3C0, 4);
+    overallResult &= Verify_arctanPlusMultiply32(0xFE00, 0xFC00, 0xED20, 5);
+    overallResult &= Verify_arctanPlusMultiply32(0x100, 0xF800, 0x500, 6);
+
+    if (overallResult) {
+        logging::Info("Verify_arctanPlusMultiply32: All testcases pass");
+        return true;
+    } else {
+        logging::Error("Verify_arctanPlusMultiply32: At least one testcase failed");
+    }
+
+    return false;
+}
+
+//Careful: This function returns the angle in degress for a 360° unit circle
+//The original game uses inside a 256° (step) unit circle!
+irr::f32 VCalculations::angle_get_xy(irr::core::vector3df position_from, irr::core::vector3df position_to) {
+    //Note for me: The multiplication with 32 in the original game in this function
+    //is actually part of the result calculation in arctan function of original game
+    //itself; I moved it inside arctanPlusMultiply32, and so we are not allowed to
+    //accidently apply it again!
+    return arctanPlusMultiply32(position_to.X - position_from.X,
+                                position_to.Y - position_from.Y);
+}
+
+/***************************************************
+ * Conversion Routines                             *
+ ***************************************************/
+
+//Convert a float into a fixed point number (8.8 format)
+int16_t VCalculations::FloatToFixedPoint8D8(irr::f32 floatVal) {
+    int16_t result = (int16_t)(floatVal * 256.0f);
+    return result;
+}
+
+//Convert a fixed point number (8.8 format) to a float
+irr::f32 VCalculations::FixedPointToFloat8D8(int16_t fixedPntVal) {
+    int8_t intPart = static_cast<int8_t>((fixedPntVal >> 8) & 0x00FF);
+    float result = (float)(intPart);
+    result += (fixedPntVal & 0x00FF) / 256.0f;
+    return result;
+}
+
+//Convert a float into a fixed point number (16.16 format)
+int32_t VCalculations::FloatToFixedPoint16D16(irr::f32 floatVal) {
+    int32_t result = (int32_t)(floatVal * 65536.0f);
+    return result;
+}
+
+//Convert a fixed point number (16.16 format) to a float
+irr::f32 VCalculations::FixedPointToFloat16D16(int32_t fixedPntVal) {
+    int16_t intPart = static_cast<int16_t>((fixedPntVal >> 16) & 0x0000FFFF);
+    float result = (float)(intPart);
+    result += (fixedPntVal & 0x0000FFFF) / 65536.0f;
+    return result;
+}
+
+//original "raw" angles (for example in thing->Movement.Angle.ZY, is struct Angle)
+//contain the absolute angle for a unit circle of 256.0, in fixed point
+//arithmetic format of 8.8
+//this function simply converts this angle into a floating point angle value
+//with a unit circle of 360.0f I use in my project and Irrlicht
+irr::f32 VCalculations::VanillaRawAngleToMyFloatingAngle(uint16_t rawVanillaAngle) {
+   uint16_t val = ((uint16_t)(rawVanillaAngle) & 0xFF00) >> 8;
+   irr::f32 result = (irr::f32)(val);
+
+   val = ((uint16_t)(rawVanillaAngle) & 0x00FF);
+   result += (irr::f32)(val) / 256.0f;
+
+   result = (result / 256.0f) * 360.0f;
+
+   if (result > 360.0f) {
+       result -= 360.0f;
+   }
+
+   if (result < 0.0f) {
+       result += 360.0f;
+   }
+
+   return result;
+}
+
+/***************************************************
+ * Overall validation and verification             *
+ ***************************************************/
+
+//Returns true if all vanilla calculations work as expected, False otherwise
+//Important: Only works correctly if unmodified (original) level1
+//file is loaded
+bool VCalculations::Verify_vanilla_calculations() {
+    bool overallResult = true;
+
+    //Verify_collide_map
+    overallResult &= Verify_collide_map();
+
+    //Verify_move_displacement_set
+    overallResult &= Verify_move_displacement_set();
+
+    //Verify_move_xyz
+    overallResult &= Verify_move_xyz();
+
+    //Verify map_colide_type
+    overallResult &= Verify_map_colide_type();
+
+    //Verify map_colide_friction
+    overallResult &= Verify_map_colide_friction();
+
+    //Verify arctanPlusMultiply32
+    overallResult &= Verify_arctanPlusMultiply32();
+
+    if (overallResult) {
+        logging::Info("Verify_vanilla_calculations: All testcases pass");
+        return true;
+    } else {
+        logging::Error("Verify_vanilla_calculations: At least one testcase failed");
+    }
+
+    return false;
+}
+
+

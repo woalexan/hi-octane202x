@@ -138,6 +138,7 @@ struct CloneCoord3D;
 struct CloneAngle;
 struct CloneRecording;
 class VCalculations;
+class VVehicle;
 
 class Race {
 public:
@@ -146,6 +147,8 @@ public:
          bool skipStart);
 
     ~Race();
+
+    VVehicle* mVCraft = nullptr;
 
     bool ready;
 

@@ -31,6 +31,7 @@
 #define VCALC_H
 
 #include "irrlicht.h"
+#include "vbase.h"
 #include <cstdint>
 
 /************************
@@ -42,22 +43,6 @@ class LevelBlocks;
 class LevelFile;
 class InfrastructureBase;
 
-struct MovementStruct {
-    irr::f32 AngleXY;
-    irr::f32 AngleZY;
-    irr::f32 AngleXZ;
-    irr::f32 SpeedActual;
-};
-
-struct TestThing {
-    irr::core::vector3df Position;
-    irr::core::vector3df Displacement;
-    MovementStruct Movement;
-
-    bool Stationary = false;
-    int16_t Life = 1000;
-};
-
 class VCalculations {
 
 private:
@@ -66,7 +51,7 @@ private:
     LevelFile* mLevelFile = nullptr;
     InfrastructureBase* mInfra = nullptr;
 
-    TestThing* testThing1;
+    ThingDataStruct* testThing1;
     irr::scene::IBillboardSceneNode* testNode;
 
     irr::video::ITexture* testTex = nullptr;
@@ -74,11 +59,11 @@ private:
 public:
     VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks);
 
-    void DebugDrawDisplacement(TestThing* whichThing);
+    void DebugDrawDisplacement(ThingDataStruct& whichThing);
     void DebugDraw();
 
     void AddTestObject(irr::core::vector3df position);
-    int8_t UpdateTestObject(irr::f32 frameDeltaTime, TestThing& whichThing);
+    int8_t UpdateTestObject(irr::f32 frameDeltaTime, ThingDataStruct& whichThing);
 
     void Update();
 
@@ -111,6 +96,26 @@ public:
     //Important: Only works correctly if unmodified (original) level1
     //file is loaded
     bool Verify_vanilla_calculations();
+
+    //Helper function for function verification
+    bool Verify_map_colide_type_step(int tileX, int tileY, uint16_t expResult,
+                int16_t whichSeqCaseTested);
+
+    //Helper function for function verification
+    bool Verify_map_colide_friction_step(int tileX, int tileY, uint16_t expResult,
+                int16_t whichSeqCaseTested);
+
+    //Returns true if map_colide_friction works as expected, False
+    //otherwise
+    //This function can only work if the unmodified original level1 is loaded
+    //as the result is based on the loaded level file
+    bool Verify_map_colide_friction();
+
+    //Returns true if map_colide_type and map_colide_friction works as expected, False
+    //otherwise
+    //This function can only work if the unmodified original level1 is loaded
+    //as the result is based on the loaded level file
+    bool Verify_map_colide_type();
 
     //Input position: Enter coordinates according to my game drawing coordinate
     //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
@@ -158,6 +163,10 @@ public:
     //Depending on which coordinate axis the collision occurs
     //sets flags 1, 2, 4
     int8_t map_colide_direction(irr::core::vector3df oldPosition, irr::core::vector3df newPosition);
+
+    //This function was written to behave similar to the function
+    //map_colide_direction_xy in the original game
+    int8_t map_colide_direction_xy(irr::core::vector3df oldPosition, irr::core::vector3df newPosition);
 
     //This function was written to behave similar to the function
     //move_displacement_xyz in the original game
@@ -212,6 +221,22 @@ public:
     //is 0.00390625 for speed
     int8_t move_xyz(irr::core::vector3df& position, irr::f32 angleXY,
                                  irr::f32 angleZY, irr::f32 speed);
+
+    irr::f32 distance_get_xyz(irr::core::vector3df position1, irr::core::vector3df position2);
+
+    //Helper function for function verification
+    bool Verify_arctanPlusMultiply32(int16_t xVal, int16_t yVal, int16_t expResult,
+                int16_t whichSeqCaseTested);
+
+    bool Verify_arctanPlusMultiply32();
+
+    //Careful: This function returns the angle in degress for a 360° unit circle
+    //The original game uses inside a 256° (step) unit circle!
+    irr::f32 arctanPlusMultiply32(irr::f32 x, irr::f32 y);
+
+    //Careful: This function returns the angle in degress for a 360° unit circle
+    //The original game uses inside a 256° (step) unit circle!
+    irr::f32 angle_get_xy(irr::core::vector3df position_from, irr::core::vector3df position_to);
 };
 
 #endif // VCALC_H
