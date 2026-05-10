@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(hi-octane202x LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
@@ -278,8 +278,12 @@ add_executable(hi-octane202x
     src/utils/logging.h
     src/utils/movingavg.h
     src/utils/movingavg.cpp
-    src/utils/vcalc.h
-    src/utils/vcalc.cpp
+
+    src/vanilla/vbase.h
+    src/vanilla/vcalc.h
+    src/vanilla/vcalc.cpp
+    src/vanilla/vvehicle.h
+    src/vanilla/vvehicle.cpp
 
     src/utils/boundingbox/coord_frame.h
     src/utils/boundingbox/basis.h

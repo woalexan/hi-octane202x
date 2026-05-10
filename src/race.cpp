@@ -24,7 +24,7 @@
 #include "utils/worldaware.h"
 #include "utils/fileutils.h"
 #include "utils/gamedbgwnd.h"
-#include "utils/vcalc.h"
+#include "vanilla/vcalc.h"
 
 #include "draw/hud.h"
 
@@ -39,6 +39,7 @@
 #include "models/recovery.h"
 #include "models/levelterrain.h"
 #include "models/levelblocks.h"
+#include "vanilla/vvehicle.h"
 #include "models/camera.h"
 #include "models/chargingstation.h"
 #include "models/column.h"
@@ -667,6 +668,11 @@ Race::~Race() {
         it = mPlayerVec.erase(it);
 
         delete playerPntr;
+    }
+
+    if (mVCraft != nullptr) {
+        delete mVCraft;
+        mVCraft = nullptr;
     }
 
     //remove camera SceneNode
@@ -1939,7 +1945,16 @@ void Race::Init() {
 
     ready = true;
 
-    //this->mVCalc->Verify_vanilla_calculations();
+    //for debugging vanilla stuff
+    if (false) {
+        this->mVCalc->Verify_vanilla_calculations();
+
+        irr::core::vector3df vPos = irr::core::vector3df(-15.0f, 11.0f, 105.0f);
+        vPos.Y = mVCalc->map_floor(vPos);
+        vPos.Y += 0.5f;
+
+        mVCraft = new VVehicle(this, vPos, vPos + irr::core::vector3df(0.0f, 0.0f, -1.0f));
+    }
 
     //this->mGame->StopTime();
   

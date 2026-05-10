@@ -31,11 +31,11 @@
 /* LevelFile Layout, 21.02.2026: Updated table using new insights into the original game (Thank you Aybe)
 
    Offset 0          => Offset 23      A first entity entry (24 Bytes), is it actually used in game? First entity actually visibily used in level is at Offset 24!
-1. Offset 24         => Offset 95999   "Used" Entity-Table (stores 3999 Entities)
+1. Offset 24         => Offset 95999   "Used" Entity-Table (stores 3999 Entities), In original game called "ThingInit"
    Offset 96000      => Offset 98011   "ThingList" ThingsFree. The original game uses this list during run time to know which of the max possible 1000 Things (Entities)
                                        currently exist, and which not. Data contains an index for each thing that points to another part of memory which actually holds
                                        the data for this thing. Therefore in the levelfile in this region we mostly see a number increasing by 1 each time.
-                                       This increasing number is the index into the other memory region. 2011 bytes
+                                       This increasing number is the index into the other memory region. 2011 bytes; Only useful during runtime of game
    Offset 98012      => Offset 98037   A first column def. entry (26 Bytes), is it actually used in game? First entry actually visibily used in level is at Offset 98038
 2. Offset 98038      => Offset 124635  "Used" Column-Definitions (stores 1023 Column Definitions)
    Offset 124636     => Offset 124651  A first block def. entry (16 Bytes), is it actually used in game? First entry actually visibily used in level is at Offset 124652
@@ -43,7 +43,7 @@
    Offset 141020     => Offset 246923  Unknown data (105904 bytes)
 4. Offset 246924     => Offset 247603  Region-Definitions (stores 8 Region Definitions)
    Offset 247604     => Offset 357667  Unknown data (110064 bytes)
-   Offset 357668     => Offset 358180  ColideTypes[256] array ("Friction Values") (512 bytes)
+   Offset 357668     => Offset 358180  ColideTypes[256] array ("Friction Values") (512 bytes); used by the Flightmodel
    Offset 358181     => Offset 404619  Unknown data (46439 bytes)
 5. Offset 404620     => Offset 896140  Tile-Data (256 x 160 Tiles)
 
@@ -386,8 +386,8 @@ bool LevelFile::loadFrictionTable() {
 
      for (int i = 0; i < 256; i++) {
          baseOffset = 0x57524 + i * 2;
-         lowByte = m_bytes.at(baseOffset + 1);
-         highByte = m_bytes.at(baseOffset);
+         lowByte = m_bytes.at(baseOffset);
+         highByte = m_bytes.at(baseOffset + 1);
 
          val = (lowByte) | (highByte << 8);
 
