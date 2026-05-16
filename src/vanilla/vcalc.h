@@ -19,10 +19,14 @@
 //make sense in my opinion.
 
 //Important note: What makes this source code very difficult to handle is the fact, that my coordinate system in this existing project is
-//completely different to the one in the original game. The original uses X and Y axis for the tile map, and Z is the height. I have
-//X and Z for the tile map, and Y is the height. And to make things worse my Irrlicht vertices Y coordinates have a swapped sign (are negative)
-//currently. I will need to find a way to either adjust the source code below without introducing new bugs, or to change my project
-//to use the same coordinate system soon.
+//completely different to the one in the original game. The original uses X and Y axis for the tile map, and Z is the height.
+//For the levelfile and 2D map stuff I also use X any Y axis for the tile map most of the time.
+//My 3D world setup (for rendering) using Irrlicht has X and Z for the tile map, and Y is the height. And to make things worse my Irrlicht vertice X and Y coordinates
+//have a swapped sign (are negative) currently.
+
+//I have decided to also use the original games coordinate system in all vanilla calculations. At the interface between
+//original game calculations and Irrlicht 3D coordinate system I have then to convert from one coordinate system setup to the other.
+//Thats the drawback I will have.
 
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
@@ -59,6 +63,9 @@ private:
 public:
     VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks);
 
+    irr::core::vector3df VanillaToIrrlichtCoord(irr::core::vector3df vanillaCoord);
+    irr::core::vector3df IrrlichtToVanillaCoord(irr::core::vector3df irrlichtCoord);
+
     void DebugDrawDisplacement(ThingDataStruct& whichThing);
     void DebugDraw();
 
@@ -84,7 +91,7 @@ public:
     irr::f32 VanillaRawAngleToMyFloatingAngle(uint16_t rawVanillaAngle);
 
     //Helper function to test one specific case for Verify_collide_map function
-    bool Verify_collide_map_step(int16_t posXFixedPnt, int16_t posZFixedPnt, int16_t expYResultFixedPnt, int16_t whichSeqCaseTested);
+    bool Verify_collide_map_step(int16_t posXFixedPnt, int16_t posYFixedPnt, int16_t expZResultFixedPnt, int16_t whichSeqCaseTested);
 
     //Returns true of verify collide map works as expected, False
     //otherwise
@@ -117,30 +124,26 @@ public:
     //as the result is based on the loaded level file
     bool Verify_map_colide_type();
 
-    //Input position: Enter coordinates according to my game drawing coordinate
-    //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
+    //Input position: Enter coordinates according to vanilla game coordinate system
     //Returns the tile raw friction table value
     uint16_t map_colide_type(irr::core::vector3df position);
 
-    //Input position: Enter coordinates according to my game drawing coordinate
-    //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
+    //Input position: Enter coordinates according to vanilla game coordinate system
     //Returns the tile friction value at the specified location
     uint16_t map_colide_friction(irr::core::vector3df position);
 
     //Function programmed to have similar behavior as function "collide_map"
     //in original game. But instead of using fixed point arithmetic I am using
     //floating point calculations.
-    //Input posX & posZ: Enter coordinates according to my game drawing coordinate
-    //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
-    //Returns my Y-coordinate in Irrlicht coordinate system
-    irr::f32 collide_map(irr::f32 posX, irr::f32 posZ);  //06.04.2026: Function verified to be correct
+    //Input posX & posY: Enter coordinates according to vanilla game coordinate system
+    //Returns Z-coordinate in original game coordinate system
+    irr::f32 collide_map(irr::f32 posX, irr::f32 posY);
 
     //Function programmed to have similar behavior as function "map_floor"
     //in original game.
-    //Input position: Enter coordinates according to my game drawing coordinate
-    //system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
-    //Returns my Y-coordinate in Irrlicht coordinate system
-    irr::f32 map_floor(irr::core::vector3df position);  //06.04.2026: Function verified to be correct
+    //Input position: Enter coordinates according to vanilla game coordinate system
+    //Returns Z-coordinate in original games coordinate system
+    irr::f32 map_floor(irr::core::vector3df position);
 
     //This function was written to behave similar to the function
     //map_altitude_column_and_floor in the original game

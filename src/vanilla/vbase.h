@@ -19,10 +19,14 @@
 //make sense in my opinion.
 
 //Important note: What makes this source code very difficult to handle is the fact, that my coordinate system in this existing project is
-//completely different to the one in the original game. The original uses X and Y axis for the tile map, and Z is the height. I have
-//X and Z for the tile map, and Y is the height. And to make things worse my Irrlicht vertices Y coordinates have a swapped sign (are negative)
-//currently. I will need to find a way to either adjust the source code below without introducing new bugs, or to change my project
-//to use the same coordinate system soon.
+//completely different to the one in the original game. The original uses X and Y axis for the tile map, and Z is the height.
+//For the levelfile and 2D map stuff I also use X any Y axis for the tile map most of the time.
+//My 3D world setup (for rendering) using Irrlicht has X and Z for the tile map, and Y is the height. And to make things worse my Irrlicht vertice X and Y coordinates
+//have a swapped sign (are negative) currently.
+
+//I have decided to also use the original games coordinate system in all vanilla calculations. At the interface between
+//original game calculations and Irrlicht 3D coordinate system I have then to convert from one coordinate system setup to the other.
+//Thats the drawback I will have.
 
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.

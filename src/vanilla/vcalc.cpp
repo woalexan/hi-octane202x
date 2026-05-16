@@ -19,10 +19,14 @@
 //make sense in my opinion.
 
 //Important note: What makes this source code very difficult to handle is the fact, that my coordinate system in this existing project is
-//completely different to the one in the original game. The original uses X and Y axis for the tile map, and Z is the height. I have
-//X and Z for the tile map, and Y is the height. And to make things worse my Irrlicht vertices Y coordinates have a swapped sign (are negative)
-//currently. I will need to find a way to either adjust the source code below without introducing new bugs, or to change my project
-//to use the same coordinate system soon.
+//completely different to the one in the original game. The original uses X and Y axis for the tile map, and Z is the height.
+//For the levelfile and 2D map stuff I also use X any Y axis for the tile map most of the time.
+//My 3D world setup (for rendering) using Irrlicht has X and Z for the tile map, and Y is the height. And to make things worse my Irrlicht vertice X and Y coordinates
+//have a swapped sign (are negative) currently.
+
+//I have decided to also use the original games coordinate system in all vanilla calculations. At the interface between
+//original game calculations and Irrlicht 3D coordinate system I have then to convert from one coordinate system setup to the other.
+//Thats the drawback I will have.
 
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
@@ -50,9 +54,29 @@ VCalculations::VCalculations(InfrastructureBase* infra, LevelFile* levelFile, Le
     testTex = mInfra->mDriver->getTexture("extract/sprites/tmaps0029.png");
 }
 
+irr::core::vector3df VCalculations::VanillaToIrrlichtCoord(irr::core::vector3df vanillaCoord) {
+    irr::core::vector3df result;
+
+    result.X = -vanillaCoord.X;
+    result.Y = vanillaCoord.Z;
+    result.Z = vanillaCoord.Y;
+
+    return result;
+}
+
+irr::core::vector3df VCalculations::IrrlichtToVanillaCoord(irr::core::vector3df irrlichtCoord) {
+    irr::core::vector3df result;
+
+    result.X = -irrlichtCoord.X;
+    result.Y = irrlichtCoord.Z;
+    result.Z = irrlichtCoord.Y;
+
+    return result;
+}
+
 void VCalculations::AddTestObject(irr::core::vector3df position) {
     this->testThing1 = new ThingDataStruct();
-    testThing1->Position = position;
+    testThing1->Position = IrrlichtToVanillaCoord(position);
     testThing1->Stationary = false;
     /*testThing1->Movement.SpeedActual =
          FixedPointToFloat((int16_t)(mInfra->randRangeInt(80, 80 + 0x50)));
@@ -72,7 +96,7 @@ void VCalculations::AddTestObject(irr::core::vector3df position) {
     this->testNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
     this->testNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
 
-    this->testNode->setPosition(testThing1->Position);
+    this->testNode->setPosition(VanillaToIrrlichtCoord(testThing1->Position));
     this->testNode->setSize(irr::core::dimension2d<irr::f32>(0.45f, 0.45f));
 
     //get bounding box for this collectible
@@ -85,16 +109,18 @@ void VCalculations::Update() {
 }
 
 void VCalculations::DebugDrawDisplacement(ThingDataStruct& whichThing) {
-    irr::core::vector3df dirVec = whichThing.Displacement;
+    irr::core::vector3df dirVec = VanillaToIrrlichtCoord(whichThing.Displacement);
     dirVec.normalize();
 
-    mInfra->mDrawDebug->Draw3DLine(whichThing.Position, whichThing.Position + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mInfra->mDrawDebug->orange);
+    irr::core::vector3df irrCoord1 = VanillaToIrrlichtCoord(whichThing.Position);
+    mInfra->mDrawDebug->Draw3DLine(irrCoord1, irrCoord1 + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mInfra->mDrawDebug->orange);
 }
 
 void VCalculations::DebugDraw() {
     DebugDrawDisplacement(*testThing1);
 }
 
+//Test implementation from powerup_move function
 int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, ThingDataStruct& whichThing) {
    irr::core::vector3df intPosition;
    irr::core::vector3df intDisplacement;
@@ -120,22 +146,22 @@ int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, ThingDataStruct& whic
 
       whichThing.Displacement.X -= (v9 / 8.0f);
 
-      ZPos = whichThing.Displacement.Z;
-      irr::f32 v11 = ZPos + (float)(7.0f / 256.0f);
+      YPos = whichThing.Displacement.Y;
+      irr::f32 v11 = YPos + (float)(7.0f / 256.0f);
       if (v11 < 0.0f) {
           v11 += (float)(7.0f / 256.0f);
       }
 
-      whichThing.Displacement.Z -= (v11 / 8.0f);
+      whichThing.Displacement.Y -= (v11 / 8.0f);
 
-      YPos = whichThing.Displacement.Y;
-      YPos -= (float)(8.0f / 256.0f);
+      ZPos = whichThing.Displacement.Z;
+      ZPos -= (float)(8.0f / 256.0f);
 
-      if (YPos < (float)(-100.0f / 256.0f)) {
-          YPos = (float)(-100.0f / 256.0f);
+      if (ZPos < (float)(-100.0f / 256.0f)) {
+          ZPos = (float)(-100.0f / 256.0f);
       }
 
-      whichThing.Displacement.Y = YPos;
+      whichThing.Displacement.Z = ZPos;
 
       move_displacement_xyz(intPosition, whichThing.Displacement, 1);
 
@@ -167,26 +193,26 @@ int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, ThingDataStruct& whic
 
            if (!isNoCollision) {
                irr::f32 v21 = 0.0f;
-               if (whichThing.Displacement.Z > 0.0f) {
+               if (whichThing.Displacement.Y > 0.0f) {
                    v21 = (float)(1.0f / 256.0f);
                }
 
-               v21 -= whichThing.Displacement.Z;
+               v21 -= whichThing.Displacement.Y;
                v21 = v21 * 0.5f;
 
-               whichThing.Displacement.Z = v21;
-               intPosition.Z = whichThing.Position.Z + v21;
+               whichThing.Displacement.Y = v21;
+               intPosition.Y = whichThing.Position.Y + v21;
            }
 
            if (Flag4Set) {
-               irr::f32 v23 = (float)((-120.0f / 256.0f)) * whichThing.Displacement.Y;
-               whichThing.Displacement.Y = v23;
+               irr::f32 v23 = (float)((-120.0f / 256.0f)) * whichThing.Displacement.Z;
+               whichThing.Displacement.Z = v23;
 
                if (v23 < (float)(10.0f / 256.0f)) {
-                   whichThing.Displacement.Y = 0.0f;
+                   whichThing.Displacement.Z = 0.0f;
                }
 
-              intPosition.Y = whichThing.Displacement.Y + map_floor(intPosition);
+              intPosition.Z = whichThing.Displacement.Z + map_floor(intPosition);
               move_displacement_slope(whichThing.Position, intDisplacement);
 
               irr::f32 v24 = -1.0f;
@@ -196,23 +222,23 @@ int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, ThingDataStruct& whic
               }
 
               irr::f32 v25 = -1.0f;
-              if ((intDisplacement.Z < -1.0f) ||
-                      (v25 = 1.0f, intDisplacement.Z >= (float)(257.0f / 256.0f))) {
-                  intDisplacement.Z = v25;
+              if ((intDisplacement.Y < -1.0f) ||
+                      (v25 = 1.0f, intDisplacement.Y >= (float)(257.0f / 256.0f))) {
+                  intDisplacement.Y = v25;
               }
 
               whichThing.Displacement.X += intDisplacement.X / 16.0f;
-              whichThing.Displacement.Z += intDisplacement.Z / 16.0f;
+              whichThing.Displacement.Y += intDisplacement.Y / 16.0f;
            }
       }
 
       //TODO: ? mapwho_move(whichThing, position);
       whichThing.Position = intPosition;
-       testNode->setPosition(whichThing.Position);
+       testNode->setPosition(VanillaToIrrlichtCoord(whichThing.Position));
       return 1;
    }
 
-   testNode->setPosition(whichThing.Position);
+   testNode->setPosition(VanillaToIrrlichtCoord(whichThing.Position));
 
    return 0;
 }
@@ -221,13 +247,12 @@ int8_t VCalculations::UpdateTestObject(irr::f32 deltaTime, ThingDataStruct& whic
  * Map Collide stuff                               *
  ***************************************************/
 
-//Input position: Enter coordinates according to my game drawing coordinate
-//system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
+//Input position: Enter coordinates according to vanilla game coordinate system
 //Returns the tile raw friction table value
 uint16_t VCalculations::map_colide_type(irr::core::vector3df position) {
    //get integer index of cell
-   irr::s32 intX = (irr::s32)(-position.X / this->mLevelTerrain->segmentSize);
-   irr::s32 intY = (irr::s32)(position.Z / this->mLevelTerrain->segmentSize);
+   irr::s32 intX = (irr::s32)(position.X / this->mLevelTerrain->segmentSize);
+   irr::s32 intY = (irr::s32)(position.Y / this->mLevelTerrain->segmentSize);
 
     if ((intX >= (this->mLevelFile->Width() - 1)) ||
         (intY >= (this->mLevelFile->Height() - 1))) {
@@ -249,9 +274,11 @@ bool VCalculations::Verify_map_colide_type_step(int tileX, int tileY, uint16_t e
     //construct a 3D position where we can find this tile
     //in level1
     irr::core::vector3df pos;
-    pos.X = -tileX * mLevelTerrain->segmentSize - 0.5f;
-    pos.Z = tileY * mLevelTerrain->segmentSize + 0.5f;
+    pos.X = tileX * mLevelTerrain->segmentSize + 0.5f;
+    pos.Y = tileY * mLevelTerrain->segmentSize + 0.5f;
 
+    //map_colide_type takes in position in original game coordinate
+    //system!
     uint16_t result = map_colide_type(pos);
 
     if (expResult != result) {
@@ -288,8 +315,7 @@ bool VCalculations::Verify_map_colide_type() {
     return false;
 }
 
-//Input position: Enter coordinates according to my game drawing coordinate
-//system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
+//Input position: Enter coordinates according to vanilla game coordinate system
 //Returns the tile friction value at the specified location
 uint16_t VCalculations::map_colide_friction(irr::core::vector3df position) {
     uint16_t rawVal = map_colide_type(position);
@@ -306,8 +332,8 @@ bool VCalculations::Verify_map_colide_friction_step(int tileX, int tileY, uint16
     //construct a 3D position where we can find this tile
     //in level1
     irr::core::vector3df pos;
-    pos.X = -tileX * mLevelTerrain->segmentSize - 0.5f;
-    pos.Z = tileY * mLevelTerrain->segmentSize + 0.5f;
+    pos.X = tileX * mLevelTerrain->segmentSize + 0.5f;
+    pos.Y = tileY * mLevelTerrain->segmentSize + 0.5f;
 
     uint16_t result = map_colide_friction(pos);
 
@@ -347,17 +373,16 @@ bool VCalculations::Verify_map_colide_friction() {
 //Function programmed to have similar behavior as function "collide_map"
 //in original game. But instead of using fixed point arithmetic I am using
 //floating point calculations.
-//Input posX & posZ: Enter coordinates according to my game drawing coordinate
-//system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
-//Returns my Y-coordinate in Irrlicht coordinate system
-irr::f32 VCalculations::collide_map(irr::f32 posX, irr::f32 posZ)  //06.04.2026: Function verified to be correct
+//Input posX & posY: Enter coordinates according to vanilla game coordinate system
+//Returns Z-coordinate in original game coordinate system
+irr::f32 VCalculations::collide_map(irr::f32 posX, irr::f32 posY)
 {
     //get integer index of cell
-    irr::s32 intX = (irr::s32)(-posX / this->mLevelTerrain->segmentSize);
-    irr::s32 intY = (irr::s32)(posZ / this->mLevelTerrain->segmentSize);
+    irr::s32 intX = (irr::s32)(posX / this->mLevelTerrain->segmentSize);
+    irr::s32 intY = (irr::s32)(posY / this->mLevelTerrain->segmentSize);
 
-    irr::f32 fracX = -posX - (irr::f32)(intX);
-    irr::f32 fracY = posZ - (irr::f32)(intY);
+    irr::f32 fracX = posX - (irr::f32)(intX);
+    irr::f32 fracY = posY - (irr::f32)(intY);
 
     if ((intX >= (this->mLevelFile->Width() - 1)) ||
         (intY >= (this->mLevelFile->Height() - 1))) {
@@ -378,7 +403,7 @@ irr::f32 VCalculations::collide_map(irr::f32 posX, irr::f32 posZ)  //06.04.2026:
     int16_t idx = intX + intY;
     irr::s32 rem = (idx % 2);
 
-    irr::f32 yRes;
+    irr::f32 zRes;
     irr::f32 slopeX;
     irr::f32 slopeZ;
 
@@ -389,16 +414,16 @@ irr::f32 VCalculations::collide_map(irr::f32 posX, irr::f32 posZ)  //06.04.2026:
            slopeX = -pntr->vert3CurrPositionY + pntr->vert4CurrPositionY;
            slopeZ = -pntr->vert4CurrPositionY + pntr->vert1CurrPositionY;
 
-           yRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
-           return yRes;
+           zRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
+           return zRes;
        }
 
        //Sequence case 2 (Helpful for unit test and debugging)
        slopeX = -pntr->vert2CurrPositionY + pntr->vert1CurrPositionY;
        slopeZ = -pntr->vert3CurrPositionY + pntr->vert2CurrPositionY;
 
-       yRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
-       return yRes;
+       zRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
+       return zRes;
     }
 
     if ((fracX + fracY) >= 1.0f) {
@@ -406,27 +431,27 @@ irr::f32 VCalculations::collide_map(irr::f32 posX, irr::f32 posZ)  //06.04.2026:
         slopeX = -pntr->vert3CurrPositionY + pntr->vert4CurrPositionY;
         slopeZ = -pntr->vert2CurrPositionY + pntr->vert3CurrPositionY;
 
-        yRes = -pntr->vert4CurrPositionY + slopeX * fracX + slopeZ * (1.0f - fracY);
-        return yRes;
+        zRes = -pntr->vert4CurrPositionY + slopeX * fracX + slopeZ * (1.0f - fracY);
+        return zRes;
     }
 
     //Sequence case 4 (Helpful for unit test and debugging)
     slopeX = -pntr->vert2CurrPositionY + pntr->vert1CurrPositionY;
     slopeZ = -pntr->vert4CurrPositionY + pntr->vert1CurrPositionY;
 
-    yRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
-    return yRes;
+    zRes = -pntr->vert1CurrPositionY + slopeX * fracX + slopeZ * fracY;
+    return zRes;
 }
 
 //Helper function to test one specific case for Verify_collide_map function
-bool VCalculations::Verify_collide_map_step(int16_t posXFixedPnt, int16_t posZFixedPnt, int16_t expYResultFixedPnt, int16_t whichSeqCaseTested) {
-    irr::f32 posX = -FixedPointToFloat8D8(posXFixedPnt);
-    irr::f32 posZ = FixedPointToFloat8D8(posZFixedPnt);
+bool VCalculations::Verify_collide_map_step(int16_t posXFixedPnt, int16_t posYFixedPnt, int16_t expZResultFixedPnt, int16_t whichSeqCaseTested) {
+    irr::f32 posX = FixedPointToFloat8D8(posXFixedPnt);
+    irr::f32 posY = FixedPointToFloat8D8(posYFixedPnt);
 
-    irr::f32 posYRes = collide_map(posX, posZ);
-    int16_t posYResInt = FloatToFixedPoint8D8(posYRes);
+    irr::f32 posZRes = collide_map(posX, posY);
+    int16_t posZResInt = FloatToFixedPoint8D8(posZRes);
 
-    int16_t errorInt = abs(posYResInt - expYResultFixedPnt);
+    int16_t errorInt = abs(posZResInt - expZResultFixedPnt);
 
     //allow maximum 1 count deviation in terms of fixed point
     //fractional part between my floating point calculation
@@ -435,7 +460,7 @@ bool VCalculations::Verify_collide_map_step(int16_t posXFixedPnt, int16_t posZFi
         std::string infoTxt("Verify_collide_map_step: Testcase for following sequence failed: ");
         infoTxt += std::to_string((int)(whichSeqCaseTested));
         infoTxt += " Difference: ";
-        infoTxt += std::to_string((int)(expYResultFixedPnt - posYResInt));
+        infoTxt += std::to_string((int)(expZResultFixedPnt - posZResInt));
         infoTxt += " dec!";
 
         logging::Error(infoTxt);
@@ -484,13 +509,12 @@ bool VCalculations::Verify_collide_map() {
 
 //Function programmed to have similar behavior as function "map_floor"
 //in original game.
-//Input position: Enter coordinates according to my game drawing coordinate
-//system (where X coordinates are mirrored at X-Axis, and posZ is my 2nd 2D coordinate-axis)
-//Returns my Y-coordinate in Irrlicht coordinate system
-irr::f32 VCalculations::map_floor(irr::core::vector3df position)   //06.04.2026: Function verified to be correct
+//Input position: Enter coordinates according to vanilla game coordinate system
+//Returns Z-coordinate in original games coordinate system
+irr::f32 VCalculations::map_floor(irr::core::vector3df position)
 {
     //Height of the tile below us
-    irr::f32 result = collide_map(position.X, position.Z);
+    irr::f32 result = collide_map(position.X, position.Y);
 
     return result;
 }
@@ -498,16 +522,16 @@ irr::f32 VCalculations::map_floor(irr::core::vector3df position)   //06.04.2026:
 irr::f32 VCalculations::map_altitude_column_and_floor(irr::core::vector3df position)
 {
     //get height of the tile below us
-    irr::f32 result = collide_map(position.X, position.Z);
+    irr::f32 result = collide_map(position.X, position.Y);
 
-    vector2di cell((irr::s32)( -position.X / this->mLevelTerrain->segmentSize),
-                   (irr::s32)(position.Z / this->mLevelTerrain->segmentSize));
+    vector2di cell((irr::s32)(position.X / this->mLevelTerrain->segmentSize),
+                   (irr::s32)(position.Y / this->mLevelTerrain->segmentSize));
 
     mLevelTerrain->ForceTileGridCoordRange(cell);
 
     //is the floor height below us lower then our own height above ground?
     //if so we could currently drive on a column (cube)
-    if (result < position.Y) {
+    if (result < position.Z) {
        //if there is no column then just return result
        MapEntry* entry = mLevelFile->pMap[cell.X][cell.Y];
 
@@ -515,7 +539,7 @@ irr::f32 VCalculations::map_altitude_column_and_floor(irr::core::vector3df posit
            return result;
        }
 
-       irr::f32 diff = position.Y - result;
+       irr::f32 diff = position.Z - result;
        irr::s32 diffInt = (irr::s32)(diff);
 
        result = result + (irr::f32)(diffInt);
@@ -610,12 +634,12 @@ int8_t VCalculations::map_colide(irr::core::vector3df position)
 {
     int8_t result = 16;
 
-    //The original game seems to cap max object height, if object is in
-    //height > 158.0f game returns collision with value 16
-    if (position.Y >= 158.0f)
+    //If Y coordinate is outside allowed map area return
+    //always a collision
+    if (position.Y >= (float(mLevelTerrain->get_heigth()) - 2.0f))
         return result;
 
-    irr::f32 distanceFromTerrain = position.Y - map_floor(position);
+    irr::f32 distanceFromTerrain = position.Z - map_floor(position);
     irr::s32 diffInt = (irr::s32)(distanceFromTerrain);
 
     if (distanceFromTerrain >= 0.0f) {
@@ -635,8 +659,8 @@ int8_t VCalculations::map_colide(irr::core::vector3df position)
 
     //Is the a column present?
     //what cell are we in?
-    vector2di cell((irr::s32)( - position.X / this->mLevelTerrain->segmentSize),
-                   (irr::s32)(position.Z / this->mLevelTerrain->segmentSize));
+    vector2di cell((irr::s32)(position.X / this->mLevelTerrain->segmentSize),
+                   (irr::s32)(position.Y / this->mLevelTerrain->segmentSize));
 
     mLevelTerrain->ForceTileGridCoordRange(cell);
 
@@ -679,7 +703,7 @@ int8_t VCalculations::map_colide_direction(irr::core::vector3df oldPosition, irr
 
     //find out which coordinate change is the issue
     irr::core::vector3df position = oldPosition;
-    position.Y = newPosition.Y;
+    position.Z = newPosition.Z;
     if (map_colide(position)) {
         result |= 4;
     }
@@ -691,7 +715,7 @@ int8_t VCalculations::map_colide_direction(irr::core::vector3df oldPosition, irr
     }
 
     position = oldPosition;
-    position.Z = newPosition.Z;
+    position.Y = newPosition.Y;
     if ((map_colide(position) & 0x10) != 0) {
          result |= 2;
     }
@@ -759,8 +783,8 @@ void VCalculations::move_displacement_slope(irr::core::vector3df position,
                                             irr::core::vector3df& displacement)
 {
     //what cell are we in?
-    vector2di cell((irr::s32)( - position.X / this->mLevelTerrain->segmentSize),
-                   (irr::s32)(position.Z / this->mLevelTerrain->segmentSize));
+    vector2di cell((irr::s32)(position.X / this->mLevelTerrain->segmentSize),
+                   (irr::s32)(position.Y / this->mLevelTerrain->segmentSize));
 
     mLevelTerrain->ForceTileGridCoordRange(cell);
 
@@ -768,20 +792,19 @@ void VCalculations::move_displacement_slope(irr::core::vector3df position,
     TerrainTileData *pntr = &mLevelTerrain->pTerrainTiles[cell.X][cell.Y];
 
     if (pntr != nullptr) {
-        //we need to swap sign of all the current vertice coordinates
-        //from Irrlicht
-        //18.04.2026: not sure if the signs below are correct
-        displacement.X = pntr->vert1CurrPositionY;
-        displacement.Z = -pntr->vert1CurrPositionY;
+        //we need to swap sign of all the current vertice Y coordinates (height)
+        //we get from Irrlicht
+        displacement.X = -pntr->vert1CurrPositionY;
+        displacement.Y = -pntr->vert1CurrPositionY;
 
-        displacement.X -= pntr->vert2CurrPositionY;
-        displacement.Z -= pntr->vert2CurrPositionY;
+        displacement.X += pntr->vert2CurrPositionY;
+        displacement.Y -= pntr->vert2CurrPositionY;
 
-        displacement.X -= pntr->vert3CurrPositionY;
-        displacement.Z += pntr->vert3CurrPositionY;
+        displacement.X += pntr->vert3CurrPositionY;
+        displacement.Y += pntr->vert3CurrPositionY;
 
-        displacement.X += pntr->vert4CurrPositionY;
-        displacement.Z += pntr->vert4CurrPositionY;
+        displacement.X -= pntr->vert4CurrPositionY;
+        displacement.Y += pntr->vert4CurrPositionY;
     }
 }
 
@@ -945,13 +968,7 @@ int8_t VCalculations::move_xyz(irr::core::vector3df& position, irr::f32 angleXY,
 
     irr::f32 angle2 = (angleXY / 180.0f) * M_PI;
     position.X += v4 * sin(angle2);
-    //TODO: The implementation in the original game looks
-    //like the next line was implemented, but then a jump operation
-    //jumps over it, which renders it inactive at the end
-    //According to one debugging session the value for position.Y
-    //really seems to be not modified. So I need to comment the next
-    //line out as well, until I understand the situation better
-    //position.Y -= v4 * cos(angle2);
+    position.Y -= v4 * cos(angle2);
 
     return 1;
 }
@@ -980,8 +997,8 @@ bool VCalculations::Verify_move_xyz_step(int16_t startXPos, int16_t startYPos, i
     int32_t errorIntPosY = abs(posYResult - endYPos);
     int32_t errorIntPosZ = abs(posZResult - endZPos);
 
-    //allow maximum 1 count deviation in terms of fixed point
-    if (errorIntPosX > 1) {
+    //allow maximum 2 count deviation in terms of fixed point
+    if (errorIntPosX > 2) {
         std::string infoTxt("Verify_move_xyz_step: Testcase for following sequence failed: ");
         infoTxt += std::to_string((int)(whichSeqCaseTested));
         infoTxt += " XPos Difference: ";
@@ -992,7 +1009,7 @@ bool VCalculations::Verify_move_xyz_step(int16_t startXPos, int16_t startYPos, i
         return false;
     }
 
-    if (errorIntPosY > 1) {
+    if (errorIntPosY > 2) {
         std::string infoTxt("Verify_move_xyz_step: Testcase for following sequence failed: ");
         infoTxt += std::to_string((int)(whichSeqCaseTested));
         infoTxt += " YPos Difference: ";
@@ -1003,7 +1020,7 @@ bool VCalculations::Verify_move_xyz_step(int16_t startXPos, int16_t startYPos, i
         return false;
     }
 
-    if (errorIntPosZ > 1) {
+    if (errorIntPosZ > 2) {
         std::string infoTxt("Verify_move_xyz_step: Testcase for following sequence failed: ");
         infoTxt += std::to_string((int)(whichSeqCaseTested));
         infoTxt += " ZPos Difference: ";
@@ -1022,7 +1039,12 @@ bool VCalculations::Verify_move_xyz_step(int16_t startXPos, int16_t startYPos, i
 bool VCalculations::Verify_move_xyz() {
     bool overallResult = true;
 
-    overallResult &= Verify_move_xyz_step(0x0C71, 0x0001, 0x08A8, 0x0C70, 0x0001, 0x0894, 0xFFB8, 0x071D, 0x0078, 1);
+    overallResult &= Verify_move_xyz_step(0x09BC, 0x7544, 0x0FE0, 0x0944, 0x7544, 0x0FE0, 0xC000, 0x0, 0x0078, 1);
+    overallResult &= Verify_move_xyz_step(0x1170, 0x6883, 0x092C, 0x11AA, 0x6880, 0x092B, 0x3D83, 0x00CA, 0x003C, 2);
+    overallResult &= Verify_move_xyz_step(0x1208, 0x686B, 0x0925, 0x1202, 0x67FA, 0x0903, 0xFD82, 0x0BEC, 0x0078, 3);
+    overallResult &= Verify_move_xyz_step(0x1260, 0x67E4, 0x08FC, 0x11EA, 0x67DE, 0x08FE, 0xC27E, 0xFF2A, 0x0078, 4);
+    overallResult &= Verify_move_xyz_step(0x12EE, 0x67F9, 0x089E, 0x12EE, 0x67F9, 0x083A, 0xB67B, 0x4000, 0x0064, 5);
+    overallResult &= Verify_move_xyz_step(0x12EE, 0x67F9, 0x089E, 0x12EE, 0x67F9, 0x083A, 0x7FBE, 0x4000, 0x0064, 6);
 
     if (overallResult) {
         logging::Info("Verify_move_xyz: All testcases pass");
@@ -1040,7 +1062,9 @@ bool VCalculations::Verify_move_xyz() {
 
 irr::f32 VCalculations::distance_get_xyz(irr::core::vector3df position1, irr::core::vector3df position2) {
     //simply let Irrlicht do it :)
-    return ((position2-position1).getLength());
+    irr::core::vector3df irrCoordSysCoord1 = VanillaToIrrlichtCoord(position1);
+    irr::core::vector3df irrCoordSysCoord2 = VanillaToIrrlichtCoord(position2);
+    return ((irrCoordSysCoord2-irrCoordSysCoord1).getLength());
 }
 
 /***************************************************

@@ -327,6 +327,7 @@ public:
     void UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable);
     bool GetPlayersDbgFlagState(irr::u8 debugFlag);
 
+    bool AdvModel = false;
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -563,6 +564,8 @@ private:
     std::vector<Collectable*> mType2CollectableForCleanupLater;
 
     void CreateChargingStations();
+
+    bool mAddVVehicle = true;
 
     //for improved sky
     irr::scene::ISceneNode* skydomeNode = nullptr;
