@@ -36,7 +36,7 @@ The library versions listed above are known to result in successful compilation.
 
 #### Compile
 ```sh
-cmake -DCMAKE_BUILD_TYPE=Release -B build
+cmake -B build [-DCMAKE_BUILD_TYPE=<Debug|ReleaseStrip|Release>] [-DCMAKE_CXX_COMPILER=<g++|clang++|cl>] [-DCMAKE_OPTIMIZATION_LEVEL=<3|2|1|0>]
 make install
 ```
 A successful build will place the `hi-octane202x` and `hi-editor` binary in the build directory.

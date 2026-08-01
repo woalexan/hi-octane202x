@@ -59,7 +59,7 @@ void DbgInterface::CompareTable(std::string tableName, std::vector<uint8_t> tabl
     std::string infoMsg(tableName);
     char str[256];
 
-    snprintf(str, sizeof str, ": %d", compareResult.size());
+    snprintf(str, sizeof str, ": %zu", compareResult.size());
     infoMsg.append(str);
     infoMsg.append(" different bytes found");
 
@@ -89,7 +89,7 @@ void DbgInterface::Init(std::string memDumpFileName, std::string memDumpFileName
 
         std::vector<size_t>::iterator it;
         for (it = fndLoc.begin(); it != fndLoc.end(); ++it) {
-            snprintf(str, sizeof str, "%06x ", (*it));
+            snprintf(str, sizeof str, "%06zx ", (*it));
             infoMsg.append(str);
             mDumpLevelStructStart = (*it);
         }

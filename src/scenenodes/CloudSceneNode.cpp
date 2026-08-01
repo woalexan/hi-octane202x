@@ -42,7 +42,11 @@ CCloudSceneNode::CCloudSceneNode(scene::ISceneNode* parent, scene::ISceneManager
 	Material.Wireframe = false;
 	Material.Lighting = false;
 	Material.ZBuffer = video::ECFN_NEVER;
+#if IRRLICHT_VERSION_MAJOR >= 1 && IRRLICHT_VERSION_MINOR >= 9
+	Material.ZWriteEnable = video::EZW_OFF;
+#else
 	Material.ZWriteEnable = false;
+#endif
 
 	// setup the texture wrap
 	Material.TextureLayer[0].TextureWrapU = video::ETC_REPEAT;

@@ -150,7 +150,7 @@ void VVehicle::processWeaponBooster() {
 
             TurboSound->setPitch(pitch);
 
-            if (TurboSound->getStatus() == TurboSound->Status::Stopped) {
+            if (TurboSound->getStatus() == sf::SoundSource::Status::Stopped) {
                 TurboSound = nullptr;
             }
         }
