@@ -103,6 +103,8 @@ struct VehicleFunctionFlagsStruct {
     bool Pad3;  //seems to be used for vehicle control logic
     bool Pad4;  //seems to be used for computer player control
     bool Pad6;  //seems to be used during collision detection with vector collision
+    bool Pad7;  //seems to be used for auto targeting system
+    bool Pad8;  //seems to be used for auto targeting system
     bool Pad9;  //seems to be used for computer player control
     bool Pad12; //seems to be used for checkpoint processing logic
 };
@@ -227,6 +229,14 @@ struct VehicleComputerPlayerStruct {
     uint8_t Param4;
 };
 
+struct VehicleAutoTargetStruct {
+    uint16_t HitMeTotal[8];
+    uint8_t HitMeCount[8];
+    uint8_t HitMeTrigger[8];
+    uint16_t PrimaryTarget;
+    uint16_t ValidTargetCount;
+};
+
 /************************
  * Forward declarations *
  ************************/
@@ -275,6 +285,7 @@ public:
     irr::core::vector3df Bump;
 
     VehicleSpecialMovesStruct Tumble;
+    VehicleAutoTargetStruct AutoTarget;
 
     //Stats
     VehicleStatsStruct Stats;
@@ -467,6 +478,15 @@ private:
     uint8_t vehicle_process_checkpoint(size_t cp_colide);
     size_t vehicle_checkpoint_find_next(size_t forCheckPointIdx);
     void vehicle_checkpoint_next_lap();
+
+    //Returns a possible vehicle target within a specified
+    //angle of view; If no target is found returns 0 value
+    //Otherwise it returns the index into the mRace->mVanillaCraftVec
+    //vector for the selected player + 1
+    uint16_t vehicle_target(irr::f32 angle);
+    void vehicle_targetting_system();
+    void vehicle_process_autotarget();
+    uint8_t vehicle_computer_set_no_shoot();
 
     void UpdateEngineSound();
 

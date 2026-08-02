@@ -258,6 +258,10 @@ public:
 
     //Careful: This function returns the angle in degress for a 360° unit circle
     //The original game uses inside a 256° (step) unit circle!
+    irr::f32 angle_get_zy(irr::core::vector3df position_from, irr::core::vector3df position_to);
+
+    //Careful: This function returns the angle in degress for a 360° unit circle
+    //The original game uses inside a 256° (step) unit circle!
     irr::f32 angle_get_xy(irr::core::vector3df position_from, irr::core::vector3df position_to);
 
     bool verify_angle_get_difference_step(int16_t angle1, int16_t angle2, int16_t expResult,

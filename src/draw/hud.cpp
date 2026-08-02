@@ -1941,121 +1941,131 @@ core::position2d<s32> HUD::getScreenCoordinatesFrom3DPosition(
 }
 
 void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
-     //TODO: Add back implementation below
-     //  //does player target currently other opponent?
-     //  if (monitorWhichPlayer->mTargetPlayer != nullptr) {
-     //      //yes, player has currently a target
-     //      //we need to draw target symbol
+      VVehicle* targetPlayer = nullptr;
 
-     //      this->targetNameBlinkTimer += deltaTime;
+      if (monitorWhichPlayer->AutoTarget.PrimaryTarget > 0) {
+          targetPlayer = mRace->mVanillaCraftVec.at(monitorWhichPlayer->AutoTarget.PrimaryTarget - 1);
+      }
 
-     //      if (targetNameBlinkTimer > DEF_HUD_TARGETNAME_BLINKPERIODE) {
-     //          this->targetNameBlinkTimer = 0.0f;
-     //          currShowTargetName = !currShowTargetName;
-     //      }
+      //does player target currently other opponent?
+      if (targetPlayer != nullptr) {
+          //yes, player has currently a target
+          //we need to draw target symbol
 
-     //      //first we need to figure out where to draw target symbol on the 2D screen, so that the symbol is around
-     //      //the targets player craft
-     //      ICameraSceneNode* actCamera = mGame->mSmgr->getActiveCamera();
+          this->targetNameBlinkTimer += deltaTime;
 
-     //      irr::core::vector3df targetPlayerPos = monitorWhichPlayer->mTargetPlayer->phobj->physicState.position;
+          if (targetNameBlinkTimer > DEF_HUD_TARGETNAME_BLINKPERIODE) {
+              this->targetNameBlinkTimer = 0.0f;
+              currShowTargetName = !currShowTargetName;
+          }
 
-     //      irr::core::vector2di targetPos = getScreenCoordinatesFrom3DPosition(targetPlayerPos, actCamera);
+          //first we need to figure out where to draw target symbol on the 2D screen, so that the symbol is around
+          //the targets player craft
+          ICameraSceneNode* actCamera = mGame->mSmgr->getActiveCamera();
 
-     //      irr::u32 targetSymBHalfWidth = targetSymbol->sizeTex.Width / 2;
-     //      irr::u32 targetSymBHalfHeight = targetSymbol->sizeTex.Height / 2;
+          irr::core::vector3df targetPlayerPos =
+                mRace->mVCalc->VanillaToIrrlichtCoord(targetPlayer->ThingData.Position);
 
-     //      targetSymbol->drawScrPosition.X = targetPos.X - targetSymBHalfWidth;
-     //      targetSymbol->drawScrPosition.Y = targetPos.Y - targetSymBHalfHeight;
+          irr::core::vector2di targetPos = getScreenCoordinatesFrom3DPosition(targetPlayerPos, actCamera);
 
-     //      irr::u32 lockProgress = this->monitorWhichPlayer->mTargetMissleLockProgr;
+          irr::u32 targetSymBHalfWidth = targetSymbol->sizeTex.Width / 2;
+          irr::u32 targetSymBHalfHeight = targetSymbol->sizeTex.Height / 2;
 
-     //      targetArrowLeft->drawScrPosition.X =
-     //              targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
-     //      targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2;
+          targetSymbol->drawScrPosition.X = targetPos.X - targetSymBHalfWidth;
+          targetSymbol->drawScrPosition.Y = targetPos.Y - targetSymBHalfHeight;
 
-     //      targetArrowRight->drawScrPosition.X = targetPos.X + targetSymBHalfWidth + lockProgress;
-     //      targetArrowRight->drawScrPosition.Y = targetArrowLeft->drawScrPosition.Y;
+          //AutoTarget.ValidTargetCount starts at 0 for new target, and when valid target
+          //quality increases value increases up to max value of 100
+          //Note: The distance of 22 pixels and how the target symbol is rendered was not derived
+          //from the original games implementation, but from screenshoots and observation alone
+          irr::u32 lockProgress = (irr::u32)(22.0f - ((irr::f32)(targetPlayer->AutoTarget.ValidTargetCount) / 100.0f) * 22.0f);
 
-     //      targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2;
-     //      targetArrowAbove->drawScrPosition.Y =
-     //              targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
+          targetArrowLeft->drawScrPosition.X =
+                  targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
+          targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2;
 
-     //      targetArrowBelow->drawScrPosition.X = targetArrowAbove->drawScrPosition.X;
-     //      targetArrowBelow->drawScrPosition.Y = targetPos.Y + targetSymBHalfHeight + lockProgress;
+          targetArrowRight->drawScrPosition.X = targetPos.X + targetSymBHalfWidth + lockProgress;
+          targetArrowRight->drawScrPosition.Y = targetArrowLeft->drawScrPosition.Y;
 
-     //      if (!monitorWhichPlayer->mTargetMissleLock) {
-     //         //no missle lock, green symbol and green text
-     //         mGame->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
-     //            targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
+          targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2;
+          targetArrowAbove->drawScrPosition.Y =
+                  targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
 
-     //           if (currShowTargetName) {
-     //                //write player name next to target symbol
-     //                mGame->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-     //                    mGame->mGameTexts->HudTargetNameGreen,
-     //                        irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
-     //                                        targetSymbol->drawScrPosition.Y));
-     //           }
+          targetArrowBelow->drawScrPosition.X = targetArrowAbove->drawScrPosition.X;
+          targetArrowBelow->drawScrPosition.Y = targetPos.Y + targetSymBHalfHeight + lockProgress;
 
-     //         //left green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
-     //            targetArrowLeft->sourceRect, 0, *mColorSolid, true);
+          if (targetPlayer->AutoTarget.ValidTargetCount < 0x64) {
+             //no missle lock, green symbol and green text
+             mGame->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
+                targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
 
-     //         //right green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
-     //            targetArrowRight->sourceRect, 0, *mColorSolid, true);
+               if (currShowTargetName) {
+                    //write player name next to target symbol
+                    mGame->mGameTexts->DrawHudSmallText(targetPlayer->Stats.name,
+                        mGame->mGameTexts->HudTargetNameGreen,
+                            irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
+                                            targetSymbol->drawScrPosition.Y));
+               }
 
-     //         //above green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
-     //            targetArrowAbove->sourceRect, 0, *mColorSolid, true);
+             //left green arrow
+             mGame->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
+                targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
-     //         //below green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
-     //            targetArrowBelow->sourceRect, 0, *mColorSolid, true);
-     //      } else {
-     //          //we also have missile lock, red symbol and red text
-     //          mGame->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
-     //             targetSymbol->sourceRect, 0, *mColorSolid, true);
+             //right green arrow
+             mGame->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
+                targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
-     //          if (currShowTargetName) {
-     //            //write player name next to target symbol
-     //            mGame->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-     //                    mGame->mGameTexts->HudTargetNameRed,
-     //                    irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
-     //                                         targetSymbol->drawScrPosition.Y));
-     //          }
+             //above green arrow
+             mGame->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
+                targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
-     //          //left red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
-     //             targetArrowLeft->sourceRect, 0, *mColorSolid, true);
+             //below green arrow
+             mGame->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
+                targetArrowBelow->sourceRect, 0, *mColorSolid, true);
+          } else {
+              //we also have missile lock, red symbol and red text
+              mGame->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
+                 targetSymbol->sourceRect, 0, *mColorSolid, true);
 
-     //          //right red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
-     //             targetArrowRight->sourceRect, 0, *mColorSolid, true);
+              if (currShowTargetName) {
+                //write player name next to target symbol
+                mGame->mGameTexts->DrawHudSmallText(targetPlayer->Stats.name,
+                        mGame->mGameTexts->HudTargetNameRed,
+                        irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
+                                             targetSymbol->drawScrPosition.Y));
+              }
 
-     //          //above red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
-     //             targetArrowAbove->sourceRect, 0, *mColorSolid, true);
+              //left red arrow
+              mGame->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
+                 targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
-     //          //below red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
-     //             targetArrowBelow->sourceRect, 0, *mColorSolid, true);
-     //      }
+              //right red arrow
+              mGame->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
+                 targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
-     //      irr::core::rect<irr::s32> healthBarLocation;
-     //      irr::f32 barWidthFloat = (2.0f * (float)(targetSymBHalfWidth)) *
-     //              (this->monitorWhichPlayer->mTargetPlayer->mPlayerStats->shieldVal / this->monitorWhichPlayer->mTargetPlayer->mPlayerStats->shieldMax);
+              //above red arrow
+              mGame->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
+                 targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
-     //      irr::u32 barWidth = (irr::u32)(barWidthFloat);
+              //below red arrow
+              mGame->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
+                 targetArrowBelow->sourceRect, 0, *mColorSolid, true);
+          }
 
-     //      healthBarLocation.UpperLeftCorner.X = targetSymbol->drawScrPosition.X;
-     //      healthBarLocation.UpperLeftCorner.Y = targetPos.Y + targetSymBHalfHeight + 2;
-     //      healthBarLocation.LowerRightCorner.X = targetSymbol->drawScrPosition.X + barWidth;
-     //      healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
+          irr::core::rect<irr::s32> healthBarLocation;
+          irr::f32 barWidthFloat = (2.0f * (float)(targetSymBHalfWidth)) *
+                  ((irr::f32)(targetPlayer->Stats.Health) / 10000.0f);
 
-     //      //draw a small health bar below the target symbol
-     //      mGame->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
-     // }
+          irr::u32 barWidth = (irr::u32)(barWidthFloat);
+
+          healthBarLocation.UpperLeftCorner.X = targetSymbol->drawScrPosition.X;
+          healthBarLocation.UpperLeftCorner.Y = targetPos.Y + targetSymBHalfHeight + 2;
+          healthBarLocation.LowerRightCorner.X = targetSymbol->drawScrPosition.X + barWidth;
+          healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
+
+          //draw a small health bar below the target symbol
+          mGame->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
+     }
 }
 
 HUD::HUD(Game* game, Race* parentRace) {

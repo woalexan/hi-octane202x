@@ -788,6 +788,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 
                 mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);*/
 
+                vehicle_process_autotarget();
                 vehicle_get_track_friction();
                 vehicle_calculate_angle();
 
@@ -820,6 +821,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
                 vehicle_move_mapwho(delta);
                 vehicle_set_camera();
                 vehicle_post_process();
+                vehicle_computer_set_no_shoot();
                 //vehicle_terrain_effect(delta);
 
                // mRace->AdvModel = false;
@@ -992,6 +994,19 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
        Counter[idx] = 0;
    }
 
+   //this initial values are just an assumption
+   //from my side
+   for (int idx = 0; idx < 8; idx++) {
+       AutoTarget.HitMeTotal[idx] = 0;
+       AutoTarget.HitMeCount[idx] = 0;
+       AutoTarget.HitMeTrigger[idx] = 0;
+   }
+
+   //this initial values are just an assumption
+   //from my side
+   AutoTarget.PrimaryTarget = 0;
+   AutoTarget.ValidTargetCount = 0;
+
    SetupFlightModelConstants();
 
    //if computer player
@@ -1045,6 +1060,8 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
    FlightModel.FunctionFlag.Pad3 = true;
    FlightModel.FunctionFlag.Pad4 = false;
    FlightModel.FunctionFlag.Pad6 = false;
+   FlightModel.FunctionFlag.Pad7 = false;
+   FlightModel.FunctionFlag.Pad8 = false;
    FlightModel.FunctionFlag.Pad9 = false;
 
    //Pad12 seems to be used for checkpoint and lap number processing
@@ -1806,6 +1823,8 @@ void VVehicle::vehicle_control_from_player() {
     MovementInput.AngleZY = 0.0f;
     MovementInput.SpeedActual = 0.0f;
 
+
+
     if (KeyPressedAccel) {
          MovementInput.SpeedActual = IncrementAdd.SpeedActual;
     } else if (KeyPressedDeaccel) {
@@ -1845,6 +1864,8 @@ vehicle_control_from_player_LABEL_28:
 
     //add missing code below later; there is more for weapons trigger
     //and something regarding friction
+
+    vehicle_targetting_system();
 
     //Handle Booster key
     if (KeyPressedBooster) {
@@ -2077,6 +2098,8 @@ vehicle_control_from_autopilot_LABEL135:
     } else {
         MovementInput.AngleXY = v40 - (MovementInput.AngleXY / 8.0f);
     }
+
+    vehicle_targetting_system();
 
 vehicle_control_from_autopilot_LABEL129:
     if (Stats.Fuel < 3000) {
@@ -3996,6 +4019,180 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
 
     //collectible was picked up
     return true;
+}
+
+//Returns a possible vehicle target within a specified
+//angle of view; If no target is found returns 0 value
+//Otherwise it returns the index into the mRace->mVanillaCraftVec
+//vector for the selected player + 1
+uint16_t VVehicle::vehicle_target(irr::f32 angle) {
+    uint16_t index;
+    uint16_t currIdx;
+    std::vector<VVehicle*>::iterator it;
+    irr::f32 i;
+    irr::f32 xyz;
+    irr::f32 xy;
+    irr::f32 v15;
+    irr::f32 v16;
+    irr::f32 v18;
+    irr::f32 zy;
+    irr::f32 v21;
+    irr::f32 v22;
+    irr::f32 difference;
+
+    index = 0;
+    currIdx = 0;
+
+    i = 15.0f;
+
+    //go through all the available players
+    for (it = mRace->mVanillaCraftVec.begin(); it != mRace->mVanillaCraftVec.end(); ++it) {
+        currIdx++;
+
+        //Note: I skipped quite some code here, maybe my solution
+        //is too simply or not 100% correct, check later again!
+        if ((*it) == this) {
+            continue;
+        }
+
+        xyz = mRace->mVCalc->distance_get_xyz(ThingData.Position, (*it)->ThingData.Position);
+        if (i < xyz) {
+            continue;
+        }
+
+        xy = mRace->mVCalc->angle_get_xy(ThingData.Position, (*it)->ThingData.Position);
+        if (mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, xy) < 0.0f) {
+             v18 = mRace->mVCalc->angle_get_xy(ThingData.Position, (*it)->ThingData.Position);
+             difference = mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, v18);
+             if (-difference >= angle) {
+                 continue;
+             }
+        } else {
+           v15 = mRace->mVCalc->angle_get_xy(ThingData.Position, (*it)->ThingData.Position);
+           v16 = mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, v15);
+           if (v16 >= angle) {
+               continue;
+           }
+        }
+
+        zy = mRace->mVCalc->angle_get_zy(ThingData.Position, (*it)->ThingData.Position);
+        if (mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleZY, zy) >= 0.0f) {
+               v21 = mRace->mVCalc->angle_get_zy(ThingData.Position, (*it)->ThingData.Position);
+               if (mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleZY, v21) >= angle) {
+                   continue;
+               }
+vehicle_target_LABEL_25:
+        index = currIdx;
+        i = xyz;
+        continue;
+        }
+        v22 = mRace->mVCalc->angle_get_zy(ThingData.Position, (*it)->ThingData.Position);
+        if (-mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleZY, v22) < angle) {
+            goto vehicle_target_LABEL_25;
+        }
+    }
+
+    return index;
+}
+
+void VVehicle::vehicle_targetting_system() {
+    uint16_t v2;
+    uint16_t v12;
+    bool v13;
+
+    v2 = vehicle_target(29.9981689453125f);
+    if (AutoTarget.PrimaryTarget != v2) {
+        AutoTarget.PrimaryTarget = v2;
+        AutoTarget.ValidTargetCount = 0;
+    }
+
+    //computer controller player?
+    if (ControlOrigin == 8) {
+        if (FlightModel.FunctionFlag.Pad7 && (AutoTarget.PrimaryTarget > 0) &&
+                (mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->Stats.Health < 2000)) {
+                AutoTarget.PrimaryTarget = 0;
+                AutoTarget.ValidTargetCount = 0;
+       }
+   }
+
+   if ((AutoTarget.PrimaryTarget > 0) && mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->Stats.Invincable) {
+       AutoTarget.PrimaryTarget = 0;
+       AutoTarget.ValidTargetCount = 0;
+   }
+
+   if ((AutoTarget.PrimaryTarget > 0) && (mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->Stats.Health <= 0)) {
+       AutoTarget.PrimaryTarget = 0;
+       AutoTarget.ValidTargetCount = 0;
+   }
+
+   //if target vehicle is currently not in normal race mode, exclude it
+   if ((AutoTarget.PrimaryTarget > 0) && (mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->ThingData.Action != 0x1)) {
+       AutoTarget.PrimaryTarget = 0;
+       AutoTarget.ValidTargetCount = 0;
+   }
+
+   if (AutoTarget.PrimaryTarget) {
+       v12 = AutoTarget.ValidTargetCount + Stats.MRocketUpgrade + 1;
+       AutoTarget.ValidTargetCount = v12;
+       v13 = (v12 < 0x65u);
+       if (!v13) {
+            AutoTarget.ValidTargetCount = 100;
+            return;
+       }
+   } else {
+        AutoTarget.ValidTargetCount = 0;
+   }
+}
+
+void VVehicle::vehicle_process_autotarget() {
+    size_t v2;
+    uint8_t v6;
+    size_t v7;
+
+    v2 = 0;
+    do {
+       if (AutoTarget.HitMeTrigger[v2]) {
+           AutoTarget.HitMeCount[v2] += AutoTarget.HitMeTrigger[v2];
+       } else {
+           v6 = AutoTarget.HitMeCount[v2];
+           if (AutoTarget.HitMeTotal[v2] < v6) {
+               AutoTarget.HitMeTotal[v2] = v6;
+           }
+           AutoTarget.HitMeCount[v2] = 0;
+       }
+      v7 = v2++;
+      AutoTarget.HitMeTrigger[v7] = 0;
+    } while (v2 < 8);
+}
+
+uint8_t VVehicle::vehicle_computer_set_no_shoot() {
+  uint8_t result = 0;
+  std::vector<VVehicle*>::iterator it;
+
+  //is the player controlled by the computer
+  //player?
+  if (ControlOrigin == 8) {
+      it = mRace->mVanillaCraftVec.begin();
+      while (1) {
+         //ControlOrigin == 1 means is a human controlled player
+         if (it != mRace->mVanillaCraftVec.end()) {
+             if (((*it)->ControlOrigin == 1) &&
+                     (mRace->mVCalc->distance_get_rough_xy(ThingData.Position, (*it)->ThingData.Position) < 26.0f)) {
+                     break;
+             }
+         }
+         if (it == mRace->mVanillaCraftVec.end()) {
+             FlightModel.FunctionFlag.Pad8 = true;
+             return 0;
+         }
+         ++it;
+     }
+
+     FlightModel.FunctionFlag.Pad8 = false;
+     return 1;
+  }
+
+  return result;
 }
 
 void VVehicle::CheckForChargingStation() {

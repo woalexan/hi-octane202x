@@ -1116,6 +1116,18 @@ bool VCalculations::Verify_arctanPlusMultiply32() {
 
 //Careful: This function returns the angle in degress for a 360° unit circle
 //The original game uses inside a 256° (step) unit circle!
+irr::f32 VCalculations::angle_get_zy(irr::core::vector3df position_from, irr::core::vector3df position_to) {
+    //Note for me: The multiplication with 32 in the original game in this function
+    //is actually part of the result calculation in arctan function of original game
+    //itself; I moved it inside arctanPlusMultiply32, and so we are not allowed to
+    //accidently apply it again!
+    irr::f32 xy;
+    xy = distance_get_xy(position_from, position_to);
+    return arctanPlusMultiply32(position_from.Z - position_to.Z, -xy);
+}
+
+//Careful: This function returns the angle in degress for a 360° unit circle
+//The original game uses inside a 256° (step) unit circle!
 irr::f32 VCalculations::angle_get_xy(irr::core::vector3df position_from, irr::core::vector3df position_to) {
     //Note for me: The multiplication with 32 in the original game in this function
     //is actually part of the result calculation in arctan function of original game
