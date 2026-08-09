@@ -28,6 +28,8 @@
 #include "vanilla/vtrack.h"
 #include "vanilla/vcamera.h"
 #include "vanilla/debug/memdump.h"
+#include "vanilla/debug/binaryfile.h"
+#include "vanilla/debug/structs/thing.h"
 
 #include "draw/hud.h"
 
@@ -67,6 +69,7 @@
 #include "resources/mapentry.h"
 
 #include "vanilla/debug/dbginterface.h"
+#include "vanilla/debug/structs/thinglist.h"
 #include "vanilla/vrepair.h"
 
 #include "game.h"
@@ -1587,6 +1590,34 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
     // return (result);
 }
 
+void Race::CompareMemDumpsVanilla() {
+    mVDbgInterface->Init("level4-empty.bin", "", "extract/level0-4/level0-4-unpacked.dat");
+
+     /*std::vector<DiffByte> diffBytes;
+
+     diffBytes =
+             mVDbgInterface->CompareData(*mVDbgInterface->newDump->mMemDumpData->mData, *mVDbgInterface->newDump2->mMemDumpData->mData);
+
+     mVDbgInterface->PrintCompareDataResult(diffBytes, (int)(mVDbgInterface->mDumpLevelStructStart));*/
+
+     ParseThing* thingWritten = mVDbgInterface->newDump->ReturnThingsWithIndex(999);
+     if (thingWritten != nullptr) {
+         thingWritten->Print();
+     } else {
+         logging::Error("No thing with this Index!");
+     }
+
+    /* ParseThing* thingWritten2 = mVDbgInterface->newDump2->ReturnThingsWithIndex(997);
+     if (thingWritten2 != nullptr) {
+         thingWritten2->Print();
+     }
+
+     ParseThing* thingNewParent = mVDbgInterface->newDump2->ReturnThingsWithIndex(884);
+     if (thingNewParent != nullptr) {
+         thingNewParent->Print();
+     }*/
+}
+
 void Race::Init() {
     //we want to adjust the keymap for the free movable camera
     SKeyMap keyMap[4];
@@ -1743,6 +1774,8 @@ void Race::Init() {
     //we need to change the near value so that we
     //do not clip into the terrain
     vanTestCam->setNearValue(0.1f);
+
+    //CompareMemDumpsVanilla();
 
     //this->mGame->StopTime();
   
@@ -2506,6 +2539,7 @@ void Race::HandleInput(irr::f32 deltaTime) {
          mVanillaCraftVec.at(0)->KeyPressedBooster = false;
          mVanillaCraftVec.at(0)->KeyPressedTurnLeft = false;
          mVanillaCraftVec.at(0)->KeyPressedTurnRight = false;
+         mVanillaCraftVec.at(0)->KeyPressedMachineGun = false;
 
          if(mGame->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
              mVanillaCraftVec.at(0)->KeyPressedAccel = true;
@@ -2528,9 +2562,9 @@ void Race::HandleInput(irr::f32 deltaTime) {
             mVanillaCraftVec.at(0)->KeyPressedTurnRight = true;
         }
 
-        //TODO: if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
-        //         mPlayerVec.at(0)->mMGun->Trigger();
-        //     }
+        if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
+                 mVanillaCraftVec.at(0)->KeyPressedMachineGun = true;
+        }
 
         //TODO:    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
         //         mPlayerVec.at(0)->mMissileLauncher->Trigger();
@@ -3765,6 +3799,21 @@ void Race::AddCheckPoint(EntityItem entity) {
     newThingStruct->Index = mVanillaCheckpointVec.size();
 
     mVanillaCheckpointVec.push_back(newThingStruct);
+}
+
+//Returns nullptr for an invalid request
+//whichId starts with value 1 for first vehicle,
+//value 2 for second vehicle and so on
+VVehicle* Race::GetVehicleWithId(size_t whichId) {
+    if (whichId < 1) {
+        return nullptr;
+    }
+
+    if ((whichId-1) < mVanillaCraftVec.size()) {
+        return mVanillaCraftVec[whichId-1];
+    }
+
+    return nullptr;
 }
 
 //if vehicle in the second parameter is further in the race this function

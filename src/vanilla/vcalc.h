@@ -184,6 +184,10 @@ public:
     int8_t map_colide_4point(irr::core::vector3df position, irr::f32 size_x,
                               irr::f32 size_y);
 
+    uint8_t mapwho_delete(ThingDataStruct* thingStruct);
+    uint8_t mapwho_add(ThingDataStruct* thingStruct, irr::core::vector3df position);
+    uint8_t mapwho_move(ThingDataStruct* thingStruct, irr::core::vector3df position);
+
     //This function was written to behave similar to the function
     //move_displacement_xyz in the original game
     //moves a 3D position by a certain displacement, direction

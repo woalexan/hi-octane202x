@@ -13,6 +13,7 @@
 #include "../utils/physics.h"
 #include "../draw/gametext.h"
 #include "../vanilla/vvehicle.h"
+#include "../vanilla/vmgun.h"
 #include "../race.h"
 
 //a negative altPanelTexNr input value means no alternative texture (image) is used
@@ -868,6 +869,24 @@ int HUD::GetNumberCurrentThrottleBars(irr::f32 movementSpeed) {
     return nrBars;
 }
 
+int HUD::GetNumberCurrentMGunHeatBars(int16_t triggerTime) {
+    size_t idx = 0;
+    int nrBars = 0;
+
+    //07.08.2026: The original game implementation also uses factor 100
+    int16_t inVal = 100 * triggerTime;
+
+    while (HeatBarThresholds[idx] != -1) {
+        if (inVal <= HeatBarThresholds[idx]) {
+            break;
+        }
+        idx++;
+        nrBars++;
+    }
+
+    return nrBars;
+}
+
 void HUD::DrawGasolineBar() {
     int sizeVec = (int)(gasolineBar->size());
 
@@ -981,27 +1000,25 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
                   (*speedBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
-        //TODO: add back later
-        // //Draw machine gun heat bar
-        // sizeVec = (int)(mgHeatBar->size());
+        //Draw machine gun heat bar
+        sizeVec = (int)(mgHeatBar->size());
+        int nrHeatBarElementsLit = GetNumberCurrentMGunHeatBars(monitorWhichPlayer->mMGun->TriggerTime);
 
-        // perc = (monitorWhichPlayer->mPlayerStats->mgHeatVal / monitorWhichPlayer->mPlayerStats->mgHeatMax) * sizeVec;
+        if (nrHeatBarElementsLit < 0)
+            nrHeatBarElementsLit = 0;
 
-        // if (perc < 0)
-        //     perc = 0;
+        if (nrHeatBarElementsLit > sizeVec)
+            nrHeatBarElementsLit = sizeVec;
 
-        // if (perc > sizeVec)
-        //     perc = (irr::f32)(sizeVec);
-
-        // for (int i = 0; i < perc; i++) {
-        //     mGame->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
-        //           (*mgHeatBar)[i]->sourceRect, 0, *mColorSolid, true);
-        // }
+        for (int i = 0; i < nrHeatBarElementsLit; i++) {
+             mGame->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
+                   (*mgHeatBar)[i]->sourceRect, 0, *mColorSolid, true);
+        }
 
         //Draw upgrade bar
         //symbol number 0 is the minigun symbol itself (for basic upgrade level 0)
         //the next three symbols 1, 2 and 3 are for upgrade levels 1, 2 and 3
-        for (int i = 0; i <= monitorWhichPlayer->Stats.MGunUpgrade; i++) {
+        for (int i = 0; i <= monitorWhichPlayer->mMGun->Upgrade; i++) {
             mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }

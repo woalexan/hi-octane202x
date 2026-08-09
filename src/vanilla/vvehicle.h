@@ -58,6 +58,7 @@
 class Collectable;
 class HUD;
 class DustBelowCraft;
+class VMGun;
 
 struct VehicleSensorPointStruct {
     irr::core::vector3df Position;
@@ -139,7 +140,6 @@ struct VehicleStatsStruct {
 
     //TODO: Move to the MGun and Rocket
     //weapon structs later
-    int16_t MGunUpgrade;
     int16_t MRocketUpgrade;
 
     //player names in Hi-Octane are limited
@@ -181,6 +181,8 @@ struct VehicleBoosterStruct {
 //to vehicle
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
+    int32_t Bullets = 0;
+    int32_t MiniGunHeatup = 0;
     int32_t LapTimes[100];
     int32_t TotalTime = 0;
     int32_t LapCount = 0;
@@ -260,6 +262,7 @@ public:
     bool KeyPressedAccel = false;
     bool KeyPressedDeaccel = false;
     bool KeyPressedBooster = false;
+    bool KeyPressedMachineGun = false;
 
     //Thing data
     ThingDataStruct ThingData;
@@ -409,6 +412,9 @@ public:
     size_t Counter[8];
 
     void vehicle_set_camera();
+
+    //My Weapons
+    VMGun* mMGun = nullptr;
 
 private:
     uint32_t ControlOrigin = 1; //activates the human player

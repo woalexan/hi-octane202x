@@ -290,6 +290,8 @@ add_executable(hi-octane202x
     src/vanilla/vcamera.cpp
     src/vanilla/vrepair.h
     src/vanilla/vrepair.cpp
+    src/vanilla/vmgun.h
+    src/vanilla/vmgun.cpp
 
     src/vanilla/debug/dbginterface.h
     src/vanilla/debug/dbginterface.cpp

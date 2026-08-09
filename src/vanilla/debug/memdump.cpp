@@ -86,6 +86,20 @@ std::vector<ParseThing*> MemDump::ReturnThingsWithGroup(int8_t whichGroup) {
     return result;
 }
 
+ParseThing* MemDump::ReturnThingsWithIndex(int16_t whichIndex) {
+    std::vector<ParseThing*>::iterator it;
+    ParseThing* result = nullptr;
+
+    for (it = mExistingThingsVec.begin(); it != mExistingThingsVec.end(); ++it) {
+        if ((*it)->Index->mRawValue == whichIndex) {
+            result = (*it);
+            break;
+        }
+    }
+
+    return result;
+}
+
 //Returns null if first player is not found
 ParseThing* MemDump::ReturnThingFirstPlayer() {
     std::vector<ParseThing*> allVehicles = ReturnThingsWithGroup(10);

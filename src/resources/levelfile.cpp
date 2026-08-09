@@ -1059,7 +1059,7 @@ bool LevelFile::AddPOI(MapTileRegionStruct* newRegion) {
 
     //set new POI value at the cell in the middle
     //of the new region
-    entry->mPointOfInterest = POIValToAdd;
+    entry->mChild = POIValToAdd;
 
     MapPointOfInterest newPointOfInterest;
     newPointOfInterest.Value = POIValToAdd;
@@ -1101,9 +1101,9 @@ void LevelFile::RemovePOI(irr::u8 regionId) {
              entry = this->pMap[x][y];
 
              if (entry != nullptr) {
-                 if (entry->mPointOfInterest == POIToFind) {
+                 if (entry->mChild == POIToFind) {
                      //we need to erase this link to this POI from this cell
-                     entry->mPointOfInterest = 0;
+                     entry->mChild = 0;
                  }
              }
          }
@@ -1515,7 +1515,7 @@ void LevelFile::DebugWriteCellInfoToCsvFile(const char* debugOutPutFileName) {
    MapEntry* entry;
 
    //write a header
-   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;TexModLowNibble;POI;Illumination;Vector;Marker\n");
+   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;TexModLowNibble;Child;Illumination;Vector;Marker\n");
    for (int x = 0; x < LEVELFILE_WIDTH; x++) {
        for (int y = 0; y < LEVELFILE_HEIGHT; y++) {
            entry = pMap[x][y];
@@ -1525,7 +1525,7 @@ void LevelFile::DebugWriteCellInfoToCsvFile(const char* debugOutPutFileName) {
                fprintf(debugOutputFile, "%d;%d;%lf;%d;%d;%u;%d;%d;%d;%d\n",
                     x, y, entry->m_Height, entry->m_TextureId,
                     entry->GetTextureModification(), entry->GetTextureModificationLowerNibble(),
-                     entry->mPointOfInterest, entry->mIllumination, entry->mVector, entry->mMarker);
+                     entry->mChild, entry->mIllumination, entry->mVector, entry->mMarker);
             }
       }
    }

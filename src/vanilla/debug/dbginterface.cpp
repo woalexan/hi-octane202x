@@ -53,13 +53,34 @@ std::vector<DiffByte> DbgInterface::CompareData(std::vector<uint8_t> data1, std:
     return result;
 }
 
+void DbgInterface::PrintCompareDataResult(std::vector<DiffByte> comparisonResult, int memOffset) {
+    std::vector<DiffByte>::iterator it;
+
+    std::string infoMsg("");
+    char str[256];
+    int atAdr;
+    int val1;
+    int val2;
+
+    for (it = comparisonResult.begin(); it != comparisonResult.end(); ++it) {
+        atAdr = ((int)((*it).atOffset) - memOffset);
+        val1 = (int)((*it).valData1);
+        val2 = (int)((*it).valData2);
+        snprintf(str, sizeof(str), "at %06x: Val 1 = %06x Val 2 = %06x ", atAdr, val1, val2);
+
+        infoMsg.append(str);
+        logging::Info(infoMsg);
+        infoMsg.clear();
+    }
+}
+
 void DbgInterface::CompareTable(std::string tableName, std::vector<uint8_t> table1, std::vector<uint8_t> table2) {
     std::vector<DiffByte> compareResult = CompareData(table1, table2);
 
     std::string infoMsg(tableName);
     char str[256];
 
-    snprintf(str, sizeof str, ": %d", compareResult.size());
+    snprintf(str, sizeof(str), ": %d", compareResult.size());
     infoMsg.append(str);
     infoMsg.append(" different bytes found");
 
@@ -89,7 +110,7 @@ void DbgInterface::Init(std::string memDumpFileName, std::string memDumpFileName
 
         std::vector<size_t>::iterator it;
         for (it = fndLoc.begin(); it != fndLoc.end(); ++it) {
-            snprintf(str, sizeof str, "%06x ", (*it));
+            snprintf(str, sizeof(str), "%06x ", (*it));
             infoMsg.append(str);
             mDumpLevelStructStart = (*it);
         }

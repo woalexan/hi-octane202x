@@ -31,59 +31,61 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VBASE_H
-#define VBASE_H
+#ifndef VMGUN_H
+#define VMGUN_H
 
 #include "irrlicht.h"
+#include "vbase.h"
 #include <cstdint>
+#include <vector>
 
 /************************
  * Forward declarations *
  ************************/
 
-struct MovementStruct {
-    irr::f32 AngleXY = 0.0f;
-    irr::f32 AngleZY = 0.0f;
-    irr::f32 AngleXZ = 0.0f;
-    irr::f32 SpeedActual = 0.0f;
+class Race;
+class VVehicle;
+
+struct BulletThingStruct {
+    ThingDataStruct ThingData;
+
+    irr::scene::IBillboardSceneNode* mSceneNode = nullptr;
 };
 
-struct MomentumStruct {
-    irr::f32 DeltaX = 0.0f;
-    irr::f32 DeltaY = 0.0f;
-    irr::f32 AngleXY = 0.0f;
+class VMGun {
+
+private:
+    Race* mParentRace = nullptr;
+    VVehicle* mOwner = nullptr;
+
+    irr::video::ITexture* mSpriteTex = nullptr;
+    irr::core::dimension2d<irr::u32> mSpriteTexSize;
+
+    //variables moved here
+    //from Thing (ThingWeapon)
+    int16_t TriggerRestrictionCount = 0;
+
+    std::vector<BulletThingStruct*> mBulletThings;
+
+    BulletThingStruct* CreateBulletThing(irr::core::vector3df* position,
+                                       irr::f32 angleXY, irr::f32 angleZY,
+                                       irr::f32 angleXZ);
+
+    uint8_t UpdateBulletThing(BulletThingStruct* whichBulletThing);
+    void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);
+
+public:
+    VMGun(Race* parentRace, VVehicle* owner);
+    ~VMGun();
+
+    void Update(irr::f32 frameDeltaTime);
+
+    //variables moved here
+    //from Thing (ThingWeapon)
+    int16_t Trigger = 0;
+    int16_t TriggerTime = 0;
+    int16_t Upgrade;
+    int16_t Target = 0;
 };
 
-struct VehicleViewStruct {
-    irr::core::vector3df Position;
-    irr::f32 AngleXY;
-    irr::f32 AngleZY;
-    irr::f32 AngleXZ;
-};
-
-struct ThingDataStruct {
-    irr::core::vector3df Position;
-    MovementStruct Movement;
-    irr::core::vector3df Displacement;
-
-    uint32_t AffectStatus = 0;
-    int16_t AffectNumber = 0; //allows to specify the amount of damage dealt with an action
-    uint16_t AffectWho = 0;   //allows to specify who is affected
-    uint16_t ColideGroup = 0;
-
-    bool Stationary = false;
-    int16_t Life = 1000;
-    uint8_t mTimeSlice = 0;
-
-    int16_t Count = 0;
-    irr::core::vector3df CollideSize;
-
-    //May be used for thing identification
-    //But I use it different then the original game
-    size_t Index = 0;
-
-    uint32_t Status = 0;
-    int8_t Action = 0;
-};
-
-#endif // VBASE_H
+#endif // VMGUN_H

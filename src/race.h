@@ -361,6 +361,13 @@ public:
     void UpdateSceneNodeModel(irr::scene::ISceneNode *node,
                                                   VehicleViewStruct* view);
 
+    //Returns nullptr for an invalid request
+    //whichId starts with value 1 for first vehicle,
+    //value 2 for second vehicle and so on
+    VVehicle* GetVehicleWithId(size_t whichId);
+
+    void CompareMemDumpsVanilla();
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;

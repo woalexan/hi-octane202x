@@ -38,6 +38,7 @@
 #include "../draw/drawdebug.h"
 #include "../vanilla/vtrack.h"
 #include "../vanilla/vcamera.h"
+#include "../vanilla/vmgun.h"
 #include "debug/dbginterface.h"
 #include "debug/memdump.h"
 #include "debug/structs/thing.h"
@@ -269,18 +270,17 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     Stats.Fuel = 10000;
     Stats.Weapons = 10000;
 
-    //is weird code below, but this is from the original
-    //--Machinegun.Upgrade;
-    //--Missile.Upgrade;
+    --mMGun->Upgrade;
+    --Stats.MRocketUpgrade;
     --Booster.Upgrade;
 
-    // if (Machinegun.Upgrade < 0) {
-    //     Machinegun.Upgrade = 0;
-    // }
+    if (mMGun->Upgrade < 0) {
+         mMGun->Upgrade = 0;
+    }
 
-    // if (Missile.Upgrade < 0) {
-    //     Missile.Upgrade = 0;
-    // }
+    if (Stats.MRocketUpgrade < 0) {
+        Stats.MRocketUpgrade = 0;
+    }
 
     if (Booster.Upgrade < 0) {
          Booster.Upgrade = 0;
@@ -421,15 +421,13 @@ void VVehicle::vehicle_execute_action0x11_spawnpowerups() {
         v37 -= 1000;
     } while (v37 >= 1001);
 
-    //Add later when Minigun exists
-    //if (Minigun.Upgrade) {
-    //    //Spawn Minigun Upgrade
-    //}
+    if (mMGun->Upgrade) {
+        powerUpList.push_back(Entity::MinigunUpgrade);
+    }
 
-    //Add later when Missile exists
-    //if (Missile.Upgrade) {
-    //    //Spawn Missile Upgrade
-    //}
+    if (Stats.MRocketUpgrade) {
+        powerUpList.push_back(Entity::MissileUpgrade);
+    }
 
     if (Booster.Upgrade) {
         powerUpList.push_back(Entity::BoosterUpgrade);
@@ -609,18 +607,17 @@ void VVehicle::vehicle_execute_action0x18() {
 //or air refueling took place
 void VVehicle::vehicle_execute_action0x19_reset() {
     if (FlightModel.Flag.HealthDeath) {
-        //is weird code below, but this is from the original
-        //--Machinegun.Upgrade;
-        //--Missile.Upgrade;
+        --mMGun->Upgrade;
+        --Stats.MRocketUpgrade;
         --Booster.Upgrade;
 
-        // if (Machinegun.Upgrade < 0) {
-        //     Machinegun.Upgrade = 0;
-        // }
+        if (mMGun->Upgrade < 0) {
+             mMGun->Upgrade = 0;
+        }
 
-        // if (Missile.Upgrade < 0) {
-        //     Missile.Upgrade = 0;
-        // }
+        if (Stats.MRocketUpgrade < 0) {
+             Stats.MRocketUpgrade = 0;
+        }
 
         if (Booster.Upgrade < 0) {
              Booster.Upgrade = 0;
@@ -718,7 +715,6 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     //and the overflows back from 0xFF to 00
     mAbsTimeIntegrator += frameDeltaTime;
     if (mAbsTimeIntegrator >= 0.05) {
-        mAbsTimeIntegrator = 0.0f;
         if (ThingData.mTimeSlice < 0xFF) {
             ThingData.mTimeSlice++;
         } else {
@@ -729,6 +725,9 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         //timing close enough when called
         //here
         processWeaponBooster();
+
+        //process machine gun
+        mMGun->Update(mAbsTimeIntegrator);
 
         //do not update engine sound for the first ~300ms
         //of the race to prevent hearing the first height drop
@@ -747,6 +746,8 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         //add later, seems to be needed
         //ClosestMissile = 0;
         vehicle_do_action();
+
+        mAbsTimeIntegrator = 0.0f;
     }
 
     mUpdateVehicleTimeIntegrator += frameDeltaTime;
@@ -942,7 +943,7 @@ void VVehicle::SetupFlightModelConstants() {
     mSideslipToThrust = mRace->mVCalc->FixedPointToFloat8D8(60);
     mBounce = mRace->mVCalc->FixedPointToFloat8D8(50);
     Stats.Behind = 100;
-    Stats.MGunUpgrade = 0;
+    mMGun->Upgrade = 0;
     Stats.MRocketUpgrade = 0;
 
     mFriction = mRace->mVCalc->FixedPointToFloat8D8(10);
@@ -1006,6 +1007,9 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
    //from my side
    AutoTarget.PrimaryTarget = 0;
    AutoTarget.ValidTargetCount = 0;
+
+   //create the vanilla type machine gun
+   mMGun = new VMGun(mRace, this);
 
    SetupFlightModelConstants();
 
@@ -1817,6 +1821,7 @@ void VVehicle::vehicle_move_mapwho(irr::core::vector3df& delta) {
 void VVehicle::vehicle_control_from_player() {
     irr::f32 v13;
     irr::f32 v14;
+    int16_t v26;
 
     MovementInput.AngleXY = 0.0f;
     MovementInput.AngleXZ = 0.0f;
@@ -1866,6 +1871,23 @@ vehicle_control_from_player_LABEL_28:
     //and something regarding friction
 
     vehicle_targetting_system();
+
+    if (KeyPressedMachineGun) {
+        ++this->mMGun->Trigger;
+        v26 = this->mMGun->Upgrade;
+        if (v26 != 1) {
+            if (v26 >= 2) {
+                if ((v26 != 2) && (v26 != 3)) {
+                   goto vehicle_control_from_player_LABEL_45;
+                }
+            } else if (v26) {
+                   goto vehicle_control_from_player_LABEL_45;
+                }
+        }
+        this->mMGun->Target = (int16_t)(AutoTarget.PrimaryTarget);
+    }
+
+vehicle_control_from_player_LABEL_45:
 
     //Handle Booster key
     if (KeyPressedBooster) {
@@ -3154,7 +3176,7 @@ void VVehicle::vehicle_post_process() {
 
             //Player picks up a minigun upgrade?
             if ((ThingData.AffectStatus & 0x1000) != 0) {
-                ++Stats.MGunUpgrade;
+                ++mMGun->Upgrade;
             }
 
             //Player picks up a rocket upgrade?
@@ -3981,7 +4003,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
         case Entity::EntityType::MinigunUpgrade:
             //can only be picked up if mini-gun upgrade level is not already
             //at max
-            if (Stats.MGunUpgrade != 3) {
+            if (mMGun->Upgrade != 3) {
                 //we can make another upgrade
                 ThingData.AffectStatus |= 0x1000;
 
@@ -4429,5 +4451,10 @@ VVehicle::~VVehicle() {
 
     delete dirtTexIdsVec;
     dirtTexIdsVec = nullptr;
+
+    if (mMGun != nullptr) {
+        delete mMGun;
+        mMGun = nullptr;
+    }
 }
 
