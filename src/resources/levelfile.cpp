@@ -831,6 +831,15 @@ void LevelFile::RemoveRegion(MapTileRegionStruct* region) {
             it++;
         }
     }
+
+    //reassign the RegionId so that the are
+    //sequentially increasing
+    irr::u8 idx = 0;
+
+    for (it = mMapRegionVec->begin(); it != mMapRegionVec->end(); ++it) {
+        (*it)->regionId = idx;
+        idx++;
+    }
 }
 
 void LevelFile::ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType) {
@@ -865,17 +874,12 @@ bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2df
      RemoveRegion(pntr);
 
      //Add new region back, but with the new location
-     return (AddRegion(whichRegionId, coord1, coord2, storeType));
+     return (AddRegion(coord1, coord2, storeType));
 }
 
 //returns true if new region was created succesfully, False otherwise
-bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType) {
-   //if at the specified regionId there is already an existing region
-   //fail creation and return
-   MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
-
-   if (pntr != nullptr)
-       return false;
+bool LevelFile::AddRegion(irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType) {
+   MapTileRegionStruct* pntr;
 
    //if new region type is not specified or invalid return
    if ((newRegionType == LEVELFILE_REGION_UNDEFINED) || (newRegionType == LEVELFILE_REGION_TRIGGERCRAFT) ||
@@ -887,8 +891,10 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    irr::f32 midX = ((coord2.X - coord1.X) / 2.0f) + coord1.X;
    irr::f32 midY = ((coord2.Y - coord1.Y) / 2.0f) + coord1.Y;
 
+   irr::u8 newRegionId = (irr::u8)(mMapRegionVec->size());
+
    pntr = new MapTileRegionStruct();
-   pntr->regionId = whichRegionId;
+   pntr->regionId = newRegionId;
    pntr->tileXmax = coord2.X;
    pntr->tileYmax = coord2.Y;
    pntr->tileXmin = coord1.X;

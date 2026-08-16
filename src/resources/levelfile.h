@@ -199,7 +199,7 @@ public:
     void RemoveRegion(MapTileRegionStruct* region);
 
     //returns true if new region was created succesfully, False otherwise
-    bool AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType);
+    bool AddRegion(irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType);
 
     void ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType);
 

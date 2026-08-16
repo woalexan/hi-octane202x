@@ -40,6 +40,8 @@ struct GUIRegionMode
     irr::gui::IGUIScrollBar* RegionTableVertScrollBar;
 
     irr::gui::IGUIButton* ApplyButton;
+    irr::gui::IGUIButton* AddButton;
+    irr::gui::IGUIButton* RemoveButton;
 
     irr::gui::IGUIStaticText* RegionTypeComboBoxLabel;
     irr::gui::IGUIComboBox* RegionTypeComboBox;
@@ -71,6 +73,8 @@ private:
     irr::s32 FindRegionTableRowIdxForMapTileRegionStruct(MapTileRegionStruct* whichRegion);
 
     void ApplyChanges();
+    void AddRegion();
+    void RemoveRegion();
 
     //returns true if the newly entered region coordinates in the Ui
     //pass the plausi check, false otherwise
