@@ -280,6 +280,8 @@ add_executable(hi-octane202x
     src/utils/movingavg.cpp
 
     src/vanilla/vbase.h
+    src/vanilla/vthing.h
+    src/vanilla/vthing.cpp
     src/vanilla/vcalc.h
     src/vanilla/vcalc.cpp
     src/vanilla/vvehicle.h

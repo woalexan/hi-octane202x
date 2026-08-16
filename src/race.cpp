@@ -71,6 +71,7 @@
 #include "vanilla/debug/dbginterface.h"
 #include "vanilla/debug/structs/thinglist.h"
 #include "vanilla/vrepair.h"
+#include "vanilla/vthing.h"
 
 #include "game.h"
 #include "race.h"
@@ -240,9 +241,64 @@ bool Race::IsOriginalLevel5Loaded() {
     return false;
 }
 
+void Race::CreatePredefinedRegionThings() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+    std::vector<VThing*>::iterator it2;
+    irr::core::vector3df position;
+    VThing* newThingPntr;
+    std::vector<VThing*> newThingVec;
+
+    newThingVec.clear();
+
+    //remember value so that it can be restored afterwards
+    //again
+    int32_t backupValue = mLevelRes->mThingFree->Index;
+
+    //Temporarily shift value to start of Things
+    mLevelRes->mThingFree->Index = 998;
+
+    for (it = mLevelRes->mMapRegionVec->begin(); it != mLevelRes->mMapRegionVec->end(); ++it) {
+        //for each region create a Thing with Group 1, and
+        //member value depending on the region type
+        position.X = ((*it)->regionCenterTileCoord.X);
+        position.Y = ((*it)->regionCenterTileCoord.Y);
+
+        switch ((*it)->regionType) {
+           case LEVELFILE_REGION_CHARGER_AMMO:
+           case LEVELFILE_REGION_CHARGER_FUEL:
+           case LEVELFILE_REGION_CHARGER_SHIELD:
+           case LEVELFILE_REGION_START: {
+                newThingPntr = mThingManager->thing_initialise_member(position, 0.0f, 0.0f, 0.0f, 1, (int8_t)((*it)->regionType), -1);
+                if (newThingPntr != nullptr) {
+                    newThingVec.push_back(newThingPntr);
+                }
+                break;
+            }
+
+            default: {
+                break;
+            }
+        }
+    }
+
+    for (it2 = newThingVec.begin(); it2 != newThingVec.end(); ++it2) {
+        //15.08.2026: I believe I have to do this
+        //to have the same behavior as in the original game?
+        (*it2)->Child = 0;
+        (*it2)->Parent = 0;
+    }
+
+    if (backupValue != mLevelRes->mThingFree->Index) {
+        logging::Error("CreatePredefinedRegionThings: Something is wrong!");
+    }
+}
+
 Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
            SoundEngine* soundEngine, std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode,
            bool attributionActive, bool skipStart) {
+
+    mThingManager = new VThingManager(this);
+
     this->mMusicPlayer = gameMusicPlayerParam;
     this->mSoundEngine = soundEngine;
     this->mDemoMode = demoMode;
@@ -852,6 +908,11 @@ Race::~Race() {
     if (mVCalc != nullptr) {
         delete mVCalc;
         mVCalc = nullptr;
+    }
+
+    if (mThingManager != nullptr) {
+        delete mThingManager;
+        mThingManager = nullptr;
     }
 
     //IrrlichtStats((char*)("After race cleanup"));
@@ -3593,6 +3654,10 @@ bool Race::LoadLevel() {
        mGame->mEffect->addShadowToNode(mLevelBlocks->BlockCollisionSceneNode, mShadowMapFilterType, ESM_RECEIVE);
        mGame->mEffect->addShadowToNode(mLevelBlocks->BlockWithoutCollisionSceneNode, mShadowMapFilterType, ESM_RECEIVE);
    }
+
+   //we need to create the first predefined Things
+   //for the map regions
+   CreatePredefinedRegionThings();
 
    //create all level entities
    //this are not only items to pickup by the player

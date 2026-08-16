@@ -695,43 +695,6 @@ int8_t VCalculations::map_colide_4point(irr::core::vector3df position, irr::f32 
 }
 
 /***************************************************
- * Other map related stuff                         *
- ***************************************************/
-
-uint8_t VCalculations::mapwho_delete(ThingDataStruct* thingStruct) {
-    if ((thingStruct->Status & 1) == 0) {
-        return 0;
-    }
-
-    if ()
-
-
-
-}
-
-uint8_t VCalculations::mapwho_add(ThingDataStruct* thingStruct, irr::core::vector3df position) {
-
-}
-
-uint8_t VCalculations::mapwho_move(ThingDataStruct* thingStruct, irr::core::vector3df position) {
-    uint8_t result;
-
-    if (((int)(thingStruct->Position.X) == (int)(position.X))
-        && ((int)(thingStruct->Position.Y) == (int)(position.Y))) {
-        thingStruct->Position = position;
-        result = 0;
-        thingStruct->Status &= ~0x40;
-    } else {
-        mapwho_delete(thingStruct);
-        mapwho_add(thingStruct, position);
-        result = 1;
-        thingStruct->Status |= 0x40;
-    }
-
-    return result;
-}
-
-/***************************************************
  * Movement stuff                                  *
  ***************************************************/
 

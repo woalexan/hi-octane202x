@@ -146,6 +146,7 @@ class SpriteThing;
 class VRepair;
 struct ThingDataStruct;
 struct VehicleViewStruct;
+class VThingManager;
 
 class Race {
 public:
@@ -368,6 +369,10 @@ public:
 
     void CompareMemDumpsVanilla();
 
+    //handles the file data structure of the
+    //level
+    LevelFile *mLevelRes = nullptr;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -383,8 +388,11 @@ private:
     bool SetupSky();
 
     void InitialUpdateEntityPositions();
+    void CreatePredefinedRegionThings();
 
     irr::s32 shaderMaterial1;
+
+    VThingManager* mThingManager;
 
     //A irrlicht model to experiment with
     //the clone ship mode and craft movement
@@ -402,10 +410,6 @@ private:
     irr::u8 mRaceNumberOfLaps;
 
     void SetupTopRaceTrackPointerOrigin();
-
-    //handles the file data structure of the
-    //level
-    LevelFile *mLevelRes = nullptr;
 
     //my sky image for the level background
     irr::video::ITexture* mSkyImage = nullptr;
