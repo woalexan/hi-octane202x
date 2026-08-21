@@ -1005,6 +1005,11 @@ void Race::CleanUpEntities() {
            //type 2; This objects are taken care of by the
            //Collectablespawners itself!
            if (pntr->mEntityItem != nullptr) {
+               //If there is a Thing, also delete the Thing
+               if (pntr->ThingData != nullptr) {
+                     mThingManager->thing_delete(pntr->ThingData);
+               }
+
                //delete Collectable itself
                //this frees SceneNode and texture inside
                //collectable implementation
@@ -3528,8 +3533,15 @@ void Race::InitialUpdateEntityPositions() {
             irrCoord = (*it)->Position;
             vanCoord = mVCalc->IrrlichtToVanillaCoord(irrCoord);
             irrCoord.Y = mVCalc->map_altitude_lowest(vanCoord);
+            vanCoord.Z = irrCoord.Y;
 
             (*it)->UpdatePosition(irrCoord);
+
+            //If there is a thing also update the position
+            //of the Thing
+            if ((*it)->ThingData != nullptr) {
+                (*it)->ThingData->Position = vanCoord;
+            }
         }
     }
 
@@ -5320,8 +5332,20 @@ void Race::CreateEntity(EntityItem *p_entity,
                     //to sprite number 42, which is a sprite I did not know the purpose of
                     irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
 
+                    //also add the Thing
+                    int8_t groupVal;
+                    int8_t memberVal;
+                    irr::core::vector3df mVanillaSpawnLocation = mVCalc->IrrlichtToVanillaCoord(entity.getCenter());
+
+                    RevIdentifyEntity(entity.getEntityType(), groupVal, memberVal);
+
                     //Point to the correct (billboard) texture
                     collectable = new Collectable(this->mGame, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), this->mGame->enableLightning);
+
+                    collectable->ThingData =
+                        mThingManager->thing_initialise_member(mVanillaSpawnLocation, 0.0f, 0.0f, 0.0f,
+                                                    groupVal, memberVal, -1);
+
                     ENTCollectablesVec->push_back(collectable);
                     break;
         }

@@ -23,6 +23,7 @@ const irr::f32 CollectableSize_h = 0.45f;
  ************************/
 
 class InfrastructureBase;
+struct VThing;
 
 //Note 02.02.2025: In this project there are two different types of Collectables
 // Type 1: Entities (Collectables) that are stored inside the original game map files, and always
@@ -81,6 +82,10 @@ public:
     void UpdatePosition(irr::core::vector3df newPosition);
 
     void SetVisible(bool visible);
+
+    //Important: state contains the coordinates in vanilla
+    //(original game) coordinate system
+    VThing* ThingData = nullptr;
 
 private:
     InfrastructureBase* mInfra = nullptr;

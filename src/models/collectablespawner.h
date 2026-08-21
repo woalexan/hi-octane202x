@@ -14,7 +14,6 @@
 #include <vector>
 #include "../resources/entityitem.h"
 #include "../vanilla/vbase.h"
-#include "../vanilla/vthing.h"
 
 #define DEF_COLLECTABLE_SPAWNER_STATE_INITIAL 0
 #define DEF_COLLECTABLE_SPAWNER_STATE_SPAWNING 1
@@ -26,16 +25,13 @@
 
 class Race;
 class Collectable;
+struct VThing;
 
 //struct for keeping all the data of a spawned collectable entity
 //that is emitted from a spawnPoint
 struct SpawnedCollectableInfoStruct {
     //pointer to the spawned new collectable object
     Collectable* pntrCollectable = nullptr;
-
-    //Important: state contains the coordinates in vanilla
-    //(original game) coordinate system
-    VThing* state = nullptr;
 
     irr::f32 deltaTimeAcc;
 

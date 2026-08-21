@@ -14,6 +14,7 @@
 #include "../game.h"
 #include "../resources/texture.h"
 #include "../definitions.h"
+#include "../vanilla/vthing.h"
 
 //Important: input parameters use the vanilla (original games) coordinate system!
 CollectableSpawner::CollectableSpawner(Race* race, irr::core::vector3df vanillaSpawnLocation,
@@ -173,9 +174,9 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
               //run this function otherwise
               if ((*it)->deltaTimeAcc > 0.05) {
                  (*it)->deltaTimeAcc = 0.0f;
-                 (*it)->state->Life -= 1;
+                 (*it)->pntrCollectable->ThingData->Life -= 1;
 
-                 if ((*it)->state->Life < 0) {
+                 if ((*it)->pntrCollectable->ThingData->Life < 0) {
                      //hide the type 2 collectable, so that it can
                      //not be picked up anymore
                      (*it)->pntrCollectable->SetVisible(false);
@@ -204,10 +205,10 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
               }
 
               //item is still existing, calculate next position
-              UpdatePosition(deltaTime, (*it)->state);
+              UpdatePosition(deltaTime, (*it)->pntrCollectable->ThingData);
 
               //convert from vanilla to my Irrlicht coordinate system
-              irrCoordPos = mRace->mVCalc->VanillaToIrrlichtCoord((*it)->state->Position);
+              irrCoordPos = mRace->mVCalc->VanillaToIrrlichtCoord((*it)->pntrCollectable->ThingData->Position);
 
               //updates position of SceneNode, Boundingsbox etc...
               (*it)->pntrCollectable->UpdatePosition(irrCoordPos);
@@ -258,13 +259,6 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     //create a new struct with information how to spawn the collectable
     SpawnedCollectableInfoStruct* newInfoStruct = new SpawnedCollectableInfoStruct();
 
-    //get my thing
-    newInfoStruct->state =
-        mRace->mThingManager->thing_initialise_member(mVanillaSpawnLocation, 0.0f, 0.0f, 0.0f,
-                                    5, memberVal, -1);
-
-    newInfoStruct->state->Status |= 0x200u;
-
     //This creates the collectable SceneNode in Irrlicht, but also hides it immediately
     //so that first it is not visible
     Collectable* newCollectable = new Collectable(mRace->mGame, newEntityType, irrCoordPos,
@@ -273,10 +267,17 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     //keep a pointer to the sceneNode
     newInfoStruct->pntrCollectable = newCollectable;
 
+    //get my thing
+    newInfoStruct->pntrCollectable->ThingData =
+        mRace->mThingManager->thing_initialise_member(mVanillaSpawnLocation, 0.0f, 0.0f, 0.0f,
+                                    5, memberVal, -1);
+
+    newInfoStruct->pntrCollectable->ThingData->Status |= 0x200u;
+
     //we also need to fill out the ThingData struct
-    newInfoStruct->state->Position = mVanillaSpawnLocation;
-    newInfoStruct->state->CollideSize.set(1.0f, 1.0f, 1.0f);
-    newInfoStruct->state->Position.Z = mRace->mVCalc->map_floor(newInfoStruct->state->Position);
+    newInfoStruct->pntrCollectable->ThingData->Position = mVanillaSpawnLocation;
+    newInfoStruct->pntrCollectable->ThingData->CollideSize.set(1.0f, 1.0f, 1.0f);
+    newInfoStruct->pntrCollectable->ThingData->Position.Z = mRace->mVCalc->map_floor(newInfoStruct->pntrCollectable->ThingData->Position);
     newInfoStruct->deltaTimeAcc = 0.0f;
     newInfoStruct->endOfLifeReached = false;
     newInfoStruct->spawned = false;
@@ -291,8 +292,8 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     rNum = rand();
     rNumFloat1 = 0.3125f + (float(rNum) / float (RAND_MAX)) * 0.3125f;
 
-    newInfoStruct->state->Life = 200;
-    newInfoStruct->state->Movement.SpeedActual = rNumFloat1;
+    newInfoStruct->pntrCollectable->ThingData->Life = 200;
+    newInfoStruct->pntrCollectable->ThingData->Movement.SpeedActual = rNumFloat1;
 
 
     //create another random number for Movement.Angle.ZY
@@ -306,12 +307,12 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     rNum = rand();
     rNumFloat3 = -180.0f + (float(rNum) / float (RAND_MAX)) * 360.0f;
 
-    newInfoStruct->state->Movement.AngleXY = rNumFloat3;
-    newInfoStruct->state->Movement.AngleZY = -rNumFloat2;
+    newInfoStruct->pntrCollectable->ThingData->Movement.AngleXY = rNumFloat3;
+    newInfoStruct->pntrCollectable->ThingData->Movement.AngleZY = -rNumFloat2;
 
-    mRace->mVCalc->move_displacement_set(newInfoStruct->state->Displacement, newInfoStruct->state->Movement.AngleXY,
-                                         newInfoStruct->state->Movement.AngleZY,
-                                         newInfoStruct->state->Movement.SpeedActual);
+    mRace->mVCalc->move_displacement_set(newInfoStruct->pntrCollectable->ThingData->Displacement, newInfoStruct->pntrCollectable->ThingData->Movement.AngleXY,
+                                         newInfoStruct->pntrCollectable->ThingData->Movement.AngleZY,
+                                         newInfoStruct->pntrCollectable->ThingData->Movement.SpeedActual);
 
     //add to my vector of items to spawn
     mSpawnedCollectablesVec.push_back(newInfoStruct);
@@ -355,7 +356,7 @@ CollectableSpawner::~CollectableSpawner() {
 
            //Signal that the underlying Thing can be
            //deleted as well
-           mRace->mThingManager->thing_delete(pntrInfoStruct->state);
+           mRace->mThingManager->thing_delete(pntrInfoStruct->pntrCollectable->ThingData);
 
            //also delete the info struct
            delete pntrInfoStruct;
