@@ -14,6 +14,7 @@
 #include <vector>
 #include "../resources/entityitem.h"
 #include "../vanilla/vbase.h"
+#include "../vanilla/vthing.h"
 
 #define DEF_COLLECTABLE_SPAWNER_STATE_INITIAL 0
 #define DEF_COLLECTABLE_SPAWNER_STATE_SPAWNING 1
@@ -34,7 +35,7 @@ struct SpawnedCollectableInfoStruct {
 
     //Important: state contains the coordinates in vanilla
     //(original game) coordinate system
-    ThingDataStruct state;
+    VThing* state = nullptr;
 
     irr::f32 deltaTimeAcc;
 
@@ -69,7 +70,7 @@ private:
 
     void RegisterTemporaryCollectible(Collectable* collectibleToAdd);
 
-    int8_t UpdatePosition(irr::f32 deltaTime, ThingDataStruct& whichThing);
+    int8_t UpdatePosition(irr::f32 deltaTime, VThing* whichThing);
 };
 
 #endif // COLLECTABLESPAWNER_H

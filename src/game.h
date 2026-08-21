@@ -189,7 +189,7 @@ public:
 
     bool enableLightning = false;
     bool fullscreen = false;
-    bool DebugShowVariableBoxes = false;
+    bool DebugShowVariableBoxes = true;
 
     bool mDbgUnlocked = false;
 

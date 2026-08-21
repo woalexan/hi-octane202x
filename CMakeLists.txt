@@ -107,6 +107,7 @@ set(EXECUTABLE_OUTPUT_PATH "build")
 
 add_executable(hi-octane202x
     src/definitions.h
+    src/definitions.cpp
     src/resources/assets.h
     src/resources/assets.cpp
     src/resources/blockdefinition.h
@@ -345,6 +346,8 @@ add_executable(hi-octane202x
     src/main.cpp)
 
 add_executable(hi-editor
+    src/definitions.h
+    src/definitions.cpp
     src/resources/blockdefinition.h
     src/resources/blockdefinition.cpp
     src/resources/columndefinition.h

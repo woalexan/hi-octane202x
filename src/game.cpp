@@ -23,6 +23,7 @@
 #include "vanilla/vvehicle.h"
 #include "vanilla/vcamera.h"
 #include "vanilla/vbase.h"
+#include "vanilla/vthing.h"
 
 void Game::StopTime() {
     if (!mTimeStopped) {
@@ -1245,8 +1246,8 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
                     );*/
 
-            swprintf(text2, 390, L"");
-          // swprintf(text2, 390, L"%d", (int)(mCurrentRace->mVanillaCraftVec.at(1)->Stats.Invincable));
+            //swprintf(text2, 390, L"");
+           swprintf(text2, 390, L"%d", (int)(mCurrentRace->mThingManager->GetNumberActiveThings()));
 
          /*  swprintf(text2, 390, L"Increment.SpeedActual: %lf \nIncrementAdd.SpeedActual: %lf \nIncrementLimit.SpeedActual: %lf\nStat.Velocity: %lf", this->mCurrentRace->mVCraft->Increment.SpeedActual,
                     this->mCurrentRace->mVCraft->IncrementAdd.SpeedActual, this->mCurrentRace->mVCraft->IncrementLimit.SpeedActual, this->mCurrentRace->mVCraft->Stats.Velocity);*/

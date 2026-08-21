@@ -170,6 +170,29 @@ VThing* VThingManager::thing_initialise(irr::core::vector3df position,
     return thing_initialise_member(position, angleXY, angleZY, angleXZ, group, member, id);
 }
 
+int32_t VThingManager::GetNumberActiveThings() {
+    int32_t index = mParentRace->mLevelRes->mThingFree->Index;
+    return ((999 - index) - 1);
+}
+
+void VThingManager::RunHousekeeping() {
+    //Remove Things which are not needed anymore
+    size_t nextIndex = (size_t)(mParentRace->mLevelRes->mThingFree->Index);
+    int16_t pntrIdx = 0;
+
+    for (size_t idx = 999; idx > nextIndex; idx--) {
+        //a thing that can be deleted and is not used
+        //anymore has Flag 0x4 set
+        pntrIdx = mParentRace->mLevelRes->mThingFree->Thing[idx];
+
+        if (pntrIdx != 0) {
+            if ((Thing[pntrIdx].Status & 4) != 0) {
+                thing_remove(&Thing[pntrIdx]);
+            }
+        }
+    }
+}
+
 /***************************************************
  * Other map related stuff                         *
  ***************************************************/

@@ -2049,6 +2049,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
         //update all collectable spawners
         UpdateCollectableSpawners(0.065f);
+
+        mThingManager->RunHousekeeping();
     }
 
     //are we in Race start phase, if so also call
@@ -2853,7 +2855,7 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
      coordVec.clear();
 
      for (itPlayer = this->mVanillaCraftVec.begin(); itPlayer != this->mVanillaCraftVec.end(); ++itPlayer) {
-         vanCoord = (*itPlayer)->ThingData.Position;
+         vanCoord = (*itPlayer)->ThingData->Position;
          cell.X = (vanCoord.X / mLevelTerrain->segmentSize);
          cell.Y = (vanCoord.Y / mLevelTerrain->segmentSize);
 
@@ -3961,7 +3963,7 @@ void Race::vehicle_race_positions() {
               //I believe this flag is used to indicate that the player
               //has started the first lap, and therefore the HUD
               //is now shown
-              (*it)->ThingData.Status |= 0x800u;
+              (*it)->ThingData->Status |= 0x800u;
               PlayerCrossesFinishLineTheFirstTime();
           }
       }
@@ -3976,7 +3978,7 @@ void Race::vehicle_race_positions() {
               //Player has not yet started the first lap?
               if (!(*it)->LapCounter) {
                   //first lap not started yet, set flag also for this player
-                  (*it)->ThingData.Status |= 0x800u;
+                  (*it)->ThingData->Status |= 0x800u;
               }
          }
       }
@@ -4012,7 +4014,7 @@ void Race::vehicle_race_positions() {
       for (it = mVanillaCraftVec.begin(); it != mVanillaCraftVec.end(); ++it) {
           if (((*it)->ControlStatus & 1) != 0) {
               //mark the vehicle that it wants to exit the race
-              (*it)->ThingData.Status |= 0x1000u;
+              (*it)->ThingData->Status |= 0x1000u;
           }
       }
   }
@@ -4026,7 +4028,7 @@ void Race::vehicle_race_positions() {
             //The player finished the race. Does he still have time left
             //too see more of the remaining race as a spectator?
             if ((*it)->Conditions.RacePositionFinishShowTime) {
-               (*it)->CurrentWaypoint = mVTrack->track_waypoint_nearest((*it)->ThingData.Position);
+               (*it)->CurrentWaypoint = mVTrack->track_waypoint_nearest((*it)->ThingData->Position);
                (*it)->vehicle_set_autopilot_on();
                (*it)->vehicle_set_autodrive_on();
                //Decrement counter/timer for remaining spectator time
@@ -5469,7 +5471,7 @@ void Race::SpawnCollectiblesForPlayer(VVehicle* player, std::vector<Entity::Enti
 
    //create a new CollectableSpawner
    CollectableSpawner* newSpawner = new CollectableSpawner(
-               this, player->ThingData.Position, mGame->mSmgr, mGame->mDriver);
+               this, player->ThingData->Position, mGame->mSmgr, mGame->mDriver);
 
    std::vector<Entity::EntityType>::iterator it;
    for (it = powerUpList.begin(); it != powerUpList.end(); ++it) {

@@ -13,6 +13,7 @@
 #include "../utils/physics.h"
 #include "../draw/gametext.h"
 #include "../vanilla/vvehicle.h"
+#include "../vanilla/vthing.h"
 #include "../vanilla/vmgun.h"
 #include "../race.h"
 
@@ -959,7 +960,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         int sizeVec = (int)(throttleBar->size());
 
-        int nrThrottleBarElementsUnlit = GetNumberCurrentThrottleBars(monitorWhichPlayer->ThingData.Movement.SpeedActual);
+        int nrThrottleBarElementsUnlit = GetNumberCurrentThrottleBars(monitorWhichPlayer->ThingData->Movement.SpeedActual);
         int nrThrottleBarElementsLit = GetNumberCurrentBoosterBars(monitorWhichPlayer->Booster.TriggerTime);
 
         if (nrThrottleBarElementsLit < 0)
@@ -1981,7 +1982,7 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           ICameraSceneNode* actCamera = mGame->mSmgr->getActiveCamera();
 
           irr::core::vector3df targetPlayerPos =
-                mRace->mVCalc->VanillaToIrrlichtCoord(targetPlayer->ThingData.Position);
+                mRace->mVCalc->VanillaToIrrlichtCoord(targetPlayer->ThingData->Position);
 
           irr::core::vector2di targetPos = getScreenCoordinatesFrom3DPosition(targetPlayerPos, actCamera);
 

@@ -15,6 +15,7 @@
 #include <fstream>
 #include "../../utils/logging.h"
 #include "structs/thing.h"
+#include "../vthing.h"
 #include "structs/thingvehicle.h"
 #include "structs/basicstructs.h"
 #include "structs/vvectors.h"
@@ -442,19 +443,19 @@ void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle
     compareDump->ThingVehicle->Update(mDumpLevelStructStart + 0x40B3C + playerThing->VehicleIndex->mRawValue * 0x1F0);
 
     //Now compare values of internal vehicle with vehicle from memory dump of original game
-    CompareTwoFloats(std::string("ThingData.Position.X"), compareVehicle.ThingData.Position.X, playerThing->Position->XPos->mFloatValue);
-    CompareTwoFloats(std::string("ThingData.Position.Y"), compareVehicle.ThingData.Position.Y, playerThing->Position->YPos->mFloatValue);
-    CompareTwoFloats(std::string("ThingData.Position.Z"), compareVehicle.ThingData.Position.Z, playerThing->Position->ZPos->mFloatValue);
+    CompareTwoFloats(std::string("ThingData.Position.X"), compareVehicle.ThingData->Position.X, playerThing->Position->XPos->mFloatValue);
+    CompareTwoFloats(std::string("ThingData.Position.Y"), compareVehicle.ThingData->Position.Y, playerThing->Position->YPos->mFloatValue);
+    CompareTwoFloats(std::string("ThingData.Position.Z"), compareVehicle.ThingData->Position.Z, playerThing->Position->ZPos->mFloatValue);
 
-    CompareTwoFloats(std::string("ThingData.Displacement.X"), compareVehicle.ThingData.Displacement.X, playerThing->Displacement->XPos->mFloatValue);
-    CompareTwoFloats(std::string("ThingData.Displacement.Y"), compareVehicle.ThingData.Displacement.Y, playerThing->Displacement->YPos->mFloatValue);
-    CompareTwoFloats(std::string("ThingData.Displacement.Z"), compareVehicle.ThingData.Displacement.Z, playerThing->Displacement->ZPos->mFloatValue);
+    CompareTwoFloats(std::string("ThingData.Displacement.X"), compareVehicle.ThingData->Displacement.X, playerThing->Displacement->XPos->mFloatValue);
+    CompareTwoFloats(std::string("ThingData.Displacement.Y"), compareVehicle.ThingData->Displacement.Y, playerThing->Displacement->YPos->mFloatValue);
+    CompareTwoFloats(std::string("ThingData.Displacement.Z"), compareVehicle.ThingData->Displacement.Z, playerThing->Displacement->ZPos->mFloatValue);
 
-    CompareTwoInt16s(std::string("ThingData.Life"), compareVehicle.ThingData.Life, playerThing->Life->mRawValue);
+    CompareTwoInt16s(std::string("ThingData.Life"), compareVehicle.ThingData->Life, playerThing->Life->mRawValue);
 
-    CompareMovementData(std::string("ThingData.Movement."), &compareVehicle.ThingData.Movement, playerThing->Movement);
+    CompareMovementData(std::string("ThingData.Movement."), &compareVehicle.ThingData->Movement, playerThing->Movement);
 
-    CompareTwoInt16s(std::string("ThingData.TimeSlice"), static_cast<int16_t>(static_cast<int8_t>(compareVehicle.ThingData.mTimeSlice)), static_cast<int16_t>(playerThing->TimeSlice->mRawValue));
+    CompareTwoInt16s(std::string("ThingData.TimeSlice"), static_cast<int16_t>(static_cast<int8_t>(compareVehicle.ThingData->TimeSlice)), static_cast<int16_t>(playerThing->TimeSlice->mRawValue));
 
     //targetVehicle.KeyPressedAccel
     //targetVehicle.KeyPressedDeaccel
@@ -587,19 +588,19 @@ void DbgInterface::SetVehicleStatePlayerFromMemDump(VVehicle& targetVehicle, Mem
 
     //now copy parsed data into my internal game object for debugging
     //purposes
-    targetVehicle.ThingData.Position.X = playerThing->Position->XPos->mFloatValue;
-    targetVehicle.ThingData.Position.Y = playerThing->Position->YPos->mFloatValue;
-    targetVehicle.ThingData.Position.Z = playerThing->Position->ZPos->mFloatValue;
+    targetVehicle.ThingData->Position.X = playerThing->Position->XPos->mFloatValue;
+    targetVehicle.ThingData->Position.Y = playerThing->Position->YPos->mFloatValue;
+    targetVehicle.ThingData->Position.Z = playerThing->Position->ZPos->mFloatValue;
 
-    targetVehicle.ThingData.Displacement.X = playerThing->Displacement->XPos->mFloatValue;
-    targetVehicle.ThingData.Displacement.Y = playerThing->Displacement->YPos->mFloatValue;
-    targetVehicle.ThingData.Displacement.Z = playerThing->Displacement->ZPos->mFloatValue;
+    targetVehicle.ThingData->Displacement.X = playerThing->Displacement->XPos->mFloatValue;
+    targetVehicle.ThingData->Displacement.Y = playerThing->Displacement->YPos->mFloatValue;
+    targetVehicle.ThingData->Displacement.Z = playerThing->Displacement->ZPos->mFloatValue;
 
-    targetVehicle.ThingData.Life = playerThing->Life->mRawValue;
+    targetVehicle.ThingData->Life = playerThing->Life->mRawValue;
 
-    CopyMovementClassToMovementStruct(targetVehicle.ThingData.Movement, playerThing->Movement);
+    CopyMovementClassToMovementStruct(targetVehicle.ThingData->Movement, playerThing->Movement);
 
-    targetVehicle.ThingData.mTimeSlice = (uint8_t)(playerThing->TimeSlice->GetRawValue());
+    targetVehicle.ThingData->TimeSlice = (uint8_t)(playerThing->TimeSlice->GetRawValue());
 
     //targetVehicle.KeyPressedAccel
     //targetVehicle.KeyPressedDeaccel

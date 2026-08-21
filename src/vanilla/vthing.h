@@ -71,13 +71,14 @@ struct VThing {
     int8_t Action = 0;
     int8_t Group = 0;
     uint8_t TimeSlice = 0;
-
 };
 
 class VThingManager {
 public:
     VThingManager(Race* parentRace);
     ~VThingManager();
+
+    int32_t GetNumberActiveThings();
 
     VThing* thing_initialise_member(irr::core::vector3df position,
                                     irr::f32 angleXY,
@@ -102,6 +103,8 @@ public:
     uint8_t mapwho_delete(VThing* whichThing);
     uint8_t mapwho_add(VThing* whichThing, irr::core::vector3df position);
     uint8_t mapwho_move(VThing* whichThing, irr::core::vector3df position);
+
+    void RunHousekeeping();
 
 private:
     Race* mParentRace = nullptr;

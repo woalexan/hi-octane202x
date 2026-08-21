@@ -33,6 +33,7 @@
 
 #include "vcamera.h"
 #include "vvehicle.h"
+#include "vthing.h"
 #include "debug/structs/cam.h"
 #include "debug/structs/basicstructs.h"
 #include "debug/datatools.h"
@@ -227,13 +228,13 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
 
        SetIrrlichtCamera(mParentRace->vanTestCam, &mCameraWindow.Camera);
     } else {
-        v92 = whichVehicle->ThingData.Position.Z;
+        v92 = whichVehicle->ThingData->Position.Z;
         v92Int = mParentRace->mVCalc->FloatToFixedPoint8D8(v92);
         v92Int |= 2;
-        irr::f32 saveVal =  whichVehicle->ThingData.Position.Z;
-        whichVehicle->ThingData.Position.Z = mParentRace->mVCalc->FixedPointToFloat8D8(v92Int);
+        irr::f32 saveVal =  whichVehicle->ThingData->Position.Z;
+        whichVehicle->ThingData->Position.Z = mParentRace->mVCalc->FixedPointToFloat8D8(v92Int);
         SetIrrlichtCamera(mParentRace->vanTestCam, &mCameraWindow.Camera);
-        whichVehicle->ThingData.Position.Z = saveVal;
+        whichVehicle->ThingData->Position.Z = saveVal;
     }
 }
 

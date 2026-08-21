@@ -37,6 +37,7 @@
 #include "../race.h"
 #include "../game.h"
 #include "../resources/texture.h"
+#include "../vanilla/vthing.h"
 
 VMGun::VMGun(Race* parentRace, VVehicle* owner) {
     mParentRace = parentRace;
@@ -170,21 +171,21 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
         angleXZ = mOwner->View.AngleXZ;
         if (Target) {
             targetVehicle = mParentRace->GetVehicleWithId((size_t)(Target));
-            angleXY = mParentRace->mVCalc->angle_get_xy(mOwner->ThingData.Position,
-                                                  targetVehicle->ThingData.Position);
-            angleZY = mParentRace->mVCalc->angle_get_zy(mOwner->ThingData.Position,
-                                                  targetVehicle->ThingData.Position);
+            angleXY = mParentRace->mVCalc->angle_get_xy(mOwner->ThingData->Position,
+                                                  targetVehicle->ThingData->Position);
+            angleZY = mParentRace->mVCalc->angle_get_zy(mOwner->ThingData->Position,
+                                                  targetVehicle->ThingData->Position);
         }
         v10 = 1;
-        p_Position = &mOwner->ThingData.Position;
+        p_Position = &mOwner->ThingData->Position;
         do {
           //v12 = thing_initialise(p_Position, &angle, 6, 0, v6->Id);
           v12 = CreateBulletThing(p_Position, angleXY, angleZY, angleXZ);
           if (v12 != nullptr) {
               ++mOwner->Conditions.Bullets;
               //sample_play(v6, 15);
-              v13 = mOwner->ThingData.Status ^ 0x10;
-              mOwner->ThingData.Status = v13;
+              v13 = mOwner->ThingData->Status ^ 0x10;
+              mOwner->ThingData->Status = v13;
               v14 = -90.0f;
               if ((v13 & 0x10) != 0) {
                   v14 = 90.0f;
@@ -203,7 +204,7 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
               //v12->ThingData.Upgrade = this->Upgrade;
           }
           --v10;
-          p_Position = &mOwner->ThingData.Position;
+          p_Position = &mOwner->ThingData->Position;
         } while (v10);
       }
       Trigger = 0;

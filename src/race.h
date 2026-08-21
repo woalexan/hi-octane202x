@@ -373,6 +373,8 @@ public:
     //level
     LevelFile *mLevelRes = nullptr;
 
+    VThingManager* mThingManager = nullptr;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -391,8 +393,6 @@ private:
     void CreatePredefinedRegionThings();
 
     irr::s32 shaderMaterial1;
-
-    VThingManager* mThingManager;
 
     //A irrlicht model to experiment with
     //the clone ship mode and craft movement

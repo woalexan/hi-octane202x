@@ -245,6 +245,7 @@ struct VehicleAutoTargetStruct {
 
 class Race;
 struct MapTileRegionStruct;
+struct VThing;
 
 class VVehicle {
 public:
@@ -264,8 +265,8 @@ public:
     bool KeyPressedBooster = false;
     bool KeyPressedMachineGun = false;
 
-    //Thing data
-    ThingDataStruct ThingData;
+    //Pointer to my thing
+    VThing* ThingData = nullptr;
 
     Race* mRace = nullptr;
 

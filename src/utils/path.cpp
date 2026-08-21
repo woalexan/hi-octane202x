@@ -16,6 +16,7 @@
 #include "../models/levelterrain.h"
 #include "../models/collectable.h"
 #include "../vanilla/vvehicle.h"
+#include "../vanilla/vthing.h"
 
 Path::Path(Race* parentRace, DrawDebug* pntrDrawDebug)
 {
@@ -484,7 +485,7 @@ bool Path::DoesPathComeTooCloseToAnyOtherPlayer(std::vector<WayPointLinkInfoStru
 std::vector<std::pair <WayPointLinkInfoStruct*, irr::core::vector3df>> Path::PlayerFindCloseWaypointLinks(VVehicle* whichPlayer) {
 
     irr::core::vector3df projPlayerPositionMid;
-    irr::core::vector3df vanPos = whichPlayer->ThingData.Position;
+    irr::core::vector3df vanPos = whichPlayer->ThingData->Position;
     irr::core::vector3df irrPos = mRace->mVCalc->VanillaToIrrlichtCoord(vanPos);
 
     WayPointLinkInfoStruct* midLink = PlayerFindClosestWaypointLinkHelper(irrPos, projPlayerPositionMid);
