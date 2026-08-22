@@ -144,7 +144,7 @@ class VCamera;
 class DbgInterface;
 class SpriteThing;
 class VRepair;
-struct ThingDataStruct;
+struct VThing;
 struct VehicleViewStruct;
 class VThingManager;
 
@@ -353,7 +353,7 @@ public:
 
     //Coordinates in the vector below are stored in the "vanilla"
     //coordinate system
-    std::vector<ThingDataStruct*> mVanillaCheckpointVec;
+    std::vector<VThing*> mVanillaCheckpointVec;
 
     //needed for a workaround in original game
     //in vrepair.cpp

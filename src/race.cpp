@@ -350,12 +350,6 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mChargingStationVec->clear();
 
     mVanillaCheckpointVec.clear();
-    //we need to add a first dummy element
-    //to make the remaining code implementation work
-    ThingDataStruct* newDummy = new ThingDataStruct();
-    newDummy->Index = 0;
-    mVanillaCheckpointVec.push_back(newDummy);
-
     mCollectableSpawnerVec.clear();
 
     //my vector of player that need help
@@ -3546,9 +3540,9 @@ void Race::InitialUpdateEntityPositions() {
     }
 
     //do the same for the vanilla checkpoints
-    std::vector<ThingDataStruct*>::iterator it2;
+    std::vector<VThing*>::iterator it2;
 
-    for (it2 = mVanillaCheckpointVec.begin() + 1; it2 != mVanillaCheckpointVec.end(); ++it2) {
+    for (it2 = mVanillaCheckpointVec.begin(); it2 != mVanillaCheckpointVec.end(); ++it2) {
             //the position in this struct is already
             //stored in the vanilla "coordinate" system
             vanCoord = (*it2)->Position;
@@ -3862,22 +3856,24 @@ void Race::AddCheckPoint(EntityItem entity) {
     //all created, add Checkpoint to our list
     this->checkPointVec->push_back(newStruct);
 
-    //Also at the same time add vanilla representation of checkbox
-    ThingDataStruct* newThingStruct = new ThingDataStruct();
-    newThingStruct->Count = entity.getValue();
-    newThingStruct->CollideSize = entity.DecodeCollideSize();
+    //Also at the same time add vanilla representation of checkpoint
+    irr::core::vector3df irrCoord = entity.getCenter();
+    irr::core::vector3df vanCoord =
+            mVCalc->IrrlichtToVanillaCoord(irrCoord);
 
-    irr::core::vector3df irrPosEntity = entity.getCenter();
-    irr::core::vector3df vanPosEntity = mVCalc->IrrlichtToVanillaCoord(irrPosEntity);
-    vanPosEntity.Z = 0.0f; //the game has at this point of time no height information
-    newThingStruct->Position = vanPosEntity + newThingStruct->CollideSize;
-    newThingStruct->Displacement.set(0.0f, 0.0f, 0.0f);
+    VThing* newThing =
+        mThingManager->thing_initialise_member(vanCoord, 0.0f, 0.0f, 0.0f,
+                                    1, 5, -1);
 
-    //here we start with index 1, because when we initialized the mVanillaCheckpointVec
-    //vector we first added a dummy element;
-    newThingStruct->Index = mVanillaCheckpointVec.size();
+    mThingManager->mapwho_delete(newThing);
+    newThing->Count = entity.getValue();
+    newThing->CollideSize = entity.DecodeCollideSize();
 
-    mVanillaCheckpointVec.push_back(newThingStruct);
+    vanCoord.Z = 0.0f; //the game has at this point of time no height information
+    newThing->Position = vanCoord + newThing->CollideSize;
+    newThing->Displacement.set(0.0f, 0.0f, 0.0f);
+
+    mVanillaCheckpointVec.push_back(newThing);
 }
 
 //Returns nullptr for an invalid request
@@ -3916,19 +3912,16 @@ uint8_t Race::vehicle_race_positions_compare(VVehicle* vehicle1, VVehicle* vehic
     result = 0;
 
     if (v3 == v5) {
-        //the next lines were modified by me to work
-        //with my modified checkpoint system compared to
-        //the original game, but the purpose is similar
         if (!vehicle1->CheckPoint) {
             v8 = 16000;
         } else {
-            v8 = mVanillaCheckpointVec.at(vehicle1->CheckPoint)->Count;
+            v8 = mThingManager->Thing[vehicle1->CheckPoint].Count;
         }
 
         if (!vehicle2->CheckPoint) {
             count = 16000;
         } else {
-            count = mVanillaCheckpointVec.at(vehicle2->CheckPoint)->Count;
+            count = mThingManager->Thing[vehicle2->CheckPoint].Count;
         }
 
         v10 = (v8 < count);
@@ -4129,8 +4122,8 @@ void Race::CleanUpAllCheckpoints() {
     delete checkPointVec;
 
     //also cleanup all vanilla checkpoint structs
-    std::vector<ThingDataStruct*>::iterator it2;
-    ThingDataStruct* pntr2;
+    std::vector<VThing*>::iterator it2;
+    VThing* pntr2;
 
     if (this->mVanillaCheckpointVec.size() > 0) {
         for (it2 = this->mVanillaCheckpointVec.begin(); it2 != this->mVanillaCheckpointVec.end(); ) {
@@ -4139,7 +4132,7 @@ void Race::CleanUpAllCheckpoints() {
            it2 = this->mVanillaCheckpointVec.erase(it2);
 
            //delete the struct itself
-           delete pntr2;
+           mThingManager->thing_delete(pntr2);
         }
     }
 }

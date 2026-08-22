@@ -410,7 +410,7 @@ public:
 
     //This variables seems to have something to do with
     //checkpoint handling
-    size_t Counter[8];
+    int16_t Counter[8];
 
     void vehicle_set_camera();
 
@@ -482,8 +482,8 @@ private:
     void vehicle_post_process();
 
     int32_t vehicle_get_checkpoint();
-    uint8_t vehicle_process_checkpoint(size_t cp_colide);
-    size_t vehicle_checkpoint_find_next(size_t forCheckPointIdx);
+    uint8_t vehicle_process_checkpoint(int16_t cp_colide);
+    int16_t vehicle_checkpoint_find_next(int16_t forCheckPointIdx);
     void vehicle_checkpoint_next_lap();
 
     //Returns a possible vehicle target within a specified

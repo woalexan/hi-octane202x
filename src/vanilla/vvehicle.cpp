@@ -2181,9 +2181,9 @@ void VVehicle::vehicle_set_autodrive_off() {
 
 int32_t VVehicle::vehicle_get_checkpoint() {
    int32_t v5 = 0;
-   size_t currClosestCheckPointIdx;
+   int16_t currClosestCheckPointIdx;
    irr::core::vector3df distance;
-   std::vector<ThingDataStruct*>::iterator it;
+   std::vector<VThing*>::iterator it;
    int32_t v21;
 
    //is currently a checkpoint assigned to this vehicle?
@@ -2195,7 +2195,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
       currClosestCheckPointIdx = 0;
 
       //check all existing checkpoints
-      for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+      for (it = mRace->mVanillaCheckpointVec.begin();
            it != mRace->mVanillaCheckpointVec.end();
            ++it) {
 
@@ -2209,7 +2209,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
 
       if ((currClosestCheckPointIdx > 0) &&
             vehicle_process_checkpoint(currClosestCheckPointIdx)) {
-          if (!mRace->mVanillaCheckpointVec.at(CheckPoint)->Count) {
+          if (!mRace->mThingManager->Thing[CheckPoint].Count) {
               vehicle_checkpoint_next_lap();
               v5 = 1;
           }
@@ -2219,7 +2219,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
 
       DistanceToNextCheckpoint = mRace->mVCalc->distance_get_rough_xy(
                   ThingData->Position,
-                  mRace->mVanillaCheckpointVec.at(CheckPoint)->Position);
+                  mRace->mThingManager->Thing[CheckPoint].Position);
 
       if (LapCounter == (RaceLaps - 1) && v5) {
           FlightModel.FunctionFlag.Pad1 = true;
@@ -2259,7 +2259,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
        //Currently no closest checkpoint assigned
        //we want to find and assign the first checkpoint
        //with Count == 0
-       for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+       for (it = mRace->mVanillaCheckpointVec.begin();
             it != mRace->mVanillaCheckpointVec.end();
             ++it) {
            //we found the first checkpoint, assign it to vehicle
@@ -2276,7 +2276,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
    return 0;
 }
 
-uint8_t VVehicle::vehicle_process_checkpoint(size_t cp_colide) {
+uint8_t VVehicle::vehicle_process_checkpoint(int16_t cp_colide) {
     uint8_t v4 = 0;
 
     //is the specified input checkpoint the same that is currently
@@ -2291,31 +2291,25 @@ uint8_t VVehicle::vehicle_process_checkpoint(size_t cp_colide) {
     return v4;
 }
 
-size_t VVehicle::vehicle_checkpoint_find_next(size_t forCheckPointIdx) {
-    size_t index = 0;
+int16_t VVehicle::vehicle_checkpoint_find_next(int16_t forCheckPointIdx) {
+    int16_t index = 0;
     int16_t count;
     int16_t v8;
     bool v9;
-    size_t result = 0;
+    int16_t result = 0;
     int16_t i = 1000;
 
-    std::vector<ThingDataStruct*>::iterator it;
-    ThingDataStruct* pntr = nullptr;
-    ThingDataStruct* pntr2 = nullptr;
+    std::vector<VThing*>::iterator it;
+    VThing* pntr = nullptr;
+    VThing* pntr2 = nullptr;
 
     //for which checkpoint do we search the next one?
-    for (it = mRace->mVanillaCheckpointVec.begin() + 1;
-         it != mRace->mVanillaCheckpointVec.end(); ++it) {
-           if ((*it)->Index == forCheckPointIdx) {
-               pntr = (*it);
-               break;
-           }
-    }
+    pntr = &mRace->mThingManager->Thing[forCheckPointIdx];
 
     if (pntr != nullptr) {
         v8 = pntr->Count + 1;
 
-        for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+        for (it = mRace->mVanillaCheckpointVec.begin();
              it != mRace->mVanillaCheckpointVec.end(); ++it) {
                count = (*it)->Count;
                if ( count == v8) {

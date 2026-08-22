@@ -212,18 +212,18 @@ uint16_t VRepair::repair_vehicle_find_drop_waypoint(VVehicle* targetVehicle) {
    int32_t v12;
    int32_t v15;
    bool firstLoop;
-   ThingDataStruct* checkPntStructCounter0 = nullptr;
-   ThingDataStruct* checkPntStructCounter2 = nullptr;
+   VThing* checkPntStructCounter0 = nullptr;
+   VThing* checkPntStructCounter2 = nullptr;
    irr::core::vector3df position;
    irr::f32 colSizeX;
    irr::f32 colSizeY;
 
-    std::vector<ThingDataStruct*>::iterator it;
+    std::vector<VThing*>::iterator it;
 
    //which checkpoint is in this vehicle Count[0] value?
-   for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+   for (it = mRace->mVanillaCheckpointVec.begin();
         it != mRace->mVanillaCheckpointVec.end(); ++it) {
-          if ((*it)->Index == (size_t)(targetVehicle->Counter[0])) {
+          if ((*it)->Index == targetVehicle->Counter[0]) {
               checkPntStructCounter0 = (*it);
               break;
           }
@@ -244,9 +244,9 @@ uint16_t VRepair::repair_vehicle_find_drop_waypoint(VVehicle* targetVehicle) {
    v9minIdx = static_cast<int32_t>(v6);
 
    //which checkpoint is in this vehicle Count[2] value?
-   for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+   for (it = mRace->mVanillaCheckpointVec.begin();
         it != mRace->mVanillaCheckpointVec.end(); ++it) {
-          if ((*it)->Index == (size_t)(targetVehicle->Counter[2])) {
+          if ((*it)->Index == targetVehicle->Counter[2]) {
               checkPntStructCounter2 = (*it);
               break;
           }
