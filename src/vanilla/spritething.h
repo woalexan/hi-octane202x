@@ -11,7 +11,7 @@
 #define SPRITETHING_H
 
 #include <irrlicht.h>
-#include "vbase.h"
+#include "vthing.h"
 #include <vector>
 
 //Forward declaration
@@ -30,7 +30,7 @@ public:
     //returns false if lifetime is over
     virtual bool Update(irr::f32 frameDeltaTime);
 
-    ThingDataStruct ThingData;
+    VThing ThingData;
 
     //Is set to true if this SpriteThing
     //has reached End of Life and needs to be

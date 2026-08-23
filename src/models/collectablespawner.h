@@ -25,16 +25,13 @@
 
 class Race;
 class Collectable;
+struct VThing;
 
 //struct for keeping all the data of a spawned collectable entity
 //that is emitted from a spawnPoint
 struct SpawnedCollectableInfoStruct {
     //pointer to the spawned new collectable object
     Collectable* pntrCollectable = nullptr;
-
-    //Important: state contains the coordinates in vanilla
-    //(original game) coordinate system
-    ThingDataStruct state;
 
     irr::f32 deltaTimeAcc;
 
@@ -69,7 +66,7 @@ private:
 
     void RegisterTemporaryCollectible(Collectable* collectibleToAdd);
 
-    int8_t UpdatePosition(irr::f32 deltaTime, ThingDataStruct& whichThing);
+    int8_t UpdatePosition(irr::f32 deltaTime, VThing* whichThing);
 };
 
 #endif // COLLECTABLESPAWNER_H

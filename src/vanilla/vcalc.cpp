@@ -41,7 +41,6 @@
 #include "../resources/mapentry.h"
 #include "../infrabase.h"
 #include "../utils/logging.h"
-#include "../draw/drawdebug.h"
 #include <cmath>
 
 VCalculations::VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks)
@@ -50,8 +49,6 @@ VCalculations::VCalculations(InfrastructureBase* infra, LevelFile* levelFile, Le
     mLevelFile = levelFile;
     mLevelTerrain = levelTerrain;
     mLevelBlocks = levelBlocks;
-
-    testTex = mInfra->mDriver->getTexture("extract/sprites/tmaps0029.png");
 }
 
 //projects vector a onto vector b
@@ -86,48 +83,6 @@ irr::core::vector3df VCalculations::IrrlichtToVanillaCoord(irr::core::vector3df 
     result.Z = irrlichtCoord.Y;
 
     return result;
-}
-
-void VCalculations::AddTestObject(irr::core::vector3df position) {
-    this->testThing1 = new ThingDataStruct();
-    testThing1->Position = IrrlichtToVanillaCoord(position);
-    testThing1->Stationary = false;
-    /*testThing1->Movement.SpeedActual =
-         FixedPointToFloat((int16_t)(mInfra->randRangeInt(80, 80 + 0x50)));
-         -FixedPointToFloat((int16_t)(mInfra->randRangeInt(3640, 3640 + 0x31C7)));*/
-
-    //move_displacement_set(testThing1->Displacement, 90.0f, 135.0f, 1.0f);
-    move_displacement_set(testThing1->Displacement, 150.0f, 135.0f, 1.0f);
-
-    testThing1->Life = 200;
-
-    this->testNode  = mInfra->mSmgr->addBillboardSceneNode();
-    this->testNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR);
-    this->testNode->setMaterialTexture(0, testTex);
-
-    //Important: let collectables (Billboards) unaffected by lightning,
-    //otherwise there are sometimes not good to see for the player
-    this->testNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-    this->testNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
-
-    this->testNode->setPosition(VanillaToIrrlichtCoord(testThing1->Position));
-    this->testNode->setSize(irr::core::dimension2d<irr::f32>(0.45f, 0.45f));
-
-    //get bounding box for this collectible
-    this->testNode->updateAbsolutePosition();
-   // this->boundingBox = this->billSceneNode->getTransformedBoundingBox();
-}
-
-void VCalculations::DebugDrawDisplacement(ThingDataStruct& whichThing) {
-    irr::core::vector3df dirVec = VanillaToIrrlichtCoord(whichThing.Displacement);
-    dirVec.normalize();
-
-    irr::core::vector3df irrCoord1 = VanillaToIrrlichtCoord(whichThing.Position);
-    mInfra->mDrawDebug->Draw3DLine(irrCoord1, irrCoord1 + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mInfra->mDrawDebug->orange);
-}
-
-void VCalculations::DebugDraw() {
-    DebugDrawDisplacement(*testThing1);
 }
 
 /***************************************************
@@ -975,6 +930,12 @@ bool VCalculations::Verify_move_xyz_step(int16_t startXPos, int16_t startYPos, i
     return true;
 }
 
+void VCalculations::move_swap_positions(irr::core::vector3df& position1, irr::core::vector3df& position2) {
+    irr::core::vector3df v4 = position1;
+    position1 = position2;
+    position2 = v4;
+}
+
 //Returns true of verify move_xyz works as expected, False
 //otherwise
 bool VCalculations::Verify_move_xyz() {
@@ -1112,6 +1073,18 @@ bool VCalculations::Verify_arctanPlusMultiply32() {
     }
 
     return false;
+}
+
+//Careful: This function returns the angle in degress for a 360° unit circle
+//The original game uses inside a 256° (step) unit circle!
+irr::f32 VCalculations::angle_get_zy(irr::core::vector3df position_from, irr::core::vector3df position_to) {
+    //Note for me: The multiplication with 32 in the original game in this function
+    //is actually part of the result calculation in arctan function of original game
+    //itself; I moved it inside arctanPlusMultiply32, and so we are not allowed to
+    //accidently apply it again!
+    irr::f32 xy;
+    xy = distance_get_xy(position_from, position_to);
+    return arctanPlusMultiply32(position_from.Z - position_to.Z, -xy);
 }
 
 //Careful: This function returns the angle in degress for a 360° unit circle
@@ -1665,5 +1638,3 @@ bool VCalculations::Verify_vanilla_calculations() {
 
     return false;
 }
-
-

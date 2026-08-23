@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -28,6 +28,7 @@
 //User setup end
 
 #include "irrlicht.h"
+#include <cstdint>
 
 /************************
  * Forward declarations *
@@ -42,6 +43,27 @@ struct LineStruct {
 
   irr::core::line3df irrLine;
 };
+
+namespace Entity {
+    enum EntityType {
+              Unknown, UnknownShieldItem, UnknownItem,
+              ExtraShield, ShieldFull, DoubleShield,
+              ExtraAmmo, AmmoFull, DoubleAmmo,
+              ExtraFuel, FuelFull, DoubleFuel,
+              MinigunUpgrade, MissileUpgrade, BoosterUpgrade,
+              WallSegment,
+              WaypointFuel, WaypointAmmo, WaypointShield, WaypointUnknownVal5, WaypointSpecial1, WaypointSpecial2, WaypointSpecial3, WaypointFast, WaypointSlow, WaypointShortcut,
+              RecoveryTruck,
+              SteamStrong, SteamLight, Cone, Checkpoint,
+              MorphSource1, MorphSource2, MorphOnce, MorphPermanent,
+              TriggerCraft, TriggerTimed, TriggerRocket,
+              DamageCraft,
+              Explosion, ExplosionParticles, Camera,
+              //the InternalTemporaryWaypoint type is not stored inside the
+              //game level files, it is only used for computer player routing/control
+              InternalTemporaryWaypoint
+        };
+}
 
 enum {
     // I use this ISceneNode ID to indicate a scene node that is
@@ -61,6 +83,10 @@ enum {
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
+
+//Function prototypes
+Entity::EntityType IdentifyEntity(int8_t mRawType, int8_t mRawSubType);
+void RevIdentifyEntity(Entity::EntityType newEntityType, int8_t &newType, int8_t &newSubType);
 
 #ifdef _MSC_VER 
 //not #if defined(_WIN32) || defined(_WIN64) because we have strncasecmp in mingw

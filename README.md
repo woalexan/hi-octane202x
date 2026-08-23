@@ -5,16 +5,33 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
-### Update 19.04.2026
-Currently the visible project progress on Github almost came to a standstill, but this does not mean that the project has stopped.
-I gained much deeper insight into the workings of the original game, and currently I still try to learn how everything works together, and also try
-to apply this information to make this project hopefully better in the future.
+### Update 23.08.2026
+Since beginning of this year I am in the process of replacing my own older source code with new source code more or less based on the
+original games implementation. This will make my project feel much closer to the original. Right now the project contains old source code and
+new implementations in parallel, and in the near future I will beginn to remove old now unnecessary parts step by step.
 
-This will be a lengthy and difficult process for me, as I will need to rewrite and replace a lot of already existing source code in the coming months and
-years. But to be honest this is the only way to make my current project more true to the original and to do it justice.
+I made a lot of progress over the last 4 months or so. This is already implemented:
 
-Also Thank you for your understanding in case I temporarily break this project in the near future while doing bigger changes in the implementation. I will try to avoid it, but
-I am almost certain this will happen.
+#### Current state
+- Extraction of the original game data into usable file formats is working
+- Vehicle physics according to original game (Right now runs at ~50ms update period as the Playstation 1 version, will increase update rate later)
+- Booster is implemented
+- Player stats (Health, Fuel, Ammo), Recharging stations are working
+- HUD during the race is working (Race start lights not yet implemented)
+- Recovery vehicles are working
+- Computer player steering (basic function working, but there must be a hidden bug somewhere I need to fix, so not perfect)
+- Auto Target System (so other players can be targeted)
+- Machinegun is now working (but does not enough damage right now, Possible bug needs to be fixed, also no sound yet)
+
+#### TODO
+- Missile is not implemented yet
+- Computer players do not shot yet
+- Race does not end when amount of laps is reached
+- "Demo" mode with external cameras still is missing
+- Many effects need to be reimplemented (Steam effects, Explosions)
+
+Because of this huge rework this also means the main branch of this game is right now not really playable. But I will try to fix the game
+as fast as possible over the upcoming months. Thank you for your understanding and patience.
 
 ![level3_25122025](screenshots/level3-25122025.png)
 
@@ -79,6 +96,10 @@ I will continue to add and improve existing functions.
 I would never have been able to start this project without the great work, effort and help from many people before me. A big thank you to everybody that made this
 project possible! Many parts of the original game file formats were reverse engineered in the great "HiOctaneTools" project which can be also found on GitHub. My first steps were directly based on the original C# source code of this project, and I started to develop everything else based on this some years ago.
 
+I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
+Without this support I would not have been able to rework the project completely starting of 2026, and then the final outcome would never have
+reached a level that is acceptable at the end.
+
 Another valuable source of information was the DOS Game Modding Wiki. Especially regarding information about the sound, video and music files of
 the game. This project is based on the Irrlicht Engine for output window creation and graphics. For sound and music I started to use the great SFML library.
 Playing the original game music files was a pretty challenging task, and it took me a lot of investigations and attempts to make it work. At the end I succeded by combining source code of multiple great open source software projects and the libADLMIDI library. This software also takes care of OPL chip emulation that is necessary to play the original games music.
@@ -87,17 +108,6 @@ Last but not least I want to thank my wife, my two children, and my family for l
 
 ![craftselection](screenshots/craftselection.png)
 
-#### Current state
-The game development is still work in progress. It can be played, but there is more need for further improvements and bugfixes.
-
-- Extraction of the original game data into usable file formats is working
-- Loading the original game levels does work, and the basic game mechanics are there.
-- Output is currently in Windowed mode, 640x480 pixels (vanilla) or 1280x960 resolution. The level editor always uses the higher resolution.
-- I already added the possibility to enable shadows and an improved sky. I am currently try to learn more aber shaders and use them for further improvements 
-- Please be aware that I did not try to implement the original controls of the game, the craft controls will work and feel different
-- Unfortunetly the computer players are way too basic right now, this is the area where I will need to do most of the improvements in future
-
-![level4](screenshots/level4.png)
 
 #### Ideas for the future
 - Try to add dynamical lighting effects, and maybe utilize shaders

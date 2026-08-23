@@ -13,6 +13,8 @@
 #include "../models/collectable.h"
 #include "../game.h"
 #include "../resources/texture.h"
+#include "../definitions.h"
+#include "../vanilla/vthing.h"
 
 //Important: input parameters use the vanilla (original games) coordinate system!
 CollectableSpawner::CollectableSpawner(Race* race, irr::core::vector3df vanillaSpawnLocation,
@@ -29,7 +31,7 @@ CollectableSpawner::CollectableSpawner(Race* race, irr::core::vector3df vanillaS
 //from original game
 //Important note: Works with vanilla coordinate system
 //of original game!
-int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, ThingDataStruct& whichThing) {
+int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, VThing* whichThing) {
    irr::core::vector3df intPosition;
    irr::core::vector3df intDisplacement;
    irr::f32 XPos;
@@ -41,39 +43,39 @@ int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, ThingDataStruct& w
    bool Flag2Set;
    bool Flag4Set;
 
-   if (!whichThing.Stationary) {
-      intPosition.X = whichThing.Position.X;
-      intPosition.Y = whichThing.Position.Y;
-      intPosition.Z = whichThing.Position.Z;
+   if ((whichThing->Status & 0x200u) != 0) {
+      intPosition.X = whichThing->Position.X;
+      intPosition.Y = whichThing->Position.Y;
+      intPosition.Z = whichThing->Position.Z;
 
-      XPos = whichThing.Displacement.X;
+      XPos = whichThing->Displacement.X;
       irr::f32 v9 = XPos + (float)(7.0f / 256.0f);
       if (v9 < 0.0f) {
           v9 += (float)(7.0f / 256.0f);
       }
 
-      whichThing.Displacement.X -= (v9 / 8.0f);
+      whichThing->Displacement.X -= (v9 / 8.0f);
 
-      YPos = whichThing.Displacement.Y;
+      YPos = whichThing->Displacement.Y;
       irr::f32 v11 = YPos + (float)(7.0f / 256.0f);
       if (v11 < 0.0f) {
           v11 += (float)(7.0f / 256.0f);
       }
 
-      whichThing.Displacement.Y -= (v11 / 8.0f);
+      whichThing->Displacement.Y -= (v11 / 8.0f);
 
-      ZPos = whichThing.Displacement.Z;
+      ZPos = whichThing->Displacement.Z;
       ZPos -= (float)(8.0f / 256.0f);
 
       if (ZPos < (float)(-100.0f / 256.0f)) {
           ZPos = (float)(-100.0f / 256.0f);
       }
 
-      whichThing.Displacement.Z = ZPos;
+      whichThing->Displacement.Z = ZPos;
 
-      mRace->mVCalc->move_displacement_xyz(intPosition, whichThing.Displacement, 1);
+      mRace->mVCalc->move_displacement_xyz(intPosition, whichThing->Displacement, 1);
 
-      int8_t collideResult = mRace->mVCalc->map_colide_direction(whichThing.Position, intPosition);
+      int8_t collideResult = mRace->mVCalc->map_colide_direction(whichThing->Position, intPosition);
 
       isNoCollision = (collideResult == 0);
       Flag1Set = ((collideResult & 1) != 0);
@@ -85,15 +87,15 @@ int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, ThingDataStruct& w
 
           if (!isNoCollision) {
               irr::f32 v18 = 0.0f;
-              if (whichThing.Displacement.X > 0.0f) {
+              if (whichThing->Displacement.X > 0.0f) {
                   v18 = (float)(1.0f / 256.0f);
               }
 
-              v18 -= whichThing.Displacement.X;
+              v18 -= whichThing->Displacement.X;
               v18 = v18 * 0.5f;
 
-              whichThing.Displacement.X = v18;
-              intPosition.X = whichThing.Position.X + v18;
+              whichThing->Displacement.X = v18;
+              intPosition.X = whichThing->Position.X + v18;
           }
 
            isNoCollision = !Flag2Set;
@@ -101,27 +103,27 @@ int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, ThingDataStruct& w
 
            if (!isNoCollision) {
                irr::f32 v21 = 0.0f;
-               if (whichThing.Displacement.Y > 0.0f) {
+               if (whichThing->Displacement.Y > 0.0f) {
                    v21 = (float)(1.0f / 256.0f);
                }
 
-               v21 -= whichThing.Displacement.Y;
+               v21 -= whichThing->Displacement.Y;
                v21 = v21 * 0.5f;
 
-               whichThing.Displacement.Y = v21;
-               intPosition.Y = whichThing.Position.Y + v21;
+               whichThing->Displacement.Y = v21;
+               intPosition.Y = whichThing->Position.Y + v21;
            }
 
            if (Flag4Set) {
-               irr::f32 v23 = (float)((-120.0f / 256.0f)) * whichThing.Displacement.Z;
-               whichThing.Displacement.Z = v23;
+               irr::f32 v23 = (float)((-120.0f / 256.0f)) * whichThing->Displacement.Z;
+               whichThing->Displacement.Z = v23;
 
                if (v23 < (float)(10.0f / 256.0f)) {
-                   whichThing.Displacement.Z = 0.0f;
+                   whichThing->Displacement.Z = 0.0f;
                }
 
-              intPosition.Z = whichThing.Displacement.Z + mRace->mVCalc->map_floor(intPosition);
-              mRace->mVCalc->move_displacement_slope(whichThing.Position, intDisplacement);
+              intPosition.Z = whichThing->Displacement.Z + mRace->mVCalc->map_floor(intPosition);
+              mRace->mVCalc->move_displacement_slope(whichThing->Position, intDisplacement);
 
               irr::f32 v24 = -1.0f;
               if ((intDisplacement.X < -1.0f) ||
@@ -135,13 +137,13 @@ int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, ThingDataStruct& w
                   intDisplacement.Y = v25;
               }
 
-              whichThing.Displacement.X += intDisplacement.X / 16.0f;
-              whichThing.Displacement.Y += intDisplacement.Y / 16.0f;
+              whichThing->Displacement.X += intDisplacement.X / 16.0f;
+              whichThing->Displacement.Y += intDisplacement.Y / 16.0f;
            }
       }
 
-      //TODO: ? mapwho_move(whichThing, position);
-      whichThing.Position = intPosition;
+      mRace->mThingManager->mapwho_move(whichThing, intPosition);
+      //whichThing->Position = intPosition;
       return 1;
    }
 
@@ -172,9 +174,9 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
               //run this function otherwise
               if ((*it)->deltaTimeAcc > 0.05) {
                  (*it)->deltaTimeAcc = 0.0f;
-                 (*it)->state.Life -= 1;
+                 (*it)->pntrCollectable->ThingData->Life -= 1;
 
-                 if ((*it)->state.Life < 0) {
+                 if ((*it)->pntrCollectable->ThingData->Life < 0) {
                      //hide the type 2 collectable, so that it can
                      //not be picked up anymore
                      (*it)->pntrCollectable->SetVisible(false);
@@ -203,10 +205,10 @@ void CollectableSpawner::Update(irr::f32 deltaTime) {
               }
 
               //item is still existing, calculate next position
-              UpdatePosition(deltaTime, (*it)->state);
+              UpdatePosition(deltaTime, (*it)->pntrCollectable->ThingData);
 
               //convert from vanilla to my Irrlicht coordinate system
-              irrCoordPos = mRace->mVCalc->VanillaToIrrlichtCoord((*it)->state.Position);
+              irrCoordPos = mRace->mVCalc->VanillaToIrrlichtCoord((*it)->pntrCollectable->ThingData->Position);
 
               //updates position of SceneNode, Boundingsbox etc...
               (*it)->pntrCollectable->UpdatePosition(irrCoordPos);
@@ -249,21 +251,33 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     //convert from vanilla to my Irrlicht coordinate system
     irrCoordPos = mRace->mVCalc->VanillaToIrrlichtCoord(this->mVanillaSpawnLocation);
 
+    int8_t groupVal;
+    int8_t memberVal;
+
+    RevIdentifyEntity(newEntityType, groupVal, memberVal);
+
+    //create a new struct with information how to spawn the collectable
+    SpawnedCollectableInfoStruct* newInfoStruct = new SpawnedCollectableInfoStruct();
+
     //This creates the collectable SceneNode in Irrlicht, but also hides it immediately
     //so that first it is not visible
     Collectable* newCollectable = new Collectable(mRace->mGame, newEntityType, irrCoordPos,
                                                   mRace->mTexLoader->spriteTex.at(spriteNr), this->mRace->mGame->enableLightning);
 
-    //create a new struct with information how to spawn the collectable
-    SpawnedCollectableInfoStruct* newInfoStruct = new SpawnedCollectableInfoStruct();
-
     //keep a pointer to the sceneNode
     newInfoStruct->pntrCollectable = newCollectable;
 
+    //get my thing
+    newInfoStruct->pntrCollectable->ThingData =
+        mRace->mThingManager->thing_initialise_member(mVanillaSpawnLocation, 0.0f, 0.0f, 0.0f,
+                                    5, memberVal, -1);
+
+    newInfoStruct->pntrCollectable->ThingData->Status |= 0x200u;
+
     //we also need to fill out the ThingData struct
-    newInfoStruct->state.Position = mVanillaSpawnLocation;
-    newInfoStruct->state.CollideSize.set(1.0f, 1.0f, 1.0f);
-    newInfoStruct->state.Position.Z = mRace->mVCalc->map_floor(newInfoStruct->state.Position);
+    newInfoStruct->pntrCollectable->ThingData->Position = mVanillaSpawnLocation;
+    newInfoStruct->pntrCollectable->ThingData->CollideSize.set(1.0f, 1.0f, 1.0f);
+    newInfoStruct->pntrCollectable->ThingData->Position.Z = mRace->mVCalc->map_floor(newInfoStruct->pntrCollectable->ThingData->Position);
     newInfoStruct->deltaTimeAcc = 0.0f;
     newInfoStruct->endOfLifeReached = false;
     newInfoStruct->spawned = false;
@@ -278,8 +292,8 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     rNum = rand();
     rNumFloat1 = 0.3125f + (float(rNum) / float (RAND_MAX)) * 0.3125f;
 
-    newInfoStruct->state.Life = 200;
-    newInfoStruct->state.Movement.SpeedActual = rNumFloat1;
+    newInfoStruct->pntrCollectable->ThingData->Life = 200;
+    newInfoStruct->pntrCollectable->ThingData->Movement.SpeedActual = rNumFloat1;
 
 
     //create another random number for Movement.Angle.ZY
@@ -293,12 +307,12 @@ void CollectableSpawner::AddCollectableToSpawn(Entity::EntityType newEntityType)
     rNum = rand();
     rNumFloat3 = -180.0f + (float(rNum) / float (RAND_MAX)) * 360.0f;
 
-    newInfoStruct->state.Movement.AngleXY = rNumFloat3;
-    newInfoStruct->state.Movement.AngleZY = -rNumFloat2;
+    newInfoStruct->pntrCollectable->ThingData->Movement.AngleXY = rNumFloat3;
+    newInfoStruct->pntrCollectable->ThingData->Movement.AngleZY = -rNumFloat2;
 
-    mRace->mVCalc->move_displacement_set(newInfoStruct->state.Displacement, newInfoStruct->state.Movement.AngleXY,
-                                         newInfoStruct->state.Movement.AngleZY,
-                                         newInfoStruct->state.Movement.SpeedActual);
+    mRace->mVCalc->move_displacement_set(newInfoStruct->pntrCollectable->ThingData->Displacement, newInfoStruct->pntrCollectable->ThingData->Movement.AngleXY,
+                                         newInfoStruct->pntrCollectable->ThingData->Movement.AngleZY,
+                                         newInfoStruct->pntrCollectable->ThingData->Movement.SpeedActual);
 
     //add to my vector of items to spawn
     mSpawnedCollectablesVec.push_back(newInfoStruct);
@@ -339,6 +353,10 @@ CollectableSpawner::~CollectableSpawner() {
            //delete Collectable itself
            //this frees the SceneNode
            delete pntrCollectible;
+
+           //Signal that the underlying Thing can be
+           //deleted as well
+           mRace->mThingManager->thing_delete(pntrInfoStruct->pntrCollectable->ThingData);
 
            //also delete the info struct
            delete pntrInfoStruct;

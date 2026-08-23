@@ -107,6 +107,7 @@ set(EXECUTABLE_OUTPUT_PATH "build")
 
 add_executable(hi-octane202x
     src/definitions.h
+    src/definitions.cpp
     src/resources/assets.h
     src/resources/assets.cpp
     src/resources/blockdefinition.h
@@ -280,6 +281,8 @@ add_executable(hi-octane202x
     src/utils/movingavg.cpp
 
     src/vanilla/vbase.h
+    src/vanilla/vthing.h
+    src/vanilla/vthing.cpp
     src/vanilla/vcalc.h
     src/vanilla/vcalc.cpp
     src/vanilla/vvehicle.h
@@ -290,6 +293,8 @@ add_executable(hi-octane202x
     src/vanilla/vcamera.cpp
     src/vanilla/vrepair.h
     src/vanilla/vrepair.cpp
+    src/vanilla/vmgun.h
+    src/vanilla/vmgun.cpp
 
     src/vanilla/debug/dbginterface.h
     src/vanilla/debug/dbginterface.cpp
@@ -341,6 +346,8 @@ add_executable(hi-octane202x
     src/main.cpp)
 
 add_executable(hi-editor
+    src/definitions.h
+    src/definitions.cpp
     src/resources/blockdefinition.h
     src/resources/blockdefinition.cpp
     src/resources/columndefinition.h

@@ -29,19 +29,20 @@
 #include "../definitions.h"
 
 /* LevelFile Layout, 21.02.2026: Updated table using new insights into the original game (Thank you Aybe)
+                     16.08.2026: Reorganize table to show Thing section
 
    Offset 0          => Offset 23      A first entity entry (24 Bytes), is it actually used in game? First entity actually visibily used in level is at Offset 24!
 1. Offset 24         => Offset 95999   "Used" Entity-Table (stores 3999 Entities), In original game called "ThingInit"
    Offset 96000      => Offset 98011   "ThingList" ThingsFree. The original game uses this list during run time to know which of the max possible 1000 Things (Entities)
                                        currently exist, and which not. Data contains an index for each thing that points to another part of memory which actually holds
                                        the data for this thing. Therefore in the levelfile in this region we mostly see a number increasing by 1 each time.
-                                       This increasing number is the index into the other memory region. 2011 bytes; Only useful during runtime of game
+                                       This increasing number is the index into the other memory region. 2011 bytes; Needed for defining charger spots and race start (Map Regions)
    Offset 98012      => Offset 98037   A first column def. entry (26 Bytes), is it actually used in game? First entry actually visibily used in level is at Offset 98038
 2. Offset 98038      => Offset 124635  "Used" Column-Definitions (stores 1023 Column Definitions)
    Offset 124636     => Offset 124651  A first block def. entry (16 Bytes), is it actually used in game? First entry actually visibily used in level is at Offset 124652
 3. Offset 124652     => Offset 141019  Block-Definitions  (stores 1023 Block Definitions)
-   Offset 141020     => Offset 246923  Unknown data (105904 bytes)
-4. Offset 246924     => Offset 247603  Region-Definitions (stores 8 Region Definitions)
+   Offset 141020     => Offset 162604  Unknown data (21584 bytes)
+4. Offset 162604     => Offset 247603  Thing table (1000 Things, each 85 bytes), Here starting from the end Map Regions are predefined
    Offset 247604     => Offset 357667  Unknown data (110064 bytes)
    Offset 357668     => Offset 358180  ColideTypes[256] array ("Friction Values") (512 bytes); used by the Flightmodel
    Offset 358181     => Offset 404619  Unknown data (46439 bytes)
@@ -104,19 +105,16 @@ LevelFile::LevelFile(InfrastructureBase* infra, std::string filename, bool runAs
         return;
     }
 
+    //loadThingListData needs to be called before loadMapRegions!
     ready_result = loadBlockTexTable() && loadColumnsTable() && loadMapEntries() && loadEntitiesTable() &&
-            loadMapRegions() && loadFrictionTable();
+            loadThingListData() && loadMapRegions() && loadFrictionTable();
 
     //also load unknown table data
     ready_result &= loadUnknownTableAtOffset(0, 24, unknownTable0Data);
-    ready_result &= loadUnknownTableAtOffset(96000, 2038, unknownTable96000Data);
+    ready_result &= loadUnknownTableAtOffset(98012, 26, unknownTable98012Data);
     ready_result &= loadUnknownTableAtOffset(124636, 16, unknownTable124636Data);
-    ready_result &= loadUnknownTableAtOffset(141020, 105904, unknownTable141020Data);
+    ready_result &= loadUnknownTableAtOffset(141020, 21584, unknownTable141020Data);
     ready_result &= loadUnknownTableAtOffset(247604, 157016, unknownTable247604Data);
-
-    //21.02.2026: Load until now unknown data into newly found structs as well
-    //If this structs are found to be used and useful remove the unknown table stuff above
-    ready_result &= loadThingListData();
 
     this->m_Ready = ready_result;
 
@@ -127,7 +125,7 @@ LevelFile::LevelFile(InfrastructureBase* infra, std::string filename, bool runAs
 
     if (false) {
         PrintUnknownTableAtOffset(0, unknownTable0Data);
-        PrintUnknownTableAtOffset(96000, unknownTable96000Data);
+        PrintUnknownTableAtOffset(98012, unknownTable98012Data);
         PrintUnknownTableAtOffset(124636, unknownTable124636Data);
         PrintUnknownTableAtOffset(141020, unknownTable141020Data);
         PrintUnknownTableAtOffset(247604, unknownTable247604Data);
@@ -217,9 +215,9 @@ LevelFile::~LevelFile() {
            delete pntrRegion;
     }
 
-    if (mThingList != nullptr) {
-        delete mThingList;
-        mThingList = nullptr;
+    if (mThingFree != nullptr) {
+        delete mThingFree;
+        mThingFree = nullptr;
     }
 
     //delete all MapEntry objects
@@ -317,7 +315,7 @@ bool LevelFile::loadEntitiesTable() {
 
 bool LevelFile::loadThingListData() {
     //Create a new "ThingList" struct
-    mThingList = new ThingListStruct;
+    mThingFree = new ThingListStruct;
 
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
@@ -332,18 +330,18 @@ bool LevelFile::loadThingListData() {
     unsigned int currOff = 0;
 
     for (size_t idx = 0; idx < 1000; idx++) { //There are 1000 Things in the ThingsList
-        mThingList->Thing[idx] = ConvertByteArray_ToInt16(dataslice, currOff);
+        mThingFree->Thing[idx] = ConvertByteArray_ToInt16(dataslice, currOff);
 
         currOff += 2;
     }
 
-    mThingList->Index = ConvertByteArray_ToInt32(dataslice, currOff);
+    mThingFree->Index = ConvertByteArray_ToInt32(dataslice, currOff);
     currOff += 4;
 
-    mThingList->Sector = static_cast<uint32_t>(ConvertByteArray_ToInt32(dataslice, currOff));
+    mThingFree->Sector = static_cast<uint32_t>(ConvertByteArray_ToInt32(dataslice, currOff));
     currOff += 4;
 
-    mThingList->Group = static_cast<uint32_t>(ConvertByteArray_ToInt32(dataslice, currOff));
+    mThingFree->Group = static_cast<uint32_t>(ConvertByteArray_ToInt32(dataslice, currOff));
 
     return(true);
 }
@@ -531,6 +529,9 @@ bool LevelFile::Save(std::string filename) {
 
    saveRegionTable();
 
+   //make sure saveThingListData is called after saveRegionTable!
+   saveThingListData();
+
    //copy initial read level data to write level data
    //array, to make sure that all data makes sense we do not
    //yet know what it means
@@ -551,134 +552,153 @@ bool LevelFile::Save(std::string filename) {
    return(true);
 }
 
-//The function below reads the region definition table inside the level file
-//and uses this information to define the regions in the map
-//it seems maximum number of possible regions is 8, which leaves space for up to 7 charging
-//areas and one race starting location
+//15.08.2026: I learned that the map regions (Charger locations, Start area) are
+//actually defined in the map files by predefining existing Things. The ThingsFree list in the
+//map file will tell us how many things are predefined. We can parse the right amount of this Things from the Thing
+//section in the map file, and then preinit this Things before the remaing entities etc. are loaded and created
+//This mechanism means that there can be technically as much regions defined as there can be max things in the
+//game
 bool LevelFile::loadMapRegions() {
+    std::vector<uint8_t> thingData;  //this table has 85 bytes (contains data of a Thing)
+
+    //How many predefined things are in this map?
+    int preExistingThingsCnt = (999 - mThingFree->Index) - 1;
+
+    //The first thing entry in mThingFreeList is always
+    //at index 999
+    int currThingFreeIndx = 999;
+    int currThingIdx;
+
+    int baseOffset;
+
     std::vector<uint8_t>::const_iterator startslice;
     std::vector<uint8_t>::const_iterator endslice;
 
-    int baseOffset = 246924;
-
-    startslice = this->m_bytes.begin() + baseOffset;
-    //map region definition table has 8 entries with each 85 bytes
-    endslice = this->m_bytes.begin()+ baseOffset + 8 * 85;
-    regionTable.assign(startslice, endslice);
-
     //extract region definition information
-    for (int i = 0; i < 8; i++) {
-        //is there an entry? if so create a MapTileRegionStruct with info
-        //we have an entry if byte 0 is unequal to 0
-        if (regionTable.at(i * 85) != 0x0) {
-            //create new entry
-            MapTileRegionStruct* newRegion = new MapTileRegionStruct();
-            newRegion->regionId = i;
+    //What we do in reality is to crudly parse some of the predefined
+    //Things data
+    for (int i = 0; i < preExistingThingsCnt; i++) {
+        //what is the index into the Thing table for the current entry?
+        currThingIdx = mThingFree->Thing[currThingFreeIndx-1];
 
-            //Byte 0 defines the region type
-            newRegion->regionType = regionTable.at(i * 85);
-            //value 1 means Shield charger location
-            //value 2 means Fuel charger location
-            //value 3 means Ammo charger location
-            //value 4 means map start location
+        baseOffset = 162604 + 85 * currThingIdx;
 
-            //Byte 2 seems to only contain value 1, if entry is used, not interesting to read, but we need to write it like that
-            //Byte 3 & 4 always contain a fixed predefined value according to number of entry from 224 up to 231 (do not read, but write)
-            //Byte 5 seems to only contain value 3 if entry is used, not interesting to read, but we need to write it like that
-            //Byte 12 always contain a fixed predefined value according to number of entry from 200 up to 207 (do not read, but write)
-            //Byte 13 seems to only contain value 7 if entry is used, not interesting to read, but we need to write it like that
-            //Byte 16 seem to always have the same value as Byte 4
-            //Byte 17 seem to always have the same value as Byte 5
-            //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
-            //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
-            //for the other levels), and the extended version of the game has (compared with non extended game another)
-            //the same value for all levels, except level 7 which is an exception).
-            //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
-            //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
-            //the value used for almost all levels in extended version of the game.
-            //Byte offset 49 seems to be always value 128 for each existing entry
-            //Byte 69 contains value 244 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
-            //(anti cheat mechanism?)
+        startslice = this->m_bytes.begin() + baseOffset;
+        //Thing data struct has 85 bytes
+        endslice = this->m_bytes.begin()+ baseOffset + 85;
+        thingData.assign(startslice, endslice);
 
-            //middle point of rectangle that defines region is stored
-            //at byte location 24 & 25 and location 26 & 27 of this current table entry line
-            newRegion->regionCenterTileCoord.X = (irr::f32)(regionTable.at(i * 85 + 25));
-            newRegion->regionCenterTileCoord.Y = (irr::f32)(regionTable.at(i * 85 + 27));
-
-            //Byte at offset 24 seems to only use values 0 and 128 (128 means add 0.5f)
-            if (regionTable.at(i * 85 + 24) == 128) {
-               newRegion->regionCenterTileCoord.X += 0.5f;
-            }
-
-            //Byte at offset 26 seems to only use values 0 and 128 (128 means add 0.5f)
-            if (regionTable.at(i * 85 + 26) == 128) {
-               newRegion->regionCenterTileCoord.Y += 0.5f;
-            }
-
-            //region size is specified in terms of tiles counted from
-            //the middle point towards both axis directions
-            //for "X-axis" the deltaX is stored at byte 45 & 46
-            irr::f32 deltaX = (irr::f32)(regionTable.at(i * 85 + 46));
-
-            //Byte at offset 45 seems to only use values 0 and 128 (128 means add 0.5f)
-            if (regionTable.at(i * 85 + 45) == 128) {
-               deltaX += 0.5f;
-            }
-
-            //for "Y-axis" the deltaY is stored at byte 47 & 48
-            irr::f32 deltaY = (irr::f32)(regionTable.at(i * 85 + 48));
-
-            //Byte at offset 47 seems to only use values 0 and 128 (128 means add 0.5f)
-            if (regionTable.at(i * 85 + 47) == 128) {
-               deltaY += 0.5f;
-            }
-
-            //now calculate region tile min/max for the later game code according
-            //to all input information
-            newRegion->tileXmin = newRegion->regionCenterTileCoord.X - deltaX;
-            newRegion->tileXmax = newRegion->regionCenterTileCoord.X + deltaX;
-
-            if (newRegion->tileXmin < 0)
-                newRegion->tileXmin = 0.0f;
-
-            if (newRegion->tileXmin >= this->Width()) {
-                newRegion->tileXmin = (irr::f32)(this->Width()) - 1.0f;
-            }
-
-            if (newRegion->tileXmax < 0)
-                newRegion->tileXmax = 0.0f;
-
-            if (newRegion->tileXmax >= this->Width()) {
-                newRegion->tileXmax = (irr::f32)(this->Width()) - 1.0f;
-            }
-
-            newRegion->tileYmin = newRegion->regionCenterTileCoord.Y - deltaY;
-            newRegion->tileYmax = newRegion->regionCenterTileCoord.Y + deltaY;
-
-            if (newRegion->tileYmin < 0)
-                newRegion->tileYmin = 0.0f;
-
-            if (newRegion->tileYmin >= this->Height()) {
-                newRegion->tileYmin = (irr::f32)(this->Height()) - 1.0f;
-            }
-
-            if (newRegion->tileYmax < 0)
-                newRegion->tileYmax = 0;
-
-            if (newRegion->tileYmax >= this->Height()) {
-                newRegion->tileYmax = (irr::f32)(this->Height()) - 1.0f;
-            }
-
-            //add new region to my region vector
-            this->mMapRegionVec->push_back(newRegion);
+        if (currThingFreeIndx >= 0) {
+            currThingFreeIndx--;
         }
+
+        //create new entry
+        MapTileRegionStruct* newRegion = new MapTileRegionStruct();
+        newRegion->regionId = i;
+
+        //Byte 0 defines the region type
+        newRegion->regionType = thingData.at(0);
+        //value 1 means Shield charger location
+        //value 2 means Fuel charger location
+        //value 3 means Ammo charger location
+        //value 4 means map start location
+
+        //Byte 2 seems to only contain value 1, if entry is used, not interesting to read, but we need to write it like that
+        //Byte 3 & 4 always contain a fixed predefined value according to number of entry from 224 up to 231 (do not read, but write)
+        //Byte 5 seems to only contain value 3 if entry is used, not interesting to read, but we need to write it like that
+        //Byte 12 always contain a fixed predefined value according to number of entry from 200 up to 207 (do not read, but write)
+        //Byte 13 seems to only contain value 7 if entry is used, not interesting to read, but we need to write it like that
+        //Byte 16 seem to always have the same value as Byte 4
+        //Byte 17 seem to always have the same value as Byte 5
+        //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
+        //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
+        //for the other levels), and the extended version of the game has (compared with non extended game another)
+        //the same value for all levels, except level 7 which is an exception).
+        //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
+        //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
+        //the value used for almost all levels in extended version of the game.
+        //Byte offset 49 seems to be always value 128 for each existing entry
+        //Byte 69 contains value 244 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+        //(anti cheat mechanism?)
+
+        //middle point of rectangle that defines region is stored
+        //at byte location 24 & 25 and location 26 & 27 of this current table entry line
+        newRegion->regionCenterTileCoord.X = (irr::f32)(thingData.at(25));
+        newRegion->regionCenterTileCoord.Y = (irr::f32)(thingData.at(27));
+
+        //Byte at offset 24 seems to only use values 0 and 128 (128 means add 0.5f)
+        if (thingData.at(24) == 128) {
+            newRegion->regionCenterTileCoord.X += 0.5f;
+        }
+
+        //Byte at offset 26 seems to only use values 0 and 128 (128 means add 0.5f)
+        if (thingData.at(26) == 128) {
+            newRegion->regionCenterTileCoord.Y += 0.5f;
+        }
+
+        //region size is specified in terms of tiles counted from
+        //the middle point towards both axis directions
+        //for "X-axis" the deltaX is stored at byte 45 & 46
+        irr::f32 deltaX = (irr::f32)(thingData.at(46));
+
+        //Byte at offset 45 seems to only use values 0 and 128 (128 means add 0.5f)
+        if (thingData.at(45) == 128) {
+            deltaX += 0.5f;
+        }
+
+        //for "Y-axis" the deltaY is stored at byte 47 & 48
+        irr::f32 deltaY = (irr::f32)(thingData.at(48));
+
+        //Byte at offset 47 seems to only use values 0 and 128 (128 means add 0.5f)
+        if (thingData.at(47) == 128) {
+            deltaY += 0.5f;
+        }
+
+        //now calculate region tile min/max for the later game code according
+        //to all input information
+        newRegion->tileXmin = newRegion->regionCenterTileCoord.X - deltaX;
+        newRegion->tileXmax = newRegion->regionCenterTileCoord.X + deltaX;
+
+        if (newRegion->tileXmin < 0)
+            newRegion->tileXmin = 0.0f;
+
+        if (newRegion->tileXmin >= this->Width()) {
+                newRegion->tileXmin = (irr::f32)(this->Width()) - 1.0f;
+        }
+
+        if (newRegion->tileXmax < 0)
+            newRegion->tileXmax = 0.0f;
+
+        if (newRegion->tileXmax >= this->Width()) {
+            newRegion->tileXmax = (irr::f32)(this->Width()) - 1.0f;
+        }
+
+        newRegion->tileYmin = newRegion->regionCenterTileCoord.Y - deltaY;
+        newRegion->tileYmax = newRegion->regionCenterTileCoord.Y + deltaY;
+
+        if (newRegion->tileYmin < 0)
+            newRegion->tileYmin = 0.0f;
+
+        if (newRegion->tileYmin >= this->Height()) {
+            newRegion->tileYmin = (irr::f32)(this->Height()) - 1.0f;
+        }
+
+        if (newRegion->tileYmax < 0)
+            newRegion->tileYmax = 0;
+
+        if (newRegion->tileYmax >= this->Height()) {
+            newRegion->tileYmax = (irr::f32)(this->Height()) - 1.0f;
+        }
+
+        //add new region to my region vector
+        this->mMapRegionVec->push_back(newRegion);
     }
 
     return true;
 }
 
 bool LevelFile::DebugPrintRegionTable(const char* filename) {
-    std::vector<uint8_t>::iterator it;
+  /*  std::vector<uint8_t>::iterator it;
 
     int cnt = 0;
 
@@ -706,7 +726,7 @@ bool LevelFile::DebugPrintRegionTable(const char* filename) {
     //close file
     fclose(oFile);
 
-    return true;
+    return true;*/
 }
 
 bool LevelFile::PrintUnknownTableAtOffset(size_t offset, std::vector<uint8_t> &sourceTable) {
@@ -791,18 +811,7 @@ void LevelFile::RemoveRegion(MapTileRegionStruct* region) {
     if (region == nullptr)
         return;
 
-    //overwrite bytes for this region entry with 0 bytes
-    std::vector<uint8_t>::iterator startadr;
-    std::vector<uint8_t>::iterator endadr;
-
-    //each entry has 85 bytes
-    startadr = this->regionTable.begin() + (region->regionId * 85);
-    endadr = this->regionTable.begin() + (region->regionId * 85) + 85;
-
-    //set to all 0 bytes
-    std::fill(startadr, endadr, 0);
-
-    //now remove this region from the region vector
+    //remove this region from the region vector
     std::vector<MapTileRegionStruct*>::iterator it;
     MapTileRegionStruct* pntr = nullptr;
 
@@ -822,13 +831,18 @@ void LevelFile::RemoveRegion(MapTileRegionStruct* region) {
             it++;
         }
     }
+
+    //reassign the RegionId so that the are
+    //sequentially increasing
+    irr::u8 idx = 0;
+
+    for (it = mMapRegionVec->begin(); it != mMapRegionVec->end(); ++it) {
+        (*it)->regionId = idx;
+        idx++;
+    }
 }
 
 void LevelFile::ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType) {
-    //if whichRegionId is invalid return
-     if (whichRegionId > 7)
-         return;
-
      //if at the specified regionId there is no existing region
      //return
      MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
@@ -843,28 +857,10 @@ void LevelFile::ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType) {
 
      //change the region type inside of our region info struct
      pntr->regionType = newRegionType;
-
-     //also modify the low level level file data itself
-
-     //Byte 0 defines the region type
-     regionTable.at(whichRegionId * 85) = (uint8_t)(newRegionType);
-     //value 1 means Shield charger location
-     //value 2 means Fuel charger location
-     //value 3 means Ammo charger location
-     //value 4 means map start location
-
-     //byte offset 69 also includes the region type information a second time
-     //Byte 69 contains value 245 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
-     //(anti cheat mechanism?)
-     regionTable.at(whichRegionId * 85 + 69) = (uint8_t)(245)+(uint8_t)(newRegionType);
 }
 
 //returns true if changing location was succesfull, false otherwise
 bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2) {
-    //if whichRegionId is invalid return
-     if (whichRegionId > 7)
-         return false;
-
      //if at the specified regionId there is no existing region
      //return
      MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
@@ -878,21 +874,12 @@ bool LevelFile::ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2df
      RemoveRegion(pntr);
 
      //Add new region back, but with the new location
-     return (AddRegion(whichRegionId, coord1, coord2, storeType));
+     return (AddRegion(coord1, coord2, storeType));
 }
 
 //returns true if new region was created succesfully, False otherwise
-bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType) {
-   //if whichRegionId is invalid return
-    if (whichRegionId > 7)
-        return false;
-
-   //if at the specified regionId there is already an existing region
-   //fail creation and return
-   MapTileRegionStruct* pntr = GetRegionStructForRegionId(whichRegionId);
-
-   if (pntr != nullptr)
-       return false;
+bool LevelFile::AddRegion(irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType) {
+   MapTileRegionStruct* pntr;
 
    //if new region type is not specified or invalid return
    if ((newRegionType == LEVELFILE_REGION_UNDEFINED) || (newRegionType == LEVELFILE_REGION_TRIGGERCRAFT) ||
@@ -904,8 +891,10 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
    irr::f32 midX = ((coord2.X - coord1.X) / 2.0f) + coord1.X;
    irr::f32 midY = ((coord2.Y - coord1.Y) / 2.0f) + coord1.Y;
 
+   irr::u8 newRegionId = (irr::u8)(mMapRegionVec->size());
+
    pntr = new MapTileRegionStruct();
-   pntr->regionId = whichRegionId;
+   pntr->regionId = newRegionId;
    pntr->tileXmax = coord2.X;
    pntr->tileYmax = coord2.Y;
    pntr->tileXmin = coord1.X;
@@ -915,130 +904,6 @@ bool LevelFile::AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, ir
 
    //add the new region to the vector of defined regions
    mMapRegionVec->push_back(pntr);
-
-   //Byte 0 defines the region type
-   regionTable.at(whichRegionId * 85) = (uint8_t)(newRegionType);
-   //value 1 means Shield charger location
-   //value 2 means Fuel charger location
-   //value 3 means Ammo charger location
-   //value 4 means map start location
-
-   //Byte 2 seems to only contain value 1, if entry is used, not interesting to read, but we need to write it like that
-   regionTable.at(whichRegionId * 85 + 2) = (uint8_t)(1);
-
-   //Byte 3 & 4 always contain a fixed predefined value according to number of entry from 224 up to 231 (do not read, but write)
-   uint8_t valDependentRegionId = (uint8_t)(224) + (uint8_t)(whichRegionId);
-   regionTable.at(whichRegionId * 85 + 3) = valDependentRegionId;
-   regionTable.at(whichRegionId * 85 + 4) = valDependentRegionId;
-
-   //Byte 5 seems to only contain value 3 if entry is used, not interesting to read, but we need to write it like that
-   regionTable.at(whichRegionId * 85 + 5) = (uint8_t)(3);
-
-   //Byte 12 always contain a fixed predefined value according to number of entry from 200 up to 207 (do not read, but write)
-   uint8_t valDependentRegionId2 = (uint8_t)(200) + (uint8_t)(whichRegionId);
-   regionTable.at(whichRegionId * 85 + 12) = valDependentRegionId2;
-
-   //Byte 13 seems to only contain value 7 if entry is used, not interesting to read, but we need to write it like that
-   regionTable.at(whichRegionId * 85 + 13) = (uint8_t)(7);
-
-   //Byte 16 seem to always have the same value as Byte 4
-   uint8_t val = regionTable.at(whichRegionId * 85 + 4);
-   regionTable.at(whichRegionId * 85 + 16) = val;
-
-   //Byte 17 seem to always have the same value as Byte 5
-   val = regionTable.at(whichRegionId * 85 + 5);
-   regionTable.at(whichRegionId * 85 + 17) = val;
-
-   //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
-   regionTable.at(whichRegionId * 85 + 18) = (uint8_t)(1);
-
-   if (!mInfra->mExtendedGame) {
-       //Only for the original game (non-extended version):
-       //Byte 19 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
-       regionTable.at(whichRegionId * 85 + 19) = (uint8_t)(1);
-   }
-
-   //middle point of rectangle that defines region is stored
-   //at byte location 25 and location 27 of this current table entry line
-   irr::u8 intX = (irr::u8)(pntr->regionCenterTileCoord.X); //truncate down to integer number
-   irr::u8 intY = (irr::u8)(pntr->regionCenterTileCoord.Y); //truncate down to integer number
-
-   regionTable.at(whichRegionId * 85 + 25) = (irr::u8)(intX);
-   regionTable.at(whichRegionId * 85 + 27) = (irr::u8)(intY);
-
-   //what is the remaining value?
-   irr::f32 remainX = pntr->regionCenterTileCoord.X - (irr::f32)(intX);
-   if (remainX >= 0.5f) {
-       //this byte only used values 0 or 128; add 0.5f (value 128)
-       regionTable.at(whichRegionId * 85 + 24) = (uint8_t)(128);
-   } else {
-       //do not add 0.5f (value 0)
-       regionTable.at(whichRegionId * 85 + 24) = (uint8_t)(0);
-   }
-
-   irr::f32 remainY = pntr->regionCenterTileCoord.Y - (irr::f32)(intY);
-   if (remainY >= 0.5f) {
-       //this byte only used values 0 or 128; add 0.5f (value 128)
-       regionTable.at(whichRegionId * 85 + 26) = (uint8_t)(128);
-   } else {
-       //do not add 0.5f (value 0)
-       regionTable.at(whichRegionId * 85 + 26) = (uint8_t)(0);
-   }
-
-   irr::f32 deltaX = (pntr->tileXmax - pntr->tileXmin) * 0.5f;
-   irr::f32 deltaY = (pntr->tileYmax - pntr->tileYmin) * 0.5f;
-
-   if (mInfra->mExtendedGame) {
-       //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
-       //for the other levels), and the extended version of the game has (compared with non extended game another)
-       //the same value for all levels, except level 7 which is an exception).
-       //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
-       //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
-       //the value used for almost all levels in extended version of the game.
-       regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(232);
-       regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(54);
-   } else {
-       //I use the values for level 1 in the original game
-       regionTable.at(whichRegionId * 85 + 39) = (uint8_t)(118);
-       regionTable.at(whichRegionId * 85 + 40) = (uint8_t)(0);
-   }
-
-   irr::u8 intDeltaX = (irr::u8)(deltaX); //truncate down to integer number
-   irr::u8 intDeltaY = (irr::u8)(deltaY); //truncate down to integer number
-
-   //region size is specified in terms of tiles counted from
-   //the middle point towards both axis directions
-   //for "X-axis" the deltaX is stored at byte 46
-   regionTable.at(whichRegionId * 85 + 46) = intDeltaX;
-
-   //for "Y-axis" the deltaY is stored at byte 48
-   regionTable.at(whichRegionId * 85 + 48) = intDeltaY;
-
-   //what is the remaining value?
-   irr::f32 remainDeltaX = deltaX - (irr::f32)(intDeltaX);
-   if (remainDeltaX >= 0.5f) {
-       //this byte only used values 0 or 128; add 0.5f (value 128)
-       regionTable.at(whichRegionId * 85 + 45) = (uint8_t)(128);
-   } else {
-       //do not add 0.5f (value 0)
-       regionTable.at(whichRegionId * 85 + 45) = (uint8_t)(0);
-   }
-
-   irr::f32 remainDeltaY = deltaY - (irr::f32)(intDeltaY);
-   if (remainDeltaY >= 0.5f) {
-       //this byte only used values 0 or 128; add 0.5f (value 128)
-       regionTable.at(whichRegionId * 85 + 47) = (uint8_t)(128);
-   } else {
-       //do not add 0.5f (value 0)
-       regionTable.at(whichRegionId * 85 + 47) = (uint8_t)(0);
-   }
-
-   //Byte offset 49 seems to be always value 128 for each existing entry
-   regionTable.at(whichRegionId * 85 + 49) = (uint8_t)(128);
-
-   //Byte 69 contains value 244 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
-   //(anti cheat mechanism?)
-   regionTable.at(whichRegionId * 85 + 69) = (uint8_t)(244)+(uint8_t)(newRegionType);
 
    //we also need to add the POI (point of interest) pointing onto this
    //new region
@@ -1050,7 +915,7 @@ bool LevelFile::AddPOI(MapTileRegionStruct* newRegion) {
     if (newRegion == nullptr)
         return false;
 
-    int16_t POIValToAdd = 992 + newRegion->regionId;
+    int16_t POIValToAdd = 999 - newRegion->regionId;
 
     MapEntry* entry = pMap[(irr::u8)(newRegion->regionCenterTileCoord.X)][(irr::u8)(newRegion->regionCenterTileCoord.Y)];
 
@@ -1059,7 +924,7 @@ bool LevelFile::AddPOI(MapTileRegionStruct* newRegion) {
 
     //set new POI value at the cell in the middle
     //of the new region
-    entry->mPointOfInterest = POIValToAdd;
+    entry->mChild = POIValToAdd;
 
     MapPointOfInterest newPointOfInterest;
     newPointOfInterest.Value = POIValToAdd;
@@ -1079,21 +944,7 @@ void LevelFile::RemovePOI(irr::u8 regionId) {
     //value (depends on regionId) is not linked anywhere anymore
     MapEntry* entry;
 
-    //Linking of POI to level file offset for
-    //region with specific regionId
-    /*
-    POI level file offset RegionId
-    992	246924              0
-    993	247009              1
-    994	247094              2
-    995	247179              3
-    996	247264              4
-    997	247349              5
-    998	247434              6
-    999	247519              7
-    */
-
-    int16_t POIToFind = 992 + regionId;
+    int16_t POIToFind = 999 - regionId;
 
     for (int y = 0; y < Height(); y++) {
          for (int x = 0; x < Width(); x++) {
@@ -1101,9 +952,9 @@ void LevelFile::RemovePOI(irr::u8 regionId) {
              entry = this->pMap[x][y];
 
              if (entry != nullptr) {
-                 if (entry->mPointOfInterest == POIToFind) {
+                 if (entry->mChild == POIToFind) {
                      //we need to erase this link to this POI from this cell
-                     entry->mPointOfInterest = 0;
+                     entry->mChild = 0;
                  }
              }
          }
@@ -1515,7 +1366,7 @@ void LevelFile::DebugWriteCellInfoToCsvFile(const char* debugOutPutFileName) {
    MapEntry* entry;
 
    //write a header
-   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;TexModLowNibble;POI;Illumination;Vector;Marker\n");
+   fprintf(debugOutputFile, "Cell X;Cell Y;Height;TexId;TexMod;TexModLowNibble;Child;Illumination;Vector;Marker\n");
    for (int x = 0; x < LEVELFILE_WIDTH; x++) {
        for (int y = 0; y < LEVELFILE_HEIGHT; y++) {
            entry = pMap[x][y];
@@ -1525,7 +1376,7 @@ void LevelFile::DebugWriteCellInfoToCsvFile(const char* debugOutPutFileName) {
                fprintf(debugOutputFile, "%d;%d;%lf;%d;%d;%u;%d;%d;%d;%d\n",
                     x, y, entry->m_Height, entry->m_TextureId,
                     entry->GetTextureModification(), entry->GetTextureModificationLowerNibble(),
-                     entry->mPointOfInterest, entry->mIllumination, entry->mVector, entry->mMarker);
+                     entry->mChild, entry->mIllumination, entry->mVector, entry->mMarker);
             }
       }
    }
@@ -1680,10 +1531,171 @@ bool LevelFile::saveMapEntries() {
    return(true);
 }
 
+bool LevelFile::saveThingListData() {
+    //data starts at Offset 96000      => Offset 98011
+    unsigned int currOff = 96000;
+
+    for (size_t idx = 0; idx < 1000; idx++) { //There are 1000 Things in the ThingsList
+        ConvertAndWriteInt16ToByteArray(mThingFree->Thing[idx], this->m_wBytes, currOff);
+        currOff += 2;
+    }
+
+    ConvertAndWriteInt32ToByteArray(mThingFree->Index, this->m_wBytes, currOff);
+    currOff += 4;
+
+    ConvertAndWriteInt32ToByteArray(static_cast<int>(mThingFree->Sector), this->m_wBytes, currOff);
+    currOff += 4;
+
+    ConvertAndWriteInt32ToByteArray(static_cast<int>(mThingFree->Group), this->m_wBytes, currOff);
+    currOff += 4;
+
+    return(true);
+}
+
 bool LevelFile::saveRegionTable() {
-    //region table, starts at file offset 246924
-    std::copy(this->regionTable.begin(), regionTable.end(), this->m_wBytes.begin()
-              + 246924);
+    //we need to update the ThingFree List next
+    //thing index accordingly to number of predefined (Things) Regions
+
+    //How many predefined things are in this map?
+    size_t preExistingThingsCnt = mMapRegionVec->size();
+
+    mThingFree->Index = (int32_t)(999 - preExistingThingsCnt - 1);
+
+    //first fill Thing table with all zero values
+    std::fill(m_wBytes.begin() + 162604, m_wBytes.begin() + 247604, 0);
+
+    //now we need to write the "preconfigured" Things starting from the end of the table
+    //depending on the defined regions in the map file
+
+    int baseOffset = 247519;
+
+    for (int i = 0; i < preExistingThingsCnt; i++) {
+        //Byte 0 defines the region type
+        m_wBytes.at(baseOffset) = (uint8_t)(mMapRegionVec->at(i)->regionType);
+        //value 1 means Shield charger location
+        //value 2 means Fuel charger location
+        //value 3 means Ammo charger location
+        //value 4 means map start location
+
+        //Byte 2 seems to only contain value 1, if entry is used, not interesting to read, but we need to write it like that
+        m_wBytes.at(baseOffset + 2) = (uint8_t)(1);
+
+        //Byte 3 & 4 always contain a fixed predefined value according to number of entry starting from 231 and decreasing (do not read, but write)
+        uint8_t valDependentRegionId = (uint8_t)(231) - (uint8_t)(mMapRegionVec->at(i)->regionId);
+        m_wBytes.at(baseOffset + 3) = valDependentRegionId;
+        m_wBytes.at(baseOffset + 4) = valDependentRegionId;
+
+        //Byte 5 seems to only contain value 3 if entry is used, not interesting to read, but we need to write it like that
+        m_wBytes.at(baseOffset + 5) = (uint8_t)(3);
+
+        //Byte 12 always contain a fixed predefined value according to number of entry starting at 207 and decreasing  (do not read, but write)
+        uint8_t valDependentRegionId2 = (uint8_t)(207) - (uint8_t)(mMapRegionVec->at(i)->regionId);
+        m_wBytes.at(baseOffset + 12) = valDependentRegionId2;
+
+        //Byte 13 seems to only contain value 7 if entry is used, not interesting to read, but we need to write it like that
+        m_wBytes.at(baseOffset + 13) = (uint8_t)(7);
+
+        //Byte 16 seem to always have the same value as Byte 4
+        uint8_t val = m_wBytes.at(baseOffset + 4);
+        m_wBytes.at(baseOffset + 16) = val;
+
+        //Byte 17 seem to always have the same value as Byte 5
+        val = m_wBytes.at(baseOffset + 5);
+        m_wBytes.at(baseOffset + 17) = val;
+
+        //Byte 18 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
+        m_wBytes.at(baseOffset + 18) = (uint8_t)(1);
+
+        if (!mInfra->mExtendedGame) {
+            //Only for the original game (non-extended version):
+            //Byte 19 seems to only contain value 1 if entry is used, not interesting to read, but we need to write it like that
+            m_wBytes.at(baseOffset + 19) = (uint8_t)(1);
+        }
+
+        //middle point of rectangle that defines region is stored
+        //at byte location 25 and location 27 of this current table entry line
+        irr::u8 intX = (irr::u8)(mMapRegionVec->at(i)->regionCenterTileCoord.X); //truncate down to integer number
+        irr::u8 intY = (irr::u8)(mMapRegionVec->at(i)->regionCenterTileCoord.Y); //truncate down to integer number
+
+        m_wBytes.at(baseOffset + 25) = (irr::u8)(intX);
+        m_wBytes.at(baseOffset + 27) = (irr::u8)(intY);
+
+        //what is the remaining value?
+        irr::f32 remainX = mMapRegionVec->at(i)->regionCenterTileCoord.X - (irr::f32)(intX);
+        if (remainX >= 0.5f) {
+            //this byte only used values 0 or 128; add 0.5f (value 128)
+            m_wBytes.at(baseOffset + 24) = (uint8_t)(128);
+        } else {
+            //do not add 0.5f (value 0)
+            m_wBytes.at(baseOffset + 24) = (uint8_t)(0);
+        }
+
+        irr::f32 remainY = mMapRegionVec->at(i)->regionCenterTileCoord.Y - (irr::f32)(intY);
+        if (remainY >= 0.5f) {
+            //this byte only used values 0 or 128; add 0.5f (value 128)
+            m_wBytes.at(baseOffset + 26) = (uint8_t)(128);
+        } else {
+            //do not add 0.5f (value 0)
+            m_wBytes.at(baseOffset + 26) = (uint8_t)(0);
+        }
+
+        irr::f32 deltaX = (mMapRegionVec->at(i)->tileXmax - mMapRegionVec->at(i)->tileXmin) * 0.5f;
+        irr::f32 deltaY = (mMapRegionVec->at(i)->tileYmax - mMapRegionVec->at(i)->tileYmin) * 0.5f;
+
+        if (mInfra->mExtendedGame) {
+            //Bytes 39 & 40 have different values for the non extended game over the different levels (I saw in levels 1 and 2, I did not check
+            //for the other levels), and the extended version of the game has (compared with non extended game another)
+            //the same value for all levels, except level 7 which is an exception).
+            //I tried for level 1 (for race start entry) and used two different value pairs, and compared the starting sequence of the original game
+            //frame by frame. I did not see any obvious difference. Therefore I do not know yet what this values do. I will just write
+            //the value used for almost all levels in extended version of the game.
+            m_wBytes.at(baseOffset + 39) = (uint8_t)(232);
+            m_wBytes.at(baseOffset + 40) = (uint8_t)(54);
+        } else {
+            //I use the values for level 1 in the original game
+            m_wBytes.at(baseOffset + 39) = (uint8_t)(118);
+            m_wBytes.at(baseOffset + 40) = (uint8_t)(0);
+        }
+
+        irr::u8 intDeltaX = (irr::u8)(deltaX); //truncate down to integer number
+        irr::u8 intDeltaY = (irr::u8)(deltaY); //truncate down to integer number
+
+        //region size is specified in terms of tiles counted from
+        //the middle point towards both axis directions
+        //for "X-axis" the deltaX is stored at byte 46
+        m_wBytes.at(baseOffset + 46) = intDeltaX;
+
+        //for "Y-axis" the deltaY is stored at byte 48
+        m_wBytes.at(baseOffset + 48) = intDeltaY;
+
+        //what is the remaining value?
+        irr::f32 remainDeltaX = deltaX - (irr::f32)(intDeltaX);
+        if (remainDeltaX >= 0.5f) {
+            //this byte only used values 0 or 128; add 0.5f (value 128)
+            m_wBytes.at(baseOffset + 45) = (uint8_t)(128);
+        } else {
+            //do not add 0.5f (value 0)
+            m_wBytes.at(baseOffset + 45) = (uint8_t)(0);
+        }
+
+        irr::f32 remainDeltaY = deltaY - (irr::f32)(intDeltaY);
+        if (remainDeltaY >= 0.5f) {
+            //this byte only used values 0 or 128; add 0.5f (value 128)
+            m_wBytes.at(baseOffset + 47) = (uint8_t)(128);
+        } else {
+            //do not add 0.5f (value 0)
+            m_wBytes.at(baseOffset + 47) = (uint8_t)(0);
+        }
+
+        //Byte offset 49 seems to be always value 128 for each existing entry
+        m_wBytes.at(baseOffset + 49) = (uint8_t)(128);
+
+        //Byte 69 contains value 244 + Value of byte offset 0 (Region type), not sure why we want to have this information also 2 times in the file
+        m_wBytes.at(baseOffset + 69) = (uint8_t)(244)+(uint8_t)(mMapRegionVec->at(i)->regionType);
+
+        //each Thing we write is 85 bytes long
+        baseOffset -= 85;
+    }
 
     return true;
 }
@@ -1693,8 +1705,8 @@ bool LevelFile::saveUnknownTables() {
     std::copy(this->unknownTable0Data.begin(), unknownTable0Data.end(), this->m_wBytes.begin());
 
     //2nd unknown data table
-    std::copy(this->unknownTable96000Data.begin(), unknownTable96000Data.end(), this->m_wBytes.begin()
-              + 96000);
+    std::copy(this->unknownTable98012Data.begin(), unknownTable98012Data.end(), this->m_wBytes.begin()
+              + 98012);
 
     //3rd unknown data table
     std::copy(this->unknownTable124636Data.begin(), unknownTable124636Data.end(), this->m_wBytes.begin()

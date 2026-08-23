@@ -37,7 +37,9 @@
 #include "../vanilla/vcalc.h"
 #include "../draw/drawdebug.h"
 #include "../vanilla/vtrack.h"
+#include "../vanilla/vthing.h"
 #include "../vanilla/vcamera.h"
+#include "../vanilla/vmgun.h"
 #include "debug/dbginterface.h"
 #include "debug/memdump.h"
 #include "debug/structs/thing.h"
@@ -74,7 +76,7 @@ void VVehicle::processWeaponBooster() {
 
                 //we can activate the booster
                 mRace->mSoundEngine->PlaySound(SRES_GAME_BOOSTER);
-                ThingData.AffectStatus |= 0x40u;
+                ThingData->AffectStatus |= 0x40u;
             }
 
             v12 = static_cast<uint16_t>(Booster.TriggerTime) - 1;
@@ -223,7 +225,7 @@ void VVehicle::UpdateEngineSound() {
 
         //we need to take the vanilla game coordinates, and convert them to my 3D Irrlicht coordinate system
         //because also the sound will use the Irrlicht Coordinate system
-        irr::core::vector3df irrPos = mRace->mVCalc->VanillaToIrrlichtCoord(ThingData.Position);
+        irr::core::vector3df irrPos = mRace->mVCalc->VanillaToIrrlichtCoord(ThingData->Position);
 
         this->mRace->mSoundEngine->UpdateVehicleState(this, pitch, irrPos);
     }
@@ -232,7 +234,7 @@ void VVehicle::UpdateEngineSound() {
 bool VVehicle::AllowedToCollectPowerUp() {
     //Player is only allowed to collect powerUps if
     //Action == 1 is set (means normal racing mode)
-    return (ThingData.Action == 0x1);
+    return (ThingData->Action == 0x1);
 }
 
 //Is called initially once after race start to further initialize the
@@ -246,20 +248,20 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     /* I left quite some code out here, because I believe this code is searching
      * for start positions in the map and I want to do this somewhere else */
 
-    position = ThingData.Position;
+    position = ThingData->Position;
     position.Z = mRace->mVCalc->map_altitude_lowest(position);
 
-    //mapwho_move(thing, &position);
+    mRace->mThingManager->mapwho_move(ThingData, position);
     //below: currently the alternative
-    ThingData.Position = position;
+    //ThingData->Position = position;
 
-    FlightModel.FrontLeft.Zpos = ThingData.Position.Z;
-    FlightModel.FrontRight.Zpos = ThingData.Position.Z;
-    FlightModel.RearLeft.Zpos = ThingData.Position.Z;
-    FlightModel.RearRight.Zpos = ThingData.Position.Z;
-    ThingData.Movement.AngleXZ = 0.0f;
-    ThingData.Movement.AngleXY = 0.0f;
-    ThingData.Movement.AngleZY = 0.0f;
+    FlightModel.FrontLeft.Zpos = ThingData->Position.Z;
+    FlightModel.FrontRight.Zpos = ThingData->Position.Z;
+    FlightModel.RearLeft.Zpos = ThingData->Position.Z;
+    FlightModel.RearRight.Zpos = ThingData->Position.Z;
+    ThingData->Movement.AngleXZ = 0.0f;
+    ThingData->Movement.AngleXY = 0.0f;
+    ThingData->Movement.AngleZY = 0.0f;
     Momentum.AngleXY = 0.0f;
     Momentum.DeltaX = 0.0f;
     Momentum.DeltaY = 0.0f;
@@ -269,42 +271,41 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     Stats.Fuel = 10000;
     Stats.Weapons = 10000;
 
-    //is weird code below, but this is from the original
-    //--Machinegun.Upgrade;
-    //--Missile.Upgrade;
+    --mMGun->Upgrade;
+    --Stats.MRocketUpgrade;
     --Booster.Upgrade;
 
-    // if (Machinegun.Upgrade < 0) {
-    //     Machinegun.Upgrade = 0;
-    // }
+    if (mMGun->Upgrade < 0) {
+         mMGun->Upgrade = 0;
+    }
 
-    // if (Missile.Upgrade < 0) {
-    //     Missile.Upgrade = 0;
-    // }
+    if (Stats.MRocketUpgrade < 0) {
+        Stats.MRocketUpgrade = 0;
+    }
 
     if (Booster.Upgrade < 0) {
          Booster.Upgrade = 0;
     }
 
-    ThingData.AffectStatus |= 0x80u;
+    ThingData->AffectStatus |= 0x80u;
 
     //Craft controlled by computer player?
     if ((ControlOrigin & 8) != 0) {
-        status = ThingData.Status;
+        status = ThingData->Status;
         v21 = (status | 8);
         if ((status & 8) != 0)
         {
 vehicle_execute_action0_initialize_LABEL_23:
-            ThingData.Status = v21;
+            ThingData->Status = v21;
             goto vehicle_execute_action0_initialize_LABEL_107;
         }
-        if (!ThingData.mTimeSlice) {
+        if (!ThingData->TimeSlice) {
             v21 = (status | 8);
             goto vehicle_execute_action0_initialize_LABEL_23;
         }
     } else {
 vehicle_execute_action0_initialize_LABEL_107:
-        ThingData.Action = 0x1;
+        ThingData->Action = 0x1;
     }
 }
 
@@ -321,15 +322,15 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
         //reduce counter inside Vehicle Thing
         //I guess if the counter expires until fuel is restablished
         //we call the repair vehicle
-        ThingData.Count -= 1;
+        ThingData->Count -= 1;
 
-        if (ThingData.Count <= 0) {
-            ThingData.Count = 200;
-        } else if (ThingData.Count == 1) {
+        if (ThingData->Count <= 0) {
+            ThingData->Count = 200;
+        } else if (ThingData->Count == 1) {
             //Set flag that we are out of Fuel
             FlightModel.Flag.FuelDeath = true;
-            ThingData.Action = 0x14;
-            ThingData.Count = 0;
+            ThingData->Action = 0x14;
+            ThingData->Count = 0;
         }
     }
 
@@ -348,7 +349,7 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
             //   v26->Colide.Group = 0;
             // }
 
-            ThingData.Action = 0x9;
+            ThingData->Action = 0x9;
             vehicle_setup_tumble();
             FlightModel.Flag.HealthDeath = true;
         } else {
@@ -379,7 +380,7 @@ void VVehicle::vehicle_execute_action0x9_beforeexploding() {
 
     //done with the BarrelRoll?
     if (!FlightModel.Flag.BarrelRoll) {
-        ThingData.Action = 0x11;
+        ThingData->Action = 0x11;
     }
 
     vehicle_set_camera();
@@ -421,15 +422,13 @@ void VVehicle::vehicle_execute_action0x11_spawnpowerups() {
         v37 -= 1000;
     } while (v37 >= 1001);
 
-    //Add later when Minigun exists
-    //if (Minigun.Upgrade) {
-    //    //Spawn Minigun Upgrade
-    //}
+    if (mMGun->Upgrade) {
+        powerUpList.push_back(Entity::MinigunUpgrade);
+    }
 
-    //Add later when Missile exists
-    //if (Missile.Upgrade) {
-    //    //Spawn Missile Upgrade
-    //}
+    if (Stats.MRocketUpgrade) {
+        powerUpList.push_back(Entity::MissileUpgrade);
+    }
 
     if (Booster.Upgrade) {
         powerUpList.push_back(Entity::BoosterUpgrade);
@@ -439,8 +438,8 @@ void VVehicle::vehicle_execute_action0x11_spawnpowerups() {
 
     //}
 
-    ThingData.Action = 0x13;
-    ThingData.Count = 5;
+    ThingData->Action = 0x13;
+    ThingData->Count = 5;
 }
 
 void VVehicle::vehicle_execute_action0x13_exploding() {
@@ -449,11 +448,11 @@ void VVehicle::vehicle_execute_action0x13_exploding() {
     //TODO: add effects here
 
     vehicle_get_checkpoint();
-    v47 = ThingData.Count - 1;
-    ThingData.Count = v47;
+    v47 = ThingData->Count - 1;
+    ThingData->Count = v47;
     if (v47 < 0) {
-        ThingData.Action = 0x14;
-        ThingData.Count = 0;
+        ThingData->Action = 0x14;
+        ThingData->Count = 0;
     }
 }
 
@@ -465,8 +464,8 @@ void VVehicle::vehicle_execute_action0x14_callAndWaitForRecoveryVehicle() {
     irr::core::vector3df position;
     uint8_t timeslice;
 
-    ThingData.Movement.AngleXZ *= 0.9765625f;
-    ThingData.Movement.AngleZY *= 0.9765625f;
+    ThingData->Movement.AngleXZ *= 0.9765625f;
+    ThingData->Movement.AngleZY *= 0.9765625f;
     Momentum.DeltaX *= 0.9375f;
     Momentum.DeltaY *= 0.9375f;
     MovementInput.AngleXY = 0.0f;
@@ -484,10 +483,10 @@ void VVehicle::vehicle_execute_action0x14_callAndWaitForRecoveryVehicle() {
     MovementInput.AngleZY = 0.0f;
     MovementInput.SpeedActual = 0.0f;
 
-    position.X = ThingData.Position.X;
-    position.Y = ThingData.Position.Y;
-    position.Z = ThingData.Position.Z;
-    timeslice = ThingData.mTimeSlice;
+    position.X = ThingData->Position.X;
+    position.Y = ThingData->Position.Y;
+    position.Z = ThingData->Position.Z;
+    timeslice = ThingData->TimeSlice;
 
     if ((timeslice & 3) == 0) {
         //Emit more smoke
@@ -495,7 +494,7 @@ void VVehicle::vehicle_execute_action0x14_callAndWaitForRecoveryVehicle() {
 
     position.X += 0.078125f;
 
-    if ((ThingData.mTimeSlice & 7) == 0) {
+    if ((ThingData->TimeSlice & 7) == 0) {
         //Emit more smoke
     }
 
@@ -517,16 +516,16 @@ void VVehicle::vehicle_execute_action0x16() {
     Momentum.DeltaX *= 0.8984375f;
     Momentum.DeltaY *= 0.8984375f;
 
-    position.X = ThingData.Position.X;
-    position.Y = ThingData.Position.Y;
-    position.Z = ThingData.Position.Z;
+    position.X = ThingData->Position.X;
+    position.Y = ThingData->Position.Y;
+    position.Z = ThingData->Position.Z;
 
     if (!FlightModel.Flag.HealthDeath) {
         vehicle_get_checkpoint();
         return;
     }
 
-    timeslice = ThingData.mTimeSlice;
+    timeslice = ThingData->TimeSlice;
 
     if ((timeslice & 3) == 0) {
         //Emit more smoke
@@ -534,7 +533,7 @@ void VVehicle::vehicle_execute_action0x16() {
 
     position.X += 0.078125f;
 
-    if ((ThingData.mTimeSlice & 7) == 0) {
+    if ((ThingData->TimeSlice & 7) == 0) {
         //Emit more smoke
     }
 
@@ -542,15 +541,15 @@ void VVehicle::vehicle_execute_action0x16() {
 }
 
 void VVehicle::vehicle_execute_action0x17_rescue() {
-    ThingData.Movement.AngleZY *= 0.9765625f;
-    ThingData.Movement.AngleZY *= 0.984375f;
+    ThingData->Movement.AngleZY *= 0.9765625f;
+    ThingData->Movement.AngleZY *= 0.984375f;
 
     if (FlightModel.Flag.HealthDeath) {
         //we want to reposition the craft
         //with the repair vehicle
         FlightModel.Flag.Reposition = true;
 
-        ThingData.Movement.SpeedActual = 0.0f;
+        ThingData->Movement.SpeedActual = 0.0f;
         Increment.SpeedActual = 0.0f;
         Stats.Velocity = 0.0f;
 
@@ -590,7 +589,7 @@ void VVehicle::vehicle_execute_action0x17_rescue() {
         Stats.Fuel += 2000;
     }
 
-    ThingData.Action = 0x18;
+    ThingData->Action = 0x18;
     vehicle_get_checkpoint();
 }
 
@@ -609,28 +608,27 @@ void VVehicle::vehicle_execute_action0x18() {
 //or air refueling took place
 void VVehicle::vehicle_execute_action0x19_reset() {
     if (FlightModel.Flag.HealthDeath) {
-        //is weird code below, but this is from the original
-        //--Machinegun.Upgrade;
-        //--Missile.Upgrade;
+        --mMGun->Upgrade;
+        --Stats.MRocketUpgrade;
         --Booster.Upgrade;
 
-        // if (Machinegun.Upgrade < 0) {
-        //     Machinegun.Upgrade = 0;
-        // }
+        if (mMGun->Upgrade < 0) {
+             mMGun->Upgrade = 0;
+        }
 
-        // if (Missile.Upgrade < 0) {
-        //     Missile.Upgrade = 0;
-        // }
+        if (Stats.MRocketUpgrade < 0) {
+             Stats.MRocketUpgrade = 0;
+        }
 
         if (Booster.Upgrade < 0) {
              Booster.Upgrade = 0;
         }
 
-        ThingData.AffectStatus = 0;
-        ThingData.AffectNumber = 0;
-        ThingData.AffectWho = 0;
+        ThingData->AffectStatus = 0;
+        ThingData->AffectNumber = 0;
+        ThingData->AffectWho = 0;
 
-        ThingData.AffectStatus |= 0x80u;
+        ThingData->AffectStatus |= 0x80u;
     }
 
     FlightModel.Flag.Reposition = false;
@@ -638,24 +636,24 @@ void VVehicle::vehicle_execute_action0x19_reset() {
     FlightModel.Flag.AutoRepair = false;
     FlightModel.Flag.AutoRefuel = false;
 
-    FlightModel.FrontLeft.Zpos = ThingData.Position.Z;
-    FlightModel.FrontRight.Zpos = ThingData.Position.Z;
-    FlightModel.RearLeft.Zpos = ThingData.Position.Z;
-    FlightModel.RearRight.Zpos = ThingData.Position.Z;
+    FlightModel.FrontLeft.Zpos = ThingData->Position.Z;
+    FlightModel.FrontRight.Zpos = ThingData->Position.Z;
+    FlightModel.RearLeft.Zpos = ThingData->Position.Z;
+    FlightModel.RearRight.Zpos = ThingData->Position.Z;
 
     Momentum.DeltaX = 0.0f;
     Momentum.DeltaY = 0.0f;
 
     FlightModel.Flag.HealthDeath = false;
     FlightModel.Flag.FuelDeath = false;
-    ThingData.Count = 0;
+    ThingData->Count = 0;
     Stats.Weight = 0;
 
-    ThingData.Action = 0x1;
+    ThingData->Action = 0x1;
 }
 
 void VVehicle::vehicle_do_action() {
-    switch (ThingData.Action) {
+    switch (ThingData->Action) {
         case 0: {
             vehicle_execute_action0x0_initialize();
             return;
@@ -718,11 +716,10 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     //and the overflows back from 0xFF to 00
     mAbsTimeIntegrator += frameDeltaTime;
     if (mAbsTimeIntegrator >= 0.05) {
-        mAbsTimeIntegrator = 0.0f;
-        if (ThingData.mTimeSlice < 0xFF) {
-            ThingData.mTimeSlice++;
+        if (ThingData->TimeSlice < 0xFF) {
+            ThingData->TimeSlice++;
         } else {
-            ThingData.mTimeSlice = 0;
+            ThingData->TimeSlice = 0;
         }
 
         //should run every ~45ms
@@ -730,10 +727,13 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         //here
         processWeaponBooster();
 
+        //process machine gun
+        mMGun->Update(mAbsTimeIntegrator);
+
         //do not update engine sound for the first ~300ms
         //of the race to prevent hearing the first height drop
         if (!mUpdateEngineSound) {
-            if (ThingData.mTimeSlice >= 4) {
+            if (ThingData->TimeSlice >= 4) {
                 mUpdateEngineSound = true;
             }
         }
@@ -747,6 +747,8 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         //add later, seems to be needed
         //ClosestMissile = 0;
         vehicle_do_action();
+
+        mAbsTimeIntegrator = 0.0f;
     }
 
     mUpdateVehicleTimeIntegrator += frameDeltaTime;
@@ -788,6 +790,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 
                 mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);*/
 
+                vehicle_process_autotarget();
                 vehicle_get_track_friction();
                 vehicle_calculate_angle();
 
@@ -796,7 +799,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
                //  mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);
 
                 vehicle_calculate_thrust(delta);
-                mRace->mVCalc->move_displacement_slope(ThingData.Position, Slope);
+                mRace->mVCalc->move_displacement_slope(ThingData->Position, Slope);
 
                 vehicle_calculate_momentum(delta);
                 vehicle_calculate_movement_delta(delta);
@@ -820,6 +823,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
                 vehicle_move_mapwho(delta);
                 vehicle_set_camera();
                 vehicle_post_process();
+                vehicle_computer_set_no_shoot();
                 //vehicle_terrain_effect(delta);
 
                // mRace->AdvModel = false;
@@ -850,12 +854,12 @@ void VVehicle::vehicle_terrain_effect(irr::core::vector3df delta) {
     int32_t v9;
     EffectVehicleThing* newEffectThing;
 
-    position = ThingData.Position + delta;
+    position = ThingData->Position + delta;
     //we only create the vehicle terrain effects when
     //we are close to the ground and not airbourne right now
     if (!FlightModel.Flag.Airbourn) {
         //we also need some speed
-        if (fabs(ThingData.Movement.SpeedActual) > 0.00390625f) {
+        if (fabs(ThingData->Movement.SpeedActual) > 0.00390625f) {
            v4 = mRace->mVCalc->map_colide_type(position);
            v5 = v4;
            v6 = (v4 == 0);
@@ -876,7 +880,7 @@ void VVehicle::vehicle_terrain_effect(irr::core::vector3df delta) {
                         newEffectThing = new EffectVehicleThing(mRace->mGame->mSmgr,
                                             mRace,
                                             mRace->mTexLoader->spriteTex.at(17),
-                                            ThingData.Position, ThingData.Movement);
+                                            ThingData->Position, ThingData->Movement);
                         ++v9;
                         if (newEffectThing != nullptr) {
                             newEffectThing->ThingData.Displacement.X = delta.X;
@@ -940,7 +944,7 @@ void VVehicle::SetupFlightModelConstants() {
     mSideslipToThrust = mRace->mVCalc->FixedPointToFloat8D8(60);
     mBounce = mRace->mVCalc->FixedPointToFloat8D8(50);
     Stats.Behind = 100;
-    Stats.MGunUpgrade = 0;
+    mMGun->Upgrade = 0;
     Stats.MRocketUpgrade = 0;
 
     mFriction = mRace->mVCalc->FixedPointToFloat8D8(10);
@@ -972,11 +976,32 @@ void VVehicle::SetupFlightModelConstants() {
     FlightModel.RearRight.ReboundLimit = mRace->mVCalc->FixedPointToFloat8D8(80);
 }
 
-VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+//playerNr starting with value 1 for first player, 8 for last player
+VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::core::vector3d<irr::f32> NewPosition,
                    irr::core::vector3d<irr::f32> NewFrontAt, irr::u8 nrLaps, bool humanPlayer) {
 
    //TODO 17.06.2026: Take care about nrLaps
    mRace = mParentRace;
+   mPlayerNr = playerNr;
+
+   irr::core::vector3df vanPos = mRace->mVCalc->IrrlichtToVanillaCoord(NewPosition);
+   irr::f32 terrHeight = mRace->mVCalc->map_altitude_column_and_floor(vanPos);
+   vanPos.Z = terrHeight + 0.5f;
+
+   //get my thing
+   //Important note: 23.08.2026: The Id in the vehicleThings is changed so that
+   //it reflects the number of the player, first player has Id = 1, second player has Id = 2 and so
+   //on; Then this Id is always transfered to the child objects; For example the MachineGun Id will
+   //also have the same value. And if a bullet is fired the bullet has the same Id again that
+   //reflects the player that has fired the shot. This is very important because at the end when the
+   //bullet hits another player this bullet Id is then used for the targeted player to remember which
+   //player has targeted him how often. And if we do not set the correct Vehicle (player) Id here, then
+   //we write to the wrong array index at the end of the chain!
+   ThingData =
+        mParentRace->mThingManager->thing_initialise_member(vanPos, 0.0f, 0.0f, 0.0f, 10, 0, mPlayerNr);
+
+   //add pointer to myself into this Thing
+   ThingData->vVehiclePnter = this;
 
    //nrLaps + 1 is correct, I saw this
    //also in the original game
@@ -992,6 +1017,22 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
        Counter[idx] = 0;
    }
 
+   //this initial values are just an assumption
+   //from my side
+   for (int idx = 0; idx < 8; idx++) {
+       AutoTarget.HitMeTotal[idx] = 0;
+       AutoTarget.HitMeCount[idx] = 0;
+       AutoTarget.HitMeTrigger[idx] = 0;
+   }
+
+   //this initial values are just an assumption
+   //from my side
+   AutoTarget.PrimaryTarget = 0;
+   AutoTarget.ValidTargetCount = 0;
+
+   //create the vanilla type machine gun
+   mMGun = new VMGun(mRace, this);
+
    SetupFlightModelConstants();
 
    //if computer player
@@ -1003,12 +1044,8 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
    //definition of dirt texture elements
    dirtTexIdsVec = new std::vector<irr::s32>{0, 1, 2, 60, 61, 62, 63, 64, 65, 66, 67, 79};
 
-   irr::core::vector3df vanPos = mRace->mVCalc->IrrlichtToVanillaCoord(NewPosition);
-   irr::f32 terrHeight = mRace->mVCalc->map_altitude_column_and_floor(vanPos);
-   vanPos.Z = terrHeight + 0.5f;
-
-   ThingData.Position = vanPos;
-   ThingData.Movement.AngleXZ = 0.0f;
+   ThingData->Position = vanPos;
+   ThingData->Movement.AngleXZ = 0.0f;
    Momentum.AngleXY = 0.0f;
    Momentum.DeltaX = 0.0f;
    Momentum.DeltaY = 0.0f;
@@ -1017,10 +1054,10 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
    Bump.Z = 0.0f;
    mMaximumZpos = 3.0f / 256.0f;
 
-   FlightModel.FrontLeft.Zpos = ThingData.Position.Z;
-   FlightModel.FrontRight.Zpos = ThingData.Position.Z;
-   FlightModel.RearLeft.Zpos = ThingData.Position.Z;
-   FlightModel.RearRight.Zpos = ThingData.Position.Z;
+   FlightModel.FrontLeft.Zpos = ThingData->Position.Z;
+   FlightModel.FrontRight.Zpos = ThingData->Position.Z;
+   FlightModel.RearLeft.Zpos = ThingData->Position.Z;
+   FlightModel.RearRight.Zpos = ThingData->Position.Z;
 
    FlightModel.Flag.Booster = false;
    FlightModel.Flag.Brake = false;
@@ -1045,6 +1082,8 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
    FlightModel.FunctionFlag.Pad3 = true;
    FlightModel.FunctionFlag.Pad4 = false;
    FlightModel.FunctionFlag.Pad6 = false;
+   FlightModel.FunctionFlag.Pad7 = false;
+   FlightModel.FunctionFlag.Pad8 = false;
    FlightModel.FunctionFlag.Pad9 = false;
 
    //Pad12 seems to be used for checkpoint and lap number processing
@@ -1069,7 +1108,7 @@ VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr
    Stats.VehicleHit = 0; //I assume right now it should be zero?
    Stats.Weight = 0;
 
-   ThingData.AffectStatus = 0;
+   ThingData->AffectStatus = 0;
 
    vehicle_setup_computer_character();
 
@@ -1110,10 +1149,10 @@ void VVehicle::vehicle_get_track_friction() {
 
     //Run the following code only every 100ms once
     //Original game does the same
-    if ((ThingData.mTimeSlice & 1) == 0) {
+    if ((ThingData->TimeSlice & 1) == 0) {
         //no, we are currently not air bourne
         //get the current friction value from the tile below
-        uint16_t tileFriction = mRace->mVCalc->map_colide_friction(ThingData.Position);
+        uint16_t tileFriction = mRace->mVCalc->map_colide_friction(ThingData->Position);
         if (!tileFriction) {
             //friction is 0, set 15 (original game does the same)
             tileFriction = 15;
@@ -1179,9 +1218,9 @@ LABEL_18_vehicle_calculate_angle:
         Increment.AngleXY = -IncrementLimit.AngleXY;
     }
 
-    ThingData.Movement.AngleXY += Increment.AngleXY;
+    ThingData->Movement.AngleXY += Increment.AngleXY;
 
-    mRace->mVCalc->UnwrapPhaseSigned(ThingData.Movement.AngleXY);
+    mRace->mVCalc->UnwrapPhaseSigned(ThingData->Movement.AngleXY);
 }
 
 void VVehicle::vehicle_calculate_thrust(irr::core::vector3df& delta) {
@@ -1234,9 +1273,9 @@ void VVehicle::vehicle_calculate_thrust(irr::core::vector3df& delta) {
       }
     }
 
-    ThingData.Movement.SpeedActual = ((irr::f32)(mThrustEffectiveness) * Increment.SpeedActual) / 100.0f;
-    mRace->mVCalc->move_displacement_set(delta, ThingData.Movement.AngleXY, 0.0f, (ThingData.Movement.SpeedActual / 16.0f));
-    ThingData.Movement.SpeedActual = Increment.SpeedActual;
+    ThingData->Movement.SpeedActual = ((irr::f32)(mThrustEffectiveness) * Increment.SpeedActual) / 100.0f;
+    mRace->mVCalc->move_displacement_set(delta, ThingData->Movement.AngleXY, 0.0f, (ThingData->Movement.SpeedActual / 16.0f));
+    ThingData->Movement.SpeedActual = Increment.SpeedActual;
 }
 
 void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
@@ -1278,7 +1317,7 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
 
         //AffectStatus Flag 0x40 means that the booster
         //was triggered
-        if (((ThingData.AffectStatus & 0x40) != 0) &&
+        if (((ThingData->AffectStatus & 0x40) != 0) &&
                 (FlightModel.FunctionFlag.Booster)) {
             FlightModel.Flag.Booster = true;
 
@@ -1288,7 +1327,7 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
             irr::f32 hlpValue = Booster.InitialThrust * ((irr::f32)(Booster.BurnSetting) / 100.0f) *
                     ((irr::f32)(mThrustEffectiveness) / 100.0f);
 
-            mRace->mVCalc->move_displacement_set(position, ThingData.Movement.AngleXY,
+            mRace->mVCalc->move_displacement_set(position, ThingData->Movement.AngleXY,
                                                  0.0f, hlpValue);
 
             Momentum.DeltaX += position.X;
@@ -1298,7 +1337,7 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
                if (Booster.Burn) {
                    irr::f32 hlpValue2 = Booster.BurnThrust * ((irr::f32)(Booster.BurnSetting) / 100.0f) *
                            ((irr::f32)(mThrustEffectiveness) / 100.0f);
-                   mRace->mVCalc->move_displacement_set(position, ThingData.Movement.AngleXY,
+                   mRace->mVCalc->move_displacement_set(position, ThingData->Movement.AngleXY,
                                                         0.0f, hlpValue2);
 
                    Momentum.DeltaX += position.X;
@@ -1317,7 +1356,7 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
             irr::f32 speedValConst = 4.0f;
 
             int8_t v55 =
-                    mRace->mVCalc->move_displacement_set(v50, ThingData.Movement.AngleXY, 0.0f, speedValConst);
+                    mRace->mVCalc->move_displacement_set(v50, ThingData->Movement.AngleXY, 0.0f, speedValConst);
 
             //with the code below the disassembler had some issues, and the Pseudo-C Code
             //was unusable; Therefore this is based on a longer assembly study session, and stepping
@@ -1368,7 +1407,7 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
             v46_var6C = v48 - v46_var6C;
 
             double v36 = sqrt(v35 + v45_var70 * v45_var70);
-            mRace->mVCalc->move_displacement_set(v44, ThingData.Movement.AngleXY, 0.0f, (irr::f32)(v36));
+            mRace->mVCalc->move_displacement_set(v44, ThingData->Movement.AngleXY, 0.0f, (irr::f32)(v36));
 
             Momentum.DeltaX += v44.X * (mSideslipFriction / 100.0f);
             Momentum.DeltaY += v44.Y * (mSideslipFriction / 100.0f);
@@ -1434,9 +1473,9 @@ vehicle_calculate_movement_delta_LABEL_5:
 void VVehicle::vehicle_move_altitude(irr::core::vector3df& delta) {
      irr::core::vector3df position;
 
-     position.X = ThingData.Position.X + delta.X;
-     position.Y = ThingData.Position.Y + delta.Y;
-     position.Z = ThingData.Position.Z + delta.Z;
+     position.X = ThingData->Position.X + delta.X;
+     position.Y = ThingData->Position.Y + delta.Y;
+     position.Z = ThingData->Position.Z + delta.Z;
 
      irr::f32 craftHeightSum = FlightModel.FrontLeft.Zpos + FlightModel.FrontRight.Zpos;
      position.Z = craftHeightSum / 2.0f;
@@ -1457,8 +1496,8 @@ void VVehicle::vehicle_move_altitude(irr::core::vector3df& delta) {
         FlightModel.Flag.Airbourn = true;
      }
 
-     Displacement.Z = position.Z - ThingData.Position.Z;
-     delta.Z = position.Z - ThingData.Position.Z;
+     Displacement.Z = position.Z - ThingData->Position.Z;
+     delta.Z = position.Z - ThingData->Position.Z;
 }
 
 void VVehicle::vehicle_move_tilt(irr::core::vector3df& delta) {
@@ -1470,23 +1509,23 @@ void VVehicle::vehicle_move_tilt(irr::core::vector3df& delta) {
     irr::f32 craftTerrainAvgDist;
     irr::f32 terrainHeight;
 
-    position.X = ThingData.Position.X + delta.X;
-    position.Y = ThingData.Position.Y + delta.Y;
-    position.Z = ThingData.Position.Z + delta.Z;
+    position.X = ThingData->Position.X + delta.X;
+    position.Y = ThingData->Position.Y + delta.Y;
+    position.Z = ThingData->Position.Z + delta.Z;
 
     if (FlightModel.Flag.Airbourn) {
         //yes, we are in the air right now
-        ThingData.Movement.AngleZY += 0.2471923828125f;
+        ThingData->Movement.AngleZY += 0.2471923828125f;
 
         v11 = -45.0f;
 
-        if (ThingData.Movement.AngleZY < -45.0f) {
+        if (ThingData->Movement.AngleZY < -45.0f) {
             goto vehicle_move_tilt_LABEL_10;
         }
 
         v11 = 45.0f;
 
-        if (ThingData.Movement.AngleZY >= 45.0054931640625f) {
+        if (ThingData->Movement.AngleZY >= 45.0054931640625f) {
             goto vehicle_move_tilt_LABEL_10;
         }
     } else {
@@ -1501,22 +1540,22 @@ void VVehicle::vehicle_move_tilt(irr::core::vector3df& delta) {
           //not sure if for craftTerrainAvgDist parameter in arctanPlusMultiply32 call below
           //I need to give whole float number, or only fractional part? If bug clarify later
           v8 =
-            ThingData.Movement.AngleZY +
-               (mRace->mVCalc->arctanPlusMultiply32(craftTerrainAvgDist, -v6) - ThingData.Movement.AngleZY) / 4.0f;
+            ThingData->Movement.AngleZY +
+               (mRace->mVCalc->arctanPlusMultiply32(craftTerrainAvgDist, -v6) - ThingData->Movement.AngleZY) / 4.0f;
 
-          ThingData.Movement.AngleZY = v8;
+          ThingData->Movement.AngleZY = v8;
           v11 = -24.9993896484375f;
           v10 = (v8 < v11);
 
           if (!v10) {
               if (v8 >= 25.0048828125f) {
-                  ThingData.Movement.AngleZY = 24.9993896484375f;
+                  ThingData->Movement.AngleZY = 24.9993896484375f;
               }
               return;
           }
 
 vehicle_move_tilt_LABEL_10:
-          ThingData.Movement.AngleZY = v11;
+          ThingData->Movement.AngleZY = v11;
         }
     }
 }
@@ -1533,7 +1572,7 @@ void VVehicle::vehicle_move_roll(irr::core::vector3df& delta) {
 
     if (FlightModel.Flag.Airbourn) {
         //yes, we are in the air right now
-        v10 = 0.9375f * ThingData.Movement.AngleXZ;
+        v10 = 0.9375f * ThingData->Movement.AngleXZ;
         goto vehicle_move_roll_LABEL_9;
     }
 
@@ -1546,11 +1585,11 @@ void VVehicle::vehicle_move_roll(irr::core::vector3df& delta) {
     fracPart = craftHeightDiff - (irr::f32)(intPart);
 
     if (absCraftHeightDiff < (2.0f * FlightModel.SizeSideways)) {
-        v10 = ThingData.Movement.AngleXZ +
+        v10 = ThingData->Movement.AngleXZ +
                 (mRace->mVCalc->arctanPlusMultiply32(fracPart, -2.0f * FlightModel.SizeSideways)
-                 -ThingData.Movement.AngleXZ) / 8.0f;
+                 -ThingData->Movement.AngleXZ) / 8.0f;
 
-        ThingData.Movement.AngleXZ = v10;
+        ThingData->Movement.AngleXZ = v10;
         v8 = v10;
         comp = -24.9993896484375f;
         v9 = (v10 < comp);
@@ -1558,13 +1597,13 @@ void VVehicle::vehicle_move_roll(irr::core::vector3df& delta) {
 
         if (!v9) {
               if (v8 >= 25.0048828125f) {
-                  ThingData.Movement.AngleXZ = 24.9993896484375f;
+                  ThingData->Movement.AngleXZ = 24.9993896484375f;
               }
               return;
         }
 
 vehicle_move_roll_LABEL_9:
-          ThingData.Movement.AngleXZ = v10;
+          ThingData->Movement.AngleXZ = v10;
     }
 }
 
@@ -1638,16 +1677,16 @@ void VVehicle::vehicle_sensor_point_projection(irr::core::vector3df& delta) {
     irr::f32 Forward = FlightModel.SizeForward;
     irr::f32 Sideways = FlightModel.SizeSideways;
 
-    position.X = ThingData.Position.X;
-    position.Y = ThingData.Position.Y;
-    position.Z = ThingData.Position.Z;
-    new_position.X = ThingData.Position.X;
-    new_position.Y = ThingData.Position.Y;
-    new_position.Z = ThingData.Position.Z;
+    position.X = ThingData->Position.X;
+    position.Y = ThingData->Position.Y;
+    position.Z = ThingData->Position.Z;
+    new_position.X = ThingData->Position.X;
+    new_position.Y = ThingData->Position.Y;
+    new_position.Z = ThingData->Position.Z;
 
     /* Sensor Front Right */
-    mRace->mVCalc->move_xyz(position, ThingData.Movement.AngleXY + 90.0f, ThingData.Movement.AngleXZ, Sideways);
-    mRace->mVCalc->move_xyz(position, ThingData.Movement.AngleXY, ThingData.Movement.AngleZY, Forward);
+    mRace->mVCalc->move_xyz(position, ThingData->Movement.AngleXY + 90.0f, ThingData->Movement.AngleXZ, Sideways);
+    mRace->mVCalc->move_xyz(position, ThingData->Movement.AngleXY, ThingData->Movement.AngleZY, Forward);
     new_position = position + delta;
 
     FlightModel.FrontRight.Position.X = position.X;
@@ -1662,7 +1701,7 @@ void VVehicle::vehicle_sensor_point_projection(irr::core::vector3df& delta) {
     /* Sensor Front Left */
 
     Sideways *= 2.0f;
-    mRace->mVCalc->move_xyz(position, ThingData.Movement.AngleXY - 90.0f, -ThingData.Movement.AngleXZ, Sideways);
+    mRace->mVCalc->move_xyz(position, ThingData->Movement.AngleXY - 90.0f, -ThingData->Movement.AngleXZ, Sideways);
     new_position = position + delta;
 
     FlightModel.FrontLeft.Position.X = position.X;
@@ -1676,7 +1715,7 @@ void VVehicle::vehicle_sensor_point_projection(irr::core::vector3df& delta) {
 
     /* Sensor Rear Left */
 
-    mRace->mVCalc->move_xyz(position, -ThingData.Movement.AngleXY, -ThingData.Movement.AngleZY,
+    mRace->mVCalc->move_xyz(position, -ThingData->Movement.AngleXY, -ThingData->Movement.AngleZY,
              FlightModel.SizeRear + Forward);
     new_position = position + delta;
 
@@ -1691,7 +1730,7 @@ void VVehicle::vehicle_sensor_point_projection(irr::core::vector3df& delta) {
 
     /* Sensor Rear Right */
 
-    mRace->mVCalc->move_xyz(position, ThingData.Movement.AngleXY + 90.0f, ThingData.Movement.AngleXZ, Sideways);
+    mRace->mVCalc->move_xyz(position, ThingData->Movement.AngleXY + 90.0f, ThingData->Movement.AngleXZ, Sideways);
     new_position = position + delta;
 
     FlightModel.RearRight.Position.X = position.X;
@@ -1721,7 +1760,7 @@ void VVehicle::vehicle_colide_map(irr::core::vector3df& delta) {
         if ((v9 & 1) != 0) {
            Xpos = fabs(delta.X);
            if (Xpos >= 0.04296875f) {
-               ThingData.AffectStatus |= 0x200u;
+               ThingData->AffectStatus |= 0x200u;
            }
            delta.X = 0.0f;
            Momentum.DeltaX *= mBounce;
@@ -1734,7 +1773,7 @@ void VVehicle::vehicle_colide_map(irr::core::vector3df& delta) {
 
             Ypos = fabs(delta.Y);
             if (Ypos >= 0.04296875f) {
-                ThingData.AffectStatus |= 0x200u;
+                ThingData->AffectStatus |= 0x200u;
             }
             delta.Y = 0.0f;
             Momentum.DeltaY *= mBounce;
@@ -1743,19 +1782,19 @@ void VVehicle::vehicle_colide_map(irr::core::vector3df& delta) {
     }
 
    if (FlightModel.FrontLeft.CollideFlags) {
-       mRace->mVCalc->move_xyz(delta, ThingData.Movement.AngleXY + 90.0f, 0.0f, 0.05859375f);
+       mRace->mVCalc->move_xyz(delta, ThingData->Movement.AngleXY + 90.0f, 0.0f, 0.05859375f);
    }
 
    if (FlightModel.FrontRight.CollideFlags) {
-       mRace->mVCalc->move_xyz(delta, ThingData.Movement.AngleXY - 90.0f, 0.0f, 0.05859375f);
+       mRace->mVCalc->move_xyz(delta, ThingData->Movement.AngleXY - 90.0f, 0.0f, 0.05859375f);
    }
 
    if (FlightModel.RearLeft.CollideFlags) {
-       mRace->mVCalc->move_xyz(delta, ThingData.Movement.AngleXY + 90.0f, 0.0f, 0.05859375f);
+       mRace->mVCalc->move_xyz(delta, ThingData->Movement.AngleXY + 90.0f, 0.0f, 0.05859375f);
    }
 
    if (FlightModel.RearRight.CollideFlags) {
-       mRace->mVCalc->move_xyz(delta, ThingData.Movement.AngleXY - 90.0f, 0.0f, 0.05859375f);
+       mRace->mVCalc->move_xyz(delta, ThingData->Movement.AngleXY - 90.0f, 0.0f, 0.05859375f);
    }
 }
 
@@ -1787,19 +1826,20 @@ void VVehicle::vehicle_move_mapwho(irr::core::vector3df& delta) {
         delta.Z = v10;
     }
 
-    position.X = ThingData.Position.X + delta.X;
-    position.Y = ThingData.Position.Y + delta.Y;
-    position.Z = ThingData.Position.Z + delta.Z;
-    //mapwho_move(thing, &position);
+    position.X = ThingData->Position.X + delta.X;
+    position.Y = ThingData->Position.Y + delta.Y;
+    position.Z = ThingData->Position.Z + delta.Z;
+    mRace->mThingManager->mapwho_move(ThingData, position);
 
     //Remove line below later again, happens in mapwho_move above if implemented correctly
     //later
-    ThingData.Position = position;
+    //ThingData->Position = position;
 }
 
 void VVehicle::vehicle_control_from_player() {
     irr::f32 v13;
     irr::f32 v14;
+    int16_t v26;
 
     MovementInput.AngleXY = 0.0f;
     MovementInput.AngleXZ = 0.0f;
@@ -1845,6 +1885,25 @@ vehicle_control_from_player_LABEL_28:
 
     //add missing code below later; there is more for weapons trigger
     //and something regarding friction
+
+    vehicle_targetting_system();
+
+    if (KeyPressedMachineGun) {
+        ++this->mMGun->Trigger;
+        v26 = this->mMGun->Upgrade;
+        if (v26 != 1) {
+            if (v26 >= 2) {
+                if ((v26 != 2) && (v26 != 3)) {
+                   goto vehicle_control_from_player_LABEL_45;
+                }
+            } else if (v26) {
+                   goto vehicle_control_from_player_LABEL_45;
+                }
+        }
+        this->mMGun->Target = (int16_t)(AutoTarget.PrimaryTarget);
+    }
+
+vehicle_control_from_player_LABEL_45:
 
     //Handle Booster key
     if (KeyPressedBooster) {
@@ -1899,7 +1958,7 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
     }
 
     //are we close enough to the current waypoint?
-    if (mRace->mVTrack->track_waypoint_distance(ThingData.Position, CurrentWaypoint)
+    if (mRace->mVTrack->track_waypoint_distance(ThingData->Position, CurrentWaypoint)
             < decisionDistance) {
            FlightModel.Flag.pad1 = false;
            FlightModel.Flag.pad2 = false;
@@ -1917,7 +1976,7 @@ vehicle_control_from_autopilot_LABEL22:
                   CurrentWaypoint = mRace->mVTrack->track_waypoint_child(CurrentWaypoint);
                   //No result found for child waypoint?
                   if (!CurrentWaypoint) {
-                      CurrentWaypoint = mRace->mVTrack->track_waypoint_absolute_nearest(ThingData.Position);
+                      CurrentWaypoint = mRace->mVTrack->track_waypoint_absolute_nearest(ThingData->Position);
                   }
 
                   v17 = 2;
@@ -1933,7 +1992,7 @@ vehicle_control_from_autopilot_LABEL22:
 vehicle_control_from_autopilot_LABEL31:
                         //controlled by computer player?
                         if (ControlOrigin == 8) {
-                            v19 = ThingData.Position.X + ThingData.Position.Y;
+                            v19 = ThingData->Position.X + ThingData->Position.Y;
                             //The next operation first seems to be tricky in floating point
                             //therefore initial solution: keep it in fixed point arithmetic
                             v19Fixed = mRace->mVCalc->FloatToFixedPoint24D8(v19);
@@ -2005,14 +2064,14 @@ vehicle_control_from_autopilot_LABEL48:
     FlightModel.Flag.AutoStop = false;
 
     if (FlightModel.Flag.AutoRefuel) {
-        v28 = ThingData.AffectStatus & 0x10;
+        v28 = ThingData->AffectStatus & 0x10;
     } else if (FlightModel.Flag.AutoRearm) {
-        v28 = ThingData.AffectStatus & 0x8;
+        v28 = ThingData->AffectStatus & 0x8;
     } else {
        if (!FlightModel.Flag.AutoRepair) {
            goto vehicle_control_from_autopilot_LABEL60;
        }
-       v28 = ThingData.AffectStatus & 0x20;
+       v28 = ThingData->AffectStatus & 0x20;
     }
 
     if (v28) {
@@ -2051,8 +2110,8 @@ vehicle_control_from_autopilot_LABEL135:
     v40 = 7.109375f;
     if (ComputerPlayer.Count1 < 20) {
         mRace->mVTrack->track_waypoint_position_set(position, v21);
-        xy = mRace->mVCalc->angle_get_xy(ThingData.Position, position);
-        difference = mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, xy);
+        xy = mRace->mVCalc->angle_get_xy(ThingData->Position, position);
+        difference = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, xy);
         v40 = difference / 32.0f;
         if ( difference < 0.0f) {
             v40 = (difference + 0.12109375f) / 32.0f;
@@ -2077,6 +2136,8 @@ vehicle_control_from_autopilot_LABEL135:
     } else {
         MovementInput.AngleXY = v40 - (MovementInput.AngleXY / 8.0f);
     }
+
+    vehicle_targetting_system();
 
 vehicle_control_from_autopilot_LABEL129:
     if (Stats.Fuel < 3000) {
@@ -2133,9 +2194,9 @@ void VVehicle::vehicle_set_autodrive_off() {
 
 int32_t VVehicle::vehicle_get_checkpoint() {
    int32_t v5 = 0;
-   size_t currClosestCheckPointIdx;
+   int16_t currClosestCheckPointIdx;
    irr::core::vector3df distance;
-   std::vector<ThingDataStruct*>::iterator it;
+   std::vector<VThing*>::iterator it;
    int32_t v21;
 
    //is currently a checkpoint assigned to this vehicle?
@@ -2147,12 +2208,12 @@ int32_t VVehicle::vehicle_get_checkpoint() {
       currClosestCheckPointIdx = 0;
 
       //check all existing checkpoints
-      for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+      for (it = mRace->mVanillaCheckpointVec.begin();
            it != mRace->mVanillaCheckpointVec.end();
            ++it) {
 
           //get the distance between the vehicle and the current indexed checkpoint
-          mRace->mVCalc->distance_get_xy_coords(ThingData.Position, (*it)->Position, distance);
+          mRace->mVCalc->distance_get_xy_coords(ThingData->Position, (*it)->Position, distance);
           if (((*it)->CollideSize.X >= distance.X) && ((*it)->CollideSize.Y >= distance.Y)) {
               currClosestCheckPointIdx = (*it)->Index;
               break;
@@ -2161,7 +2222,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
 
       if ((currClosestCheckPointIdx > 0) &&
             vehicle_process_checkpoint(currClosestCheckPointIdx)) {
-          if (!mRace->mVanillaCheckpointVec.at(CheckPoint)->Count) {
+          if (!mRace->mThingManager->Thing[CheckPoint].Count) {
               vehicle_checkpoint_next_lap();
               v5 = 1;
           }
@@ -2170,8 +2231,8 @@ int32_t VVehicle::vehicle_get_checkpoint() {
       }
 
       DistanceToNextCheckpoint = mRace->mVCalc->distance_get_rough_xy(
-                  ThingData.Position,
-                  mRace->mVanillaCheckpointVec.at(CheckPoint)->Position);
+                  ThingData->Position,
+                  mRace->mThingManager->Thing[CheckPoint].Position);
 
       if (LapCounter == (RaceLaps - 1) && v5) {
           FlightModel.FunctionFlag.Pad1 = true;
@@ -2192,7 +2253,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
       //As soon as the first player has crossed the finish
       //line the first time this flag is set non zero
       //for all players
-      if ((ThingData.Status & 0x800) != 0) {
+      if ((ThingData->Status & 0x800) != 0) {
           v21 = LapTicks + 1;
           LapTicks = v21;
           if (v21 >= 10000) {
@@ -2211,7 +2272,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
        //Currently no closest checkpoint assigned
        //we want to find and assign the first checkpoint
        //with Count == 0
-       for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+       for (it = mRace->mVanillaCheckpointVec.begin();
             it != mRace->mVanillaCheckpointVec.end();
             ++it) {
            //we found the first checkpoint, assign it to vehicle
@@ -2228,7 +2289,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
    return 0;
 }
 
-uint8_t VVehicle::vehicle_process_checkpoint(size_t cp_colide) {
+uint8_t VVehicle::vehicle_process_checkpoint(int16_t cp_colide) {
     uint8_t v4 = 0;
 
     //is the specified input checkpoint the same that is currently
@@ -2243,31 +2304,25 @@ uint8_t VVehicle::vehicle_process_checkpoint(size_t cp_colide) {
     return v4;
 }
 
-size_t VVehicle::vehicle_checkpoint_find_next(size_t forCheckPointIdx) {
-    size_t index = 0;
+int16_t VVehicle::vehicle_checkpoint_find_next(int16_t forCheckPointIdx) {
+    int16_t index = 0;
     int16_t count;
     int16_t v8;
     bool v9;
-    size_t result = 0;
+    int16_t result = 0;
     int16_t i = 1000;
 
-    std::vector<ThingDataStruct*>::iterator it;
-    ThingDataStruct* pntr = nullptr;
-    ThingDataStruct* pntr2 = nullptr;
+    std::vector<VThing*>::iterator it;
+    VThing* pntr = nullptr;
+    VThing* pntr2 = nullptr;
 
     //for which checkpoint do we search the next one?
-    for (it = mRace->mVanillaCheckpointVec.begin() + 1;
-         it != mRace->mVanillaCheckpointVec.end(); ++it) {
-           if ((*it)->Index == forCheckPointIdx) {
-               pntr = (*it);
-               break;
-           }
-    }
+    pntr = &mRace->mThingManager->Thing[forCheckPointIdx];
 
     if (pntr != nullptr) {
         v8 = pntr->Count + 1;
 
-        for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+        for (it = mRace->mVanillaCheckpointVec.begin();
              it != mRace->mVanillaCheckpointVec.end(); ++it) {
                count = (*it)->Count;
                if ( count == v8) {
@@ -2346,7 +2401,7 @@ void VVehicle::vehicle_control() {
             vehicle_control_from_autopilot();
         } else {
             //no, autopilot is not yet active, activate it
-            CurrentWaypoint = mRace->mVTrack->track_waypoint_nearest(ThingData.Position);
+            CurrentWaypoint = mRace->mVTrack->track_waypoint_nearest(ThingData->Position);
             vehicle_set_autopilot_on();
         }
         return;
@@ -2362,10 +2417,10 @@ void VVehicle::vehicle_control() {
 void VVehicle::vehicle_set_camera() {
     //the View is the position and orientation of the
     //player craft model
-    View.Position = ThingData.Position;
-    View.AngleXY = ThingData.Movement.AngleXY;
-    View.AngleZY = ThingData.Movement.AngleZY;
-    View.AngleXZ = ThingData.Movement.AngleXZ + 4.0f * Increment.AngleXY;
+    View.Position = ThingData->Position;
+    View.AngleXY = ThingData->Movement.AngleXY;
+    View.AngleZY = ThingData->Movement.AngleZY;
+    View.AngleXZ = ThingData->Movement.AngleXZ + 4.0f * Increment.AngleXY;
 
     //is there currently a BarrelRoll?
     if (FlightModel.Flag.BarrelRoll) {
@@ -2387,27 +2442,27 @@ void VVehicle::vehicle_setup_tumble() {
     irr::f32 difference;
 
     if (!FlightModel.Flag.BarrelRoll) {
-       v2 = ThingData.mTimeSlice % 4;
+       v2 = ThingData->TimeSlice % 4;
        if (v2 >= 0) {
            if (v2 >= 2) {
                if (v2 >= 4) {
                    return;
                }
-               v9 = mRace->mVTrack->track_waypoint_nearest(ThingData.Position);
+               v9 = mRace->mVTrack->track_waypoint_nearest(ThingData->Position);
                v10 = mRace->mVTrack->track_waypoint_child(v9);
                mRace->mVTrack->track_waypoint_position_set(position, v10);
-               xy = mRace->mVCalc->angle_get_xy(ThingData.Position, position);
+               xy = mRace->mVCalc->angle_get_xy(ThingData->Position, position);
                Tumble.AngleXY =
-                       mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, xy) / 40.0f;
+                       mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, xy) / 40.0f;
 
                Tumble.AngleZY = 0.19775390625f;
            } else
            {
-              v3 = mRace->mVTrack->track_waypoint_nearest(ThingData.Position);
+              v3 = mRace->mVTrack->track_waypoint_nearest(ThingData->Position);
               v4 = mRace->mVTrack->track_waypoint_child(v3);
               mRace->mVTrack->track_waypoint_position_set(position, v4);
-              v5 = mRace->mVCalc->angle_get_xy(ThingData.Position, position);
-              difference = mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, v5);
+              v5 = mRace->mVCalc->angle_get_xy(ThingData->Position, position);
+              difference = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, v5);
               //not sure about the next 2 lines below?
               Tumble.AngleXY = (difference + 360.0f) / 20.0f;
               Tumble.AngleZY = -difference / 7.0f;
@@ -2438,7 +2493,7 @@ bool VVehicle::vehicle_do_tumble() {
 
 void VVehicle::vehicle_colide_vectors(irr::core::vector3df& delta) {
     int16_t v5 = 5;
-    irr::core::vector3df position2 = ThingData.Position;
+    irr::core::vector3df position2 = ThingData->Position;
     position2 += delta;
 
     irr::f32 xy;
@@ -2462,13 +2517,13 @@ void VVehicle::vehicle_colide_vectors(irr::core::vector3df& delta) {
     //Pad6 flag seems to be used for vehicle collision
     //with vectors
     FlightModel.FunctionFlag.Pad6 = false;
-    while ( mRace->mVTrack->track_vector_collide(ThingData.Position, position2)) {
+    while ( mRace->mVTrack->track_vector_collide(ThingData->Position, position2)) {
         if (!--v5) {
             goto vehicle_colide_vectors_LABEL31;
         }
         FlightModel.FunctionFlag.Pad6 = true;
 
-        xy = mRace->mVCalc->angle_get_xy(ThingData.Position, position2);
+        xy = mRace->mVCalc->angle_get_xy(ThingData->Position, position2);
         mRace->mVCalc->UnwrapPhaseSigned(xy);
 
         angleDiff3 = mRace->mVCalc->angle_get_difference(xy, mRace->mVTrack->TrackCollisionVectorAngle);
@@ -2507,7 +2562,7 @@ void VVehicle::vehicle_colide_vectors(irr::core::vector3df& delta) {
         //current flight direction/view along the "barrier"/vector so that the craft
         //moves along the vector
 
-        thingMoveAngleXY = ThingData.Movement.AngleXY;
+        thingMoveAngleXY = ThingData->Movement.AngleXY;
         mRace->mVCalc->UnwrapPhaseSigned(thingMoveAngleXY);
 
         angleDiff2 = mRace->mVCalc->angle_get_difference(thingMoveAngleXY, mRace->mVTrack->TrackCollisionVectorAngle);
@@ -2547,11 +2602,11 @@ void VVehicle::vehicle_colide_vectors(irr::core::vector3df& delta) {
             //v24 = 0.0f;
         }
 
-        ThingData.Movement.AngleXY += v24;
+        ThingData->Movement.AngleXY += v24;
 
-        mRace->mVCalc->UnwrapPhaseSigned(ThingData.Movement.AngleXY);
+        mRace->mVCalc->UnwrapPhaseSigned(ThingData->Movement.AngleXY);
 
-        position2 = ThingData.Position;
+        position2 = ThingData->Position;
         position2 += delta;
     }
 
@@ -2740,7 +2795,7 @@ void VVehicle::vehicle_post_process() {
     //crossed the finish line checkpoint the first time
     //after the beginning of the race
     if (LapCounter) {
-        speedFixed = mRace->mVCalc->FloatToFixedPoint8D8(ThingData.Movement.SpeedActual) + 39;
+        speedFixed = mRace->mVCalc->FloatToFixedPoint8D8(ThingData->Movement.SpeedActual) + 39;
         Stats.Fuel -= (speedFixed / 40);
 
         if (Stats.Fuel < 0) {
@@ -2751,7 +2806,7 @@ void VVehicle::vehicle_post_process() {
     } else {
         //Vehicle has not yet crossed the finish line checkpoint
         //after beginning of the race
-        ThingData.AffectStatus |= 0x80u;
+        ThingData->AffectStatus |= 0x80u;
     }
 
     if (Stats.Invincable > 0) {
@@ -2759,10 +2814,10 @@ void VVehicle::vehicle_post_process() {
     }
 
     if (Stats.Invisible <= 0) {
-        ThingData.Status &= ~0x2u;
+        ThingData->Status &= ~0x2u;
     } else {
         --Stats.Invisible;
-        ThingData.Status |= 0x2u;
+        ThingData->Status |= 0x2u;
     }
 
     /********************************
@@ -2776,7 +2831,7 @@ void VVehicle::vehicle_post_process() {
     }
 
     //If we collide this 0x200 flag is set
-    if ((ThingData.AffectStatus & 0x200) != 0) {
+    if ((ThingData->AffectStatus & 0x200) != 0) {
         //if Human player play collision sound
         if (ControlOrigin == 1) {
                if (CollisionSound == nullptr) {
@@ -2785,37 +2840,37 @@ void VVehicle::vehicle_post_process() {
         }
     }
 
-    if (((ThingData.AffectStatus & 0x607u) != 0) && (Stats.Invincable <= 0)) {
-        number = ThingData.AffectNumber;  //contains the value of damage dealt by a certain event
+    if (((ThingData->AffectStatus & 0x607u) != 0) && (Stats.Invincable <= 0)) {
+        number = ThingData->AffectNumber;  //contains the value of damage dealt by a certain event
         v12 = -10000;
         if ((number < -10000) || (v12 = 10000, number >= 10001)) {
-            ThingData.AffectNumber = v12;
+            ThingData->AffectNumber = v12;
         }
 
         //Subtract dealt damage from health
-        Stats.Health -= ThingData.AffectNumber;
+        Stats.Health -= ThingData->AffectNumber;
 
         if (Stats.Health < 0) {
             Stats.Health = 0;
         }
 
-        Damage.ShimmerCount += ThingData.AffectNumber;
+        Damage.ShimmerCount += ThingData->AffectNumber;
         if (Damage.ShimmerCount >= 1001) {
             Damage.ShimmerCount = 1000;
         }
 
         //Add up taken damage for stat calculations
-        Conditions.HealthUsed += ThingData.AffectNumber;
+        Conditions.HealthUsed += ThingData->AffectNumber;
 
         //sample_play(thing, 16);
 
         //it seems Flag 0x4 in AffectStatus means we have taken a machinegun bullet
-        if ((ThingData.AffectStatus & 4) != 0) {
+        if ((ThingData->AffectStatus & 4) != 0) {
             ++Damage.BulletCount;
         }
 
         //it seems Flag 0x1000000 in AffectStatus means we have taken a missile
-        if ((ThingData.AffectStatus & 0x1000000) != 0) {
+        if ((ThingData->AffectStatus & 0x1000000) != 0) {
             ++Damage.MissileCount;
         }
 
@@ -2824,7 +2879,7 @@ void VVehicle::vehicle_post_process() {
             //sample_set_pitch(thing, 16, 240);
         //}
 
-        if ((ThingData.AffectStatus & 0x200) != 0) {
+        if ((ThingData->AffectStatus & 0x200) != 0) {
             ++Conditions.BumpAmount;
 
             //if Human player play collision sound
@@ -2835,7 +2890,7 @@ void VVehicle::vehicle_post_process() {
             }
         }
 
-        ThingData.AffectNumber = 0;
+        ThingData->AffectNumber = 0;
     }
 
     Damage.BulletHoles = (Damage.BulletCount / 0xAu);
@@ -2843,21 +2898,21 @@ void VVehicle::vehicle_post_process() {
     //Has this player already driven through the finish line checkpoint
     //at least once after start of the race? Means the race has started
     //for this player
-    if ((ThingData.AffectStatus & 0x800) != 0) {
+    if ((ThingData->AffectStatus & 0x800) != 0) {
         if (Stats.Invincable <= 0) {
-            Stats.Health -= ThingData.AffectNumber;
+            Stats.Health -= ThingData->AffectNumber;
 
             if (Stats.Health < 0) {
                 Stats.Health = 0;
             }
 
-            Damage.ShimmerCount += ThingData.AffectNumber;
+            Damage.ShimmerCount += ThingData->AffectNumber;
             if (Damage.ShimmerCount >= 1001) {
                 Damage.ShimmerCount = 1000;
             }
 
             //Add up taken damage for stat calculations
-            Conditions.HealthUsed += ThingData.AffectNumber;
+            Conditions.HealthUsed += ThingData->AffectNumber;
 
             if (Stats.VehicleHit) {
                 if (Stats.VehicleHit == 1) {
@@ -2902,9 +2957,9 @@ void VVehicle::vehicle_post_process() {
 
     //only allow charging
     //if vehicle action is currently 1
-    if (ThingData.Action == 0x1) {
+    if (ThingData->Action == 0x1) {
         //Are we currently in an rearming station?
-        if ((ThingData.AffectStatus & 0x8) != 0) {
+        if ((ThingData->AffectStatus & 0x8) != 0) {
             if (Stats.Weapons < 10000) {
                 //TODO: This code is supposed to run approx. every
                 //~50ms in the Playstation1 version of the game
@@ -2931,7 +2986,7 @@ void VVehicle::vehicle_post_process() {
         }
 
         //Are we currently in an fuel charging station?
-        if ((ThingData.AffectStatus & 0x10) != 0) {
+        if ((ThingData->AffectStatus & 0x10) != 0) {
             if (Stats.Fuel < 10000) {
                 //TODO: This code is supposed to run approx. every
                 //~50ms in the Playstation1 version of the game
@@ -2958,7 +3013,7 @@ void VVehicle::vehicle_post_process() {
         }
 
         //Are we currently in an shield repair station?
-        if ((ThingData.AffectStatus & 0x20) != 0) {
+        if ((ThingData->AffectStatus & 0x20) != 0) {
             if (Stats.Health > 0) {
                 if (Stats.Health < 10000) {
                     //TODO: This code is supposed to run approx. every
@@ -2994,8 +3049,8 @@ void VVehicle::vehicle_post_process() {
 
     } //End of If vehicle Action == 1
 
-    if (ThingData.Action == 0x17) {
-        if ((ThingData.AffectStatus & 8) != 0) {
+    if (ThingData->Action == 0x17) {
+        if ((ThingData->AffectStatus & 8) != 0) {
             if (Stats.Weapons < 10000) {
                 mCurrChargingAmmo = true;
                 atCharger = true;
@@ -3003,7 +3058,7 @@ void VVehicle::vehicle_post_process() {
             }
         }
 
-        if ((ThingData.AffectStatus & 0x10) != 0) {
+        if ((ThingData->AffectStatus & 0x10) != 0) {
             if (Stats.Fuel < 10000) {
                 mCurrChargingFuel = true;
                 atCharger = true;
@@ -3011,7 +3066,7 @@ void VVehicle::vehicle_post_process() {
             }
         }
 
-        if ((ThingData.AffectStatus & 0x20) != 0) {
+        if ((ThingData->AffectStatus & 0x20) != 0) {
             Stats.Invincable = 2;
 
             if ((Stats.Health > 0) || (FlightModel.Flag.AutoDrive)) {
@@ -3110,14 +3165,14 @@ void VVehicle::vehicle_post_process() {
 
     //only use collectables if Action == 1
     //if vehicle action is currently 1
-    if (ThingData.Action == 1) {
+    if (ThingData->Action == 1) {
 
             /********************************
              * Collectable effects          *
              ********************************/
 
             //Player picks up Invisible powerup?
-            if ((ThingData.AffectStatus & 0x100) != 0) {
+            if ((ThingData->AffectStatus & 0x100) != 0) {
                 Stats.Invisible = 250;
             }
 
@@ -3125,27 +3180,27 @@ void VVehicle::vehicle_post_process() {
             //This AffectStatus 0x80 flag seems to be also
             //set before the first player passes the final race
             //check point the first time.
-            if ((ThingData.AffectStatus & 0x80) != 0) {
+            if ((ThingData->AffectStatus & 0x80) != 0) {
                 Stats.Invincable = 100;
             }
 
             //Player picks up a minigun upgrade?
-            if ((ThingData.AffectStatus & 0x1000) != 0) {
-                ++Stats.MGunUpgrade;
+            if ((ThingData->AffectStatus & 0x1000) != 0) {
+                ++mMGun->Upgrade;
             }
 
             //Player picks up a rocket upgrade?
-            if ((ThingData.AffectStatus & 0x2000) != 0) {
+            if ((ThingData->AffectStatus & 0x2000) != 0) {
                 ++Stats.MRocketUpgrade;
             }
 
             //Player picks up a booster upgrade?
-            if ((ThingData.AffectStatus & 0x4000) != 0) {
+            if ((ThingData->AffectStatus & 0x4000) != 0) {
                 ++Booster.Upgrade;
             }
 
             //Player picks up a HealthExtra PowerUp?
-            if ((ThingData.AffectStatus & 0x8000) != 0) {
+            if ((ThingData->AffectStatus & 0x8000) != 0) {
                 Stats.Health += 2500;
 
                 if (Damage.BulletCount < 0xB) {
@@ -3156,7 +3211,7 @@ void VVehicle::vehicle_post_process() {
             }
 
             //Player picks up a HealthFull PowerUp?
-            if ((ThingData.AffectStatus & 0x10000) != 0) {
+            if ((ThingData->AffectStatus & 0x10000) != 0) {
                 Stats.Health = 10000; //Full health equals to 10000
                 Damage.BulletCount = 0;
                 Damage.BulletHoles = 0;
@@ -3164,7 +3219,7 @@ void VVehicle::vehicle_post_process() {
             }
 
             //Player picks up a HealthDouble PowerUp?
-            if ((ThingData.AffectStatus & 0x20000) != 0) {
+            if ((ThingData->AffectStatus & 0x20000) != 0) {
                 Stats.Health = 20000; //Double health equals to 20000
                 Damage.BulletCount = 0;
                 Damage.BulletHoles = 0;
@@ -3172,32 +3227,32 @@ void VVehicle::vehicle_post_process() {
             }
 
             //Player picks up a Ammo PowerUp?
-            if ((ThingData.AffectStatus & 0x40000) != 0) {
+            if ((ThingData->AffectStatus & 0x40000) != 0) {
                 Stats.Weapons += 2500;
             }
 
             //Player picks up a Ammo Full PowerUp?
-            if ((ThingData.AffectStatus & 0x80000) != 0) {
+            if ((ThingData->AffectStatus & 0x80000) != 0) {
                 Stats.Weapons = 10000;
             }
 
             //Player picks up a Ammo Double PowerUp?
-            if ((ThingData.AffectStatus & 0x100000) != 0) {
+            if ((ThingData->AffectStatus & 0x100000) != 0) {
                 Stats.Weapons = 20000;
             }
 
             //Player picks up a Fuel Extra PowerUp?
-            if ((ThingData.AffectStatus & 0x200000) != 0) {
+            if ((ThingData->AffectStatus & 0x200000) != 0) {
                 Stats.Fuel += 2500;
             }
 
             //Player picks up a Fuel Full PowerUp?
-            if ((ThingData.AffectStatus & 0x400000) != 0) {
+            if ((ThingData->AffectStatus & 0x400000) != 0) {
                 Stats.Fuel = 10000;
             }
 
             //Player picks up a Fuel Double PowerUp?
-            if ((ThingData.AffectStatus & 0x800000) != 0) {
+            if ((ThingData->AffectStatus & 0x800000) != 0) {
                 Stats.Fuel = 20000;
             }
 
@@ -3318,9 +3373,9 @@ void VVehicle::vehicle_post_process() {
 
     //makes sure to remove all existing effects
     //on the vehicle
-    ThingData.AffectStatus = 0;
-    ThingData.AffectNumber = 0;
-    ThingData.AffectWho = 0;
+    ThingData->AffectStatus = 0;
+    ThingData->AffectNumber = 0;
+    ThingData->AffectWho = 0;
     vehicle_get_checkpoint();
     Stats.Velocity *= 1.3f;
 }
@@ -3347,20 +3402,20 @@ uint8_t VVehicle::vehicle_colide_final_check_sean(std::vector<VVehicle*> &vehicl
      irr::core::vector3df positionFrom;
      bool collided = false;
 
-     v16 = this->ThingData.Position.Z;
-     v14 = this->ThingData.Position.X + delta.X;
-     v15 = this->ThingData.Position.Y + delta.Y;
+     v16 = this->ThingData->Position.Z;
+     v14 = this->ThingData->Position.X + delta.X;
+     v15 = this->ThingData->Position.Y + delta.Y;
      positionFrom.X = 0.0f;
      positionFrom.Y = 0.0f;
      positionFrom.Z = 0.0f;
 
      for (it = vehicleVec.begin(); it != vehicleVec.end(); ++it) {
          if ((*it) != this) {
-             v8 = fabs(((*it)->ThingData.Position.Z - v16));
+             v8 = fabs(((*it)->ThingData->Position.Z - v16));
              if (v8 < 0.390625f) {
-                v9 = fabs(((*it)->ThingData.Position.X - v14));
+                v9 = fabs(((*it)->ThingData->Position.X - v14));
                 if (v9 < 0.3515625f) {
-                    v10 = fabs(((*it)->ThingData.Position.Y - v15));
+                    v10 = fabs(((*it)->ThingData->Position.Y - v15));
                     if (v10 < 0.3515625f) {
                         collided = true;
                         break;
@@ -3381,7 +3436,7 @@ uint8_t VVehicle::vehicle_colide_final_check_sean(std::vector<VVehicle*> &vehicl
 
     //we are collided right now with a craft
     xy = mRace->mVCalc->angle_get_xy(positionFrom, delta);
-    difference = mRace->mVCalc->angle_get_difference(this->ThingData.Movement.AngleXY, xy);
+    difference = mRace->mVCalc->angle_get_difference(this->ThingData->Movement.AngleXY, xy);
     v19 = difference;
 
     if (fabs(v19) < 0.00390625f) {
@@ -3416,8 +3471,8 @@ uint8_t VVehicle::vehicle_colide_my_attempt(std::vector<VVehicle*> &vehicleVec, 
                  collNormal.normalize();
                  delta += collNormal * 0.1f;
 
-                 this->ThingData.Position -= collNormal * collDepth * 0.5f;
-                 (*it)->ThingData.Position += collNormal * collDepth * 0.5f;
+                 this->ThingData->Position -= collNormal * collDepth * 0.5f;
+                 (*it)->ThingData->Position += collNormal * collDepth * 0.5f;
              }
 
          }
@@ -3469,21 +3524,21 @@ uint8_t VVehicle::vehicle_colide(std::vector<VVehicle*> &vehicleVec, irr::core::
 
     for (it = vehicleVec.begin(); it != vehicleVec.end(); ++it) {
         if ((*it) != this) {
-            Zpos = ((*it)->ThingData.Position.Z);
-            v10 = this->ThingData.Position.Z;
+            Zpos = ((*it)->ThingData->Position.Z);
+            v10 = this->ThingData->Position.Z;
             if ((Zpos - v10) < 0.0f) {
                if ((v10 - Zpos) < 0.390625f) {
 vehicle_colide_LABEL7:
-            if ((fabs((*it)->ThingData.Position.X - this->ThingData.Position.X) < 0.00390625f) &&
-                (fabs((*it)->ThingData.Position.Y - this->ThingData.Position.Y) < 0.00390625f)) {
+            if ((fabs((*it)->ThingData->Position.X - this->ThingData->Position.X) < 0.00390625f) &&
+                (fabs((*it)->ThingData->Position.Y - this->ThingData->Position.Y) < 0.00390625f)) {
                 delta.X = 0.234375f;
                 delta.Y = 0.234375f;
             }
-            if (mRace->mVCalc->collide_on_circle((*it)->ThingData.Position, this->ThingData.Position,
+            if (mRace->mVCalc->collide_on_circle((*it)->ThingData->Position, this->ThingData->Position,
                                                  delta, 0.234375f, position2)) {
 
                if (v6) {
-                  squared_xy = mRace->mVCalc->distance_get_squared_xy(this->ThingData.Position, position2);
+                  squared_xy = mRace->mVCalc->distance_get_squared_xy(this->ThingData->Position, position2);
                   if (squared_xy < v5) {
                       v5 = squared_xy;
                       v25 = position2;
@@ -3492,7 +3547,7 @@ vehicle_colide_LABEL7:
                } else {
                      v25 = position2;
                      collVehicle = (*it);
-                     v5 = mRace->mVCalc->distance_get_squared_xy(this->ThingData.Position, position2);
+                     v5 = mRace->mVCalc->distance_get_squared_xy(this->ThingData->Position, position2);
                }
                ++v6;
             }
@@ -3516,7 +3571,7 @@ vehicle_colide_LABEL7:
 
     u1.X = (collVehicle->Momentum.DeltaX / 4.0f);
     u1.Y = (collVehicle->Momentum.DeltaY / 4.0f);
-    mRace->mVCalc->collide_inelastic(collVehicle->ThingData.Position, this->ThingData.Position,
+    mRace->mVCalc->collide_inelastic(collVehicle->ThingData->Position, this->ThingData->Position,
                                      u1, delta, v26, delta, collVehicle->Bump);
 
     //Deal "bump damage" to vehicle that we collided with
@@ -3557,7 +3612,7 @@ void VVehicle::DrawDebug() {
             mRace->mVCalc->VanillaToIrrlichtCoord(FlightModel.RearRight.Position);
 
     irr::core::vector3df irrCraftPos =
-            mRace->mVCalc->VanillaToIrrlichtCoord(ThingData.Position);
+            mRace->mVCalc->VanillaToIrrlichtCoord(ThingData->Position);
 
     mRace->mGame->mDrawDebug->Draw3DLine(*mRace->mGame->mDrawDebug->origin,
                                          irrCraftPos, mRace->mGame->mDrawDebug->cyan);
@@ -3795,7 +3850,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             }
 
             //Tell vehicle that we collected ExtraFuel
-            ThingData.AffectStatus |= 0x200000;
+            ThingData->AffectStatus |= 0x200000;
             break;
 
         case Entity::EntityType::FuelFull:
@@ -3811,7 +3866,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             }
 
             //Tell vehicle that we collected ExtraFull
-            ThingData.AffectStatus |= 0x400000;
+            ThingData->AffectStatus |= 0x400000;
             break;
 
         case Entity::EntityType::DoubleFuel:
@@ -3827,7 +3882,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             }
 
             //Tell vehicle that we collected DoubleFuel
-            ThingData.AffectStatus |= 0x800000;
+            ThingData->AffectStatus |= 0x800000;
             break;
 
         case Entity::EntityType::ExtraAmmo:
@@ -3843,7 +3898,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             }
 
             //Tell vehicle that we collected ExtraAmmo
-            ThingData.AffectStatus |= 0x40000;
+            ThingData->AffectStatus |= 0x40000;
             break;
 
         case Entity::EntityType::AmmoFull:
@@ -3859,7 +3914,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             }
 
             //Tell vehicle that we collected AmmoFull
-            ThingData.AffectStatus |= 0x80000;
+            ThingData->AffectStatus |= 0x80000;
             break;
 
         case Entity::EntityType::DoubleAmmo:
@@ -3875,7 +3930,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             }
 
             //Tell vehicle that we collected DoubleAmmo
-            ThingData.AffectStatus |= 0x100000;
+            ThingData->AffectStatus |= 0x100000;
             break;
 
         case Entity::EntityType::ExtraShield:
@@ -3890,7 +3945,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"EXTRA SHIELD", 4.0f);
             }
 
-            ThingData.AffectStatus |= 0x8000;
+            ThingData->AffectStatus |= 0x8000;
             break;
 
         case Entity::EntityType::ShieldFull:
@@ -3905,7 +3960,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"SHIELD FULL", 4.0f);
             }
 
-            ThingData.AffectStatus |= 0x10000;
+            ThingData->AffectStatus |= 0x10000;
             break;
 
         case Entity::EntityType::DoubleShield:
@@ -3920,7 +3975,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
                 this->mHUD->ShowBannerText((char*)"DOUBLE SHIELD", 4.0f);
             }
 
-            ThingData.AffectStatus |= 0x20000;
+            ThingData->AffectStatus |= 0x20000;
             break;
 
         case Entity::EntityType::BoosterUpgrade:
@@ -3928,7 +3983,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             //at max
             if (Booster.Upgrade != 3) {
                 //we can make another upgrade
-                ThingData.AffectStatus |= 0x4000;
+                ThingData->AffectStatus |= 0x4000;
 
                 if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"BOOSTER UPGRADED", 4.0f);
@@ -3944,7 +3999,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
             //at max
             if (Stats.MRocketUpgrade != 3) {
                 //we can make another upgrade
-                ThingData.AffectStatus |= 0x2000;
+                ThingData->AffectStatus |= 0x2000;
 
                 if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"MISSILE UPGRADED", 4.0f);
@@ -3958,9 +4013,9 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
         case Entity::EntityType::MinigunUpgrade:
             //can only be picked up if mini-gun upgrade level is not already
             //at max
-            if (Stats.MGunUpgrade != 3) {
+            if (mMGun->Upgrade != 3) {
                 //we can make another upgrade
-                ThingData.AffectStatus |= 0x1000;
+                ThingData->AffectStatus |= 0x1000;
 
                 if (mHUD != nullptr) {
                     this->mHUD->ShowBannerText((char*)"MINIGUN UPGRADED", 4.0f);
@@ -3998,13 +4053,187 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
     return true;
 }
 
+//Returns a possible vehicle target within a specified
+//angle of view; If no target is found returns 0 value
+//Otherwise it returns the index into the mRace->mVanillaCraftVec
+//vector for the selected player + 1
+uint16_t VVehicle::vehicle_target(irr::f32 angle) {
+    uint16_t index;
+    uint16_t currIdx;
+    std::vector<VVehicle*>::iterator it;
+    irr::f32 i;
+    irr::f32 xyz;
+    irr::f32 xy;
+    irr::f32 v15;
+    irr::f32 v16;
+    irr::f32 v18;
+    irr::f32 zy;
+    irr::f32 v21;
+    irr::f32 v22;
+    irr::f32 difference;
+
+    index = 0;
+    currIdx = 0;
+
+    i = 15.0f;
+
+    //go through all the available players
+    for (it = mRace->mVanillaCraftVec.begin(); it != mRace->mVanillaCraftVec.end(); ++it) {
+        currIdx++;
+
+        //Note: I skipped quite some code here, maybe my solution
+        //is too simply or not 100% correct, check later again!
+        if ((*it) == this) {
+            continue;
+        }
+
+        xyz = mRace->mVCalc->distance_get_xyz(ThingData->Position, (*it)->ThingData->Position);
+        if (i < xyz) {
+            continue;
+        }
+
+        xy = mRace->mVCalc->angle_get_xy(ThingData->Position, (*it)->ThingData->Position);
+        if (mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, xy) < 0.0f) {
+             v18 = mRace->mVCalc->angle_get_xy(ThingData->Position, (*it)->ThingData->Position);
+             difference = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, v18);
+             if (-difference >= angle) {
+                 continue;
+             }
+        } else {
+           v15 = mRace->mVCalc->angle_get_xy(ThingData->Position, (*it)->ThingData->Position);
+           v16 = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, v15);
+           if (v16 >= angle) {
+               continue;
+           }
+        }
+
+        zy = mRace->mVCalc->angle_get_zy(ThingData->Position, (*it)->ThingData->Position);
+        if (mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleZY, zy) >= 0.0f) {
+               v21 = mRace->mVCalc->angle_get_zy(ThingData->Position, (*it)->ThingData->Position);
+               if (mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleZY, v21) >= angle) {
+                   continue;
+               }
+vehicle_target_LABEL_25:
+        index = currIdx;
+        i = xyz;
+        continue;
+        }
+        v22 = mRace->mVCalc->angle_get_zy(ThingData->Position, (*it)->ThingData->Position);
+        if (-mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleZY, v22) < angle) {
+            goto vehicle_target_LABEL_25;
+        }
+    }
+
+    return index;
+}
+
+void VVehicle::vehicle_targetting_system() {
+    uint16_t v2;
+    uint16_t v12;
+    bool v13;
+
+    v2 = vehicle_target(29.9981689453125f);
+    if (AutoTarget.PrimaryTarget != v2) {
+        AutoTarget.PrimaryTarget = v2;
+        AutoTarget.ValidTargetCount = 0;
+    }
+
+    //computer controller player?
+    if (ControlOrigin == 8) {
+        if (FlightModel.FunctionFlag.Pad7 && (AutoTarget.PrimaryTarget > 0) &&
+                (mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->Stats.Health < 2000)) {
+                AutoTarget.PrimaryTarget = 0;
+                AutoTarget.ValidTargetCount = 0;
+       }
+   }
+
+   if ((AutoTarget.PrimaryTarget > 0) && mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->Stats.Invincable) {
+       AutoTarget.PrimaryTarget = 0;
+       AutoTarget.ValidTargetCount = 0;
+   }
+
+   if ((AutoTarget.PrimaryTarget > 0) && (mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->Stats.Health <= 0)) {
+       AutoTarget.PrimaryTarget = 0;
+       AutoTarget.ValidTargetCount = 0;
+   }
+
+   //if target vehicle is currently not in normal race mode, exclude it
+   if ((AutoTarget.PrimaryTarget > 0) && (mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1)->ThingData->Action != 0x1)) {
+       AutoTarget.PrimaryTarget = 0;
+       AutoTarget.ValidTargetCount = 0;
+   }
+
+   if (AutoTarget.PrimaryTarget) {
+       v12 = AutoTarget.ValidTargetCount + Stats.MRocketUpgrade + 1;
+       AutoTarget.ValidTargetCount = v12;
+       v13 = (v12 < 0x65u);
+       if (!v13) {
+            AutoTarget.ValidTargetCount = 100;
+            return;
+       }
+   } else {
+        AutoTarget.ValidTargetCount = 0;
+   }
+}
+
+void VVehicle::vehicle_process_autotarget() {
+    size_t v2;
+    uint8_t v6;
+    size_t v7;
+
+    v2 = 0;
+    do {
+       if (AutoTarget.HitMeTrigger[v2]) {
+           AutoTarget.HitMeCount[v2] += AutoTarget.HitMeTrigger[v2];
+       } else {
+           v6 = AutoTarget.HitMeCount[v2];
+           if (AutoTarget.HitMeTotal[v2] < v6) {
+               AutoTarget.HitMeTotal[v2] = v6;
+           }
+           AutoTarget.HitMeCount[v2] = 0;
+       }
+      v7 = v2++;
+      AutoTarget.HitMeTrigger[v7] = 0;
+    } while (v2 < 8);
+}
+
+uint8_t VVehicle::vehicle_computer_set_no_shoot() {
+  uint8_t result = 0;
+  std::vector<VVehicle*>::iterator it;
+
+  //is the player controlled by the computer
+  //player?
+  if (ControlOrigin == 8) {
+      it = mRace->mVanillaCraftVec.begin();
+      while (1) {
+         //ControlOrigin == 1 means is a human controlled player
+         if (it != mRace->mVanillaCraftVec.end()) {
+             if (((*it)->ControlOrigin == 1) &&
+                     (mRace->mVCalc->distance_get_rough_xy(ThingData->Position, (*it)->ThingData->Position) < 26.0f)) {
+                     break;
+             }
+         }
+         if (it == mRace->mVanillaCraftVec.end()) {
+             FlightModel.FunctionFlag.Pad8 = true;
+             return 0;
+         }
+         ++it;
+     }
+
+     FlightModel.FunctionFlag.Pad8 = false;
+     return 1;
+  }
+
+  return result;
+}
+
 void VVehicle::CheckForChargingStation() {
     bool cShield;
     bool cFuel;
     bool cAmmo;
 
-    int mCurrPosCellX = (int)(ThingData.Position.X / mRace->mLevelTerrain->segmentSize);
-    int mCurrPosCellY = (int)(ThingData.Position.Y / mRace->mLevelTerrain->segmentSize);
+    int mCurrPosCellX = (int)(ThingData->Position.X / mRace->mLevelTerrain->segmentSize);
+    int mCurrPosCellY = (int)(ThingData->Position.Y / mRace->mLevelTerrain->segmentSize);
 
     //see if we are currently in an charging area with this player
     this->mRace->mLevelTerrain->CheckPosInsideChargingRegion(mCurrPosCellX, mCurrPosCellY,
@@ -4012,25 +4241,25 @@ void VVehicle::CheckForChargingStation() {
 
     if (cShield) {
         //Player craft is in shield charging area
-        this->ThingData.AffectStatus |= 0x20;
+        this->ThingData->AffectStatus |= 0x20;
     }
 
     if (cAmmo) {
        //Player craft is in ammo charging area
-       this->ThingData.AffectStatus |= 0x8;
+       this->ThingData->AffectStatus |= 0x8;
     }
 
     if (cFuel) {
         //Player craft is in fuel charging area
-        this->ThingData.AffectStatus |= 0x10;
+        this->ThingData->AffectStatus |= 0x10;
     }
 }
 
 //checks if current player should emit dust clouds below the craft
 //this is the case if the player is above a "dusty" tile next to the race track
 void VVehicle::CheckDustCloudEmitter() {
-    int mCurrPosCellX = (int)(ThingData.Position.X / mRace->mLevelTerrain->segmentSize);
-    int mCurrPosCellY = (int)(ThingData.Position.Y / mRace->mLevelTerrain->segmentSize);
+    int mCurrPosCellX = (int)(ThingData->Position.X / mRace->mLevelTerrain->segmentSize);
+    int mCurrPosCellY = (int)(ThingData->Position.Y / mRace->mLevelTerrain->segmentSize);
 
     MapEntry* tilePntr = this->mRace->mLevelTerrain->GetMapEntry(mCurrPosCellX, mCurrPosCellY);
     irr::s32 texId = tilePntr->m_TextureId;
@@ -4040,7 +4269,7 @@ void VVehicle::CheckDustCloudEmitter() {
     //if craft is close enough to the terrain below
     //(and can) technically emit dust, continue checking for
     //texture Id, otherwise we will not emit Dust
-    if ((ThingData.Position.Z - tilePntr->m_Height) < 1.8f) {
+    if ((ThingData->Position.Z - tilePntr->m_Height) < 1.8f) {
         //check if our texture ID is present in the dirt tex id list
         //if so then emit clouds
         for (std::vector<irr::s32>::iterator itTex = dirtTexIdsVec->begin(); itTex != dirtTexIdsVec->end(); ++itTex) {
@@ -4232,5 +4461,15 @@ VVehicle::~VVehicle() {
 
     delete dirtTexIdsVec;
     dirtTexIdsVec = nullptr;
+
+    if (mMGun != nullptr) {
+        delete mMGun;
+        mMGun = nullptr;
+    }
+
+    if (ThingData != nullptr) {
+        mRace->mThingManager->thing_delete(ThingData);
+        ThingData = nullptr;
+    }
 }
 

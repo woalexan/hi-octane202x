@@ -37,13 +37,22 @@
 #include "vtrack.h"
 #include "../game.h"
 #include "vvehicle.h"
+#include "vthing.h"
 
 VRepair::VRepair(Race* mParentRace, irr::core::vector3d<irr::f32> NewPosition,
                  irr::scene::ISceneManager* smgr) {
     mSmgr = smgr;
     mRace = mParentRace;
 
-    ThingData.Position = mRace->mVCalc->IrrlichtToVanillaCoord(NewPosition);
+    irr::core::vector3df vanPos = mRace->mVCalc->IrrlichtToVanillaCoord(NewPosition);
+
+    //get my ThingData
+    //TODO: the -1 at the end is not correct, fix!
+    //Member value = 9 means repair craft
+    ThingData =
+            mRace->mThingManager->thing_initialise_member(vanPos, 0.0f, 0.0f, 0.0f, 10, 9, -1);
+
+    ThingData->Position = vanPos;
 }
 
 //We can only finish initialization
@@ -72,6 +81,11 @@ VRepair::~VRepair() {
 
     //remove mesh
     mSmgr->getMeshCache()->removeMesh(RecoveryMesh);
+
+    if (ThingData != nullptr) {
+        mRace->mThingManager->thing_delete(ThingData);
+        ThingData = nullptr;
+    }
 }
 
 void VRepair::UpdateSceneNode() {
@@ -83,29 +97,29 @@ void VRepair::UpdateSceneNode() {
 }
 
 void VRepair::initialiseVEHICLE_POLICE_HELICOPTER() {
-    ThingData.Action = 31;
+    ThingData->Action = 31;
 
-    irr::f32 v2 = mRace->mVCalc->map_altitude_column_and_floor(ThingData.Position);
-    ThingData.Position.Z = (v2 +  4.0f);
+    irr::f32 v2 = mRace->mVCalc->map_altitude_column_and_floor(ThingData->Position);
+    ThingData->Position.Z = (v2 +  4.0f);
     IncrementAdd.AngleXY = 9.99755859375f;
     IncrementAdd.SpeedActual = 0.1640625f;
 
     //init other variables as well (just to make sure!)
-    ThingData.Movement.AngleXY = 0.0f;
-    ThingData.Movement.AngleXZ = 0.0f;
-    ThingData.Movement.AngleZY = 0.0f;
-    ThingData.Movement.SpeedActual = 0.0f;
+    ThingData->Movement.AngleXY = 0.0f;
+    ThingData->Movement.AngleXZ = 0.0f;
+    ThingData->Movement.AngleZY = 0.0f;
+    ThingData->Movement.SpeedActual = 0.0f;
 
-    ThingData.Displacement.X = 0.0f;
-    ThingData.Displacement.Y = 0.0f;
-    ThingData.Displacement.Z = 0.0f;
+    ThingData->Displacement.X = 0.0f;
+    ThingData->Displacement.Y = 0.0f;
+    ThingData->Displacement.Z = 0.0f;
 
     //CollideSize does not really matter, is not used in repair
     //vehicle; just want to make sure that I do not have
     //undefined variables, the init values are just
     //a random picked value, I am not sure if the game
     //actually initializes this and to which value
-    ThingData.CollideSize.set(1.0f, 1.0f, 1.0f);
+    ThingData->CollideSize.set(1.0f, 1.0f, 1.0f);
 }
 
 void VRepair::repair_vehicle_move_toward(irr::core::vector3df t_position,
@@ -118,9 +132,9 @@ void VRepair::repair_vehicle_move_toward(irr::core::vector3df t_position,
     irr::f32 v14;
     irr::f32 v15;
 
-    position_from = ThingData.Position;
+    position_from = ThingData->Position;
     xy = mRace->mVCalc->angle_get_xy(position_from, t_position);
-    v10 = mRace->mVCalc->angle_get_difference(ThingData.Movement.AngleXY, xy);
+    v10 = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, xy);
     if (dist < 8.0f) {
         v11 = speed * dist;
         if (speed >= 0.39453125f) {
@@ -145,9 +159,9 @@ void VRepair::repair_vehicle_move_toward(irr::core::vector3df t_position,
     }
     //v13 = delta;
 repair_vehicle_move_toward_LABEL_12:
-    ThingData.Movement.AngleXY += v10;
-    mRace->mVCalc->move_displacement_set(delta, ThingData.Movement.AngleXY, 0.0f, speed);
-    position_from = ThingData.Position + delta;
+    ThingData->Movement.AngleXY += v10;
+    mRace->mVCalc->move_displacement_set(delta, ThingData->Movement.AngleXY, 0.0f, speed);
+    position_from = ThingData->Position + delta;
     v14 = mRace->mVCalc->map_altitude_column_and_floor(position_from);
     v15 = v14 - (position_from.Z - 6.0f);
     if (v15 >= -0.1171875f) {
@@ -160,9 +174,7 @@ repair_vehicle_move_toward_LABEL_12:
     position_from.Z += v15;
     delta.Z += v15;
 
-    //mapwho_move(thing, &position_from);
-    //alternative right now:
-    ThingData.Position = position_from;
+    mRace->mThingManager->mapwho_move(ThingData, position_from);
 }
 
 void VRepair::repair_vehicle_rotate_car(VVehicle* targetVehicle) {
@@ -173,8 +185,8 @@ void VRepair::repair_vehicle_rotate_car(VVehicle* targetVehicle) {
 
     v2 = mRace->mVTrack->track_waypoint_child(BumpDamage);
     mRace->mVTrack->track_waypoint_position_set(position, v2);
-    xy = mRace->mVCalc->angle_get_xy(targetVehicle->ThingData.Position, position);
-    difference = mRace->mVCalc->angle_get_difference(targetVehicle->ThingData.Movement.AngleXY, xy);
+    xy = mRace->mVCalc->angle_get_xy(targetVehicle->ThingData->Position, position);
+    difference = mRace->mVCalc->angle_get_difference(targetVehicle->ThingData->Movement.AngleXY, xy);
     if (difference >= -59.996337890625f) {
         if (difference >= 60.0018310546875f) {
             difference = 59.996337890625f;
@@ -182,7 +194,7 @@ void VRepair::repair_vehicle_rotate_car(VVehicle* targetVehicle) {
     } else {
         difference = -59.996337890625f;
     }
-    targetVehicle->ThingData.Movement.AngleXY += difference;
+    targetVehicle->ThingData->Movement.AngleXY += difference;
 }
 
 uint16_t VRepair::repair_vehicle_find_drop_waypoint(VVehicle* targetVehicle) {
@@ -198,18 +210,18 @@ uint16_t VRepair::repair_vehicle_find_drop_waypoint(VVehicle* targetVehicle) {
    int32_t v12;
    int32_t v15;
    bool firstLoop;
-   ThingDataStruct* checkPntStructCounter0 = nullptr;
-   ThingDataStruct* checkPntStructCounter2 = nullptr;
+   VThing* checkPntStructCounter0 = nullptr;
+   VThing* checkPntStructCounter2 = nullptr;
    irr::core::vector3df position;
    irr::f32 colSizeX;
    irr::f32 colSizeY;
 
-    std::vector<ThingDataStruct*>::iterator it;
+    std::vector<VThing*>::iterator it;
 
    //which checkpoint is in this vehicle Count[0] value?
-   for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+   for (it = mRace->mVanillaCheckpointVec.begin();
         it != mRace->mVanillaCheckpointVec.end(); ++it) {
-          if ((*it)->Index == (size_t)(targetVehicle->Counter[0])) {
+          if ((*it)->Index == targetVehicle->Counter[0]) {
               checkPntStructCounter0 = (*it);
               break;
           }
@@ -230,9 +242,9 @@ uint16_t VRepair::repair_vehicle_find_drop_waypoint(VVehicle* targetVehicle) {
    v9minIdx = static_cast<int32_t>(v6);
 
    //which checkpoint is in this vehicle Count[2] value?
-   for (it = mRace->mVanillaCheckpointVec.begin() + 1;
+   for (it = mRace->mVanillaCheckpointVec.begin();
         it != mRace->mVanillaCheckpointVec.end(); ++it) {
-          if ((*it)->Index == (size_t)(targetVehicle->Counter[2])) {
+          if ((*it)->Index == targetVehicle->Counter[2]) {
               checkPntStructCounter2 = (*it);
               break;
           }
@@ -256,7 +268,7 @@ uint16_t VRepair::repair_vehicle_find_drop_waypoint(VVehicle* targetVehicle) {
             if (!(v12 << 16)) {
                 break;
             }
-            v13 = mRace->mVTrack->track_waypoint_distance(targetVehicle->ThingData.Position, v8);
+            v13 = mRace->mVTrack->track_waypoint_distance(targetVehicle->ThingData->Position, v8);
             //we want to find the minimum value of v13
             if (firstLoop) {
                //whatever the value is the first
@@ -302,9 +314,9 @@ uint8_t VRepair::repair_vehicle_drop_point_ok(uint16_t waypoint) {
          it != mRace->mVanillaRepairVehicleVec.end(); ++it) {
             if ((*it) != this) {
                 pntr = (*it);
-                action = pntr->ThingData.Action;
+                action = pntr->ThingData->Action;
                 if (((action - 29) < 2) ||
-                   (action == 28) && pntr->ThingData.Count) {
+                   (action == 28) && pntr->ThingData->Count) {
                     if (pntr->BumpDamage == waypoint) {
                        return 0;
                     }
@@ -318,10 +330,10 @@ uint8_t VRepair::repair_vehicle_drop_point_ok(uint16_t waypoint) {
 void VRepair::repair_vehicle_set_camera() {
     //the View is the position and orientation of the
     //repair craft model
-    View.Position = ThingData.Position + irr::core::vector3df(0.0f, 0.0f, 0.8f);
-    View.AngleXY = ThingData.Movement.AngleXY;
-    View.AngleZY = ThingData.Movement.AngleZY;
-    View.AngleXZ = ThingData.Movement.AngleXZ; // + 4.0f * Increment.AngleXY;
+    View.Position = ThingData->Position + irr::core::vector3df(0.0f, 0.0f, 0.8f);
+    View.AngleXY = ThingData->Movement.AngleXY;
+    View.AngleZY = ThingData->Movement.AngleZY;
+    View.AngleXZ = ThingData->Movement.AngleXZ; // + 4.0f * Increment.AngleXY;
 }
 
 void VRepair::repair_vehicle_execute_action0x1A(irr::core::vector3df pos1,
@@ -331,8 +343,8 @@ void VRepair::repair_vehicle_execute_action0x1A(irr::core::vector3df pos1,
     dist = mRace->mVCalc->distance_get_xy(pos1, pos2);
 
     if (dist < 6.00390625f) {
-        ThingData.Action = 0x1B;
-        ThingData.Count = 20;
+        ThingData->Action = 0x1B;
+        ThingData->Count = 20;
     } else {
         repair_vehicle_move_toward(pos2, delta, 0.859375f, dist);
     }
@@ -343,7 +355,7 @@ void VRepair::repair_vehicle_execute_action0x1A(irr::core::vector3df pos1,
 void VRepair::repair_vehicle_execute_action0x1B(irr::core::vector3df pos1,
                                                 irr::core::vector3df pos2, irr::core::vector3df& delta) {
 
-    irr::f32 count = (irr::f32)(ThingData.Count);
+    irr::f32 count = (irr::f32)(ThingData->Count);
 
     irr::f32 v16 = pos2.X - pos1.X;
     irr::f32 v17 = (v16 / count);
@@ -358,30 +370,28 @@ void VRepair::repair_vehicle_execute_action0x1B(irr::core::vector3df pos1,
     delta.Z = (v23 / count);
     pos1.Z += delta.Z;
 
-    //mapwho_move(thing, pos1);
-    //next line is the current alternative
-    ThingData.Position = pos1;
-    ThingData.Count--;
+    mRace->mThingManager->mapwho_move(ThingData, pos1);
+    ThingData->Count--;
 
-    if (!ThingData.Count) {
-        TargetVehicle->ThingData.Action = 0x17;
-        ThingData.Action = 0x1C;
+    if (!ThingData->Count) {
+        TargetVehicle->ThingData->Action = 0x17;
+        ThingData->Action = 0x1C;
         BumpDamage = repair_vehicle_find_drop_waypoint(TargetVehicle);
         if (BumpDamage) {
-            ThingData.Count = 0;
+            ThingData->Count = 0;
             repair_vehicle_set_camera();
             return;
         }
 
-        BumpDamage = mRace->mVTrack->track_waypoint_absolute_nearest(ThingData.Position);
+        BumpDamage = mRace->mVTrack->track_waypoint_absolute_nearest(ThingData->Position);
         if (BumpDamage) {
-            ThingData.Count = 0;
+            ThingData->Count = 0;
             repair_vehicle_set_camera();
             return;
         }
 
         BumpDamage = 1;
-        ThingData.Count = 0;
+        ThingData->Count = 0;
         repair_vehicle_set_camera();
         return;
     }
@@ -398,33 +408,31 @@ void VRepair::repair_vehicle_execute_action0x1C(irr::core::vector3df pos1,
     irr::core::vector3df position;
     bool v32;
 
-    if (!ThingData.Count) {
+    if (!ThingData->Count) {
         mRace->mVTrack->track_waypoint_position_set(pos2, BumpDamage);
         xy = mRace->mVCalc->distance_get_xy(pos1, pos2);
 
         if (xy < 4.00390625f) {
-            ++ThingData.Count;
+            ++ThingData->Count;
         } else {
             repair_vehicle_move_toward(pos2, delta, 0.5859375f, xy);
-            pos1 = ThingData.Position;
+            pos1 = ThingData->Position;
 
-            //mapwho_move(thing, position1);
-            ThingData.Position = pos1;
+            mRace->mThingManager->mapwho_move(ThingData, pos1);
             pos1.Z -= 0.78125f;
-            //mapwho_move(TargetVehicle, position1);
-            TargetVehicle->ThingData.Position = pos1;
+            mRace->mThingManager->mapwho_move(TargetVehicle->ThingData, pos1);
         }
 
         v29 = mRace->mVTrack->track_waypoint_child(BumpDamage);
         mRace->mVTrack->track_waypoint_position_set(position, v29);
-        v30 = mRace->mVCalc->angle_get_xy(TargetVehicle->ThingData.Position, position);
+        v30 = mRace->mVCalc->angle_get_xy(TargetVehicle->ThingData->Position, position);
         difference =
-                mRace->mVCalc->angle_get_difference(TargetVehicle->ThingData.Movement.AngleXY, v30);
+                mRace->mVCalc->angle_get_difference(TargetVehicle->ThingData->Movement.AngleXY, v30);
 
         v32 = (difference < 60.0018310546875f);
         if (difference < -59.996337890625f) {
             difference = -59.996337890625f;
-            TargetVehicle->ThingData.Movement.AngleXY += difference;
+            TargetVehicle->ThingData->Movement.AngleXY += difference;
             TargetVehicle->vehicle_set_camera();
             repair_vehicle_set_camera();
             return;
@@ -434,20 +442,20 @@ void VRepair::repair_vehicle_execute_action0x1C(irr::core::vector3df pos1,
             difference = 59.996337890625f;
         }
 
-        TargetVehicle->ThingData.Movement.AngleXY += difference;
+        TargetVehicle->ThingData->Movement.AngleXY += difference;
         TargetVehicle->vehicle_set_camera();
         repair_vehicle_set_camera();
         return;
     }
 
-    if (ThingData.Count == 1) {
+    if (ThingData->Count == 1) {
         if (repair_vehicle_drop_point_ok(BumpDamage)) {
-            ThingData.Action = 0x1D;
-            ThingData.Count = 14;
+            ThingData->Action = 0x1D;
+            ThingData->Count = 14;
         } else {
             BumpDamage =
                     mRace->mVTrack->track_waypoint_child(BumpDamage);
-            ThingData.Count = 0;
+            ThingData->Count = 0;
         }
     }
 
@@ -459,7 +467,7 @@ void VRepair::repair_vehicle_execute_action0x1D(irr::core::vector3df pos1,
 
     mRace->mVTrack->track_waypoint_position_set(pos2, BumpDamage);
 
-    irr::f32 count = (irr::f32)(ThingData.Count);
+    irr::f32 count = (irr::f32)(ThingData->Count);
 
     irr::f32 v34 = pos2.X - pos1.X;
     irr::f32 v35 = (v34 / count);
@@ -473,19 +481,15 @@ void VRepair::repair_vehicle_execute_action0x1D(irr::core::vector3df pos1,
     delta.Z = (v41 / count);
     pos1.Z += delta.Z;
 
-    //mapwho_move(thing, pos1);
-    //next line is the current alternative
-    ThingData.Position = pos1;
+    mRace->mThingManager->mapwho_move(ThingData, pos1);
     pos1.Z -= 0.78125f;
-    //mapwho_move(TargetVehicle, pos1);
-    //next line is the current alternative
-    TargetVehicle->ThingData.Position = pos1;
+    mRace->mThingManager->mapwho_move(TargetVehicle->ThingData, pos1);
     TargetVehicle->vehicle_set_camera();
-    ThingData.Count--;
+    ThingData->Count--;
 
-    if (ThingData.Count == 2) {
-        ThingData.Action = 0x1E;
-        ThingData.Count = 0;
+    if (ThingData->Count == 2) {
+        ThingData->Action = 0x1E;
+        ThingData->Count = 0;
     }
 
     repair_vehicle_set_camera();
@@ -502,34 +506,33 @@ void VRepair::repair_vehicle_execute_action0x1E(irr::core::vector3df pos1,
     irr::core::vector3df position;
     irr::f32 v45;
 
-    if (ThingData.Count == 1) {
+    if (ThingData->Count == 1) {
         TargetVehicle->CurrentWaypoint = BumpDamage;
         TargetVehicle->FlightModel.Flag.AutoStop = false;
-        TargetVehicle->ThingData.Action = 25;
-        ++ThingData.Count;
-    } else if (ThingData.Count >= 2) {
-        if (ThingData.Count == 2) {
+        TargetVehicle->ThingData->Action = 25;
+        ++ThingData->Count;
+    } else if (ThingData->Count >= 2) {
+        if (ThingData->Count == 2) {
            pos1.Z += 0.09765625f;
-           //mapwho_move(thing, pos1);
-           ThingData.Position = pos1;
+           mRace->mThingManager->mapwho_move(ThingData, pos1);
            zpos = pos1.Z;
            v48 = mRace->mVCalc->map_altitude_column_and_floor(pos1);
            if ((v48 + 5.0f) < zpos) {
-               ThingData.Action = 31;
+               ThingData->Action = 31;
                repair_vehicle_set_camera();
                return;
            }
         }
-    } else if (!ThingData.Count) {
-        if (TargetVehicle->ThingData.Action == 24) {
-            ++ThingData.Count;
+    } else if (!ThingData->Count) {
+        if (TargetVehicle->ThingData->Action == 24) {
+            ++ThingData->Count;
         }
 
         v44 = mRace->mVTrack->track_waypoint_child(BumpDamage);
         mRace->mVTrack->track_waypoint_position_set(position, v44);
-        v45 = mRace->mVCalc->angle_get_xy(TargetVehicle->ThingData.Position, position);
+        v45 = mRace->mVCalc->angle_get_xy(TargetVehicle->ThingData->Position, position);
         difference =
-                mRace->mVCalc->angle_get_difference(TargetVehicle->ThingData.Movement.AngleXY, v45);
+                mRace->mVCalc->angle_get_difference(TargetVehicle->ThingData->Movement.AngleXY, v45);
 
         v32 = (difference < 60.0018310546875f);
         if (difference >= -59.996337890625f) {
@@ -540,7 +543,7 @@ void VRepair::repair_vehicle_execute_action0x1E(irr::core::vector3df pos1,
             difference = -59.996337890625f;
         }
 
-        TargetVehicle->ThingData.Movement.AngleXY += difference;
+        TargetVehicle->ThingData->Movement.AngleXY += difference;
         TargetVehicle->vehicle_set_camera();
     }
 
@@ -554,7 +557,7 @@ void VRepair::repair_vehicle_execute_action0x1F() {
     VVehicle* pntr = nullptr;
 
     for (it = mRace->mVanillaCraftVec.begin(); it != mRace->mVanillaCraftVec.end(); ++it) {
-        if ((*it)->ThingData.Action == 0x14) {
+        if ((*it)->ThingData->Action == 0x14) {
             pntr = (*it);
             break;
         }
@@ -563,11 +566,11 @@ void VRepair::repair_vehicle_execute_action0x1F() {
     if (pntr != nullptr) {
         //we found a vehicle that needs help
         TargetVehicle = pntr;
-        TargetVehicle->ThingData.Action = 0x16;
+        TargetVehicle->ThingData->Action = 0x16;
 
         //I skipped some code regarding deathmatch here!
 
-        ThingData.Action = 0x1A;
+        ThingData->Action = 0x1A;
         repair_vehicle_set_camera();
         return;
     }
@@ -592,10 +595,10 @@ void VRepair::Update(irr::f32 frameDeltaTime) {
     mAbsTimeIntegrator += frameDeltaTime;
     if (mAbsTimeIntegrator >= 0.05) {
         mAbsTimeIntegrator = 0.0f;
-        if (ThingData.mTimeSlice < 0xFF) {
-            ThingData.mTimeSlice++;
+        if (ThingData->TimeSlice < 0xFF) {
+            ThingData->TimeSlice++;
         } else {
-            ThingData.mTimeSlice = 0;
+            ThingData->TimeSlice = 0;
         }
 
         //the following code should run every ~50ms
@@ -604,17 +607,17 @@ void VRepair::Update(irr::f32 frameDeltaTime) {
 
         //position1 holds the current position
         //of this recovery vehicle
-        position1 = ThingData.Position;
+        position1 = ThingData->Position;
 
         //position2 holds the current position
         //of the target vehicle we want to help
         if (TargetVehicle != nullptr) {
-            position2 = TargetVehicle->ThingData.Position;
+            position2 = TargetVehicle->ThingData->Position;
         } else {
             position2.set(0.0f, 0.0f, 0.0f);
         }
 
-        switch (ThingData.Action) {
+        switch (ThingData->Action) {
             case 0x1A: {
                 repair_vehicle_execute_action0x1A(position1, position2, delta);
                 break;

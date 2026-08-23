@@ -31,34 +31,107 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VBASE_H
-#define VBASE_H
+#ifndef VTHING_H
+#define VTHING_H
 
 #include "irrlicht.h"
+#include "vbase.h"
 #include <cstdint>
 
 /************************
  * Forward declarations *
  ************************/
 
-struct MovementStruct {
-    irr::f32 AngleXY = 0.0f;
-    irr::f32 AngleZY = 0.0f;
-    irr::f32 AngleXZ = 0.0f;
-    irr::f32 SpeedActual = 0.0f;
-};
+class Race;
+class VVehicle;
 
-struct MomentumStruct {
-    irr::f32 DeltaX = 0.0f;
-    irr::f32 DeltaY = 0.0f;
-    irr::f32 AngleXY = 0.0f;
-};
-
-struct VehicleViewStruct {
+struct VThing {
     irr::core::vector3df Position;
-    irr::f32 AngleXY;
-    irr::f32 AngleZY;
-    irr::f32 AngleXZ;
+    MovementStruct Movement;
+    irr::core::vector3df Displacement;
+
+    int16_t Id = 0;
+    int16_t Index = 0;
+    int16_t Child = 0;
+    int16_t Parent = 0;
+
+    uint32_t AffectStatus = 0;
+    int16_t AffectNumber = 0; //allows to specify the amount of damage dealt with an action
+    uint16_t AffectWho = 0;   //allows to specify who is affected
+    uint16_t ColideGroup = 0;
+
+    int16_t Life = 0;
+
+    uint32_t Seed = 0;
+
+    int16_t Count = 0;
+    irr::core::vector3df CollideSize;
+
+    uint32_t Status = 0;
+    int16_t Upgrade = 0;
+    int8_t Member = 0;
+    int8_t Action = 0;
+    int8_t Group = 0;
+    uint8_t TimeSlice = 0;
+
+    //Pointer to the VVehicle object
+    //if we are a player vehicle (grp10)
+    VVehicle* vVehiclePnter = nullptr;
 };
 
-#endif // VBASE_H
+class VThingManager {
+public:
+    VThingManager(Race* parentRace);
+    ~VThingManager();
+
+    int32_t GetNumberThingsUsed();
+    int32_t GetNumberThingsFree();
+
+    VThing* thing_initialise_member(irr::core::vector3df position,
+                                    irr::f32 angleXY,
+                                    irr::f32 angleZY,
+                                    irr::f32 angleXZ,
+                                    int8_t group,
+                                    int8_t member,
+                                    int16_t id);
+
+    VThing* thing_initialise(irr::core::vector3df position,
+                                    irr::f32 angleXY,
+                                    irr::f32 angleZY,
+                                    irr::f32 angleXZ,
+                                    int8_t group,
+                                    int8_t member,
+                                    int16_t id);
+
+    void thing_delete(VThing* whichThing);
+
+    VThing Thing[1000];
+
+    uint8_t mapwho_delete(VThing* whichThing);
+    uint8_t mapwho_add(VThing* whichThing, irr::core::vector3df position);
+    uint8_t mapwho_move(VThing* whichThing, irr::core::vector3df position);
+
+    uint8_t thing_overlapping(VThing* thing1, VThing* thing2);
+
+    //whichThing is the Effect-Thing that affects player
+    //vehicles
+    uint8_t affect_thing(VThing* whichThing);
+
+    //effect is the Effect-Thing that affects player
+    //vehicles
+    int16_t effect_affect_vehicle_exclusive(VThing* effect);
+
+    void RunHousekeeping();
+
+private:
+    Race* mParentRace = nullptr;
+
+    int16_t AffectList[1000];
+    //I assume 0 is the initial Value, not sure
+    int16_t AffectListIndex = 0;
+
+    void ResetThingValues(VThing* whichThing);
+    void thing_remove(VThing* whichThing);
+};
+
+#endif // VTHING_H

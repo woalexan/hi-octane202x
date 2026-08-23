@@ -55,22 +55,11 @@ private:
     LevelFile* mLevelFile = nullptr;
     InfrastructureBase* mInfra = nullptr;
 
-    ThingDataStruct* testThing1;
-    irr::scene::IBillboardSceneNode* testNode;
-
-    irr::video::ITexture* testTex = nullptr;
-
 public:
     VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks);
 
     irr::core::vector3df VanillaToIrrlichtCoord(irr::core::vector3df vanillaCoord);
     irr::core::vector3df IrrlichtToVanillaCoord(irr::core::vector3df irrlichtCoord);
-
-    void DebugDrawDisplacement(ThingDataStruct& whichThing);
-    void DebugDraw();
-
-    void AddTestObject(irr::core::vector3df position);
-    int8_t UpdateTestObject(irr::f32 frameDeltaTime, ThingDataStruct& whichThing);
 
     irr::core::vector3df VectorProjection(const irr::core::vector3df& a, const irr::core::vector3df& b);
 
@@ -238,6 +227,8 @@ public:
     int8_t move_xyz(irr::core::vector3df& position, irr::f32 angleXY,
                                  irr::f32 angleZY, irr::f32 speed);
 
+    void move_swap_positions(irr::core::vector3df& position1, irr::core::vector3df& position2);
+
     irr::f32 distance_get_xyz(irr::core::vector3df position1, irr::core::vector3df position2);
     irr::f32 distance_get_xy(irr::core::vector3df position1, irr::core::vector3df position2);
     irr::f32 distance_get_squared_xy(irr::core::vector3df position1, irr::core::vector3df position2);
@@ -255,6 +246,10 @@ public:
     //Careful: This function returns the angle in degress for a 360° unit circle
     //The original game uses inside a 256° (step) unit circle!
     irr::f32 arctanPlusMultiply32(irr::f32 x, irr::f32 y);
+
+    //Careful: This function returns the angle in degress for a 360° unit circle
+    //The original game uses inside a 256° (step) unit circle!
+    irr::f32 angle_get_zy(irr::core::vector3df position_from, irr::core::vector3df position_to);
 
     //Careful: This function returns the angle in degress for a 360° unit circle
     //The original game uses inside a 256° (step) unit circle!

@@ -40,7 +40,7 @@ SpriteThing::SpriteThing(irr::scene::ISceneManager* smgr, Race* race, irr::video
     ThingData.Position = initPosition;
     ThingData.Movement = initMovement;
     ThingData.Displacement.set(0.0f, 0.0f, 0.0f);
-    ThingData.mTimeSlice = 0;
+    ThingData.TimeSlice = 0;
     ThingData.AffectStatus = 0;
     ThingData.Life = 0;
 

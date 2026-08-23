@@ -35,6 +35,7 @@ public:
 
     void ReadAllThings(size_t dumpLevelStructStart);
     std::vector<ParseThing*> ReturnThingsWithGroup(int8_t whichGroup);
+    ParseThing* ReturnThingsWithIndex(int16_t whichIndex);
 
     //Returns null if first player is not found
     ParseThing* ReturnThingFirstPlayer();

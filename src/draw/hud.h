@@ -55,6 +55,10 @@ const int16_t ShieldBarThresholds[7] = { 0,  0x682,  0xD04,  0x1386,  0x1A08,  0
 
 const int16_t AmmoBarThresholds[7] = { 0,  0x682,  0xD04,  0x1386,  0x1A08,  0x208A,  -1};
 
+const int16_t HeatBarThresholds[17] = { 0,  0x271,  0x4E2,  0x753,  0x9C4,  0xC35, 0xEA6,
+                                       0x1117, 0x1388, 0x15F9, 0x186A, 0x1ADB, 0x1D4C, 0x1FBD,
+                                       0x222E, 0x249F, -1};
+
 struct HudDisplayPart{
      irr::core::vector2d<irr::s32> drawScrPosition;
      irr::video::ITexture* texture = nullptr;
@@ -216,6 +220,7 @@ private:
     int GetNumberCurrentShieldBars(int16_t healthVal);
     int GetNumberCurrentAmmoBars(int16_t ammoVal);
     int GetNumberCurrentThrottleBars(irr::f32 movementSpeed);
+    int GetNumberCurrentMGunHeatBars(int16_t triggerTime);
     void DrawAmmoBar();
     void DrawShieldBar();
 

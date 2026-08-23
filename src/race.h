@@ -144,8 +144,9 @@ class VCamera;
 class DbgInterface;
 class SpriteThing;
 class VRepair;
-struct ThingDataStruct;
+struct VThing;
 struct VehicleViewStruct;
+class VThingManager;
 
 class Race {
 public:
@@ -352,7 +353,7 @@ public:
 
     //Coordinates in the vector below are stored in the "vanilla"
     //coordinate system
-    std::vector<ThingDataStruct*> mVanillaCheckpointVec;
+    std::vector<VThing*> mVanillaCheckpointVec;
 
     //needed for a workaround in original game
     //in vrepair.cpp
@@ -360,6 +361,21 @@ public:
 
     void UpdateSceneNodeModel(irr::scene::ISceneNode *node,
                                                   VehicleViewStruct* view);
+
+    //Returns nullptr for an invalid request
+    //whichId starts with value 1 for first vehicle,
+    //value 2 for second vehicle and so on
+    VVehicle* GetVehicleWithId(size_t whichId);
+
+    void CompareMemDumpsVanilla();
+
+    //handles the file data structure of the
+    //level
+    LevelFile *mLevelRes = nullptr;
+
+    VThingManager* mThingManager = nullptr;
+
+    void DebugDrawDisplacement(VThing& whichThing);
 
 private:
     std::string mLevelRootPath;
@@ -376,6 +392,7 @@ private:
     bool SetupSky();
 
     void InitialUpdateEntityPositions();
+    void CreatePredefinedRegionThings();
 
     irr::s32 shaderMaterial1;
 
@@ -395,10 +412,6 @@ private:
     irr::u8 mRaceNumberOfLaps;
 
     void SetupTopRaceTrackPointerOrigin();
-
-    //handles the file data structure of the
-    //level
-    LevelFile *mLevelRes = nullptr;
 
     //my sky image for the level background
     irr::video::ITexture* mSkyImage = nullptr;

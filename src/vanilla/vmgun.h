@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2026 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -31,34 +31,77 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VBASE_H
-#define VBASE_H
+#ifndef VMGUN_H
+#define VMGUN_H
 
 #include "irrlicht.h"
+#include "vbase.h"
 #include <cstdint>
+#include <vector>
 
 /************************
  * Forward declarations *
  ************************/
 
-struct MovementStruct {
-    irr::f32 AngleXY = 0.0f;
-    irr::f32 AngleZY = 0.0f;
-    irr::f32 AngleXZ = 0.0f;
-    irr::f32 SpeedActual = 0.0f;
+class Race;
+class VVehicle;
+struct VThing;
+
+struct BulletThingStruct {
+    VThing* ThingData = nullptr;
+
+    irr::scene::IBillboardSceneNode* animSprite = nullptr;
+    irr::scene::ISceneNodeAnimator *animator = nullptr;
+
+    bool ReadyForCleanup = false;
+    bool animatorActive = false;
 };
 
-struct MomentumStruct {
-    irr::f32 DeltaX = 0.0f;
-    irr::f32 DeltaY = 0.0f;
-    irr::f32 AngleXY = 0.0f;
+class VMGun {
+
+private:
+    Race* mParentRace = nullptr;
+    VVehicle* mOwner = nullptr;
+
+    //variables moved here
+    //from Thing (ThingWeapon)
+    int16_t TriggerRestrictionCount = 0;
+
+    std::vector<BulletThingStruct*> mBulletThings;
+    std::vector<VThing*> mShotVec;
+
+    //Returns true in case of success
+    //False otherwise
+    bool LoadSprites();
+
+    irr::core::array<irr::video::ITexture*> animTexList;
+
+    void initialiseSHOT_BULLET(VThing* whichThing);
+    uint8_t processSHOT_BULLET(VThing* whichThing);
+
+    VThing* CreateShot(irr::core::vector3df* position,
+                              irr::f32 angleXY, irr::f32 angleZY,
+                              irr::f32 angleXZ, int16_t id);
+
+    BulletThingStruct* CreateBulletThing(irr::core::vector3df* position,
+                                       irr::f32 angleXY, irr::f32 angleZY,
+                                       irr::f32 angleXZ, int16_t id);
+
+    uint8_t UpdateBulletThing(BulletThingStruct* whichBulletThing);
+    void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);
+
+public:
+    VMGun(Race* parentRace, VVehicle* owner);
+    ~VMGun();
+
+    void Update(irr::f32 frameDeltaTime);
+
+    //variables moved here
+    //from Thing (ThingWeapon)
+    int16_t Trigger = 0;
+    int16_t TriggerTime = 0;
+    int16_t Upgrade;
+    int16_t Target = 0;
 };
 
-struct VehicleViewStruct {
-    irr::core::vector3df Position;
-    irr::f32 AngleXY;
-    irr::f32 AngleZY;
-    irr::f32 AngleXZ;
-};
-
-#endif // VBASE_H
+#endif // VMGUN_H

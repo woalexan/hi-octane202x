@@ -37,6 +37,7 @@
 #include "irrlicht.h"
 #include "vbase.h"
 #include "vvehicle.h"
+#include "vrepair.h"
 
 /************************
  * Forward declarations *
@@ -54,7 +55,7 @@ public:
     void Update(irr::f32 frameDeltaTime);
 
     //Thing data
-    ThingDataStruct ThingData;
+    VThing* ThingData = nullptr;
 
     Race* mRace = nullptr;
 
@@ -119,7 +120,7 @@ private:
     //Things needed for Irrlicht
     irr::scene::ISceneManager* mSmgr = nullptr;
 
-    irr::scene::IAnimatedMesh*  RecoveryMesh = nullptr;
+    irr::scene::IAnimatedMesh* RecoveryMesh = nullptr;
 
     void UpdateSceneNode();
 };

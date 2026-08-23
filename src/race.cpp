@@ -28,6 +28,8 @@
 #include "vanilla/vtrack.h"
 #include "vanilla/vcamera.h"
 #include "vanilla/debug/memdump.h"
+#include "vanilla/debug/binaryfile.h"
+#include "vanilla/debug/structs/thing.h"
 
 #include "draw/hud.h"
 
@@ -67,7 +69,9 @@
 #include "resources/mapentry.h"
 
 #include "vanilla/debug/dbginterface.h"
+#include "vanilla/debug/structs/thinglist.h"
 #include "vanilla/vrepair.h"
+#include "vanilla/vthing.h"
 
 #include "game.h"
 #include "race.h"
@@ -237,9 +241,64 @@ bool Race::IsOriginalLevel5Loaded() {
     return false;
 }
 
+void Race::CreatePredefinedRegionThings() {
+    std::vector<MapTileRegionStruct*>::iterator it;
+    std::vector<VThing*>::iterator it2;
+    irr::core::vector3df position;
+    VThing* newThingPntr;
+    std::vector<VThing*> newThingVec;
+
+    newThingVec.clear();
+
+    //remember value so that it can be restored afterwards
+    //again
+    int32_t backupValue = mLevelRes->mThingFree->Index;
+
+    //Temporarily shift value to start of Things
+    mLevelRes->mThingFree->Index = 998;
+
+    for (it = mLevelRes->mMapRegionVec->begin(); it != mLevelRes->mMapRegionVec->end(); ++it) {
+        //for each region create a Thing with Group 1, and
+        //member value depending on the region type
+        position.X = ((*it)->regionCenterTileCoord.X);
+        position.Y = ((*it)->regionCenterTileCoord.Y);
+
+        switch ((*it)->regionType) {
+           case LEVELFILE_REGION_CHARGER_AMMO:
+           case LEVELFILE_REGION_CHARGER_FUEL:
+           case LEVELFILE_REGION_CHARGER_SHIELD:
+           case LEVELFILE_REGION_START: {
+                newThingPntr = mThingManager->thing_initialise_member(position, 0.0f, 0.0f, 0.0f, 1, (int8_t)((*it)->regionType), -1);
+                if (newThingPntr != nullptr) {
+                    newThingVec.push_back(newThingPntr);
+                }
+                break;
+            }
+
+            default: {
+                break;
+            }
+        }
+    }
+
+    for (it2 = newThingVec.begin(); it2 != newThingVec.end(); ++it2) {
+        //15.08.2026: I believe I have to do this
+        //to have the same behavior as in the original game?
+        (*it2)->Child = 0;
+        (*it2)->Parent = 0;
+    }
+
+    if (backupValue != mLevelRes->mThingFree->Index) {
+        logging::Error("CreatePredefinedRegionThings: Something is wrong!");
+    }
+}
+
 Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
            SoundEngine* soundEngine, std::string levelRootPath, std::string levelName, irr::u8 nrLaps, bool demoMode,
            bool attributionActive, bool skipStart) {
+
+    mThingManager = new VThingManager(this);
+
     this->mMusicPlayer = gameMusicPlayerParam;
     this->mSoundEngine = soundEngine;
     this->mDemoMode = demoMode;
@@ -291,12 +350,6 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mChargingStationVec->clear();
 
     mVanillaCheckpointVec.clear();
-    //we need to add a first dummy element
-    //to make the remaining code implementation work
-    ThingDataStruct* newDummy = new ThingDataStruct();
-    newDummy->Index = 0;
-    mVanillaCheckpointVec.push_back(newDummy);
-
     mCollectableSpawnerVec.clear();
 
     //my vector of player that need help
@@ -851,6 +904,11 @@ Race::~Race() {
         mVCalc = nullptr;
     }
 
+    if (mThingManager != nullptr) {
+        delete mThingManager;
+        mThingManager = nullptr;
+    }
+
     //IrrlichtStats((char*)("After race cleanup"));
 }
 
@@ -941,6 +999,11 @@ void Race::CleanUpEntities() {
            //type 2; This objects are taken care of by the
            //Collectablespawners itself!
            if (pntr->mEntityItem != nullptr) {
+               //If there is a Thing, also delete the Thing
+               if (pntr->ThingData != nullptr) {
+                     mThingManager->thing_delete(pntr->ThingData);
+               }
+
                //delete Collectable itself
                //this frees SceneNode and texture inside
                //collectable implementation
@@ -1392,7 +1455,10 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
 
     //create the new player
-    newPlayer = new VVehicle(this, player_model, Startpos, Startdirection,
+    //playerNr starting with value 1 for first player, 8 for last player
+    size_t nextPlayerNr = mVanillaCraftVec.size() + 1;
+
+    newPlayer = new VVehicle(this, (uint8_t)(nextPlayerNr), player_model, Startpos, Startdirection,
                           this->mRaceNumberOfLaps, humanPlayer);
 
     if (mGame->mUseXEffects) {
@@ -1587,6 +1653,35 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
     // return (result);
 }
 
+void Race::CompareMemDumpsVanilla() {
+    mVDbgInterface->Init("level1-atstart.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+
+     /*std::vector<DiffByte> diffBytes;
+
+     diffBytes =
+             mVDbgInterface->CompareData(*mVDbgInterface->newDump->mMemDumpData->mData, *mVDbgInterface->newDump2->mMemDumpData->mData);
+
+     mVDbgInterface->PrintCompareDataResult(diffBytes, (int)(mVDbgInterface->mDumpLevelStructStart));*/
+
+     std::vector<ParseThing*> thingList = mVDbgInterface->newDump->ReturnThingsWithGroup(10);
+     std::vector<ParseThing*>::iterator it;
+
+     for (it = thingList.begin(); it != thingList.end(); ++it) {
+         (*it)->Print();
+     }
+
+
+    /* ParseThing* thingWritten2 = mVDbgInterface->newDump2->ReturnThingsWithIndex(997);
+     if (thingWritten2 != nullptr) {
+         thingWritten2->Print();
+     }
+
+     ParseThing* thingNewParent = mVDbgInterface->newDump2->ReturnThingsWithIndex(884);
+     if (thingNewParent != nullptr) {
+         thingNewParent->Print();
+     }*/
+}
+
 void Race::Init() {
     //we want to adjust the keymap for the free movable camera
     SKeyMap keyMap[4];
@@ -1743,6 +1838,8 @@ void Race::Init() {
     //we need to change the near value so that we
     //do not clip into the terrain
     vanTestCam->setNearValue(0.1f);
+
+    //CompareMemDumpsVanilla();
 
     //this->mGame->StopTime();
   
@@ -1955,6 +2052,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
         //update all collectable spawners
         UpdateCollectableSpawners(0.065f);
+
+        mThingManager->RunHousekeeping();
     }
 
     //are we in Race start phase, if so also call
@@ -2506,6 +2605,7 @@ void Race::HandleInput(irr::f32 deltaTime) {
          mVanillaCraftVec.at(0)->KeyPressedBooster = false;
          mVanillaCraftVec.at(0)->KeyPressedTurnLeft = false;
          mVanillaCraftVec.at(0)->KeyPressedTurnRight = false;
+         mVanillaCraftVec.at(0)->KeyPressedMachineGun = false;
 
          if(mGame->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
              mVanillaCraftVec.at(0)->KeyPressedAccel = true;
@@ -2528,9 +2628,9 @@ void Race::HandleInput(irr::f32 deltaTime) {
             mVanillaCraftVec.at(0)->KeyPressedTurnRight = true;
         }
 
-        //TODO: if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
-        //         mPlayerVec.at(0)->mMGun->Trigger();
-        //     }
+        if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_Y)) {
+                 mVanillaCraftVec.at(0)->KeyPressedMachineGun = true;
+        }
 
         //TODO:    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
         //         mPlayerVec.at(0)->mMissileLauncher->Trigger();
@@ -2677,6 +2777,14 @@ void Race::DrawSky() {
     //     }
 }
 
+void Race::DebugDrawDisplacement(VThing& whichThing) {
+    irr::core::vector3df dirVec = mVCalc->VanillaToIrrlichtCoord(whichThing.Displacement);
+    dirVec.normalize();
+
+    irr::core::vector3df irrCoord1 = mVCalc->VanillaToIrrlichtCoord(whichThing.Position);
+    mGame->mDrawDebug->Draw3DLine(irrCoord1, irrCoord1 + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mGame->mDrawDebug->orange);
+}
+
 void Race::DrawTestShape() {
     //box1.origin = glm::vec3(-0.5f, 0.0f, 0.0f);
 
@@ -2758,7 +2866,7 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
      coordVec.clear();
 
      for (itPlayer = this->mVanillaCraftVec.begin(); itPlayer != this->mVanillaCraftVec.end(); ++itPlayer) {
-         vanCoord = (*itPlayer)->ThingData.Position;
+         vanCoord = (*itPlayer)->ThingData->Position;
          cell.X = (vanCoord.X / mLevelTerrain->segmentSize);
          cell.Y = (vanCoord.Y / mLevelTerrain->segmentSize);
 
@@ -3431,15 +3539,22 @@ void Race::InitialUpdateEntityPositions() {
             irrCoord = (*it)->Position;
             vanCoord = mVCalc->IrrlichtToVanillaCoord(irrCoord);
             irrCoord.Y = mVCalc->map_altitude_lowest(vanCoord);
+            vanCoord.Z = irrCoord.Y;
 
             (*it)->UpdatePosition(irrCoord);
+
+            //If there is a thing also update the position
+            //of the Thing
+            if ((*it)->ThingData != nullptr) {
+                (*it)->ThingData->Position = vanCoord;
+            }
         }
     }
 
     //do the same for the vanilla checkpoints
-    std::vector<ThingDataStruct*>::iterator it2;
+    std::vector<VThing*>::iterator it2;
 
-    for (it2 = mVanillaCheckpointVec.begin() + 1; it2 != mVanillaCheckpointVec.end(); ++it2) {
+    for (it2 = mVanillaCheckpointVec.begin(); it2 != mVanillaCheckpointVec.end(); ++it2) {
             //the position in this struct is already
             //stored in the vanilla "coordinate" system
             vanCoord = (*it2)->Position;
@@ -3524,9 +3639,6 @@ bool Race::LoadLevel() {
    mVCalc = new VCalculations(mGame, mLevelRes, mLevelTerrain, mLevelBlocks);
    mVTrack = new VTrack(this);
 
-   //Add test thing
-   //mVCalc->AddTestObject(irr::core::vector3df(-10.0f, 11.5f, 60.0f));
-
    if (!SetupSky()) {
        return false;
    }
@@ -3559,6 +3671,10 @@ bool Race::LoadLevel() {
        mGame->mEffect->addShadowToNode(mLevelBlocks->BlockCollisionSceneNode, mShadowMapFilterType, ESM_RECEIVE);
        mGame->mEffect->addShadowToNode(mLevelBlocks->BlockWithoutCollisionSceneNode, mShadowMapFilterType, ESM_RECEIVE);
    }
+
+   //we need to create the first predefined Things
+   //for the map regions
+   CreatePredefinedRegionThings();
 
    //create all level entities
    //this are not only items to pickup by the player
@@ -3749,22 +3865,39 @@ void Race::AddCheckPoint(EntityItem entity) {
     //all created, add Checkpoint to our list
     this->checkPointVec->push_back(newStruct);
 
-    //Also at the same time add vanilla representation of checkbox
-    ThingDataStruct* newThingStruct = new ThingDataStruct();
-    newThingStruct->Count = entity.getValue();
-    newThingStruct->CollideSize = entity.DecodeCollideSize();
+    //Also at the same time add vanilla representation of checkpoint
+    irr::core::vector3df irrCoord = entity.getCenter();
+    irr::core::vector3df vanCoord =
+            mVCalc->IrrlichtToVanillaCoord(irrCoord);
 
-    irr::core::vector3df irrPosEntity = entity.getCenter();
-    irr::core::vector3df vanPosEntity = mVCalc->IrrlichtToVanillaCoord(irrPosEntity);
-    vanPosEntity.Z = 0.0f; //the game has at this point of time no height information
-    newThingStruct->Position = vanPosEntity + newThingStruct->CollideSize;
-    newThingStruct->Displacement.set(0.0f, 0.0f, 0.0f);
+    VThing* newThing =
+        mThingManager->thing_initialise_member(vanCoord, 0.0f, 0.0f, 0.0f,
+                                    1, 5, -1);
 
-    //here we start with index 1, because when we initialized the mVanillaCheckpointVec
-    //vector we first added a dummy element;
-    newThingStruct->Index = mVanillaCheckpointVec.size();
+    mThingManager->mapwho_delete(newThing);
+    newThing->Count = entity.getValue();
+    newThing->CollideSize = entity.DecodeCollideSize();
 
-    mVanillaCheckpointVec.push_back(newThingStruct);
+    vanCoord.Z = 0.0f; //the game has at this point of time no height information
+    newThing->Position = vanCoord + newThing->CollideSize;
+    newThing->Displacement.set(0.0f, 0.0f, 0.0f);
+
+    mVanillaCheckpointVec.push_back(newThing);
+}
+
+//Returns nullptr for an invalid request
+//whichId starts with value 1 for first vehicle,
+//value 2 for second vehicle and so on
+VVehicle* Race::GetVehicleWithId(size_t whichId) {
+    if (whichId < 1) {
+        return nullptr;
+    }
+
+    if ((whichId-1) < mVanillaCraftVec.size()) {
+        return mVanillaCraftVec[whichId-1];
+    }
+
+    return nullptr;
 }
 
 //if vehicle in the second parameter is further in the race this function
@@ -3788,19 +3921,16 @@ uint8_t Race::vehicle_race_positions_compare(VVehicle* vehicle1, VVehicle* vehic
     result = 0;
 
     if (v3 == v5) {
-        //the next lines were modified by me to work
-        //with my modified checkpoint system compared to
-        //the original game, but the purpose is similar
         if (!vehicle1->CheckPoint) {
             v8 = 16000;
         } else {
-            v8 = mVanillaCheckpointVec.at(vehicle1->CheckPoint)->Count;
+            v8 = mThingManager->Thing[vehicle1->CheckPoint].Count;
         }
 
         if (!vehicle2->CheckPoint) {
             count = 16000;
         } else {
-            count = mVanillaCheckpointVec.at(vehicle2->CheckPoint)->Count;
+            count = mThingManager->Thing[vehicle2->CheckPoint].Count;
         }
 
         v10 = (v8 < count);
@@ -3847,7 +3977,7 @@ void Race::vehicle_race_positions() {
               //I believe this flag is used to indicate that the player
               //has started the first lap, and therefore the HUD
               //is now shown
-              (*it)->ThingData.Status |= 0x800u;
+              (*it)->ThingData->Status |= 0x800u;
               PlayerCrossesFinishLineTheFirstTime();
           }
       }
@@ -3862,7 +3992,7 @@ void Race::vehicle_race_positions() {
               //Player has not yet started the first lap?
               if (!(*it)->LapCounter) {
                   //first lap not started yet, set flag also for this player
-                  (*it)->ThingData.Status |= 0x800u;
+                  (*it)->ThingData->Status |= 0x800u;
               }
          }
       }
@@ -3898,7 +4028,7 @@ void Race::vehicle_race_positions() {
       for (it = mVanillaCraftVec.begin(); it != mVanillaCraftVec.end(); ++it) {
           if (((*it)->ControlStatus & 1) != 0) {
               //mark the vehicle that it wants to exit the race
-              (*it)->ThingData.Status |= 0x1000u;
+              (*it)->ThingData->Status |= 0x1000u;
           }
       }
   }
@@ -3912,7 +4042,7 @@ void Race::vehicle_race_positions() {
             //The player finished the race. Does he still have time left
             //too see more of the remaining race as a spectator?
             if ((*it)->Conditions.RacePositionFinishShowTime) {
-               (*it)->CurrentWaypoint = mVTrack->track_waypoint_nearest((*it)->ThingData.Position);
+               (*it)->CurrentWaypoint = mVTrack->track_waypoint_nearest((*it)->ThingData->Position);
                (*it)->vehicle_set_autopilot_on();
                (*it)->vehicle_set_autodrive_on();
                //Decrement counter/timer for remaining spectator time
@@ -4001,8 +4131,8 @@ void Race::CleanUpAllCheckpoints() {
     delete checkPointVec;
 
     //also cleanup all vanilla checkpoint structs
-    std::vector<ThingDataStruct*>::iterator it2;
-    ThingDataStruct* pntr2;
+    std::vector<VThing*>::iterator it2;
+    VThing* pntr2;
 
     if (this->mVanillaCheckpointVec.size() > 0) {
         for (it2 = this->mVanillaCheckpointVec.begin(); it2 != this->mVanillaCheckpointVec.end(); ) {
@@ -4011,7 +4141,7 @@ void Race::CleanUpAllCheckpoints() {
            it2 = this->mVanillaCheckpointVec.erase(it2);
 
            //delete the struct itself
-           delete pntr2;
+           mThingManager->thing_delete(pntr2);
         }
     }
 }
@@ -5204,8 +5334,20 @@ void Race::CreateEntity(EntityItem *p_entity,
                     //to sprite number 42, which is a sprite I did not know the purpose of
                     irr::u16 spriteNr = GetCollectableSpriteNumber(entity.getEntityType());
 
+                    //also add the Thing
+                    int8_t groupVal;
+                    int8_t memberVal;
+                    irr::core::vector3df mVanillaSpawnLocation = mVCalc->IrrlichtToVanillaCoord(entity.getCenter());
+
+                    RevIdentifyEntity(entity.getEntityType(), groupVal, memberVal);
+
                     //Point to the correct (billboard) texture
                     collectable = new Collectable(this->mGame, p_entity, entity.getCenter(), mTexLoader->spriteTex.at(spriteNr), this->mGame->enableLightning);
+
+                    collectable->ThingData =
+                        mThingManager->thing_initialise_member(mVanillaSpawnLocation, 0.0f, 0.0f, 0.0f,
+                                                    groupVal, memberVal, -1);
+
                     ENTCollectablesVec->push_back(collectable);
                     break;
         }
@@ -5355,7 +5497,7 @@ void Race::SpawnCollectiblesForPlayer(VVehicle* player, std::vector<Entity::Enti
 
    //create a new CollectableSpawner
    CollectableSpawner* newSpawner = new CollectableSpawner(
-               this, player->ThingData.Position, mGame->mSmgr, mGame->mDriver);
+               this, player->ThingData->Position, mGame->mSmgr, mGame->mDriver);
 
    std::vector<Entity::EntityType>::iterator it;
    for (it = powerUpList.begin(); it != powerUpList.end(); ++it) {
