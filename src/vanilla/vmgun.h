@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2026 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -45,11 +45,16 @@
 
 class Race;
 class VVehicle;
+struct VThing;
 
 struct BulletThingStruct {
-    ThingDataStruct ThingData;
+    VThing* ThingData = nullptr;
 
-    irr::scene::IBillboardSceneNode* mSceneNode = nullptr;
+    irr::scene::IBillboardSceneNode* animSprite = nullptr;
+    irr::scene::ISceneNodeAnimator *animator = nullptr;
+
+    bool ReadyForCleanup = false;
+    bool animatorActive = false;
 };
 
 class VMGun {
@@ -58,18 +63,29 @@ private:
     Race* mParentRace = nullptr;
     VVehicle* mOwner = nullptr;
 
-    irr::video::ITexture* mSpriteTex = nullptr;
-    irr::core::dimension2d<irr::u32> mSpriteTexSize;
-
     //variables moved here
     //from Thing (ThingWeapon)
     int16_t TriggerRestrictionCount = 0;
 
     std::vector<BulletThingStruct*> mBulletThings;
+    std::vector<VThing*> mShotVec;
+
+    //Returns true in case of success
+    //False otherwise
+    bool LoadSprites();
+
+    irr::core::array<irr::video::ITexture*> animTexList;
+
+    void initialiseSHOT_BULLET(VThing* whichThing);
+    uint8_t processSHOT_BULLET(VThing* whichThing);
+
+    VThing* CreateShot(irr::core::vector3df* position,
+                              irr::f32 angleXY, irr::f32 angleZY,
+                              irr::f32 angleXZ, int16_t id);
 
     BulletThingStruct* CreateBulletThing(irr::core::vector3df* position,
                                        irr::f32 angleXY, irr::f32 angleZY,
-                                       irr::f32 angleXZ);
+                                       irr::f32 angleXZ, int16_t id);
 
     uint8_t UpdateBulletThing(BulletThingStruct* whichBulletThing);
     void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);

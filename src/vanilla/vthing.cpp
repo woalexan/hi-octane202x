@@ -36,6 +36,7 @@
 #include "../resources/levelfile.h"
 #include "../models/levelterrain.h"
 #include "../resources/mapentry.h"
+#include "../vanilla/vvehicle.h"
 
 VThingManager::VThingManager(Race* parentRace) {
     mParentRace = parentRace;
@@ -70,10 +71,12 @@ void VThingManager::ResetThingValues(VThing* whichThing) {
     whichThing->Seed = 0;
     whichThing->Count = 0;
     whichThing->Status = 0;
+    whichThing->Upgrade = 0;
     whichThing->Member = 0;
     whichThing->Action = 0;
     whichThing->Group = 0;
     whichThing->TimeSlice = 0;
+    whichThing->vVehiclePnter = nullptr;
 }
 
 VThingManager::~VThingManager() {
@@ -170,9 +173,13 @@ VThing* VThingManager::thing_initialise(irr::core::vector3df position,
     return thing_initialise_member(position, angleXY, angleZY, angleXZ, group, member, id);
 }
 
-int32_t VThingManager::GetNumberActiveThings() {
+int32_t VThingManager::GetNumberThingsUsed() {
     int32_t index = mParentRace->mLevelRes->mThingFree->Index;
     return ((999 - index) - 1);
+}
+
+int32_t VThingManager::GetNumberThingsFree() {
+    return mParentRace->mLevelRes->mThingFree->Index + 1;
 }
 
 void VThingManager::RunHousekeeping() {
@@ -282,3 +289,97 @@ uint8_t VThingManager::mapwho_move(VThing* whichThing, irr::core::vector3df posi
     return result;
 }
 
+uint8_t VThingManager::thing_overlapping(VThing* thing1, VThing* thing2) {
+    uint8_t result = 0;
+    irr::f32 v7;
+    irr::f32 v9;
+    irr::f32 v10;
+    irr::f32 v11;
+    irr::f32 v12;
+    irr::f32 zPos;
+
+    irr::f32 v4 = fabs(thing1->Position.X - thing2->Position.X);
+    bool v5 = (v4 >= (thing1->CollideSize.X + thing2->CollideSize.X));
+
+    if (!v5) {
+        v7 = fabs(thing1->Position.Y - thing2->Position.Y);
+        v5 = (v7 >= (thing1->CollideSize.Y + thing2->CollideSize.Y));
+        result = 0;
+        if (!v5) {
+           zPos = thing1->CollideSize.Z;
+           v9 = thing2->CollideSize.Z;
+           v10 = zPos + v9;
+           v11 = thing1->Position.Z + zPos;
+           v12 = thing2->Position.Z + v9;
+           if ((v11 - v12) < 0.0f) {
+               return ((v12 - v11) < v10);
+           } else {
+               return ((v11 - v12) < v10);
+           }
+        }
+    }
+
+    return result;
+}
+
+//whichThing is the Effect-Thing that affects player
+//vehicles
+uint8_t VThingManager::affect_thing(VThing* whichThing) {
+    int16_t thingIdx;
+    VThing* v11;
+    int32_t v6;
+    uint16_t id;
+
+    if (!AffectListIndex) {
+        return 0;
+    }
+
+    for (thingIdx = AffectList[AffectListIndex]; AffectListIndex > 0 ; thingIdx = AffectList[AffectListIndex]) {
+        v11 = &Thing[thingIdx];
+        if (AffectListIndex < 0) {
+            break;
+        }
+        if (!v11->AffectWho) {
+            v11->AffectWho = (uint16_t)(whichThing->Id);
+        }
+        v11->AffectNumber += whichThing->AffectNumber;
+        v6 = (v11->Member | (v11->Group << 16));
+        v11->AffectStatus |= whichThing->AffectStatus;
+        //is it a Vehicle (Group = 10), and a player (Member = 9)?
+        //in the original game this makes sure no repair vehicle or
+        //other Thing is hit. In my implementation this can not happen anyway
+        if (v6 == 655360) {
+            //Explaination for contents of whichThing-Id at this point: The Id in the vehicleThings is changed so that
+            //it reflects the number of the player, first player has Id = 1, second player has Id = 2 and so
+            //on; Then this Id is always transfered to the child objects; For example the MachineGun Id will
+            //also have the same value. And if a bullet is fired the bullet has the same Id again that
+            //reflects the player that has fired the shot. This is very important because at the end (exactly here at
+            //this code location) when the bullet/effect hits another player this bullet Id is then used for the targeted player
+            //to remember which player has targeted him how often.
+            id = static_cast<uint16_t>(whichThing->Id);
+            if ((id - 1) < 8) {
+                ++v11->vVehiclePnter->AutoTarget.HitMeTrigger[id-1];
+            }
+        }
+        AffectListIndex -= 1;
+    }
+
+    return 1;
+}
+
+//effect is the Effect-Thing that affects player
+//vehicles
+int16_t VThingManager::effect_affect_vehicle_exclusive(VThing* effect) {
+    AffectListIndex = 0;
+
+    std::vector<VVehicle*>::iterator it;
+
+    for (it = mParentRace->mVanillaCraftVec.begin(); it != mParentRace->mVanillaCraftVec.end(); ++it) {
+        if ((!(*it)->ThingData->Member) && (effect->Id != (*it)->ThingData->Id) && thing_overlapping(effect, (*it)->ThingData)) {
+            AffectListIndex = AffectListIndex + 1;
+            AffectList[AffectListIndex] = (*it)->ThingData->Index;
+        }
+    }
+
+    return AffectListIndex;
+}

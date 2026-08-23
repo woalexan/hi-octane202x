@@ -43,6 +43,7 @@
  ************************/
 
 class Race;
+class VVehicle;
 
 struct VThing {
     irr::core::vector3df Position;
@@ -67,10 +68,15 @@ struct VThing {
     irr::core::vector3df CollideSize;
 
     uint32_t Status = 0;
+    int16_t Upgrade = 0;
     int8_t Member = 0;
     int8_t Action = 0;
     int8_t Group = 0;
     uint8_t TimeSlice = 0;
+
+    //Pointer to the VVehicle object
+    //if we are a player vehicle (grp10)
+    VVehicle* vVehiclePnter = nullptr;
 };
 
 class VThingManager {
@@ -78,7 +84,8 @@ public:
     VThingManager(Race* parentRace);
     ~VThingManager();
 
-    int32_t GetNumberActiveThings();
+    int32_t GetNumberThingsUsed();
+    int32_t GetNumberThingsFree();
 
     VThing* thing_initialise_member(irr::core::vector3df position,
                                     irr::f32 angleXY,
@@ -104,10 +111,24 @@ public:
     uint8_t mapwho_add(VThing* whichThing, irr::core::vector3df position);
     uint8_t mapwho_move(VThing* whichThing, irr::core::vector3df position);
 
+    uint8_t thing_overlapping(VThing* thing1, VThing* thing2);
+
+    //whichThing is the Effect-Thing that affects player
+    //vehicles
+    uint8_t affect_thing(VThing* whichThing);
+
+    //effect is the Effect-Thing that affects player
+    //vehicles
+    int16_t effect_affect_vehicle_exclusive(VThing* effect);
+
     void RunHousekeeping();
 
 private:
     Race* mParentRace = nullptr;
+
+    int16_t AffectList[1000];
+    //I assume 0 is the initial Value, not sure
+    int16_t AffectListIndex = 0;
 
     void ResetThingValues(VThing* whichThing);
     void thing_remove(VThing* whichThing);

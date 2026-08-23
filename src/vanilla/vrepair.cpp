@@ -175,8 +175,6 @@ repair_vehicle_move_toward_LABEL_12:
     delta.Z += v15;
 
     mRace->mThingManager->mapwho_move(ThingData, position_from);
-    //alternative right now:
-    //ThingData->Position = position_from;
 }
 
 void VRepair::repair_vehicle_rotate_car(VVehicle* targetVehicle) {
@@ -373,8 +371,6 @@ void VRepair::repair_vehicle_execute_action0x1B(irr::core::vector3df pos1,
     pos1.Z += delta.Z;
 
     mRace->mThingManager->mapwho_move(ThingData, pos1);
-    //next line is the current alternative
-    //ThingData->Position = pos1;
     ThingData->Count--;
 
     if (!ThingData->Count) {
@@ -423,10 +419,8 @@ void VRepair::repair_vehicle_execute_action0x1C(irr::core::vector3df pos1,
             pos1 = ThingData->Position;
 
             mRace->mThingManager->mapwho_move(ThingData, pos1);
-            //ThingData->Position = pos1;
             pos1.Z -= 0.78125f;
             mRace->mThingManager->mapwho_move(TargetVehicle->ThingData, pos1);
-            //TargetVehicle->ThingData->Position = pos1;
         }
 
         v29 = mRace->mVTrack->track_waypoint_child(BumpDamage);
@@ -488,12 +482,8 @@ void VRepair::repair_vehicle_execute_action0x1D(irr::core::vector3df pos1,
     pos1.Z += delta.Z;
 
     mRace->mThingManager->mapwho_move(ThingData, pos1);
-    //next line is the current alternative
-    //ThingData->Position = pos1;
     pos1.Z -= 0.78125f;
     mRace->mThingManager->mapwho_move(TargetVehicle->ThingData, pos1);
-    //next line is the current alternative
-    //TargetVehicle->ThingData->Position = pos1;
     TargetVehicle->vehicle_set_camera();
     ThingData->Count--;
 
@@ -525,7 +515,6 @@ void VRepair::repair_vehicle_execute_action0x1E(irr::core::vector3df pos1,
         if (ThingData->Count == 2) {
            pos1.Z += 0.09765625f;
            mRace->mThingManager->mapwho_move(ThingData, pos1);
-           //ThingData->Position = pos1;
            zpos = pos1.Z;
            v48 = mRace->mVCalc->map_altitude_column_and_floor(pos1);
            if ((v48 + 5.0f) < zpos) {

@@ -1455,7 +1455,10 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     Startdirection.Z = Startpos.Z - 1.0f; //attempt beginning from 04.09.2024
 
     //create the new player
-    newPlayer = new VVehicle(this, player_model, Startpos, Startdirection,
+    //playerNr starting with value 1 for first player, 8 for last player
+    size_t nextPlayerNr = mVanillaCraftVec.size() + 1;
+
+    newPlayer = new VVehicle(this, (uint8_t)(nextPlayerNr), player_model, Startpos, Startdirection,
                           this->mRaceNumberOfLaps, humanPlayer);
 
     if (mGame->mUseXEffects) {
@@ -1651,7 +1654,7 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 }
 
 void Race::CompareMemDumpsVanilla() {
-    mVDbgInterface->Init("level4-empty.bin", "", "extract/level0-4/level0-4-unpacked.dat");
+    mVDbgInterface->Init("level1-atstart.bin", "", "extract/level0-1/level0-1-unpacked.dat");
 
      /*std::vector<DiffByte> diffBytes;
 
@@ -1660,12 +1663,13 @@ void Race::CompareMemDumpsVanilla() {
 
      mVDbgInterface->PrintCompareDataResult(diffBytes, (int)(mVDbgInterface->mDumpLevelStructStart));*/
 
-     ParseThing* thingWritten = mVDbgInterface->newDump->ReturnThingsWithIndex(999);
-     if (thingWritten != nullptr) {
-         thingWritten->Print();
-     } else {
-         logging::Error("No thing with this Index!");
+     std::vector<ParseThing*> thingList = mVDbgInterface->newDump->ReturnThingsWithGroup(10);
+     std::vector<ParseThing*>::iterator it;
+
+     for (it = thingList.begin(); it != thingList.end(); ++it) {
+         (*it)->Print();
      }
+
 
     /* ParseThing* thingWritten2 = mVDbgInterface->newDump2->ReturnThingsWithIndex(997);
      if (thingWritten2 != nullptr) {
@@ -2773,6 +2777,14 @@ void Race::DrawSky() {
     //     }
 }
 
+void Race::DebugDrawDisplacement(VThing& whichThing) {
+    irr::core::vector3df dirVec = mVCalc->VanillaToIrrlichtCoord(whichThing.Displacement);
+    dirVec.normalize();
+
+    irr::core::vector3df irrCoord1 = mVCalc->VanillaToIrrlichtCoord(whichThing.Position);
+    mGame->mDrawDebug->Draw3DLine(irrCoord1, irrCoord1 + dirVec * irr::core::vector3df(1.0f, 1.0f, 1.0f), mGame->mDrawDebug->orange);
+}
+
 void Race::DrawTestShape() {
     //box1.origin = glm::vec3(-0.5f, 0.0f, 0.0f);
 
@@ -3626,9 +3638,6 @@ bool Race::LoadLevel() {
    //reproduce to be hopefully working together with this existing project
    mVCalc = new VCalculations(mGame, mLevelRes, mLevelTerrain, mLevelBlocks);
    mVTrack = new VTrack(this);
-
-   //Add test thing
-   //mVCalc->AddTestObject(irr::core::vector3df(-10.0f, 11.5f, 60.0f));
 
    if (!SetupSky()) {
        return false;

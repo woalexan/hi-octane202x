@@ -61,29 +61,4 @@ struct VehicleViewStruct {
     irr::f32 AngleXZ;
 };
 
-struct ThingDataStruct {
-    irr::core::vector3df Position;
-    MovementStruct Movement;
-    irr::core::vector3df Displacement;
-
-    uint32_t AffectStatus = 0;
-    int16_t AffectNumber = 0; //allows to specify the amount of damage dealt with an action
-    uint16_t AffectWho = 0;   //allows to specify who is affected
-    uint16_t ColideGroup = 0;
-
-    bool Stationary = false;
-    int16_t Life = 1000;
-    uint8_t mTimeSlice = 0;
-
-    int16_t Count = 0;
-    irr::core::vector3df CollideSize;
-
-    //May be used for thing identification
-    //But I use it different then the original game
-    size_t Index = 0;
-
-    uint32_t Status = 0;
-    int8_t Action = 0;
-};
-
 #endif // VBASE_H

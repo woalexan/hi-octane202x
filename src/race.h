@@ -375,6 +375,8 @@ public:
 
     VThingManager* mThingManager = nullptr;
 
+    void DebugDrawDisplacement(VThing& whichThing);
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;

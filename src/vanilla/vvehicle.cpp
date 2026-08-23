@@ -976,19 +976,32 @@ void VVehicle::SetupFlightModelConstants() {
     FlightModel.RearRight.ReboundLimit = mRace->mVCalc->FixedPointToFloat8D8(80);
 }
 
-VVehicle::VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+//playerNr starting with value 1 for first player, 8 for last player
+VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::core::vector3d<irr::f32> NewPosition,
                    irr::core::vector3d<irr::f32> NewFrontAt, irr::u8 nrLaps, bool humanPlayer) {
 
    //TODO 17.06.2026: Take care about nrLaps
    mRace = mParentRace;
+   mPlayerNr = playerNr;
 
    irr::core::vector3df vanPos = mRace->mVCalc->IrrlichtToVanillaCoord(NewPosition);
    irr::f32 terrHeight = mRace->mVCalc->map_altitude_column_and_floor(vanPos);
    vanPos.Z = terrHeight + 0.5f;
 
    //get my thing
+   //Important note: 23.08.2026: The Id in the vehicleThings is changed so that
+   //it reflects the number of the player, first player has Id = 1, second player has Id = 2 and so
+   //on; Then this Id is always transfered to the child objects; For example the MachineGun Id will
+   //also have the same value. And if a bullet is fired the bullet has the same Id again that
+   //reflects the player that has fired the shot. This is very important because at the end when the
+   //bullet hits another player this bullet Id is then used for the targeted player to remember which
+   //player has targeted him how often. And if we do not set the correct Vehicle (player) Id here, then
+   //we write to the wrong array index at the end of the chain!
    ThingData =
-        mParentRace->mThingManager->thing_initialise_member(vanPos, 0.0f, 0.0f, 0.0f, 10, 0, -1);
+        mParentRace->mThingManager->thing_initialise_member(vanPos, 0.0f, 0.0f, 0.0f, 10, 0, mPlayerNr);
+
+   //add pointer to myself into this Thing
+   ThingData->vVehiclePnter = this;
 
    //nrLaps + 1 is correct, I saw this
    //also in the original game

@@ -55,22 +55,11 @@ private:
     LevelFile* mLevelFile = nullptr;
     InfrastructureBase* mInfra = nullptr;
 
-    ThingDataStruct* testThing1;
-    irr::scene::IBillboardSceneNode* testNode;
-
-    irr::video::ITexture* testTex = nullptr;
-
 public:
     VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks);
 
     irr::core::vector3df VanillaToIrrlichtCoord(irr::core::vector3df vanillaCoord);
     irr::core::vector3df IrrlichtToVanillaCoord(irr::core::vector3df irrlichtCoord);
-
-    void DebugDrawDisplacement(ThingDataStruct& whichThing);
-    void DebugDraw();
-
-    void AddTestObject(irr::core::vector3df position);
-    int8_t UpdateTestObject(irr::f32 frameDeltaTime, ThingDataStruct& whichThing);
 
     irr::core::vector3df VectorProjection(const irr::core::vector3df& a, const irr::core::vector3df& b);
 
@@ -237,6 +226,8 @@ public:
     //is 0.00390625 for speed
     int8_t move_xyz(irr::core::vector3df& position, irr::f32 angleXY,
                                  irr::f32 angleZY, irr::f32 speed);
+
+    void move_swap_positions(irr::core::vector3df& position1, irr::core::vector3df& position2);
 
     irr::f32 distance_get_xyz(irr::core::vector3df position1, irr::core::vector3df position2);
     irr::f32 distance_get_xy(irr::core::vector3df position1, irr::core::vector3df position2);

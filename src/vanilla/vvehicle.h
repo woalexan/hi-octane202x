@@ -182,6 +182,7 @@ struct VehicleBoosterStruct {
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
     int32_t Bullets = 0;
+    int32_t BulletsHit = 0;
     int32_t MiniGunHeatup = 0;
     int32_t LapTimes[100];
     int32_t TotalTime = 0;
@@ -249,9 +250,12 @@ struct VThing;
 
 class VVehicle {
 public:
-    VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+    //playerNr starting with value 1 for first player, 8 for last player
+    VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::core::vector3d<irr::f32> NewPosition,
              irr::core::vector3d<irr::f32> NewFrontAt, irr::u8 nrLaps, bool humanPlayer);
     ~VVehicle();
+
+    uint8_t mPlayerNr;
 
     void Update(irr::f32 frameDeltaTime);
 
