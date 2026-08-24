@@ -1353,50 +1353,6 @@ void Player::WasDestroyed() {
 }
 
 void Player::UpdateHUDState() {
-    if (mHUD == nullptr)
-        return;
-
-    irr::u32 state = this->GetCurrentState();
-
-    //there is one exception, if we are in demo mode
-    //do not draw the normal HUD, only before start
-    if (this->mRace->mDemoMode) {
-        if ((state != STATE_PLAYER_BEFORESTART) && (state != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
-            mHUD->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
-            return;
-        }
-    }
-
-    //make sure the HUD state if correct for us
-    switch (state) {
-        case STATE_PLAYER_BEFORESTART:
-        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE:
-        {
-            mHUD->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
-            break;
-        }
-    case STATE_PLAYER_EMPTYFUEL:
-    case STATE_PLAYER_RACING: {
-            //19.04.2025: If the player has already finished the race
-            //then do not draw HUD anymore, otherwise draw it again
-            if (!mPlayerStats->mHasFinishedRace) {
-                mHUD->SetHUDState(DEF_HUD_STATE_RACE);
-            } else {
-                mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-            }
-            break;
-        }
-
-    case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE:
-    case STATE_PLAYER_BROKEN:  {
-        //if there is a connected HUD we need to disable
-        //its drawing, because if the player is destroyed there
-        //is an outside view at the craft, and for an outside view
-        //there is no HUD visible
-        mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-        break;
-    }
-  }
 }
 
 void Player::SetupForStart() {

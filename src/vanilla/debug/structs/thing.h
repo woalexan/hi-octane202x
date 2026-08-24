@@ -27,6 +27,7 @@ class FixedPointInt16_8R8NumAngle;
 class DataTools;
 class Coord3DClass;
 class MovementClass;
+class ColideClass;
 
 class ParseThing {
 public:
@@ -42,6 +43,7 @@ private:
 public:
     Coord3DClass* Position = nullptr;
     MovementClass* Movement = nullptr;
+    ColideClass* Colide = nullptr;
     Coord3DClass* Displacement = nullptr;
 
     UInt32_Num* Status = nullptr;

@@ -70,6 +70,68 @@ Coord3DClass::~Coord3DClass() {
     }
 }
 
+AffectClass::AffectClass(DataTools* parent, std::string name, size_t startPosData) {
+    mParent = parent;
+    mName = name;
+    Status = mParent->AddUInt32_NumVar(std::string("Status"), startPosData);
+    Number = mParent->AddInt16_NumVar(std::string("Number"), startPosData + 0x4);
+    Who = mParent->AddUInt16_NumVar(std::string("Who"), startPosData + 0x6);
+}
+
+std::string AffectClass::GetAsString() {
+    std::ostringstream output;
+
+    output << mName << ": " << Status->GetAsString() << ", " << Number->GetAsString()  << ", " << Who->GetAsString();
+
+    return output.str();
+}
+
+AffectClass::~AffectClass() {
+    if (Status != nullptr) {
+        delete Status;
+        Status = nullptr;
+    }
+    if (Number != nullptr) {
+        delete Number;
+        Number = nullptr;
+    }
+    if (Who != nullptr) {
+        delete Who;
+        Who = nullptr;
+    }
+}
+
+ColideClass::ColideClass(DataTools* parent, std::string name, size_t startPosData) {
+    mParent = parent;
+    mName = name;
+    Size = new Coord3DClass(parent, std::string("Size"), startPosData);
+    Affect = new AffectClass(parent, std::string("Affect"), startPosData + 0x8);
+    Group = mParent->AddUInt16_NumVar(std::string("Group"), startPosData + 0x10);
+}
+
+std::string ColideClass::GetAsString() {
+    std::ostringstream output;
+
+    output << mName << ": " << Size->GetAsString() << ", " << Affect->GetAsString() << ", " << Group->GetAsString();
+
+    return output.str();
+}
+
+ColideClass::~ColideClass() {
+    if (Size != nullptr) {
+        delete Size;
+        Size = nullptr;
+    }
+    if (Affect != nullptr) {
+        delete Affect;
+        Affect = nullptr;
+    }
+    if (Group != nullptr) {
+        delete Group;
+        Group = nullptr;
+    }
+}
+
 MovementClass::MovementClass(DataTools* parent, std::string name, size_t startPosData) {
     mParent = parent;
     mName = name;

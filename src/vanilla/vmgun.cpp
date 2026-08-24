@@ -339,13 +339,9 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
     int16_t v18;
     VThing* v12;
 
-    //first update all currently existing shots
-    std::vector<VThing*>::iterator itShot;
-    for (itShot = mShotVec.begin(); itShot != mShotVec.end(); ++itShot) {
-         processSHOT_BULLET((*itShot));
-    }
+    //do things we need to update fast
 
-    //second cleanup all currently existing but not useful anymore
+    //cleanup all currently existing but not useful anymore
     //bulletEffect objects
     BulletThingStruct* pntrBulletEffect;
     bool deleteObj;
@@ -383,98 +379,114 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
         }
     }
 
-    //Third update all existing bulletEffect objects
+    //Update all existing bulletEffect objects, is done for every frame
     for (it = mBulletThings.begin(); it != mBulletThings.end(); ++it) {
         UpdateBulletThing((*it));
     }
 
-    if (mOwner != nullptr) {
-      v5 = 0;
-      if (Trigger) {
-         if (TriggerTime < 100) {
-             v5 = 1;
-         } else {
-            triggerRestrictionCount = TriggerRestrictionCount;
-            TriggerRestrictionCount = triggerRestrictionCount - 1;
-            if (triggerRestrictionCount) {
-                //sample_stop(v6, 15)
-                //sample_play(v6, 14);
-            } else {
-                v5 = 1;
-                TriggerRestrictionCount = 10;
-            }
-            TriggerTime = 100;
-         }
-      if (v5) {
-        angleXY = mOwner->View.AngleXY;
-        angleZY = mOwner->View.AngleZY;
-        angleXZ = mOwner->View.AngleXZ;
-        if (Target) {
-            targetVehicle = mParentRace->GetVehicleWithId((size_t)(Target));
-            angleXY = mParentRace->mVCalc->angle_get_xy(mOwner->ThingData->Position,
-                                                  targetVehicle->ThingData->Position);
-            angleZY = mParentRace->mVCalc->angle_get_zy(mOwner->ThingData->Position,
-                                                  targetVehicle->ThingData->Position);
+    //add delta time up to see when we need to update
+    //the slower parts of the MGun
+    mAbsTimeAcc += frameDeltaTime;
+
+    if (mAbsTimeAcc >= 0.05f) {
+        mAbsTimeAcc = 0.0f;
+
+        //first update all currently existing shots
+        std::vector<VThing*>::iterator itShot;
+        for (itShot = mShotVec.begin(); itShot != mShotVec.end(); ++itShot) {
+             processSHOT_BULLET((*itShot));
         }
-        v10 = 1;
-        p_Position = &mOwner->ThingData->Position;
-        do {
-          //Note 22.08.2026: CreateShot internally also creates the needed VThing
-          //for the MGun shot
-          v12 = CreateShot(p_Position, angleXY, angleZY, angleXZ, mOwner->ThingData->Id);
-          if (v12 != nullptr) {
-              ++mOwner->Conditions.Bullets;
-              //sample_play(v6, 15);
-              v13 = mOwner->ThingData->Status ^ 0x10;
-              mOwner->ThingData->Status = v13;
-              v14 = -90.0f;
-              if ((v13 & 0x10) != 0) {
-                  v14 = 90.0f;
+
+        if (mOwner != nullptr) {
+          v5 = 0;
+          if (Trigger) {
+             if (TriggerTime < 100) {
+                 v5 = 1;
+             } else {
+                triggerRestrictionCount = TriggerRestrictionCount;
+                TriggerRestrictionCount = triggerRestrictionCount - 1;
+                if (triggerRestrictionCount) {
+                    //sample_stop(v6, 15)
+                    //sample_play(v6, 14);
+                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED, false);
+                } else {
+                    v5 = 1;
+                    TriggerRestrictionCount = 10;
+                }
+                TriggerTime = 100;
+             }
+          if (v5) {
+            angleXY = mOwner->View.AngleXY;
+            angleZY = mOwner->View.AngleZY;
+            angleXZ = mOwner->View.AngleXZ;
+            if (Target) {
+                targetVehicle = mParentRace->GetVehicleWithId((size_t)(Target));
+                angleXY = mParentRace->mVCalc->angle_get_xy(mOwner->ThingData->Position,
+                                                      targetVehicle->ThingData->Position);
+                angleZY = mParentRace->mVCalc->angle_get_zy(mOwner->ThingData->Position,
+                                                      targetVehicle->ThingData->Position);
+            }
+            v10 = 1;
+            p_Position = &mOwner->ThingData->Position;
+            do {
+              //Note 22.08.2026: CreateShot internally also creates the needed VThing
+              //for the MGun shot
+              v12 = CreateShot(p_Position, angleXY, angleZY, angleXZ, mOwner->ThingData->Id);
+              if (v12 != nullptr) {
+                  ++mOwner->Conditions.Bullets;
+                  //sample_play(v6, 15);
+                  mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT, false);
+                  v13 = mOwner->ThingData->Status ^ 0x10;
+                  mOwner->ThingData->Status = v13;
+                  v14 = -90.0f;
+                  if ((v13 & 0x10) != 0) {
+                      v14 = 90.0f;
+                  }
+                  position.X = v12->Position.X;
+                  position.Y = v12->Position.Y;
+                  position.Z = v12->Position.Z - 0.03125f;
+                  mParentRace->mVCalc->move_xyz(position, v14 + v12->Movement.AngleXY, 0.0f, 0.125f);
+                  mParentRace->mThingManager->mapwho_move(v12, position);
+                  TriggerTime += 2;
+                  if (TriggerTime >= 100) {
+                      ++mOwner->Conditions.MiniGunHeatup;
+                  }
+                  //need to set the bullets own upgrade level!
+                  v12->Upgrade = this->Upgrade;
               }
-              position.X = v12->Position.X;
-              position.Y = v12->Position.Y;
-              position.Z = v12->Position.Z - 0.03125f;
-              mParentRace->mVCalc->move_xyz(position, v14 + v12->Movement.AngleXY, 0.0f, 0.125f);
-              mParentRace->mThingManager->mapwho_move(v12, position);
-              TriggerTime += 2;
-              if (TriggerTime >= 100) {
-                  ++mOwner->Conditions.MiniGunHeatup;
+              --v10;
+              p_Position = &mOwner->ThingData->Position;
+            } while (v10);
+          }
+          Trigger = 0;
+          return;
+        }
+        if (Upgrade == 1) {
+            v18 = TriggerTime - 17;
+        } else if (Upgrade >= 2) {
+          if (Upgrade == 2) {
+              v18 = TriggerTime - 25;
+          } else
+          {
+              if (Upgrade != 3) {
+                  goto processWEAPON_MINI_GUN_LABEL36;
               }
-              //need to set the bullets own upgrade level!
-              v12->Upgrade = this->Upgrade;
+              v18 = TriggerTime - 33;
           }
-          --v10;
-          p_Position = &mOwner->ThingData->Position;
-        } while (v10);
-      }
-      Trigger = 0;
-      return;
-    }
-    if (Upgrade == 1) {
-        v18 = TriggerTime - 17;
-    } else if (Upgrade >= 2) {
-      if (Upgrade == 2) {
-          v18 = TriggerTime - 25;
-      } else
-      {
-          if (Upgrade != 3) {
-              goto processWEAPON_MINI_GUN_LABEL36;
+        } else
+        {
+          if (Upgrade) {
+                   goto processWEAPON_MINI_GUN_LABEL36;
           }
-          v18 = TriggerTime - 33;
+          v18 = TriggerTime - 10;
+        }
+        TriggerTime = v18;
+    processWEAPON_MINI_GUN_LABEL36:
+        if (TriggerTime >= 0) {
+            return;
+        }
+        TriggerTime = 0;
       }
-    } else
-    {
-      if (Upgrade) {
-               goto processWEAPON_MINI_GUN_LABEL36;
-      }
-      v18 = TriggerTime - 10;
     }
-    TriggerTime = v18;
-processWEAPON_MINI_GUN_LABEL36:
-    if (TriggerTime >= 0) {
-        return;
-    }
-    TriggerTime = 0;
-  }
 }
 

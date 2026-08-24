@@ -30,6 +30,7 @@
 #include "vanilla/debug/memdump.h"
 #include "vanilla/debug/binaryfile.h"
 #include "vanilla/debug/structs/thing.h"
+#include "vanilla/debug/structs/thingvehicle.h"
 
 #include "draw/hud.h"
 
@@ -303,6 +304,7 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     this->mSoundEngine = soundEngine;
     this->mDemoMode = demoMode;
     this->mAttributionMode = attributionActive;
+    mSkipStart = skipStart;
 
     mRaceNumberOfLaps = nrLaps;
 
@@ -310,7 +312,7 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
         mDbgWindow = new GameDbgWnd(this);
     }
 
-    if (skipStart) {
+    if (mSkipStart) {
         this->mCurrentPhase = DEF_RACE_PHASE_RACING;
     } else {
         this->mCurrentPhase = DEF_RACE_PHASE_START;
@@ -1402,15 +1404,6 @@ void Race::PlayerCrossesFinishLineTheFirstTime() {
     //and the start itself was not skipped (for example in game debugging mode)
     if (mCurrentPhase == DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE) {
         mCurrentPhase = DEF_RACE_PHASE_RACING;
-
-        // //also set the players to this new mode
-        // //this internally enables the HUD drawing, and allows computer players to
-        // //finally attack
-        // std::vector<Player*>::iterator it;
-
-        // for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
-        //     (*it)->SetupToSkipStart();
-        // }
     }
 }
 
@@ -1483,13 +1476,10 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
     //again, without causing issues!
     //TODO newPlayer->SetupComputerPlayerForStart(Startpos);
 
-    //if we do not skip start set player mode
-    //accordingly; this also sets the Hud view mode
-    //correctly via player state
-    if (this->mCurrentPhase == DEF_RACE_PHASE_START) {
-        //TODO newPlayer->SetupForStart();
-    } else if (mCurrentPhase == DEF_RACE_PHASE_RACING) {
-        //TODO newPlayer->SetupToSkipStart();
+    //if the Start is skipped then allow the players
+    //to start immediately
+    if (mSkipStart) {
+        newPlayer->TriggerRaceStart();
     }
 
     //request new engine sound for new player
@@ -1555,102 +1545,77 @@ void Race::PlayerHasFinishedLastLapOfRace(Player *whichPlayer) {
 
 //helper function which creates and returns the final race statistics
 std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
-    //TODO: commented out
-    // std::vector<RaceStatsEntryStruct*>* result = new std::vector<RaceStatsEntryStruct*>;
+    std::vector<RaceStatsEntryStruct*>* result = new std::vector<RaceStatsEntryStruct*>;
 
-    // result->clear();
+    result->clear();
 
-    // std::vector<Player*>::iterator itPlayer;
-    // std::vector<Player*>::iterator itPlayerSearch;
-    // std::vector <LAPTIMEENTRY>::iterator itLap;
-    // irr::u32 sumLapTimes;
-    // bool firstLapTime;
-    // irr::u16 minLapTime = 0;
-    // int fndIdx;
-    // bool entryFound;
+    std::vector<VVehicle*>::iterator itPlayer;
 
-    // for (itPlayer = this->mPlayerVec.begin(); itPlayer != this->mPlayerVec.end(); ++itPlayer) {
-    //       RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
-    //       firstLapTime = true;
-    //       sumLapTimes = 0;
+    irr::u32 sumLapTimes;
+    bool firstLapTime;
+    irr::u16 minLapTime = 0;
+    size_t lapIdx;
+    size_t nrLaps;
 
-    //       //process lap time data
-    //       for (itLap = (*itPlayer)->mFinalPlayerStats->lapTimeList.begin(); itLap != (*itPlayer)->mFinalPlayerStats->lapTimeList.end(); ++itLap) {
-    //           sumLapTimes += (*itLap).lapTimeMultiple40mSec;
+    for (itPlayer = this->mVanillaCraftVec.begin(); itPlayer != this->mVanillaCraftVec.end(); ++itPlayer) {
+          RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
+          firstLapTime = true;
+          sumLapTimes = 0;
 
-    //           if (firstLapTime) {
-    //               firstLapTime = false;
-    //               minLapTime = (*itLap).lapTimeMultiple40mSec;
-    //           } else {
-    //               if ((*itLap).lapTimeMultiple40mSec < minLapTime) {
-    //                   minLapTime = (*itLap).lapTimeMultiple40mSec;
-    //               }
-    //           }
-    //       }
+          nrLaps = (size_t)((*itPlayer)->RaceLaps);
 
-    //       strcpy(newEntry->playerName, (*itPlayer)->mFinalPlayerStats->name);
-    //       newEntry->nrKills = (*itPlayer)->mFinalPlayerStats->currKillCount;
-    //       newEntry->nrDeaths = (*itPlayer)->mFinalPlayerStats->currDeathCount;
-    //       newEntry->raceTime = sumLapTimes;
-    //       newEntry->bestLapTime = minLapTime;
+          //process lap time data, Lap times start at array index 1
+          //nrLaps contains value of actual number of laps + 1
+          for (lapIdx = 1; lapIdx < nrLaps; lapIdx++) {
+              sumLapTimes += (irr::u32)((*itPlayer)->Conditions.LapTimes[lapIdx]);
 
-    //       irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)((*itPlayer)->mFinalPlayerStats->lapTimeList.size());
-    //       newEntry->avgLapTime = (irr::u16)(avgLapTime);
+              if (firstLapTime) {
+                  firstLapTime = false;
+                  minLapTime = (irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]);
+              } else {
+                  if ((irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]) < minLapTime) {
+                      minLapTime = (irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]);
+                  }
+              }
+          }
 
-    //       //we find the final race position at which the player finished, in the order of the
-    //       //player elements in the playerRaceFinishedVec vector, first finished player (position 1)
-    //       //is first entry in this vector
-    //       fndIdx = 1;
-    //       entryFound = false;
+          strcpy(newEntry->playerName, (*itPlayer)->Stats.name);
+          newEntry->nrKills = (irr::u8)((*itPlayer)->Conditions.KillsCount);
+          newEntry->nrDeaths = (irr::u8)((*itPlayer)->Conditions.DeathsCount);
+          newEntry->raceTime = sumLapTimes;
+          newEntry->bestLapTime = minLapTime;
 
-    //       for (itPlayerSearch = this->playerRaceFinishedVec.begin(); itPlayerSearch != this->playerRaceFinishedVec.end(); ++itPlayerSearch) {
-    //           //we found the position of this player in the
-    //           //ranking list
-    //           if ((*itPlayerSearch) == (*itPlayer)) {
-    //               entryFound = true;
-    //               break;
-    //           }
+          irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)(nrLaps - 1);
+          newEntry->avgLapTime = (irr::u16)(avgLapTime);
+          newEntry->racePosition = (irr::u8)((*itPlayer)->RacePositionFinish);
 
-    //           fndIdx++;
-    //       }
+          irr::u32 nrShootsfired = (*itPlayer)->Conditions.Bullets;
+          irr::f32 accuracy;
 
-    //       newEntry->racePosition = fndIdx;
+          if (nrShootsfired > 0) {
+                    accuracy = ((irr::f32)((*itPlayer)->Conditions.BulletsHit) / (irr::f32)(nrShootsfired)) * 100.0f;
+          } else {
+              accuracy = 0.0f;
+          }
 
-    //       irr::u32 nrShootsfired = (*itPlayer)->mFinalPlayerStats->shootsHit + (*itPlayer)->mFinalPlayerStats->shootsMissed;
-    //       irr::f32 accuracy;
+          newEntry->hitAccuracy = (irr::u8)(accuracy);
 
-    //       if (nrShootsfired > 0) {
-    //                 accuracy = ((irr::f32)((*itPlayer)->mFinalPlayerStats->shootsHit) / (irr::f32)(nrShootsfired)) * 100.0f;
-    //       } else {
-    //           accuracy = 0.0f;
-    //       }
+          //plausi check
+          if (newEntry->hitAccuracy < 0)
+              newEntry->hitAccuracy = 0;
 
-    //       newEntry->hitAccuracy = (irr::u8)(accuracy);
+          if (newEntry->hitAccuracy > 100)
+              newEntry->hitAccuracy = 100;
 
-    //       //plausi check
-    //       if (newEntry->hitAccuracy < 0)
-    //           newEntry->hitAccuracy = 0;
+          //TODO: calculate later!
+          //rating goes from lowest 1 (worst) up to
+          //20 (best player)
+          newEntry->rating = 1;
 
-    //       if (newEntry->hitAccuracy > 100)
-    //           newEntry->hitAccuracy = 100;
+          result->push_back(newEntry);
+    }
 
-    //       //TODO: calculate later!
-    //       //rating goes from lowest 1 (worst) up to
-    //       //20 (best player)
-    //       newEntry->rating = 1;
-
-    //       //only if player was found in ranking add it to the
-    //       //results table
-    //       if (entryFound) {
-    //         result->push_back(newEntry);
-    //       } else {
-    //           //do not add player result
-    //           //just delete struct again
-    //           delete newEntry;
-    //       }
-    // }
-
-    // return (result);
+    return (result);
 }
 
 void Race::CompareMemDumpsVanilla() {
@@ -1663,18 +1628,10 @@ void Race::CompareMemDumpsVanilla() {
 
      mVDbgInterface->PrintCompareDataResult(diffBytes, (int)(mVDbgInterface->mDumpLevelStructStart));*/
 
-     std::vector<ParseThing*> thingList = mVDbgInterface->newDump->ReturnThingsWithGroup(10);
-     std::vector<ParseThing*>::iterator it;
+     ParseThing* player1 = mVDbgInterface->newDump->ReturnThingFirstPlayer();
+     player1->Print();
 
-     for (it = thingList.begin(); it != thingList.end(); ++it) {
-         (*it)->Print();
-     }
-
-
-    /* ParseThing* thingWritten2 = mVDbgInterface->newDump2->ReturnThingsWithIndex(997);
-     if (thingWritten2 != nullptr) {
-         thingWritten2->Print();
-     }
+/*
 
      ParseThing* thingNewParent = mVDbgInterface->newDump2->ReturnThingsWithIndex(884);
      if (thingNewParent != nullptr) {
@@ -1743,38 +1700,38 @@ void Race::Init() {
     //HUD should show main player stats
     //Wolf 22.12.2024: commented out, since add player we have no player object
     //here anymore
-    if (mDemoMode) {
-        //if we do not skip the race start, switch the Hud
-        //to "start" mode
-        if (mCurrentPhase == DEF_RACE_PHASE_START) {
-            Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+    // if (mDemoMode) {
+    //     //if we do not skip the race start, switch the Hud
+    //     //to "start" mode
+    //     if (mCurrentPhase == DEF_RACE_PHASE_START) {
+    //         Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
 
-            //0.. means no light lit
-            //with increasing value the start signal
-            //advances towards the final state
-            Hud1Player->SetStartSignalState(0);
-        } else {
-                //in demo mode we do not want to draw a HUD
-                //in case we skip the start
-                Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
-               }
-    } else {
-              //if we do not skip the race start, switch the Hud
-              //to "start" mode
-              if (mCurrentPhase == DEF_RACE_PHASE_START) {
-                Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
+    //         //0.. means no light lit
+    //         //with increasing value the start signal
+    //         //advances towards the final state
+    //         Hud1Player->SetStartSignalState(0);
+    //     } else {
+    //             //in demo mode we do not want to draw a HUD
+    //             //in case we skip the start
+    //             Hud1Player->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
+    //            }
+    // } else {
+    //           //if we do not skip the race start, switch the Hud
+    //           //to "start" mode
+    //           if (mCurrentPhase == DEF_RACE_PHASE_START) {
+    //             Hud1Player->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
 
-                //0.. means no light lit
-                //with increasing value the start signal
-                //advances towards the final state
-                Hud1Player->SetStartSignalState(0);
-              } else {
-                        //in normal race mode we draw the HUD
-                        //if we skip the start we can already show the
-                        //race Hud
-                        Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
-                     }
-           }
+    //             //0.. means no light lit
+    //             //with increasing value the start signal
+    //             //advances towards the final state
+    //             Hud1Player->SetStartSignalState(0);
+    //           } else {
+    //                     //in normal race mode we draw the HUD
+    //                     //if we skip the start we can already show the
+    //                     //race Hud
+    //                     Hud1Player->SetHUDState(DEF_HUD_STATE_RACE);
+    //                  }
+    //        }
 
     //give physics the triangle selectors for overall collision detection
     this->mPhysics->AddCollisionMesh(triangleSelectorWallCollision);
@@ -1954,18 +1911,8 @@ void Race::ControlStartPhase(irr::f32 frameDeltaTime) {
 
         //state 3 means green is lit
         if (currentSignalState == 3) {
-            //start is now over, players are now in next phase where the
-            //are traveling the first time towards the finish line; HUD is still not shown
-            //and as far as I have seen computer players do not attack here yet
-            //as soon as the first player crosses the finish line in this state, we finally
-            //will change to full on race state somewhere else
-            this->mCurrentPhase = DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE;
-
-            //switch all players to first way to finish line mode
-            //TODO: std::vector<Player*>::iterator it;
-            //for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
-            //    ((*it)->SetupForFirstWayToFinishLine());
-            //}
+            //Trigger Race Start
+            TriggerRaceStart();
         }
     }
 }
@@ -2043,6 +1990,12 @@ void Race::UpdateLensFlare() {
 
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
+    //are we in Race start phase, if so also call
+    //race start control function
+    if (mCurrentPhase == DEF_RACE_PHASE_START) {
+        ControlStartPhase(frameDeltaTime);
+    }
+
     mVanillaGameLoopTimer += frameDeltaTime;
     //The game loop of the vanilla game at Playstation 1
     //seems to run approx. every 65ms
@@ -2056,12 +2009,6 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
         mThingManager->RunHousekeeping();
     }
 
-    //are we in Race start phase, if so also call
-    //race start control function
-    if (mCurrentPhase == DEF_RACE_PHASE_START) {
-        ControlStartPhase(frameDeltaTime);
-    }
-
     //if we are in final race phase (where we delay the exit of race)
     //until all animators are done animating, so that we can clean them
     //up during deconstructor of race object, hande this final phase here
@@ -2069,37 +2016,39 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
         HandleExitRace();
     }
 
-    float progressMorph;
+    if (mCurrentPhase != DEF_RACE_PHASE_START) {
+            float progressMorph;
 
-    //Handle morphs,
-    //and update timers
-    if (AllowStartMorphsPerKey && runMorph)
-    {
-        absTimeMorph += frameDeltaTime;
-        progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
+            //Handle morphs,
+            //and update timers
+            if (AllowStartMorphsPerKey && runMorph)
+            {
+                absTimeMorph += frameDeltaTime;
+                progressMorph = (float)fmin(1.0f, fmax(0.0f, 0.5f + sin(absTimeMorph)));
 
-        std::list<Morph*>::iterator itMorph;
+                std::list<Morph*>::iterator itMorph;
 
-        for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
-               (*itMorph)->setProgress(progressMorph);
-               this->mLevelTerrain->ApplyMorph((**itMorph));
-               (*itMorph)->MorphColumns();
-        }
+                for (itMorph = Morphs.begin(); itMorph != Morphs.end(); ++itMorph) {
+                       (*itMorph)->setProgress(progressMorph);
+                       this->mLevelTerrain->ApplyMorph((**itMorph));
+                       (*itMorph)->MorphColumns();
+                }
 
-        //if necessary update the Mesh now
-        mLevelTerrain->CheckForMeshUpdate();
-        mLevelBlocks->CheckForMeshUpdate();
-     }
+                //if necessary update the Mesh now
+                mLevelTerrain->CheckForMeshUpdate();
+                mLevelBlocks->CheckForMeshUpdate();
+             }
 
-    if (!AllowStartMorphsPerKey) {
-          //update level morphs
-          UpdateMorphs(frameDeltaTime);
+            if (!AllowStartMorphsPerKey) {
+                  //update level morphs
+                  UpdateMorphs(frameDeltaTime);
+            }
+
+            //update timer
+            UpdateTimers(frameDeltaTime);
+
+            mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
     }
-
-    //update timer
-    UpdateTimers(frameDeltaTime);
-
-    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
 
     //update all cones
     UpdateCones(frameDeltaTime);
@@ -2194,11 +2143,11 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     // UpdatePlayerRacePositionRanking();
 /*
     //update recovery vehicle logic
-    UpdateRecoveryVehicles(frameDeltaTime);
+    UpdateRecoveryVehicles(frameDeltaTime);*/
 
     CheckRaceFinished(frameDeltaTime);
 
-    mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);
+    /*mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);
 
     //update all particle systems
     UpdateParticleSystems(frameDeltaTime);
@@ -2530,9 +2479,6 @@ void Race::HandleDebugInput() {
    }
 
    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
-       //toggle collision resolution active state
-       //mPhysics->collisionResolutionActive = !mPhysics->collisionResolutionActive;
-       mVanillaCraftVec.at(0)->Stats.Health = 0;
    }
 
    if ((mCloneRecording != nullptr) && DebugShowCloneRecording) {
@@ -2553,6 +2499,15 @@ void Race::HandleDebugInput() {
                }
            }
    }
+}
+
+void Race::TriggerRaceStart() {
+    this->mCurrentPhase = DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE;
+
+    std::vector<VVehicle*>::iterator it;
+    for (it = mVanillaCraftVec.begin(); it != mVanillaCraftVec.end(); ++it) {
+        (*it)->TriggerRaceStart();
+    }
 }
 
 //unfortunetly it seems we can not remove SceneNodes from SceneManager
@@ -3423,12 +3378,13 @@ void Race::CheckRaceFinished(irr::f32 deltaTime) {
 
             //24.03.2025: Add a final race phase where we wait until
             //all currently working animators are finished
-            //this->exitRace = true;
-            InitiateExitRace();
+            //23.08.2026: Temporarily reverted this again
+            this->exitRace = true;
+            //InitiateExitRace();
         }
     } else {
         //race is not finished yet
-        if (this->playerRaceFinishedVec.size() >= this->mPlayerVec.size()) {
+        if (this->playerRaceFinishedVec.size() >= this->mVanillaCraftVec.size()) {
               //all players went through the finish line
               mRaceWasFinished = true;
         }
@@ -4047,6 +4003,11 @@ void Race::vehicle_race_positions() {
                (*it)->vehicle_set_autodrive_on();
                //Decrement counter/timer for remaining spectator time
                --((*it)->Conditions.RacePositionFinishShowTime);
+
+               if (!(*it)->mHasFinishedRace) {
+                   playerRaceFinishedVec.push_back((*it));
+                   (*it)->FinishedRace();
+               }
             }
           }
        }

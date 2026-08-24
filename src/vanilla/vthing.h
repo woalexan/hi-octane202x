@@ -57,7 +57,7 @@ struct VThing {
 
     uint32_t AffectStatus = 0;
     int16_t AffectNumber = 0; //allows to specify the amount of damage dealt with an action
-    uint16_t AffectWho = 0;   //allows to specify who is affected
+    uint16_t AffectWho = 0;   //allows to specify who is the cause of a damage (wo is the attacker)
     uint16_t ColideGroup = 0;
 
     int16_t Life = 0;

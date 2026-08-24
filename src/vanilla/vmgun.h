@@ -38,6 +38,7 @@
 #include "vbase.h"
 #include <cstdint>
 #include <vector>
+#include "../audio/sound.h"
 
 /************************
  * Forward declarations *
@@ -69,6 +70,8 @@ private:
 
     std::vector<BulletThingStruct*> mBulletThings;
     std::vector<VThing*> mShotVec;
+
+    irr::f32 mAbsTimeAcc = 0.0f;
 
     //Returns true in case of success
     //False otherwise

@@ -296,6 +296,8 @@ public:
     //is false
     bool mDemoMode;
 
+    bool mSkipStart;
+
     void PlayerCrossesFinishLineTheFirstTime();
     bool RaceAllowsPlayersToAttack();
 
@@ -613,6 +615,8 @@ private:
 
     uint8_t vehicle_race_positions_compare(VVehicle* vehicle1, VVehicle* vehicle2);
     void vehicle_race_positions();
+
+    void TriggerRaceStart();
 
     //Switch for the vanillia model
     bool mAddVVehicle = false;

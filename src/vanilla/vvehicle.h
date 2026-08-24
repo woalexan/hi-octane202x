@@ -184,6 +184,15 @@ struct VehicleConditionsStruct {
     int32_t Bullets = 0;
     int32_t BulletsHit = 0;
     int32_t MiniGunHeatup = 0;
+
+    //Note Deaths: In the original game implementation the Deaths array seems
+    //to store the index to the ControlThing that did the frag. In my implementation
+    //I will use the vehicle number right now instead!
+    int32_t Deaths[8];
+
+    int32_t DeathsCount = 0;
+    int32_t Kills[8];
+    int32_t KillsCount = 0;
     int32_t LapTimes[100];
     int32_t TotalTime = 0;
     int32_t LapCount = 0;
@@ -381,9 +390,6 @@ public:
     void SetMyHUD(HUD* pntrHUD);
     HUD* GetMyHUD();
 
-    void SetNewState(irr::u32 newPlayerState);
-    irr::u32 GetCurrentState();
-
     void StartPlayingWarningSound();
     void StopPlayingWarningSound();
 
@@ -418,6 +424,9 @@ public:
 
     void vehicle_set_camera();
 
+    void FinishedRace();
+    void TriggerRaceStart();
+
     //My Weapons
     VMGun* mMGun = nullptr;
 
@@ -428,11 +437,11 @@ private:
     int32_t TotalRaceTicks = 0;
     int32_t TotalRaceTicksFinished = 0;
 
-    irr::u8 mPlayerCurrentState;
-
     irr::f32 mAbsTimeIntegrator = 0.0f;
 
     irr::f32 mUpdateVehicleTimeIntegrator = 0.0f;
+
+    bool mRaceTriggered = false;
 
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* mCraftMesh = nullptr;
@@ -549,16 +558,6 @@ private:
     //the last player update
     MapTileRegionStruct* mLastCraftTriggerRegion = nullptr;
 
-    void UpdateHUDState();
-
-    //Player states I defined myself
-    //TODO 04.07.2026: This internal variables
-    //have no effect right now on the vehicle
-    //Either map to other variable
-    //or use them somewhere
-    bool mPlayerCanMove = false;
-    bool mPlayerCanShoot = false;
-
     //variables to remember if during the last
     //gameloop this player did any charging
     bool mLastChargingFuel = false;
@@ -604,7 +603,6 @@ private:
     bool mLastEmitDustCloud = false;
 
     void FinishedLap();
-    void FinishedRace();
 
     void UpdateCoordinates();
 

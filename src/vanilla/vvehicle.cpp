@@ -305,7 +305,8 @@ vehicle_execute_action0_initialize_LABEL_23:
         }
     } else {
 vehicle_execute_action0_initialize_LABEL_107:
-        ThingData->Action = 0x1;
+        ThingData->Action = 0x2; //in the original game implementation it is 0x1; but I
+                                 //added an inbetween state that allows to "trigger" the race start
     }
 }
 
@@ -664,6 +665,18 @@ void VVehicle::vehicle_do_action() {
             return;
         }
 
+        //this state is not present in the original game implementation
+        //I added it to be able to start the racing at a defined point
+        //in time
+        case 2: {
+            if (mRaceTriggered) {
+                //race is triggered now
+                //go to the default racing state
+                ThingData->Action = 0x1;
+            }
+            return;
+        }
+
         case 0x9: {
             vehicle_execute_action0x9_beforeexploding();
             return;
@@ -710,6 +723,10 @@ void VVehicle::vehicle_do_action() {
     }
 }
 
+void VVehicle::TriggerRaceStart() {
+    mRaceTriggered = true;
+}
+
 void VVehicle::Update(irr::f32 frameDeltaTime) {
     //we want to increment mTimeSlice every 50ms
     //in the original game it starts counting at 0, increases every 50ms
@@ -726,9 +743,6 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         //timing close enough when called
         //here
         processWeaponBooster();
-
-        //process machine gun
-        mMGun->Update(mAbsTimeIntegrator);
 
         //do not update engine sound for the first ~300ms
         //of the race to prevent hearing the first height drop
@@ -750,6 +764,9 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 
         mAbsTimeIntegrator = 0.0f;
     }
+
+    //process machine gun
+    mMGun->Update(frameDeltaTime);
 
     mUpdateVehicleTimeIntegrator += frameDeltaTime;
     if (mUpdateVehicleTimeIntegrator >= 0.05) {
@@ -1003,6 +1020,10 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    //add pointer to myself into this Thing
    ThingData->vVehiclePnter = this;
 
+   //set collide size
+   ThingData->CollideSize.set(0.125f, 0.125f, 0.125f);
+   ThingData->ColideGroup = (6 & 0xFFFE);
+
    //nrLaps + 1 is correct, I saw this
    //also in the original game
    RaceLaps = nrLaps + 1;
@@ -1043,6 +1064,16 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
 
    //definition of dirt texture elements
    dirtTexIdsVec = new std::vector<irr::s32>{0, 1, 2, 60, 61, 62, 63, 64, 65, 66, 67, 79};
+
+   //zero out the lap times
+   for (int idx = 0; idx < 100; idx++) {
+       Conditions.LapTimes[idx] = 0;
+   }
+
+   for (int idx = 0; idx < 8; idx++) {
+       Conditions.Kills[idx] = 0;
+       Conditions.Deaths[idx] = 0;
+   }
 
    ThingData->Position = vanPos;
    ThingData->Movement.AngleXZ = 0.0f;
@@ -2240,6 +2271,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
       } else {
           if (LapCounter == RaceLaps) {
               if (!RacePositionFinish) {
+                  //This player has finished the Race
                   Conditions.RacePositionFinishShowTime = 100;
                   RacePositionFinish = RacePosition;
                   TotalRaceTicksFinished = TotalRaceTicks;
@@ -2782,6 +2814,8 @@ bool VVehicle::VehiclesCheckForCollision(VVehicle* vehicle1, VVehicle* vehicle2,
    return false;
 }
 
+//24.08.2026: For my non ControlThing implementation and the default race mode
+//everything should be implemented now here in this routine
 void VVehicle::vehicle_post_process() {    
     irr::f32 speedFixed;
     int16_t number;
@@ -2820,10 +2854,6 @@ void VVehicle::vehicle_post_process() {
         ThingData->Status |= 0x2u;
     }
 
-    /********************************
-     * Are we dealt any damage?     *
-     ********************************/
-
     if (CollisionSound != nullptr) {
         if (CollisionSound->getStatus() == sf::SoundSource::Status::Stopped) {
             CollisionSound = nullptr;
@@ -2839,6 +2869,10 @@ void VVehicle::vehicle_post_process() {
                }
         }
     }
+
+    /********************************
+     * Are we dealt any damage?     *
+     ********************************/
 
     if (((ThingData->AffectStatus & 0x607u) != 0) && (Stats.Invincable <= 0)) {
         number = ThingData->AffectNumber;  //contains the value of damage dealt by a certain event
@@ -2956,7 +2990,7 @@ void VVehicle::vehicle_post_process() {
     mCurrChargingShield = false;
 
     //only allow charging
-    //if vehicle action is currently 1
+    //if vehicle action is currently 1 (which means vehicle is currently actively racing)
     if (ThingData->Action == 0x1) {
         //Are we currently in an rearming station?
         if ((ThingData->AffectStatus & 0x8) != 0) {
@@ -3025,8 +3059,14 @@ void VVehicle::vehicle_post_process() {
                     atCharger = true;
                     mCurrChargingShield = true;
 
-                    //TODO: something still not implemented with BulletCount and
-                    //MissileCount
+                    //24.08.2026: The two Calculations below not yet verified to be correct!
+                    irr::f32 helper = ((16.0f - floor((irr::f32)(Stats.Health) / 102.4f)) / 16.0f);
+                    Damage.BulletCount *= (uint16_t)(helper);
+
+                    helper =
+                        ((16.0f - round((irr::f32)(Stats.Health) / 1024.0f)) / 16.0f);
+
+                    Damage.MissileCount *= (uint16_t)(helper);
                 } else {
 
                         /*if (Conditions.HealthRechargeCounter) {
@@ -3261,10 +3301,94 @@ void VVehicle::vehicle_post_process() {
              *********************************/
 
             if (Stats.Health <= 0) {
-                //Add this stuff later!
-            }
+                //24.08.2026: Explaination for contents of who at this point:
+                //it reflects the number of the player
+                //first player has Id = 1, second player has Id = 2 and so
+                uint16_t who = ThingData->AffectWho;
+
+                //do we know how killed this vehicle? If who is nonzero we know it was
+                //another player and which
+                if (who) {
+                    //24.08.2026: the logic in the original game implementation
+                    //seems to store the index of the ControlThing in the
+                    //Deaths array, which makes sense because in this original
+                    //implementation the ControlThing (Pilot) and Vehicle
+                    //are actually seperated, because a pilot can fly different
+                    //vehicles in HotSeat Mode. So the seperation needs to be done
+                    //I did not want to start with this seperation, because it seemed
+                    //to be very complicated at the start, and I was not very interested
+                    //in this HotSeat Mode. So have I have not seperated the ControlThing
+                    //from the vehicle, and therefore I will implement the source code
+                    //below in a way that the Deaths array stores the vehicle number
+                    //instead.
+                    //TODO: In case we want to seperate later between ControlThing and
+                    //Vehicle we need to adjust the code below!
+                    size_t idxKiller;
+
+                    //Note: I changed the original implementation here a little bit;
+                    //The original game also has an additional 9th ControlThing which is used here
+                    //in case we have something that hurts us which is not a player; Not sure if
+                    //this mechanism is really needed; Therefore I removed this mapping
+                    if ((who - 1) < 8) {
+                        idxKiller = (size_t)(who) - 1;
+
+                        //remember that this player killed us one time
+                        ++Conditions.Deaths[idxKiller];
+                        Conditions.FlagDeath = true;
+
+                        if ((this->ThingData->Id <= 8) && (this->ThingData->Id > 0)) {
+                            ++mRace->mVanillaCraftVec.at(idxKiller)->Conditions.Kills[this->ThingData->Id - 1];
+                            mRace->mVanillaCraftVec.at(idxKiller)->Conditions.FlagKill = true;
+                            ++mRace->mVanillaCraftVec.at(idxKiller)->Conditions.KillsCount;
+
+                            //24.08.2026: it seems Weight variable is repurposed for another job here
+                            //in the original game implementation Weight gets the Thing Index of the ControlThing
+                            //of the Attacker who archieved the kill; in my implementation I have no ControlThings,
+                            //so I take the Index of the VehicleThing; Could be a source for a bug later?
+                            Stats.Weight = (mRace->mVanillaCraftVec.at(idxKiller)->ThingData->Index + 1);
+                        }
+                    }
+                } else {
+                    //We do not have a "Who" did it
+                    //we did it to "ourselves"
+                    Conditions.FlagDeath = true;
+                    Conditions.FlagKill = true;
+
+                    //we killed ourselves :(
+                    ++Conditions.Kills[this->ThingData->Id - 1];
+                    ++Conditions.Deaths[this->ThingData->Id - 1];
+                }
+
+                //for stats remember that we did die
+                ++Conditions.DeathsCount;
+            }  //End of Health <= 0
 
     }   //End of If vehicle Action == 1
+
+    //Action 0x17 means the vehicle is currently rescued
+    //by rescue vehicle
+    if (ThingData->Action == 0x17) {
+        if ((ThingData->AffectStatus & 8) != 0) {
+            if (Stats.Weapons < 10000) {
+                Stats.Weapons += 200;
+            }
+        }
+
+        if ((ThingData->AffectStatus & 0x10) != 0) {
+            if (Stats.Fuel < 10000) {
+                Stats.Fuel += 200;
+            }
+        }
+
+        if ((ThingData->AffectStatus & 0x20) != 0) {
+            Stats.Invincable = 2;
+            if ((Stats.Health > 0) || FlightModel.Flag.AutoDrive) {
+                if (Stats.Health < 10000) {
+                    Stats.Health += 200;
+                }
+            }
+        }
+    }
 
    /* if (currChargingAmmo) {
         ++Conditions.WeaponsRechargeCounter;
@@ -3748,6 +3872,12 @@ void VVehicle::FinishedLap() {
 }
 
 void VVehicle::FinishedRace() {
+    //We have to set the ControlOrigin to value 8
+    //to enable the takeover of the computer player
+    ControlOrigin = 8;
+
+    mHasFinishedRace = true;
+
     // /* after the player is finished with the race
     //  * the game uses the external view, while a
     //  * computer player takes over controlling this craft */
@@ -4293,126 +4423,10 @@ void VVehicle::CheckDustCloudEmitter() {
 
 void VVehicle::SetMyHUD(HUD* pntrHUD) {
     mHUD = pntrHUD;
-
-    //I got a new HUD connected
-    //we need to tell the HUD the correct
-    //HUD state we want for the current player
-    //state we have
-    UpdateHUDState();
 }
 
 HUD* VVehicle::GetMyHUD() {
     return mHUD;
-}
-
-irr::u32 VVehicle::GetCurrentState() {
-    return this->mPlayerCurrentState;
-}
-
-void VVehicle::SetNewState(irr::u32 newPlayerState) {
-    mPlayerCurrentState = newPlayerState;
-
-    switch (newPlayerState) {
-        case STATE_PLAYER_BEFORESTART: {
-            mPlayerCanMove = false;
-            mPlayerCanShoot = false;
-            break;
-        }
-
-        //This is the inbetween state after green light comes on
-        //and the first time a player crosses the finish line
-        //in this state the players move towards the start line, and
-        //computer players do not seem to attack
-        //Human player is allowed to attack
-        //Also the HUD is not shown yet
-        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE: {
-            mPlayerCanMove = true;
-            mPlayerCanShoot = true;
-            break;
-        }
-
-        case STATE_PLAYER_RACING: {
-            mPlayerCanMove = true;
-            mPlayerCanShoot = true;
-            break;
-        }
-
-        case STATE_PLAYER_EMPTYFUEL: {
-            mPlayerCanMove = false;
-            mPlayerCanShoot = false;
-            break;
-        }
-
-        case STATE_PLAYER_BROKEN: {
-            mPlayerCanMove = false;
-            mPlayerCanShoot = false;
-            break;
-        }
-
-        case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE: {
-           mPlayerCanMove = false;
-           mPlayerCanShoot = false;
-           break;
-        }
-   }
-
-    //in the finished state the player should be able to
-    //move, but not shoot; the human player craft is taken
-    //over in this state by the computer player control
-    if (mHasFinishedRace) {
-        mPlayerCanMove = true;
-        mPlayerCanShoot = false;
-    }
-
-    //Update a connected HUD as well
-    UpdateHUDState();
-}
-
-void VVehicle::UpdateHUDState() {
-    if (mHUD == nullptr)
-        return;
-
-    irr::u32 state = this->GetCurrentState();
-
-    //there is one exception, if we are in demo mode
-    //do not draw the normal HUD, only before start
-    if (this->mRace->mDemoMode) {
-        if ((state != STATE_PLAYER_BEFORESTART) && (state != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
-            mHUD->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
-            return;
-        }
-    }
-
-    //make sure the HUD state if correct for us
-    switch (state) {
-        case STATE_PLAYER_BEFORESTART:
-        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE:
-        {
-            mHUD->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
-            break;
-        }
-    case STATE_PLAYER_EMPTYFUEL:
-    case STATE_PLAYER_RACING: {
-            //19.04.2025: If the player has already finished the race
-            //then do not draw HUD anymore, otherwise draw it again
-            if (!mHasFinishedRace) {
-                mHUD->SetHUDState(DEF_HUD_STATE_RACE);
-            } else {
-                mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-            }
-            break;
-        }
-
-    case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE:
-    case STATE_PLAYER_BROKEN:  {
-        //if there is a connected HUD we need to disable
-        //its drawing, because if the player is destroyed there
-        //is an outside view at the craft, and for an outside view
-        //there is no HUD visible
-        mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-        break;
-    }
-  }
 }
 
 void VVehicle::StartPlayingWarningSound() {

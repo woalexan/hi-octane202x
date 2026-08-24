@@ -18,6 +18,7 @@
 class MemDump;
 class UInt8_Num;
 class UInt16_Num;
+class UInt32_Num;
 class Int16_Num;
 class Int32_Num;
 class FixedPointInt16_8R8Num;
@@ -50,6 +51,38 @@ public:
 
     FixedPointInt16_8R8Num* XPos = nullptr;
     FixedPointInt16_8R8Num* YPos = nullptr;
+
+private:
+    DataTools* mParent = nullptr;
+    std::string mName;
+};
+
+class AffectClass {
+public:
+    AffectClass(DataTools* parent, std::string name, size_t startPosData);
+    ~AffectClass();
+
+    std::string GetAsString();
+
+    UInt32_Num* Status = nullptr;
+    Int16_Num* Number = nullptr;
+    UInt16_Num* Who = nullptr;
+
+private:
+    DataTools* mParent = nullptr;
+    std::string mName;
+};
+
+class ColideClass {
+public:
+    ColideClass(DataTools* parent, std::string name, size_t startPosData);
+    ~ColideClass();
+
+    std::string GetAsString();
+
+    Coord3DClass* Size = nullptr;
+    AffectClass* Affect = nullptr;
+    UInt16_Num* Group = nullptr;
 
 private:
     DataTools* mParent = nullptr;

@@ -83,8 +83,6 @@ struct BannerTextMessageStruct {
 class HUD {
 
 private:
-    irr::u8 mHudState = DEF_HUD_STATE_NOTDRAWN;
-
     Game* mGame = nullptr;
     Race* mRace = nullptr;
 
@@ -202,7 +200,7 @@ private:
     //0.. means no light lit
     //with increasing value the start signal
     //advances towards the final state
-    irr::u8 mStartSignalState;
+    irr::u8 mStartSignalState = 0;
 
     void DrawHUD1PlayerRace(irr::f32 deltaTime);
     void DrawHUD1PlayerStartSignal(irr::f32 deltaTime);
@@ -272,8 +270,6 @@ public:
 
     //returns true if HUD currently shows a permanent big green text
     bool DoesHudShowPermanentGreenBigText();
-
-    void SetHUDState(irr::u8 newHUDState);
 
     //0.. means no light lit
     //with increasing value the start signal
