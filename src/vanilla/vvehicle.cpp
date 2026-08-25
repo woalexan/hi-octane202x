@@ -40,6 +40,7 @@
 #include "../vanilla/vthing.h"
 #include "../vanilla/vcamera.h"
 #include "../vanilla/vmgun.h"
+#include "../vanilla/vmlauncher.h"
 #include "debug/dbginterface.h"
 #include "debug/memdump.h"
 #include "debug/structs/thing.h"
@@ -231,6 +232,10 @@ void VVehicle::UpdateEngineSound() {
     }
 }
 
+bool VVehicle::AllAnimatorsDone() {
+    return (this->mMGun->AllAnimationsFinished());
+}
+
 bool VVehicle::AllowedToCollectPowerUp() {
     //Player is only allowed to collect powerUps if
     //Action == 1 is set (means normal racing mode)
@@ -272,15 +277,15 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     Stats.Weapons = 10000;
 
     --mMGun->Upgrade;
-    --Stats.MRocketUpgrade;
+    --mMLauncher->Upgrade;
     --Booster.Upgrade;
 
     if (mMGun->Upgrade < 0) {
          mMGun->Upgrade = 0;
     }
 
-    if (Stats.MRocketUpgrade < 0) {
-        Stats.MRocketUpgrade = 0;
+    if (mMLauncher->Upgrade < 0) {
+        mMLauncher->Upgrade = 0;
     }
 
     if (Booster.Upgrade < 0) {
@@ -427,7 +432,7 @@ void VVehicle::vehicle_execute_action0x11_spawnpowerups() {
         powerUpList.push_back(Entity::MinigunUpgrade);
     }
 
-    if (Stats.MRocketUpgrade) {
+    if (mMLauncher->Upgrade) {
         powerUpList.push_back(Entity::MissileUpgrade);
     }
 
@@ -610,15 +615,15 @@ void VVehicle::vehicle_execute_action0x18() {
 void VVehicle::vehicle_execute_action0x19_reset() {
     if (FlightModel.Flag.HealthDeath) {
         --mMGun->Upgrade;
-        --Stats.MRocketUpgrade;
+        --mMLauncher->Upgrade;
         --Booster.Upgrade;
 
         if (mMGun->Upgrade < 0) {
              mMGun->Upgrade = 0;
         }
 
-        if (Stats.MRocketUpgrade < 0) {
-             Stats.MRocketUpgrade = 0;
+        if (mMLauncher->Upgrade < 0) {
+             mMLauncher->Upgrade = 0;
         }
 
         if (Booster.Upgrade < 0) {
@@ -727,6 +732,10 @@ void VVehicle::TriggerRaceStart() {
     mRaceTriggered = true;
 }
 
+uint32_t VVehicle::GetControlOrigin() {
+    return ControlOrigin;
+}
+
 void VVehicle::Update(irr::f32 frameDeltaTime) {
     //we want to increment mTimeSlice every 50ms
     //in the original game it starts counting at 0, increases every 50ms
@@ -767,6 +776,9 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 
     //process machine gun
     mMGun->Update(frameDeltaTime);
+
+    //process missile launcher
+    mMLauncher->Update(frameDeltaTime);
 
     mUpdateVehicleTimeIntegrator += frameDeltaTime;
     if (mUpdateVehicleTimeIntegrator >= 0.05) {
@@ -962,7 +974,7 @@ void VVehicle::SetupFlightModelConstants() {
     mBounce = mRace->mVCalc->FixedPointToFloat8D8(50);
     Stats.Behind = 100;
     mMGun->Upgrade = 0;
-    Stats.MRocketUpgrade = 0;
+    mMLauncher->Upgrade = 0;
 
     mFriction = mRace->mVCalc->FixedPointToFloat8D8(10);
     mFrictionLimit = mRace->mVCalc->FixedPointToFloat8D8(15);
@@ -1053,6 +1065,9 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
 
    //create the vanilla type machine gun
    mMGun = new VMGun(mRace, this);
+
+   //create the vanilla type missile launcher
+   mMLauncher = new VMLauncher(mRace, this);
 
    SetupFlightModelConstants();
 
@@ -1935,6 +1950,12 @@ vehicle_control_from_player_LABEL_28:
     }
 
 vehicle_control_from_player_LABEL_45:
+
+    if (KeyPressedMissileLauncher) {
+        ++mMLauncher->Trigger;
+        mMLauncher->Target = AutoTarget.PrimaryTarget;
+        mMLauncher->Count = AutoTarget.ValidTargetCount;
+    }
 
     //Handle Booster key
     if (KeyPressedBooster) {
@@ -3231,7 +3252,7 @@ void VVehicle::vehicle_post_process() {
 
             //Player picks up a rocket upgrade?
             if ((ThingData->AffectStatus & 0x2000) != 0) {
-                ++Stats.MRocketUpgrade;
+                ++mMLauncher->Upgrade;
             }
 
             //Player picks up a booster upgrade?
@@ -4127,7 +4148,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
         case Entity::EntityType::MissileUpgrade:
             //can only be picked up if missile upgrade level is not already
             //at max
-            if (Stats.MRocketUpgrade != 3) {
+            if (mMLauncher->Upgrade != 3) {
                 //we can make another upgrade
                 ThingData->AffectStatus |= 0x2000;
 
@@ -4294,7 +4315,7 @@ void VVehicle::vehicle_targetting_system() {
    }
 
    if (AutoTarget.PrimaryTarget) {
-       v12 = AutoTarget.ValidTargetCount + Stats.MRocketUpgrade + 1;
+       v12 = AutoTarget.ValidTargetCount + mMLauncher->Upgrade + 1;
        AutoTarget.ValidTargetCount = v12;
        v13 = (v12 < 0x65u);
        if (!v13) {
@@ -4479,6 +4500,11 @@ VVehicle::~VVehicle() {
     if (mMGun != nullptr) {
         delete mMGun;
         mMGun = nullptr;
+    }
+
+    if (mMLauncher != nullptr) {
+        delete mMLauncher;
+        mMLauncher = nullptr;
     }
 
     if (ThingData != nullptr) {

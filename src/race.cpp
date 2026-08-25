@@ -27,6 +27,7 @@
 #include "vanilla/vcalc.h"
 #include "vanilla/vtrack.h"
 #include "vanilla/vcamera.h"
+#include "vanilla/veffectmanager.h"
 #include "vanilla/debug/memdump.h"
 #include "vanilla/debug/binaryfile.h"
 #include "vanilla/debug/structs/thing.h"
@@ -34,10 +35,8 @@
 
 #include "draw/hud.h"
 
-#include "models/mgun.h"
 #include "models/missile.h"
 #include "models/particle.h"
-#include "models/cpuplayer.h"
 #include "models/morph.h"
 #include "models/timer.h"
 #include "models/player.h"
@@ -906,6 +905,11 @@ Race::~Race() {
         mVCalc = nullptr;
     }
 
+    if (mEffectManager != nullptr) {
+        delete mEffectManager;
+        mEffectManager = nullptr;
+    }
+
     if (mThingManager != nullptr) {
         delete mThingManager;
         mThingManager = nullptr;
@@ -1490,26 +1494,6 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
 }
 
 void Race::SetupPhysicsObjectParameters(PhysicsObject &phyObj, bool humanPlayer) {
-    if (humanPlayer) {
-        phyObj.physicState.SetMass(3.0f);
-        phyObj.physicState.SetInertia(30.0f);
-
-        //best value for human player to have best
-        //player craft handling
-        phyObj.mRotationalFrictionVal = 50.1f;
-    } else {
-       //best values until 30.12.2024
-       phyObj.physicState.SetMass(5.0f);
-       phyObj.physicState.SetInertia(30.0f);
-
-       //this value is necessary for computer controlled craft,
-       //to stabilizie it against unwanted sideway movements and
-       //"oscillations"
-       //but because this will is too much to control the craft during
-       //steep turns, we will dynamically set it depending on the angle error
-       //in turns in the player class code
-       phyObj.mRotationalFrictionVal = CP_PLAYER_ANGULAR_DAMPINGMAX;
-    }
 }
 
 void Race::DebugResetColorAllWayPointLinksToWhite() {
@@ -2466,6 +2450,8 @@ void Race::HandleDebugInput() {
 
    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
        //this->mWorldAware->WriteOneDbgPic = true;
+       irr::core::vector3df currVehiclePos = mVanillaCraftVec.at(0)->ThingData->Position;
+       mEffectManager->TestExplosion(currVehiclePos, 0.0f, 0.0f, 0.0f, 12);
    }
 
    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
@@ -2479,6 +2465,7 @@ void Race::HandleDebugInput() {
    }
 
    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
+       mEffectManager->UpdateTestExplosion();
    }
 
    if ((mCloneRecording != nullptr) && DebugShowCloneRecording) {
@@ -2561,6 +2548,7 @@ void Race::HandleInput(irr::f32 deltaTime) {
          mVanillaCraftVec.at(0)->KeyPressedTurnLeft = false;
          mVanillaCraftVec.at(0)->KeyPressedTurnRight = false;
          mVanillaCraftVec.at(0)->KeyPressedMachineGun = false;
+         mVanillaCraftVec.at(0)->KeyPressedMissileLauncher = false;
 
          if(mGame->mEventReceiver->IsKeyDown(irr::KEY_UP)) {
              mVanillaCraftVec.at(0)->KeyPressedAccel = true;
@@ -2587,9 +2575,9 @@ void Race::HandleInput(irr::f32 deltaTime) {
                  mVanillaCraftVec.at(0)->KeyPressedMachineGun = true;
         }
 
-        //TODO:    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_X)) {
-        //         mPlayerVec.at(0)->mMissileLauncher->Trigger();
-        //    }
+        if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_X)) {
+                mVanillaCraftVec.at(0)->KeyPressedMissileLauncher = true;
+        }
      }
 
      if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_ESCAPE)) {
@@ -3682,6 +3670,8 @@ bool Race::LoadLevel() {
   //create a bounding box for valid player
   //location testing
   mLevelTerrain->StaticTerrainSceneNode->updateAbsolutePosition();
+
+  mEffectManager = new VEffectManager(this);
 
  /* mLevelTerrain->StaticTerrainSceneNode->setMaterialFlag(video::EMF_LIGHTING, false);
   mLevelTerrain->StaticTerrainSceneNode->setMaterialType((video::E_MATERIAL_TYPE)shaderMaterial1);

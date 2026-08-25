@@ -223,8 +223,6 @@ add_executable(hi-octane202x
     src/models/levelblocks.cpp
     src/models/levelterrain.h
     src/models/levelterrain.cpp
-    src/models/mgun.h
-    src/models/mgun.cpp
     src/models/missile.h
     src/models/missile.cpp
     src/models/morph.h
@@ -247,8 +245,6 @@ add_executable(hi-octane202x
     src/models/camera.cpp
     src/models/collectablespawner.h
     src/models/collectablespawner.cpp
-    src/models/cpuplayer.h
-    src/models/cpuplayer.cpp
     src/models/chargingstation.h
     src/models/chargingstation.cpp
 
@@ -295,6 +291,10 @@ add_executable(hi-octane202x
     src/vanilla/vrepair.cpp
     src/vanilla/vmgun.h
     src/vanilla/vmgun.cpp
+    src/vanilla/vmlauncher.h
+    src/vanilla/vmlauncher.cpp
+    src/vanilla/veffectmanager.h
+    src/vanilla/veffectmanager.cpp
 
     src/vanilla/debug/dbginterface.h
     src/vanilla/debug/dbginterface.cpp

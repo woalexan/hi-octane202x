@@ -71,6 +71,7 @@ void VThingManager::ResetThingValues(VThing* whichThing) {
     whichThing->Seed = 0;
     whichThing->Count = 0;
     whichThing->Status = 0;
+    whichThing->Target = 0;
     whichThing->Upgrade = 0;
     whichThing->Member = 0;
     whichThing->Action = 0;
@@ -382,4 +383,9 @@ int16_t VThingManager::effect_affect_vehicle_exclusive(VThing* effect) {
     }
 
     return AffectListIndex;
+}
+
+int16_t VThingManager::thing_touching_anything(VThing* whichThing) {
+    //TODO!
+    return 0;
 }

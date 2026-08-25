@@ -147,6 +147,7 @@ class VRepair;
 struct VThing;
 struct VehicleViewStruct;
 class VThingManager;
+class VEffectManager;
 
 class Race {
 public:
@@ -165,6 +166,7 @@ public:
 
     VTrack* mVTrack = nullptr;
     VCamera* mVCamera = nullptr;
+    VEffectManager* mEffectManager = nullptr;
     DbgInterface* mVDbgInterface = nullptr;
 
     bool ready;

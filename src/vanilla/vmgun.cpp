@@ -50,6 +50,34 @@ VMGun::VMGun(Race* parentRace, VVehicle* owner) {
 }
 
 VMGun::~VMGun() {
+    //We do not need to care about Things itself, the belong to
+    //the ThingManager, we only borrow Pointers to Things
+    //we just need to make sure that we give our things back at the end
+
+    std::vector<MGunShotStruct*>::iterator it2;
+    MGunShotStruct* pntrShot;
+
+    //cleanup all remaining shot objects
+    for (it2 = mShotVec.begin(); it2 != mShotVec.end(); ) {
+         pntrShot = (*it2);
+
+         it2 = mShotVec.erase(it2);
+
+         delete pntrShot;
+    }
+
+    //cleanup all currently existing but not useful anymore
+    //bulletEffect objects
+    BulletThingStruct* pntrBulletEffect;
+
+    //delete all remaining BulletThings
+    std::vector<BulletThingStruct*>::iterator it;
+    for (it = mBulletThings.begin(); it != mBulletThings.end(); ) {
+            pntrBulletEffect = (*it);
+            it = mBulletThings.erase(it);
+
+            CleanupBulletThing(pntrBulletEffect);
+    }
 }
 
 //Returns true in case of success
@@ -89,7 +117,26 @@ bool VMGun::LoadSprites() {
    return true;
 }
 
-void VMGun::initialiseSHOT_BULLET(VThing* whichThing) {
+//we can not remove scenenodes which have still
+//an animations running when the race is over
+//the race object uses this function to wait until
+//all animations are done
+bool VMGun::AllAnimationsFinished() {
+    std::vector<BulletThingStruct*>::iterator it;
+
+    for (it = this->mBulletThings.begin(); it != this->mBulletThings.end(); ++it) {
+        if ((*it)->animator != nullptr) {
+           if (!(*it)->animator->hasFinished())
+               return false;
+        }
+    }
+
+    return true;
+}
+
+void VMGun::initialiseSHOT_BULLET(MGunShotStruct* whichShot) {
+    VThing* whichThing = whichShot->ThingPntr;
+
     whichThing->Life = 18;
     whichThing->CollideSize.set(0.125f, 0.125f, 0.125f);
     whichThing->ColideGroup = (1048 & 0xFFFE);
@@ -97,7 +144,7 @@ void VMGun::initialiseSHOT_BULLET(VThing* whichThing) {
                                                whichThing->Movement.AngleZY, 1.0f);
 }
 
-uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
+uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
     irr::core::vector3df position;
     int32_t i;
     int32_t v14;
@@ -112,6 +159,14 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
     int16_t v28;
     BulletThingStruct* v20;
 
+    //if this shot is done with its work
+    //and we are waiting still for cleanup just
+    //exit
+    if (whichShot->ReadyForCleanup)
+        return 1;
+
+    VThing* whichThing = whichShot->ThingPntr;
+
     position = whichThing->Position;
     for (i = 0; i < 4; ++i) {
         if (whichThing->Life < 0) {
@@ -123,6 +178,10 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
             v1 = 1;
         } else {
            mParentRace->mVCalc->move_swap_positions(whichThing->Position, position);
+
+           //only for debugging
+           //irr::core::vector3df dbgPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
+           //mParentRace->mGame->mSmgr->addCubeSceneNode(0.04f, nullptr, -1, dbgPos);
 
            //go through all the vehicles and see if the shot collides
            //with one of them
@@ -205,6 +264,9 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
 
     mParentRace->mThingManager->thing_delete(whichThing);
 
+    //this shot should be cleaned up now
+    whichShot->ReadyForCleanup = true;
+
     //play us some sound
     //to be finished later
     if (v1) {
@@ -236,13 +298,19 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
 VThing* VMGun::CreateShot(irr::core::vector3df* position,
                           irr::f32 angleXY, irr::f32 angleZY,
                           irr::f32 angleXZ, int16_t id) {
+
+    MGunShotStruct* newStruct = new MGunShotStruct;
+
     VThing* newThing =
         mParentRace->mThingManager->thing_initialise(*position, angleXY, angleZY, angleXZ,
                                                         6, 0, id);
 
-    initialiseSHOT_BULLET(newThing);
+    newStruct->ThingPntr = newThing;
+    newStruct->ReadyForCleanup = false;
 
-    mShotVec.push_back(newThing);
+    initialiseSHOT_BULLET(newStruct);
+
+    mShotVec.push_back(newStruct);
 
     return newThing;
 }
@@ -297,14 +365,17 @@ void VMGun::UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::cor
 uint8_t VMGun::UpdateBulletThing(BulletThingStruct* whichBulletThing) {
     irr::f32 v2;
 
+    //if this bullet has done its job, and waits for cleanup
+    //just exit here
+    if (whichBulletThing->ReadyForCleanup)
+        return 1;
+
     v2 = whichBulletThing->ThingData->Movement.AngleXY + 11.375f;
     whichBulletThing->ThingData->Life--;
 
     whichBulletThing->ThingData->Movement.AngleXY = v2;
     if (whichBulletThing->ThingData->Life < 0) {
         //is not needed anymore, should be deleted
-        mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
-
         whichBulletThing->ReadyForCleanup = true;
 
         return 1;
@@ -319,6 +390,25 @@ uint8_t VMGun::UpdateBulletThing(BulletThingStruct* whichBulletThing) {
     }
 
     return 0;
+}
+
+void VMGun::CleanupBulletThing(BulletThingStruct* whichBulletThing) {
+    if (whichBulletThing == nullptr)
+        return;
+
+    //give back the thing
+    mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
+    whichBulletThing->ThingData = nullptr;
+
+    whichBulletThing->animSprite->removeAnimator(whichBulletThing->animator);
+    whichBulletThing->animator->drop();
+    whichBulletThing->animator = nullptr;
+
+    //remove the SceneNode as well
+    whichBulletThing->animSprite->remove();
+
+    //delete the struct itself
+    delete whichBulletThing;
 }
 
 //This function mostly implements the functionality
@@ -361,21 +451,29 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
         }
 
         if (deleteObj) {
-            (*it)->animSprite->removeAnimator((*it)->animator);
-            (*it)->animator->drop();
-            (*it)->animator = nullptr;
+            pntrBulletEffect = (*it);
+            it = mBulletThings.erase(it);
 
-            //remove the SceneNode as well
-            (*it)->animSprite->remove();
-
-           pntrBulletEffect = (*it);
-           it = mBulletThings.erase(it);
-
-           //delete the struct itself
-           delete pntrBulletEffect;
+            CleanupBulletThing(pntrBulletEffect);
         } else
         {
             ++it;
+        }
+    }
+
+    std::vector<MGunShotStruct*>::iterator it2;
+    MGunShotStruct* pntrShot;
+
+    //cleanup all shot objects that were marked to be cleaned up
+    for (it2 = mShotVec.begin(); it2 != mShotVec.end(); ) {
+        if ((*it2)->ReadyForCleanup) {
+            pntrShot = (*it2);
+
+            it2 = mShotVec.erase(it2);
+
+            delete pntrShot;
+        } else {
+            ++it2;
         }
     }
 
@@ -392,7 +490,7 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
         mAbsTimeAcc = 0.0f;
 
         //first update all currently existing shots
-        std::vector<VThing*>::iterator itShot;
+        std::vector<MGunShotStruct*>::iterator itShot;
         for (itShot = mShotVec.begin(); itShot != mShotVec.end(); ++itShot) {
              processSHOT_BULLET((*itShot));
         }

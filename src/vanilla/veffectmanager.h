@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2026 Wolf Alexander
+ Copyright (C) 2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -31,90 +31,48 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VMGUN_H
-#define VMGUN_H
+#ifndef VEFFECTMANAGER_H
+#define VEFFECTMANAGER_H
 
 #include "irrlicht.h"
-#include "vbase.h"
 #include <cstdint>
-#include <vector>
-#include "../audio/sound.h"
 
 /************************
  * Forward declarations *
  ************************/
 
 class Race;
-class VVehicle;
 struct VThing;
 
-struct BulletThingStruct {
-    VThing* ThingData = nullptr;
-
-    irr::scene::IBillboardSceneNode* animSprite = nullptr;
-    irr::scene::ISceneNodeAnimator *animator = nullptr;
-
-    bool ReadyForCleanup = false;
-    bool animatorActive = false;
-};
-
-struct MGunShotStruct {
-    VThing* ThingPntr = nullptr;
-    bool ReadyForCleanup = false;
-};
-
-class VMGun {
+class VEffectManager {
 
 private:
     Race* mParentRace = nullptr;
-    VVehicle* mOwner = nullptr;
 
-    //variables moved here
-    //from Thing (ThingWeapon)
-    int16_t TriggerRestrictionCount = 0;
+    void initialiseEFFECT_EXPLOSION(VThing* whichThing);
+    void processEFFECT_EXPLOSION(VThing* whichThing);
 
-    std::vector<BulletThingStruct*> mBulletThings;
-    std::vector<MGunShotStruct*> mShotVec;
+    irr::video::ITexture* mSpriteTex = nullptr;
+    irr::core::dimension2d<irr::u32> mSpriteTexSize;
 
-    irr::f32 mAbsTimeAcc = 0.0f;
-
-    //Returns true in case of success
-    //False otherwise
-    bool LoadSprites();
+    irr::scene::IBillboardSceneNode* mSceneNode = nullptr;
+    irr::video::SColor mCurrVerticeColor;
 
     irr::core::array<irr::video::ITexture*> animTexList;
+    size_t currDrawNr = 0;
 
-    void initialiseSHOT_BULLET(MGunShotStruct* whichShot);
-    uint8_t processSHOT_BULLET(MGunShotStruct* whichShot);
-
-    VThing* CreateShot(irr::core::vector3df* position,
-                              irr::f32 angleXY, irr::f32 angleZY,
-                              irr::f32 angleXZ, int16_t id);
-
-    BulletThingStruct* CreateBulletThing(irr::core::vector3df* position,
-                                       irr::f32 angleXY, irr::f32 angleZY,
-                                       irr::f32 angleXZ, int16_t id);
-
-    uint8_t UpdateBulletThing(BulletThingStruct* whichBulletThing);
-    void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);
-
-    void CleanupBulletThing(BulletThingStruct* whichBulletThing);
+    bool LoadSprites();
 
 public:
-    VMGun(Race* parentRace, VVehicle* owner);
-    ~VMGun();
+    VEffectManager(Race* parentRace);
+    ~VEffectManager();
 
-    void Update(irr::f32 frameDeltaTime);
+    VThing* Explosion = nullptr;
 
-    //Not sure if I really need it at the end
-    bool AllAnimationsFinished();
+    void TestExplosion(irr::core::vector3df location, irr::f32 angleXY, irr::f32 angleZY, irr::f32 angleXZ, int16_t id);
+    void UpdateTestExplosion();
 
-    //variables moved here
-    //from Thing (ThingWeapon)
-    int16_t Trigger = 0;
-    int16_t TriggerTime = 0;
-    int16_t Upgrade;
-    int16_t Target = 0;
 };
 
-#endif // VMGUN_H
+
+#endif // VEFFECTMANAGER_H

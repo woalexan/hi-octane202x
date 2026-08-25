@@ -59,6 +59,10 @@ class Collectable;
 class HUD;
 class DustBelowCraft;
 class VMGun;
+class VMLauncher;
+class Race;
+struct MapTileRegionStruct;
+struct VThing;
 
 struct VehicleSensorPointStruct {
     irr::core::vector3df Position;
@@ -138,10 +142,6 @@ struct VehicleStatsStruct {
     int16_t Invisible;
     int16_t VehicleHit;
 
-    //TODO: Move to the MGun and Rocket
-    //weapon structs later
-    int16_t MRocketUpgrade;
-
     //player names in Hi-Octane are limited
     //to 8 characters, plus 1 termination char + 1 extra
     //char to be on the safe side :)
@@ -181,6 +181,7 @@ struct VehicleBoosterStruct {
 //to vehicle
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
+    int32_t RocketsHit = 0;
     int32_t Bullets = 0;
     int32_t BulletsHit = 0;
     int32_t MiniGunHeatup = 0;
@@ -249,14 +250,6 @@ struct VehicleAutoTargetStruct {
     uint16_t ValidTargetCount;
 };
 
-/************************
- * Forward declarations *
- ************************/
-
-class Race;
-struct MapTileRegionStruct;
-struct VThing;
-
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -268,6 +261,8 @@ public:
 
     void Update(irr::f32 frameDeltaTime);
 
+    bool AllAnimatorsDone();
+
     void DrawDebug();
     void TestCamera();
 
@@ -277,6 +272,7 @@ public:
     bool KeyPressedDeaccel = false;
     bool KeyPressedBooster = false;
     bool KeyPressedMachineGun = false;
+    bool KeyPressedMissileLauncher = false;
 
     //Pointer to my thing
     VThing* ThingData = nullptr;
@@ -310,6 +306,10 @@ public:
     int16_t mThrustEffectiveness;
     irr::f32 mSideslipFriction = 0.0f;
     irr::f32 mSideslipToThrust = 0.0f;
+
+    //is the distance of the currently closest missile
+    //to this player vehicle
+    irr::f32 ClosestMissile = 0.0f;
 
     //BumpDamage was not used at the end
     //at last in the Playstation version of the
@@ -429,6 +429,9 @@ public:
 
     //My Weapons
     VMGun* mMGun = nullptr;
+    VMLauncher* mMLauncher = nullptr;
+
+    uint32_t GetControlOrigin();
 
 private:
     uint32_t ControlOrigin = 1; //activates the human player

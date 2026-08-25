@@ -655,10 +655,6 @@ private:
 
 public:
 
-    //every player needs a CpuPlayer that is able
-    //to control the craft, at least after the race
-    //is finished for the player
-    CpuPlayer* mCpuPlayer = nullptr;
 
 public:
     //pointer to a connected HUD

@@ -13,6 +13,7 @@
 #include "../vanilla/vvehicle.h"
 #include "../vanilla/vthing.h"
 #include "../vanilla/vmgun.h"
+#include "../vanilla/vmlauncher.h"
 #include "../race.h"
 
 //a negative altPanelTexNr input value means no alternative texture (image) is used
@@ -1020,7 +1021,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //symbol number 4 is the rocket symbol itself (for basic upgrade level 0)
         //the next three symbols 5, 6 and 7 are for upgrade levels 1, 2 and 3
-        for (int i = 4; i <= (monitorWhichPlayer->Stats.MRocketUpgrade + 4); i++) {
+        for (int i = 4; i <= (monitorWhichPlayer->mMLauncher->Upgrade + 4); i++) {
             mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }

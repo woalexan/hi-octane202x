@@ -68,6 +68,7 @@ struct VThing {
     irr::core::vector3df CollideSize;
 
     uint32_t Status = 0;
+    int16_t Target = 0;
     int16_t Upgrade = 0;
     int8_t Member = 0;
     int8_t Action = 0;
@@ -105,6 +106,10 @@ public:
 
     void thing_delete(VThing* whichThing);
 
+    //only use thing_remove is special cases!
+    //default should be to use thing_delete
+    void thing_remove(VThing* whichThing);
+
     VThing Thing[1000];
 
     uint8_t mapwho_delete(VThing* whichThing);
@@ -116,6 +121,8 @@ public:
     //whichThing is the Effect-Thing that affects player
     //vehicles
     uint8_t affect_thing(VThing* whichThing);
+
+    int16_t thing_touching_anything(VThing* whichThing);
 
     //effect is the Effect-Thing that affects player
     //vehicles
@@ -131,7 +138,6 @@ private:
     int16_t AffectListIndex = 0;
 
     void ResetThingValues(VThing* whichThing);
-    void thing_remove(VThing* whichThing);
 };
 
 #endif // VTHING_H
