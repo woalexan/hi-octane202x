@@ -43,21 +43,34 @@ VEffectManager::VEffectManager(Race* parentRace) {
 
     LoadSprites();
 
-    mSpriteTexSize = animTexList[0]->getSize();
+    mSpriteTexSize = animTexListExplosion[0]->getSize();
 
-    mSceneNode = mParentRace->mGame->mSmgr->addBillboardSceneNode();
-    mSceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
-    mSceneNode->setMaterialTexture(0, animTexList[0]);
-    mSceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-    mSceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
-    mSceneNode->setVisible(false);
-
-    //make the sprite completely visible
-    mCurrVerticeColor.set(255, 255, 255, 255);
-    mSceneNode->setColor(mCurrVerticeColor);
+    mActiveEffectVec.clear();
+    mNewEffectVec.clear();
 }
 
 VEffectManager::~VEffectManager() {
+    //cleanup remaining effects when deconstructing
+    EffectInfoStruct* pntr;
+    std::vector<EffectInfoStruct*>::iterator itEffect;
+
+    for (itEffect = mActiveEffectVec.begin(); itEffect != mActiveEffectVec.end(); ) {
+        pntr = (*itEffect);
+        itEffect = mActiveEffectVec.erase(itEffect);
+        CleanupEffect(pntr);
+    }
+
+    //also clean up the new effects vector
+    for (itEffect = mNewEffectVec.begin(); itEffect != mNewEffectVec.end(); ) {
+        pntr = (*itEffect);
+        itEffect = mNewEffectVec.erase(itEffect);
+        CleanupEffect(pntr);
+    }
+
+    if (mSmokeTex != nullptr) {
+        //remove underlying texture
+        mParentRace->mGame->mDriver->removeTexture(mSmokeTex);
+    }
 }
 
 //Returns true in case of success
@@ -72,41 +85,308 @@ bool VEffectManager::LoadSprites() {
            if (newTex == nullptr)
                return false;
 
-           animTexList.push_back(newTex);
+           animTexListExplosion.push_back(newTex);
    }
+
+   //Texture for the SMOKE effect
+   mSmokeTex = this->mParentRace->mTexLoader->spriteTex.at(47);
+
+   if (mSmokeTex == nullptr)
+       return false;
 
    return true;
 }
 
-void VEffectManager::TestExplosion(irr::core::vector3df location, irr::f32 angleXY, irr::f32 angleZY, irr::f32 angleXZ, int16_t id) {
-    if (Explosion != nullptr)
-        return;
-
-    Explosion = mParentRace->mThingManager->thing_initialise(location, angleXY,
-                                           angleZY, angleXZ, 2, 1, id);
-
-    initialiseEFFECT_EXPLOSION(Explosion);
-
-    irr::core::vector3df irrPos =
-            mParentRace->mVCalc->VanillaToIrrlichtCoord(location);
-
-    mSceneNode->setPosition(irrPos);
-    mSceneNode->setSize(irr::core::dimension2df(1.0f, 1.0f));
-    currDrawNr = 0;
-    mSceneNode->setMaterialTexture(0, animTexList[currDrawNr]);
-    mSceneNode->setVisible(true);
+uint16_t VEffectManager::GetNrCurrentlyActiveEffects() {
+    uint16_t result = (uint16_t)(mActiveEffectVec.size()) +(uint16_t)(mNewEffectVec.size());
+    return result;
 }
 
-void VEffectManager::UpdateTestExplosion() {
-    if (Explosion == nullptr)
-        return;
+void VEffectManager::InitSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* firstTexture, irr::core::dimension2df sizeSprite) {
+    whichInfoStruct->sceneNode = mParentRace->mGame->mSmgr->addBillboardSceneNode();
+    whichInfoStruct->sceneNode->setMaterialType(irr::video::EMT_TRANSPARENT_ADD_COLOR );
+    whichInfoStruct->sceneNode->setMaterialTexture(0, firstTexture);
+    whichInfoStruct->sceneNode->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+    whichInfoStruct->sceneNode->setMaterialFlag(irr::video::EMF_ZBUFFER, true);
+    whichInfoStruct->sceneNode->setSize(sizeSprite);
 
-    processEFFECT_EXPLOSION(Explosion);
+    //make the sprite completely visible
+    whichInfoStruct->currVerticeColor.set(255, 255, 255, 255);
+    whichInfoStruct->sceneNode->setColor(whichInfoStruct->currVerticeColor);
+}
+
+void VEffectManager::UpdateSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* newTexture) {
 
     irr::core::vector3df irrPos =
-            mParentRace->mVCalc->VanillaToIrrlichtCoord(Explosion->Position);
+            mParentRace->mVCalc->VanillaToIrrlichtCoord(whichInfoStruct->thingPntr->Position);
 
-    mSceneNode->setPosition(irrPos);
+    whichInfoStruct->sceneNode->setPosition(irrPos);
+
+    //do we need to swap the texture of the sprite?
+    if (newTexture != nullptr) {
+        whichInfoStruct->sceneNode->setMaterialTexture(0, newTexture);
+    }
+}
+
+EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::vector3df location, irr::f32 angleXY,
+                               irr::f32 angleZY, irr::f32 angleXZ, int16_t id) {
+
+    EffectInfoStruct* newInfoStruct = new EffectInfoStruct();
+    newInfoStruct->effectType = whichEffect;
+
+    switch (whichEffect) {
+        case EffectType::Smoke: {
+            newInfoStruct->thingPntr = mParentRace->mThingManager->thing_initialise(location,
+                                                               angleXY, angleZY, angleXZ,
+                                                               2, 7, id);
+
+            initialiseEFFECT_SMOKE(newInfoStruct->thingPntr);
+            newInfoStruct->currDrawNr = 60;
+
+            //I looked at all different Drawing numbers for the thing
+            //sprite in the Playstation 1 version from 60 up to 69, and
+            //the seem to be all the identical sprite;
+            InitSceneNode(newInfoStruct, mSmokeTex, irr::core::dimension2df(1.0f, 1.0f));
+            break;
+        }
+        case EffectType::SmokeFire: {
+            newInfoStruct->thingPntr = mParentRace->mThingManager->thing_initialise(location,
+                                                               angleXY, angleZY, angleXZ,
+                                                               2, 8, id);
+
+            initialiseEFFECT_SMOKE_FIRE(newInfoStruct->thingPntr);
+            newInfoStruct->currDrawNr = 5;
+
+            //I looked at all different Drawing numbers for the thing
+            //sprite in the Playstation 1 version from 5 up to 20, and
+            //the seem to be all the identical sprite;
+            InitSceneNode(newInfoStruct, mSmokeTex, irr::core::dimension2df(0.5f, 0.5f));
+            break;
+        }
+        case EffectType::ExplosionSmall: {
+            newInfoStruct->thingPntr = mParentRace->mThingManager->thing_initialise(location,
+                                                               angleXY, angleZY, angleXZ,
+                                                               2, 0, id);
+
+            initialiseEFFECT_EXPLOSION(newInfoStruct->thingPntr);
+            newInfoStruct->currDrawNr = 0;
+
+            InitSceneNode(newInfoStruct, animTexListExplosion[newInfoStruct->currDrawNr], irr::core::dimension2df(1.0f, 1.0f));
+            break;
+        }
+        case EffectType::ExplosionMedium: {
+            newInfoStruct->thingPntr = mParentRace->mThingManager->thing_initialise(location,
+                                                               angleXY, angleZY, angleXZ,
+                                                               2, 1, id);
+
+            initialiseEFFECT_EXPLOSION_MEDIUM(newInfoStruct->thingPntr);
+
+            //this effect has no assigned SceneNode itself
+            break;
+        }
+        default: {
+              delete newInfoStruct;
+              return nullptr;
+        }
+    }
+
+    //not every effect has a SceneNode assigned to it!
+    if (newInfoStruct->sceneNode != nullptr) {
+        irr::core::vector3df irrPos =
+                mParentRace->mVCalc->VanillaToIrrlichtCoord(newInfoStruct->thingPntr->Position);
+
+        newInfoStruct->sceneNode->setPosition(irrPos);
+    }
+
+    //we need to add it to the new effects vector
+    //instead of the ActiveEffect vector, because we can not
+    //add effects to the vector here directly safely, before most of the time
+    //when we are here we are in a for-loop of this vector; and when we do this
+    //we damage the memory integrity
+    mNewEffectVec.push_back(newInfoStruct);
+
+    return newInfoStruct;
+}
+
+void VEffectManager::UpdateEffect(EffectInfoStruct* whichInfoStruct) {
+    switch (whichInfoStruct->effectType) {
+        case EffectType::Smoke: {
+            processEFFECT_SMOKE(whichInfoStruct);
+            if (!whichInfoStruct->readyForCleanup) {
+                UpdateSceneNode(whichInfoStruct, nullptr);
+            }
+            break;
+        }
+        case EffectType::SmokeFire: {
+            processEFFECT_SMOKE_FIRE(whichInfoStruct);
+            if (!whichInfoStruct->readyForCleanup) {
+                UpdateSceneNode(whichInfoStruct, nullptr);
+            }
+            break;
+        }
+        case EffectType::ExplosionSmall: {
+            processEFFECT_EXPLOSION(whichInfoStruct);
+            if (!whichInfoStruct->readyForCleanup) {
+                UpdateSceneNode(whichInfoStruct, nullptr);
+            }
+            break;
+        }
+        case EffectType::ExplosionMedium: {
+            processEFFECT_EXPLOSION_MEDIUM(whichInfoStruct);
+
+            //This effect does not have a SceneNode assigned to it
+            break;
+        }
+        default: {
+        }
+    }
+
+    if (!whichInfoStruct->readyForCleanup) {
+        //we need to update the TimeSlice variable in
+        //this effect
+        mParentRace->mThingManager->UpdateTimeSlice(whichInfoStruct->thingPntr);
+    }
+}
+
+void VEffectManager::CleanupEffect(EffectInfoStruct* whichInfoStruct) {
+    if (whichInfoStruct == nullptr)
+        return;
+
+    //give back the thing, but only if this was not done before
+    //in the effect PROCESS functions
+    if (whichInfoStruct->thingPntr != nullptr) {
+        mParentRace->mThingManager->thing_delete(whichInfoStruct->thingPntr);
+        whichInfoStruct->thingPntr = nullptr;
+    }
+
+    //remove the SceneNode as well
+    //some effects do not have an own sceneNode assigned
+    //to them, so check for Nullptr!
+    if (whichInfoStruct->sceneNode != nullptr) {
+        whichInfoStruct->sceneNode->remove();
+    }
+
+    //delete the struct itself
+    delete whichInfoStruct;
+}
+
+void VEffectManager::Update(irr::f32 frameDeltaTime) {
+    std::vector<EffectInfoStruct*>::iterator itEffect;
+    std::vector<EffectInfoStruct*>::iterator itEffectNew;
+    EffectInfoStruct* pntr2;
+
+    //add delta time up to see when we need to update
+    //the slower parts of the code
+    mAbsTimeAcc += frameDeltaTime;
+
+    if (mAbsTimeAcc >= 0.05f) {
+        mAbsTimeAcc = 0.0f;
+
+        //add the new effects of the last iteration to the main effects vector
+        for (itEffectNew = mNewEffectVec.begin(); itEffectNew != mNewEffectVec.end(); ) {
+            pntr2 = (*itEffectNew);
+
+            //add to main effects vector list
+            mActiveEffectVec.push_back(pntr2);
+
+            itEffectNew = mNewEffectVec.erase(itEffectNew);
+        }
+
+        //Update all current active effects
+        for (itEffect = mActiveEffectVec.begin(); itEffect != mActiveEffectVec.end(); ++itEffect) {
+             UpdateEffect((*itEffect));
+        }
+
+        EffectInfoStruct* pntr;
+
+        //Do we need to cleanup older now unused stuff?
+        for (itEffect = mActiveEffectVec.begin(); itEffect != mActiveEffectVec.end(); ) {
+            if ((*itEffect)->readyForCleanup) {
+                pntr = (*itEffect);
+
+                itEffect = mActiveEffectVec.erase(itEffect);
+
+                CleanupEffect(pntr);
+            } else {
+                ++itEffect;
+            }
+        }
+    }
+}
+
+void VEffectManager::initialiseEFFECT_SMOKE(VThing* whichThing) {
+
+    //I skipped some code here, do we need it?
+
+    //thing_set_draw(v4, 60);
+    whichThing->CollideSize.set(0.5f, 0.5f, 0.5f);
+    whichThing->Life = 22;
+}
+
+//This function is executed every ~50ms for each of the current existing Smoke-Clouds
+void VEffectManager::processEFFECT_SMOKE(EffectInfoStruct* whichInfoStruct) {
+   int8_t action;
+   size_t v6;
+   bool v7;
+   irr::core::vector3df v8;
+
+   //if we have already done our job just exit!
+   if (whichInfoStruct->readyForCleanup)
+       return;
+
+   VThing* whichThing = whichInfoStruct->thingPntr;
+
+   action = whichThing->Action;
+   if (action == 1) {
+       goto processEFFECT_SMOKE_LABEL9;
+   }
+   if (action < 2) {
+      if (whichThing->Action) {
+          return;
+      }
+      whichThing->Action = 1;
+      mParentRace->mVCalc->move_displacement_set(whichThing->Displacement, whichThing->Movement.AngleXY,
+                                                 whichThing->Movement.AngleZY,
+                                                 whichThing->Movement.SpeedActual);
+processEFFECT_SMOKE_LABEL9:
+      whichThing->Life--;
+      if (whichThing->Life < 0) {
+          whichThing->Action = 0x14;
+          return;
+      }
+      v8 = whichThing->Position;
+      mParentRace->mVCalc->move_displacement_xyz(v8, whichThing->Displacement, 1);
+      if (mParentRace->mVCalc->map_colide(v8)) {
+          mParentRace->mThingManager->thing_remove(whichThing);
+          whichInfoStruct->thingPntr = nullptr;
+          whichInfoStruct->readyForCleanup = true;
+          return;
+      }
+      mParentRace->mThingManager->mapwho_move(whichThing, v8);
+
+      //26.08.2026: I looked at all different Drawing numbers for the thing
+      //sprite in the Playstation 1 version from 60 up to 69 (for the Smoke), and
+      //the seem to be all the identical sprite; So I keep counting the
+      //variable up for timing purposes, but I will only use a single sprite
+      v6 = whichInfoStruct->currDrawNr + 1;
+      whichInfoStruct->currDrawNr = v6;
+      v7 = (v6 < 70);
+      if (!v7) {
+          whichInfoStruct->currDrawNr = 69;
+          return;
+      }
+      return;
+   }
+   if (action == 0x13) {
+       return;
+   }
+   if (action == 0x14) {
+       mParentRace->mThingManager->thing_delete(whichThing);
+       whichInfoStruct->thingPntr = nullptr;
+       whichInfoStruct->readyForCleanup = true;
+       whichInfoStruct->sceneNode->setVisible(false);
+       return;
+   }
 }
 
 void VEffectManager::initialiseEFFECT_EXPLOSION(VThing* whichThing) {
@@ -129,16 +409,21 @@ void VEffectManager::initialiseEFFECT_EXPLOSION(VThing* whichThing) {
                 whichThing->Displacement, xy, zy, 0.5859375f);
 }
 
-void VEffectManager::processEFFECT_EXPLOSION(VThing* whichThing) {
+//This function is executed every ~50ms for each of the current existing Explosions
+void VEffectManager::processEFFECT_EXPLOSION(EffectInfoStruct* whichInfoStruct) {
     irr::core::vector3df position;
     irr::f32 v13;
     irr::f32 v14;
     int8_t action;
-    int rNum;
-    int rNum2;
-    int16_t v5;
-    int16_t v6;
+    uint16_t v5;
+    uint16_t v6;
     size_t number;
+
+    //if we have already done our job just exit!
+    if (whichInfoStruct->readyForCleanup)
+        return;
+
+    VThing* whichThing = whichInfoStruct->thingPntr;
 
     action = whichThing->Action;
     if (action == 1) {
@@ -162,15 +447,16 @@ void VEffectManager::processEFFECT_EXPLOSION(VThing* whichThing) {
                 }
         }
 
-        number = currDrawNr;
-        currDrawNr = number + 1;
+        number = whichInfoStruct->currDrawNr;
+        whichInfoStruct->currDrawNr = number + 1;
 
         if (whichThing->Status & 0x200) {
             whichThing->Life--;
-            currDrawNr = number + 2;
+            whichInfoStruct->currDrawNr = number + 2;
         }
 
-        mSceneNode->setMaterialTexture(0, animTexList[currDrawNr]);
+        //change to the next sprite texture
+        whichInfoStruct->sceneNode->setMaterialTexture(0, animTexListExplosion[whichInfoStruct->currDrawNr]);
 
         v13 = whichThing->Position.Z + ((irr::f32)(whichThing->Count) / 256.0f);
         whichThing->Position.Z = v13;
@@ -188,6 +474,8 @@ void VEffectManager::processEFFECT_EXPLOSION(VThing* whichThing) {
               return;
           }
           mParentRace->mThingManager->thing_delete(whichThing);
+          whichInfoStruct->thingPntr = nullptr;
+          whichInfoStruct->readyForCleanup = true;
       }
       return;
     }
@@ -196,6 +484,8 @@ void VEffectManager::processEFFECT_EXPLOSION(VThing* whichThing) {
        whichThing->Action = 1;
        if (mParentRace->mVCalc->map_colide(whichThing->Position)) {
             mParentRace->mThingManager->thing_remove(whichThing);
+            whichInfoStruct->thingPntr = nullptr;
+            whichInfoStruct->readyForCleanup = true;
             return;
        }
        if (whichThing->ColideGroup) {
@@ -204,11 +494,194 @@ void VEffectManager::processEFFECT_EXPLOSION(VThing* whichThing) {
        }
 
        //sample_play(v4, 20);
-       rNum = rand();
-       v5 = (int16_t)((rNum % 0x9Du));
-       rNum2 = rand();
-       v6 = (int16_t)((rNum2 % 0x64u) + 100);
-       whichThing->Count = (2 * (v5 / 0x4Fu) - 1) * v6;
+       v5 = (uint16_t)((whichThing->Seed % 0x9D));
+       whichThing->Seed = 9377 * whichThing->Seed + 9439;
+       v6 = (uint16_t)((whichThing->Seed % 0x64) + 100);
+       whichThing->Seed = 9377 * whichThing->Seed + 9439;
+       whichThing->Count = ((2 * (v5 / 0x4F) - 1) * v6);
        goto processEFFECT_EXPLOSION_LABEL_13;
     }
 }
+
+void VEffectManager::initialiseEFFECT_EXPLOSION_MEDIUM(VThing* whichThing) {
+    uint32_t status;
+
+    whichThing->Life = 3;
+    whichThing->CollideSize.set(1.0f, 1.0f, 1.0f);
+    whichThing->ColideGroup = (1048 & 0xFFFE);
+    status = whichThing->AffectStatus;
+    whichThing->AffectNumber = 1500;
+    whichThing->AffectStatus = (status | 3);
+}
+
+//This function is executed every ~50ms for each of the current existing medium explosions
+void VEffectManager::processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoStruct) {
+    irr::core::vector3df position;
+    irr::f32 angleXY;
+    irr::f32 angleZY;
+    irr::f32 angleXZ;
+    int8_t action;
+    int32_t v5;
+    int32_t v7;
+    irr::f32 v7Float;
+    irr::f32 v8;
+    uint16_t v10;
+    irr::f32 v10Float;
+    VThing* v9 = nullptr;
+    EffectInfoStruct* infoStruct = nullptr;
+    VThing* v12 = nullptr;
+
+    //if we have already done our job just exit!
+    if (whichInfoStruct->readyForCleanup)
+        return;
+
+    VThing* whichThing = whichInfoStruct->thingPntr;
+
+    action = whichThing->Action;
+    if (action != 1) {
+       if (action >= 2) {
+          if (action < 0x15) {
+             if (action < 0x13) {
+                 return;
+             }
+             mParentRace->mThingManager->thing_delete(whichThing);
+             whichInfoStruct->thingPntr = nullptr;
+             whichInfoStruct->readyForCleanup = true;
+          }
+          return;
+       }
+       if (whichThing->Action) {
+           return;
+       }
+       whichThing->Action = 1;
+       //sample_play(thing, 20);
+       if (whichThing->ColideGroup) {
+            mParentRace->mThingManager->thing_touching_anything(whichThing);
+            mParentRace->mThingManager->affect_thing(whichThing);
+       }
+    }
+    whichThing->Life--;
+    v5 = 0;
+    if (whichThing->Life < 0) {
+        mParentRace->mThingManager->thing_delete(whichThing);
+        whichInfoStruct->thingPntr = nullptr;
+        whichInfoStruct->readyForCleanup = true;
+        return;
+    }
+    do {
+       position = whichThing->Position;
+       angleXY = whichThing->Movement.AngleXY;
+       angleZY = whichThing->Movement.AngleZY;
+       angleXZ = whichThing->Movement.AngleXZ;
+       whichThing->Seed = 9377 * whichThing->Seed + 9439;
+       v8 = mParentRace->mVCalc->VanillaRawAngleToMyFloatingAngle(whichThing->Seed);
+       //Note: I moved the location for the 2nd seeding compared to the original
+       //implementation I saw, for the original it seems the same random number is used
+       //twice for v7 and v8; not sure if this makes sense, therefore moved it
+       whichThing->Seed = 9377 * whichThing->Seed + 9439;
+       v7 = static_cast<uint8_t>((-95 * static_cast<int16_t>(whichThing->Seed) - 33));
+       v7Float = mParentRace->mVCalc->FixedPointToFloat8D8((int16_t)(v7));
+       mParentRace->mVCalc->move_xyz(position, v8, 0.0f, v7Float);
+       infoStruct = AddEffect(EffectType::ExplosionSmall, position, angleXY,
+                       angleZY, angleXZ, whichThing->Id);
+
+       ++v5;
+
+       if (infoStruct != nullptr) {
+           v9 = infoStruct->thingPntr;
+            if (v9 != nullptr) {
+                v10 = 9377 * whichThing->Seed + 9439;
+                whichThing->Seed = v10;
+                v10Float = mParentRace->mVCalc->VanillaRawAngleToMyFloatingAngle(v10);
+                mParentRace->mVCalc->move_displacement_set(whichThing->Displacement, v10Float,
+                                                    whichThing->Movement.AngleZY, 0.5859375f);
+                v9->Action = 1;
+                v9->ColideGroup = 0;
+           }
+        }
+    } while (v5 < 6);
+
+    //v12 = Create an Effect Flare!
+    if (v12 != nullptr) {
+        v12->Action = 1;
+        v12->ColideGroup = 0;
+        return;
+    }
+}
+
+void VEffectManager::initialiseEFFECT_SMOKE_FIRE(VThing* whichThing) {
+
+    //I skipped some code here, do we need it?
+
+    whichThing->Life = 22;
+    //thing_set_draw(v4, 5);
+    whichThing->CollideSize.set(0.5f, 0.5f, 0.5f);
+}
+
+void VEffectManager::processEFFECT_SMOKE_FIRE(EffectInfoStruct* whichInfoStruct) {
+    irr::core::vector3df position;
+    int8_t action;
+    irr::f32 zPos;
+    uint16_t v8;
+    bool v10;
+    uint16_t zPosFixed;
+    int16_t addZPosFixed;
+    irr::f32 addZPosFloat;
+
+    //if we have already done our job just exit!
+    if (whichInfoStruct->readyForCleanup)
+        return;
+
+    VThing* whichThing = whichInfoStruct->thingPntr;
+
+    action = whichThing->Action;
+    if (action == 1) {
+        goto processEFFECT_SMOKE_FIRE_LABEL_9;
+    }
+    if (action < 2) {
+       if (whichThing->Action) {
+           return;
+       }
+       whichThing->Action = 1;
+processEFFECT_SMOKE_FIRE_LABEL_9:
+       whichThing->Life--;
+       if (whichThing->Life < 0) {
+           whichThing->Action = 0x14;
+           return;
+       }
+       position = whichThing->Position;
+       position.Z += whichThing->Displacement.Z;
+       if (whichThing->Displacement.Z < 0.078125f) {
+            zPos = whichThing->CollideSize.Z;
+            zPosFixed = (uint16_t)(mParentRace->mVCalc->FloatToFixedPoint8D8(zPos));
+            /*v8 = 9377 * whichThing->Seed + 9439;
+            whichThing->Seed = v8;*/
+            v8 = mParentRace->mGame->randRangeInt(0, 65535);
+            addZPosFixed = v8 % (zPosFixed / 8) + zPosFixed / 8;
+            addZPosFloat = mParentRace->mVCalc->FixedPointToFloat8D8(addZPosFixed);
+            whichThing->Displacement.Z += addZPosFloat;
+       }
+       mParentRace->mThingManager->mapwho_move(whichThing, position);
+       if ((whichThing->TimeSlice & 1) != 0) {
+            whichInfoStruct->currDrawNr++;
+            v10 = (whichInfoStruct->currDrawNr < 21);
+            if (!v10) {
+                whichInfoStruct->currDrawNr = 20;
+                return;
+            }
+       }
+       return;
+    }
+    if (action == 0x13) {
+        return;
+    }
+    if (action == 0x14) {
+        mParentRace->mThingManager->thing_delete(whichThing);
+        whichInfoStruct->thingPntr = nullptr;
+        whichInfoStruct->readyForCleanup = true;
+        whichInfoStruct->sceneNode->setVisible(false);
+        return;
+    }
+}
+
+

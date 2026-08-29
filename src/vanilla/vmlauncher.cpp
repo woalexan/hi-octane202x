@@ -38,6 +38,7 @@
 #include "../game.h"
 #include "../resources/texture.h"
 #include "../vanilla/vthing.h"
+#include "veffectmanager.h"
 
 VMLauncher::VMLauncher(Race* parentRace, VVehicle* owner) {
     mParentRace = parentRace;
@@ -86,6 +87,8 @@ uint8_t VMLauncher::processSHOT_MISSILE(MMissileShotStruct* whichMissileShot) {
     VVehicle* targetVehicle = nullptr;
     std::vector<VVehicle*>::iterator it;
     irr::core::vector3df dbgPos;
+    EffectInfoStruct* infoStruct = nullptr;
+    EffectInfoStruct* infoStruct2 = nullptr;
 
     //if missile shot object has done its job already
     //and just waits to be deleted, return without doing anything
@@ -217,16 +220,20 @@ processSHOT_MISSILE_LABEL_40:
         if (!v14) {
             rNum = rand();
             if (rNum % 3u) {
-                v25 = mParentRace->mThingManager->thing_initialise(position_from,
+                //I believe this create an EFFECT_SMOKE
+                infoStruct = mParentRace->mEffectManager->AddEffect(EffectType::Smoke, position_from,
                                                                    whichThing->Movement.AngleXY,
                                                                    whichThing->Movement.AngleZY,
                                                                    whichThing->Movement.AngleXZ,
-                                                                   2, 7, whichThing->Id);
-                if (v25 != nullptr) {
-                    v27 = rand();
-                    zPos = v25->Position.Z;
-                    v25->Movement.SpeedActual = mParentRace->mVCalc->FixedPointToFloat8D8((v27 & 0xF) + 16);
-                    v25->Position.Z = zPos + 0.0625f;
+                                                                   whichThing->Id);
+                if (infoStruct != nullptr) {
+                    v25 = infoStruct->thingPntr;
+                    if (v25 != nullptr) {
+                        v27 = rand();
+                        zPos = v25->Position.Z;
+                        v25->Movement.SpeedActual = mParentRace->mVCalc->FixedPointToFloat8D8((v27 & 0xF) + 16);
+                        v25->Position.Z = zPos + 0.0625f;
+                    }
                 }
             }
         }
@@ -249,16 +256,19 @@ processSHOT_MISSILE_LABEL_40:
          if (v1 >= 2) {
              mParentRace->mVCalc->move_xyz(position_from, v29, 0.0f, 2.0f);
          }
-         v31 = mParentRace->mThingManager->thing_initialise(position_from, whichThing->Movement.AngleXY,
-                                                whichThing->Movement.AngleZY, whichThing->Movement.AngleXZ,
-                                                        2, 1, whichThing->Id);
-
-         if (v31 != nullptr) {
-            if (v1 >= 2) {
-                v31->AffectNumber *= 2;
-            }
-            whichThing->AffectStatus |= 0x1000000u;
-         }
+         //I believe this create an EFFECT_EXPLOSION_MEDIUM
+         infoStruct2 = mParentRace->mEffectManager->AddEffect(EffectType::ExplosionMedium, position_from, whichThing->Movement.AngleXY,
+                                                      whichThing->Movement.AngleZY, whichThing->Movement.AngleXZ,
+                                                      whichThing->Id);
+           if (infoStruct2 != nullptr) {
+             v31 = infoStruct2->thingPntr;
+             if (v31 != nullptr) {
+                if (v1 >= 2) {
+                    v31->AffectNumber *= 2;
+                }
+                whichThing->AffectStatus |= 0x1000000u;
+             }
+          }
          --v1;
          v29 -= 119.9981689453125f;
       } while (v1);
@@ -333,6 +343,10 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
         std::vector<MMissileShotStruct*>::iterator itShot;
         for (itShot = mMissileShotVec.begin(); itShot != mMissileShotVec.end(); ++itShot) {
              processSHOT_MISSILE((*itShot));
+
+             //we need to update the TimeSlice variable in
+             //the SHOT_MISSILE Thing
+             mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
         }
 
         //The source code below which is taken from "processWEAPON_ROCKET_GUN"

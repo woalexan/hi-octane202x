@@ -36,6 +36,7 @@
 
 #include "irrlicht.h"
 #include <cstdint>
+#include <vector>
 
 /************************
  * Forward declarations *
@@ -44,24 +45,55 @@
 class Race;
 struct VThing;
 
+enum EffectType {
+          Undefined, Smoke, ExplosionSmall, ExplosionMedium, SmokeFire
+};
+
+struct EffectInfoStruct {
+    EffectType effectType = Undefined;
+    VThing* thingPntr = nullptr;
+    irr::scene::IBillboardSceneNode* sceneNode = nullptr;
+    size_t currDrawNr = 0;
+    irr::video::SColor currVerticeColor;
+    bool readyForCleanup = false;
+};
+
 class VEffectManager {
 
 private:
     Race* mParentRace = nullptr;
 
+    void InitSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* firstTexture, irr::core::dimension2df sizeSprite);
+    void UpdateSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* newTexture);
+
+    void UpdateEffect(EffectInfoStruct* whichInfoStruct);
+    void CleanupEffect(EffectInfoStruct* whichInfoStruct);
+
     void initialiseEFFECT_EXPLOSION(VThing* whichThing);
-    void processEFFECT_EXPLOSION(VThing* whichThing);
+    void processEFFECT_EXPLOSION(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_EXPLOSION_MEDIUM(VThing* whichThing);
+    void processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_SMOKE(VThing* whichThing);
+    void processEFFECT_SMOKE(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_SMOKE_FIRE(VThing* whichThing);
+    void processEFFECT_SMOKE_FIRE(EffectInfoStruct* whichInfoStruct);
+
+    irr::video::ITexture* mSmokeTex = nullptr;
 
     irr::video::ITexture* mSpriteTex = nullptr;
     irr::core::dimension2d<irr::u32> mSpriteTexSize;
 
-    irr::scene::IBillboardSceneNode* mSceneNode = nullptr;
-    irr::video::SColor mCurrVerticeColor;
-
-    irr::core::array<irr::video::ITexture*> animTexList;
-    size_t currDrawNr = 0;
+    irr::core::array<irr::video::ITexture*> animTexListExplosion;
 
     bool LoadSprites();
+
+    std::vector<EffectInfoStruct*> mActiveEffectVec;
+    std::vector<EffectInfoStruct*> mNewEffectVec;
+
+    irr::f32 mAbsTimeAcc = 0.0f;
 
 public:
     VEffectManager(Race* parentRace);
@@ -69,10 +101,12 @@ public:
 
     VThing* Explosion = nullptr;
 
-    void TestExplosion(irr::core::vector3df location, irr::f32 angleXY, irr::f32 angleZY, irr::f32 angleXZ, int16_t id);
-    void UpdateTestExplosion();
+    //Returns a pointer to the Thing for the Effect
+    EffectInfoStruct* AddEffect(EffectType whichEffect, irr::core::vector3df location, irr::f32 angleXY,
+                   irr::f32 angleZY, irr::f32 angleXZ, int16_t id);
 
+    void Update(irr::f32 frameDeltaTime);
+    uint16_t GetNrCurrentlyActiveEffects();
 };
-
 
 #endif // VEFFECTMANAGER_H

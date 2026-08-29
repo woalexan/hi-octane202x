@@ -460,7 +460,10 @@ bool InfrastructureBase::LoadLevelConfigData(std::string levelRootPath, MapConfi
     return true;
 }
 
-bool InfrastructureBase::InitStage1() {
+bool InfrastructureBase::InitStage1() {    
+   //init random number generator
+   mRandomGenerator = new std::mt19937(mRandomDevice()); // mersenne_twister_engine seeded with rd()
+
    //first initialization is done using the Nulldevice
 
    //first get native screen resolution
@@ -2272,14 +2275,8 @@ bool InfrastructureBase::InitGameResourcesInitialStep() {
 
 //get a random int in the range between min and max
 int InfrastructureBase::randRangeInt(int min, int max) {
-   return min + rand() / (RAND_MAX / (max - min + 1) + 1);
-}
-
-//get a random float value in the range of 0.0 up to 1.0
-float InfrastructureBase::randFloat() {
-    float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-
-    return r;
+   std::uniform_int_distribution<> distrib(min, max);
+   return distrib(*mRandomGenerator);
 }
 
 //returns true if the original game version date is known,
@@ -2861,6 +2858,10 @@ InfrastructureBase::~InfrastructureBase() {
     if (mGameConfig != nullptr) {
         delete mGameConfig;
         mGameConfig = nullptr;
+    }
+
+    if (mRandomGenerator != nullptr) {
+        delete mRandomGenerator;
     }
 
     //if we did logging into a log file before

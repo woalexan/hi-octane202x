@@ -45,6 +45,13 @@
 class Race;
 class VVehicle;
 
+/***********************************
+ * VThing Status Flag Explanations *
+ ***********************************/
+
+//Flag 0x1 = Is set when the Thing's current location is catalogued in the maps child field (used in
+//mapwho_add, mapwho_move, mapwho_delete functions)
+
 struct VThing {
     irr::core::vector3df Position;
     MovementStruct Movement;
@@ -62,7 +69,7 @@ struct VThing {
 
     int16_t Life = 0;
 
-    uint32_t Seed = 0;
+    uint16_t Seed = 0;
 
     int16_t Count = 0;
     irr::core::vector3df CollideSize;
@@ -128,7 +135,16 @@ public:
     //vehicles
     int16_t effect_affect_vehicle_exclusive(VThing* effect);
 
+    //Run this function periodically to free currently not available
+    //but also not used Things anymore
     void RunHousekeeping();
+
+    //call this function every ~ 50ms! so that the TimeSlice variable
+    //in the Thing will be advanced. This should occur right after
+    //the thing was processed as in the original game
+    void UpdateTimeSlice(VThing* whichThing);
+
+    void DebugDrawParentInfo();
 
 private:
     Race* mParentRace = nullptr;

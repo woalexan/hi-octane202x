@@ -160,6 +160,12 @@ public:
     std::vector<VVehicle*> mVanillaCraftVec;
     std::vector<VRepair*> mVanillaRepairVehicleVec;
 
+    //TODO: populate this vector with the correct Things
+    //I do not right now what exactly this Things are, the seem to
+    //be able to deal damage to players; I created this vector for
+    //thing_touching_anything in ThingManager as it is used there
+    std::vector<VThing*> mGroup8ThingsVec;
+
     void RegisterTemporaryCollectible(Collectable* collectibleToAdd);
     void UnregisterTemporaryCollectible(Collectable* collectibleToRemove);
     void SpawnCollectiblesForPlayer(VVehicle* player, std::vector<Entity::EntityType>& powerUpList);
@@ -380,12 +386,14 @@ public:
     VThingManager* mThingManager = nullptr;
 
     void DebugDrawDisplacement(VThing& whichThing);
+    void DebugDrawChildInfo();
 
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
 
     irr::f32 mVanillaGameLoopTimer = 0.0f;
+    irr::f32 mThingManagerTimer = 0.0f;
 
     void UpdateSpriteThings(irr::f32 deltaTime);
 

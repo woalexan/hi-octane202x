@@ -95,7 +95,7 @@ private:
                                        irr::f32 angleXY, irr::f32 angleZY,
                                        irr::f32 angleXZ, int16_t id);
 
-    uint8_t UpdateBulletThing(BulletThingStruct* whichBulletThing);
+    uint8_t processEFFECT_BULLET(BulletThingStruct* whichBulletThing);
     void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);
 
     void CleanupBulletThing(BulletThingStruct* whichBulletThing);

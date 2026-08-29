@@ -360,9 +360,7 @@ void VMGun::UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::cor
      whichNode->setPosition(irrPos);
 }
 
-//This function mostly implements the functionality
-//of the function "processEFFECT_BULLET" of the original game
-uint8_t VMGun::UpdateBulletThing(BulletThingStruct* whichBulletThing) {
+uint8_t VMGun::processEFFECT_BULLET(BulletThingStruct* whichBulletThing) {
     irr::f32 v2;
 
     //if this bullet has done its job, and waits for cleanup
@@ -397,8 +395,10 @@ void VMGun::CleanupBulletThing(BulletThingStruct* whichBulletThing) {
         return;
 
     //give back the thing
-    mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
-    whichBulletThing->ThingData = nullptr;
+    if (whichBulletThing->ThingData != nullptr) {
+        mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
+        whichBulletThing->ThingData = nullptr;
+    }
 
     whichBulletThing->animSprite->removeAnimator(whichBulletThing->animator);
     whichBulletThing->animator->drop();
@@ -429,59 +429,6 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
     int16_t v18;
     VThing* v12;
 
-    //do things we need to update fast
-
-    //cleanup all currently existing but not useful anymore
-    //bulletEffect objects
-    BulletThingStruct* pntrBulletEffect;
-    bool deleteObj;
-
-    std::vector<BulletThingStruct*>::iterator it;
-    for (it = mBulletThings.begin(); it != mBulletThings.end(); ) {
-        deleteObj = false;
-        if ((*it)->ReadyForCleanup) {
-            deleteObj = true;
-            //make sure that the animation is already done
-            //is the animation done?
-            if ((*it)->animatorActive) {
-                if (!(*it)->animator->hasFinished()) {
-                    deleteObj = false;
-                }
-            }
-        }
-
-        if (deleteObj) {
-            pntrBulletEffect = (*it);
-            it = mBulletThings.erase(it);
-
-            CleanupBulletThing(pntrBulletEffect);
-        } else
-        {
-            ++it;
-        }
-    }
-
-    std::vector<MGunShotStruct*>::iterator it2;
-    MGunShotStruct* pntrShot;
-
-    //cleanup all shot objects that were marked to be cleaned up
-    for (it2 = mShotVec.begin(); it2 != mShotVec.end(); ) {
-        if ((*it2)->ReadyForCleanup) {
-            pntrShot = (*it2);
-
-            it2 = mShotVec.erase(it2);
-
-            delete pntrShot;
-        } else {
-            ++it2;
-        }
-    }
-
-    //Update all existing bulletEffect objects, is done for every frame
-    for (it = mBulletThings.begin(); it != mBulletThings.end(); ++it) {
-        UpdateBulletThing((*it));
-    }
-
     //add delta time up to see when we need to update
     //the slower parts of the MGun
     mAbsTimeAcc += frameDeltaTime;
@@ -489,10 +436,68 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
     if (mAbsTimeAcc >= 0.05f) {
         mAbsTimeAcc = 0.0f;
 
+        //cleanup all currently existing but not useful anymore
+        //bulletEffect objects
+        BulletThingStruct* pntrBulletEffect;
+        bool deleteObj;
+
+        std::vector<BulletThingStruct*>::iterator it;
+        for (it = mBulletThings.begin(); it != mBulletThings.end(); ) {
+            deleteObj = false;
+            if ((*it)->ReadyForCleanup) {
+                deleteObj = true;
+                //make sure that the animation is already done
+                //is the animation done?
+                if ((*it)->animatorActive) {
+                    if (!(*it)->animator->hasFinished()) {
+                        deleteObj = false;
+                    }
+                }
+            }
+
+            if (deleteObj) {
+                pntrBulletEffect = (*it);
+                it = mBulletThings.erase(it);
+
+                CleanupBulletThing(pntrBulletEffect);
+            } else
+            {
+                ++it;
+            }
+        }
+
+        std::vector<MGunShotStruct*>::iterator it2;
+        MGunShotStruct* pntrShot;
+
+        //cleanup all shot objects that were marked to be cleaned up
+        for (it2 = mShotVec.begin(); it2 != mShotVec.end(); ) {
+            if ((*it2)->ReadyForCleanup) {
+                pntrShot = (*it2);
+
+                it2 = mShotVec.erase(it2);
+
+                delete pntrShot;
+            } else {
+                ++it2;
+            }
+        }
+
+        for (it = mBulletThings.begin(); it != mBulletThings.end(); ++it) {
+            processEFFECT_BULLET((*it));
+
+            //we need to update the TimeSlice variable in
+            //the EFFECT_BULLET Thing
+            mParentRace->mThingManager->UpdateTimeSlice((*it)->ThingData);
+        }
+
         //first update all currently existing shots
         std::vector<MGunShotStruct*>::iterator itShot;
         for (itShot = mShotVec.begin(); itShot != mShotVec.end(); ++itShot) {
              processSHOT_BULLET((*itShot));
+
+             //we need to update the TimeSlice variable in
+             //the SHOT_BULLER_THING
+             mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
         }
 
         if (mOwner != nullptr) {

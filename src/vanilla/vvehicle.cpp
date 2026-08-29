@@ -34,13 +34,14 @@
 #include "vvehicle.h"
 #include "../race.h"
 #include "../game.h"
-#include "../vanilla/vcalc.h"
+#include "vcalc.h"
 #include "../draw/drawdebug.h"
-#include "../vanilla/vtrack.h"
-#include "../vanilla/vthing.h"
-#include "../vanilla/vcamera.h"
-#include "../vanilla/vmgun.h"
-#include "../vanilla/vmlauncher.h"
+#include "vtrack.h"
+#include "vthing.h"
+#include "vcamera.h"
+#include "vmgun.h"
+#include "vmlauncher.h"
+#include "veffectmanager.h"
 #include "debug/dbginterface.h"
 #include "debug/memdump.h"
 #include "debug/structs/thing.h"
@@ -55,6 +56,7 @@
 #include "../resources/texture.h"
 #include "../models/levelterrain.h"
 #include "../draw/hud.h"
+#include "../race.h"
 #include "../models/particle.h"
 #include "../resources/mapentry.h"
 
@@ -319,6 +321,8 @@ vehicle_execute_action0_initialize_LABEL_107:
 //under the assumption currently nothing special happens
 //otherwise
 void VVehicle::vehicle_execute_action0x1_defaultracing() {
+    irr::core::vector3df position;
+
     /**********************************
      * Did we run out of fuel?        *
      * Call the repair vehicle?       *
@@ -349,7 +353,7 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
     if (Stats.Health < 3001) {
         //are we completely out of health?
         if (Stats.Health <= 0) {
-            //next lines seem to create a thing that damage craft permanently at this place?
+            //this triggers an Explosion BIG
             //v26 = thing_initialise(&thing->Position, &thing->Movement.Angle, 2, 2, thing->Id);
             // if (v26) {
             //   v26->Colide.Group = 0;
@@ -359,10 +363,20 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
             vehicle_setup_tumble();
             FlightModel.Flag.HealthDeath = true;
         } else {
-            //Health is low, but still some health is remaining
-            //create some smoke behind the craft
+            if (!(ThingData->TimeSlice % (Stats.Health / 1000 + 1))) {
+               mRace->mEffectManager->AddEffect(EffectType::SmokeFire, ThingData->Position,
+                                                ThingData->Movement.AngleXY, ThingData->Movement.AngleZY,
+                                                ThingData->Movement.AngleXZ, ThingData->Id);
+            }
 
-            //TODO: Add the smoke effect later
+           //for even less health add even more smoke effects :(
+           if (Stats.Health < 500) {
+               position = ThingData->Position;
+               position.Z += 0.078125f;
+               mRace->mEffectManager->AddEffect(EffectType::SmokeFire, position,
+                                                ThingData->Movement.AngleXY, ThingData->Movement.AngleZY,
+                                                ThingData->Movement.AngleXZ, ThingData->Id);
+           }
         }
     }
 
@@ -737,16 +751,8 @@ uint32_t VVehicle::GetControlOrigin() {
 }
 
 void VVehicle::Update(irr::f32 frameDeltaTime) {
-    //we want to increment mTimeSlice every 50ms
-    //in the original game it starts counting at 0, increases every 50ms
-    //and the overflows back from 0xFF to 00
     mAbsTimeIntegrator += frameDeltaTime;
     if (mAbsTimeIntegrator >= 0.05) {
-        if (ThingData->TimeSlice < 0xFF) {
-            ThingData->TimeSlice++;
-        } else {
-            ThingData->TimeSlice = 0;
-        }
 
         //should run every ~45ms
         //timing close enough when called
@@ -767,9 +773,12 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
             UpdateEngineSound();
         }
 
-        //add later, seems to be needed
-        //ClosestMissile = 0;
+        ClosestMissile = 0.0f;
         vehicle_do_action();
+
+        //we need to update the TimeSlice variable in
+        //the vehicle thing!
+        mRace->mThingManager->UpdateTimeSlice(this->ThingData);
 
         mAbsTimeIntegrator = 0.0f;
     }

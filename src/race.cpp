@@ -368,6 +368,7 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mPlayerVec.clear();
     mVanillaCraftVec.clear();
     mVanillaRepairVehicleVec.clear();
+    mGroup8ThingsVec.clear();
     mPlayerPhysicObjVec.clear();
     playerRaceFinishedVec.clear();
     mTriggerRegionVec.clear();
@@ -805,6 +806,13 @@ Race::~Race() {
         it2 = mVanillaRepairVehicleVec.erase(it2);
 
         delete recoveryVehiclePntr;
+    }
+
+    //Cleanup the Group8 Things vector
+    std::vector<VThing*>::iterator it3;
+
+    for (it3 = this->mGroup8ThingsVec.begin(); it3 != this->mGroup8ThingsVec.end();) {
+        it3 = mGroup8ThingsVec.erase(it3);
     }
 
     //remove camera SceneNode
@@ -1980,6 +1988,14 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
         ControlStartPhase(frameDeltaTime);
     }
 
+    mThingManagerTimer += frameDeltaTime;
+
+    if (mThingManagerTimer >= 0.05f) {
+        mThingManagerTimer = 0.0f;
+
+        mThingManager->RunHousekeeping();
+    }
+
     mVanillaGameLoopTimer += frameDeltaTime;
     //The game loop of the vanilla game at Playstation 1
     //seems to run approx. every 65ms
@@ -1989,8 +2005,6 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
         //update all collectable spawners
         UpdateCollectableSpawners(0.065f);
-
-        mThingManager->RunHousekeeping();
     }
 
     //if we are in final race phase (where we delay the exit of race)
@@ -2074,6 +2088,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     UpdateRecoveryVehicles(frameDeltaTime);
 
     UpdateSpriteThings(frameDeltaTime);
+
+    mEffectManager->Update(frameDeltaTime);
 
     //in the player Update function the mOtherPlayerHasMissleLockAtMe is set
     //to true by other players, if the have currently a missile lock at this player
@@ -2451,7 +2467,7 @@ void Race::HandleDebugInput() {
    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_J)) {
        //this->mWorldAware->WriteOneDbgPic = true;
        irr::core::vector3df currVehiclePos = mVanillaCraftVec.at(0)->ThingData->Position;
-       mEffectManager->TestExplosion(currVehiclePos, 0.0f, 0.0f, 0.0f, 12);
+       mEffectManager->AddEffect(EffectType::Smoke, currVehiclePos, 0.0f, 0.0f, 0.0f, 12);
    }
 
    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
@@ -2465,7 +2481,7 @@ void Race::HandleDebugInput() {
    }
 
    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
-       mEffectManager->UpdateTestExplosion();
+       mVanillaCraftVec.at(1)->Stats.Health -= 500;
    }
 
    if ((mCloneRecording != nullptr) && DebugShowCloneRecording) {
@@ -2817,6 +2833,37 @@ void Race::DrawHUD(irr::f32 frameDeltaTime) {
      }
 
     mMiniMap->DrawMiniMap(frameDeltaTime, coordVec, mVanillaCraftVec.at(0)->IsControlledByComputer());
+}
+
+void Race::DebugDrawChildInfo() {
+    MapEntry *entry;
+    irr::core::vector2di cellCoord;
+    irr::core::vector3df irrCoord;
+    irr::core::vector3df vanCoord;
+    VThing* thingPntr;
+    irr::core::vector3df vanCellCoord;
+    irr::core::vector3df irrCellCoord;
+
+    for (int y = 0; y < mLevelRes->Height(); y++) {
+        for (int x = 0; x < mLevelRes->Width(); x++) {
+            entry = this->mLevelRes->pMap[x][y];
+            if (entry->mChild != 0) {
+                cellCoord.set(x, y);
+                mLevelTerrain->DrawOutlineSelectedCell(cellCoord, mGame->mDrawDebug->cyan);
+                thingPntr = &mThingManager->Thing[entry->mChild];
+                vanCoord = thingPntr->Position;
+
+                vanCellCoord.X = ((irr::f32)(x) + 0.5f) * mLevelTerrain->segmentSize;
+                vanCellCoord.Y = ((irr::f32)(y) + 0.5f)* mLevelTerrain->segmentSize;
+                vanCellCoord.Z = mVCalc->map_floor(vanCellCoord);
+
+                irrCoord = mVCalc->VanillaToIrrlichtCoord(vanCoord);
+                irrCellCoord = mVCalc->VanillaToIrrlichtCoord(vanCellCoord);
+
+                mGame->mDrawDebug->Draw3DLine(irrCellCoord, irrCoord, mGame->mDrawDebug->cyan);
+            }
+        }
+    }
 }
 
 void Race::DebugDrawClonePath(CloneRecording* recording) {
@@ -3193,6 +3240,9 @@ void Race::Render() {
         mGame->mDrawDebug->Draw3DLine(mVTrack->debugCol1Vec1, mVTrack->debugCol1Vec2, mGame->mDrawDebug->cyan);
     }*/
 
+    DebugDrawChildInfo();
+
+    mThingManager->DebugDrawParentInfo();
 }
 
 void Race::UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable) {

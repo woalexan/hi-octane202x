@@ -23,6 +23,7 @@
 #include "vanilla/vvehicle.h"
 #include "vanilla/vcamera.h"
 #include "vanilla/vmlauncher.h"
+#include "vanilla/veffectmanager.h"
 #include "vanilla/vbase.h"
 #include "vanilla/vthing.h"
 
@@ -1248,7 +1249,8 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
                     );*/
 
            // swprintf(text2, 390, L"");
-           swprintf(text2, 390, L"%d\n%d", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed(), (int)(mCurrentRace->mVanillaCraftVec.at(0)->mMLauncher->Trigger)));
+           swprintf(text2, 390, L"Things: %d\nEffects: %d\n %d", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mEffectManager->GetNrCurrentlyActiveEffects()),
+                     (int)(mCurrentRace->mVanillaCraftVec.at(0)->ThingData->TimeSlice));
 
          /*  swprintf(text2, 390, L"Increment.SpeedActual: %lf \nIncrementAdd.SpeedActual: %lf \nIncrementLimit.SpeedActual: %lf\nStat.Velocity: %lf", this->mCurrentRace->mVCraft->Increment.SpeedActual,
                     this->mCurrentRace->mVCraft->IncrementAdd.SpeedActual, this->mCurrentRace->mVCraft->IncrementLimit.SpeedActual, this->mCurrentRace->mVCraft->Stats.Velocity);*/

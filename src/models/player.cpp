@@ -52,15 +52,15 @@ irr::core::vector3df Player::GetRandomMGunShootTargetLocation(bool shootDoesHit)
 
     if (shootDoesHit) {
         //shoot does hit, return random location at player craft model
-        randLocation.set(mPlayerModelExtend.X * this->mRace->mGame->randFloat(),
-                         mPlayerModelExtend.Y * this->mRace->mGame->randFloat(),
-                         mPlayerModelExtend.Z * this->mRace->mGame->randFloat());
+        // randLocation.set(mPlayerModelExtend.X * this->mRace->mGame->randFloat(),
+        //                  mPlayerModelExtend.Y * this->mRace->mGame->randFloat(),
+        //                  mPlayerModelExtend.Z * this->mRace->mGame->randFloat());
 
         randLocation -= mPlayerModelExtend * irr::core::vector3df(0.5f, 0.5f, 0.5f);
         randLocation += this->phobj->physicState.position;
     } else {
         //shoot does not hit, return random location around player at the terrain
-        randLocation.set(this->mRace->mGame->randFloat(), 0.0f, this->mRace->mGame->randFloat());
+        // randLocation.set(this->mRace->mGame->randFloat(), 0.0f, this->mRace->mGame->randFloat());
 
         randLocation -= irr::core::vector3df(0.5f, 0.0f, 0.5f);
         randLocation += this->phobj->physicState.position;
