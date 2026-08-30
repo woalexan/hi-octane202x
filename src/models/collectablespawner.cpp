@@ -143,7 +143,6 @@ int8_t CollectableSpawner::UpdatePosition(irr::f32 deltaTime, VThing* whichThing
       }
 
       mRace->mThingManager->mapwho_move(whichThing, intPosition);
-      //whichThing->Position = intPosition;
       return 1;
    }
 
@@ -331,6 +330,7 @@ void CollectableSpawner::Trigger() {
 
 CollectableSpawner::~CollectableSpawner() {
     std::vector<SpawnedCollectableInfoStruct*>::iterator it;
+    std::vector<SpawnedCollectableInfoStruct*>::reverse_iterator itRev;
 
     //delete all temporary created stuff
     if (mSpawnedCollectablesVec.size() > 0) {
@@ -343,6 +343,11 @@ CollectableSpawner::~CollectableSpawner() {
         SpawnedCollectableInfoStruct* pntrInfoStruct;
         Collectable* pntrCollectible;
 
+        for (itRev = mSpawnedCollectablesVec.rbegin(); itRev != mSpawnedCollectablesVec.rend(); ++itRev) {
+            //Free the underlying Thing
+            mRace->mThingManager->thing_remove((*itRev)->pntrCollectable->ThingData);
+        }
+
         for (it = this->mSpawnedCollectablesVec.begin(); it != this->mSpawnedCollectablesVec.end(); ) {
            pntrInfoStruct = (*it);
            pntrCollectible = (*it)->pntrCollectable;
@@ -353,10 +358,6 @@ CollectableSpawner::~CollectableSpawner() {
            //delete Collectable itself
            //this frees the SceneNode
            delete pntrCollectible;
-
-           //Signal that the underlying Thing can be
-           //deleted as well
-           mRace->mThingManager->thing_delete(pntrInfoStruct->pntrCollectable->ThingData);
 
            //also delete the info struct
            delete pntrInfoStruct;

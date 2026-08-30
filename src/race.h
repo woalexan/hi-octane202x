@@ -53,7 +53,7 @@ const irr::f32 DbgWaypointCubeHeightDistance = 0.3f;
 #define DEF_RACE_DBG_WALLSEGMENTS 1
 #define DEF_RACE_DBG_WALLCOLLISIONMESH 2
 #define DEF_RACE_DBG_WAYPOINTLINKS 3
-#define DEF_RACE_DBG_WAYPOINTLINKSSPACE 4
+#define DEF_RACE_DBG_SHOWCHILDINFO 4
 #define DEF_RACE_DBG_CHECKPOINTS 5
 #define DEF_RACE_DBG_POI 6
 #define DEF_RACE_DBG_TRIGGERREGIONS 7
@@ -460,7 +460,7 @@ private:
 
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = false;
-    bool DebugShowFreeMovementSpace = false;
+    bool DebugShowChildInfo = false;
 
     bool DebugShowWallSegments = false;
     bool DebugShowWallCollisionMesh = false;

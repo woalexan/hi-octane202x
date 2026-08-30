@@ -90,11 +90,6 @@ uint8_t VMLauncher::processSHOT_MISSILE(MMissileShotStruct* whichMissileShot) {
     EffectInfoStruct* infoStruct = nullptr;
     EffectInfoStruct* infoStruct2 = nullptr;
 
-    //if missile shot object has done its job already
-    //and just waits to be deleted, return without doing anything
-    if (whichMissileShot->ReadyForCleanup)
-        return 1;
-
     VThing* whichThing = whichMissileShot->ThingPntr;
 
     position_from = whichThing->Position;
@@ -183,8 +178,8 @@ processSHOT_MISSILE_LABEL_40:
         mParentRace->mVCalc->move_swap_positions(whichThing->Position, position_from);
 
         //only for debugging
-        dbgPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
-        mParentRace->mGame->mSmgr->addCubeSceneNode(0.03f, nullptr, -1, dbgPos);
+        //dbgPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
+        //mParentRace->mGame->mSmgr->addCubeSceneNode(0.03f, nullptr, -1, dbgPos);
 
         //go through all the vehicles and see if the missile collides
         //with one of them
@@ -275,7 +270,6 @@ processSHOT_MISSILE_LABEL_40:
     }
 
     mParentRace->mThingManager->thing_delete(whichThing);
-    whichMissileShot->ReadyForCleanup = true;
 
     return 1;
 }
@@ -316,22 +310,6 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
     irr::f32 v18;
     int16_t triggerTime;
 
-    std::vector<MMissileShotStruct*>::iterator it2;
-    MMissileShotStruct* pntrMissileShot;
-
-    //cleanup all missile shot objects that were marked to be cleaned up
-    for (it2 = mMissileShotVec.begin(); it2 != mMissileShotVec.end(); ) {
-        if ((*it2)->ReadyForCleanup) {
-            pntrMissileShot = (*it2);
-
-            it2 = mMissileShotVec.erase(it2);
-
-            delete pntrMissileShot;
-        } else {
-            ++it2;
-        }
-    }
-
     //add delta time up to see when we need to update
     //the slower parts of the MGun
     mAbsTimeAcc += frameDeltaTime;
@@ -339,14 +317,44 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
     if (mAbsTimeAcc >= 0.05f) {
         mAbsTimeAcc = 0.0f;
 
-        //first update all currently existing missile shots
-        std::vector<MMissileShotStruct*>::iterator itShot;
-        for (itShot = mMissileShotVec.begin(); itShot != mMissileShotVec.end(); ++itShot) {
-             processSHOT_MISSILE((*itShot));
+        std::vector<MMissileShotStruct*>::iterator it2;
+        MMissileShotStruct* pntrMissileShot;
 
-             //we need to update the TimeSlice variable in
-             //the SHOT_MISSILE Thing
-             mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
+        //cleanup all missile shot objects that were marked to be cleaned up
+        for (it2 = mMissileShotVec.begin(); it2 != mMissileShotVec.end(); ) {
+            if ((*it2)->ReadyForCleanup) {
+                pntrMissileShot = (*it2);
+
+                it2 = mMissileShotVec.erase(it2);
+
+                delete pntrMissileShot;
+            } else {
+                ++it2;
+            }
+        }
+
+        //update all currently existing missile shots
+        std::vector<MMissileShotStruct*>::reverse_iterator itShot;
+
+        //30.08.2026: We need to iterate in reverse order so that the underlying Things
+        //stuff with Parents and Childs works. At least it seems so.
+        for (itShot = mMissileShotVec.rbegin(); itShot != mMissileShotVec.rend(); ++itShot) {
+            //was the Thing itself of this MissileShot already deleted?
+            //If so nothing to do anymore
+            if ((*itShot)->ThingPntr == nullptr)
+                continue;
+
+            if (((*itShot)->ThingPntr->Status & 4) != 0) {
+                mParentRace->mThingManager->thing_remove((*itShot)->ThingPntr);
+                (*itShot)->ThingPntr = nullptr;
+                (*itShot)->ReadyForCleanup = true;
+            } else {
+                 processSHOT_MISSILE((*itShot));
+
+                 //we need to update the TimeSlice variable in
+                 //the SHOT_MISSILE Thing
+                 mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
+            }
         }
 
         //The source code below which is taken from "processWEAPON_ROCKET_GUN"
@@ -359,7 +367,7 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
                    if (v9 >= 1666) {
                       //is no computer player?
                       if (mOwner->GetControlOrigin() != 8) {
-                      //   mOwner->Stats.Weapons = v9 - 1666;
+                         mOwner->Stats.Weapons = v9 - 1666;
                          mOwner->Conditions.WeaponsUsed += 1666;
                       }
                       angleXZ = mOwner->View.AngleXZ;
@@ -394,6 +402,8 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
                                     mParentRace->mVCalc->move_xyz(position, v15->Movement.AngleXY + v18, 0.0f, 0.3125f);
                                     mParentRace->mThingManager->mapwho_move(v15, position);
                                     //sample_play(v7, 23);
+                                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, false);
+
                                     if (this->Target) {
                                         v15->Target = this->Target;
                                     }

@@ -223,8 +223,6 @@ add_executable(hi-octane202x
     src/models/levelblocks.cpp
     src/models/levelterrain.h
     src/models/levelterrain.cpp
-    src/models/missile.h
-    src/models/missile.cpp
     src/models/morph.h
     src/models/morph.cpp
     src/models/spriteparticle.h

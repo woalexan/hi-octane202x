@@ -209,12 +209,20 @@ void VThingManager::RunHousekeeping() {
         //anymore has Flag 0x4 set
         pntrIdx = mParentRace->mLevelRes->mThingFree->Thing[idx];
 
+        //30.08.2026: I decided we do not want to finally remove Things
+        //here like in the original game. The Managers (Effectmanager for example)
+        //should finally remove the Things with thing_remove themselves in the
+        //correct order. I saw if I do it here additionally in the Thingmanager
+        //then this randomly messes up the underlying Child/Parent logic, and
+        //child state in the map then get randomly stuck. Therefore the code below
+        //is now commented out. The job of completely freeing unused Things is now
+        //soley responsibility of the "managers" that reserve things in the first place.
+
         if (pntrIdx != 0) {
 
          /*   if ((Thing[pntrIdx].Group == 0) && (Thing[pntrIdx].Member == 0)) {
                 logging::Warning("RunHousekeeping: Group = 0 and Member = 0 found!");
             }*/
-
 
             // //the following types of objects are removed directly
             // //by the EffectManager, and that this works correctly
@@ -273,11 +281,6 @@ uint8_t VThingManager::mapwho_delete(VThing* whichThing) {
     int mCurrPosCellY;
     MapEntry* entry = nullptr;
 
-    //for debugging purposes
-    /*if ((whichThing->Group == 2) && (whichThing->Member == 4)) {
-        entry = nullptr;
-    }*/
-
     if (whichThing->Parent) {
         Thing[whichThing->Parent].Child = whichThing->Child;
     } else {
@@ -302,6 +305,7 @@ uint8_t VThingManager::mapwho_add(VThing* whichThing, irr::core::vector3df posit
     int intPosThingY;
     int intPosThingX;
     int intPosv8Y;
+    int intPosv8X;
     bool v6;
 
     v8 = position;
@@ -311,14 +315,29 @@ uint8_t VThingManager::mapwho_add(VThing* whichThing, irr::core::vector3df posit
         intPosThingX = (int)(whichThing->Position.X / mParentRace->mLevelTerrain->segmentSize);
 
         intPosv8Y = (int)(v8.Y / mParentRace->mLevelTerrain->segmentSize);
-        //Important: I am note sure about the next 2 if constructs, the look
-        //weird!
+        intPosv8X = (int)(v8.X / mParentRace->mLevelTerrain->segmentSize);
+
         if (((intPosThingY - 2) < 7) && (intPosv8Y < 2u) || (intPosv8Y >= 0x9Eu)) {
             v8.Y = 2.0f;
         }
 
         if ((intPosThingY > 150) && (intPosv8Y >= 0x9Eu)) {
             v8.Y = 157.99609375f;
+        }
+
+        //30.08.2026: The original game implementation only limits the coordinate range for the Y coordinates,
+        //because for X the map size was choosen that for the underlying variable range the variable
+        //automatically wraps around at the border of the maps. So a coordinate range check is not necessary in the
+        //original game. But for me this is not the case and there is no X-coordinate variable wrap around. So I added
+        //a check also for the X-coordinate below.
+
+        intPosv8X = (int)(v8.X / mParentRace->mLevelTerrain->segmentSize);
+        if (((intPosThingX - 2) < 7) && (intPosv8X < 2u) || (intPosv8X >= 0xFEu)) {
+            v8.X = 2.0f;
+        }
+
+        if ((intPosThingX > 246) && (intPosv8X >= 0xFEu)) {
+            v8.X = 254.0f;
         }
 
         whichThing->Position = v8;

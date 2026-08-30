@@ -37,7 +37,7 @@ enum
     GUI_ID_LEVEL_SHOWWALLSEGMENTLINES_CHECKBOX  = 0x20000,
     GUI_ID_LEVEL_SHOWWALLCOLLISIONMESH_CHECKBOX,
     GUI_ID_LEVEL_SHOWWAYPOINTLINKS_CHECKBOX,
-    GUI_ID_LEVEL_SHOWWAYPOINTLINKSSPACE_CHECKBOX,
+    GUI_ID_LEVEL_SHOWCHILDINFO_CHECKBOX,
     GUI_ID_LEVEL_SHOWCHECKPOINTS_CHECKBOX,
     GUI_ID_LEVEL_SHOWPOI_CHECKBOX,
     GUI_ID_LEVEL_SHOWTRIGGERREGIONS_CHECKBOX,
@@ -184,12 +184,12 @@ public:
 
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging
-    bool mDebugRace = true;
+    bool mDebugRace = false;
     bool mDebugDemoMode = false;
 
     bool enableLightning = false;
     bool fullscreen = false;
-    bool DebugShowVariableBoxes = true;
+    bool DebugShowVariableBoxes = false;
 
     bool mDbgUnlocked = false;
 

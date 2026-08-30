@@ -188,8 +188,8 @@ Player::~Player() {
     //mMGun = nullptr;
 
     //free my missile launcher
-    delete mMissileLauncher;
-    mMissileLauncher = nullptr;
+    //delete mMissileLauncher;
+    //mMissileLauncher = nullptr;
 
     delete dirtTexIdsVec;
     dirtTexIdsVec = nullptr;
@@ -473,7 +473,7 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     //mMGun = new MachineGun(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
 
     //create my missile launcher
-    mMissileLauncher = new MissileLauncher(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
+    //mMissileLauncher = new MissileLauncher(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
 
     //create vector to store all the current broken Hud glas locations
     brokenGlasVec = new std::vector<HudDisplayPart*>();
@@ -1254,7 +1254,7 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     //mMGun->Update(frameDeltaTime);
 
-    mMissileLauncher->Update(frameDeltaTime);
+    //mMissileLauncher->Update(frameDeltaTime);
 
     //check if player entered a craft trigger region
     //CheckForTriggerCraftRegion();

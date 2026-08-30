@@ -455,9 +455,6 @@ public:
     void AfterPhysicsUpdate();
     sf::Sound* CollisionSound = nullptr;
 
-    MachineGun* mMGun = nullptr;
-    MissileLauncher* mMissileLauncher = nullptr;
-
     //Get current weapon shooting target for this player
     //Returns true if there was a target found, False otherwise
     bool GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget);

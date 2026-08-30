@@ -600,7 +600,7 @@ void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
           DebugShowWallSegments = enable;
           DebugShowWallCollisionMesh = enable;
           DebugShowWaypoints = enable;
-          DebugShowFreeMovementSpace = enable;
+          DebugShowChildInfo = enable;
           DebugShowCheckpoints = enable;
           DebugShowRegionsAndPointOfInterest = enable;
           DebugShowTriggerRegions = enable;
@@ -627,8 +627,8 @@ void Race::SetDebugFlag(irr::u8 debugFlag, bool enable) {
           break;
       }
 
-      case DEF_RACE_DBG_WAYPOINTLINKSSPACE: {
-          DebugShowFreeMovementSpace = enable;
+      case DEF_RACE_DBG_SHOWCHILDINFO: {
+          DebugShowChildInfo = enable;
           break;
       }
 
@@ -704,8 +704,8 @@ bool Race::GetDebugFlag(irr::u8 debugFlag) {
             return (DebugShowWaypoints);
         }
 
-        case DEF_RACE_DBG_WAYPOINTLINKSSPACE: {
-            return (DebugShowFreeMovementSpace);
+        case DEF_RACE_DBG_SHOWCHILDINFO: {
+            return (DebugShowChildInfo);
         }
 
         case DEF_RACE_DBG_CHECKPOINTS: {
@@ -894,17 +894,6 @@ Race::~Race() {
         cloudLayer3 = nullptr;
     }
 
-    //free lowlevel level data
-    delete mLevelBlocks;
-    delete mLevelTerrain;
-    delete mLevelRes;
-
-    //free all loaded textures
-    delete mTexLoader;
-
-    //remove all remaining SceneNodes
-    mGame->CleanupAllSceneNodes();
-
     if (mMapConfig != nullptr) {
         delete mMapConfig;
         mMapConfig = nullptr;
@@ -924,6 +913,17 @@ Race::~Race() {
         delete mThingManager;
         mThingManager = nullptr;
     }
+
+    //free lowlevel level data
+    delete mLevelBlocks;
+    delete mLevelTerrain;
+    delete mLevelRes;
+
+    //remove all remaining SceneNodes
+    mGame->CleanupAllSceneNodes();
+
+    //free all loaded textures
+    delete mTexLoader;
 
     //IrrlichtStats((char*)("After race cleanup"));
 }
@@ -3055,10 +3055,9 @@ void Race::Render() {
         mGame->mDrawDebug->DrawWorldCoordinateSystemArrows();
 
         if (DebugShowWaypoints) {
-            DebugDrawWayPointLinks(DebugShowFreeMovementSpace);
+            DebugDrawWayPointLinks(false);
         }
 
-        std::list<LineStruct*>::iterator Linedraw_iterator;
         std::vector<LineStruct*>::iterator Linedraw_iterator2;
         std::vector<CheckPointInfoStruct*>::iterator CheckPoint_iterator;
 
@@ -3110,18 +3109,6 @@ void Race::Render() {
         }
     }
 
-   /* if ((currPlayerFollow != nullptr) && (currPlayerFollow->currClosestWayPointLink.first != nullptr)) {
-        mDrawDebug->Draw3DLine(
-                    currPlayerFollow->currClosestWayPointLink.second, currPlayerFollow->currClosestWayPointLink.second
-                    + currPlayerFollow->currClosestWayPointLink.first->offsetDirVec * currPlayerFollow->mCpFollowedWayPointLinkCurrentSpaceRightSide,
-                    this->mDrawDebug->pink);
-
-        mDrawDebug->Draw3DLine(
-                    currPlayerFollow->currClosestWayPointLink.second,  currPlayerFollow->currClosestWayPointLink.second
-                    + currPlayerFollow->currClosestWayPointLink.first->offsetDirVec * currPlayerFollow->mCpFollowedWayPointLinkCurrentSpaceLeftSide,
-                    this->mDrawDebug->brown);
-    }*/
-
       //mPhysics->DrawSelectedCollisionMeshTriangles(player->phobj->GetCollisionArea());
       //mPhysics->DrawSelectedRayTargetMeshTriangles(TestRayTrianglesSelector);
 
@@ -3132,126 +3119,24 @@ void Race::Render() {
               mDrawDebug->Draw3DTriangle(&playerPhysicsObj->mNearestTriangle,  irr::video::SColor(0, 255, 0,127));
       }*/
 
-    /*  irr::core::vector2di hlpe;
-
-      irr::core::vector3df pnt1 = this->player->WorldCoordCraftFrontPnt;
-      pnt1.Y = this->player->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(pnt1.X, pnt1.Z, hlpe);
-
-      irr::core::vector3df pnt2 = this->player->WorldCoordCraftFrontPnt2;
-      pnt2.Y = this->player->mRace->mLevelTerrain->GetCurrentTerrainHeightForWorldCoordinate(pnt2.X, pnt2.Z, hlpe);*/
-
-    /*
-      mDrawDebug->Draw3DLine(this->player->WorldCoordCraftFrontPnt, this->player->WorldCoordCraftFrontPnt2,
-                             this->mDrawDebug->blue);*/
-
-      /*mDrawDebug->Draw3DLine(pnt1, pnt2,
-                             this->mDrawDebug->red);
-*/
-      /*mDrawDebug->Draw3DLine(this->player->debug.A, this->player->debug.B,
-                             this->mDrawDebug->blue);*/
-
-  /*    mDrawDebug->Draw3DLine(this->player->mHMapCollPntData.backRight45deg->wCoordPnt1,
-                             this->player->mHMapCollPntData.backRight45deg->wCoordPnt2,
-                             this->mDrawDebug->red);*/
-
-    /*  mDrawDebug->Draw3DLine(this->player->mHMapCollPntData.frontLeft45deg->wCoordPnt1, this->player->mHMapCollPntData.frontLeft45deg->wCoordPnt2,
-                             this->mDrawDebug->blue);*/
-
-      /*mDrawDebug->Draw3DLine(this->player->phobj->physicState.position, this->player->mHMapCollPntData.backRight45deg->intersectionPnt,
-                             this->mDrawDebug->green);*/
-
-      /*mDrawDebug->Draw3DLine(this->player->mHMapCollPntData.backRight45deg->planePnt1,
-                             this->player->mHMapCollPntData.backRight45deg->planePnt2,
-                             this->mDrawDebug->blue);*/
-
-
-    /*  if (this->player2->mCpCollectablesSeenByPlayer.size() > 0) {
-          std::vector<Collectable*>::iterator itColl;
-          irr::core::vector3df fixedPos;
-
-          for (itColl = player2->mCpCollectablesSeenByPlayer.begin(); itColl != player2->mCpCollectablesSeenByPlayer.end(); ++itColl) {
-               fixedPos = (*itColl)->Position;
-               fixedPos.X = -fixedPos.X;
-               mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos, this->mDrawDebug->pink);
-          }
-      }*/
-
-       /* if (currPlayerFollow != nullptr) {
-
-              if (currPlayerFollow->mCpTargetCollectableToPickUp != nullptr) {
-                   irr::core::vector3df fixedPos = currPlayerFollow->mCpTargetCollectableToPickUp->Position;
-                   fixedPos.X = -fixedPos.X;
-                   mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, fixedPos,
-                                          this->mDrawDebug->pink);
-              }
-
-              if (currPlayerFollow->mCpWayPointLinkClosestToCollectable != nullptr) {
-                  mDrawDebug->Draw3DLine(currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->A,
-                                         currPlayerFollow->mCpWayPointLinkClosestToCollectable->pLineStruct->B,
-                                         this->mDrawDebug->cyan);
-              }
-        }*/
-
-
      /*
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt1, this->mDrawDebug->red);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt2, this->mDrawDebug->cyan);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt3, this->mDrawDebug->pink);
         mDrawDebug->Draw3DLine(this->topRaceTrackerPointerOrigin, dbgMiniMapPnt4, this->mDrawDebug->orange);*/
 
-       /* if (currPlayerFollow != nullptr) {
-         */
-               /* if (currPlayerFollow->cPCurrentFollowSeg != nullptr) {
-                    irr::core::vector3df incY2(0.0f, 0.15f, 0.0f);
-
-                    mDrawDebug->Draw3DLine(
-                                currPlayerFollow->cPCurrentFollowSeg->pLineStruct->A + incY2,
-                                currPlayerFollow->cPCurrentFollowSeg->pLineStruct->B + incY2,
-                                this->mDrawDebug->orange);
-                }*/
-           // }
-
-            /*if (currPlayerFollow->mFailedLinks.size() > 0) {
-                std::vector<WayPointLinkInfoStruct*>::iterator it3;
-
-                for (it3 = currPlayerFollow->mFailedLinks.begin(); it3 != currPlayerFollow->mFailedLinks.end(); ++it3) {
-                    mDrawDebug->Draw3DLine((*it3)->pLineStruct->A, (*it3)->pLineStruct->B,
-                                           mDrawDebug->orange);
-                }
-            }*/
-
-
-           /* if (mVanillaCraftVec[0]->currClosestWayPointLink.first != nullptr) {
-                irr::core::vector3df vanPos = mVanillaCraftVec[0]->ThingData.Position;
-                irr::core::vector3df irrPos = mVCalc->VanillaToIrrlichtCoord(vanPos);
-                mGame->mDrawDebug->Draw3DLine(irrPos, mVanillaCraftVec[0]->projPlayerPositionClosestWayPointLink,
-                                       mGame->mDrawDebug->orange);
-            }*/
-
-        //}
-
-        //DebugShowAllObstaclePlayers();
-    /*    MapEntry* entry;
-
-        for (size_t x = 0; x < 256; x++) {
-            for (size_t y = 0; y < 160; y++) {
-                entry = mLevelTerrain->levelRes->pMap[x][y];
-                if (entry->mVector != 0) {
-                    mLevelTerrain->DrawOutlineSelectedCell(irr::core::vector2di(x, y), mGame->mDrawDebug->blue);
-                }
-            }
-        }*/
-
-      //  mVTrack->DrawDebugVectors();
-
+    // mVTrack->DrawDebugVectors();
     // mVCalc->DebugDraw();
+
     /*if (mVTrack->collided) {
         mGame->mDrawDebug->Draw3DLine(mVTrack->debugCol1Vec1, mVTrack->debugCol1Vec2, mGame->mDrawDebug->red);
     } else {
         mGame->mDrawDebug->Draw3DLine(mVTrack->debugCol1Vec1, mVTrack->debugCol1Vec2, mGame->mDrawDebug->cyan);
     }*/
 
-    DebugDrawChildInfo();
+    if (DebugShowChildInfo) {
+        DebugDrawChildInfo();
+    }
 
     //DebugDrawChildInfoMemDump();
 

@@ -34,6 +34,7 @@
 #include "veffectmanager.h"
 #include "vthing.h"
 #include "vcalc.h"
+#include "../audio/sound.h"
 #include "../race.h"
 #include "../game.h"
 #include "../resources/texture.h"
@@ -133,6 +134,8 @@ EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::v
 
     EffectInfoStruct* newInfoStruct = new EffectInfoStruct();
     newInfoStruct->effectType = whichEffect;
+    bool explosionSound = false;
+    irr::core::vector3df irrPos;
 
     switch (whichEffect) {
         case EffectType::Smoke: {
@@ -172,6 +175,7 @@ EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::v
             newInfoStruct->currDrawNr = 0;
 
             InitSceneNode(newInfoStruct, animTexListExplosion[newInfoStruct->currDrawNr], irr::core::dimension2df(1.0f, 1.0f));
+            explosionSound = true;
             break;
         }
         case EffectType::ExplosionMedium: {
@@ -180,6 +184,8 @@ EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::v
                                                                2, 1, id);
 
             initialiseEFFECT_EXPLOSION_MEDIUM(newInfoStruct->thingPntr);
+
+            explosionSound = true;
 
             //this effect has no assigned SceneNode itself
             break;
@@ -190,11 +196,10 @@ EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::v
         }
     }
 
+    irrPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(newInfoStruct->thingPntr->Position);
+
     //not every effect has a SceneNode assigned to it!
     if (newInfoStruct->sceneNode != nullptr) {
-        irr::core::vector3df irrPos =
-                mParentRace->mVCalc->VanillaToIrrlichtCoord(newInfoStruct->thingPntr->Position);
-
         newInfoStruct->sceneNode->setPosition(irrPos);
     }
 
@@ -205,10 +210,24 @@ EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::v
     //we damage the memory integrity
     mNewEffectVec.push_back(newInfoStruct);
 
+    if (explosionSound) {
+        mParentRace->mSoundEngine->PlaySound(SRES_GAME_EXPLODE, irrPos, false);
+    }
+
     return newInfoStruct;
 }
 
 void VEffectManager::UpdateEffect(EffectInfoStruct* whichInfoStruct) {
+        if (whichInfoStruct->thingPntr == nullptr)
+            return;
+
+        if ((whichInfoStruct->thingPntr->Status & 4) != 0) {
+            mParentRace->mThingManager->thing_remove(whichInfoStruct->thingPntr);
+            whichInfoStruct->thingPntr = nullptr;
+            whichInfoStruct->readyForCleanup = true;
+            return;
+        }
+
     switch (whichInfoStruct->effectType) {
         case EffectType::Smoke: {
             processEFFECT_SMOKE(whichInfoStruct);
@@ -255,7 +274,7 @@ void VEffectManager::CleanupEffect(EffectInfoStruct* whichInfoStruct) {
     //give back the thing, but only if this was not done before
     //in the effect PROCESS functions
     if (whichInfoStruct->thingPntr != nullptr) {
-        mParentRace->mThingManager->thing_delete(whichInfoStruct->thingPntr);
+        mParentRace->mThingManager->thing_remove(whichInfoStruct->thingPntr);
         whichInfoStruct->thingPntr = nullptr;
     }
 
@@ -292,9 +311,13 @@ void VEffectManager::Update(irr::f32 frameDeltaTime) {
             itEffectNew = mNewEffectVec.erase(itEffectNew);
         }
 
+        std::vector<EffectInfoStruct*>::reverse_iterator itRevEffect;
+
         //Update all current active effects
-        for (itEffect = mActiveEffectVec.begin(); itEffect != mActiveEffectVec.end(); ++itEffect) {
-             UpdateEffect((*itEffect));
+        //30.08.2026: We need to iterate in reverse order so that the underlying Things
+        //stuff with Parents and Childs works. At least it seems so.
+        for (itRevEffect = mActiveEffectVec.rbegin(); itRevEffect != mActiveEffectVec.rend(); ++itRevEffect) {
+             UpdateEffect((*itRevEffect));
         }
 
         EffectInfoStruct* pntr;
@@ -329,10 +352,6 @@ void VEffectManager::processEFFECT_SMOKE(EffectInfoStruct* whichInfoStruct) {
    size_t v6;
    bool v7;
    irr::core::vector3df v8;
-
-   //if we have already done our job just exit!
-   if (whichInfoStruct->readyForCleanup)
-       return;
 
    VThing* whichThing = whichInfoStruct->thingPntr;
 
@@ -382,8 +401,6 @@ processEFFECT_SMOKE_LABEL9:
    }
    if (action == 0x14) {
        mParentRace->mThingManager->thing_delete(whichThing);
-       whichInfoStruct->thingPntr = nullptr;
-       whichInfoStruct->readyForCleanup = true;
        whichInfoStruct->sceneNode->setVisible(false);
        return;
    }
@@ -418,10 +435,6 @@ void VEffectManager::processEFFECT_EXPLOSION(EffectInfoStruct* whichInfoStruct) 
     uint16_t v5;
     uint16_t v6;
     size_t number;
-
-    //if we have already done our job just exit!
-    if (whichInfoStruct->readyForCleanup)
-        return;
 
     VThing* whichThing = whichInfoStruct->thingPntr;
 
@@ -474,8 +487,6 @@ void VEffectManager::processEFFECT_EXPLOSION(EffectInfoStruct* whichInfoStruct) 
               return;
           }
           mParentRace->mThingManager->thing_delete(whichThing);
-          whichInfoStruct->thingPntr = nullptr;
-          whichInfoStruct->readyForCleanup = true;
       }
       return;
     }
@@ -531,10 +542,6 @@ void VEffectManager::processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoS
     EffectInfoStruct* infoStruct = nullptr;
     VThing* v12 = nullptr;
 
-    //if we have already done our job just exit!
-    if (whichInfoStruct->readyForCleanup)
-        return;
-
     VThing* whichThing = whichInfoStruct->thingPntr;
 
     action = whichThing->Action;
@@ -545,8 +552,6 @@ void VEffectManager::processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoS
                  return;
              }
              mParentRace->mThingManager->thing_delete(whichThing);
-             whichInfoStruct->thingPntr = nullptr;
-             whichInfoStruct->readyForCleanup = true;
           }
           return;
        }
@@ -564,8 +569,6 @@ void VEffectManager::processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoS
     v5 = 0;
     if (whichThing->Life < 0) {
         mParentRace->mThingManager->thing_delete(whichThing);
-        whichInfoStruct->thingPntr = nullptr;
-        whichInfoStruct->readyForCleanup = true;
         return;
     }
     do {
@@ -628,10 +631,6 @@ void VEffectManager::processEFFECT_SMOKE_FIRE(EffectInfoStruct* whichInfoStruct)
     int16_t addZPosFixed;
     irr::f32 addZPosFloat;
 
-    //if we have already done our job just exit!
-    if (whichInfoStruct->readyForCleanup)
-        return;
-
     VThing* whichThing = whichInfoStruct->thingPntr;
 
     action = whichThing->Action;
@@ -677,11 +676,7 @@ processEFFECT_SMOKE_FIRE_LABEL_9:
     }
     if (action == 0x14) {
         mParentRace->mThingManager->thing_delete(whichThing);
-        whichInfoStruct->thingPntr = nullptr;
-        whichInfoStruct->readyForCleanup = true;
         whichInfoStruct->sceneNode->setVisible(false);
         return;
     }
 }
-
-
