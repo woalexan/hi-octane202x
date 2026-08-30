@@ -29,8 +29,10 @@
 #include "vanilla/vcamera.h"
 #include "vanilla/veffectmanager.h"
 #include "vanilla/debug/memdump.h"
+#include "vanilla/debug/datatools.h"
 #include "vanilla/debug/binaryfile.h"
 #include "vanilla/debug/structs/thing.h"
+#include "vanilla/debug/structs/basicstructs.h"
 #include "vanilla/debug/structs/thingvehicle.h"
 
 #include "draw/hud.h"
@@ -1612,23 +1614,32 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
 void Race::CompareMemDumpsVanilla() {
     mVDbgInterface->Init("level1-atstart.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+    //mVDbgInterface->Init("level1-aftermgun.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+}
 
-     /*std::vector<DiffByte> diffBytes;
+void Race::DebugDrawChildInfoMemDump() {
+    irr::core::vector2di cellCoord;
+    if (mVDbgInterface == nullptr)
+        return;
 
-     diffBytes =
-             mVDbgInterface->CompareData(*mVDbgInterface->newDump->mMemDumpData->mData, *mVDbgInterface->newDump2->mMemDumpData->mData);
+    if (mVDbgInterface->newDump == nullptr)
+        return;
 
-     mVDbgInterface->PrintCompareDataResult(diffBytes, (int)(mVDbgInterface->mDumpLevelStructStart));*/
+    if (mVDbgInterface->newDump->MapElements == nullptr)
+        return;
 
-     ParseThing* player1 = mVDbgInterface->newDump->ReturnThingFirstPlayer();
-     player1->Print();
+    for (size_t x = 0; x < 256; x++) {
+        for (size_t y = 0; y < 160; y++) {
+           if (mVDbgInterface->newDump->MapElements[x][y] == nullptr)
+               continue;
 
-/*
-
-     ParseThing* thingNewParent = mVDbgInterface->newDump2->ReturnThingsWithIndex(884);
-     if (thingNewParent != nullptr) {
-         thingNewParent->Print();
-     }*/
+           if (mVDbgInterface->newDump->MapElements[x][y]->Child->mRawValue != 0) {
+               cellCoord.X = x;
+               cellCoord.Y = y;
+               mLevelTerrain->DrawOutlineSelectedCell(cellCoord, mGame->mDrawDebug->cyan);
+           }
+        }
+    }
 }
 
 void Race::Init() {
@@ -3242,7 +3253,9 @@ void Race::Render() {
 
     DebugDrawChildInfo();
 
-    mThingManager->DebugDrawParentInfo();
+    //DebugDrawChildInfoMemDump();
+
+    //mThingManager->DebugDrawParentInfo();
 }
 
 void Race::UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable) {

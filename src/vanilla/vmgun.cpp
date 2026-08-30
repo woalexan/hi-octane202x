@@ -159,12 +159,6 @@ uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
     int16_t v28;
     BulletThingStruct* v20;
 
-    //if this shot is done with its work
-    //and we are waiting still for cleanup just
-    //exit
-    if (whichShot->ReadyForCleanup)
-        return 1;
-
     VThing* whichThing = whichShot->ThingPntr;
 
     position = whichThing->Position;
@@ -264,9 +258,6 @@ uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
 
     mParentRace->mThingManager->thing_delete(whichThing);
 
-    //this shot should be cleaned up now
-    whichShot->ReadyForCleanup = true;
-
     //play us some sound
     //to be finished later
     if (v1) {
@@ -363,18 +354,13 @@ void VMGun::UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::cor
 uint8_t VMGun::processEFFECT_BULLET(BulletThingStruct* whichBulletThing) {
     irr::f32 v2;
 
-    //if this bullet has done its job, and waits for cleanup
-    //just exit here
-    if (whichBulletThing->ReadyForCleanup)
-        return 1;
-
     v2 = whichBulletThing->ThingData->Movement.AngleXY + 11.375f;
     whichBulletThing->ThingData->Life--;
 
     whichBulletThing->ThingData->Movement.AngleXY = v2;
     if (whichBulletThing->ThingData->Life < 0) {
         //is not needed anymore, should be deleted
-        whichBulletThing->ReadyForCleanup = true;
+        mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
 
         return 1;
     } else {
@@ -394,7 +380,7 @@ void VMGun::CleanupBulletThing(BulletThingStruct* whichBulletThing) {
     if (whichBulletThing == nullptr)
         return;
 
-    //give back the thing
+    //give back the thing, if not already happened
     if (whichBulletThing->ThingData != nullptr) {
         mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
         whichBulletThing->ThingData = nullptr;
@@ -482,22 +468,46 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
             }
         }
 
-        for (it = mBulletThings.begin(); it != mBulletThings.end(); ++it) {
-            processEFFECT_BULLET((*it));
+        std::vector<BulletThingStruct*>::reverse_iterator itReverse;
 
-            //we need to update the TimeSlice variable in
-            //the EFFECT_BULLET Thing
-            mParentRace->mThingManager->UpdateTimeSlice((*it)->ThingData);
+        //30.08.2026: We need to iterate in reverse order so that the underlying Things
+        //stuff with Parents and Childs works. At least it seems so.
+        for (itReverse = mBulletThings.rbegin(); itReverse != mBulletThings.rend(); ++itReverse) {
+            //was the Thing itself of this BulletEffect already deleted?
+            //If so nothing to do anymore
+            if ((*itReverse)->ThingData == nullptr)
+                continue;
+
+            if (((*itReverse)->ThingData->Status & 4) != 0) {
+                mParentRace->mThingManager->thing_remove((*itReverse)->ThingData);
+                (*itReverse)->ThingData = nullptr;
+                (*itReverse)->ReadyForCleanup = true;
+            } else {
+                processEFFECT_BULLET((*itReverse));
+
+                //we need to update the TimeSlice variable in
+                //the EFFECT_BULLET Thing
+                mParentRace->mThingManager->UpdateTimeSlice((*itReverse)->ThingData);
+            }
         }
 
         //first update all currently existing shots
-        std::vector<MGunShotStruct*>::iterator itShot;
-        for (itShot = mShotVec.begin(); itShot != mShotVec.end(); ++itShot) {
-             processSHOT_BULLET((*itShot));
+        std::vector<MGunShotStruct*>::reverse_iterator itShot;
 
-             //we need to update the TimeSlice variable in
-             //the SHOT_BULLER_THING
-             mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
+        //30.08.2026: We need to iterate in reverse order so that the underlying Things
+        //stuff with Parents and Childs works. At least it seems so.
+        for (itShot = mShotVec.rbegin(); itShot != mShotVec.rend(); ++itShot) {
+             if (((*itShot)->ThingPntr->Status & 4) != 0) {
+                 mParentRace->mThingManager->thing_remove((*itShot)->ThingPntr);
+                 (*itShot)->ThingPntr = nullptr;
+                 (*itShot)->ReadyForCleanup = true;
+             } else {
+                 processSHOT_BULLET((*itShot));
+
+                 //we need to update the TimeSlice variable in
+                 //the SHOT_BULLER_THING
+                 mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
+             }
         }
 
         if (mOwner != nullptr) {

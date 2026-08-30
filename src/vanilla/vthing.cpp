@@ -210,9 +210,26 @@ void VThingManager::RunHousekeeping() {
         pntrIdx = mParentRace->mLevelRes->mThingFree->Thing[idx];
 
         if (pntrIdx != 0) {
-            if ((Thing[pntrIdx].Status & 4) != 0) {
+
+         /*   if ((Thing[pntrIdx].Group == 0) && (Thing[pntrIdx].Member == 0)) {
+                logging::Warning("RunHousekeeping: Group = 0 and Member = 0 found!");
+            }*/
+
+
+            // //the following types of objects are removed directly
+            // //by the EffectManager, and that this works correctly
+            // //we can not clean them up here!
+            // if ((Thing[pntrIdx].Group == 2) && (Thing[pntrIdx].Member == 4)) {
+            //     continue;
+            // }
+
+            // if ((Thing[pntrIdx].Group == 6) && (Thing[pntrIdx].Member == 0)) {
+            //     continue;
+            // }
+
+         /*   if ((Thing[pntrIdx].Status & 4) != 0) {
                 thing_remove(&Thing[pntrIdx]);
-            }
+            }*/
         }
     }
 }
@@ -255,6 +272,11 @@ uint8_t VThingManager::mapwho_delete(VThing* whichThing) {
     int mCurrPosCellX;
     int mCurrPosCellY;
     MapEntry* entry = nullptr;
+
+    //for debugging purposes
+    /*if ((whichThing->Group == 2) && (whichThing->Member == 4)) {
+        entry = nullptr;
+    }*/
 
     if (whichThing->Parent) {
         Thing[whichThing->Parent].Child = whichThing->Child;

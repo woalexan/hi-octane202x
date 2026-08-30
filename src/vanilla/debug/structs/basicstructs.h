@@ -106,4 +106,24 @@ private:
     std::string mName;
 };
 
+class MapElementClass {
+public:
+    MapElementClass(DataTools* parent, std::string name, size_t startPosData);
+    ~MapElementClass();
+
+    std::string GetAsString();
+
+    Int16_Num* Shade = nullptr;
+    Int16_Num* Alt = nullptr;
+    Int16_Num* Block = nullptr;
+    Int16_Num* Child = nullptr;
+    Int16_Num* Vector = nullptr;
+    UInt8_Num* Orientation = nullptr;
+    UInt8_Num* Marker = nullptr;
+
+private:
+    DataTools* mParent = nullptr;
+    std::string mName;
+};
+
 #endif // BASICSTRUCTS_H

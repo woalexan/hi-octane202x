@@ -378,6 +378,7 @@ public:
     VVehicle* GetVehicleWithId(size_t whichId);
 
     void CompareMemDumpsVanilla();
+    void DebugDrawChildInfoMemDump();
 
     //handles the file data structure of the
     //level

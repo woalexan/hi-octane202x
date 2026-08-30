@@ -167,3 +167,56 @@ MovementClass::~MovementClass() {
         SpeedActual = nullptr;
     }
 }
+
+MapElementClass::MapElementClass(DataTools* parent, std::string name, size_t startPosData) {
+    mParent = parent;
+    mName = name;
+    Shade = mParent->AddInt16_NumVar(std::string("Shade"), startPosData);
+    Alt = mParent->AddInt16_NumVar(std::string("Alt"), startPosData + 0x2);
+    Block = mParent->AddInt16_NumVar(std::string("Block"), startPosData + 0x4);
+    Child = mParent->AddInt16_NumVar(std::string("Child"), startPosData + 0x6);
+    Vector = mParent->AddInt16_NumVar(std::string("Vector"), startPosData + 0x8);
+    Orientation = mParent->AddUInt8_NumVar(std::string("Orientation"), startPosData + 0xA);
+    Marker = mParent->AddUInt8_NumVar(std::string("Marker"), startPosData + 0xB);
+}
+
+std::string MapElementClass::GetAsString() {
+    std::ostringstream output;
+
+    output << mName << ": " << Shade->GetAsString() << ", " << Alt->GetAsString() << ", "
+           << Block->GetAsString() << ", " << Child->GetAsString()  << ", " <<  Vector->GetAsString()
+           << ", " << Orientation->GetAsString() << ", " << Marker->GetAsString();
+
+    return output.str();
+}
+
+MapElementClass::~MapElementClass() {
+    if (Shade != nullptr) {
+        delete Shade;
+        Shade = nullptr;
+    }
+    if (Alt != nullptr) {
+        delete Alt;
+        Alt = nullptr;
+    }
+    if (Block != nullptr) {
+        delete Block;
+        Block = nullptr;
+    }
+    if (Child != nullptr) {
+        delete Child;
+        Child = nullptr;
+    }
+    if (Vector != nullptr) {
+        delete Vector;
+        Vector = nullptr;
+    }
+    if (Orientation != nullptr) {
+        delete Orientation;
+        Orientation = nullptr;
+    }
+    if (Marker != nullptr) {
+        delete Marker;
+        Marker = nullptr;
+    }
+}

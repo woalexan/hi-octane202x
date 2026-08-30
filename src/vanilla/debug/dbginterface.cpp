@@ -123,6 +123,7 @@ void DbgInterface::Init(std::string memDumpFileName, std::string memDumpFileName
         newDump->ReadThingList(mDumpLevelStructStart);
         newDump->ReadAllThings(mDumpLevelStructStart);
         newDump->ReadVectors(mDumpLevelStructStart);
+        newDump->ReadAllMapElements(mDumpLevelStructStart);
 
         if (newDump2 != nullptr) {
             newDump2->ReadThingList(mDumpLevelStructStart);
