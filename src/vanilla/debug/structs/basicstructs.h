@@ -18,6 +18,7 @@
 class MemDump;
 class UInt8_Num;
 class UInt16_Num;
+class UInt32_Num;
 class Int16_Num;
 class Int32_Num;
 class FixedPointInt16_8R8Num;
@@ -56,6 +57,38 @@ private:
     std::string mName;
 };
 
+class AffectClass {
+public:
+    AffectClass(DataTools* parent, std::string name, size_t startPosData);
+    ~AffectClass();
+
+    std::string GetAsString();
+
+    UInt32_Num* Status = nullptr;
+    Int16_Num* Number = nullptr;
+    UInt16_Num* Who = nullptr;
+
+private:
+    DataTools* mParent = nullptr;
+    std::string mName;
+};
+
+class ColideClass {
+public:
+    ColideClass(DataTools* parent, std::string name, size_t startPosData);
+    ~ColideClass();
+
+    std::string GetAsString();
+
+    Coord3DClass* Size = nullptr;
+    AffectClass* Affect = nullptr;
+    UInt16_Num* Group = nullptr;
+
+private:
+    DataTools* mParent = nullptr;
+    std::string mName;
+};
+
 class MovementClass {
 public:
     MovementClass(DataTools* parent, std::string name, size_t startPosData);
@@ -67,6 +100,26 @@ public:
     FixedPointInt16_8R8NumAngle* AngleZY = nullptr;
     FixedPointInt16_8R8NumAngle* AngleXZ = nullptr;
     FixedPointInt32_8R8Num* SpeedActual = nullptr;
+
+private:
+    DataTools* mParent = nullptr;
+    std::string mName;
+};
+
+class MapElementClass {
+public:
+    MapElementClass(DataTools* parent, std::string name, size_t startPosData);
+    ~MapElementClass();
+
+    std::string GetAsString();
+
+    Int16_Num* Shade = nullptr;
+    Int16_Num* Alt = nullptr;
+    Int16_Num* Block = nullptr;
+    Int16_Num* Child = nullptr;
+    Int16_Num* Vector = nullptr;
+    UInt8_Num* Orientation = nullptr;
+    UInt8_Num* Marker = nullptr;
 
 private:
     DataTools* mParent = nullptr;

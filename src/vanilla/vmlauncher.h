@@ -31,8 +31,8 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VMGUN_H
-#define VMGUN_H
+#ifndef VMLAUNCHER_H
+#define VMLAUNCHER_H
 
 #include "irrlicht.h"
 #include "vbase.h"
@@ -48,22 +48,12 @@ class Race;
 class VVehicle;
 struct VThing;
 
-struct BulletThingStruct {
-    VThing* ThingData = nullptr;
-
-    irr::scene::IBillboardSceneNode* animSprite = nullptr;
-    irr::scene::ISceneNodeAnimator *animator = nullptr;
-
-    bool ReadyForCleanup = false;
-    bool animatorActive = false;
-};
-
-struct MGunShotStruct {
+struct MMissileShotStruct {
     VThing* ThingPntr = nullptr;
     bool ReadyForCleanup = false;
 };
 
-class VMGun {
+class VMLauncher {
 
 private:
     Race* mParentRace = nullptr;
@@ -73,41 +63,22 @@ private:
     //from Thing (ThingWeapon)
     int16_t TriggerRestrictionCount = 0;
 
-    std::vector<BulletThingStruct*> mBulletThings;
-    std::vector<MGunShotStruct*> mShotVec;
-
     irr::f32 mAbsTimeAcc = 0.0f;
 
-    //Returns true in case of success
-    //False otherwise
-    bool LoadSprites();
+    std::vector<MMissileShotStruct*> mMissileShotVec;
 
-    irr::core::array<irr::video::ITexture*> animTexList;
+    void initialiseSHOT_MISSILE(MMissileShotStruct* whichMissileShot);
+    uint8_t processSHOT_MISSILE(MMissileShotStruct* whichMissileShot);
 
-    void initialiseSHOT_BULLET(MGunShotStruct* whichShot);
-    uint8_t processSHOT_BULLET(MGunShotStruct* whichShot);
-
-    VThing* CreateShot(irr::core::vector3df* position,
+    VThing* CreateMissileShot(irr::core::vector3df* position,
                               irr::f32 angleXY, irr::f32 angleZY,
                               irr::f32 angleXZ, int16_t id);
 
-    BulletThingStruct* CreateBulletThing(irr::core::vector3df* position,
-                                       irr::f32 angleXY, irr::f32 angleZY,
-                                       irr::f32 angleXZ, int16_t id);
-
-    uint8_t processEFFECT_BULLET(BulletThingStruct* whichBulletThing);
-    void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);
-
-    void CleanupBulletThing(BulletThingStruct* whichBulletThing);
-
 public:
-    VMGun(Race* parentRace, VVehicle* owner);
-    ~VMGun();
+    VMLauncher(Race* parentRace, VVehicle* owner);
+    ~VMLauncher();
 
     void Update(irr::f32 frameDeltaTime);
-
-    //Not sure if I really need it at the end
-    bool AllAnimationsFinished();
 
     //variables moved here
     //from Thing (ThingWeapon)
@@ -115,6 +86,15 @@ public:
     int16_t TriggerTime = 0;
     int16_t Upgrade;
     int16_t Target = 0;
+
+    //Missile launcher seems to need also a
+    //Count variable
+    int16_t Count = 0;
+
+    //and a Status
+    uint32_t Status = 0;
+
+    int32_t RocketsLaunched = 0;
 };
 
-#endif // VMGUN_H
+#endif // VMLAUNCHER_H

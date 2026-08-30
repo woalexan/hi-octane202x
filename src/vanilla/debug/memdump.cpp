@@ -9,6 +9,7 @@
 
 #include "memdump.h"
 #include <algorithm>
+#include <sstream>
 #include "../../utils/logging.h"
 #include "binaryfile.h"
 #include "datatools.h"
@@ -29,6 +30,12 @@ MemDump::MemDump(std::string dumpFile)
    ThingVehicle = new ParseThingVehicle(this);
    Vectors = new ParseVectors(this);
    EngineCamera = new ParseCamera(this);
+
+   for (size_t x = 0; x < 256; x++) {
+       for (size_t y = 0; y < 160; y++) {
+          MapElements[x][y] = nullptr;
+       }
+   }
 }
 
 MemDump::~MemDump() {
@@ -40,6 +47,15 @@ MemDump::~MemDump() {
     delete mMemDumpData;
     delete Vectors;
     delete EngineCamera;
+
+    for (size_t x = 0; x < 256; x++) {
+        for (size_t y = 0; y < 160; y++) {
+           if (MapElements[x][y] != nullptr) {
+               delete MapElements[x][y];
+               MapElements[x][y] = nullptr;
+           }
+        }
+    }
 }
 
 void MemDump::ReadVectors(size_t dumpLevelStructStart) {
@@ -164,6 +180,21 @@ bool MemDump::FindDataInDump(std::vector<uint8_t> searchPattern, std::vector<siz
         return true;
     } else {
         return false;
+    }
+}
+
+void MemDump::ReadAllMapElements(size_t dumpLevelStructStart) {
+    std::string name("");
+    std::stringstream sstream;
+    size_t currPos = 0x5A844 + dumpLevelStructStart;
+
+    for (size_t y = 0; y < 160; y++) {
+         for (size_t x = 0; x < 256; x++) {
+           sstream << "X: " << (int)(x) << " Y: " << (int)(y);
+           name = sstream.str();
+           MapElements[x][y] = new MapElementClass(mDataTools, name, currPos);
+           currPos += 0xC;
+        }
     }
 }
 

@@ -94,5 +94,13 @@ void RevIdentifyEntity(Entity::EntityType newEntityType, int8_t &newType, int8_t
 #define strcasecmp _stricmp
 #endif
 
+/* TODO 24.08.2026:
+
+- HUD: Reimplement glass damage
+
+
+
+                                                 */
+
 #endif // DEFINITIONS_H
 

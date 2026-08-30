@@ -334,9 +334,11 @@ sf::Sound* SoundEngine::PlaySound(uint8_t soundResId, bool localizedSoundSource,
                 //over distance to 0, to make sure sounds are not getting more faint over distance
                 if (!localizedSoundSource) {
                     sndPntr->setAttenuation(0.0f);
+                    sndPntr->setRelativeToListener(true);
                 } else {
                     //restore the default attenuation of 1.0f
                     sndPntr->setAttenuation(1.0f);
+                    sndPntr->setRelativeToListener(false);
                 }
 
                 sndPntr->play();

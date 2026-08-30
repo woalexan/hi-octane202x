@@ -21,6 +21,7 @@ ParseThing::ParseThing(MemDump* parentMemdump) {
 void ParseThing::Print() {
     std::cout << Position->GetAsString() << std::endl;
     std::cout << Movement->GetAsString() << std::endl;
+    std::cout << Colide->GetAsString() << std::endl;
     std::cout << Displacement->GetAsString() << std::endl;
     std::cout << Status->GetAsString() << std::endl;
     std::cout << Target->GetAsString() << std::endl;
@@ -44,6 +45,7 @@ void ParseThing::Print() {
 void ParseThing::Update(size_t fromAdr) {
     Position = new Coord3DClass(mParentMemDump->mDataTools, std::string("Position"), fromAdr);
     Movement = new MovementClass(mParentMemDump->mDataTools, std::string("Movement"), fromAdr + 0x10);
+    Colide = new ColideClass(mParentMemDump->mDataTools, std::string("Colide"), fromAdr + 0x1C);
     Displacement = new Coord3DClass(mParentMemDump->mDataTools, std::string("Displacement"), fromAdr + 0x30);
     Status = mParentMemDump->mDataTools->AddUInt32_NumVar(std::string("Status"), fromAdr + 0x44);
     Target = mParentMemDump->mDataTools->AddInt16_NumVar(std::string("Target"), fromAdr + 0x48);

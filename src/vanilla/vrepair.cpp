@@ -589,17 +589,9 @@ void VRepair::Update(irr::f32 frameDeltaTime) {
     irr::core::vector3df position2;
     irr::core::vector3df delta;
 
-    //we want to increment mTimeSlice every 50ms
-    //in the original game it starts counting at 0, increases every 50ms
-    //and the overflows back from 0xFF to 00
     mAbsTimeIntegrator += frameDeltaTime;
     if (mAbsTimeIntegrator >= 0.05) {
         mAbsTimeIntegrator = 0.0f;
-        if (ThingData->TimeSlice < 0xFF) {
-            ThingData->TimeSlice++;
-        } else {
-            ThingData->TimeSlice = 0;
-        }
 
         //the following code should run every ~50ms
         //timing close enough when called
@@ -658,6 +650,10 @@ void VRepair::Update(irr::f32 frameDeltaTime) {
         }
 
         UpdateSceneNode();
+
+        //we need to update the TimeSlice variable in
+        //the repair vehicle thing!
+        mRace->mThingManager->UpdateTimeSlice(this->ThingData);
     }
 }
 

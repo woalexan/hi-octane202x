@@ -59,6 +59,10 @@ class Collectable;
 class HUD;
 class DustBelowCraft;
 class VMGun;
+class VMLauncher;
+class Race;
+struct MapTileRegionStruct;
+struct VThing;
 
 struct VehicleSensorPointStruct {
     irr::core::vector3df Position;
@@ -138,10 +142,6 @@ struct VehicleStatsStruct {
     int16_t Invisible;
     int16_t VehicleHit;
 
-    //TODO: Move to the MGun and Rocket
-    //weapon structs later
-    int16_t MRocketUpgrade;
-
     //player names in Hi-Octane are limited
     //to 8 characters, plus 1 termination char + 1 extra
     //char to be on the safe side :)
@@ -181,9 +181,19 @@ struct VehicleBoosterStruct {
 //to vehicle
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
+    int32_t RocketsHit = 0;
     int32_t Bullets = 0;
     int32_t BulletsHit = 0;
     int32_t MiniGunHeatup = 0;
+
+    //Note Deaths: In the original game implementation the Deaths array seems
+    //to store the index to the ControlThing that did the frag. In my implementation
+    //I will use the vehicle number right now instead!
+    int32_t Deaths[8];
+
+    int32_t DeathsCount = 0;
+    int32_t Kills[8];
+    int32_t KillsCount = 0;
     int32_t LapTimes[100];
     int32_t TotalTime = 0;
     int32_t LapCount = 0;
@@ -240,14 +250,6 @@ struct VehicleAutoTargetStruct {
     uint16_t ValidTargetCount;
 };
 
-/************************
- * Forward declarations *
- ************************/
-
-class Race;
-struct MapTileRegionStruct;
-struct VThing;
-
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -259,6 +261,8 @@ public:
 
     void Update(irr::f32 frameDeltaTime);
 
+    bool AllAnimatorsDone();
+
     void DrawDebug();
     void TestCamera();
 
@@ -268,6 +272,7 @@ public:
     bool KeyPressedDeaccel = false;
     bool KeyPressedBooster = false;
     bool KeyPressedMachineGun = false;
+    bool KeyPressedMissileLauncher = false;
 
     //Pointer to my thing
     VThing* ThingData = nullptr;
@@ -301,6 +306,10 @@ public:
     int16_t mThrustEffectiveness;
     irr::f32 mSideslipFriction = 0.0f;
     irr::f32 mSideslipToThrust = 0.0f;
+
+    //is the distance of the currently closest missile
+    //to this player vehicle
+    irr::f32 ClosestMissile = 0.0f;
 
     //BumpDamage was not used at the end
     //at last in the Playstation version of the
@@ -381,9 +390,6 @@ public:
     void SetMyHUD(HUD* pntrHUD);
     HUD* GetMyHUD();
 
-    void SetNewState(irr::u32 newPlayerState);
-    irr::u32 GetCurrentState();
-
     void StartPlayingWarningSound();
     void StopPlayingWarningSound();
 
@@ -418,8 +424,14 @@ public:
 
     void vehicle_set_camera();
 
+    void FinishedRace();
+    void TriggerRaceStart();
+
     //My Weapons
     VMGun* mMGun = nullptr;
+    VMLauncher* mMLauncher = nullptr;
+
+    uint32_t GetControlOrigin();
 
 private:
     uint32_t ControlOrigin = 1; //activates the human player
@@ -428,11 +440,11 @@ private:
     int32_t TotalRaceTicks = 0;
     int32_t TotalRaceTicksFinished = 0;
 
-    irr::u8 mPlayerCurrentState;
-
     irr::f32 mAbsTimeIntegrator = 0.0f;
 
     irr::f32 mUpdateVehicleTimeIntegrator = 0.0f;
+
+    bool mRaceTriggered = false;
 
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* mCraftMesh = nullptr;
@@ -549,16 +561,6 @@ private:
     //the last player update
     MapTileRegionStruct* mLastCraftTriggerRegion = nullptr;
 
-    void UpdateHUDState();
-
-    //Player states I defined myself
-    //TODO 04.07.2026: This internal variables
-    //have no effect right now on the vehicle
-    //Either map to other variable
-    //or use them somewhere
-    bool mPlayerCanMove = false;
-    bool mPlayerCanShoot = false;
-
     //variables to remember if during the last
     //gameloop this player did any charging
     bool mLastChargingFuel = false;
@@ -604,7 +606,6 @@ private:
     bool mLastEmitDustCloud = false;
 
     void FinishedLap();
-    void FinishedRace();
 
     void UpdateCoordinates();
 

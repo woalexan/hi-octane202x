@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2026 Wolf Alexander
+ Copyright (C) 2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -31,90 +31,82 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VMGUN_H
-#define VMGUN_H
+#ifndef VEFFECTMANAGER_H
+#define VEFFECTMANAGER_H
 
 #include "irrlicht.h"
-#include "vbase.h"
 #include <cstdint>
 #include <vector>
-#include "../audio/sound.h"
 
 /************************
  * Forward declarations *
  ************************/
 
 class Race;
-class VVehicle;
 struct VThing;
 
-struct BulletThingStruct {
-    VThing* ThingData = nullptr;
-
-    irr::scene::IBillboardSceneNode* animSprite = nullptr;
-    irr::scene::ISceneNodeAnimator *animator = nullptr;
-
-    bool ReadyForCleanup = false;
-    bool animatorActive = false;
+enum EffectType {
+          Undefined, Smoke, ExplosionSmall, ExplosionMedium, SmokeFire
 };
 
-struct MGunShotStruct {
-    VThing* ThingPntr = nullptr;
-    bool ReadyForCleanup = false;
+struct EffectInfoStruct {
+    EffectType effectType = Undefined;
+    VThing* thingPntr = nullptr;
+    irr::scene::IBillboardSceneNode* sceneNode = nullptr;
+    size_t currDrawNr = 0;
+    irr::video::SColor currVerticeColor;
+    bool readyForCleanup = false;
 };
 
-class VMGun {
+class VEffectManager {
 
 private:
     Race* mParentRace = nullptr;
-    VVehicle* mOwner = nullptr;
 
-    //variables moved here
-    //from Thing (ThingWeapon)
-    int16_t TriggerRestrictionCount = 0;
+    void InitSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* firstTexture, irr::core::dimension2df sizeSprite);
+    void UpdateSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* newTexture);
 
-    std::vector<BulletThingStruct*> mBulletThings;
-    std::vector<MGunShotStruct*> mShotVec;
+    void UpdateEffect(EffectInfoStruct* whichInfoStruct);
+    void CleanupEffect(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_EXPLOSION(VThing* whichThing);
+    void processEFFECT_EXPLOSION(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_EXPLOSION_MEDIUM(VThing* whichThing);
+    void processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_SMOKE(VThing* whichThing);
+    void processEFFECT_SMOKE(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_SMOKE_FIRE(VThing* whichThing);
+    void processEFFECT_SMOKE_FIRE(EffectInfoStruct* whichInfoStruct);
+
+    irr::video::ITexture* mSmokeTex = nullptr;
+
+    irr::video::ITexture* mSpriteTex = nullptr;
+    irr::core::dimension2d<irr::u32> mSpriteTexSize;
+
+    irr::core::array<irr::video::ITexture*> animTexListExplosion;
+
+    bool LoadSprites();
+
+    std::vector<EffectInfoStruct*> mActiveEffectVec;
+    std::vector<EffectInfoStruct*> mNewEffectVec;
 
     irr::f32 mAbsTimeAcc = 0.0f;
 
-    //Returns true in case of success
-    //False otherwise
-    bool LoadSprites();
-
-    irr::core::array<irr::video::ITexture*> animTexList;
-
-    void initialiseSHOT_BULLET(MGunShotStruct* whichShot);
-    uint8_t processSHOT_BULLET(MGunShotStruct* whichShot);
-
-    VThing* CreateShot(irr::core::vector3df* position,
-                              irr::f32 angleXY, irr::f32 angleZY,
-                              irr::f32 angleXZ, int16_t id);
-
-    BulletThingStruct* CreateBulletThing(irr::core::vector3df* position,
-                                       irr::f32 angleXY, irr::f32 angleZY,
-                                       irr::f32 angleXZ, int16_t id);
-
-    uint8_t processEFFECT_BULLET(BulletThingStruct* whichBulletThing);
-    void UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::core::vector3df vanPos);
-
-    void CleanupBulletThing(BulletThingStruct* whichBulletThing);
-
 public:
-    VMGun(Race* parentRace, VVehicle* owner);
-    ~VMGun();
+    VEffectManager(Race* parentRace);
+    ~VEffectManager();
+
+    VThing* Explosion = nullptr;
+
+    //Returns a pointer to the Thing for the Effect
+    EffectInfoStruct* AddEffect(EffectType whichEffect, irr::core::vector3df location, irr::f32 angleXY,
+                   irr::f32 angleZY, irr::f32 angleXZ, int16_t id);
 
     void Update(irr::f32 frameDeltaTime);
-
-    //Not sure if I really need it at the end
-    bool AllAnimationsFinished();
-
-    //variables moved here
-    //from Thing (ThingWeapon)
-    int16_t Trigger = 0;
-    int16_t TriggerTime = 0;
-    int16_t Upgrade;
-    int16_t Target = 0;
+    uint16_t GetNrCurrentlyActiveEffects();
 };
 
-#endif // VMGUN_H
+#endif // VEFFECTMANAGER_H

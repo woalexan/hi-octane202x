@@ -13,8 +13,6 @@
 #include "../utils/ray.h"
 #include "levelterrain.h"
 #include "levelblocks.h"
-#include "cpuplayer.h"
-#include "mgun.h"
 #include "missile.h"
 #include "particle.h"
 #include "../audio/sound.h"
@@ -54,15 +52,15 @@ irr::core::vector3df Player::GetRandomMGunShootTargetLocation(bool shootDoesHit)
 
     if (shootDoesHit) {
         //shoot does hit, return random location at player craft model
-        randLocation.set(mPlayerModelExtend.X * this->mRace->mGame->randFloat(),
-                         mPlayerModelExtend.Y * this->mRace->mGame->randFloat(),
-                         mPlayerModelExtend.Z * this->mRace->mGame->randFloat());
+        // randLocation.set(mPlayerModelExtend.X * this->mRace->mGame->randFloat(),
+        //                  mPlayerModelExtend.Y * this->mRace->mGame->randFloat(),
+        //                  mPlayerModelExtend.Z * this->mRace->mGame->randFloat());
 
         randLocation -= mPlayerModelExtend * irr::core::vector3df(0.5f, 0.5f, 0.5f);
         randLocation += this->phobj->physicState.position;
     } else {
         //shoot does not hit, return random location around player at the terrain
-        randLocation.set(this->mRace->mGame->randFloat(), 0.0f, this->mRace->mGame->randFloat());
+        // randLocation.set(this->mRace->mGame->randFloat(), 0.0f, this->mRace->mGame->randFloat());
 
         randLocation -= irr::core::vector3df(0.5f, 0.0f, 0.5f);
         randLocation += this->phobj->physicState.position;
@@ -186,12 +184,12 @@ Player::~Player() {
     mDustBelowCraft = nullptr;
 
     //free my machinegun
-    delete mMGun;
-    mMGun = nullptr;
+    //delete mMGun;
+    //mMGun = nullptr;
 
     //free my missile launcher
-    delete mMissileLauncher;
-    mMissileLauncher = nullptr;
+    //delete mMissileLauncher;
+    //mMissileLauncher = nullptr;
 
     delete dirtTexIdsVec;
     dirtTexIdsVec = nullptr;
@@ -200,7 +198,7 @@ Player::~Player() {
     delete this->brokenGlasVec;
 
     //delete my cpu player
-    delete mCpuPlayer;
+    //delete mCpuPlayer;
 
     delete mMovingAvgPlayerLeaningAngleLeftRightCalc;
     //delete mMovingAvgPlayerPositionCalc;
@@ -271,7 +269,7 @@ void Player::SetNewState(irr::u32 newPlayerState) {
 }
 
 bool Player::AllAnimatorsDone() {
-    return (this->mMGun->AllAnimationsFinished());
+    //return (this->mMGun->AllAnimationsFinished());
 }
 
 void Player::DeactivateAttack() {
@@ -316,7 +314,7 @@ void Player::CpTakeOverHuman() {
     mHumanPlayer = false;
 
     LogMessage((char*)"Control handed over to computer");
-    mCpuPlayer->CpTakeOverHuman();
+    //mCpuPlayer->CpTakeOverHuman();
 }
 
 void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
@@ -365,7 +363,7 @@ void Player::FreedFromRecoveryVehicleAgain() {
        //this cpu player about the fact that we were freed
        //from the recovery vehicle again
        if (!mHumanPlayer) {
-          mCpuPlayer->FreedFromRecoveryVehicleAgain();
+          //mCpuPlayer->FreedFromRecoveryVehicleAgain();
        }
 
        mRecoveryVehicleCalled = false;
@@ -415,7 +413,7 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     //mPlayerStats->shieldVal = 10.0f;
 
     //create my cpuPlayer
-    mCpuPlayer = new CpuPlayer(this);
+    //mCpuPlayer = new CpuPlayer(this);
 
     //definition of dirt texture elements
     dirtTexIdsVec = new std::vector<irr::s32>{0, 1, 2, 60, 61, 62, 63, 64, 65, 66, 67, 79};
@@ -472,10 +470,10 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
    // mDustBelowCraft = new DustBelowCraft(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 100);
 
     //create my machinegun
-    mMGun = new MachineGun(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
+    //mMGun = new MachineGun(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
 
     //create my missile launcher
-    mMissileLauncher = new MissileLauncher(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
+    //mMissileLauncher = new MissileLauncher(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
 
     //create vector to store all the current broken Hud glas locations
     brokenGlasVec = new std::vector<HudDisplayPart*>();
@@ -539,7 +537,7 @@ void Player::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, irr:
         //Do this also for human players, we will need this information
         //always up to date when the computer player takes over the craft at the
         //end of the race from the human player!
-        mCpuPlayer->SetCurrClosestWayPointLink(newClosestWayPointLink);
+        //mCpuPlayer->SetCurrClosestWayPointLink(newClosestWayPointLink);
     }
 }
 
@@ -547,7 +545,7 @@ void Player::ExecuteCpPlayerLogic(irr::f32 deltaTime) {
     if (mHumanPlayer)
         return;
 
-    mCpuPlayer->RunPlayerLogic(deltaTime);
+    //mCpuPlayer->RunPlayerLogic(deltaTime);
 }
 
 //NewPosition = New position of player craft center of gravity (world coordinates)
@@ -678,7 +676,7 @@ bool Player::IsCurrentlyStuck() {
     if (mHumanPlayer)
         return false;
 
-    return mCpuPlayer->IsCurrentlyStuck();
+    //return mCpuPlayer->IsCurrentlyStuck();
 }
 
 
@@ -1254,9 +1252,9 @@ void Player::Update(irr::f32 frameDeltaTime) {
 
     mDustBelowCraft->Update(frameDeltaTime);
 
-    mMGun->Update(frameDeltaTime);
+    //mMGun->Update(frameDeltaTime);
 
-    mMissileLauncher->Update(frameDeltaTime);
+    //mMissileLauncher->Update(frameDeltaTime);
 
     //check if player entered a craft trigger region
     //CheckForTriggerCraftRegion();
@@ -1334,7 +1332,7 @@ void Player::WasDestroyed() {
     this->mCurrentViewMode = CAMERA_EXTERNALVIEW;
 
     if (!mHumanPlayer) {
-       mCpuPlayer->WasDestroyed();
+       //mCpuPlayer->WasDestroyed();
     }
 
     //increase my death count
@@ -1353,50 +1351,6 @@ void Player::WasDestroyed() {
 }
 
 void Player::UpdateHUDState() {
-    if (mHUD == nullptr)
-        return;
-
-    irr::u32 state = this->GetCurrentState();
-
-    //there is one exception, if we are in demo mode
-    //do not draw the normal HUD, only before start
-    if (this->mRace->mDemoMode) {
-        if ((state != STATE_PLAYER_BEFORESTART) && (state != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
-            mHUD->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
-            return;
-        }
-    }
-
-    //make sure the HUD state if correct for us
-    switch (state) {
-        case STATE_PLAYER_BEFORESTART:
-        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE:
-        {
-            mHUD->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
-            break;
-        }
-    case STATE_PLAYER_EMPTYFUEL:
-    case STATE_PLAYER_RACING: {
-            //19.04.2025: If the player has already finished the race
-            //then do not draw HUD anymore, otherwise draw it again
-            if (!mPlayerStats->mHasFinishedRace) {
-                mHUD->SetHUDState(DEF_HUD_STATE_RACE);
-            } else {
-                mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-            }
-            break;
-        }
-
-    case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE:
-    case STATE_PLAYER_BROKEN:  {
-        //if there is a connected HUD we need to disable
-        //its drawing, because if the player is destroyed there
-        //is an outside view at the craft, and for an outside view
-        //there is no HUD visible
-        mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-        break;
-    }
-  }
 }
 
 void Player::SetupForStart() {
@@ -1407,7 +1361,7 @@ void Player::SetupComputerPlayerForStart(irr::core::vector3df startPos) {
     //make sure we only execute this command for non human
     //players!
     if (!mHumanPlayer) {
-        mCpuPlayer->SetupForRaceStart(startPos);
+        //mCpuPlayer->SetupForRaceStart(startPos);
     }
 }
 
@@ -1417,7 +1371,7 @@ void Player::SetupToSkipStart() {
     //if this is a computer player, set its first target
     //speed
     if (!mHumanPlayer) {
-        mCpuPlayer->StartSignalShowsGreen();
+        //mCpuPlayer->StartSignalShowsGreen();
     }
 }
 
@@ -1427,7 +1381,7 @@ void Player::SetupForFirstWayToFinishLine() {
     //if this is a computer player, set its first target
     //speed
     if (!mHumanPlayer) {
-        mCpuPlayer->StartSignalShowsGreen();
+        //mCpuPlayer->StartSignalShowsGreen();
     }
 }
 
@@ -2154,7 +2108,7 @@ void Player::DebugDraw() {
         DebugDrawFreeSpace();
     }
 
-    if (!mHumanPlayer && (mCpuPlayer != nullptr)) {
+    /*if (!mHumanPlayer && (mCpuPlayer != nullptr)) {
        if (mDebugDrawCPUPathHistory) {
            mCpuPlayer->DebugDrawPathHistory();
        }
@@ -2162,5 +2116,5 @@ void Player::DebugDraw() {
        if (mDebugDrawCPUCurrSegment) {
            mCpuPlayer->DebugDrawCurrentSegment();
        }
-    }
+    }*/
 }

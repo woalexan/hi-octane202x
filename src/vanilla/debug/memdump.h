@@ -23,6 +23,7 @@ class ParseThing;
 class ParseThingVehicle;
 class ParseVectors;
 class ParseCamera;
+class MapElementClass;
 
 class MemDump
 {
@@ -54,6 +55,10 @@ public:
 
     ParseCamera* EngineCamera = nullptr;
     void ReadEngineCamera();
+
+    void ReadAllMapElements(size_t dumpLevelStructStart);
+
+    MapElementClass* MapElements[256][160];
 };
 
 #endif // MEMDUMP_H

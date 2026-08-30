@@ -33,6 +33,8 @@
 
 #include "vthing.h"
 #include "../race.h"
+#include "../game.h"
+#include "../draw/drawdebug.h"
 #include "../resources/levelfile.h"
 #include "../models/levelterrain.h"
 #include "../resources/mapentry.h"
@@ -71,6 +73,7 @@ void VThingManager::ResetThingValues(VThing* whichThing) {
     whichThing->Seed = 0;
     whichThing->Count = 0;
     whichThing->Status = 0;
+    whichThing->Target = 0;
     whichThing->Upgrade = 0;
     whichThing->Member = 0;
     whichThing->Action = 0;
@@ -134,7 +137,7 @@ VThing* VThingManager::thing_initialise_member(irr::core::vector3df position,
     v12 = ((int32_t)(v11 - &Thing[0]));
 
     v11->Index = v12;
-    v11->Seed = v12;
+    v11->Seed = (uint16_t)(v12);
     v11->TimeSlice = v12;
     v11->Id = (v11->Index + 1000);
 
@@ -182,6 +185,20 @@ int32_t VThingManager::GetNumberThingsFree() {
     return mParentRace->mLevelRes->mThingFree->Index + 1;
 }
 
+//call this function every ~ 50ms! so that the TimeSlice variable
+//in the Thing will be advanced. This should occur right after
+//the thing was processed as in the original game
+void VThingManager::UpdateTimeSlice(VThing* whichThing) {
+    //we want to increment TimeSlice every 50ms
+    //in the original game it starts counting at 0, increases every 50ms
+    //and the overflows back from 0xFF to 00
+    if (whichThing->TimeSlice < 0xFF) {
+        whichThing->TimeSlice++;
+    } else {
+        whichThing->TimeSlice = 0;
+    }
+}
+
 void VThingManager::RunHousekeeping() {
     //Remove Things which are not needed anymore
     size_t nextIndex = (size_t)(mParentRace->mLevelRes->mThingFree->Index);
@@ -192,9 +209,60 @@ void VThingManager::RunHousekeeping() {
         //anymore has Flag 0x4 set
         pntrIdx = mParentRace->mLevelRes->mThingFree->Thing[idx];
 
+        //30.08.2026: I decided we do not want to finally remove Things
+        //here like in the original game. The Managers (Effectmanager for example)
+        //should finally remove the Things with thing_remove themselves in the
+        //correct order. I saw if I do it here additionally in the Thingmanager
+        //then this randomly messes up the underlying Child/Parent logic, and
+        //child state in the map then get randomly stuck. Therefore the code below
+        //is now commented out. The job of completely freeing unused Things is now
+        //soley responsibility of the "managers" that reserve things in the first place.
+
         if (pntrIdx != 0) {
-            if ((Thing[pntrIdx].Status & 4) != 0) {
+
+         /*   if ((Thing[pntrIdx].Group == 0) && (Thing[pntrIdx].Member == 0)) {
+                logging::Warning("RunHousekeeping: Group = 0 and Member = 0 found!");
+            }*/
+
+            // //the following types of objects are removed directly
+            // //by the EffectManager, and that this works correctly
+            // //we can not clean them up here!
+            // if ((Thing[pntrIdx].Group == 2) && (Thing[pntrIdx].Member == 4)) {
+            //     continue;
+            // }
+
+            // if ((Thing[pntrIdx].Group == 6) && (Thing[pntrIdx].Member == 0)) {
+            //     continue;
+            // }
+
+         /*   if ((Thing[pntrIdx].Status & 4) != 0) {
                 thing_remove(&Thing[pntrIdx]);
+            }*/
+        }
+    }
+}
+
+void VThingManager::DebugDrawParentInfo() {
+    size_t nextIndex = (size_t)(mParentRace->mLevelRes->mThingFree->Index);
+    int16_t pntrIdx = 0;
+    irr::core::vector3df parentPos;
+    irr::core::vector3df startPos;
+    irr::core::vector3df irrParentPos;
+    irr::core::vector3df irrStartPos;
+
+    for (size_t idx = 999; idx > nextIndex; idx--) {
+        pntrIdx = mParentRace->mLevelRes->mThingFree->Thing[idx];
+
+        if (pntrIdx != 0) {
+            //does this Thing have a parent?
+            if (Thing[pntrIdx].Parent != 0) {
+                startPos = Thing[pntrIdx].Position;
+                parentPos = Thing[Thing[pntrIdx].Parent].Position;
+
+                irrStartPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(startPos);
+                irrParentPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(parentPos);
+
+                mParentRace->mGame->mDrawDebug->Draw3DArrow(irrStartPos, irrParentPos, 0.5f, mParentRace->mGame->mDrawDebug->orange, 1.0f);
             }
         }
     }
@@ -209,13 +277,17 @@ uint8_t VThingManager::mapwho_delete(VThing* whichThing) {
         return 0;
     }
 
+    int mCurrPosCellX;
+    int mCurrPosCellY;
+    MapEntry* entry = nullptr;
+
     if (whichThing->Parent) {
         Thing[whichThing->Parent].Child = whichThing->Child;
     } else {
-        int mCurrPosCellX = (int)(whichThing->Position.X / mParentRace->mLevelTerrain->segmentSize);
-        int mCurrPosCellY = (int)(whichThing->Position.Y / mParentRace->mLevelTerrain->segmentSize);
+        mCurrPosCellX = (int)(whichThing->Position.X / mParentRace->mLevelTerrain->segmentSize);
+        mCurrPosCellY = (int)(whichThing->Position.Y / mParentRace->mLevelTerrain->segmentSize);
 
-        MapEntry* entry = mParentRace->mLevelRes->pMap[mCurrPosCellX][mCurrPosCellY];
+        entry = mParentRace->mLevelRes->pMap[mCurrPosCellX][mCurrPosCellY];
         entry->mChild = whichThing->Child;
     }
 
@@ -233,6 +305,7 @@ uint8_t VThingManager::mapwho_add(VThing* whichThing, irr::core::vector3df posit
     int intPosThingY;
     int intPosThingX;
     int intPosv8Y;
+    int intPosv8X;
     bool v6;
 
     v8 = position;
@@ -240,18 +313,38 @@ uint8_t VThingManager::mapwho_add(VThing* whichThing, irr::core::vector3df posit
     if ((whichThing->Status & 1) == 0) {
         intPosThingY = (int)(whichThing->Position.Y / mParentRace->mLevelTerrain->segmentSize);
         intPosThingX = (int)(whichThing->Position.X / mParentRace->mLevelTerrain->segmentSize);
+
         intPosv8Y = (int)(v8.Y / mParentRace->mLevelTerrain->segmentSize);
-        //Important: I am note sure about the next 2 if constructs, the look
-        //weird!
+        intPosv8X = (int)(v8.X / mParentRace->mLevelTerrain->segmentSize);
+
         if (((intPosThingY - 2) < 7) && (intPosv8Y < 2u) || (intPosv8Y >= 0x9Eu)) {
             v8.Y = 2.0f;
         }
 
-        if (((intPosThingY + 106) < 8u) && (intPosv8Y >= 0x9Eu)) {
-            v8.Y = -98.00390625f;
+        if ((intPosThingY > 150) && (intPosv8Y >= 0x9Eu)) {
+            v8.Y = 157.99609375f;
+        }
+
+        //30.08.2026: The original game implementation only limits the coordinate range for the Y coordinates,
+        //because for X the map size was choosen that for the underlying variable range the variable
+        //automatically wraps around at the border of the maps. So a coordinate range check is not necessary in the
+        //original game. But for me this is not the case and there is no X-coordinate variable wrap around. So I added
+        //a check also for the X-coordinate below.
+
+        intPosv8X = (int)(v8.X / mParentRace->mLevelTerrain->segmentSize);
+        if (((intPosThingX - 2) < 7) && (intPosv8X < 2u) || (intPosv8X >= 0xFEu)) {
+            v8.X = 2.0f;
+        }
+
+        if ((intPosThingX > 246) && (intPosv8X >= 0xFEu)) {
+            v8.X = 254.0f;
         }
 
         whichThing->Position = v8;
+
+        //Update the cell coordinates again!
+        intPosThingY = (int)(whichThing->Position.Y / mParentRace->mLevelTerrain->segmentSize);
+        intPosThingX = (int)(whichThing->Position.X / mParentRace->mLevelTerrain->segmentSize);
         whichThing->Parent = 0;
 
         MapEntry* entry = mParentRace->mLevelRes->pMap[intPosThingX][intPosThingY];
@@ -276,10 +369,12 @@ uint8_t VThingManager::mapwho_move(VThing* whichThing, irr::core::vector3df posi
 
     if (((int)(whichThing->Position.X) == (int)(position.X))
         && ((int)(whichThing->Position.Y) == (int)(position.Y))) {
+        //The Thing does not leave the current Terrain cell
         whichThing->Position = position;
         result = 0;
         whichThing->Status &= ~0x40;
     } else {
+        //The Thing changes the current cell
         mapwho_delete(whichThing);
         mapwho_add(whichThing, position);
         result = 1;
@@ -378,6 +473,32 @@ int16_t VThingManager::effect_affect_vehicle_exclusive(VThing* effect) {
         if ((!(*it)->ThingData->Member) && (effect->Id != (*it)->ThingData->Id) && thing_overlapping(effect, (*it)->ThingData)) {
             AffectListIndex = AffectListIndex + 1;
             AffectList[AffectListIndex] = (*it)->ThingData->Index;
+        }
+    }
+
+    return AffectListIndex;
+}
+
+int16_t VThingManager::thing_touching_anything(VThing* whichThing) {
+    AffectListIndex = 0;
+
+    //First part: for player vehicles
+    std::vector<VVehicle*>::iterator it;
+
+    for (it = mParentRace->mVanillaCraftVec.begin(); it != mParentRace->mVanillaCraftVec.end(); ++it) {
+        if ((!(*it)->ThingData->Member) && (whichThing->Id != (*it)->ThingData->Id) && thing_overlapping(whichThing, (*it)->ThingData)) {
+            AffectListIndex = AffectListIndex + 1;
+            AffectList[AffectListIndex] = (*it)->ThingData->Index;
+        }
+    }
+
+    //Second part: For Things in Group 8, and Member = 3
+    std::vector<VThing*>::iterator it2;
+
+    for (it2 = mParentRace->mGroup8ThingsVec.begin(); it2 != mParentRace->mGroup8ThingsVec.end(); ++it2) {
+        if (((*it2)->Member == 3) && (whichThing->Id != (*it2)->Id) && thing_overlapping(whichThing, (*it2))) {
+            AffectListIndex = AffectListIndex + 1;
+            AffectList[AffectListIndex] = (*it2)->Index;
         }
     }
 

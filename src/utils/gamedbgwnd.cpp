@@ -33,8 +33,8 @@ GameDbgWnd::~GameDbgWnd() {
         mGuiGameDbgWnd.ShowWaypointLinks->remove();
     }
 
-    if (mGuiGameDbgWnd.ShowWaypointLinksSpace != nullptr) {
-        mGuiGameDbgWnd.ShowWaypointLinksSpace->remove();
+    if (mGuiGameDbgWnd.ShowChildInfo != nullptr) {
+        mGuiGameDbgWnd.ShowChildInfo->remove();
     }
 
     if (mGuiGameDbgWnd.ShowCheckpoints != nullptr) {
@@ -141,9 +141,9 @@ void GameDbgWnd::CreateWindow() {
                                                                                            mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWWAYPOINTLINKS_CHECKBOX, L"Waypnt Links");
 
     pos.Y += height;
-    currState = mParentRace->GetDebugFlag(DEF_RACE_DBG_WAYPOINTLINKSSPACE);
-    mGuiGameDbgWnd.ShowWaypointLinksSpace = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
-                                                                                           mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWWAYPOINTLINKSSPACE_CHECKBOX, L"Waypnt Link Space");
+    currState = mParentRace->GetDebugFlag(DEF_RACE_DBG_SHOWCHILDINFO);
+    mGuiGameDbgWnd.ShowChildInfo = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
+                                                                                           mGuiGameDbgWnd.LevelTab, GUI_ID_LEVEL_SHOWCHILDINFO_CHECKBOX, L"Show Child Info");
 
     pos.Y += height;
     currState = mParentRace->GetDebugFlag(DEF_RACE_DBG_CHECKPOINTS);
@@ -263,8 +263,8 @@ void GameDbgWnd::OnCheckBoxChanged(irr::s32 checkboxId) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_WALLCOLLISIONMESH, mGuiGameDbgWnd.ShowWallCollisionMesh->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWWAYPOINTLINKS_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_WAYPOINTLINKS, mGuiGameDbgWnd.ShowWaypointLinks->isChecked());
-    } else if (checkboxId == GUI_ID_LEVEL_SHOWWAYPOINTLINKSSPACE_CHECKBOX) {
-        mParentRace->SetDebugFlag(DEF_RACE_DBG_WAYPOINTLINKSSPACE, mGuiGameDbgWnd.ShowWaypointLinksSpace->isChecked());
+    } else if (checkboxId == GUI_ID_LEVEL_SHOWCHILDINFO_CHECKBOX) {
+        mParentRace->SetDebugFlag(DEF_RACE_DBG_SHOWCHILDINFO, mGuiGameDbgWnd.ShowChildInfo->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWCHECKPOINTS_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_CHECKPOINTS, mGuiGameDbgWnd.ShowCheckpoints->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWPOI_CHECKBOX) {

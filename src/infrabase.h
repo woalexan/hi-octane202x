@@ -13,6 +13,7 @@
 #include <irrlicht.h>
 #include <vector>
 #include <cstdint>
+#include <random>
 #include "resources/readgamedata/preparedata.h"
 
 using namespace std;
@@ -132,9 +133,6 @@ public:
 
   //get a random int in the range between min and max
   int randRangeInt(int min, int max);
-
-  //get a random float value in the range of 0.0 up to 1.0
-  float randFloat();
 
   dimension2d<u32> mScreenRes;
   Logger* mLogger = nullptr;
@@ -301,6 +299,9 @@ private:
   irr::io::path mGameRootDir;
   irr::io::path mOriginalGameRootDir;
   irr::io::path saveFolderDataPath;
+
+  std::random_device mRandomDevice;
+  std::mt19937* mRandomGenerator = nullptr;
 
   //Returns true if original game found,
   //False otherwise, resulting original

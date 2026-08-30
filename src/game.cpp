@@ -22,6 +22,8 @@
 #include "draw/attribution.h"
 #include "vanilla/vvehicle.h"
 #include "vanilla/vcamera.h"
+#include "vanilla/vmlauncher.h"
+#include "vanilla/veffectmanager.h"
 #include "vanilla/vbase.h"
 #include "vanilla/vthing.h"
 
@@ -1159,133 +1161,11 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     mTimeProfiler->UpdateWindow();
 
     if (DebugShowVariableBoxes) {
-
            wchar_t* text2 = new wchar_t[400];
 
-           /* swprintf(text2, 390, L"camY: %lf\n camYTarget: %lf\n avg: %lf\n newCamHeight: %lf\n maxh: %lf\n minCeiling: %lf\n",
-                        mCurrentRace->player->dbgCameraVal,
-                      mCurrentRace->player->dbgCameraTargetVal,
-                         mCurrentRace->player->dbgCameraAvgVAl,
-                         mCurrentRace->player->dbgNewCameraVal,
-                         mCurrentRace->player->dbgMaxh,
-                         mCurrentRace->player->dbgMinCeilingFound);*/
-
-            //irr::f32 absolutePlayerAngle = this->mCurrentRace->GetAbsOrientationAngleFromDirectionVec(this->mCurrentRace->player->craftForwardDirVec);
-
-              /*swprintf(text2, 390, L"currDist = %lf\nTargetDist = %lf\ncurrAngle = %lf\ncurrTargetAngle = %lf\ntargetOffsetAngle = %lf\n",
-                             this->mCurrentRace->player2->mCurrentCraftDistToWaypointLink,
-                             this->mCurrentRace->player2->mCurrentCraftDistWaypointLinkTarget,
-                             this->mCurrentRace->player2->mCurrentCraftOrientationAngle,
-                             this->mCurrentRace->player2->mCurrentWaypointLinkAngle,
-                             this->mCurrentRace->player2->mCurrentCraftTargetOrientationOffsetAngle);*/
-
-         /* swprintf(text2, 390, L"currDist = %lf\ncurrAngle = %lf\ncurrDist = %lf\ncurrAngle = %lf\n",
-                       this->mCurrentRace->mPlayerVec.at(0)->mCurrentCraftDistToWaypointLink,
-                        this->mCurrentRace->mPlayerVec.at(0)->mAngleError,
-                       this->mCurrentRace->mPlayerVec.at(1)->mCpuPlayer->mCurrentCraftDistToWaypointLink,
-                       this->mCurrentRace->mPlayerVec.at(1)->mCpuPlayer->mAngleError);*/
-
-        /*    swprintf(text2, 390, L"currCharger = %d\currPos = %d\n",
-                           this->mCurrentRace->currCharger,
-                           this->mCurrentRace->currPos);*/
-
-       /* swprintf(text2, 390, L"next Checkpoint = %d\n",
-                                 this->mCurrentRace->mPlayerVec.at(0)->nextCheckPointValue);*/
-
-           /* swprintf(text2, 390, L"nAvailWay = %d\n nAvailLinks = %d\n nCurrSeg = %d\nSegments = %d\n",
-                           this->mCurrentRace->player2->mDbgCpAvailWaypointNr,
-                           this->mCurrentRace->player2->mDbgCpAvailWayPointLinksNr,
-                         this->mCurrentRace->player2->mCurrentPathSegCurrSegmentNr,
-                          this->mCurrentRace->player2->mCurrentPathSegNrSegments);*/
-
-            /*swprintf(text2, 390, L"nCollectable = %d\n",
-                           this->mCurrentRace->player2->mCpCollectablesSeenByPlayer.size());*/
-
-              /*   swprintf(text2, 390, L"DistSQ = %lf\n",
-                                this->mCurrentRace->mPlayerVec.at(1)->mCpuPlayer->dbgDistVec);*/
-
-           /* swprintf(text2, 390, L"Angle Error = %lf\nDist error = %lf\n",
-                           this->mCurrentRace->player2->mAngleError,
-                           this->mCurrentRace->player2->dbgDistError);*/
-
-            /*swprintf(text2, 390, L"x = %lf\n y = %lf\n z = %lf\n",
-                              this->mCurrentRace->player->phobj->physicState.position.X,
-                            this->mCurrentRace->player->phobj->physicState.position.Y,
-                          this->mCurrentRace->player->phobj->physicState.position.Z);*/
-
-           /* swprintf(text2, 390, L"front = %lf\n left = %lf\n right = %lf\n back = %lf\n currOffset = %lf\n",
-                              this->mCurrentRace->player2->mCraftDistanceAvailFront,
-                              this->mCurrentRace->player2->mCraftDistanceAvailLeft,
-                              this->mCurrentRace->player2->mCraftDistanceAvailRight,
-                              this->mCurrentRace->player2->mCraftDistanceAvailBack,
-                              this->mCurrentRace->player2->mCpCurrPathOffset
-                            );*/
-
-           /* if (this->mCurrentRace->mPlayerVec.at(0)->mCurrJumping) {
-                swprintf(text2, 390, L"Jumping %lf %lf\n %lf %lf\n", this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
-                         this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
-                         this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
-                         this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
-            } else {
-               swprintf(text2, 390, L"%lf %lf\n %lf %lf\n" ,this->mCurrentRace->mPlayerVec.at(0)->lastHeightFront,
-                        this->mCurrentRace->mPlayerVec.at(0)->currHeightFront,
-                        this->mCurrentRace->mPlayerVec.at(0)->lastHeightBack,
-                        this->mCurrentRace->mPlayerVec.at(0)->currHeightBack);
-            }*/
-/*
-           swprintf(text2, 390, L"Curr Offset: %lf\n Left Avail: %lf\n Right Avail: %lf\n WALeftAvail: %lf\n WARightAvai: %lf\n NoClearLink: %d\n LostProgress: %d\n %d / %d Reverse: %d",
-                     this->mCurrentRace->mPlayerVec.at(1)->mCpCurrPathOffset,
-                      this->mCurrentRace->mPlayerVec.at(1)->mCpFollowedWayPointLinkCurrentSpaceLeftSide,
-                     this->mCurrentRace->mPlayerVec.at(1)->mCpFollowedWayPointLinkCurrentSpaceRightSide,
-                     this->mCurrentRace->mPlayerVec.at(1)->mCraftDistanceAvailLeft,
-                     this->mCurrentRace->mPlayerVec.at(1)->mCraftDistanceAvailRight,
-                      this->mCurrentRace->mPlayerVec.at(1)->mCPTrackMovementNoClearClosestLinkCnter,
-                    this->mCurrentRace->mPlayerVec.at(1)->mCPTrackMovementLostProgressCnter,
-                    this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegCurrSegmentNr,
-                    this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegNrSegments,
-                    this->mCurrentRace->mPlayerVec.at(1)->mCurrentPathSegSortedOutReverse.size()
-                    );*/
-
-            swprintf(text2, 390, L"");
-         //  swprintf(text2, 390, L"%d\n%d", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mVanillaCraftVec.at(1)->Stats.Health));
-
-         /*  swprintf(text2, 390, L"Increment.SpeedActual: %lf \nIncrementAdd.SpeedActual: %lf \nIncrementLimit.SpeedActual: %lf\nStat.Velocity: %lf", this->mCurrentRace->mVCraft->Increment.SpeedActual,
-                    this->mCurrentRace->mVCraft->IncrementAdd.SpeedActual, this->mCurrentRace->mVCraft->IncrementLimit.SpeedActual, this->mCurrentRace->mVCraft->Stats.Velocity);*/
-
-       /* swprintf(text2, 390, L"Rot: %lf \n MoveXFloat %lf\n MoveXInt %d \n Wnd: %d %d %d %d\n %d %d \n", this->mCurrentRace->dbgSkyRotation, this->mCurrentRace->dbgSkyMoveXfloat,
-                 this->mCurrentRace->dbgSkyMoveXInt, this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.X,
-                 this->mCurrentRace->dbgSkyMovingWindow.UpperLeftCorner.Y, this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.X,
-                 this->mCurrentRace->dbgSkyMovingWindow.LowerRightCorner.Y, this->mCurrentRace->dbgSkyMiddlePos.X, this->mCurrentRace->dbgSkyMiddlePos.Y);*/
-
-        /*swprintf(text2, 390, L"Vert1: %lf %lf %lf \n Vert2: %lf %lf %lf \n Vert3: %lf %lf %lf \n Vert4: %lf %lf %lf \n", mCurrentRace->dbgSkyVertice1.Pos.X,
-                 mCurrentRace->dbgSkyVertice1.Pos.Y, mCurrentRace->dbgSkyVertice1.Pos.Z, mCurrentRace->dbgSkyVertice2.Pos.X,
-                 mCurrentRace->dbgSkyVertice2.Pos.Y, mCurrentRace->dbgSkyVertice2.Pos.Z,
-                 mCurrentRace->dbgSkyVertice3.Pos.X,
-                                  mCurrentRace->dbgSkyVertice3.Pos.Y, mCurrentRace->dbgSkyVertice3.Pos.Z,
-                 mCurrentRace->dbgSkyVertice4.Pos.X,
-                 mCurrentRace->dbgSkyVertice4.Pos.Y, mCurrentRace->dbgSkyVertice4.Pos.Z);*/
-
-        /*swprintf(text2, 390, L"UV1: %lf %lf \n UV2: %lf %lf \n UV3: %lf %lf \n UV4: %lf %lf \n", mCurrentRace->dbgSkyVertice1.TCoords.X,
-                 mCurrentRace->dbgSkyVertice1.TCoords.X, mCurrentRace->dbgSkyVertice2.TCoords.X, mCurrentRace->dbgSkyVertice2.TCoords.Y,
-                 mCurrentRace->dbgSkyVertice3.TCoords.X, mCurrentRace->dbgSkyVertice3.TCoords.Y,
-                 mCurrentRace->dbgSkyVertice4.TCoords.X, mCurrentRace->dbgSkyVertice4.TCoords.Y);*/
-
-        /*   swprintf(text2, 390, L"%d %d %d %d %lf",
-                       this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.X,
-                       this->mCurrentRace->dbglocMovingWindow.UpperLeftCorner.Y,
-                       this->mCurrentRace->dbglocMovingWindow.LowerRightCorner.X,
-                       this->mCurrentRace->dbglocMovingWindow.LowerRightCorner.Y, mCurrentRace->currPlayerFollow->mCurrentAvgPlayerLeaningAngleLeftRightValue);*/
-
-                   /*
-          swprintf(text2, 390, L"Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n", //Nr Lap = %d Next Checkpoint = %d Rem Dist = %lf\n",
-                        this->mCurrentRace->mPlayerVec.at(0)->mPlayerStats->currLapNumber,
-                        this->mCurrentRace->mPlayerVec.at(0)->nextCheckPointValue,
-                        this->mCurrentRace->mPlayerVec.at(0)->remainingDistanceToNextCheckPoint
-
-                   this->mCurrentRace->mPlayerVec.at(1)->mPlayerStats->currLapNumber,
-                   this->mCurrentRace->mPlayerVec.at(1)->nextCheckPointValue,
-                   this->mCurrentRace->mPlayerVec.at(1)->remainingDistanceToNextCheckPoint
-                 //  );   */
+           swprintf(text2, 390, L"");
+           /*swprintf(text2, 390, L"Things: %d\nEffects: %d\n %d", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mEffectManager->GetNrCurrentlyActiveEffects()),
+                     (int)(mCurrentRace->mVanillaCraftVec.at(0)->ThingData->TimeSlice));*/
 
             dbgText->setText(text2);
 

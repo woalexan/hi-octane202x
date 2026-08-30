@@ -34,12 +34,14 @@
 #include "vvehicle.h"
 #include "../race.h"
 #include "../game.h"
-#include "../vanilla/vcalc.h"
+#include "vcalc.h"
 #include "../draw/drawdebug.h"
-#include "../vanilla/vtrack.h"
-#include "../vanilla/vthing.h"
-#include "../vanilla/vcamera.h"
-#include "../vanilla/vmgun.h"
+#include "vtrack.h"
+#include "vthing.h"
+#include "vcamera.h"
+#include "vmgun.h"
+#include "vmlauncher.h"
+#include "veffectmanager.h"
 #include "debug/dbginterface.h"
 #include "debug/memdump.h"
 #include "debug/structs/thing.h"
@@ -54,6 +56,7 @@
 #include "../resources/texture.h"
 #include "../models/levelterrain.h"
 #include "../draw/hud.h"
+#include "../race.h"
 #include "../models/particle.h"
 #include "../resources/mapentry.h"
 
@@ -231,6 +234,10 @@ void VVehicle::UpdateEngineSound() {
     }
 }
 
+bool VVehicle::AllAnimatorsDone() {
+    return (this->mMGun->AllAnimationsFinished());
+}
+
 bool VVehicle::AllowedToCollectPowerUp() {
     //Player is only allowed to collect powerUps if
     //Action == 1 is set (means normal racing mode)
@@ -272,15 +279,15 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     Stats.Weapons = 10000;
 
     --mMGun->Upgrade;
-    --Stats.MRocketUpgrade;
+    --mMLauncher->Upgrade;
     --Booster.Upgrade;
 
     if (mMGun->Upgrade < 0) {
          mMGun->Upgrade = 0;
     }
 
-    if (Stats.MRocketUpgrade < 0) {
-        Stats.MRocketUpgrade = 0;
+    if (mMLauncher->Upgrade < 0) {
+        mMLauncher->Upgrade = 0;
     }
 
     if (Booster.Upgrade < 0) {
@@ -305,7 +312,8 @@ vehicle_execute_action0_initialize_LABEL_23:
         }
     } else {
 vehicle_execute_action0_initialize_LABEL_107:
-        ThingData->Action = 0x1;
+        ThingData->Action = 0x2; //in the original game implementation it is 0x1; but I
+                                 //added an inbetween state that allows to "trigger" the race start
     }
 }
 
@@ -313,6 +321,8 @@ vehicle_execute_action0_initialize_LABEL_107:
 //under the assumption currently nothing special happens
 //otherwise
 void VVehicle::vehicle_execute_action0x1_defaultracing() {
+    irr::core::vector3df position;
+
     /**********************************
      * Did we run out of fuel?        *
      * Call the repair vehicle?       *
@@ -343,7 +353,7 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
     if (Stats.Health < 3001) {
         //are we completely out of health?
         if (Stats.Health <= 0) {
-            //next lines seem to create a thing that damage craft permanently at this place?
+            //this triggers an Explosion BIG
             //v26 = thing_initialise(&thing->Position, &thing->Movement.Angle, 2, 2, thing->Id);
             // if (v26) {
             //   v26->Colide.Group = 0;
@@ -353,10 +363,20 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
             vehicle_setup_tumble();
             FlightModel.Flag.HealthDeath = true;
         } else {
-            //Health is low, but still some health is remaining
-            //create some smoke behind the craft
+            if (!(ThingData->TimeSlice % (Stats.Health / 1000 + 1))) {
+               mRace->mEffectManager->AddEffect(EffectType::SmokeFire, ThingData->Position,
+                                                ThingData->Movement.AngleXY, ThingData->Movement.AngleZY,
+                                                ThingData->Movement.AngleXZ, ThingData->Id);
+            }
 
-            //TODO: Add the smoke effect later
+           //for even less health add even more smoke effects :(
+           if (Stats.Health < 500) {
+               position = ThingData->Position;
+               position.Z += 0.078125f;
+               mRace->mEffectManager->AddEffect(EffectType::SmokeFire, position,
+                                                ThingData->Movement.AngleXY, ThingData->Movement.AngleZY,
+                                                ThingData->Movement.AngleXZ, ThingData->Id);
+           }
         }
     }
 
@@ -426,7 +446,7 @@ void VVehicle::vehicle_execute_action0x11_spawnpowerups() {
         powerUpList.push_back(Entity::MinigunUpgrade);
     }
 
-    if (Stats.MRocketUpgrade) {
+    if (mMLauncher->Upgrade) {
         powerUpList.push_back(Entity::MissileUpgrade);
     }
 
@@ -609,15 +629,15 @@ void VVehicle::vehicle_execute_action0x18() {
 void VVehicle::vehicle_execute_action0x19_reset() {
     if (FlightModel.Flag.HealthDeath) {
         --mMGun->Upgrade;
-        --Stats.MRocketUpgrade;
+        --mMLauncher->Upgrade;
         --Booster.Upgrade;
 
         if (mMGun->Upgrade < 0) {
              mMGun->Upgrade = 0;
         }
 
-        if (Stats.MRocketUpgrade < 0) {
-             Stats.MRocketUpgrade = 0;
+        if (mMLauncher->Upgrade < 0) {
+             mMLauncher->Upgrade = 0;
         }
 
         if (Booster.Upgrade < 0) {
@@ -661,6 +681,18 @@ void VVehicle::vehicle_do_action() {
 
         case 1: {
             vehicle_execute_action0x1_defaultracing();
+            return;
+        }
+
+        //this state is not present in the original game implementation
+        //I added it to be able to start the racing at a defined point
+        //in time
+        case 2: {
+            if (mRaceTriggered) {
+                //race is triggered now
+                //go to the default racing state
+                ThingData->Action = 0x1;
+            }
             return;
         }
 
@@ -710,25 +742,22 @@ void VVehicle::vehicle_do_action() {
     }
 }
 
+void VVehicle::TriggerRaceStart() {
+    mRaceTriggered = true;
+}
+
+uint32_t VVehicle::GetControlOrigin() {
+    return ControlOrigin;
+}
+
 void VVehicle::Update(irr::f32 frameDeltaTime) {
-    //we want to increment mTimeSlice every 50ms
-    //in the original game it starts counting at 0, increases every 50ms
-    //and the overflows back from 0xFF to 00
     mAbsTimeIntegrator += frameDeltaTime;
     if (mAbsTimeIntegrator >= 0.05) {
-        if (ThingData->TimeSlice < 0xFF) {
-            ThingData->TimeSlice++;
-        } else {
-            ThingData->TimeSlice = 0;
-        }
 
         //should run every ~45ms
         //timing close enough when called
         //here
         processWeaponBooster();
-
-        //process machine gun
-        mMGun->Update(mAbsTimeIntegrator);
 
         //do not update engine sound for the first ~300ms
         //of the race to prevent hearing the first height drop
@@ -744,12 +773,21 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
             UpdateEngineSound();
         }
 
-        //add later, seems to be needed
-        //ClosestMissile = 0;
+        ClosestMissile = 0.0f;
         vehicle_do_action();
+
+        //we need to update the TimeSlice variable in
+        //the vehicle thing!
+        mRace->mThingManager->UpdateTimeSlice(this->ThingData);
 
         mAbsTimeIntegrator = 0.0f;
     }
+
+    //process machine gun
+    mMGun->Update(frameDeltaTime);
+
+    //process missile launcher
+    mMLauncher->Update(frameDeltaTime);
 
     mUpdateVehicleTimeIntegrator += frameDeltaTime;
     if (mUpdateVehicleTimeIntegrator >= 0.05) {
@@ -945,7 +983,7 @@ void VVehicle::SetupFlightModelConstants() {
     mBounce = mRace->mVCalc->FixedPointToFloat8D8(50);
     Stats.Behind = 100;
     mMGun->Upgrade = 0;
-    Stats.MRocketUpgrade = 0;
+    mMLauncher->Upgrade = 0;
 
     mFriction = mRace->mVCalc->FixedPointToFloat8D8(10);
     mFrictionLimit = mRace->mVCalc->FixedPointToFloat8D8(15);
@@ -1003,6 +1041,10 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    //add pointer to myself into this Thing
    ThingData->vVehiclePnter = this;
 
+   //set collide size
+   ThingData->CollideSize.set(0.125f, 0.125f, 0.125f);
+   ThingData->ColideGroup = (6 & 0xFFFE);
+
    //nrLaps + 1 is correct, I saw this
    //also in the original game
    RaceLaps = nrLaps + 1;
@@ -1033,6 +1075,9 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    //create the vanilla type machine gun
    mMGun = new VMGun(mRace, this);
 
+   //create the vanilla type missile launcher
+   mMLauncher = new VMLauncher(mRace, this);
+
    SetupFlightModelConstants();
 
    //if computer player
@@ -1043,6 +1088,16 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
 
    //definition of dirt texture elements
    dirtTexIdsVec = new std::vector<irr::s32>{0, 1, 2, 60, 61, 62, 63, 64, 65, 66, 67, 79};
+
+   //zero out the lap times
+   for (int idx = 0; idx < 100; idx++) {
+       Conditions.LapTimes[idx] = 0;
+   }
+
+   for (int idx = 0; idx < 8; idx++) {
+       Conditions.Kills[idx] = 0;
+       Conditions.Deaths[idx] = 0;
+   }
 
    ThingData->Position = vanPos;
    ThingData->Movement.AngleXZ = 0.0f;
@@ -1905,6 +1960,12 @@ vehicle_control_from_player_LABEL_28:
 
 vehicle_control_from_player_LABEL_45:
 
+    if (KeyPressedMissileLauncher) {
+        ++mMLauncher->Trigger;
+        mMLauncher->Target = AutoTarget.PrimaryTarget;
+        mMLauncher->Count = AutoTarget.ValidTargetCount;
+    }
+
     //Handle Booster key
     if (KeyPressedBooster) {
         if (Stats.Fuel > 0) {
@@ -2240,6 +2301,7 @@ int32_t VVehicle::vehicle_get_checkpoint() {
       } else {
           if (LapCounter == RaceLaps) {
               if (!RacePositionFinish) {
+                  //This player has finished the Race
                   Conditions.RacePositionFinishShowTime = 100;
                   RacePositionFinish = RacePosition;
                   TotalRaceTicksFinished = TotalRaceTicks;
@@ -2782,6 +2844,8 @@ bool VVehicle::VehiclesCheckForCollision(VVehicle* vehicle1, VVehicle* vehicle2,
    return false;
 }
 
+//24.08.2026: For my non ControlThing implementation and the default race mode
+//everything should be implemented now here in this routine
 void VVehicle::vehicle_post_process() {    
     irr::f32 speedFixed;
     int16_t number;
@@ -2820,10 +2884,6 @@ void VVehicle::vehicle_post_process() {
         ThingData->Status |= 0x2u;
     }
 
-    /********************************
-     * Are we dealt any damage?     *
-     ********************************/
-
     if (CollisionSound != nullptr) {
         if (CollisionSound->getStatus() == sf::SoundSource::Status::Stopped) {
             CollisionSound = nullptr;
@@ -2839,6 +2899,10 @@ void VVehicle::vehicle_post_process() {
                }
         }
     }
+
+    /********************************
+     * Are we dealt any damage?     *
+     ********************************/
 
     if (((ThingData->AffectStatus & 0x607u) != 0) && (Stats.Invincable <= 0)) {
         number = ThingData->AffectNumber;  //contains the value of damage dealt by a certain event
@@ -2956,7 +3020,7 @@ void VVehicle::vehicle_post_process() {
     mCurrChargingShield = false;
 
     //only allow charging
-    //if vehicle action is currently 1
+    //if vehicle action is currently 1 (which means vehicle is currently actively racing)
     if (ThingData->Action == 0x1) {
         //Are we currently in an rearming station?
         if ((ThingData->AffectStatus & 0x8) != 0) {
@@ -3025,8 +3089,14 @@ void VVehicle::vehicle_post_process() {
                     atCharger = true;
                     mCurrChargingShield = true;
 
-                    //TODO: something still not implemented with BulletCount and
-                    //MissileCount
+                    //24.08.2026: The two Calculations below not yet verified to be correct!
+                    irr::f32 helper = ((16.0f - floor((irr::f32)(Stats.Health) / 102.4f)) / 16.0f);
+                    Damage.BulletCount *= (uint16_t)(helper);
+
+                    helper =
+                        ((16.0f - round((irr::f32)(Stats.Health) / 1024.0f)) / 16.0f);
+
+                    Damage.MissileCount *= (uint16_t)(helper);
                 } else {
 
                         /*if (Conditions.HealthRechargeCounter) {
@@ -3191,7 +3261,7 @@ void VVehicle::vehicle_post_process() {
 
             //Player picks up a rocket upgrade?
             if ((ThingData->AffectStatus & 0x2000) != 0) {
-                ++Stats.MRocketUpgrade;
+                ++mMLauncher->Upgrade;
             }
 
             //Player picks up a booster upgrade?
@@ -3261,10 +3331,94 @@ void VVehicle::vehicle_post_process() {
              *********************************/
 
             if (Stats.Health <= 0) {
-                //Add this stuff later!
-            }
+                //24.08.2026: Explaination for contents of who at this point:
+                //it reflects the number of the player
+                //first player has Id = 1, second player has Id = 2 and so
+                uint16_t who = ThingData->AffectWho;
+
+                //do we know how killed this vehicle? If who is nonzero we know it was
+                //another player and which
+                if (who) {
+                    //24.08.2026: the logic in the original game implementation
+                    //seems to store the index of the ControlThing in the
+                    //Deaths array, which makes sense because in this original
+                    //implementation the ControlThing (Pilot) and Vehicle
+                    //are actually seperated, because a pilot can fly different
+                    //vehicles in HotSeat Mode. So the seperation needs to be done
+                    //I did not want to start with this seperation, because it seemed
+                    //to be very complicated at the start, and I was not very interested
+                    //in this HotSeat Mode. So have I have not seperated the ControlThing
+                    //from the vehicle, and therefore I will implement the source code
+                    //below in a way that the Deaths array stores the vehicle number
+                    //instead.
+                    //TODO: In case we want to seperate later between ControlThing and
+                    //Vehicle we need to adjust the code below!
+                    size_t idxKiller;
+
+                    //Note: I changed the original implementation here a little bit;
+                    //The original game also has an additional 9th ControlThing which is used here
+                    //in case we have something that hurts us which is not a player; Not sure if
+                    //this mechanism is really needed; Therefore I removed this mapping
+                    if ((who - 1) < 8) {
+                        idxKiller = (size_t)(who) - 1;
+
+                        //remember that this player killed us one time
+                        ++Conditions.Deaths[idxKiller];
+                        Conditions.FlagDeath = true;
+
+                        if ((this->ThingData->Id <= 8) && (this->ThingData->Id > 0)) {
+                            ++mRace->mVanillaCraftVec.at(idxKiller)->Conditions.Kills[this->ThingData->Id - 1];
+                            mRace->mVanillaCraftVec.at(idxKiller)->Conditions.FlagKill = true;
+                            ++mRace->mVanillaCraftVec.at(idxKiller)->Conditions.KillsCount;
+
+                            //24.08.2026: it seems Weight variable is repurposed for another job here
+                            //in the original game implementation Weight gets the Thing Index of the ControlThing
+                            //of the Attacker who archieved the kill; in my implementation I have no ControlThings,
+                            //so I take the Index of the VehicleThing; Could be a source for a bug later?
+                            Stats.Weight = (mRace->mVanillaCraftVec.at(idxKiller)->ThingData->Index + 1);
+                        }
+                    }
+                } else {
+                    //We do not have a "Who" did it
+                    //we did it to "ourselves"
+                    Conditions.FlagDeath = true;
+                    Conditions.FlagKill = true;
+
+                    //we killed ourselves :(
+                    ++Conditions.Kills[this->ThingData->Id - 1];
+                    ++Conditions.Deaths[this->ThingData->Id - 1];
+                }
+
+                //for stats remember that we did die
+                ++Conditions.DeathsCount;
+            }  //End of Health <= 0
 
     }   //End of If vehicle Action == 1
+
+    //Action 0x17 means the vehicle is currently rescued
+    //by rescue vehicle
+    if (ThingData->Action == 0x17) {
+        if ((ThingData->AffectStatus & 8) != 0) {
+            if (Stats.Weapons < 10000) {
+                Stats.Weapons += 200;
+            }
+        }
+
+        if ((ThingData->AffectStatus & 0x10) != 0) {
+            if (Stats.Fuel < 10000) {
+                Stats.Fuel += 200;
+            }
+        }
+
+        if ((ThingData->AffectStatus & 0x20) != 0) {
+            Stats.Invincable = 2;
+            if ((Stats.Health > 0) || FlightModel.Flag.AutoDrive) {
+                if (Stats.Health < 10000) {
+                    Stats.Health += 200;
+                }
+            }
+        }
+    }
 
    /* if (currChargingAmmo) {
         ++Conditions.WeaponsRechargeCounter;
@@ -3748,6 +3902,12 @@ void VVehicle::FinishedLap() {
 }
 
 void VVehicle::FinishedRace() {
+    //We have to set the ControlOrigin to value 8
+    //to enable the takeover of the computer player
+    ControlOrigin = 8;
+
+    mHasFinishedRace = true;
+
     // /* after the player is finished with the race
     //  * the game uses the external view, while a
     //  * computer player takes over controlling this craft */
@@ -3997,7 +4157,7 @@ bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
         case Entity::EntityType::MissileUpgrade:
             //can only be picked up if missile upgrade level is not already
             //at max
-            if (Stats.MRocketUpgrade != 3) {
+            if (mMLauncher->Upgrade != 3) {
                 //we can make another upgrade
                 ThingData->AffectStatus |= 0x2000;
 
@@ -4164,7 +4324,7 @@ void VVehicle::vehicle_targetting_system() {
    }
 
    if (AutoTarget.PrimaryTarget) {
-       v12 = AutoTarget.ValidTargetCount + Stats.MRocketUpgrade + 1;
+       v12 = AutoTarget.ValidTargetCount + mMLauncher->Upgrade + 1;
        AutoTarget.ValidTargetCount = v12;
        v13 = (v12 < 0x65u);
        if (!v13) {
@@ -4293,126 +4453,10 @@ void VVehicle::CheckDustCloudEmitter() {
 
 void VVehicle::SetMyHUD(HUD* pntrHUD) {
     mHUD = pntrHUD;
-
-    //I got a new HUD connected
-    //we need to tell the HUD the correct
-    //HUD state we want for the current player
-    //state we have
-    UpdateHUDState();
 }
 
 HUD* VVehicle::GetMyHUD() {
     return mHUD;
-}
-
-irr::u32 VVehicle::GetCurrentState() {
-    return this->mPlayerCurrentState;
-}
-
-void VVehicle::SetNewState(irr::u32 newPlayerState) {
-    mPlayerCurrentState = newPlayerState;
-
-    switch (newPlayerState) {
-        case STATE_PLAYER_BEFORESTART: {
-            mPlayerCanMove = false;
-            mPlayerCanShoot = false;
-            break;
-        }
-
-        //This is the inbetween state after green light comes on
-        //and the first time a player crosses the finish line
-        //in this state the players move towards the start line, and
-        //computer players do not seem to attack
-        //Human player is allowed to attack
-        //Also the HUD is not shown yet
-        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE: {
-            mPlayerCanMove = true;
-            mPlayerCanShoot = true;
-            break;
-        }
-
-        case STATE_PLAYER_RACING: {
-            mPlayerCanMove = true;
-            mPlayerCanShoot = true;
-            break;
-        }
-
-        case STATE_PLAYER_EMPTYFUEL: {
-            mPlayerCanMove = false;
-            mPlayerCanShoot = false;
-            break;
-        }
-
-        case STATE_PLAYER_BROKEN: {
-            mPlayerCanMove = false;
-            mPlayerCanShoot = false;
-            break;
-        }
-
-        case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE: {
-           mPlayerCanMove = false;
-           mPlayerCanShoot = false;
-           break;
-        }
-   }
-
-    //in the finished state the player should be able to
-    //move, but not shoot; the human player craft is taken
-    //over in this state by the computer player control
-    if (mHasFinishedRace) {
-        mPlayerCanMove = true;
-        mPlayerCanShoot = false;
-    }
-
-    //Update a connected HUD as well
-    UpdateHUDState();
-}
-
-void VVehicle::UpdateHUDState() {
-    if (mHUD == nullptr)
-        return;
-
-    irr::u32 state = this->GetCurrentState();
-
-    //there is one exception, if we are in demo mode
-    //do not draw the normal HUD, only before start
-    if (this->mRace->mDemoMode) {
-        if ((state != STATE_PLAYER_BEFORESTART) && (state != STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
-            mHUD->SetHUDState(DEF_HUD_STATE_NOTDRAWN);
-            return;
-        }
-    }
-
-    //make sure the HUD state if correct for us
-    switch (state) {
-        case STATE_PLAYER_BEFORESTART:
-        case STATE_PLAYER_ONFIRSTWAYTOFINISHLINE:
-        {
-            mHUD->SetHUDState(DEF_HUD_STATE_STARTSIGNAL);
-            break;
-        }
-    case STATE_PLAYER_EMPTYFUEL:
-    case STATE_PLAYER_RACING: {
-            //19.04.2025: If the player has already finished the race
-            //then do not draw HUD anymore, otherwise draw it again
-            if (!mHasFinishedRace) {
-                mHUD->SetHUDState(DEF_HUD_STATE_RACE);
-            } else {
-                mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-            }
-            break;
-        }
-
-    case STATE_PLAYER_GRABEDBYRECOVERYVEHICLE:
-    case STATE_PLAYER_BROKEN:  {
-        //if there is a connected HUD we need to disable
-        //its drawing, because if the player is destroyed there
-        //is an outside view at the craft, and for an outside view
-        //there is no HUD visible
-        mHUD->SetHUDState(DEF_HUD_STATE_BROKENPLAYER);
-        break;
-    }
-  }
 }
 
 void VVehicle::StartPlayingWarningSound() {
@@ -4465,6 +4509,11 @@ VVehicle::~VVehicle() {
     if (mMGun != nullptr) {
         delete mMGun;
         mMGun = nullptr;
+    }
+
+    if (mMLauncher != nullptr) {
+        delete mMLauncher;
+        mMLauncher = nullptr;
     }
 
     if (ThingData != nullptr) {

@@ -45,6 +45,13 @@
 class Race;
 class VVehicle;
 
+/***********************************
+ * VThing Status Flag Explanations *
+ ***********************************/
+
+//Flag 0x1 = Is set when the Thing's current location is catalogued in the maps child field (used in
+//mapwho_add, mapwho_move, mapwho_delete functions)
+
 struct VThing {
     irr::core::vector3df Position;
     MovementStruct Movement;
@@ -57,17 +64,18 @@ struct VThing {
 
     uint32_t AffectStatus = 0;
     int16_t AffectNumber = 0; //allows to specify the amount of damage dealt with an action
-    uint16_t AffectWho = 0;   //allows to specify who is affected
+    uint16_t AffectWho = 0;   //allows to specify who is the cause of a damage (wo is the attacker)
     uint16_t ColideGroup = 0;
 
     int16_t Life = 0;
 
-    uint32_t Seed = 0;
+    uint16_t Seed = 0;
 
     int16_t Count = 0;
     irr::core::vector3df CollideSize;
 
     uint32_t Status = 0;
+    int16_t Target = 0;
     int16_t Upgrade = 0;
     int8_t Member = 0;
     int8_t Action = 0;
@@ -105,6 +113,10 @@ public:
 
     void thing_delete(VThing* whichThing);
 
+    //only use thing_remove is special cases!
+    //default should be to use thing_delete
+    void thing_remove(VThing* whichThing);
+
     VThing Thing[1000];
 
     uint8_t mapwho_delete(VThing* whichThing);
@@ -117,11 +129,22 @@ public:
     //vehicles
     uint8_t affect_thing(VThing* whichThing);
 
+    int16_t thing_touching_anything(VThing* whichThing);
+
     //effect is the Effect-Thing that affects player
     //vehicles
     int16_t effect_affect_vehicle_exclusive(VThing* effect);
 
+    //Run this function periodically to free currently not available
+    //but also not used Things anymore
     void RunHousekeeping();
+
+    //call this function every ~ 50ms! so that the TimeSlice variable
+    //in the Thing will be advanced. This should occur right after
+    //the thing was processed as in the original game
+    void UpdateTimeSlice(VThing* whichThing);
+
+    void DebugDrawParentInfo();
 
 private:
     Race* mParentRace = nullptr;
@@ -131,7 +154,6 @@ private:
     int16_t AffectListIndex = 0;
 
     void ResetThingValues(VThing* whichThing);
-    void thing_remove(VThing* whichThing);
 };
 
 #endif // VTHING_H

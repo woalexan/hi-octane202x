@@ -9,12 +9,11 @@
 
 #include "hud.h"
 #include "../game.h"
-#include "../models/player.h"
-#include "../utils/physics.h"
 #include "../draw/gametext.h"
 #include "../vanilla/vvehicle.h"
 #include "../vanilla/vthing.h"
 #include "../vanilla/vmgun.h"
+#include "../vanilla/vmlauncher.h"
 #include "../race.h"
 
 //a negative altPanelTexNr input value means no alternative texture (image) is used
@@ -415,10 +414,6 @@ void HUD::InitUpgradeBar() {
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 443 ,  71);     //booster upgrade level 3 symbol
 
     mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
-}
-
-void HUD::SetHUDState(irr::u8 newHUDState) {
-    this->mHudState = newHUDState;
 }
 
 void HUD::CleanUpBannerMessage(BannerTextMessageStruct* msgToDeletePntr) {
@@ -1026,7 +1021,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //symbol number 4 is the rocket symbol itself (for basic upgrade level 0)
         //the next three symbols 5, 6 and 7 are for upgrade levels 1, 2 and 3
-        for (int i = 4; i <= (monitorWhichPlayer->Stats.MRocketUpgrade + 4); i++) {
+        for (int i = 4; i <= (monitorWhichPlayer->mMLauncher->Upgrade + 4); i++) {
             mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
@@ -1088,18 +1083,18 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         mGame->mGameTexts->DrawGameNumberText(lapNumStr,
                                                mGame->mGameTexts->HudLaptimeNumberRed, mPosLapCount);
 
-        // //next draw red skull and current player kill count number
-        // char currKillCountStr[10];
+        //next draw red skull and current player kill count number
+        char currKillCountStr[10];
 
-        // //first draw red skull
-        // strcpy(&currKillCountStr[0], ">");
-        // mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
-        //         mGame->mGameTexts->HudKillCounterNumberRed, mPosRedSkull);
+        //first draw red skull
+        strcpy(&currKillCountStr[0], ">");
+        mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mGame->mGameTexts->HudKillCounterNumberRed, mPosRedSkull);
 
-        // //now draw current kill number, dont forget the leading zeros!
-        // sprintf(&currKillCountStr[0], "%02d", monitorWhichPlayer->mPlayerStats->currKillCount);
-        // mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
-        //         mGame->mGameTexts->HudKillCounterNumberRed, mPosFragCnt);
+        //now draw current kill number, dont forget the leading zeros!
+        sprintf(&currKillCountStr[0], "%02d", (int)(monitorWhichPlayer->Conditions.KillsCount));
+        mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mGame->mGameTexts->HudKillCounterNumberRed, mPosFragCnt);
 
         BannerTextLogic(deltaTime);
 
@@ -1189,28 +1184,20 @@ bool HUD::DoesHudShowPermanentGreenBigText() {
 }
 
 void HUD::DrawHUD1(irr::f32 deltaTime) {
-    switch (this->mHudState) {
-        case DEF_HUD_STATE_STARTSIGNAL: {
-            //original line DrawHUD1PlayerStartSignal(deltaTime);
-            //TODO: Temporarily until HUD states are fixed again
+    //The ThingData Status variable Flag 0x800 is set when the
+    //first player crosses the starting line for the very
+    //first time. We can use it to switch the HUD view mode
+    if ((!mRace->mDemoMode) && ((monitorWhichPlayer->ThingData->Status & 0x800) == 0) && (!mRace->mSkipStart)) {
+        DrawHUD1PlayerStartSignal(deltaTime);
+    } else
+        //RacePositionFinish is 0 as long as the player has not finished
+        //the current Race
+        if ((!mRace->mDemoMode) && (!monitorWhichPlayer->RacePositionFinish)) {
             DrawHUD1PlayerRace(deltaTime);
-            break;
-        }
-
-        case DEF_HUD_STATE_RACE: {
-            DrawHUD1PlayerRace(deltaTime);
-            break;
-        }
-
-        case DEF_HUD_STATE_BROKENPLAYER: {
+        } else {
+            //the current monitored player has already finished the Race
             DrawHUD1PlayerBrokenPlayer(deltaTime);
-            break;
         }
-
-        default: {
-            break;
-        }
-    }
 }
 
 void HUD::DrawHUD1PlayerBrokenPlayer(irr::f32 deltaTime) {

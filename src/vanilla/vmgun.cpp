@@ -50,6 +50,34 @@ VMGun::VMGun(Race* parentRace, VVehicle* owner) {
 }
 
 VMGun::~VMGun() {
+    //We do not need to care about Things itself, the belong to
+    //the ThingManager, we only borrow Pointers to Things
+    //we just need to make sure that we give our things back at the end
+
+    std::vector<MGunShotStruct*>::iterator it2;
+    MGunShotStruct* pntrShot;
+
+    //cleanup all remaining shot objects
+    for (it2 = mShotVec.begin(); it2 != mShotVec.end(); ) {
+         pntrShot = (*it2);
+
+         it2 = mShotVec.erase(it2);
+
+         delete pntrShot;
+    }
+
+    //cleanup all currently existing but not useful anymore
+    //bulletEffect objects
+    BulletThingStruct* pntrBulletEffect;
+
+    //delete all remaining BulletThings
+    std::vector<BulletThingStruct*>::iterator it;
+    for (it = mBulletThings.begin(); it != mBulletThings.end(); ) {
+            pntrBulletEffect = (*it);
+            it = mBulletThings.erase(it);
+
+            CleanupBulletThing(pntrBulletEffect);
+    }
 }
 
 //Returns true in case of success
@@ -89,7 +117,26 @@ bool VMGun::LoadSprites() {
    return true;
 }
 
-void VMGun::initialiseSHOT_BULLET(VThing* whichThing) {
+//we can not remove scenenodes which have still
+//an animations running when the race is over
+//the race object uses this function to wait until
+//all animations are done
+bool VMGun::AllAnimationsFinished() {
+    std::vector<BulletThingStruct*>::iterator it;
+
+    for (it = this->mBulletThings.begin(); it != this->mBulletThings.end(); ++it) {
+        if ((*it)->animator != nullptr) {
+           if (!(*it)->animator->hasFinished())
+               return false;
+        }
+    }
+
+    return true;
+}
+
+void VMGun::initialiseSHOT_BULLET(MGunShotStruct* whichShot) {
+    VThing* whichThing = whichShot->ThingPntr;
+
     whichThing->Life = 18;
     whichThing->CollideSize.set(0.125f, 0.125f, 0.125f);
     whichThing->ColideGroup = (1048 & 0xFFFE);
@@ -97,7 +144,7 @@ void VMGun::initialiseSHOT_BULLET(VThing* whichThing) {
                                                whichThing->Movement.AngleZY, 1.0f);
 }
 
-uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
+uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
     irr::core::vector3df position;
     int32_t i;
     int32_t v14;
@@ -112,6 +159,8 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
     int16_t v28;
     BulletThingStruct* v20;
 
+    VThing* whichThing = whichShot->ThingPntr;
+
     position = whichThing->Position;
     for (i = 0; i < 4; ++i) {
         if (whichThing->Life < 0) {
@@ -123,6 +172,10 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
             v1 = 1;
         } else {
            mParentRace->mVCalc->move_swap_positions(whichThing->Position, position);
+
+           //only for debugging
+           //irr::core::vector3df dbgPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
+           //mParentRace->mGame->mSmgr->addCubeSceneNode(0.04f, nullptr, -1, dbgPos);
 
            //go through all the vehicles and see if the shot collides
            //with one of them
@@ -236,13 +289,19 @@ uint8_t VMGun::processSHOT_BULLET(VThing* whichThing) {
 VThing* VMGun::CreateShot(irr::core::vector3df* position,
                           irr::f32 angleXY, irr::f32 angleZY,
                           irr::f32 angleXZ, int16_t id) {
+
+    MGunShotStruct* newStruct = new MGunShotStruct;
+
     VThing* newThing =
         mParentRace->mThingManager->thing_initialise(*position, angleXY, angleZY, angleXZ,
                                                         6, 0, id);
 
-    initialiseSHOT_BULLET(newThing);
+    newStruct->ThingPntr = newThing;
+    newStruct->ReadyForCleanup = false;
 
-    mShotVec.push_back(newThing);
+    initialiseSHOT_BULLET(newStruct);
+
+    mShotVec.push_back(newStruct);
 
     return newThing;
 }
@@ -292,9 +351,7 @@ void VMGun::UpdateSceneNode(irr::scene::IBillboardSceneNode* whichNode, irr::cor
      whichNode->setPosition(irrPos);
 }
 
-//This function mostly implements the functionality
-//of the function "processEFFECT_BULLET" of the original game
-uint8_t VMGun::UpdateBulletThing(BulletThingStruct* whichBulletThing) {
+uint8_t VMGun::processEFFECT_BULLET(BulletThingStruct* whichBulletThing) {
     irr::f32 v2;
 
     v2 = whichBulletThing->ThingData->Movement.AngleXY + 11.375f;
@@ -304,8 +361,6 @@ uint8_t VMGun::UpdateBulletThing(BulletThingStruct* whichBulletThing) {
     if (whichBulletThing->ThingData->Life < 0) {
         //is not needed anymore, should be deleted
         mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
-
-        whichBulletThing->ReadyForCleanup = true;
 
         return 1;
     } else {
@@ -319,6 +374,27 @@ uint8_t VMGun::UpdateBulletThing(BulletThingStruct* whichBulletThing) {
     }
 
     return 0;
+}
+
+void VMGun::CleanupBulletThing(BulletThingStruct* whichBulletThing) {
+    if (whichBulletThing == nullptr)
+        return;
+
+    //give back the thing, if not already happened
+    if (whichBulletThing->ThingData != nullptr) {
+        mParentRace->mThingManager->thing_delete(whichBulletThing->ThingData);
+        whichBulletThing->ThingData = nullptr;
+    }
+
+    whichBulletThing->animSprite->removeAnimator(whichBulletThing->animator);
+    whichBulletThing->animator->drop();
+    whichBulletThing->animator = nullptr;
+
+    //remove the SceneNode as well
+    whichBulletThing->animSprite->remove();
+
+    //delete the struct itself
+    delete whichBulletThing;
 }
 
 //This function mostly implements the functionality
@@ -339,142 +415,191 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
     int16_t v18;
     VThing* v12;
 
-    //first update all currently existing shots
-    std::vector<VThing*>::iterator itShot;
-    for (itShot = mShotVec.begin(); itShot != mShotVec.end(); ++itShot) {
-         processSHOT_BULLET((*itShot));
-    }
+    //add delta time up to see when we need to update
+    //the slower parts of the MGun
+    mAbsTimeAcc += frameDeltaTime;
 
-    //second cleanup all currently existing but not useful anymore
-    //bulletEffect objects
-    BulletThingStruct* pntrBulletEffect;
-    bool deleteObj;
+    if (mAbsTimeAcc >= 0.05f) {
+        mAbsTimeAcc = 0.0f;
 
-    std::vector<BulletThingStruct*>::iterator it;
-    for (it = mBulletThings.begin(); it != mBulletThings.end(); ) {
-        deleteObj = false;
-        if ((*it)->ReadyForCleanup) {
-            deleteObj = true;
-            //make sure that the animation is already done
-            //is the animation done?
-            if ((*it)->animatorActive) {
-                if (!(*it)->animator->hasFinished()) {
-                    deleteObj = false;
+        //cleanup all currently existing but not useful anymore
+        //bulletEffect objects
+        BulletThingStruct* pntrBulletEffect;
+        bool deleteObj;
+
+        std::vector<BulletThingStruct*>::iterator it;
+        for (it = mBulletThings.begin(); it != mBulletThings.end(); ) {
+            deleteObj = false;
+            if ((*it)->ReadyForCleanup) {
+                deleteObj = true;
+                //make sure that the animation is already done
+                //is the animation done?
+                if ((*it)->animatorActive) {
+                    if (!(*it)->animator->hasFinished()) {
+                        deleteObj = false;
+                    }
                 }
             }
+
+            if (deleteObj) {
+                pntrBulletEffect = (*it);
+                it = mBulletThings.erase(it);
+
+                CleanupBulletThing(pntrBulletEffect);
+            } else
+            {
+                ++it;
+            }
         }
 
-        if (deleteObj) {
-            (*it)->animSprite->removeAnimator((*it)->animator);
-            (*it)->animator->drop();
-            (*it)->animator = nullptr;
+        std::vector<MGunShotStruct*>::iterator it2;
+        MGunShotStruct* pntrShot;
 
-            //remove the SceneNode as well
-            (*it)->animSprite->remove();
+        //cleanup all shot objects that were marked to be cleaned up
+        for (it2 = mShotVec.begin(); it2 != mShotVec.end(); ) {
+            if ((*it2)->ReadyForCleanup) {
+                pntrShot = (*it2);
 
-           pntrBulletEffect = (*it);
-           it = mBulletThings.erase(it);
+                it2 = mShotVec.erase(it2);
 
-           //delete the struct itself
-           delete pntrBulletEffect;
+                delete pntrShot;
+            } else {
+                ++it2;
+            }
+        }
+
+        std::vector<BulletThingStruct*>::reverse_iterator itReverse;
+
+        //30.08.2026: We need to iterate in reverse order so that the underlying Things
+        //stuff with Parents and Childs works. At least it seems so.
+        for (itReverse = mBulletThings.rbegin(); itReverse != mBulletThings.rend(); ++itReverse) {
+            //was the Thing itself of this BulletEffect already deleted?
+            //If so nothing to do anymore
+            if ((*itReverse)->ThingData == nullptr)
+                continue;
+
+            if (((*itReverse)->ThingData->Status & 4) != 0) {
+                mParentRace->mThingManager->thing_remove((*itReverse)->ThingData);
+                (*itReverse)->ThingData = nullptr;
+                (*itReverse)->ReadyForCleanup = true;
+            } else {
+                processEFFECT_BULLET((*itReverse));
+
+                //we need to update the TimeSlice variable in
+                //the EFFECT_BULLET Thing
+                mParentRace->mThingManager->UpdateTimeSlice((*itReverse)->ThingData);
+            }
+        }
+
+        //first update all currently existing shots
+        std::vector<MGunShotStruct*>::reverse_iterator itShot;
+
+        //30.08.2026: We need to iterate in reverse order so that the underlying Things
+        //stuff with Parents and Childs works. At least it seems so.
+        for (itShot = mShotVec.rbegin(); itShot != mShotVec.rend(); ++itShot) {
+             if (((*itShot)->ThingPntr->Status & 4) != 0) {
+                 mParentRace->mThingManager->thing_remove((*itShot)->ThingPntr);
+                 (*itShot)->ThingPntr = nullptr;
+                 (*itShot)->ReadyForCleanup = true;
+             } else {
+                 processSHOT_BULLET((*itShot));
+
+                 //we need to update the TimeSlice variable in
+                 //the SHOT_BULLER_THING
+                 mParentRace->mThingManager->UpdateTimeSlice((*itShot)->ThingPntr);
+             }
+        }
+
+        if (mOwner != nullptr) {
+          v5 = 0;
+          if (Trigger) {
+             if (TriggerTime < 100) {
+                 v5 = 1;
+             } else {
+                triggerRestrictionCount = TriggerRestrictionCount;
+                TriggerRestrictionCount = triggerRestrictionCount - 1;
+                if (triggerRestrictionCount) {
+                    //sample_stop(v6, 15)
+                    //sample_play(v6, 14);
+                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED, false);
+                } else {
+                    v5 = 1;
+                    TriggerRestrictionCount = 10;
+                }
+                TriggerTime = 100;
+             }
+          if (v5) {
+            angleXY = mOwner->View.AngleXY;
+            angleZY = mOwner->View.AngleZY;
+            angleXZ = mOwner->View.AngleXZ;
+            if (Target) {
+                targetVehicle = mParentRace->GetVehicleWithId((size_t)(Target));
+                angleXY = mParentRace->mVCalc->angle_get_xy(mOwner->ThingData->Position,
+                                                      targetVehicle->ThingData->Position);
+                angleZY = mParentRace->mVCalc->angle_get_zy(mOwner->ThingData->Position,
+                                                      targetVehicle->ThingData->Position);
+            }
+            v10 = 1;
+            p_Position = &mOwner->ThingData->Position;
+            do {
+              //Note 22.08.2026: CreateShot internally also creates the needed VThing
+              //for the MGun shot
+              v12 = CreateShot(p_Position, angleXY, angleZY, angleXZ, mOwner->ThingData->Id);
+              if (v12 != nullptr) {
+                  ++mOwner->Conditions.Bullets;
+                  //sample_play(v6, 15);
+                  mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT, false);
+                  v13 = mOwner->ThingData->Status ^ 0x10;
+                  mOwner->ThingData->Status = v13;
+                  v14 = -90.0f;
+                  if ((v13 & 0x10) != 0) {
+                      v14 = 90.0f;
+                  }
+                  position.X = v12->Position.X;
+                  position.Y = v12->Position.Y;
+                  position.Z = v12->Position.Z - 0.03125f;
+                  mParentRace->mVCalc->move_xyz(position, v14 + v12->Movement.AngleXY, 0.0f, 0.125f);
+                  mParentRace->mThingManager->mapwho_move(v12, position);
+                  TriggerTime += 2;
+                  if (TriggerTime >= 100) {
+                      ++mOwner->Conditions.MiniGunHeatup;
+                  }
+                  //need to set the bullets own upgrade level!
+                  v12->Upgrade = this->Upgrade;
+              }
+              --v10;
+              p_Position = &mOwner->ThingData->Position;
+            } while (v10);
+          }
+          Trigger = 0;
+          return;
+        }
+        if (Upgrade == 1) {
+            v18 = TriggerTime - 17;
+        } else if (Upgrade >= 2) {
+          if (Upgrade == 2) {
+              v18 = TriggerTime - 25;
+          } else
+          {
+              if (Upgrade != 3) {
+                  goto processWEAPON_MINI_GUN_LABEL36;
+              }
+              v18 = TriggerTime - 33;
+          }
         } else
         {
-            ++it;
-        }
-    }
-
-    //Third update all existing bulletEffect objects
-    for (it = mBulletThings.begin(); it != mBulletThings.end(); ++it) {
-        UpdateBulletThing((*it));
-    }
-
-    if (mOwner != nullptr) {
-      v5 = 0;
-      if (Trigger) {
-         if (TriggerTime < 100) {
-             v5 = 1;
-         } else {
-            triggerRestrictionCount = TriggerRestrictionCount;
-            TriggerRestrictionCount = triggerRestrictionCount - 1;
-            if (triggerRestrictionCount) {
-                //sample_stop(v6, 15)
-                //sample_play(v6, 14);
-            } else {
-                v5 = 1;
-                TriggerRestrictionCount = 10;
-            }
-            TriggerTime = 100;
-         }
-      if (v5) {
-        angleXY = mOwner->View.AngleXY;
-        angleZY = mOwner->View.AngleZY;
-        angleXZ = mOwner->View.AngleXZ;
-        if (Target) {
-            targetVehicle = mParentRace->GetVehicleWithId((size_t)(Target));
-            angleXY = mParentRace->mVCalc->angle_get_xy(mOwner->ThingData->Position,
-                                                  targetVehicle->ThingData->Position);
-            angleZY = mParentRace->mVCalc->angle_get_zy(mOwner->ThingData->Position,
-                                                  targetVehicle->ThingData->Position);
-        }
-        v10 = 1;
-        p_Position = &mOwner->ThingData->Position;
-        do {
-          //Note 22.08.2026: CreateShot internally also creates the needed VThing
-          //for the MGun shot
-          v12 = CreateShot(p_Position, angleXY, angleZY, angleXZ, mOwner->ThingData->Id);
-          if (v12 != nullptr) {
-              ++mOwner->Conditions.Bullets;
-              //sample_play(v6, 15);
-              v13 = mOwner->ThingData->Status ^ 0x10;
-              mOwner->ThingData->Status = v13;
-              v14 = -90.0f;
-              if ((v13 & 0x10) != 0) {
-                  v14 = 90.0f;
-              }
-              position.X = v12->Position.X;
-              position.Y = v12->Position.Y;
-              position.Z = v12->Position.Z - 0.03125f;
-              mParentRace->mVCalc->move_xyz(position, v14 + v12->Movement.AngleXY, 0.0f, 0.125f);
-              mParentRace->mThingManager->mapwho_move(v12, position);
-              TriggerTime += 2;
-              if (TriggerTime >= 100) {
-                  ++mOwner->Conditions.MiniGunHeatup;
-              }
-              //need to set the bullets own upgrade level!
-              v12->Upgrade = this->Upgrade;
+          if (Upgrade) {
+                   goto processWEAPON_MINI_GUN_LABEL36;
           }
-          --v10;
-          p_Position = &mOwner->ThingData->Position;
-        } while (v10);
+          v18 = TriggerTime - 10;
+        }
+        TriggerTime = v18;
+    processWEAPON_MINI_GUN_LABEL36:
+        if (TriggerTime >= 0) {
+            return;
+        }
+        TriggerTime = 0;
       }
-      Trigger = 0;
-      return;
     }
-    if (Upgrade == 1) {
-        v18 = TriggerTime - 17;
-    } else if (Upgrade >= 2) {
-      if (Upgrade == 2) {
-          v18 = TriggerTime - 25;
-      } else
-      {
-          if (Upgrade != 3) {
-              goto processWEAPON_MINI_GUN_LABEL36;
-          }
-          v18 = TriggerTime - 33;
-      }
-    } else
-    {
-      if (Upgrade) {
-               goto processWEAPON_MINI_GUN_LABEL36;
-      }
-      v18 = TriggerTime - 10;
-    }
-    TriggerTime = v18;
-processWEAPON_MINI_GUN_LABEL36:
-    if (TriggerTime >= 0) {
-        return;
-    }
-    TriggerTime = 0;
-  }
 }
 
