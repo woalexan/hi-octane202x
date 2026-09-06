@@ -86,7 +86,7 @@ uint8_t VMLauncher::processSHOT_MISSILE(MMissileShotStruct* whichMissileShot) {
     VThing* v31 = nullptr;
     VVehicle* targetVehicle = nullptr;
     std::vector<VVehicle*>::iterator it;
-    irr::core::vector3df dbgPos;
+    //irr::core::vector3df dbgPos;
     EffectInfoStruct* infoStruct = nullptr;
     EffectInfoStruct* infoStruct2 = nullptr;
 
@@ -115,7 +115,7 @@ processSHOT_MISSILE_LABEL_14:
 processSHOT_MISSILE_LABEL_15:
 
         if (whichThing->Target) {
-            targetVehicle = mParentRace->GetVehicleWithId((size_t)(Target));
+            targetVehicle = mParentRace->GetVehicleWithId((size_t)(whichThing->Target));
             if (whichThing->Count == 1) {
                   xy = mParentRace->mVCalc->angle_get_xy(position_from, targetVehicle->ThingData->Position);
                   difference = mParentRace->mVCalc->angle_get_difference(whichThing->Movement.AngleXY, xy);
@@ -133,7 +133,7 @@ processSHOT_MISSILE_LABEL_15:
                   whichThing->Movement.AngleZY += v34;
             }
             if (targetVehicle->ThingData->Group == 10) {
-               if ((fabs(targetVehicle->ClosestMissile) < 0.00390625f) || (xyz = mParentRace->mVCalc->distance_get_xyz(targetVehicle->ThingData->Position, whichThing->Position),
+               if ((fabs(targetVehicle->ClosestMissile) < 0.00390625f) | (xyz = mParentRace->mVCalc->distance_get_xyz(targetVehicle->ThingData->Position, whichThing->Position),
                                                      v13 = xyz >= targetVehicle->ClosestMissile,
                                                      v37 = xyz,
                                                      !v13)) {
@@ -309,6 +309,7 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
     int rNum;
     irr::f32 v18;
     int16_t triggerTime;
+    irr::core::vector3df irrPos;
 
     //add delta time up to see when we need to update
     //the slower parts of the MGun
@@ -402,7 +403,17 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
                                     mParentRace->mVCalc->move_xyz(position, v15->Movement.AngleXY + v18, 0.0f, 0.3125f);
                                     mParentRace->mThingManager->mapwho_move(v15, position);
                                     //sample_play(v7, 23);
-                                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, false);
+
+                                    if (mOwner->GetControlOrigin() != 8) {
+                                        //for the human player play the sound non localized so that its volume
+                                        //is always constant
+                                         mParentRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, false);
+                                    } else {
+                                        //for other computer players play the sound localized so that we do not hear
+                                        //every shot from every player across the map
+                                        irrPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(mOwner->ThingData->Position);
+                                        mParentRace->mSoundEngine->PlaySound(SRES_GAME_MISSILE_SHOT, irrPos, false);
+                                    }
 
                                     if (this->Target) {
                                         v15->Target = this->Target;

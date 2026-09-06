@@ -107,10 +107,12 @@ struct VehicleFunctionFlagsStruct {
     bool Pad2;  //seems to be used for checkpoint processing logic
     bool Pad3;  //seems to be used for vehicle control logic
     bool Pad4;  //seems to be used for computer player control
+    bool Pad5;  //seems to be used for computer player trigger of Rocket Gun
     bool Pad6;  //seems to be used during collision detection with vector collision
     bool Pad7;  //seems to be used for auto targeting system
     bool Pad8;  //seems to be used for auto targeting system
     bool Pad9;  //seems to be used for computer player control
+    bool Pad11; //seems to be used for computer player trigger of MGun
     bool Pad12; //seems to be used for checkpoint processing logic
 };
 
@@ -250,6 +252,11 @@ struct VehicleAutoTargetStruct {
     uint16_t ValidTargetCount;
 };
 
+struct VehicleMovementStatusStruct {
+    irr::core::vector3df LastPosition;
+    int16_t Count = 0;
+};
+
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -278,7 +285,6 @@ public:
     VThing* ThingData = nullptr;
 
     Race* mRace = nullptr;
-
 public:
     MomentumStruct Momentum;
 
@@ -326,6 +332,7 @@ public:
     VehicleConditionsStruct Conditions;
     VehicleViewStruct View;
     VehicleDamageStruct Damage;
+    VehicleMovementStatusStruct MovementStatus;
 
     irr::f32 mDeltaTimeFactor = 1.0f;
 
@@ -433,6 +440,8 @@ public:
 
     uint32_t GetControlOrigin();
 
+    //void TestBigExplosion();
+
 private:
     uint32_t ControlOrigin = 1; //activates the human player
     uint16_t LastWayPoint = 0;
@@ -443,6 +452,8 @@ private:
     irr::f32 mAbsTimeIntegrator = 0.0f;
 
     irr::f32 mUpdateVehicleTimeIntegrator = 0.0f;
+
+    uint8_t PlayerDifficultyLevel = 0;
 
     bool mRaceTriggered = false;
 
@@ -467,6 +478,7 @@ private:
     void vehicle_do_action();
 
     VehicleComputerPlayerStruct ComputerPlayer;
+    uint8_t vehicle_check_vehicle_movement_status();
     void vehicle_setup_computer_character();
 
     void vehicle_control();

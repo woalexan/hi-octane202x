@@ -12,6 +12,7 @@
 
 #include "irrlicht.h"
 #include <vector>
+#include "../audio/sound.h"
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
 #define DEF_HUD_BANNERTEXT_MINSHOWTIME 1.0f //in seconds
@@ -245,6 +246,8 @@ private:
     irr::core::vector2d<irr::s32> mPosFragCnt;
 
     void PrecalculatePositions();
+
+    sf::Sound* mMissileCloseSoundSource = nullptr;
 
 public:
     HUD(Game* game, Race* parentRace);

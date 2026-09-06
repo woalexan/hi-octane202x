@@ -1164,8 +1164,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
            wchar_t* text2 = new wchar_t[400];
 
            swprintf(text2, 390, L"");
-           /*swprintf(text2, 390, L"Things: %d\nEffects: %d\n %d", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mEffectManager->GetNrCurrentlyActiveEffects()),
-                     (int)(mCurrentRace->mVanillaCraftVec.at(0)->ThingData->TimeSlice));*/
+           //swprintf(text2, 390, L"Things: %d\nEffects: %d\n", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mEffectManager->GetNrCurrentlyActiveEffects()));
 
             dbgText->setText(text2);
 

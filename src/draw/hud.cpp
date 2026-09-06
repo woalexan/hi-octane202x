@@ -1106,6 +1106,21 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //Render big green text if currently one is shown
         RenderBigGreenText(deltaTime);
+
+        //if a missile is close play a warning sound
+        if (fabs(monitorWhichPlayer->ClosestMissile) >= 0.00390625f) {
+            //warning sound already playing, if not then start playing it
+            if (mMissileCloseSoundSource == nullptr) {
+                mMissileCloseSoundSource = this->mRace->mSoundEngine->PlaySound(SRES_GAME_LOCKON, true);
+            }
+        } else {
+            //no missile close anymore
+            if (mMissileCloseSoundSource != nullptr) {
+                //stop the warning sound again
+                mMissileCloseSoundSource->setLooping(false);
+                mMissileCloseSoundSource = nullptr;
+            }
+        }
     }
 }
 
@@ -1188,6 +1203,13 @@ void HUD::DrawHUD1(irr::f32 deltaTime) {
     //first player crosses the starting line for the very
     //first time. We can use it to switch the HUD view mode
     if ((!mRace->mDemoMode) && ((monitorWhichPlayer->ThingData->Status & 0x800) == 0) && (!mRace->mSkipStart)) {
+        //make sure we do not play a missile warning sound
+        if (mMissileCloseSoundSource != nullptr) {
+            //stop the warning sound again
+            mMissileCloseSoundSource->setLooping(false);
+            mMissileCloseSoundSource = nullptr;
+        }
+
         DrawHUD1PlayerStartSignal(deltaTime);
     } else
         //RacePositionFinish is 0 as long as the player has not finished
@@ -1196,6 +1218,14 @@ void HUD::DrawHUD1(irr::f32 deltaTime) {
             DrawHUD1PlayerRace(deltaTime);
         } else {
             //the current monitored player has already finished the Race
+
+            //make sure we do not play a missile warning sound
+            if (mMissileCloseSoundSource != nullptr) {
+                //stop the warning sound again
+                mMissileCloseSoundSource->setLooping(false);
+                mMissileCloseSoundSource = nullptr;
+            }
+
             DrawHUD1PlayerBrokenPlayer(deltaTime);
         }
 }
@@ -1213,6 +1243,13 @@ void HUD::SetMonitorWhichPlayer(VVehicle* newPlayer) {
     if (monitorWhichPlayer != nullptr) {
         monitorWhichPlayer->StopPlayingWarningSound();
         monitorWhichPlayer->SetMyHUD(nullptr);
+    }
+
+    //make sure missile warning sound is stopped
+    if (mMissileCloseSoundSource != nullptr) {
+        //stop the warning sound again
+        mMissileCloseSoundSource->setLooping(false);
+        mMissileCloseSoundSource = nullptr;
     }
 
     //also make sure that any visible permanent
@@ -1983,7 +2020,7 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           //quality increases value increases up to max value of 100
           //Note: The distance of 22 pixels and how the target symbol is rendered was not derived
           //from the original games implementation, but from screenshoots and observation alone
-          irr::u32 lockProgress = (irr::u32)(22.0f - ((irr::f32)(targetPlayer->AutoTarget.ValidTargetCount) / 100.0f) * 22.0f);
+          irr::u32 lockProgress = (irr::u32)(22.0f - ((irr::f32)(monitorWhichPlayer->AutoTarget.ValidTargetCount) / 100.0f) * 22.0f);
 
           targetArrowLeft->drawScrPosition.X =
                   targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
@@ -1999,7 +2036,7 @@ void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
           targetArrowBelow->drawScrPosition.X = targetArrowAbove->drawScrPosition.X;
           targetArrowBelow->drawScrPosition.Y = targetPos.Y + targetSymBHalfHeight + lockProgress;
 
-          if (targetPlayer->AutoTarget.ValidTargetCount < 0x64) {
+          if (monitorWhichPlayer->AutoTarget.ValidTargetCount < 0x64) {
              //no missle lock, green symbol and green text
              mGame->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
                 targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);

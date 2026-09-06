@@ -13,7 +13,6 @@
 #include "../utils/ray.h"
 #include "levelterrain.h"
 #include "levelblocks.h"
-#include "missile.h"
 #include "particle.h"
 #include "../audio/sound.h"
 #include "../draw/hud.h"
@@ -464,7 +463,7 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
     CalcCraftLocalFeatureCoordinates(NewPosition, NewFrontAt);
 
     //create my SmokeTrail particle system
-    mSmokeTrail = new SmokeTrail(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 20);
+    //mSmokeTrail = new SmokeTrail(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 20);
 
     //create my Dust cloud emitter particles system
    // mDustBelowCraft = new DustBelowCraft(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 100);
@@ -1237,14 +1236,14 @@ void Player::Update(irr::f32 frameDeltaTime) {
     if (mPlayerModelSmoking != mLastPlayerModelSmoking) {
         if (mPlayerModelSmoking) {
             //player model start smoking
-            this->mSmokeTrail->Activate();
+     //       this->mSmokeTrail->Activate();
         } else {
             //player model stop smoking again
-            this->mSmokeTrail->Deactivate();
+       //     this->mSmokeTrail->Deactivate();
         }
     }
 
-    mSmokeTrail->Update(frameDeltaTime);
+    //mSmokeTrail->Update(frameDeltaTime);
 
     mLastPlayerModelSmoking = mPlayerModelSmoking;
 

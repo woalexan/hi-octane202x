@@ -414,6 +414,7 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
     irr::f32 v14;
     int16_t v18;
     VThing* v12;
+    irr::core::vector3df irrPos;
 
     //add delta time up to see when we need to update
     //the slower parts of the MGun
@@ -521,7 +522,16 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
                 if (triggerRestrictionCount) {
                     //sample_stop(v6, 15)
                     //sample_play(v6, 14);
-                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED, false);
+                    if (mOwner->GetControlOrigin() != 8) {
+                        //for the human player play the sound non localized so that its volume
+                        //is always constant
+                        mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED, false);
+                    } else {
+                        //for other computer players play the sound localized so that we do not hear
+                        //every shot from every player across the map
+                        irrPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(mOwner->ThingData->Position);
+                        mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SHOTFAILED, irrPos, false);
+                    }
                 } else {
                     v5 = 1;
                     TriggerRestrictionCount = 10;
@@ -548,7 +558,16 @@ void VMGun::Update(irr::f32 frameDeltaTime) {
               if (v12 != nullptr) {
                   ++mOwner->Conditions.Bullets;
                   //sample_play(v6, 15);
-                  mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT, false);
+                  if (mOwner->GetControlOrigin() != 8) {
+                    //for the human player play the sound non localized so that its volume
+                    //is always constant
+                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT, false);
+                  } else {
+                    //for other computer players play the sound localized so that we do not hear
+                    //every shot from every player across the map
+                    irrPos = mParentRace->mVCalc->VanillaToIrrlichtCoord(mOwner->ThingData->Position);
+                    mParentRace->mSoundEngine->PlaySound(SRES_GAME_MGUN_SINGLESHOT, irrPos, false);
+                  }
                   v13 = mOwner->ThingData->Status ^ 0x10;
                   mOwner->ThingData->Status = v13;
                   v14 = -90.0f;
