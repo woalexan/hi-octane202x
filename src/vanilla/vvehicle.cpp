@@ -60,6 +60,21 @@
 #include "../models/particle.h"
 #include "../resources/mapentry.h"
 
+/*void VVehicle::TestBigExplosion() {
+    EffectInfoStruct* vExp;
+    vExp = mRace->mEffectManager->AddEffect(EffectType::ExplosionBig,
+                                     this->ThingData->Position,
+                                     this->ThingData->Movement.AngleXY,
+                                     this->ThingData->Movement.AngleZY,
+                                     this->ThingData->Movement.AngleXZ,
+                                     this->ThingData->Id);
+    if (vExp != nullptr) {
+        if (vExp->thingPntr != nullptr) {
+            vExp->thingPntr->ColideGroup = 0;
+        }
+    }
+}*/
+
 //according to the emulator this function is supposed
 //to run periodically every ~45 ms
 void VVehicle::processWeaponBooster() {
@@ -354,6 +369,9 @@ void VVehicle::vehicle_execute_action0x1_defaultracing() {
         //are we completely out of health?
         if (Stats.Health <= 0) {
             //this triggers an Explosion BIG
+            //05.09.2026: It seems the Explosion BIG in the Playstation 1 version of the game
+            //does not do anything; Therefore if we do not implement this function call here
+            //nothing is lost in my implementation, TODO: investigate further
             //v26 = thing_initialise(&thing->Position, &thing->Movement.Angle, 2, 2, thing->Id);
             // if (v26) {
             //   v26->Colide.Group = 0;
@@ -464,8 +482,31 @@ void VVehicle::vehicle_execute_action0x11_spawnpowerups() {
 
 void VVehicle::vehicle_execute_action0x13_exploding() {
     int16_t v47;
+    EffectInfoStruct* newEffect = nullptr;
 
-    //TODO: add effects here
+    //05.09.2026: The original implementation reads like this:
+    //if ( !((thing->TimeSlice - 3 * (((unsigned __int64)(1431655766LL * thing->TimeSlice) >> 32) - (thing->TimeSlice >> 7))) << 24) ) {
+
+    //According to "a source" this obviously should mean the if statement is executed for
+    //all TimeSlice values which can be divided by 3 (TimeSlice %3 == 0)
+    if ((ThingData->TimeSlice % 3) == 0) {
+        //create us an medium explosion
+        newEffect = mRace->mEffectManager->AddEffect(EffectType::ExplosionMedium,
+                ThingData->Position, ThingData->Movement.AngleXY,
+                ThingData->Movement.AngleZY, ThingData->Movement.AngleXZ, ThingData->Id);
+        if (newEffect != nullptr) {
+            if (newEffect->thingPntr != nullptr) {
+                newEffect->thingPntr->ColideGroup = 0;
+            }
+        }
+    }
+
+    //Create us some SmokeFire
+    newEffect = mRace->mEffectManager->AddEffect(EffectType::SmokeFire,
+                                                  ThingData->Position,
+                                                  ThingData->Movement.AngleXY,
+                                                  ThingData->Movement.AngleZY,
+                                                  ThingData->Movement.AngleXZ, ThingData->Id);
 
     vehicle_get_checkpoint();
     v47 = ThingData->Count - 1;
@@ -509,13 +550,23 @@ void VVehicle::vehicle_execute_action0x14_callAndWaitForRecoveryVehicle() {
     timeslice = ThingData->TimeSlice;
 
     if ((timeslice & 3) == 0) {
-        //Emit more smoke
+        //Emit more SmokeFire
+        mRace->mEffectManager->AddEffect(EffectType::SmokeFire,
+                                         ThingData->Position,
+                                         ThingData->Movement.AngleXY,
+                                         ThingData->Movement.AngleZY,
+                                         ThingData->Movement.AngleXZ, ThingData->Id);
     }
 
     position.X += 0.078125f;
 
     if ((ThingData->TimeSlice & 7) == 0) {
-        //Emit more smoke
+        //Emit more SmokeFire
+        mRace->mEffectManager->AddEffect(EffectType::SmokeFire,
+                                         ThingData->Position,
+                                         ThingData->Movement.AngleXY,
+                                         ThingData->Movement.AngleZY,
+                                         ThingData->Movement.AngleXZ, ThingData->Id);
     }
 
     vehicle_get_checkpoint();
@@ -548,13 +599,23 @@ void VVehicle::vehicle_execute_action0x16() {
     timeslice = ThingData->TimeSlice;
 
     if ((timeslice & 3) == 0) {
-        //Emit more smoke
+        //Emit more SmokeFire
+        mRace->mEffectManager->AddEffect(EffectType::SmokeFire,
+                                         ThingData->Position,
+                                         ThingData->Movement.AngleXY,
+                                         ThingData->Movement.AngleZY,
+                                         ThingData->Movement.AngleXZ, ThingData->Id);
     }
 
     position.X += 0.078125f;
 
     if ((ThingData->TimeSlice & 7) == 0) {
-        //Emit more smoke
+        //Emit more SmokeFire
+        mRace->mEffectManager->AddEffect(EffectType::SmokeFire,
+                                         ThingData->Position,
+                                         ThingData->Movement.AngleXY,
+                                         ThingData->Movement.AngleZY,
+                                         ThingData->Movement.AngleXZ, ThingData->Id);
     }
 
     vehicle_get_checkpoint();
@@ -1136,10 +1197,12 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    FlightModel.FunctionFlag.Pad2 = false;
    FlightModel.FunctionFlag.Pad3 = true;
    FlightModel.FunctionFlag.Pad4 = false;
+   FlightModel.FunctionFlag.Pad5 = false;
    FlightModel.FunctionFlag.Pad6 = false;
    FlightModel.FunctionFlag.Pad7 = false;
    FlightModel.FunctionFlag.Pad8 = false;
    FlightModel.FunctionFlag.Pad9 = false;
+   FlightModel.FunctionFlag.Pad11 = false;
 
    //Pad12 seems to be used for checkpoint and lap number processing
    FlightModel.FunctionFlag.Pad12 = false;
@@ -1974,6 +2037,37 @@ vehicle_control_from_player_LABEL_45:
     }
 }
 
+uint8_t VVehicle::vehicle_check_vehicle_movement_status() {
+    uint8_t result = 1;
+    bool v11;
+
+    //is this a computer controlled player?
+    if (this->ControlOrigin == 8) {
+        //yes, it is
+        if (!MovementStatus.Count) {
+           MovementStatus.LastPosition = ThingData->Position;
+        }
+        MovementStatus.Count++;
+        v11 = (MovementStatus.Count < 51);
+        result = 1;
+        if (!v11) {
+            MovementStatus.Count = 1;
+            if (mRace->mVCalc->distance_get_xy(ThingData->Position, MovementStatus.LastPosition) >= 2.0f) {
+                //Vehicle moved far enough, all seems to be ok
+                MovementStatus.LastPosition = ThingData->Position;
+                return 1;
+            } else {
+                //there seems to be a problem, call for rescue
+                ThingData->Action = 0x14;
+                MovementStatus.Count = 0;
+                return 0;
+            }
+        }
+    }
+
+    return result;
+}
+
 uint8_t VVehicle::vehicle_control_from_autopilot() {
     irr::f32 velocity;
     irr::f32 decisionDistance;
@@ -1982,6 +2076,7 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
     uint16_t currentWaypoint;
     irr::f32 v19;
     int32_t v19Fixed;
+    uint16_t v23;
     uint32_t v28;
     irr::f32 v40;
     irr::f32 v45;
@@ -1991,10 +2086,16 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
     irr::f32 difference;
     uint8_t result;
     uint16_t v21;
+    int8_t timeSliceInt;
+    bool v2;
+    VVehicle* targetPlayer = nullptr;
 
     irr::core::vector3df position;
 
-    //TODO: Add vehicle_check_vehicle_movement_status later;
+    v2 = (vehicle_check_vehicle_movement_status() == 0);
+    if (v2) {
+        return 1;
+    }
 
     result = 1;
 
@@ -2105,7 +2206,14 @@ vehicle_control_from_autopilot_LABEL34:
     //right now here
 
     if (!FlightModel.FunctionFlag.Pad9) {
-      //Skip implementation right now
+       v23 = 0;
+       do {
+           v2 = (AutoTarget.HitMeCount[v23++] < 0xBu);
+           if (!v2) {
+               ComputerPlayer.Count1 = 22;
+               ComputerPlayer.Count2 = 3;
+           }
+       } while (v23 < 8u);
     }
 
     if ((!ComputerPlayer.Count1) && (FlightModel.FunctionFlag.Pad4)) {
@@ -2198,7 +2306,91 @@ vehicle_control_from_autopilot_LABEL135:
         MovementInput.AngleXY = v40 - (MovementInput.AngleXY / 8.0f);
     }
 
+    if (FlightModel.FunctionFlag.Pad9) {
+        if (this->mMGun->Upgrade <= 0) {
+            this->mMGun->Upgrade = 1;
+        }
+    }
+
+    if (PlayerDifficultyLevel) {
+        if (LapCounter) {
+            if (!FlightModel.Flag.pad1) {
+                if (FlightModel.Flag.pad2 || (v40 < 0.098876953125f)) {
+                     ++this->mMGun->Trigger;
+                } else if (v40 >= 1.0052490234375f) {
+                    MovementInput.SpeedActual = -IncrementAdd.SpeedActual;
+                }
+            }
+        }
+    }
+
     vehicle_targetting_system();
+
+    FlightModel.FunctionFlag.Pad6 = false;
+    if (AutoTarget.PrimaryTarget > 0) {
+        targetPlayer = mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1);
+        if (mRace->mVCalc->distance_get_rough_xy(ThingData->Position,
+            targetPlayer->ThingData->Position) < 5.0f) {
+               FlightModel.FunctionFlag.Pad6 = true;
+        }
+    }
+
+    if (ControlOrigin != 8) {
+        goto vehicle_control_from_autopilot_LABEL126;
+    }
+
+    if (!LapCounter) {
+        goto vehicle_control_from_autopilot_LABEL126;
+    }
+
+    if ((FlightModel.FunctionFlag.Pad9 && (FlightModel.FunctionFlag.Pad11 == false) || (!AutoTarget.PrimaryTarget))) {
+        goto vehicle_control_from_autopilot_LABEL126;
+    }
+
+    //05.09.2026: Skipped Deathmatch related code here
+
+    //05.09.2026: I needed to change the original value of 80 in the if statement
+    //to 207, because my TimeSlice does count from 0 up to 0xFF instead from negative
+    //values up to +128;
+    if ((FlightModel.FunctionFlag.Pad11) || (ThingData->TimeSlice < 207)) {
+            this->mMGun->TriggerTime = 0;
+            //not 100% sure about the next line
+            this->mMGun->Upgrade = (int16_t)(PlayerDifficultyLevel);
+            ++mMGun->Trigger;
+            mMGun->Target = (int16_t)(AutoTarget.PrimaryTarget);
+    }
+
+    if (AutoTarget.ValidTargetCount < 0x51u) {
+vehicle_control_from_autopilot_LABEL127:
+         //not sure with the next line!
+         if (!FlightModel.FunctionFlag.Pad6) {
+             goto vehicle_control_from_autopilot_LABEL129;
+         }
+         goto vehicle_control_from_autopilot_LABEL128;
+    }
+
+    //not sure with the next 2 lines
+    timeSliceInt = static_cast<int8_t>(ThingData->TimeSlice);
+    if ((timeSliceInt < 0) || ((timeSliceInt % 9) != 0)) {
+vehicle_control_from_autopilot_LABEL126:
+             goto vehicle_control_from_autopilot_LABEL127;
+    }
+
+    if (!FlightModel.FunctionFlag.Pad6) {
+        //not 100% sure about the next line
+        mMLauncher->Upgrade = (int16_t)(PlayerDifficultyLevel);
+        ++mMLauncher->Trigger;
+
+        //not sure about the next line!
+        mMLauncher->Target = AutoTarget.PrimaryTarget;
+        goto vehicle_control_from_autopilot_LABEL126;
+    }
+
+vehicle_control_from_autopilot_LABEL128:
+    if (AutoTarget.PrimaryTarget > 0) {
+           targetPlayer = mRace->mVanillaCraftVec.at(AutoTarget.PrimaryTarget - 1);
+           targetPlayer->FlightModel.FunctionFlag.Pad5 = true;
+    }
 
 vehicle_control_from_autopilot_LABEL129:
     if (Stats.Fuel < 3000) {

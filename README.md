@@ -5,7 +5,7 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
-### Update 30.08.2026
+### Update 06.09.2026
 Since beginning of this year I am in the process of replacing my own older source code with new source code more or less based on the
 original games implementation. This will make my project feel much closer to the original. Right now the project contains old source code and
 new implementations in parallel, and in the near future I will beginn to remove old now unnecessary parts step by step.
@@ -15,20 +15,22 @@ I made a lot of progress over the last 4 months or so. This is already implement
 #### Current state
 - Extraction of the original game data into usable file formats is working
 - Vehicle physics according to original game (Right now runs at ~50ms update period as the Playstation 1 version, will increase update rate later)
-- Booster, Machinegun, and Rocket Gun is implemented and working. Computer players can be attacked
+- Booster, Machinegun, and Rocket Gun is implemented and working. Attacking players is working
 - Player stats (Health, Fuel, Ammo) and Recharging stations are working
 - HUD during the race is working
 - Recovery vehicles are working
 - Computer player steering (basic function working, but there must be a hidden bug somewhere I need to fix, so not perfect)
+- Computer players also attack the human player now
 - Auto Target System (so other players can be targeted)
 - First effects are implemented (Smoke, Small/Medium Explosions)
 
 #### TODO
-- Computer players do not shot yet (most important missing item right now to make the game really playable)
 - "Demo" mode with external cameras is not yet working as expected (external camera control code not yet implemented)
 - Cones need to be implemented again, Same is true for steam effects at the race track
 - Calculation of player rating not yet implemented
 - Special bonus calculations (180°, 360°, Supercar) not yet implemented
+- Broken glass effect on HUD not implemented currently
+- Rocket Gun triggers in levels not working currently
 
 Because of this huge rework this also means the main branch of this game is right now only partly playable. But I will try to fix the game
 as fast as possible over the upcoming months. Thank you for your understanding and patience.

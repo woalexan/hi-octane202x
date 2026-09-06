@@ -190,6 +190,28 @@ EffectInfoStruct* VEffectManager::AddEffect(EffectType whichEffect, irr::core::v
             //this effect has no assigned SceneNode itself
             break;
         }
+        case EffectType::Flare: {
+            newInfoStruct->thingPntr = mParentRace->mThingManager->thing_initialise(location,
+                                                               angleXY, angleZY, angleXZ,
+                                                               2, 22, id);
+
+            initialiseEFFECT_FLARE(newInfoStruct->thingPntr);
+
+            //this effect has no assigned SceneNode itself
+            break;
+        }
+        case EffectType::ExplosionBig: {
+            newInfoStruct->thingPntr = mParentRace->mThingManager->thing_initialise(location,
+                                                               angleXY, angleZY, angleXZ,
+                                                               2, 2, id);
+
+            initialiseEFFECT_EXPLOSION_BIG(newInfoStruct->thingPntr);
+
+            //explosionSound = true; ?
+
+            //this effect has no assigned SceneNode itself
+            break;
+        }
         default: {
               delete newInfoStruct;
               return nullptr;
@@ -252,6 +274,18 @@ void VEffectManager::UpdateEffect(EffectInfoStruct* whichInfoStruct) {
         }
         case EffectType::ExplosionMedium: {
             processEFFECT_EXPLOSION_MEDIUM(whichInfoStruct);
+
+            //This effect does not have a SceneNode assigned to it
+            break;
+        }
+        case EffectType::Flare: {
+            processEFFECT_FLARE(whichInfoStruct);
+
+            //This effect does not have a SceneNode assigned to it
+            break;
+        }
+        case EffectType::ExplosionBig: {
+            processEFFECT_EXPLOSION_BIG(whichInfoStruct);
 
             //This effect does not have a SceneNode assigned to it
             break;
@@ -540,7 +574,7 @@ void VEffectManager::processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoS
     irr::f32 v10Float;
     VThing* v9 = nullptr;
     EffectInfoStruct* infoStruct = nullptr;
-    VThing* v12 = nullptr;
+    EffectInfoStruct* v12 = nullptr;
 
     VThing* whichThing = whichInfoStruct->thingPntr;
 
@@ -604,11 +638,14 @@ void VEffectManager::processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoS
         }
     } while (v5 < 6);
 
-    //v12 = Create an Effect Flare!
+    v12 = AddEffect(EffectType::Flare, position, whichThing->Movement.AngleXY,
+                    whichThing->Movement.AngleZY, whichThing->Movement.AngleXZ, whichThing->Id);
+
     if (v12 != nullptr) {
-        v12->Action = 1;
-        v12->ColideGroup = 0;
-        return;
+        if (v12->thingPntr != nullptr) {
+            v12->thingPntr->Action = 1;
+            v12->thingPntr->ColideGroup = 0;
+        }
     }
 }
 
@@ -680,3 +717,233 @@ processEFFECT_SMOKE_FIRE_LABEL_9:
         return;
     }
 }
+
+void VEffectManager::initialiseEFFECT_FLARE(VThing* whichThing) {
+    uint16_t v5;
+    uint16_t v6;
+    uint16_t v7;
+
+    //I skipped some code here, do we need it?
+
+    v5 = 9377 * whichThing->Seed + 9439;
+    whichThing->Seed = v5;
+    v6 = 9377 * whichThing->Seed + 9439;
+    whichThing->Seed = v6;
+    v7 = 9377 * whichThing->Seed + 9439;
+    whichThing->Seed = v7;
+
+    whichThing->Movement.SpeedActual =
+            mParentRace->mVCalc->FixedPointToFloat8D8(((int16_t)((v5 % 0x64) + 40)));
+    //31.08.2026: Not sure if the calculation in the next line is correct? could cause bug if mistake
+    whichThing->Movement.AngleXY = mParentRace->mVCalc->VanillaRawAngleToMyFloatingAngle(v6);
+    whichThing->Movement.AngleZY =
+            -mParentRace->mVCalc->VanillaRawAngleToMyFloatingAngle((v7 % 0x31C7) + 3640);
+
+    whichThing->Life = 20;
+    mParentRace->mVCalc->move_displacement_set(whichThing->Displacement,
+                                               whichThing->Movement.AngleXY,
+                                               whichThing->Movement.AngleZY,
+                                               whichThing->Movement.SpeedActual);
+}
+
+void VEffectManager::processEFFECT_FLARE(EffectInfoStruct* whichInfoStruct) {
+    irr::core::vector3df position;
+    irr::f32 xPos;
+    irr::f32 v6;
+    irr::f32 yPos;
+    irr::f32 v8;
+    irr::f32 zPos;
+    int8_t v10;
+    int8_t v11;
+    bool v12;
+    int8_t v13;
+    int8_t v14;
+    irr::f32 v16;
+    int8_t v17;
+    irr::f32 v19;
+    EffectInfoStruct* v21 = nullptr;
+
+    VThing* whichThing = whichInfoStruct->thingPntr;
+
+    whichThing->Life -= 1;
+
+    if (whichThing->Life < 0) {
+        mParentRace->mThingManager->thing_delete(whichThing);
+        return;
+    }
+
+    position = whichThing->Position;
+    xPos = whichThing->Displacement.X;
+    v6 = xPos + 0.05859375f;
+    if (v6 < 0.0f) {
+        v6 = xPos + 0.1171875f;
+    }
+
+    yPos = whichThing->Displacement.Y;
+    whichThing->Displacement.X -= (v6 / 16.0f);
+    v8 = yPos + 0.05859375f;
+    if (v8 < 0.0f) {
+        v8 = yPos + 0.1171875f;
+    }
+
+    zPos = whichThing->Displacement.Z;
+    whichThing->Displacement.Y = yPos - (v8 / 16.0f);
+    zPos -= 0.0234375f;
+    whichThing->Displacement.Z = zPos;
+
+    if (zPos < -0.390625f) {
+        whichThing->Displacement.Z = -0.390625f;
+    }
+
+    mParentRace->mVCalc->move_displacement_xyz(position, whichThing->Displacement, 1);
+
+    v10 = mParentRace->mVCalc->map_colide(position);
+    v11 = v10;
+    v12 = (v10 == 0);
+    v13 = v10 & 1;
+    if (!v12) {
+        v12 = (v13 == 0);
+        v14 = v11 & 2;
+
+        if (!v12) {
+           if (whichThing->Displacement.X > 0.0f) {
+               v16 = ((0.00390625f - whichThing->Displacement.X) / 2.0f);
+           } else {
+               v16 = -(whichThing->Displacement.X / 2.0f);
+           }
+
+           whichThing->Displacement.X = v16;
+           position.X = whichThing->Position.X + v16;
+           v14 = v11 & 2;
+        }
+        v12 = (v14 == 0);
+        v17 = v11 & 4;
+
+        if (!v12) {
+           if (whichThing->Displacement.Y > 0.0f) {
+               v19 = ((0.00390625f - whichThing->Displacement.Y) / 2.0f);
+           } else {
+               v19 = -(whichThing->Displacement.Y / 2.0f);
+           }
+
+           whichThing->Displacement.Y = v19;
+           position.Y = whichThing->Position.Y + v19;
+           v17 = v11 & 4;
+        }
+
+        if (!v17) {
+            goto processEFFECT_FLARE_LABEL_17;
+        }
+        mParentRace->mThingManager->thing_delete(whichThing);
+    }
+processEFFECT_FLARE_LABEL_17:
+    mParentRace->mThingManager->mapwho_move(whichThing, position);
+
+    v21 = AddEffect(EffectType::ExplosionSmall, position, 0.0f, 0.0f, 0.0f, whichThing->Id);
+    if (v21 != nullptr) {
+        if (v21->thingPntr != nullptr) {
+            v21->thingPntr->Displacement.set(0.0f, 0.0f, 0.0f);
+            v21->thingPntr->Action = 0x1;
+            v21->thingPntr->Status |= 0x200;
+            v21->thingPntr->ColideGroup = 0;
+        }
+    }
+}
+
+void VEffectManager::initialiseEFFECT_EXPLOSION_BIG(VThing* whichThing) {
+    uint32_t status;
+
+    whichThing->CollideSize.set(1.5f, 1.5f, 1.5f);
+    whichThing->ColideGroup = (1048 & 0xFFFE);
+    whichThing->AffectNumber = 10000;
+    status = whichThing->AffectStatus;
+    whichThing->Count = 0;
+    whichThing->Life = 6;
+    whichThing->AffectStatus = (status | 3);
+}
+
+irr::core::vector3df* VEffectManager::search_start_level(int32_t start, int32_t stop) {
+    irr::core::vector3df* v5 = nullptr;
+
+    if (stop >= start) {
+        if (stop < 16) {
+
+            return v5;
+        }
+    }
+
+    return nullptr;
+}
+
+irr::core::vector3df* VEffectManager::search_next() {
+    return nullptr;
+}
+
+void VEffectManager::processEFFECT_EXPLOSION_BIG(EffectInfoStruct* whichInfoStruct) {
+     int8_t action;
+     VThing* whichThing;
+     int32_t v5;
+     irr::core::vector3df* i = nullptr;
+     irr::core::vector3df position;
+     EffectInfoStruct* v7 = nullptr;
+
+     whichThing = whichInfoStruct->thingPntr;
+
+     action = whichThing->Action;
+     if (action == 1) {
+processEFFECT_EXPLOSION_BIG_LABEL_10:
+        whichThing->Life--;
+        if (whichThing->Life < 0) {
+            whichThing->Action = 0x13;
+            return;
+        }
+        if (whichThing->Count < 0) {
+            v5 = static_cast<int16_t>(whichThing->Count - 2 * ((whichThing->Count + 1) >> 1));
+        } else {
+            v5 = static_cast<int16_t>(whichThing->Count - 2 * ((whichThing->Count) >> 1));
+        }
+        //05.09.2026: I implemented processEFFECT_EXPLOSION_BIG according the Playstation 1
+        //version of the game. But it seems the data that search_start_level is working on
+        //only contains zeros, which effectively has the effect that this function only
+        //returns 0 values; So also in the original game in the Emulator I can see that the
+        //for loop below is actually never entered; So I believe it could be that the Explosion Big
+        //in the Playstation 1 version of the game is maybe never used, or was "deactivated"
+        for (i = search_start_level(v5, v5); (i != nullptr); i = search_next()) {
+            position.X = whichThing->Position.X + 0.703125f * i->X;
+            position.Y = whichThing->Position.Y + 0.703125f * i->Y;
+            position.Z = mParentRace->mVCalc->map_floor(position);
+            v7 = AddEffect(EffectType::Flare, position, whichThing->Movement.AngleXY,
+                           whichThing->Movement.AngleZY, whichThing->Movement.AngleXZ, whichThing->Id);
+            if (v7 != nullptr) {
+                if (v7->thingPntr != nullptr) {
+                    v7->thingPntr->Action = 1;
+                    v7->thingPntr->ColideGroup = 0;
+                }
+            }
+        }
+        ++whichThing->Count;
+        return;
+     }
+
+     if (action >= 2) {
+        if (action < 0x15) {
+            if (action < 0x13) {
+                return;
+            }
+            mParentRace->mThingManager->thing_delete(whichThing);
+        }
+        return;
+     }
+
+     if (!whichThing->Action) {
+         whichThing->Action = 1;
+         //sample_play(thing, 20);
+         if (whichThing->ColideGroup) {
+             mParentRace->mThingManager->thing_touching_anything(whichThing);
+             mParentRace->mThingManager->affect_thing(whichThing);
+         }
+         goto processEFFECT_EXPLOSION_BIG_LABEL_10;
+     }
+}
+
+

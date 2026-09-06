@@ -46,7 +46,7 @@ class Race;
 struct VThing;
 
 enum EffectType {
-          Undefined, Smoke, ExplosionSmall, ExplosionMedium, SmokeFire
+          Undefined, Smoke, ExplosionSmall, ExplosionMedium, SmokeFire, Flare, ExplosionBig
 };
 
 struct EffectInfoStruct {
@@ -80,6 +80,15 @@ private:
 
     void initialiseEFFECT_SMOKE_FIRE(VThing* whichThing);
     void processEFFECT_SMOKE_FIRE(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_FLARE(VThing* whichThing);
+    void processEFFECT_FLARE(EffectInfoStruct* whichInfoStruct);
+
+    irr::core::vector3df* search_start_level(int32_t start, int32_t stop);
+    irr::core::vector3df* search_next();
+
+    void initialiseEFFECT_EXPLOSION_BIG(VThing* whichThing);
+    void processEFFECT_EXPLOSION_BIG(EffectInfoStruct* whichInfoStruct);
 
     irr::video::ITexture* mSmokeTex = nullptr;
 

@@ -37,7 +37,6 @@
 
 #include "draw/hud.h"
 
-#include "models/missile.h"
 #include "models/particle.h"
 #include "models/morph.h"
 #include "models/timer.h"
@@ -2492,7 +2491,7 @@ void Race::HandleDebugInput() {
    }
 
    if(mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_C)) {
-       mVanillaCraftVec.at(1)->Stats.Health -= 500;
+       //mVanillaCraftVec.at(0)->TestBigExplosion();
    }
 
    if ((mCloneRecording != nullptr) && DebugShowCloneRecording) {
