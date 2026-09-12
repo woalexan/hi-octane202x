@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -11,58 +11,45 @@
 #define CAMERA_H
 
 #include <irrlicht.h>
+#include "../vanilla/vthing.h"
 
 /************************
  * Forward declarations *
  ************************/
 
 class Race;
-class Player;
 class EntityItem;
+struct VThing;
 
 class Camera {
 public:
     Camera(Race* race, EntityItem *entityItem, irr::scene::ISceneManager* smgr);
     ~Camera();
 
-    void Update();
+    //Update/initialize final height after
+    //Terrain geometry information is available
+    void InitializeHeight();
+
+    //Pointer to my thing
+    VThing* ThingData = nullptr;
 
     //our Camera SceneNode from Irrlicht
-    irr::scene::ICameraSceneNode* mCamSceneNode = nullptr;
-
-    void SetActive(bool newState);
-
-    bool CanIObserveLocation(irr::core::vector3df location);
-    void SetTargetPlayer(Player* newCameraTargetPlayer);
-
-    //target player at which we currently focus at
-    //nullptr means we have no focus target right now
-    Player* mFocusAtPlayer = nullptr;
+    //irr::scene::ICameraSceneNode* mCamSceneNode = nullptr;
 
 private:
-    //my camera position according to the
-    //level data
-    irr::core::vector3df mPosition;
-
-    //the position I look at right now
-    irr::core::vector3df mLookAt;
-
     EntityItem* mEntityItem = nullptr;
     
     irr::scene::ISceneManager* mSmgr = nullptr;
 
-    //camera does seem to have sometimes a value, where I do not know
-    //right now what it means
-
     //the never seem to have an offsetX and offsetY value, and not
     //trigger target group; Also all the time the seem to belong to trigger group
     //1, so maybe this means the all become active at the start of the race
-    int16_t mValue;
+
+    //mAddedHeightFixedPoint allows to specify a height
+    //which raises the camera above ground
+    int16_t mAddedHeightFixedPoint;
 
     Race *mRace = nullptr;
-
-    //if true camera is active, and looking for players
-    bool mActive = false;
 };
 
 #endif // CAMERA_H

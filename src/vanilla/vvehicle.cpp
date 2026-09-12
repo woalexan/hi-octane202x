@@ -75,6 +75,10 @@
     }
 }*/
 
+void VVehicle::SetGameDifficultyLevel(uint8_t newDifficultyLevel) {
+    PlayerDifficultyLevel = newDifficultyLevel;
+}
+
 //according to the emulator this function is supposed
 //to run periodically every ~45 ms
 void VVehicle::processWeaponBooster() {
@@ -4577,6 +4581,11 @@ uint8_t VVehicle::vehicle_computer_set_no_shoot() {
   }
 
   return result;
+}
+
+void VVehicle::vehicle_calculate_behind_factor() {
+
+
 }
 
 void VVehicle::CheckForChargingStation() {

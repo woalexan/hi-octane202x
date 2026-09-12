@@ -234,8 +234,12 @@ public:
     irr::f32 distance_get_squared_xy(irr::core::vector3df position1, irr::core::vector3df position2);
 
     irr::f32 distance_get_rough_xy(irr::core::vector3df position1, irr::core::vector3df position2);
+    irr::f32 distance_get_rough_xyz(irr::core::vector3df position1, irr::core::vector3df position2);
     void distance_get_xy_coords(irr::core::vector3df position1, irr::core::vector3df position2,
                                 irr::core::vector3df& distance);
+
+    void distance_set_xyz(irr::core::vector3df& distance, irr::core::vector3df position1,
+                          irr::core::vector3df position2);
 
     //Helper function for function verification
     bool Verify_arctanPlusMultiply32(int16_t xVal, int16_t yVal, int16_t expResult,

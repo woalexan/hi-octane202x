@@ -5,7 +5,7 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
-### Update 06.09.2026
+### Update 12.09.2026
 Since beginning of this year I am in the process of replacing my own older source code with new source code more or less based on the
 original games implementation. This will make my project feel much closer to the original. Right now the project contains old source code and
 new implementations in parallel, and in the near future I will beginn to remove old now unnecessary parts step by step.
@@ -23,9 +23,10 @@ I made a lot of progress over the last 4 months or so. This is already implement
 - Computer players also attack the human player now
 - Auto Target System (so other players can be targeted)
 - First effects are implemented (Smoke, Small/Medium Explosions)
+- External camera views implemented and working now
 
 #### TODO
-- "Demo" mode with external cameras is not yet working as expected (external camera control code not yet implemented)
+- Final race positions of players have a bug currently
 - Cones need to be implemented again, Same is true for steam effects at the race track
 - Calculation of player rating not yet implemented
 - Special bonus calculations (180°, 360°, Supercar) not yet implemented

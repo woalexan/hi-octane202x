@@ -1474,7 +1474,9 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
         mGame->mEffect->addShadowToNode(newPlayer->mCraftNode, mShadowMapFilterType);
     }
 
+    //set player name, and race difficulty level
     newPlayer->SetName(name);
+    newPlayer->SetGameDifficultyLevel((uint8_t)(mGame->mGameAssets->GetCurrentGameDifficulty()));
 
     //add new player to the vector of available players
     //the same is true for the player physics object
@@ -1613,6 +1615,9 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
 void Race::CompareMemDumpsVanilla() {
     mVDbgInterface->Init("level1-atstart.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+
+    std::vector<ParseThing*> cameras = mVDbgInterface->newDump->ReturnThingsWithGroup(3);
+
     //mVDbgInterface->Init("level1-aftermgun.bin", "", "extract/level0-1/level0-1-unpacked.dat");
 }
 
@@ -2484,9 +2489,9 @@ void Race::HandleDebugInput() {
       // mVCraft->Update(0.01);
      //  AdvModel = true;
        //mVCraft->TestCamera();
-       mVCamera->selCamera++;
-       if (mVCamera->selCamera > 3) {
-           mVCamera->selCamera = 0;
+       mVanillaCraftVec.at(0)->ControlViewType++;
+       if (mVanillaCraftVec.at(0)->ControlViewType > 3) {
+           mVanillaCraftVec.at(0)->ControlViewType = 0;
        }
    }
 
@@ -3460,6 +3465,13 @@ void Race::InitialUpdateEntityPositions() {
     for (it3 = mVanillaRepairVehicleVec.begin(); it3 != mVanillaRepairVehicleVec.end(); ++it3) {
            (*it3)->Initialize();
     }
+
+    //set final height of camera entities
+    std::vector<Camera*>::iterator it4;
+
+    for (it4 = mCameraVec.begin(); it4 != mCameraVec.end(); ++it4) {
+           (*it4)->InitializeHeight();
+    }
 }
 
 bool Race::LoadLevel() {
@@ -3587,6 +3599,7 @@ bool Race::LoadLevel() {
 
    //After the level geometry data is available
    //update Collectable and checkpoint heights one more time
+   //The same is true for the cameras
    InitialUpdateEntityPositions();
 
    if (mGame->mUseXEffects) {
@@ -4476,32 +4489,32 @@ void Race::UpdateCones(irr::f32 frameDeltaTime) {
 }
 
 void Race::UpdateExternalCameras() {
-    std::vector<Camera*>::iterator itCamera;
-    std::vector<Player*>::iterator itPlayer;
+    // std::vector<Camera*>::iterator itCamera;
+    // std::vector<Player*>::iterator itPlayer;
 
-    //first iterate through all players, and try to assign an
-    //external camera for each player
-    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
-         (*itPlayer)->externalCamera = nullptr;
+    // //first iterate through all players, and try to assign an
+    // //external camera for each player
+    // for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+    //      (*itPlayer)->externalCamera = nullptr;
 
-         for (itCamera = mCameraVec.begin(); itCamera != mCameraVec.end(); ++itCamera) {
-             if ((*itCamera)->CanIObserveLocation((*itPlayer)->phobj->physicState.position)) {
-                     //yes, this external camera can see this player
-                     (*itPlayer)->externalCamera = (*itCamera);
+    //      for (itCamera = mCameraVec.begin(); itCamera != mCameraVec.end(); ++itCamera) {
+    //          if ((*itCamera)->CanIObserveLocation((*itPlayer)->phobj->physicState.position)) {
+    //                  //yes, this external camera can see this player
+    //                  (*itPlayer)->externalCamera = (*itCamera);
 
-                     //also command this external camera to focus on this specific
-                     //player
-                     (*itCamera)->SetTargetPlayer(*itPlayer);
-                     break;
-              } else {
-                 //if we are not able to observe this player, but this player is our focus right
-                 //now, remove our focus as well
-                 if ((*itCamera)->mFocusAtPlayer == (*itPlayer)) {
-                     (*itCamera)->SetTargetPlayer(nullptr);
-                 }
-             }
-         }
-    }
+    //                  //also command this external camera to focus on this specific
+    //                  //player
+    //                  (*itCamera)->SetTargetPlayer(*itPlayer);
+    //                  break;
+    //           } else {
+    //              //if we are not able to observe this player, but this player is our focus right
+    //              //now, remove our focus as well
+    //              if ((*itCamera)->mFocusAtPlayer == (*itPlayer)) {
+    //                  (*itCamera)->SetTargetPlayer(nullptr);
+    //              }
+    //          }
+    //      }
+    // }
 }
 
 void Race::FindNextPlayerToFollowInDemoMode() {
@@ -4550,9 +4563,9 @@ void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
                 mFollowPlayerDemoMode->UnhideCraft();
 
                 //update external camera focus
-                this->mFollowPlayerDemoMode->externalCamera->Update();
+               //TODO: commented out this->mFollowPlayerDemoMode->externalCamera->Update();
 
-                activeCam = this->mFollowPlayerDemoMode->externalCamera->mCamSceneNode;
+               //TODO: commented out activeCam = this->mFollowPlayerDemoMode->externalCamera->mCamSceneNode;
             } else {
                //as a workaround use cockpit camera of this player
                mFollowPlayerDemoMode->HideCraft();
@@ -4788,9 +4801,6 @@ void Race::AddTimer(EntityItem *entity) {
 
 void Race::AddCamera(EntityItem *entity) {
     Camera* newCamera = new Camera(this, entity, mGame->mSmgr);
-
-    //only set cameras to active in demo mode
-    newCamera->SetActive(true);
 
     this->mCameraVec.push_back(newCamera);
 }

@@ -962,6 +962,11 @@ bool VCalculations::Verify_move_xyz() {
  * Distance calculation stuff                      *
  ***************************************************/
 
+void VCalculations::distance_set_xyz(irr::core::vector3df& distance, irr::core::vector3df position1,
+                      irr::core::vector3df position2) {
+    distance = position2 - position1;
+}
+
 irr::f32 VCalculations::distance_get_xyz(irr::core::vector3df position1, irr::core::vector3df position2) {
     //simply let Irrlicht do it :)
     irr::core::vector3df irrCoordSysCoord1 = VanillaToIrrlichtCoord(position1);
@@ -987,6 +992,31 @@ irr::f32 VCalculations::distance_get_rough_xy(irr::core::vector3df position1, ir
 
     if (result < v5)
         return v5;
+
+    return result;
+}
+
+irr::f32 VCalculations::distance_get_rough_xyz(irr::core::vector3df position1, irr::core::vector3df position2) {
+    irr::f32 result;
+    irr::f32 v5;
+    irr::f32 v7;
+    irr::f32 v9;
+
+    v5 = fabs(position2.X - position1.X);
+    v7 = fabs(position2.Y - position1.Y);
+    v9 = fabs(position2.Z - position1.Z);
+
+    result = v9;
+    if (v5 < v7) {
+        if (v7 >= v9) {
+            return v7;
+        }
+    } else {
+        result = v5;
+        if (v5 < v9) {
+            return v9;
+        }
+    }
 
     return result;
 }

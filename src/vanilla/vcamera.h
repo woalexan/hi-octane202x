@@ -56,7 +56,7 @@ struct VCameraStruct {
     //irr::f32 Lens;
     irr::f32 Distance;
     //int16_t Follow;
-    //int16_t Zoom;
+    int16_t Zoom;
     int16_t Static;
     int16_t Action;
 };
@@ -87,6 +87,8 @@ private:
 
     void camera_setup();
 
+    int32_t move_point_see_point(irr::core::vector3df position_from, irr::core::vector3df position_to);
+
 public:
     VCamera(Race* parentRace);
     ~VCamera();
@@ -96,8 +98,6 @@ public:
     //sets an Irrlicht camera in a way to replicate the original games camera view
     void SetIrrlichtCamera(irr::scene::ICameraSceneNode* whichCamera, ParseCamera* setToState);
     void SetIrrlichtCamera(irr::scene::ICameraSceneNode* whichCamera, VCameraStruct* setToState);
-
-    uint8_t selCamera = 0;
 };
 
 #endif // VCAMERA_H
