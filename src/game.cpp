@@ -1172,7 +1172,17 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
     }
 
     if ((mCurrentRace->mVCamera != nullptr) && (mCurrentRace->mVanillaCraftVec.at(0) != nullptr)) {
-        mCurrentRace->mVCamera->camera_process(mCurrentRace->mVanillaCraftVec.at(0), -1, 0);
+        VVehicle* followVehicle = mCurrentRace->mVanillaCraftVec.at(0);
+        if (((followVehicle->ThingData->Action == 1) || (followVehicle->ThingData->Action == 0) || (followVehicle->ThingData->Action == 2)) && (!followVehicle->FlightModel.Flag.AutoPilot)
+              && (!mCurrentRace->mDemoMode)) {
+            //use the currently selected player camera (internal cockpit, 3 different views from
+            //behind the craft)
+            mCurrentRace->mVCamera->camera_process(followVehicle, followVehicle->ControlViewType + 7, 0);
+        } else {
+            //use the closest external camera, this is for example used when the player
+            //waits for the recovery vehicle....
+            mCurrentRace->mVCamera->camera_process(followVehicle, 6, 0);
+        }
     }
 
     mDriver->beginScene(true,true,

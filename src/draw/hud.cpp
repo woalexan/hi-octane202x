@@ -2254,6 +2254,11 @@ HUD::~HUD() {
 }
 
 void HUD::DrawFinishedPlayerList() {
+    //12.09.2026: Do not draw this list in Demo Mode
+    if (mRace->mDemoMode) {
+        return;
+    }
+
     irr::u8 nrFinishedPlayers = (irr::u8)(mRace->playerRaceFinishedVec.size());
 
     if (nrFinishedPlayers > 0) {

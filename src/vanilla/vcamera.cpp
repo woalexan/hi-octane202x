@@ -32,6 +32,7 @@
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
 #include "vcamera.h"
+#include "../models/camera.h"
 #include "vvehicle.h"
 #include "vthing.h"
 #include "debug/structs/cam.h"
@@ -157,30 +158,174 @@ void VCamera::SetIrrlichtCamera(irr::scene::ICameraSceneNode* whichCamera, VCame
 }
 
 void VCamera::camera_setup() {
-    mCameraWindow.Camera.Action = 7;
+    mCameraWindow.Camera.Action = 7;  //internal cockpit view
     mCameraWindow.Camera.Distance = 0.0f;
+    mCameraWindow.Camera.Zoom = 1.171875f;
 }
 
 void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, int32_t force_camera_action, int32_t cameraIndex) {
 
-   /* if (player_number != -1) {
-        word_8011EF2C[70 * cameraIndex] = player_number;
-    }
-
-    if (force_camera_action == -1) {
-        //not implemented right now
-    } else {
-       word_8011EF32[70 * cameraIndex] = force_camera_action;
-    }*/
-
     irr::f32 v24;
+    irr::f32 v25;
+    irr::f32 v26;
+    irr::f32 v21;
     irr::f32 v22;
+    irr::f32 v36;
+    irr::f32 v48;
+    irr::f32 v54;
+    irr::f32 v57;
+    irr::f32 v58;
+    irr::f32 v59;
+    irr::f32 v60;
     irr::f32 v92;
     irr::f32 v94;
+    irr::f32 difference;
     irr::f32 floorZ;
     int16_t v92Int;
-    switch (selCamera) {
-        case 0: {
+    irr::core::vector3df* v61;
+    irr::f32 v64;
+    std::vector<Camera*>::iterator it;
+    irr::f32 xyz;
+    irr::f32 v71;
+
+    /* if (player_number != -1) {
+         word_8011EF2C[70 * cameraIndex] = player_number;
+     }*/
+
+    //my solution
+    if (force_camera_action == -1) {
+         //not implemented right now
+    } else {
+        //word_8011EF32[70 * cameraIndex] = force_camera_action;
+        mCameraWindow.Camera.Action = force_camera_action;
+    }
+
+    switch (mCameraWindow.Camera.Action) {
+        case 1: {  //Looks at the vehicle straight from behind the vehicle
+            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            v24 = mCameraWindow.Camera.AngleXY;
+            v22 = mCameraWindow.ChaseCamera.AngleXY;
+            mCameraWindow.ChaseCamera.Distance = 1.0f;
+            v21 = mCameraWindow.ChaseCamera.AngleZY;
+            mCameraWindow.ChaseCamera.AngleXY = v22;
+            v25 = mCameraWindow.ChaseCamera.AngleXY;
+            v26 = v21 + 14.996337890625f;
+            goto camera_process_LABEL_35;
+        }
+
+        case 2: { //Looks at the vehicle from in front of the vehicle
+            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.ChaseCamera.Distance = 1.0f;
+            v24 = mCameraWindow.Camera.AngleXY;
+            mCameraWindow.ChaseCamera.AngleXY += 180.0f;
+            v25 = mCameraWindow.ChaseCamera.AngleXY;
+            v26 = mCameraWindow.ChaseCamera.AngleZY + 14.996337890625f;
+            goto camera_process_LABEL_35;
+        }
+
+        case 3: { //Looks at the vehicle from the left side (side view)
+            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            v24 = mCameraWindow.Camera.AngleXY;
+            v36 = mCameraWindow.ChaseCamera.AngleXY;
+            mCameraWindow.ChaseCamera.Distance = 1.0f;
+            mCameraWindow.ChaseCamera.AngleXY = v36 + 90.0f;
+            v25 = mCameraWindow.ChaseCamera.AngleXY;
+            v26 = mCameraWindow.ChaseCamera.AngleZY + 14.996337890625f;
+            goto camera_process_LABEL_35;
+        }
+
+        case 4: { //Looks at the vehicle from the right side (side view)
+            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            v24 = mCameraWindow.Camera.AngleXY;
+            v36 = mCameraWindow.ChaseCamera.AngleXY;
+            mCameraWindow.ChaseCamera.Distance = 1.0f;
+            mCameraWindow.ChaseCamera.AngleXY = v36 - 90.0f;
+            v25 = mCameraWindow.ChaseCamera.AngleXY;
+            v26 = mCameraWindow.ChaseCamera.AngleZY + 14.996337890625f;
+            goto camera_process_LABEL_35;
+        }
+
+        case 5: { //Looks at the vehicle from the top (birds view)
+            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            v24 = mCameraWindow.Camera.AngleXY;
+            v25 = mCameraWindow.ChaseCamera.AngleXY;
+            v48 = mCameraWindow.ChaseCamera.AngleZY;
+            mCameraWindow.ChaseCamera.Distance = 1.0f;
+            v26 = v48 + 90.0f;
+camera_process_LABEL_35:
+            mCameraWindow.ChaseCamera.AngleZY = v26;
+            difference = mParentRace->mVCalc->angle_get_difference(v24, v25);
+            mCameraWindow.Camera.AngleXY += (difference / 8.0f);
+            v54 = mParentRace->mVCalc->angle_get_difference(mCameraWindow.Camera.AngleZY,
+                                                            mCameraWindow.ChaseCamera.AngleZY);
+            mCameraWindow.Camera.AngleZY += (v54 / 8.0f);
+            v57 = mParentRace->mVCalc->angle_get_difference(mCameraWindow.Camera.AngleXZ,
+                                                            mCameraWindow.ChaseCamera.AngleXZ);
+            mCameraWindow.Camera.AngleXZ += (v57 / 8.0f);
+            v58 = mCameraWindow.Camera.Distance;
+            v59 = mCameraWindow.ChaseCamera.Distance - v58;
+            v60 = (v59 / 8.0f);
+            if (v59 < 0.0f) {
+                v60 = ((v59 + 0.02734375f) / 8.0f);
+            }
+            mCameraWindow.Camera.Distance = (v58 + v60);
+            break;
+        }
+
+        case 6: {  //This seems to be the default external view from a camera
+            v61 = nullptr;
+            v64 = 32.0f;
+
+            //Go through all existing camera in the level and search the one that is closest to
+            //the vehicle, and which can see the vehicle
+            for (it = mParentRace->mCameraVec.begin(); it != mParentRace->mCameraVec.end(); ++it) {
+                xyz = mParentRace->mVCalc->distance_get_xyz(whichVehicle->ThingData->Position,
+                                                            (*it)->ThingData->Position);
+                if (xyz < v64) {
+                    if (move_point_see_point(whichVehicle->ThingData->Position, (*it)->ThingData->Position)) {
+                        v61 = &((*it)->ThingData->Position);
+                        v64 = xyz;
+                    }
+                }
+            }
+
+            //did we find a suitable external camera?
+            if (v61 == nullptr) {
+                //no we did not
+                //fallback to the default internal cockpit
+                //view of the player
+                goto camera_process_LABEL_46;
+            }
+
+            //we found a suitable camera, use it instead
+            mCameraWindow.Camera.AngleXY = mParentRace->mVCalc->angle_get_xy(*v61, whichVehicle->View.Position);
+            mCameraWindow.Camera.AngleZY = mParentRace->mVCalc->angle_get_zy(*v61, whichVehicle->View.Position);
+            mCameraWindow.Camera.AngleXZ = 0.0f;
+            mCameraWindow.Camera.Position = *v61; //whichVehicle->View.Position;
+
+            v71 = v64 * mCameraWindow.Camera.Zoom;
+            //mCameraWindow.Camera.Detail.Sky = 0;
+            mCameraWindow.Camera.Distance = (v71 / 1000.0f);
+            break;
+        }
+
+        case 7: {   //This is the default internal cockpit view
+camera_process_LABEL_46:
             mCameraWindow.Camera.Position = whichVehicle->View.Position;
             mCameraWindow.Camera.Distance = 0.0f;
 
@@ -191,18 +336,53 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
             break;
         }
 
-        case 1: {
+        case 8: { //This is the first external view behind the craft, with the smallest distance to vehicle
             camera_process_position(whichVehicle, mCameraWindow, 0.46875f, 0.0823974609375f);
             break;
         }
 
-        case 2: {
+        case 9: { //This is the 2nd external view behind the craft, with middle distance to vehicle
             camera_process_position(whichVehicle, mCameraWindow, 0.9375f, 0.054931640625f);
             break;
         }
 
-        case 3: {
+        case 0xA: { //This is the 3rd external view behind the craft, with the highest distance to vehicle
             camera_process_position(whichVehicle, mCameraWindow, 1.40625f, 0.0274658203125f);
+            break;
+        }
+
+        case 0xB: {  //This is a camera that follows the vehicle closely, but the angleXY that we look at it
+                     //is fixed to a constant direction. The direction can be altered by setting the
+                     //unknown bytes below. This code does not seem to get used
+            //is the code below really used?
+            //if (byte_801F396F) {
+            //  mCameraWindow.ChaseCamera.AngleXY -= 2.999267578125f;
+            //}
+            //if (byte_801F3971) {
+            //  mCameraWindow.ChaseCamera.AngleXY += 2.999267578125f;
+            //}
+            //if (byte_801F3950) {
+            //  mCameraWindow.ChaseCamera.AngleXZ -= 2.999267578125f;
+            //}
+            //if (byte_801F3951) {
+            //  mCameraWindow.ChaseCamera.AngleXZ += 2.999267578125f;
+            //}
+            //if (byte_801F396C) {
+            //  mCameraWindow.ChaseCamera.AngleZY -= 2.999267578125f;
+            //}
+            //if (byte_801F3974) {
+            //  mCameraWindow.ChaseCamera.AngleZY += 2.999267578125f;
+            //}
+            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.Camera.Distance =
+                    (mParentRace->mVCalc->FixedPointToFloat8D8(mCameraWindow.Camera.Zoom) * 8.064f + 0.5f);
+            mCameraWindow.Camera.AngleXY = mCameraWindow.ChaseCamera.AngleXY;
+            mCameraWindow.Camera.AngleZY = mCameraWindow.ChaseCamera.AngleZY;
+            mCameraWindow.Camera.AngleXZ = mCameraWindow.ChaseCamera.AngleXZ;
+            break;
+        }
+
+        default: {
             break;
         }
     }
@@ -369,6 +549,61 @@ camera_process_position_LABEL16:
     }
 
     vanillaOutputCameraWindow.Camera.Distance += v47;
+}
+
+int32_t VCamera::move_point_see_point(irr::core::vector3df position_from,
+                                      irr::core::vector3df position_to) {
+    irr::f32 rough_xyz_float;
+    int32_t rough_xyz;
+    int32_t v6;
+    int32_t v8;
+    irr::f32 v8Float;
+    int32_t v9;
+    int32_t v10;
+
+    irr::core::vector3df position;
+    irr::core::vector3df distance;
+    int32_t result = 1;
+
+    rough_xyz_float = mParentRace->mVCalc->distance_get_rough_xyz(position_from, position_to);
+
+    //better do this in fixed point arithmetic
+    rough_xyz = static_cast<int32_t>(mParentRace->mVCalc->FloatToFixedPoint8D8(rough_xyz_float));
+
+    if (rough_xyz < 257) {
+         v6 = rough_xyz + 64;
+         if (v6 < 0) {
+             v6 = rough_xyz + 191;
+         }
+
+         position = position_from;
+         v8 = (v6 >> 7);
+         mParentRace->mVCalc->distance_set_xyz(distance, position_from, position_to);
+         v8Float = mParentRace->mVCalc->FixedPointToFloat8D8(static_cast<int16_t>(v8));
+         v9 = 0;
+         distance.X = (distance.X / v8Float);
+         distance.Y = (distance.Y / v8Float);
+         distance.Z = (distance.Z / v8Float);
+         if (v8 > 0) {
+            while (!mParentRace->mVCalc->map_colide(position)) {
+               ++v9;
+               position += distance;
+               if (v9 >= v8) {
+                   goto move_point_see_point_LABEL_18;
+               }
+            }
+            v10 = (v9 ^ v8);
+            if (!v9) {
+                return (v10 == 0);
+            }
+            position -= distance;
+         }
+move_point_see_point_LABEL_18:
+         v10 = (v9 ^ v8);
+         return (v10 == 0);
+    }
+
+    return result;
 }
 
 VCamera::~VCamera() {

@@ -978,46 +978,46 @@ bool Player::DoWeNeedHidePlayerModel() {
 }
 
 irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
-    //are we on external view, and we have an external camera available?
-    if (mCurrentViewMode == CAMERA_EXTERNALVIEW) {
-        if (externalCamera != nullptr) {
-            //return my external camera
-            //lets update this external camera, so that it
-            //does focus at us
-            externalCamera->Update();
+    // //are we on external view, and we have an external camera available?
+    // if (mCurrentViewMode == CAMERA_EXTERNALVIEW) {
+    //     if (externalCamera != nullptr) {
+    //         //return my external camera
+    //         //lets update this external camera, so that it
+    //         //does focus at us
+    //         externalCamera->Update();
 
-            //make sure player model is
-            //visible again
-            UnhideCraft();
+    //         //make sure player model is
+    //         //visible again
+    //         UnhideCraft();
 
-            return externalCamera->mCamSceneNode;
-        } else {
-            //as a fallback return my cockpit view
-            //make sure player model is hidden first
-            HideCraft();
+    //         return externalCamera->mCamSceneNode;
+    //     } else {
+    //         //as a fallback return my cockpit view
+    //         //make sure player model is hidden first
+    //         HideCraft();
 
-            return mIntCamera;
-        }
-    }
+    //         return mIntCamera;
+    //     }
+    // }
 
-    if (mCurrentViewMode == CAMERA_PLAYER_COCKPIT) {
-          return mIntCamera;
-    }
+    // if (mCurrentViewMode == CAMERA_PLAYER_COCKPIT) {
+    //       return mIntCamera;
+    // }
 
-    if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
-         UnhideCraft();
+    // if (mCurrentViewMode == CAMERA_PLAYER_BEHINDCRAFT) {
+    //      UnhideCraft();
 
-         return mThirdPersonCamera;
-    }
+    //      return mThirdPersonCamera;
+    // }
 
-    if (mCurrentViewMode == CAMERA_PLAYER_SIDELOOKING) {
-        UnhideCraft();
+    // if (mCurrentViewMode == CAMERA_PLAYER_SIDELOOKING) {
+    //     UnhideCraft();
 
-        return mSideLookingCamera;
-    }
+    //     return mSideLookingCamera;
+    // }
 
-    //no valid view option, return nullptr
-    return nullptr;
+    // //no valid view option, return nullptr
+    // return nullptr;
 }
 
 void Player::ChangeViewMode() {

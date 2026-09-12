@@ -140,7 +140,14 @@ struct VehicleStatsStruct {
     irr::f32 Velocity;
 
     int16_t Weight;
+
+    //11.09.2026: Invincable seems to be repurposed
+    //as a counter variable that controls when
+    //the players are able to start attacking after race start
+    //As soon as the value is non zero the player can not attack
+    //anymore
     int16_t Invincable;
+
     int16_t Invisible;
     int16_t VehicleHit;
 
@@ -439,6 +446,9 @@ public:
     VMLauncher* mMLauncher = nullptr;
 
     uint32_t GetControlOrigin();
+    void SetGameDifficultyLevel(uint8_t newDifficultyLevel);
+
+    int16_t ControlViewType = 0;
 
     //void TestBigExplosion();
 
@@ -522,6 +532,7 @@ private:
     void vehicle_targetting_system();
     void vehicle_process_autotarget();
     uint8_t vehicle_computer_set_no_shoot();
+    void vehicle_calculate_behind_factor();
 
     void UpdateEngineSound();
 

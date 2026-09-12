@@ -389,6 +389,10 @@ public:
     void DebugDrawDisplacement(VThing& whichThing);
     void DebugDrawChildInfo();
 
+    //vector of predefined camera locations for demo mode
+    //positions are stored inside the level files
+    std::vector<Camera*> mCameraVec;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -563,10 +567,6 @@ private:
     //entity reports that something should be triggered it
     //is stored in this list), until the next Race update is done
     std::vector<int16_t> mPendingTriggerTargetGroups;
-
-    //vector of predefined camera locations for demo mode
-    //positions are stored inside the level files
-    std::vector<Camera*> mCameraVec;
 
     void AddCamera(EntityItem* entity);
     void SetExternalViewAtPlayer();
