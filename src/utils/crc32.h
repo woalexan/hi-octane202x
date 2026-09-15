@@ -45,6 +45,7 @@
 
 int32_t ConvertByteArray_ToInt32(std::vector<uint8_t> bytes, unsigned int start_position);
 int16_t ConvertByteArray_ToInt16(std::vector<uint8_t> bytes, unsigned int start_position);
+void ConvertAndWriteInt32ToByteArray(int inputValue, std::vector<unsigned char> &bytes, unsigned int writeIndex);
 void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex);
 void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex, bool dividerHighByte = false);
 

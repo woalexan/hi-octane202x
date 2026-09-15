@@ -31,34 +31,91 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VBASE_H
-#define VBASE_H
+#ifndef VEFFECTMANAGER_H
+#define VEFFECTMANAGER_H
 
 #include "irrlicht.h"
 #include <cstdint>
+#include <vector>
 
 /************************
  * Forward declarations *
  ************************/
 
-struct MovementStruct {
-    irr::f32 AngleXY = 0.0f;
-    irr::f32 AngleZY = 0.0f;
-    irr::f32 AngleXZ = 0.0f;
-    irr::f32 SpeedActual = 0.0f;
+class Race;
+struct VThing;
+
+enum EffectType {
+          Undefined, Smoke, ExplosionSmall, ExplosionMedium, SmokeFire, Flare, ExplosionBig
 };
 
-struct MomentumStruct {
-    irr::f32 DeltaX = 0.0f;
-    irr::f32 DeltaY = 0.0f;
-    irr::f32 AngleXY = 0.0f;
+struct EffectInfoStruct {
+    EffectType effectType = Undefined;
+    VThing* thingPntr = nullptr;
+    irr::scene::IBillboardSceneNode* sceneNode = nullptr;
+    size_t currDrawNr = 0;
+    irr::video::SColor currVerticeColor;
+    bool readyForCleanup = false;
 };
 
-struct VehicleViewStruct {
-    irr::core::vector3df Position;
-    irr::f32 AngleXY;
-    irr::f32 AngleZY;
-    irr::f32 AngleXZ;
+class VEffectManager {
+
+private:
+    Race* mParentRace = nullptr;
+
+    void InitSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* firstTexture, irr::core::dimension2df sizeSprite);
+    void UpdateSceneNode(EffectInfoStruct* whichInfoStruct, irr::video::ITexture* newTexture);
+
+    void UpdateEffect(EffectInfoStruct* whichInfoStruct);
+    void CleanupEffect(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_EXPLOSION(VThing* whichThing);
+    void processEFFECT_EXPLOSION(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_EXPLOSION_MEDIUM(VThing* whichThing);
+    void processEFFECT_EXPLOSION_MEDIUM(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_SMOKE(VThing* whichThing);
+    void processEFFECT_SMOKE(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_SMOKE_FIRE(VThing* whichThing);
+    void processEFFECT_SMOKE_FIRE(EffectInfoStruct* whichInfoStruct);
+
+    void initialiseEFFECT_FLARE(VThing* whichThing);
+    void processEFFECT_FLARE(EffectInfoStruct* whichInfoStruct);
+
+    irr::core::vector3df* search_start_level(int32_t start, int32_t stop);
+    irr::core::vector3df* search_next();
+
+    void initialiseEFFECT_EXPLOSION_BIG(VThing* whichThing);
+    void processEFFECT_EXPLOSION_BIG(EffectInfoStruct* whichInfoStruct);
+
+    irr::video::ITexture* mSmokeTex = nullptr;
+
+    irr::video::ITexture* mSpriteTex = nullptr;
+    irr::core::dimension2d<irr::u32> mSpriteTexSize;
+
+    irr::core::array<irr::video::ITexture*> animTexListExplosion;
+
+    bool LoadSprites();
+
+    std::vector<EffectInfoStruct*> mActiveEffectVec;
+    std::vector<EffectInfoStruct*> mNewEffectVec;
+
+    irr::f32 mAbsTimeAcc = 0.0f;
+
+public:
+    VEffectManager(Race* parentRace);
+    ~VEffectManager();
+
+    VThing* Explosion = nullptr;
+
+    //Returns a pointer to the Thing for the Effect
+    EffectInfoStruct* AddEffect(EffectType whichEffect, irr::core::vector3df location, irr::f32 angleXY,
+                   irr::f32 angleZY, irr::f32 angleXZ, int16_t id);
+
+    void Update(irr::f32 frameDeltaTime);
+    uint16_t GetNrCurrentlyActiveEffects();
 };
 
-#endif // VBASE_H
+#endif // VEFFECTMANAGER_H

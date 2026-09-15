@@ -35,7 +35,7 @@ struct GUIGameDbgWnd
     irr::gui::IGUICheckBox* ShowWallsegmentLines;
     irr::gui::IGUICheckBox* ShowWallCollisionMesh;
     irr::gui::IGUICheckBox* ShowWaypointLinks;
-    irr::gui::IGUICheckBox* ShowWaypointLinksSpace;
+    irr::gui::IGUICheckBox* ShowChildInfo;
     irr::gui::IGUICheckBox* ShowCheckpoints;
     irr::gui::IGUICheckBox* ShowPOI;
     irr::gui::IGUICheckBox* ShowTriggerRegions;

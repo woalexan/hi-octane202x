@@ -50,14 +50,15 @@ public:
 
     size_t mDumpLevelStructStart;
 
+    std::vector<DiffByte> CompareData(std::vector<uint8_t> data1, std::vector<uint8_t> data2);
+    void PrintCompareDataResult(std::vector<DiffByte> comparisonResult, int memOffset);
+
 private:
     BinaryFile* levelData = nullptr;
 
     void WriteDataToBinaryFile(std::string fileName, std::vector<uint8_t> data);
 
     void CompareTable(std::string tableName, std::vector<uint8_t> table1, std::vector<uint8_t> table2);
-
-    std::vector<DiffByte> CompareData(std::vector<uint8_t> data1, std::vector<uint8_t> data2);
 
     void CompareTwoFloats(std::string varName, irr::f32 val1, irr::f32 val2);
     void CompareTwoInt16s(std::string varName, int16_t val1, int16_t val2);

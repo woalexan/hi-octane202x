@@ -72,7 +72,7 @@ MapEntry::MapEntry(int x, int z, int offset, std::vector<uint8_t> bytes, std::ve
     this->m_TextureId = cid;
     this->m_TextureModification = (uint8_t)(bytes.at(10));
 
-    mPointOfInterest = ConvertByteArray_ToInt16(bytes, 6);
+    mChild = ConvertByteArray_ToInt16(bytes, 6);
 
     //read cell illumination value
     mIllumination = ConvertByteArray_ToInt16(bytes, 0);
@@ -157,14 +157,14 @@ bool MapEntry::WriteChanges() {
 
     this->m_wBytes.at(10) = (uint8_t)(this->m_TextureModification);
 
-    ConvertAndWriteInt16ToByteArray(mPointOfInterest, this->m_wBytes, 6);
+    ConvertAndWriteInt16ToByteArray(mChild, this->m_wBytes, 6);
 
     //write illumination value (how much light does a cell receive)
     ConvertAndWriteInt16ToByteArray(mIllumination, this->m_wBytes, 0);
 
     //Make sure to reset the value of the variables that are only
     //used during gameplay, so that a level file is not damaged
-    //accidently when savint it
+    //accidently when saving it
     mVector = 0;
     mMarker = 0;
 

@@ -53,7 +53,7 @@ const irr::f32 DbgWaypointCubeHeightDistance = 0.3f;
 #define DEF_RACE_DBG_WALLSEGMENTS 1
 #define DEF_RACE_DBG_WALLCOLLISIONMESH 2
 #define DEF_RACE_DBG_WAYPOINTLINKS 3
-#define DEF_RACE_DBG_WAYPOINTLINKSSPACE 4
+#define DEF_RACE_DBG_SHOWCHILDINFO 4
 #define DEF_RACE_DBG_CHECKPOINTS 5
 #define DEF_RACE_DBG_POI 6
 #define DEF_RACE_DBG_TRIGGERREGIONS 7
@@ -144,8 +144,10 @@ class VCamera;
 class DbgInterface;
 class SpriteThing;
 class VRepair;
-struct ThingDataStruct;
+struct VThing;
 struct VehicleViewStruct;
+class VThingManager;
+class VEffectManager;
 
 class Race {
 public:
@@ -158,12 +160,19 @@ public:
     std::vector<VVehicle*> mVanillaCraftVec;
     std::vector<VRepair*> mVanillaRepairVehicleVec;
 
+    //TODO: populate this vector with the correct Things
+    //I do not right now what exactly this Things are, the seem to
+    //be able to deal damage to players; I created this vector for
+    //thing_touching_anything in ThingManager as it is used there
+    std::vector<VThing*> mGroup8ThingsVec;
+
     void RegisterTemporaryCollectible(Collectable* collectibleToAdd);
     void UnregisterTemporaryCollectible(Collectable* collectibleToRemove);
     void SpawnCollectiblesForPlayer(VVehicle* player, std::vector<Entity::EntityType>& powerUpList);
 
     VTrack* mVTrack = nullptr;
     VCamera* mVCamera = nullptr;
+    VEffectManager* mEffectManager = nullptr;
     DbgInterface* mVDbgInterface = nullptr;
 
     bool ready;
@@ -295,6 +304,8 @@ public:
     //is false
     bool mDemoMode;
 
+    bool mSkipStart;
+
     void PlayerCrossesFinishLineTheFirstTime();
     bool RaceAllowsPlayersToAttack();
 
@@ -352,7 +363,7 @@ public:
 
     //Coordinates in the vector below are stored in the "vanilla"
     //coordinate system
-    std::vector<ThingDataStruct*> mVanillaCheckpointVec;
+    std::vector<VThing*> mVanillaCheckpointVec;
 
     //needed for a workaround in original game
     //in vrepair.cpp
@@ -361,11 +372,33 @@ public:
     void UpdateSceneNodeModel(irr::scene::ISceneNode *node,
                                                   VehicleViewStruct* view);
 
+    //Returns nullptr for an invalid request
+    //whichId starts with value 1 for first vehicle,
+    //value 2 for second vehicle and so on
+    VVehicle* GetVehicleWithId(size_t whichId);
+
+    void CompareMemDumpsVanilla();
+    void DebugDrawChildInfoMemDump();
+
+    //handles the file data structure of the
+    //level
+    LevelFile *mLevelRes = nullptr;
+
+    VThingManager* mThingManager = nullptr;
+
+    void DebugDrawDisplacement(VThing& whichThing);
+    void DebugDrawChildInfo();
+
+    //vector of predefined camera locations for demo mode
+    //positions are stored inside the level files
+    std::vector<Camera*> mCameraVec;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
 
     irr::f32 mVanillaGameLoopTimer = 0.0f;
+    irr::f32 mThingManagerTimer = 0.0f;
 
     void UpdateSpriteThings(irr::f32 deltaTime);
 
@@ -376,6 +409,7 @@ private:
     bool SetupSky();
 
     void InitialUpdateEntityPositions();
+    void CreatePredefinedRegionThings();
 
     irr::s32 shaderMaterial1;
 
@@ -395,10 +429,6 @@ private:
     irr::u8 mRaceNumberOfLaps;
 
     void SetupTopRaceTrackPointerOrigin();
-
-    //handles the file data structure of the
-    //level
-    LevelFile *mLevelRes = nullptr;
 
     //my sky image for the level background
     irr::video::ITexture* mSkyImage = nullptr;
@@ -434,7 +464,7 @@ private:
 
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = false;
-    bool DebugShowFreeMovementSpace = false;
+    bool DebugShowChildInfo = false;
 
     bool DebugShowWallSegments = false;
     bool DebugShowWallCollisionMesh = false;
@@ -538,10 +568,6 @@ private:
     //is stored in this list), until the next Race update is done
     std::vector<int16_t> mPendingTriggerTargetGroups;
 
-    //vector of predefined camera locations for demo mode
-    //positions are stored inside the level files
-    std::vector<Camera*> mCameraVec;
-
     void AddCamera(EntityItem* entity);
     void SetExternalViewAtPlayer();
     void ManagePlayerCamera();
@@ -600,6 +626,8 @@ private:
 
     uint8_t vehicle_race_positions_compare(VVehicle* vehicle1, VVehicle* vehicle2);
     void vehicle_race_positions();
+
+    void TriggerRaceStart();
 
     //Switch for the vanillia model
     bool mAddVVehicle = false;

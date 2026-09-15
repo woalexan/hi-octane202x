@@ -130,16 +130,15 @@ public:
     //table starts at 0 offset until 23 offset, and is 24 bytes long
     std::vector<uint8_t> unknownTable0Data;
 
-    //table starts at 96000 offset until 98037 offset, and is 2037 bytes long
-    std::vector<uint8_t> unknownTable96000Data;
+    //table starts at 98012 offset until 98037 offset, and is 26 bytes long
+    std::vector<uint8_t> unknownTable98012Data;
 
     //table starts at 124636 offset until 124651 offset, and is 15 bytes long
     std::vector<uint8_t> unknownTable124636Data;
 
-    //table starts at 141020 offset until 246923 offset, and is 105903 bytes long
+    //table starts at 141020 offset until 162604 offset, and is 21584 bytes long
     std::vector<uint8_t> unknownTable141020Data;
 
-    std::vector<uint8_t> regionTable;  //this table has 680 bytes (contains region definitions for the level)
     std::vector<uint16_t> frictionTable; //this table has 256 entries with each 2 bytes, each tile type (texture id)
                                          //has a friction value assigned inside this table
 
@@ -200,12 +199,14 @@ public:
     void RemoveRegion(MapTileRegionStruct* region);
 
     //returns true if new region was created succesfully, False otherwise
-    bool AddRegion(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType);
+    bool AddRegion(irr::core::vector2df coord1, irr::core::vector2df coord2, irr::u8 newRegionType);
 
     void ChangeRegionType(irr::u8 whichRegionId, irr::u8 newRegionType);
 
     //returns true if changing location was succesfull, false otherwise
     bool ChangeRegionLocation(irr::u8 whichRegionId, irr::core::vector2df coord1, irr::core::vector2df coord2);
+
+    ThingListStruct* mThingFree = nullptr;
 
 private:
     //returns true if a block definition object
@@ -248,10 +249,6 @@ private:
     //Returns true if succesfull created, false otherwise
     bool AddPOI(MapTileRegionStruct* newRegion);
 
-    //TODO 21.02.2026: Figure out if the following data is actually used by
-    //Hioctane itself; If not used maybe remove afterwards again
-    ThingListStruct* mThingList = nullptr;
-
 protected:
      std::string m_Filename;
      std::string m_Name;
@@ -283,6 +280,7 @@ protected:
      bool saveMapEntries();
      bool saveRegionTable();
      bool saveUnknownTables();
+     bool saveThingListData();
 };
 
 #endif // LEVELFILE_H

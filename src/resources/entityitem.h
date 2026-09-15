@@ -17,6 +17,7 @@
 
 #include "tableitem.h"
 #include "irrlicht.h"
+#include "../definitions.h"
 #include <cstdint>
 
 //This two states are only used in the LevelEditor
@@ -25,27 +26,6 @@
 #define DEF_ENTITYITEM_STATE_LINKUPDATED 2
 
 using namespace irr::core;
-
-namespace Entity {
-    enum EntityType {
-              Unknown, UnknownShieldItem, UnknownItem,
-              ExtraShield, ShieldFull, DoubleShield,
-              ExtraAmmo, AmmoFull, DoubleAmmo,
-              ExtraFuel, FuelFull, DoubleFuel,
-              MinigunUpgrade, MissileUpgrade, BoosterUpgrade,
-              WallSegment,
-              WaypointFuel, WaypointAmmo, WaypointShield, WaypointUnknownVal5, WaypointSpecial1, WaypointSpecial2, WaypointSpecial3, WaypointFast, WaypointSlow, WaypointShortcut,
-              RecoveryTruck,
-              SteamStrong, SteamLight, Cone, Checkpoint,
-              MorphSource1, MorphSource2, MorphOnce, MorphPermanent,
-              TriggerCraft, TriggerTimed, TriggerRocket,
-              DamageCraft,
-              Explosion, ExplosionParticles, Camera,
-              //the InternalTemporaryWaypoint type is not stored inside the
-              //game level files, it is only used for computer player routing/control
-              InternalTemporaryWaypoint
-        };
-}
 
 class EntityItem : public TableItem {
 public:
@@ -131,8 +111,6 @@ private:
 
     int8_t getType();
     int8_t getSubType();
-    void revIdentify(Entity::EntityType newEntityType, int8_t &newType, int8_t &newSubType);
-    Entity::EntityType identify();
 
     int16_t decodeNextID();
     int16_t decodeGroup();

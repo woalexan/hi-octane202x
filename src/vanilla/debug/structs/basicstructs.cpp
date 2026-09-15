@@ -70,6 +70,68 @@ Coord3DClass::~Coord3DClass() {
     }
 }
 
+AffectClass::AffectClass(DataTools* parent, std::string name, size_t startPosData) {
+    mParent = parent;
+    mName = name;
+    Status = mParent->AddUInt32_NumVar(std::string("Status"), startPosData);
+    Number = mParent->AddInt16_NumVar(std::string("Number"), startPosData + 0x4);
+    Who = mParent->AddUInt16_NumVar(std::string("Who"), startPosData + 0x6);
+}
+
+std::string AffectClass::GetAsString() {
+    std::ostringstream output;
+
+    output << mName << ": " << Status->GetAsString() << ", " << Number->GetAsString()  << ", " << Who->GetAsString();
+
+    return output.str();
+}
+
+AffectClass::~AffectClass() {
+    if (Status != nullptr) {
+        delete Status;
+        Status = nullptr;
+    }
+    if (Number != nullptr) {
+        delete Number;
+        Number = nullptr;
+    }
+    if (Who != nullptr) {
+        delete Who;
+        Who = nullptr;
+    }
+}
+
+ColideClass::ColideClass(DataTools* parent, std::string name, size_t startPosData) {
+    mParent = parent;
+    mName = name;
+    Size = new Coord3DClass(parent, std::string("Size"), startPosData);
+    Affect = new AffectClass(parent, std::string("Affect"), startPosData + 0x8);
+    Group = mParent->AddUInt16_NumVar(std::string("Group"), startPosData + 0x10);
+}
+
+std::string ColideClass::GetAsString() {
+    std::ostringstream output;
+
+    output << mName << ": " << Size->GetAsString() << ", " << Affect->GetAsString() << ", " << Group->GetAsString();
+
+    return output.str();
+}
+
+ColideClass::~ColideClass() {
+    if (Size != nullptr) {
+        delete Size;
+        Size = nullptr;
+    }
+    if (Affect != nullptr) {
+        delete Affect;
+        Affect = nullptr;
+    }
+    if (Group != nullptr) {
+        delete Group;
+        Group = nullptr;
+    }
+}
+
 MovementClass::MovementClass(DataTools* parent, std::string name, size_t startPosData) {
     mParent = parent;
     mName = name;
@@ -103,5 +165,58 @@ MovementClass::~MovementClass() {
     if (SpeedActual != nullptr) {
         delete SpeedActual;
         SpeedActual = nullptr;
+    }
+}
+
+MapElementClass::MapElementClass(DataTools* parent, std::string name, size_t startPosData) {
+    mParent = parent;
+    mName = name;
+    Shade = mParent->AddInt16_NumVar(std::string("Shade"), startPosData);
+    Alt = mParent->AddInt16_NumVar(std::string("Alt"), startPosData + 0x2);
+    Block = mParent->AddInt16_NumVar(std::string("Block"), startPosData + 0x4);
+    Child = mParent->AddInt16_NumVar(std::string("Child"), startPosData + 0x6);
+    Vector = mParent->AddInt16_NumVar(std::string("Vector"), startPosData + 0x8);
+    Orientation = mParent->AddUInt8_NumVar(std::string("Orientation"), startPosData + 0xA);
+    Marker = mParent->AddUInt8_NumVar(std::string("Marker"), startPosData + 0xB);
+}
+
+std::string MapElementClass::GetAsString() {
+    std::ostringstream output;
+
+    output << mName << ": " << Shade->GetAsString() << ", " << Alt->GetAsString() << ", "
+           << Block->GetAsString() << ", " << Child->GetAsString()  << ", " <<  Vector->GetAsString()
+           << ", " << Orientation->GetAsString() << ", " << Marker->GetAsString();
+
+    return output.str();
+}
+
+MapElementClass::~MapElementClass() {
+    if (Shade != nullptr) {
+        delete Shade;
+        Shade = nullptr;
+    }
+    if (Alt != nullptr) {
+        delete Alt;
+        Alt = nullptr;
+    }
+    if (Block != nullptr) {
+        delete Block;
+        Block = nullptr;
+    }
+    if (Child != nullptr) {
+        delete Child;
+        Child = nullptr;
+    }
+    if (Vector != nullptr) {
+        delete Vector;
+        Vector = nullptr;
+    }
+    if (Orientation != nullptr) {
+        delete Orientation;
+        Orientation = nullptr;
+    }
+    if (Marker != nullptr) {
+        delete Marker;
+        Marker = nullptr;
     }
 }

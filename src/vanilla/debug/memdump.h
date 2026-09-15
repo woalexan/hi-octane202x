@@ -23,6 +23,7 @@ class ParseThing;
 class ParseThingVehicle;
 class ParseVectors;
 class ParseCamera;
+class MapElementClass;
 
 class MemDump
 {
@@ -35,6 +36,7 @@ public:
 
     void ReadAllThings(size_t dumpLevelStructStart);
     std::vector<ParseThing*> ReturnThingsWithGroup(int8_t whichGroup);
+    ParseThing* ReturnThingsWithIndex(int16_t whichIndex);
 
     //Returns null if first player is not found
     ParseThing* ReturnThingFirstPlayer();
@@ -53,6 +55,10 @@ public:
 
     ParseCamera* EngineCamera = nullptr;
     void ReadEngineCamera();
+
+    void ReadAllMapElements(size_t dumpLevelStructStart);
+
+    MapElementClass* MapElements[256][160];
 };
 
 #endif // MEMDUMP_H

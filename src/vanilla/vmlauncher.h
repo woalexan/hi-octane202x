@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2026 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -31,34 +31,70 @@
 //I really want to thank aybe for giving me the opportunity to look much deeper into the original game inner workings as I was ever able before.
 //Without this support I would not have been able to hopefully advance the current project more true to the original.
 
-#ifndef VBASE_H
-#define VBASE_H
+#ifndef VMLAUNCHER_H
+#define VMLAUNCHER_H
 
 #include "irrlicht.h"
+#include "vbase.h"
 #include <cstdint>
+#include <vector>
+#include "../audio/sound.h"
 
 /************************
  * Forward declarations *
  ************************/
 
-struct MovementStruct {
-    irr::f32 AngleXY = 0.0f;
-    irr::f32 AngleZY = 0.0f;
-    irr::f32 AngleXZ = 0.0f;
-    irr::f32 SpeedActual = 0.0f;
+class Race;
+class VVehicle;
+struct VThing;
+
+struct MMissileShotStruct {
+    VThing* ThingPntr = nullptr;
+    bool ReadyForCleanup = false;
 };
 
-struct MomentumStruct {
-    irr::f32 DeltaX = 0.0f;
-    irr::f32 DeltaY = 0.0f;
-    irr::f32 AngleXY = 0.0f;
+class VMLauncher {
+
+private:
+    Race* mParentRace = nullptr;
+    VVehicle* mOwner = nullptr;
+
+    //variables moved here
+    //from Thing (ThingWeapon)
+    int16_t TriggerRestrictionCount = 0;
+
+    irr::f32 mAbsTimeAcc = 0.0f;
+
+    std::vector<MMissileShotStruct*> mMissileShotVec;
+
+    void initialiseSHOT_MISSILE(MMissileShotStruct* whichMissileShot);
+    uint8_t processSHOT_MISSILE(MMissileShotStruct* whichMissileShot);
+
+    VThing* CreateMissileShot(irr::core::vector3df* position,
+                              irr::f32 angleXY, irr::f32 angleZY,
+                              irr::f32 angleXZ, int16_t id);
+
+public:
+    VMLauncher(Race* parentRace, VVehicle* owner);
+    ~VMLauncher();
+
+    void Update(irr::f32 frameDeltaTime);
+
+    //variables moved here
+    //from Thing (ThingWeapon)
+    int16_t Trigger = 0;
+    int16_t TriggerTime = 0;
+    int16_t Upgrade;
+    int16_t Target = 0;
+
+    //Missile launcher seems to need also a
+    //Count variable
+    int16_t Count = 0;
+
+    //and a Status
+    uint32_t Status = 0;
+
+    int32_t RocketsLaunched = 0;
 };
 
-struct VehicleViewStruct {
-    irr::core::vector3df Position;
-    irr::f32 AngleXY;
-    irr::f32 AngleZY;
-    irr::f32 AngleXZ;
-};
-
-#endif // VBASE_H
+#endif // VMLAUNCHER_H

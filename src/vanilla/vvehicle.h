@@ -58,6 +58,11 @@
 class Collectable;
 class HUD;
 class DustBelowCraft;
+class VMGun;
+class VMLauncher;
+class Race;
+struct MapTileRegionStruct;
+struct VThing;
 
 struct VehicleSensorPointStruct {
     irr::core::vector3df Position;
@@ -102,8 +107,12 @@ struct VehicleFunctionFlagsStruct {
     bool Pad2;  //seems to be used for checkpoint processing logic
     bool Pad3;  //seems to be used for vehicle control logic
     bool Pad4;  //seems to be used for computer player control
+    bool Pad5;  //seems to be used for computer player trigger of Rocket Gun
     bool Pad6;  //seems to be used during collision detection with vector collision
+    bool Pad7;  //seems to be used for auto targeting system
+    bool Pad8;  //seems to be used for auto targeting system
     bool Pad9;  //seems to be used for computer player control
+    bool Pad11; //seems to be used for computer player trigger of MGun
     bool Pad12; //seems to be used for checkpoint processing logic
 };
 
@@ -131,14 +140,16 @@ struct VehicleStatsStruct {
     irr::f32 Velocity;
 
     int16_t Weight;
+
+    //11.09.2026: Invincable seems to be repurposed
+    //as a counter variable that controls when
+    //the players are able to start attacking after race start
+    //As soon as the value is non zero the player can not attack
+    //anymore
     int16_t Invincable;
+
     int16_t Invisible;
     int16_t VehicleHit;
-
-    //TODO: Move to the MGun and Rocket
-    //weapon structs later
-    int16_t MGunUpgrade;
-    int16_t MRocketUpgrade;
 
     //player names in Hi-Octane are limited
     //to 8 characters, plus 1 termination char + 1 extra
@@ -179,6 +190,19 @@ struct VehicleBoosterStruct {
 //to vehicle
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
+    int32_t RocketsHit = 0;
+    int32_t Bullets = 0;
+    int32_t BulletsHit = 0;
+    int32_t MiniGunHeatup = 0;
+
+    //Note Deaths: In the original game implementation the Deaths array seems
+    //to store the index to the ControlThing that did the frag. In my implementation
+    //I will use the vehicle number right now instead!
+    int32_t Deaths[8];
+
+    int32_t DeathsCount = 0;
+    int32_t Kills[8];
+    int32_t KillsCount = 0;
     int32_t LapTimes[100];
     int32_t TotalTime = 0;
     int32_t LapCount = 0;
@@ -227,20 +251,31 @@ struct VehicleComputerPlayerStruct {
     uint8_t Param4;
 };
 
-/************************
- * Forward declarations *
- ************************/
+struct VehicleAutoTargetStruct {
+    uint16_t HitMeTotal[8];
+    uint8_t HitMeCount[8];
+    uint8_t HitMeTrigger[8];
+    uint16_t PrimaryTarget;
+    uint16_t ValidTargetCount;
+};
 
-class Race;
-struct MapTileRegionStruct;
+struct VehicleMovementStatusStruct {
+    irr::core::vector3df LastPosition;
+    int16_t Count = 0;
+};
 
 class VVehicle {
 public:
-    VVehicle(Race* mParentRace, std::string model, irr::core::vector3d<irr::f32> NewPosition,
+    //playerNr starting with value 1 for first player, 8 for last player
+    VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::core::vector3d<irr::f32> NewPosition,
              irr::core::vector3d<irr::f32> NewFrontAt, irr::u8 nrLaps, bool humanPlayer);
     ~VVehicle();
 
+    uint8_t mPlayerNr;
+
     void Update(irr::f32 frameDeltaTime);
+
+    bool AllAnimatorsDone();
 
     void DrawDebug();
     void TestCamera();
@@ -250,12 +285,13 @@ public:
     bool KeyPressedAccel = false;
     bool KeyPressedDeaccel = false;
     bool KeyPressedBooster = false;
+    bool KeyPressedMachineGun = false;
+    bool KeyPressedMissileLauncher = false;
 
-    //Thing data
-    ThingDataStruct ThingData;
+    //Pointer to my thing
+    VThing* ThingData = nullptr;
 
     Race* mRace = nullptr;
-
 public:
     MomentumStruct Momentum;
 
@@ -275,6 +311,7 @@ public:
     irr::core::vector3df Bump;
 
     VehicleSpecialMovesStruct Tumble;
+    VehicleAutoTargetStruct AutoTarget;
 
     //Stats
     VehicleStatsStruct Stats;
@@ -282,6 +319,10 @@ public:
     int16_t mThrustEffectiveness;
     irr::f32 mSideslipFriction = 0.0f;
     irr::f32 mSideslipToThrust = 0.0f;
+
+    //is the distance of the currently closest missile
+    //to this player vehicle
+    irr::f32 ClosestMissile = 0.0f;
 
     //BumpDamage was not used at the end
     //at last in the Playstation version of the
@@ -298,6 +339,7 @@ public:
     VehicleConditionsStruct Conditions;
     VehicleViewStruct View;
     VehicleDamageStruct Damage;
+    VehicleMovementStatusStruct MovementStatus;
 
     irr::f32 mDeltaTimeFactor = 1.0f;
 
@@ -362,9 +404,6 @@ public:
     void SetMyHUD(HUD* pntrHUD);
     HUD* GetMyHUD();
 
-    void SetNewState(irr::u32 newPlayerState);
-    irr::u32 GetCurrentState();
-
     void StartPlayingWarningSound();
     void StopPlayingWarningSound();
 
@@ -395,9 +434,23 @@ public:
 
     //This variables seems to have something to do with
     //checkpoint handling
-    size_t Counter[8];
+    int16_t Counter[8];
 
     void vehicle_set_camera();
+
+    void FinishedRace();
+    void TriggerRaceStart();
+
+    //My Weapons
+    VMGun* mMGun = nullptr;
+    VMLauncher* mMLauncher = nullptr;
+
+    uint32_t GetControlOrigin();
+    void SetGameDifficultyLevel(uint8_t newDifficultyLevel);
+
+    int16_t ControlViewType = 0;
+
+    //void TestBigExplosion();
 
 private:
     uint32_t ControlOrigin = 1; //activates the human player
@@ -406,11 +459,13 @@ private:
     int32_t TotalRaceTicks = 0;
     int32_t TotalRaceTicksFinished = 0;
 
-    irr::u8 mPlayerCurrentState;
-
     irr::f32 mAbsTimeIntegrator = 0.0f;
 
     irr::f32 mUpdateVehicleTimeIntegrator = 0.0f;
+
+    uint8_t PlayerDifficultyLevel = 0;
+
+    bool mRaceTriggered = false;
 
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* mCraftMesh = nullptr;
@@ -433,6 +488,7 @@ private:
     void vehicle_do_action();
 
     VehicleComputerPlayerStruct ComputerPlayer;
+    uint8_t vehicle_check_vehicle_movement_status();
     void vehicle_setup_computer_character();
 
     void vehicle_control();
@@ -464,9 +520,19 @@ private:
     void vehicle_post_process();
 
     int32_t vehicle_get_checkpoint();
-    uint8_t vehicle_process_checkpoint(size_t cp_colide);
-    size_t vehicle_checkpoint_find_next(size_t forCheckPointIdx);
+    uint8_t vehicle_process_checkpoint(int16_t cp_colide);
+    int16_t vehicle_checkpoint_find_next(int16_t forCheckPointIdx);
     void vehicle_checkpoint_next_lap();
+
+    //Returns a possible vehicle target within a specified
+    //angle of view; If no target is found returns 0 value
+    //Otherwise it returns the index into the mRace->mVanillaCraftVec
+    //vector for the selected player + 1
+    uint16_t vehicle_target(irr::f32 angle);
+    void vehicle_targetting_system();
+    void vehicle_process_autotarget();
+    uint8_t vehicle_computer_set_no_shoot();
+    void vehicle_calculate_behind_factor();
 
     void UpdateEngineSound();
 
@@ -518,16 +584,6 @@ private:
     //the last player update
     MapTileRegionStruct* mLastCraftTriggerRegion = nullptr;
 
-    void UpdateHUDState();
-
-    //Player states I defined myself
-    //TODO 04.07.2026: This internal variables
-    //have no effect right now on the vehicle
-    //Either map to other variable
-    //or use them somewhere
-    bool mPlayerCanMove = false;
-    bool mPlayerCanShoot = false;
-
     //variables to remember if during the last
     //gameloop this player did any charging
     bool mLastChargingFuel = false;
@@ -573,7 +629,6 @@ private:
     bool mLastEmitDustCloud = false;
 
     void FinishedLap();
-    void FinishedRace();
 
     void UpdateCoordinates();
 

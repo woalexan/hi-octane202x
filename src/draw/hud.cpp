@@ -9,10 +9,11 @@
 
 #include "hud.h"
 #include "../game.h"
-#include "../models/player.h"
-#include "../utils/physics.h"
 #include "../draw/gametext.h"
 #include "../vanilla/vvehicle.h"
+#include "../vanilla/vthing.h"
+#include "../vanilla/vmgun.h"
+#include "../vanilla/vmlauncher.h"
 #include "../race.h"
 
 //a negative altPanelTexNr input value means no alternative texture (image) is used
@@ -413,10 +414,6 @@ void HUD::InitUpgradeBar() {
     Add1PlayerHudDisplayPart(upgradeBar, 274  , 443 ,  71);     //booster upgrade level 3 symbol
 
     mGame->mDriver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, true);
-}
-
-void HUD::SetHUDState(irr::u8 newHUDState) {
-    this->mHudState = newHUDState;
 }
 
 void HUD::CleanUpBannerMessage(BannerTextMessageStruct* msgToDeletePntr) {
@@ -868,6 +865,24 @@ int HUD::GetNumberCurrentThrottleBars(irr::f32 movementSpeed) {
     return nrBars;
 }
 
+int HUD::GetNumberCurrentMGunHeatBars(int16_t triggerTime) {
+    size_t idx = 0;
+    int nrBars = 0;
+
+    //07.08.2026: The original game implementation also uses factor 100
+    int16_t inVal = 100 * triggerTime;
+
+    while (HeatBarThresholds[idx] != -1) {
+        if (inVal <= HeatBarThresholds[idx]) {
+            break;
+        }
+        idx++;
+        nrBars++;
+    }
+
+    return nrBars;
+}
+
 void HUD::DrawGasolineBar() {
     int sizeVec = (int)(gasolineBar->size());
 
@@ -940,7 +955,7 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         int sizeVec = (int)(throttleBar->size());
 
-        int nrThrottleBarElementsUnlit = GetNumberCurrentThrottleBars(monitorWhichPlayer->ThingData.Movement.SpeedActual);
+        int nrThrottleBarElementsUnlit = GetNumberCurrentThrottleBars(monitorWhichPlayer->ThingData->Movement.SpeedActual);
         int nrThrottleBarElementsLit = GetNumberCurrentBoosterBars(monitorWhichPlayer->Booster.TriggerTime);
 
         if (nrThrottleBarElementsLit < 0)
@@ -981,34 +996,32 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
                   (*speedBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
-        //TODO: add back later
-        // //Draw machine gun heat bar
-        // sizeVec = (int)(mgHeatBar->size());
+        //Draw machine gun heat bar
+        sizeVec = (int)(mgHeatBar->size());
+        int nrHeatBarElementsLit = GetNumberCurrentMGunHeatBars(monitorWhichPlayer->mMGun->TriggerTime);
 
-        // perc = (monitorWhichPlayer->mPlayerStats->mgHeatVal / monitorWhichPlayer->mPlayerStats->mgHeatMax) * sizeVec;
+        if (nrHeatBarElementsLit < 0)
+            nrHeatBarElementsLit = 0;
 
-        // if (perc < 0)
-        //     perc = 0;
+        if (nrHeatBarElementsLit > sizeVec)
+            nrHeatBarElementsLit = sizeVec;
 
-        // if (perc > sizeVec)
-        //     perc = (irr::f32)(sizeVec);
-
-        // for (int i = 0; i < perc; i++) {
-        //     mGame->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
-        //           (*mgHeatBar)[i]->sourceRect, 0, *mColorSolid, true);
-        // }
+        for (int i = 0; i < nrHeatBarElementsLit; i++) {
+             mGame->mDriver->draw2DImage((*mgHeatBar)[i]->texture, (*mgHeatBar)[i]->drawScrPosition,
+                   (*mgHeatBar)[i]->sourceRect, 0, *mColorSolid, true);
+        }
 
         //Draw upgrade bar
         //symbol number 0 is the minigun symbol itself (for basic upgrade level 0)
         //the next three symbols 1, 2 and 3 are for upgrade levels 1, 2 and 3
-        for (int i = 0; i <= monitorWhichPlayer->Stats.MGunUpgrade; i++) {
+        for (int i = 0; i <= monitorWhichPlayer->mMGun->Upgrade; i++) {
             mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
 
         //symbol number 4 is the rocket symbol itself (for basic upgrade level 0)
         //the next three symbols 5, 6 and 7 are for upgrade levels 1, 2 and 3
-        for (int i = 4; i <= (monitorWhichPlayer->Stats.MRocketUpgrade + 4); i++) {
+        for (int i = 4; i <= (monitorWhichPlayer->mMLauncher->Upgrade + 4); i++) {
             mGame->mDriver->draw2DImage((*upgradeBar)[i]->texture, (*upgradeBar)[i]->drawScrPosition,
                   (*upgradeBar)[i]->sourceRect, 0, *mColorSolid, true);
         }
@@ -1070,18 +1083,18 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
         mGame->mGameTexts->DrawGameNumberText(lapNumStr,
                                                mGame->mGameTexts->HudLaptimeNumberRed, mPosLapCount);
 
-        // //next draw red skull and current player kill count number
-        // char currKillCountStr[10];
+        //next draw red skull and current player kill count number
+        char currKillCountStr[10];
 
-        // //first draw red skull
-        // strcpy(&currKillCountStr[0], ">");
-        // mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
-        //         mGame->mGameTexts->HudKillCounterNumberRed, mPosRedSkull);
+        //first draw red skull
+        strcpy(&currKillCountStr[0], ">");
+        mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mGame->mGameTexts->HudKillCounterNumberRed, mPosRedSkull);
 
-        // //now draw current kill number, dont forget the leading zeros!
-        // sprintf(&currKillCountStr[0], "%02d", monitorWhichPlayer->mPlayerStats->currKillCount);
-        // mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
-        //         mGame->mGameTexts->HudKillCounterNumberRed, mPosFragCnt);
+        //now draw current kill number, dont forget the leading zeros!
+        sprintf(&currKillCountStr[0], "%02d", (int)(monitorWhichPlayer->Conditions.KillsCount));
+        mGame->mGameTexts->DrawGameNumberText(&currKillCountStr[0],
+                mGame->mGameTexts->HudKillCounterNumberRed, mPosFragCnt);
 
         BannerTextLogic(deltaTime);
 
@@ -1093,6 +1106,21 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
 
         //Render big green text if currently one is shown
         RenderBigGreenText(deltaTime);
+
+        //if a missile is close play a warning sound
+        if (fabs(monitorWhichPlayer->ClosestMissile) >= 0.00390625f) {
+            //warning sound already playing, if not then start playing it
+            if (mMissileCloseSoundSource == nullptr) {
+                mMissileCloseSoundSource = this->mRace->mSoundEngine->PlaySound(SRES_GAME_LOCKON, true);
+            }
+        } else {
+            //no missile close anymore
+            if (mMissileCloseSoundSource != nullptr) {
+                //stop the warning sound again
+                mMissileCloseSoundSource->setLooping(false);
+                mMissileCloseSoundSource = nullptr;
+            }
+        }
     }
 }
 
@@ -1171,28 +1199,35 @@ bool HUD::DoesHudShowPermanentGreenBigText() {
 }
 
 void HUD::DrawHUD1(irr::f32 deltaTime) {
-    switch (this->mHudState) {
-        case DEF_HUD_STATE_STARTSIGNAL: {
-            //original line DrawHUD1PlayerStartSignal(deltaTime);
-            //TODO: Temporarily until HUD states are fixed again
-            DrawHUD1PlayerRace(deltaTime);
-            break;
+    //The ThingData Status variable Flag 0x800 is set when the
+    //first player crosses the starting line for the very
+    //first time. We can use it to switch the HUD view mode
+    if ((!mRace->mDemoMode) && ((monitorWhichPlayer->ThingData->Status & 0x800) == 0) && (!mRace->mSkipStart)) {
+        //make sure we do not play a missile warning sound
+        if (mMissileCloseSoundSource != nullptr) {
+            //stop the warning sound again
+            mMissileCloseSoundSource->setLooping(false);
+            mMissileCloseSoundSource = nullptr;
         }
 
-        case DEF_HUD_STATE_RACE: {
+        DrawHUD1PlayerStartSignal(deltaTime);
+    } else
+        //RacePositionFinish is 0 as long as the player has not finished
+        //the current Race
+        if ((!mRace->mDemoMode) && (!monitorWhichPlayer->RacePositionFinish)) {
             DrawHUD1PlayerRace(deltaTime);
-            break;
-        }
+        } else {
+            //the current monitored player has already finished the Race
 
-        case DEF_HUD_STATE_BROKENPLAYER: {
+            //make sure we do not play a missile warning sound
+            if (mMissileCloseSoundSource != nullptr) {
+                //stop the warning sound again
+                mMissileCloseSoundSource->setLooping(false);
+                mMissileCloseSoundSource = nullptr;
+            }
+
             DrawHUD1PlayerBrokenPlayer(deltaTime);
-            break;
         }
-
-        default: {
-            break;
-        }
-    }
 }
 
 void HUD::DrawHUD1PlayerBrokenPlayer(irr::f32 deltaTime) {
@@ -1208,6 +1243,13 @@ void HUD::SetMonitorWhichPlayer(VVehicle* newPlayer) {
     if (monitorWhichPlayer != nullptr) {
         monitorWhichPlayer->StopPlayingWarningSound();
         monitorWhichPlayer->SetMyHUD(nullptr);
+    }
+
+    //make sure missile warning sound is stopped
+    if (mMissileCloseSoundSource != nullptr) {
+        //stop the warning sound again
+        mMissileCloseSoundSource->setLooping(false);
+        mMissileCloseSoundSource = nullptr;
     }
 
     //also make sure that any visible permanent
@@ -1941,121 +1983,131 @@ core::position2d<s32> HUD::getScreenCoordinatesFrom3DPosition(
 }
 
 void HUD::RenderTargetSymbol(irr::f32 deltaTime) {
-     //TODO: Add back implementation below
-     //  //does player target currently other opponent?
-     //  if (monitorWhichPlayer->mTargetPlayer != nullptr) {
-     //      //yes, player has currently a target
-     //      //we need to draw target symbol
+      VVehicle* targetPlayer = nullptr;
 
-     //      this->targetNameBlinkTimer += deltaTime;
+      if (monitorWhichPlayer->AutoTarget.PrimaryTarget > 0) {
+          targetPlayer = mRace->mVanillaCraftVec.at(monitorWhichPlayer->AutoTarget.PrimaryTarget - 1);
+      }
 
-     //      if (targetNameBlinkTimer > DEF_HUD_TARGETNAME_BLINKPERIODE) {
-     //          this->targetNameBlinkTimer = 0.0f;
-     //          currShowTargetName = !currShowTargetName;
-     //      }
+      //does player target currently other opponent?
+      if (targetPlayer != nullptr) {
+          //yes, player has currently a target
+          //we need to draw target symbol
 
-     //      //first we need to figure out where to draw target symbol on the 2D screen, so that the symbol is around
-     //      //the targets player craft
-     //      ICameraSceneNode* actCamera = mGame->mSmgr->getActiveCamera();
+          this->targetNameBlinkTimer += deltaTime;
 
-     //      irr::core::vector3df targetPlayerPos = monitorWhichPlayer->mTargetPlayer->phobj->physicState.position;
+          if (targetNameBlinkTimer > DEF_HUD_TARGETNAME_BLINKPERIODE) {
+              this->targetNameBlinkTimer = 0.0f;
+              currShowTargetName = !currShowTargetName;
+          }
 
-     //      irr::core::vector2di targetPos = getScreenCoordinatesFrom3DPosition(targetPlayerPos, actCamera);
+          //first we need to figure out where to draw target symbol on the 2D screen, so that the symbol is around
+          //the targets player craft
+          ICameraSceneNode* actCamera = mGame->mSmgr->getActiveCamera();
 
-     //      irr::u32 targetSymBHalfWidth = targetSymbol->sizeTex.Width / 2;
-     //      irr::u32 targetSymBHalfHeight = targetSymbol->sizeTex.Height / 2;
+          irr::core::vector3df targetPlayerPos =
+                mRace->mVCalc->VanillaToIrrlichtCoord(targetPlayer->ThingData->Position);
 
-     //      targetSymbol->drawScrPosition.X = targetPos.X - targetSymBHalfWidth;
-     //      targetSymbol->drawScrPosition.Y = targetPos.Y - targetSymBHalfHeight;
+          irr::core::vector2di targetPos = getScreenCoordinatesFrom3DPosition(targetPlayerPos, actCamera);
 
-     //      irr::u32 lockProgress = this->monitorWhichPlayer->mTargetMissleLockProgr;
+          irr::u32 targetSymBHalfWidth = targetSymbol->sizeTex.Width / 2;
+          irr::u32 targetSymBHalfHeight = targetSymbol->sizeTex.Height / 2;
 
-     //      targetArrowLeft->drawScrPosition.X =
-     //              targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
-     //      targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2;
+          targetSymbol->drawScrPosition.X = targetPos.X - targetSymBHalfWidth;
+          targetSymbol->drawScrPosition.Y = targetPos.Y - targetSymBHalfHeight;
 
-     //      targetArrowRight->drawScrPosition.X = targetPos.X + targetSymBHalfWidth + lockProgress;
-     //      targetArrowRight->drawScrPosition.Y = targetArrowLeft->drawScrPosition.Y;
+          //AutoTarget.ValidTargetCount starts at 0 for new target, and when valid target
+          //quality increases value increases up to max value of 100
+          //Note: The distance of 22 pixels and how the target symbol is rendered was not derived
+          //from the original games implementation, but from screenshoots and observation alone
+          irr::u32 lockProgress = (irr::u32)(22.0f - ((irr::f32)(monitorWhichPlayer->AutoTarget.ValidTargetCount) / 100.0f) * 22.0f);
 
-     //      targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2;
-     //      targetArrowAbove->drawScrPosition.Y =
-     //              targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
+          targetArrowLeft->drawScrPosition.X =
+                  targetPos.X - targetSymBHalfWidth - lockProgress - targetArrowLeft->sizeTex.Width;
+          targetArrowLeft->drawScrPosition.Y = targetPos.Y - targetArrowLeft->sizeTex.Height / 2;
 
-     //      targetArrowBelow->drawScrPosition.X = targetArrowAbove->drawScrPosition.X;
-     //      targetArrowBelow->drawScrPosition.Y = targetPos.Y + targetSymBHalfHeight + lockProgress;
+          targetArrowRight->drawScrPosition.X = targetPos.X + targetSymBHalfWidth + lockProgress;
+          targetArrowRight->drawScrPosition.Y = targetArrowLeft->drawScrPosition.Y;
 
-     //      if (!monitorWhichPlayer->mTargetMissleLock) {
-     //         //no missle lock, green symbol and green text
-     //         mGame->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
-     //            targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
+          targetArrowAbove->drawScrPosition.X = targetPos.X - targetArrowAbove->sizeTex.Width / 2;
+          targetArrowAbove->drawScrPosition.Y =
+                  targetPos.Y - targetSymBHalfHeight - lockProgress  - targetArrowAbove->sizeTex.Height;
 
-     //           if (currShowTargetName) {
-     //                //write player name next to target symbol
-     //                mGame->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-     //                    mGame->mGameTexts->HudTargetNameGreen,
-     //                        irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
-     //                                        targetSymbol->drawScrPosition.Y));
-     //           }
+          targetArrowBelow->drawScrPosition.X = targetArrowAbove->drawScrPosition.X;
+          targetArrowBelow->drawScrPosition.Y = targetPos.Y + targetSymBHalfHeight + lockProgress;
 
-     //         //left green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
-     //            targetArrowLeft->sourceRect, 0, *mColorSolid, true);
+          if (monitorWhichPlayer->AutoTarget.ValidTargetCount < 0x64) {
+             //no missle lock, green symbol and green text
+             mGame->mDriver->draw2DImage(targetSymbol->texture, targetSymbol->drawScrPosition,
+                targetSymbol->sourceRect, 0, irr::video::SColor(255,255,255,255), true);
 
-     //         //right green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
-     //            targetArrowRight->sourceRect, 0, *mColorSolid, true);
+               if (currShowTargetName) {
+                    //write player name next to target symbol
+                    mGame->mGameTexts->DrawHudSmallText(targetPlayer->Stats.name,
+                        mGame->mGameTexts->HudTargetNameGreen,
+                            irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
+                                            targetSymbol->drawScrPosition.Y));
+               }
 
-     //         //above green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
-     //            targetArrowAbove->sourceRect, 0, *mColorSolid, true);
+             //left green arrow
+             mGame->mDriver->draw2DImage(targetArrowLeft->texture, targetArrowLeft->drawScrPosition,
+                targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
-     //         //below green arrow
-     //         mGame->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
-     //            targetArrowBelow->sourceRect, 0, *mColorSolid, true);
-     //      } else {
-     //          //we also have missile lock, red symbol and red text
-     //          mGame->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
-     //             targetSymbol->sourceRect, 0, *mColorSolid, true);
+             //right green arrow
+             mGame->mDriver->draw2DImage(targetArrowRight->texture, targetArrowRight->drawScrPosition,
+                targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
-     //          if (currShowTargetName) {
-     //            //write player name next to target symbol
-     //            mGame->mGameTexts->DrawHudSmallText(monitorWhichPlayer->mTargetPlayer->mPlayerStats->name,
-     //                    mGame->mGameTexts->HudTargetNameRed,
-     //                    irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
-     //                                         targetSymbol->drawScrPosition.Y));
-     //          }
+             //above green arrow
+             mGame->mDriver->draw2DImage(targetArrowAbove->texture, targetArrowAbove->drawScrPosition,
+                targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
-     //          //left red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
-     //             targetArrowLeft->sourceRect, 0, *mColorSolid, true);
+             //below green arrow
+             mGame->mDriver->draw2DImage(targetArrowBelow->texture, targetArrowBelow->drawScrPosition,
+                targetArrowBelow->sourceRect, 0, *mColorSolid, true);
+          } else {
+              //we also have missile lock, red symbol and red text
+              mGame->mDriver->draw2DImage(targetSymbol->altTexture, targetSymbol->drawScrPosition,
+                 targetSymbol->sourceRect, 0, *mColorSolid, true);
 
-     //          //right red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
-     //             targetArrowRight->sourceRect, 0, *mColorSolid, true);
+              if (currShowTargetName) {
+                //write player name next to target symbol
+                mGame->mGameTexts->DrawHudSmallText(targetPlayer->Stats.name,
+                        mGame->mGameTexts->HudTargetNameRed,
+                        irr::core::position2di(targetPos.X + targetSymBHalfWidth + 2,
+                                             targetSymbol->drawScrPosition.Y));
+              }
 
-     //          //above red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
-     //             targetArrowAbove->sourceRect, 0, *mColorSolid, true);
+              //left red arrow
+              mGame->mDriver->draw2DImage(targetArrowLeft->altTexture, targetArrowLeft->drawScrPosition,
+                 targetArrowLeft->sourceRect, 0, *mColorSolid, true);
 
-     //          //below red arrow
-     //          mGame->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
-     //             targetArrowBelow->sourceRect, 0, *mColorSolid, true);
-     //      }
+              //right red arrow
+              mGame->mDriver->draw2DImage(targetArrowRight->altTexture, targetArrowRight->drawScrPosition,
+                 targetArrowRight->sourceRect, 0, *mColorSolid, true);
 
-     //      irr::core::rect<irr::s32> healthBarLocation;
-     //      irr::f32 barWidthFloat = (2.0f * (float)(targetSymBHalfWidth)) *
-     //              (this->monitorWhichPlayer->mTargetPlayer->mPlayerStats->shieldVal / this->monitorWhichPlayer->mTargetPlayer->mPlayerStats->shieldMax);
+              //above red arrow
+              mGame->mDriver->draw2DImage(targetArrowAbove->altTexture, targetArrowAbove->drawScrPosition,
+                 targetArrowAbove->sourceRect, 0, *mColorSolid, true);
 
-     //      irr::u32 barWidth = (irr::u32)(barWidthFloat);
+              //below red arrow
+              mGame->mDriver->draw2DImage(targetArrowBelow->altTexture, targetArrowBelow->drawScrPosition,
+                 targetArrowBelow->sourceRect, 0, *mColorSolid, true);
+          }
 
-     //      healthBarLocation.UpperLeftCorner.X = targetSymbol->drawScrPosition.X;
-     //      healthBarLocation.UpperLeftCorner.Y = targetPos.Y + targetSymBHalfHeight + 2;
-     //      healthBarLocation.LowerRightCorner.X = targetSymbol->drawScrPosition.X + barWidth;
-     //      healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
+          irr::core::rect<irr::s32> healthBarLocation;
+          irr::f32 barWidthFloat = (2.0f * (float)(targetSymBHalfWidth)) *
+                  ((irr::f32)(targetPlayer->Stats.Health) / 10000.0f);
 
-     //      //draw a small health bar below the target symbol
-     //      mGame->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
-     // }
+          irr::u32 barWidth = (irr::u32)(barWidthFloat);
+
+          healthBarLocation.UpperLeftCorner.X = targetSymbol->drawScrPosition.X;
+          healthBarLocation.UpperLeftCorner.Y = targetPos.Y + targetSymBHalfHeight + 2;
+          healthBarLocation.LowerRightCorner.X = targetSymbol->drawScrPosition.X + barWidth;
+          healthBarLocation.LowerRightCorner.Y = healthBarLocation.UpperLeftCorner.Y + 5;
+
+          //draw a small health bar below the target symbol
+          mGame->mDriver->draw2DRectangle(*mColorTargetSymbolHealthBar, healthBarLocation, nullptr);
+     }
 }
 
 HUD::HUD(Game* game, Race* parentRace) {
@@ -2202,6 +2254,11 @@ HUD::~HUD() {
 }
 
 void HUD::DrawFinishedPlayerList() {
+    //12.09.2026: Do not draw this list in Demo Mode
+    if (mRace->mDemoMode) {
+        return;
+    }
+
     irr::u8 nrFinishedPlayers = (irr::u8)(mRace->playerRaceFinishedVec.size());
 
     if (nrFinishedPlayers > 0) {

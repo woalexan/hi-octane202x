@@ -12,6 +12,7 @@
 
 #include "irrlicht.h"
 #include <vector>
+#include "../audio/sound.h"
 
 #define WaitTimeBeforeNextBannerState 0.1f  //in seconds
 #define DEF_HUD_BANNERTEXT_MINSHOWTIME 1.0f //in seconds
@@ -55,6 +56,10 @@ const int16_t ShieldBarThresholds[7] = { 0,  0x682,  0xD04,  0x1386,  0x1A08,  0
 
 const int16_t AmmoBarThresholds[7] = { 0,  0x682,  0xD04,  0x1386,  0x1A08,  0x208A,  -1};
 
+const int16_t HeatBarThresholds[17] = { 0,  0x271,  0x4E2,  0x753,  0x9C4,  0xC35, 0xEA6,
+                                       0x1117, 0x1388, 0x15F9, 0x186A, 0x1ADB, 0x1D4C, 0x1FBD,
+                                       0x222E, 0x249F, -1};
+
 struct HudDisplayPart{
      irr::core::vector2d<irr::s32> drawScrPosition;
      irr::video::ITexture* texture = nullptr;
@@ -79,8 +84,6 @@ struct BannerTextMessageStruct {
 class HUD {
 
 private:
-    irr::u8 mHudState = DEF_HUD_STATE_NOTDRAWN;
-
     Game* mGame = nullptr;
     Race* mRace = nullptr;
 
@@ -198,7 +201,7 @@ private:
     //0.. means no light lit
     //with increasing value the start signal
     //advances towards the final state
-    irr::u8 mStartSignalState;
+    irr::u8 mStartSignalState = 0;
 
     void DrawHUD1PlayerRace(irr::f32 deltaTime);
     void DrawHUD1PlayerStartSignal(irr::f32 deltaTime);
@@ -216,6 +219,7 @@ private:
     int GetNumberCurrentShieldBars(int16_t healthVal);
     int GetNumberCurrentAmmoBars(int16_t ammoVal);
     int GetNumberCurrentThrottleBars(irr::f32 movementSpeed);
+    int GetNumberCurrentMGunHeatBars(int16_t triggerTime);
     void DrawAmmoBar();
     void DrawShieldBar();
 
@@ -243,6 +247,8 @@ private:
 
     void PrecalculatePositions();
 
+    sf::Sound* mMissileCloseSoundSource = nullptr;
+
 public:
     HUD(Game* game, Race* parentRace);
     ~HUD();
@@ -267,8 +273,6 @@ public:
 
     //returns true if HUD currently shows a permanent big green text
     bool DoesHudShowPermanentGreenBigText();
-
-    void SetHUDState(irr::u8 newHUDState);
 
     //0.. means no light lit
     //with increasing value the start signal

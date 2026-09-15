@@ -47,7 +47,7 @@ public:
 
     uint8_t GetTextureModificationLowerNibble();
 
-    int16_t mPointOfInterest;
+    int16_t mChild;
 
     //This value controls how well illuminated a cell
     //is. This also affects blocks/column located above.

@@ -88,8 +88,17 @@ int32_t ConvertByteArray_ToInt32(std::vector<uint8_t> bytes, unsigned int start_
 void ConvertAndWriteInt16ToByteArray(int inputValue, std::vector<unsigned char> &bytes, unsigned int writeIndex) {
     int16_t inValue = static_cast<int16_t>(inputValue);
 
-    bytes.at(writeIndex+1) = static_cast<uint8_t>((inValue & 0xFF00) >> 8);
+    bytes.at(writeIndex + 1) = static_cast<uint8_t>((inValue & 0xFF00) >> 8);
     bytes.at(writeIndex) = static_cast<uint8_t>(inValue & 0x00FF);
+}
+
+void ConvertAndWriteInt32ToByteArray(int inputValue, std::vector<unsigned char> &bytes, unsigned int writeIndex) {
+    int32_t inValue = static_cast<int32_t>(inputValue);
+
+    bytes.at(writeIndex + 3) = static_cast<uint8_t>((inValue & 0xFF000000) >> 24);
+    bytes.at(writeIndex + 2) = static_cast<uint8_t>((inValue & 0x00FF0000) >> 16);
+    bytes.at(writeIndex + 1) = static_cast<uint8_t>((inValue & 0x0000FF00) >> 8);
+    bytes.at(writeIndex) =     static_cast<uint8_t>(inValue &  0x000000FF);
 }
 
 void ConvertAndWriteFloatToByteArray(float inputValue, std::vector<uint8_t> &bytes, unsigned int writeIndex, bool dividerHighByte) {

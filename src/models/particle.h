@@ -41,41 +41,6 @@ public:
     void ResetParticle(irr::core::vector3df newStartLocation);
 };
 
-class SmokeTrail {
-public:
-    SmokeTrail(irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, Player* parentPlayer,
-                  irr::u32 nrMaxParticles);
-
-    ~SmokeTrail();
-
-    void Update(irr::f32 frameDeltaTime);
-    void Activate();
-    void Deactivate();
-
-private:
-    bool mVisible;
-    bool mActivated = false;
-
-    Player* mParentPlayer = nullptr;
-
-    irr::video::ITexture* mSmokeTex = nullptr;
-    irr::core::dimension2d<irr::u32> mSmokeTexSize;
-
-    irr::scene::ISceneManager* mSmgr = nullptr;
-    irr::video::IVideoDriver* mDriver = nullptr;
-
-    irr::u32 mNrMaxParticles;
-    irr::u32 mCurrNrParticels = 0;
-
-    irr::f32 absTimeSinceLastActivation;
-    irr::f32 absTimeSinceLastUpdate = 0.0f;
-
-    std::vector<SmokeParticle*>* mCurrSpriteVec = nullptr;
-
-    void CreateParticle() {
-    }
-};
-
 class DustParticle: public SpriteParticle {
 public:
     DustParticle(irr::scene::ISceneManager* smgr, irr::video::ITexture* spriteTex, irr::core::vector3d<irr::f32> startLocation,

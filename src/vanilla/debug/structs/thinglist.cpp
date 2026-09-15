@@ -19,7 +19,6 @@ ParseThingList::ParseThingList(MemDump* parentMemdump) {
 }
 
 void ParseThingList::Print() {
-
 }
 
 void ParseThingList::Read(size_t dumpLevelStructStart) {
@@ -29,10 +28,12 @@ void ParseThingList::Read(size_t dumpLevelStructStart) {
     NextIndex = mParentMemDump->mDataTools->ConvertByteArray_ToInt32(startOffThingList + 0x7D0);
 
     //there are maximum 1000 things (max index is 999);
-    //nextThingIndex points to the array index of the next thing
+    //NextIndex points to the array index of the next thing
     //that will be created; Therefore we can calculate number of
     //currently existing things
-    this->mNrThingsExisting = (999 - NextIndex);
+    this->mNrThingsExisting = (999 - NextIndex) - 1;
+
+    std::cout << "ThingList NextIndex = " << int(NextIndex) << std::endl;
 
     std::cout << "Current number of existing Things = " << int(mNrThingsExisting) << std::endl;
 
