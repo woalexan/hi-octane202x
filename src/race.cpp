@@ -2694,7 +2694,11 @@ void Race::draw2DImage(irr::video::IVideoDriver *driver, irr::video::ITexture* t
     }
 
     material.Lighting = false;
+#if IRRLICHT_VERSION_MAJOR >= 1 && IRRLICHT_VERSION_MINOR >= 9
+    material.ZWriteEnable = video::EZW_OFF;
+#else
     material.ZWriteEnable = false;
+#endif
     material.ZBuffer = false;
     material.TextureLayer[0].Texture = texture;
     //the following line did not work, therefore I commented it out

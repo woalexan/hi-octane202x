@@ -13,7 +13,11 @@ public:
 	{
 		Material.Wireframe = false;
 		Material.Lighting = false;
+#if IRRLICHT_VERSION_MAJOR >= 1 && IRRLICHT_VERSION_MINOR >= 9
+		Material.ZWriteEnable = irr::video::EZW_OFF;
+#else
 		Material.ZWriteEnable = false;
+#endif
 
 		Vertices[0] = irr::video::S3DVertex(-1.0f,-1.0f,0.0f,0,0,1,irr::video::SColor(0x0),0.0f,1.0f);
 		Vertices[1] = irr::video::S3DVertex(-1.0f, 1.0f,0.0f,0,0,1,irr::video::SColor(0x0),0.0f,0.0f);
