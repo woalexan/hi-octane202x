@@ -10,8 +10,11 @@ if( NOT CMAKE_BUILD_TYPE )
         set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE )
 endif()
 
-if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+#needed to find the custom FindIrrlicht/FindADLMIDI modules,
+#also under MSVC (find_package needs them on every platform)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 include(GNUInstallDirs)
 
 if( NOT CMAKE_OPTIMIZATION_LEVEL )

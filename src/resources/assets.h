@@ -13,6 +13,7 @@
 #include "irrlicht.h"
 #include <vector>
 #include <string>
+#include <cstdint>
 
 //if we ever want to implement the other languages
 //stored in the game these are the values assigned to the current
@@ -199,9 +200,9 @@ struct CloneAngle {
 };
 
 struct CloneRecording {
-    u_int16_t NrRecordingDataEntries;
-    u_int8_t NrLapRecordWasAchieved;
-    std::vector<u_int8_t> SpeedVec;
+    uint16_t NrRecordingDataEntries;
+    uint8_t NrLapRecordWasAchieved;
+    std::vector<uint8_t> SpeedVec;
     std::vector<CloneCoord3D> CoordVec;
     std::vector<CloneAngle> AngleVec;
 };
@@ -362,7 +363,7 @@ public:
     //Returns nullptr in case for this race track currently
     //no clone recording is available
     //whichRaceTrackNr = 0 for first level
-    CloneRecording* ReadCloneRecordingData(u_int8_t whichRaceTrackNr);
+    CloneRecording* ReadCloneRecordingData(uint8_t whichRaceTrackNr);
 
 private:
     Game* mGame = nullptr;
@@ -427,7 +428,7 @@ private:
 
     int16_t ConvertByteArray_ToInt16(char* bytes, size_t start_position);
     int32_t ConvertByteArray_ToInt32(char* bytes, size_t start_position);
-    u_int16_t ConvertByteArray_ToUInt16(char* bytes, size_t start_position);
+    uint16_t ConvertByteArray_ToUInt16(char* bytes, size_t start_position);
     irr::f32 ConvertByteArray_ToFloat(char* bytes, size_t start_position);
     void ConvertInt32_ToByteArray(char* outBytes, size_t start_position, int32_t inputVal);
     void ReadNullTerminatedString(char* bytes, size_t start_position, char** outString, irr::u8 maxStrLen);
@@ -572,7 +573,7 @@ private:
     //Clone Race reading stuff
     CloneCoord3D DecodeCloneCoord3D(char** targetBuf, size_t index);
     CloneAngle DecodeCloneAngle(char** targetBuf, size_t index);
-    u_int8_t DecodeCloneVelocity(char** targetBuf, size_t index);
+    uint8_t DecodeCloneVelocity(char** targetBuf, size_t index);
 };
 
 #endif // ASSETS_H

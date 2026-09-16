@@ -16,6 +16,7 @@
 
  You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.                                          */
 #include <algorithm>
+#include <cstdint>
 #include "utils/physics.h"
 #include "utils/tprofile.h"
 #include "utils/bezier.h"
@@ -576,7 +577,7 @@ void Race::InitCloneRecordingView(bool enable) {
                 return;
             }
 
-            u_int8_t levelNr = (u_int8_t)(mLevelRootPath[minusPos + 1] - 0x30);
+            uint8_t levelNr = (uint8_t)(mLevelRootPath[minusPos + 1] - 0x30);
 
             //try to load a possible existing recording
             //if not present will return nullptr

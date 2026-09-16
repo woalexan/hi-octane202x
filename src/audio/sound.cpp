@@ -11,7 +11,7 @@
 #include <iostream>
 #include "../utils/logging.h"
 
-SoundResource::SoundResource(std::string fileName, u_int8_t soundResId) {
+SoundResource::SoundResource(std::string fileName, uint8_t soundResId) {
     //Store my sound resource Id so that we know
     //what I contain
     mSoundResId = soundResId;
