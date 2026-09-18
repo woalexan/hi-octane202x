@@ -3790,16 +3790,15 @@ uint8_t Race::vehicle_race_positions_compare(VVehicle* vehicle1, VVehicle* vehic
     result = 0;
 
     if (v3 == v5) {
-        if (!vehicle1->CheckPoint) {
+        v8 = mThingManager->Thing[vehicle1->CheckPoint].Count;
+        if (!v8) {
             v8 = 16000;
-        } else {
-            v8 = mThingManager->Thing[vehicle1->CheckPoint].Count;
         }
 
-        if (!vehicle2->CheckPoint) {
+        count = mThingManager->Thing[vehicle2->CheckPoint].Count;
+
+        if (!count) {
             count = 16000;
-        } else {
-            count = mThingManager->Thing[vehicle2->CheckPoint].Count;
         }
 
         v10 = (v8 < count);

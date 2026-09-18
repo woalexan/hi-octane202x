@@ -355,6 +355,8 @@ camera_process_LABEL_46:
                      //is fixed to a constant direction. The direction can be altered by setting the
                      //unknown bytes below. This code does not seem to get used
             //is the code below really used?
+            //I tried this code, depending on the byte_X values the camera will rotate constantly
+            //around the vehicle
             //if (byte_801F396F) {
             //  mCameraWindow.ChaseCamera.AngleXY -= 2.999267578125f;
             //}

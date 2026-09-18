@@ -2482,6 +2482,10 @@ int32_t VVehicle::vehicle_get_checkpoint() {
 
       if ((currClosestCheckPointIdx > 0) &&
             vehicle_process_checkpoint(currClosestCheckPointIdx)) {
+
+          //race start finish line should always have value of 0
+          //this means if this if statement applies the player has
+          //crossed the finish line and the player has one lap more
           if (!mRace->mThingManager->Thing[CheckPoint].Count) {
               vehicle_checkpoint_next_lap();
               v5 = 1;
@@ -2592,7 +2596,7 @@ int16_t VVehicle::vehicle_checkpoint_find_next(int16_t forCheckPointIdx) {
 
                v9 = (v8 < count);
                if (!(*it)->Count) {
-                   index = (*it)->Count;
+                   index = (*it)->Index;
                }
 
                if (v9 && (count < i)) {
