@@ -1373,43 +1373,6 @@ void Race::End() {
     StopAllSounds();
 }
 
-//attacker is the enemy player that does damage the player targetToHit
-//for damage that an entity does cause (for example steamFountain) attacker is set
-//to nullptr
-void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker) {
-    bool targetDied;
-
-    if (targetToHit != nullptr) {
-        targetDied = targetToHit->Damage(damageVal, damageType);
-
-        //if the attacked/damaged player died let the player ship explode
-        //if there was an attacker increase its kill counter
-        //spawn entities in the level from the target
-        if (targetDied) {
-
-            if (attacker != nullptr) {
-                //increase kill count of attacker
-                attacker->mPlayerStats->currKillCount++;
-
-                char killMessage[80];
-
-                strcpy(killMessage, "KILLED BY ");
-                strcat(killMessage, attacker->mPlayerStats->name);
-
-                //show player that died a message in HUD, which other
-                //player was the attacker, is a permanent message, and not blinking
-                targetToHit->ShowPlayerBigGreenHudText(killMessage, -1.0f, false);
-            }
-
-            //trigger explosion at location of killed player
-            this->mExplosionLauncher->Trigger(targetToHit->phobj->physicState.position);
-
-            //spawn collectibles at location of killed player
-            //SpawnCollectiblesForPlayer(targetToHit);
-        }
-    }
-}
-
 //if the first player crosses the finish line after start
 //the race state changes to final Racing state
 void Race::PlayerCrossesFinishLineTheFirstTime() {

@@ -714,6 +714,9 @@ void VVehicle::vehicle_execute_action0x19_reset() {
         ThingData->AffectWho = 0;
 
         ThingData->AffectStatus |= 0x80u;
+
+        //remove killed by HUD message
+        RemovePlayerPermanentGreenBigText();
     }
 
     FlightModel.Flag.Reposition = false;
@@ -3046,6 +3049,7 @@ void VVehicle::vehicle_post_process() {
     irr::f32 speedFixed;
     int16_t number;
     int16_t v12;
+    char killMessage[80];
 
     /********************************
      * Fuel reduction due to moving *
@@ -3285,14 +3289,12 @@ void VVehicle::vehicle_post_process() {
                     atCharger = true;
                     mCurrChargingShield = true;
 
-                    //24.08.2026: The two Calculations below not yet verified to be correct!
-                    irr::f32 helper = ((16.0f - floor((irr::f32)(Stats.Health) / 102.4f)) / 16.0f);
-                    Damage.BulletCount *= (uint16_t)(helper);
+                    uint64_t helper = (1759218605LL * Stats.Health) >> 32;
+                    int32_t helper2 = static_cast<int32_t>(helper) >> 8;
+                    int32_t factor = ((16 - helper2 - (Stats.Health >> 15)) / 16);
 
-                    helper =
-                        ((16.0f - round((irr::f32)(Stats.Health) / 1024.0f)) / 16.0f);
-
-                    Damage.MissileCount *= (uint16_t)(helper);
+                    Damage.BulletCount *= factor;
+                    Damage.MissileCount *= factor;
                 } else {
 
                         /*if (Conditions.HealthRechargeCounter) {
@@ -3532,7 +3534,7 @@ void VVehicle::vehicle_post_process() {
                 //first player has Id = 1, second player has Id = 2 and so
                 uint16_t who = ThingData->AffectWho;
 
-                //do we know how killed this vehicle? If who is nonzero we know it was
+                //do we know who killed this vehicle? If who is nonzero we know it was
                 //another player and which
                 if (who) {
                     //24.08.2026: the logic in the original game implementation
@@ -3572,6 +3574,14 @@ void VVehicle::vehicle_post_process() {
                             //of the Attacker who archieved the kill; in my implementation I have no ControlThings,
                             //so I take the Index of the VehicleThing; Could be a source for a bug later?
                             Stats.Weight = (mRace->mVanillaCraftVec.at(idxKiller)->ThingData->Index + 1);
+
+                            //write into HUD who did it
+                            strcpy(killMessage, "KILLED BY ");
+                            strcat(killMessage, mRace->mVanillaCraftVec.at(idxKiller)->Stats.name);
+
+                            //show player that died a message in HUD, which other
+                            //player was the attacker, is a permanent message, and not blinking
+                            ShowPlayerBigGreenHudText(killMessage, -1.0f, false);
                         }
                     }
                 } else {
@@ -4683,6 +4693,22 @@ void VVehicle::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, ir
     if (newClosestWayPointLink.first != nullptr) {
         this->currClosestWayPointLink = newClosestWayPointLink;
         this->projPlayerPositionClosestWayPointLink = newClosestWayPointLink.second;
+    }
+}
+
+//if showDurationSec is negative, the text will be shown until it is deleted
+//with a call to function RemovePlayerPermanentGreenBigText
+//if blinking is true text will blink (for example used for final lap text), If false
+//text does not blink (as used when player died and waits for repair craft)
+void VVehicle::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking) {
+    if (mHUD != nullptr) {
+        this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec, blinking);
+    }
+}
+
+void VVehicle::RemovePlayerPermanentGreenBigText() {
+    if (mHUD != nullptr) {
+        this->mHUD->RemovePermanentGreenBigText();
     }
 }
 

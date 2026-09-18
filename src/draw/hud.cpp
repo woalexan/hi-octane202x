@@ -905,6 +905,86 @@ void HUD::DrawGasolineBar() {
     }
 }
 
+void HUD::DrawBulletHoles() {
+    int32_t v2;
+    int32_t v6;
+    uint16_t v8;
+    uint16_t v10;
+    uint16_t v11;
+    int32_t count;
+    size_t currIdx = 0;
+    size_t currIdx2 = 0;
+    size_t currIdx3 = 0;
+    irr::core::dimension2di dimGlassBreakSprite = brokenGlas->sizeTex;
+    VehicleBulletHoleStruct* pntr;
+    irr::core::vector3df pos1;
+    irr::core::vector3df pos2;
+
+    v2 = 0;
+
+    while (v2 < monitorWhichPlayer->Damage.BulletHoles) {
+        pntr = &monitorWhichPlayer->BulletHole[currIdx];
+        count = pntr->Count;
+        v6 = 0;
+        if (count == 0) {
+            v8 = mGame->randRangeInt(0, 65535);
+            v10 = v8 % (mGame->mScreenRes.Width - dimGlassBreakSprite.Width);
+            pntr->Position.X = (irr::s32)(v10);
+            v8 = mGame->randRangeInt(0, 65535);
+            v11 = v8 % (mGame->mScreenRes.Height - dimGlassBreakSprite.Height);
+            pntr->Position.Y = (irr::s32)(v11);
+            currIdx2 = 0;
+            currIdx3 = 0;
+            do {
+               pos1.X = (irr::f32)(pntr->Position.X);
+               pos1.Y = (irr::f32)(pntr->Position.Y);
+               pos1.Z = 0.0f;
+               pos2.X = (irr::f32)(monitorWhichPlayer->BulletHole[currIdx2].Position.X);
+               pos2.Y = (irr::f32)(monitorWhichPlayer->BulletHole[currIdx2].Position.Y);
+               pos2.Z = 0.0f;
+
+               if ((monitorWhichPlayer->BulletHole[currIdx3].Count == 2)
+                    && (mRace->mVCalc->distance_get_xy(pos1, pos2) < dimGlassBreakSprite.Width)) {
+                   break;
+               }
+               currIdx2++;
+               ++v6;
+               currIdx3++;
+            } while (v6 < 16);
+            if (v6 == 16) {
+                pntr->Count = 2;
+            } else {
+                pntr->Count = 1;
+            }
+         count = monitorWhichPlayer->BulletHole[currIdx].Count;
+    }
+        if (count == 2) {
+           //skipped some code with split screen race
+
+            //only draw the sprites if we are in the internal cockpit
+            //view
+            if (monitorWhichPlayer->ControlViewType == 0) {
+                //draw the glas sprite
+                mGame->mDriver->draw2DImage(brokenGlas->texture, pntr->Position,
+                          brokenGlas->sourceRect, 0, *mColorSolid, true);
+            }
+        }
+        currIdx++;
+        pntr = &monitorWhichPlayer->BulletHole[currIdx];
+        ++v2;
+        if (v2 >= 16) {
+            return;
+        }
+    }
+
+    //Note 18.09.2026: I added this "reset" part, because the original
+    //code was not working for me (something was still off that I needed to solve)
+    //This removes existing Bulletholes again that are not "needed" anymore
+    for (size_t idx = currIdx; idx < 16; idx++) {
+        monitorWhichPlayer->BulletHole[idx].Count = 0;
+    }
+}
+
 void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
     if (monitorWhichPlayer != nullptr) {
 
@@ -936,18 +1016,9 @@ void HUD::DrawHUD1PlayerRace(irr::f32 deltaTime) {
             }
         }
 
+        DrawBulletHoles();
+
         DrawFinishedPlayerList();
-
-        //any broken glas?
-        //TODO: add back later
-        // if (this->monitorWhichPlayer->brokenGlasVec->size() > 0) {
-        //     std::vector<HudDisplayPart*>::iterator itGlasBreak;
-
-        //     for (itGlasBreak = this->monitorWhichPlayer->brokenGlasVec->begin(); itGlasBreak != this->monitorWhichPlayer->brokenGlasVec->end(); ++itGlasBreak) {
-        //         mGame->mDriver->draw2DImage((*itGlasBreak)->texture, (*itGlasBreak)->drawScrPosition,
-        //               (*itGlasBreak)->sourceRect, 0, *mColorSolid, true);
-        //     }
-        // }
 
         DrawShieldBar();
         DrawAmmoBar();

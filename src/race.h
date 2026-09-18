@@ -220,11 +220,6 @@ public:
 
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
 
-    //attacker is the enemy player that does damage the player targetToHit
-    //for damage that an entity does cause (for example steamFountain) attacker is set
-    //to nullptr
-    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = nullptr);
-
     VVehicle* currPlayerFollow = nullptr;
 
     //handles the columns (made of blocks)
