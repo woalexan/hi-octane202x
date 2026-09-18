@@ -107,7 +107,7 @@ class Game;
 
 class SoundResource {
 public:
-    SoundResource(std::string fileName, u_int8_t soundResId);
+    SoundResource(std::string fileName, uint8_t soundResId);
     ~SoundResource();
 
     bool loadOk;

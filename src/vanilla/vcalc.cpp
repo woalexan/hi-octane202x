@@ -41,6 +41,10 @@
 #include "../resources/mapentry.h"
 #include "../infrabase.h"
 #include "../utils/logging.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #include <cmath>
 
 VCalculations::VCalculations(InfrastructureBase* infra, LevelFile* levelFile, LevelTerrain* levelTerrain, LevelBlocks* levelBlocks)

@@ -727,6 +727,7 @@ bool LevelFile::DebugPrintRegionTable(const char* filename) {
     fclose(oFile);
 
     return true;*/
+    return false;
 }
 
 bool LevelFile::PrintUnknownTableAtOffset(size_t offset, std::vector<uint8_t> &sourceTable) {

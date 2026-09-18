@@ -269,6 +269,7 @@ void Player::SetNewState(irr::u32 newPlayerState) {
 
 bool Player::AllAnimatorsDone() {
     //return (this->mMGun->AllAnimationsFinished());
+    return true;
 }
 
 void Player::DeactivateAttack() {
@@ -1018,6 +1019,8 @@ irr::scene::ICameraSceneNode* Player::DeliverActiveCamera() {
 
     // //no valid view option, return nullptr
     // return nullptr;
+
+    return nullptr;
 }
 
 void Player::ChangeViewMode() {

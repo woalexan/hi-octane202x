@@ -1398,7 +1398,7 @@ void PrepareData::ExtractGameLogoSVGA() {
 
     for (int idx = 0; idx < 6; idx++) {
            strcpy(finalpathSrc, "extract/images/logo0-1-");
-           sprintf (fname, "%0*ld.png", 4, (ssize_t)idx);
+           sprintf (fname, "%0*ld.png", 4, (long)idx);
            strcat(finalpathSrc, fname);
 
            strcpy(finalpathDest, "extract/images/logo0-1-x2-");

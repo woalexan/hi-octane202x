@@ -12,6 +12,7 @@
 #include "binaryfile.h"
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 UInt8_Num::UInt8_Num(DataTools* parent, std::string name, size_t start_position) {
     mParent = parent;
