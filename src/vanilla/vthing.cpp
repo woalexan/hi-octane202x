@@ -496,7 +496,7 @@ int16_t VThingManager::thing_touching_anything(VThing* whichThing) {
     std::vector<RaceTriggerInfoStruct*>::iterator it2;
 
     for (it2 = mParentRace->mVanillaTriggerVec.begin(); it2 != mParentRace->mVanillaTriggerVec.end(); ++it2) {
-        if (((*it2)->thingPntr->Member == 3) && (whichThing->Id != (*it2)->thingPntr->Id) && thing_overlapping(whichThing, (*it2)->thingPntr)) {
+        if (((*it2)->thingPntr != nullptr) && ((*it2)->thingPntr->Member == 3) && (whichThing->Id != (*it2)->thingPntr->Id) && thing_overlapping(whichThing, (*it2)->thingPntr)) {
             AffectListIndex = AffectListIndex + 1;
             AffectList[AffectListIndex] = (*it2)->thingPntr->Index;
         }

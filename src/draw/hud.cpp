@@ -1887,6 +1887,11 @@ void HUD::ShowBannerText(char* text, irr::f32 showDurationSec, bool warningSound
 //if blinking is true text will blink (for example used for final lap text), If false
 //text does not blink (as used when player died and waits for repair craft)
 void HUD::ShowGreenBigText(char* text, irr::f32 showDurationSec, bool blinking) {
+    //if we are in Demo Mode prevent the message
+    //from happening
+    if (mRace->mDemoMode)
+        return;
+
     //we need to allocate or own array of char and copy the data there for us later.
     //because we can not rely on a pntr to an array we got via
     //parameter; The array that we point to could disappear afterwards

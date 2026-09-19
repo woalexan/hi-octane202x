@@ -577,18 +577,7 @@ private:
 
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
 
-    void CheckForTriggerCraftRegion();
     void CheckForChargingStation();
-
-    //is unequal to NULL if player craft is currently inside
-    //a craft trigger area defined in the level during
-    //the current player update
-    MapTileRegionStruct* mCurrentCraftTriggerRegion = nullptr;
-
-    //is unequal to NULL if player craft was inside
-    //a craft trigger area defined in the level during
-    //the last player update
-    MapTileRegionStruct* mLastCraftTriggerRegion = nullptr;
 
     //variables to remember if during the last
     //gameloop this player did any charging

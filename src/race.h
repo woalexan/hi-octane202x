@@ -151,7 +151,9 @@ class VEffectManager;
 
 struct RaceTriggerInfoStruct {
     VThing* thingPntr = nullptr;
+    EntityItem* entityItemPntr = nullptr;
     bool readyForCleanup = false;
+    bool retrigger = false;
 };
 
 class Race {
@@ -276,14 +278,7 @@ public:
     //vector of players in this race
     std::vector<Player*> mPlayerVec;
 
-    //vector of craft/missile trigger regions
-    std::vector<MapTileRegionStruct*> mTriggerRegionVec;
-
     std::vector<RaceTriggerInfoStruct*> mVanillaTriggerVec;
-
-    void PlayerEnteredCraftTriggerRegion(VVehicle* whichPlayer, MapTileRegionStruct* whichRegion);
-    void PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion);
-    void TimedTriggerOccured(Timer* whichTimer);
 
     //irr::core::vector3df dbgMiniMapPnt1;
     //irr::core::vector3df dbgMiniMapPnt2;
@@ -546,21 +541,16 @@ private:
     //my vector of cones
     std::vector<Cone*>* coneVec = nullptr;
 
-    void IndicateTriggerRegions();
-
+    VThing* CreateTriggerThing(EntityItem *entity);
     void AddTrigger(EntityItem *entity);
 
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
     void UpdateMorphs(irr::f32 frameDeltaTime);
-    void UpdateTimers(irr::f32 frameDeltaTime);
     void UpdateCones(irr::f32 frameDeltaTime);
     void UpdateExternalCameras();
 
     void UpdateTriggers(irr::f32 frameDeltaTime);
     void UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDeltaTime);
-
-    std::vector<Timer*> mTimerVec;
-    void AddTimer(EntityItem *entity);
 
     //holds currently pending trigger target group events (when some
     //entity reports that something should be triggered it
@@ -597,8 +587,6 @@ private:
     void CleanUpCones();
     void CleanUpMorphs();
     void CleanUpSky();
-    void CleanUpTriggers();
-    void CleanUpTimers();
     void CleanUpExplosionEntities();
     void CleanUpCameras();
     void CleanUpCollectableSpawners();

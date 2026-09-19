@@ -939,9 +939,6 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         UpdateCoordinates();
     }
 
-    //check if player entered a craft trigger region
-    CheckForTriggerCraftRegion();
-
     //check if player is in an charging station
     CheckForChargingStation();
 
@@ -4144,60 +4141,6 @@ void VVehicle::FinishedRace() {
     // if (mHumanPlayer) {
     //     CpTakeOverHuman();
     // }
-}
-
-void VVehicle::CheckForTriggerCraftRegion() {
-    //remember last trigger region before next update
-    mLastCraftTriggerRegion = mCurrentCraftTriggerRegion;
-
-    std::vector<MapTileRegionStruct*>::iterator itRegion;
-
-    mCurrentCraftTriggerRegion = nullptr;
-
-    //16.05.2025: There is a (hidden) shortcut in level 2 that is opened by "driving" into the
-    //level wall. Problem is if we use the ships (origin middle) position to calculate the cell for craft trigger (which I did at the beginning),
-    //this point does not reach into the trigger area of the shortcut (because the heightmap collision detection and prevention
-    //prevents this middle coordinate to penetrate deep enough into the wall), and like this the way only opens when trying a lot of times,
-    //and with a lot of luck. It works but not acceptable.
-    //To make it work much better I decided to instead use a craft coordinate much further in the front of the craft, so that it can
-    //penetrate deep enough, and cause the craft trigger to fire much much easier.
-    int mTrigCurrPosCellX = -(int)(IrrWorldCraftTriggerSensor.X / mRace->mLevelTerrain->segmentSize);
-    int mTrigCurrPosCellY = (int)(IrrWorldCraftTriggerSensor.Z / mRace->mLevelTerrain->segmentSize);
-
-    //check for each trigger region in level
-    for (itRegion = this->mRace->mTriggerRegionVec.begin(); itRegion != this->mRace->mTriggerRegionVec.end(); ++itRegion) {
-        //only check for regions which are a playercraft trigger region
-        if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
-            //is the player inside this area?
-            if (this->mRace->mLevelTerrain->CheckPosInsideRegion(mTrigCurrPosCellX,
-                    mTrigCurrPosCellY, (*itRegion))) {
-
-                //assume craft can only be in one region at a certain time
-                //craft trigger regions should not overlap!
-                mCurrentCraftTriggerRegion = (*itRegion);
-                break;
-            }
-        }
-    }
-
-    //did we enter a new trigger region?
-    //if so we need to trigger the trigger event and tell the race
-    //about it
-    if (mCurrentCraftTriggerRegion != nullptr) {
-        if (mCurrentCraftTriggerRegion != mLastCraftTriggerRegion) {
-            //yes, we hit a new trigger region
-
-            //is this a one time trigger only trigger?
-            if (((*itRegion)->mOnlyTriggerOnce && (!(*itRegion)->mAlreadyTriggered))
-                    || (!(*itRegion)->mOnlyTriggerOnce)) {
-                       if ((*itRegion)->mOnlyTriggerOnce) {
-                           (*itRegion)->mAlreadyTriggered = true;
-                       }
-
-                       mRace->PlayerEnteredCraftTriggerRegion(this, mCurrentCraftTriggerRegion);
-            }
-        }
-    }
 }
 
 //is called when the player collected a collectable item of the
