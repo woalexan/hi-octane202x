@@ -40,7 +40,6 @@
 
 #include "models/particle.h"
 #include "models/morph.h"
-#include "models/timer.h"
 #include "models/player.h"
 #include "models/collectable.h"
 #include "models/recovery.h"
@@ -355,6 +354,8 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mVanillaCheckpointVec.clear();
     mCollectableSpawnerVec.clear();
 
+    mVanillaTriggerVec.clear();
+
     //my vector of player that need help
     //of a recovery vehicle and are currently waiting
     //for it
@@ -370,12 +371,9 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mPlayerVec.clear();
     mVanillaCraftVec.clear();
     mVanillaRepairVehicleVec.clear();
-    mGroup8ThingsVec.clear();
     mPlayerPhysicObjVec.clear();
     playerRaceFinishedVec.clear();
-    mTriggerRegionVec.clear();
     mPendingTriggerTargetGroups.clear();
-    mTimerVec.clear();
     mExplosionEntityVec.clear();
 
     mSpriteThingList.clear();
@@ -811,10 +809,16 @@ Race::~Race() {
     }
 
     //Cleanup the Group8 Things vector
-    std::vector<VThing*>::iterator it3;
+    std::vector<RaceTriggerInfoStruct*>::iterator it3;
+    RaceTriggerInfoStruct* pnterTriggerInfo;
 
-    for (it3 = this->mGroup8ThingsVec.begin(); it3 != this->mGroup8ThingsVec.end();) {
-        it3 = mGroup8ThingsVec.erase(it3);
+    //Cleanup the vanilla trigger Things vector
+    for (it3 = this->mVanillaTriggerVec.begin(); it3 != this->mVanillaTriggerVec.end();) {
+        pnterTriggerInfo = (*it3);
+        it3 = mVanillaTriggerVec.erase(it3);
+
+        //delete the struct itself
+        delete pnterTriggerInfo;
     }
 
     //remove camera SceneNode
@@ -863,8 +867,6 @@ Race::~Race() {
     CleanUpWayPointLinks(*this->wayPointLinkVec);
     CleanUpAllCheckpoints();
     CleanUpSky();
-    CleanUpTriggers();
-    CleanUpTimers();
     CleanUpCameras();
     CleanUpExplosionEntities();
     CleanupChargingStations();
@@ -1261,22 +1263,6 @@ void Race::CleanUpCones() {
     coneVec = nullptr;
 }
 
-void Race::CleanUpTimers() {
-    std::vector<Timer*>::iterator it;
-    Timer* pntr;
-
-    if (mTimerVec.size() > 0) {
-        for (it = mTimerVec.begin(); it != mTimerVec.end(); ) {
-            pntr = (*it);
-
-            it = mTimerVec.erase(it);
-
-            //delete the timer as well
-            delete pntr;
-        }
-    }
-}
-
 void Race::CleanUpCameras() {
     std::vector<Camera*>::iterator it;
     Camera* pntr;
@@ -1325,22 +1311,6 @@ void Race::CleanUpExplosionEntities() {
     }
 }
 
-void Race::CleanUpTriggers() {
-    std::vector<MapTileRegionStruct*>::iterator it;
-    MapTileRegionStruct* pntr;
-
-    if (mTriggerRegionVec.size() > 0) {
-        for (it = mTriggerRegionVec.begin(); it != mTriggerRegionVec.end(); ) {
-            pntr = (*it);
-
-            it = mTriggerRegionVec.erase(it);
-
-            //delete the MapTileRegionStruct
-            delete pntr;
-        }
-    }
-}
-
 void Race::StopMusic() {
     if ((mMusicPlayer->getStatus() == sf::SoundSource::Status::Playing) ||
        (mMusicPlayer->getStatus() == sf::SoundSource::Status::Paused)) {
@@ -1372,43 +1342,6 @@ void Race::End() {
     //stop music and all sounds
     StopMusic();
     StopAllSounds();
-}
-
-//attacker is the enemy player that does damage the player targetToHit
-//for damage that an entity does cause (for example steamFountain) attacker is set
-//to nullptr
-void Race::DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker) {
-    bool targetDied;
-
-    if (targetToHit != nullptr) {
-        targetDied = targetToHit->Damage(damageVal, damageType);
-
-        //if the attacked/damaged player died let the player ship explode
-        //if there was an attacker increase its kill counter
-        //spawn entities in the level from the target
-        if (targetDied) {
-
-            if (attacker != nullptr) {
-                //increase kill count of attacker
-                attacker->mPlayerStats->currKillCount++;
-
-                char killMessage[80];
-
-                strcpy(killMessage, "KILLED BY ");
-                strcat(killMessage, attacker->mPlayerStats->name);
-
-                //show player that died a message in HUD, which other
-                //player was the attacker, is a permanent message, and not blinking
-                targetToHit->ShowPlayerBigGreenHudText(killMessage, -1.0f, false);
-            }
-
-            //trigger explosion at location of killed player
-            this->mExplosionLauncher->Trigger(targetToHit->phobj->physicState.position);
-
-            //spawn collectibles at location of killed player
-            //SpawnCollectiblesForPlayer(targetToHit);
-        }
-    }
 }
 
 //if the first player crosses the finish line after start
@@ -2007,6 +1940,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mThingManagerTimer += frameDeltaTime;
 
     if (mThingManagerTimer >= 0.05f) {
+        UpdateTriggers(mThingManagerTimer);
+
         mThingManagerTimer = 0.0f;
 
         mThingManager->RunHousekeeping();
@@ -2059,7 +1994,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
             }
 
             //update timer
-            UpdateTimers(frameDeltaTime);
+            //UpdateTimers(frameDeltaTime);
 
             mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
     }
@@ -2204,60 +2139,120 @@ void Race::UpdateShadowLights() {
     }
 }
 
-void Race::PlayerEnteredCraftTriggerRegion(VVehicle* whichPlayer, MapTileRegionStruct* whichRegion) {
-    //yes, player is currently inside this region
-    if (DebugShowTriggerEvents) {
-        char triggerMessage[80];
-        char triggerID[10];
+void Race::UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDeltaTime) {
+    if ((whichTrigger == nullptr) || (whichTrigger->thingPntr == nullptr))
+        return;
 
-        strcpy(triggerMessage, whichPlayer->Stats.name);
-        strcat(triggerMessage, " TRIGGERED ");
-        sprintf(triggerID, "%d", whichRegion->regionId);
-        strcat(triggerMessage, triggerID);
+    if (whichTrigger->readyForCleanup)
+        return;
 
-        mGame->mLogger->AddLogMessage(triggerMessage);
+    //is this a rocket trigger?
+    if (whichTrigger->thingPntr->Member == 3) {
+        if (whichTrigger->thingPntr->Life >= 0) {
+            if (whichTrigger->thingPntr->AffectStatus & 1) {
+                whichTrigger->thingPntr->Life -= whichTrigger->thingPntr->AffectNumber;
+            }
+            whichTrigger->thingPntr->AffectStatus = 0;
+            whichTrigger->thingPntr->AffectNumber = 0;
+            whichTrigger->thingPntr->AffectWho = 0;
+            return;
+        } else {
+            //This rocket trigger does fire
+            //store trigger in pending trigger list, for processing during
+            //the next advance game routine call
+            this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
+            whichTrigger->readyForCleanup = true;
+            return;
+        }
+    } else if (whichTrigger->thingPntr->Member == 0) { //or a craft trigger?
+         if (whichTrigger->thingPntr->Count) {
+             --whichTrigger->thingPntr->Count;
+             return;
+         } else {
+             int32_t v2 = 0;
+             irr::f32 segSize = mLevelTerrain->segmentSize;
+             int16_t xpos_high = (int16_t)(whichTrigger->thingPntr->Position.X / segSize);
+             int16_t ypos_high = (int16_t)(whichTrigger->thingPntr->Position.Y / segSize);
+             int16_t xpos = (int16_t)(whichTrigger->thingPntr->CollideSize.X / segSize);
+             int16_t ypos = (int16_t)(whichTrigger->thingPntr->CollideSize.Y / segSize);
+             uint16_t v7 = xpos_high + xpos + 1;
+             uint16_t v8 = ypos_high + ypos + 1;
+             uint16_t v9 = xpos_high - xpos;
+             uint16_t v10 = ypos_high - ypos;
+             uint16_t v11;
+             uint16_t v12;
+
+             VThing* i;
+
+             if (v9 != v7) {
+                 for (v11 = (uint16_t)(v9); v11 < v7; v11++) {
+                     for (v12 = (uint16_t)(v10); v12 < v8; v12++) {
+                        if (mLevelRes->pMap[v11][v12]->mChild != 0) {
+                            i = &mThingManager->Thing[mLevelRes->pMap[v11][v12]->mChild];
+                            if (i != nullptr) {
+                                //a craft has group 10
+                                //Note 19.09.2026: The original game seems to check
+                                //only for group == 10 which means it should trigger
+                                //on both player vehicles, but also repair vehicles
+                                //I did not verify this, but thats what I would expect
+                                //I added the check for member == 0 as well in my implementation,
+                                //because I want to make sure that repair vehicles do not trigger
+                                //player triggers accidently
+                                if ((i->Group == 10) && (i->Member == 0)) {
+                                   v2 = 1;
+                                }
+                            }
+                        }
+                     }
+                 }
+             }
+
+             if (v2) {
+                 //This craft trigger does fire
+                 //store trigger in pending trigger list, for processing during
+                 //the next advance game routine call
+                 this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
+                 whichTrigger->thingPntr->Id = whichTrigger->thingPntr->Index;
+                 whichTrigger->readyForCleanup = true;
+                 return;
+             }
+         }
+
+       return;
+    } else if (whichTrigger->thingPntr->Member == 1) { //or a timed trigger?
+        whichTrigger->thingPntr->Count--;
+        if (whichTrigger->thingPntr->Count < 0) {
+            //Timed trigger does fire
+            this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
+            whichTrigger->thingPntr->Id = whichTrigger->thingPntr->Index;
+            whichTrigger->readyForCleanup = true;
+            return;
+        }
+
+        return;
     }
-
-    //store trigger in pending trigger list, for processing during
-    //the next advance game routine call
-    this->mPendingTriggerTargetGroups.push_back(whichRegion->mTargetGroup);
 }
 
-void Race::PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion) {
-    if (DebugShowTriggerEvents) {
-       char triggerMessage[80];
-       char triggerID[10];
+//call this function every ~50 ms!
+void Race::UpdateTriggers(irr::f32 frameDeltaTime) {
+    std::vector<RaceTriggerInfoStruct*>::iterator it;
 
-       strcpy(triggerMessage, whichPlayer->mPlayerStats->name);
-       strcat(triggerMessage, " MISSILE HIT ");
-       sprintf(triggerID, "%d", whichRegion->regionId);
-       strcat(triggerMessage, triggerID);
-
-       mGame->mLogger->AddLogMessage(triggerMessage);
+    //update all the remaining triggers
+    for (it = mVanillaTriggerVec.begin(); it != mVanillaTriggerVec.end(); ++it) {
+        UpdateTrigger((*it), frameDeltaTime);
     }
 
-    //store trigger in pending trigger list, for processing during
-    //the next advance game routine call
-    this->mPendingTriggerTargetGroups.push_back(whichRegion->mTargetGroup);
-}
-
-void Race::TimedTriggerOccured(Timer* whichTimer) {
-    if (DebugShowTriggerEvents) {
-        char triggerMessage[80];
-        char triggerID[10];
-
-        sprintf(triggerID, "TIMER %d ", whichTimer->mEntityItem->get_ID());
-        strcpy(triggerMessage, triggerID);
-        strcat(triggerMessage, " TRIGGERED ");
-        sprintf(triggerID, "%d", whichTimer->mEntityItem->getTargetGroup());
-        strcat(triggerMessage, triggerID);
-
-        mGame->mLogger->AddLogMessage(triggerMessage);
+    //are there any triggers that need to be cleaned up?
+    for (it = mVanillaTriggerVec.begin(); it != mVanillaTriggerVec.end(); ++it) {
+        if ((*it)->readyForCleanup) {
+            //We only want to free the thing, and keep the struct. So that we have the trigger
+            //information again if we need to retrigger/recreate it again when the group it belongs
+            //too is retriggered
+            mThingManager->thing_remove((*it)->thingPntr);
+            (*it)->thingPntr = nullptr;
+            (*it)->readyForCleanup = false;
+        }
     }
-
-    //store trigger in pending trigger list, for processing during
-    //the next advance game routine call
-    this->mPendingTriggerTargetGroups.push_back(whichTimer->mEntityItem->getTargetGroup());
 }
 
 void Race::ProcessPendingTriggers() {
@@ -2265,9 +2260,9 @@ void Race::ProcessPendingTriggers() {
     if (this->mPendingTriggerTargetGroups.size() > 0) {
         std::vector<int16_t>::iterator it;
         std::vector<Collectable*>::iterator itCollect;
-        std::vector<Timer*>::iterator itTimer;
         std::list<Morph*>::iterator itMorph;
         std::vector<SteamFountain*>::iterator itSteam;
+        std::vector<RaceTriggerInfoStruct*>::iterator itTrigger;
         std::vector<ExplosionEntity*>::iterator itExplosion;
 
         for (it = mPendingTriggerTargetGroups.begin(); it != mPendingTriggerTargetGroups.end(); ) {
@@ -2289,12 +2284,40 @@ void Race::ProcessPendingTriggers() {
                 }
             }
 
-            //check all timers
-            for (itTimer = this->mTimerVec.begin(); itTimer != this->mTimerVec.end(); ++itTimer) {
-                if ((*itTimer)->mEntityItem->getGroup() == (*it)) {
-                    //this timer belongs to the group we need to
-                    //trigger according to the target trigger
-                    (*itTimer)->Trigger();
+            //verify if we have timed triggers from before we need to restart
+             for (itTrigger = this->mVanillaTriggerVec.begin(); itTrigger != this->mVanillaTriggerVec.end(); ++itTrigger) {
+               if ((*itTrigger)->retrigger) {
+                     if ((*itTrigger)->entityItemPntr->getEntityType() == Entity::TriggerTimed) {
+                         if ((!(*itTrigger)->readyForCleanup) && ((*itTrigger)->thingPntr == nullptr)) {
+                                 //Activate this trigger again
+                                 (*itTrigger)->thingPntr = CreateTriggerThing((*itTrigger)->entityItemPntr);
+                                 (*itTrigger)->retrigger = false;
+                         }
+                     } else {
+                        (*itTrigger)->retrigger = false;
+                     }
+               }
+             }
+
+            //check if we need to retrigger/recreate any of the triggers
+            for (itTrigger = this->mVanillaTriggerVec.begin(); itTrigger != this->mVanillaTriggerVec.end(); ++itTrigger) {
+                //does this trigger belong to the current triggered group?
+                if ((*itTrigger)->entityItemPntr->getGroup() == (*it)) {
+                    //yes
+                    if ((*itTrigger)->entityItemPntr->getEntityType() != Entity::TriggerTimed) {
+                        //only if the ThingPntr was set to nullptr, and the trigger struct is not marked
+                        //as ready to be cleaned up anymore then the trigger is not active anymore, and is
+                        //ready to be reactivated/recreated if we really need to trigger it again
+                        if ((!(*itTrigger)->readyForCleanup) && ((*itTrigger)->thingPntr == nullptr)) {
+                                //Activate this trigger again
+                                (*itTrigger)->thingPntr = CreateTriggerThing((*itTrigger)->entityItemPntr);
+                        }
+                    } else {
+                            //This is a timed trigger
+                            //remember in the trigger struct that we want to retrigger it as soon as
+                            //we are possible to do so
+                            (*itTrigger)->retrigger = true;
+                           }
                 }
             }
 
@@ -3093,7 +3116,7 @@ void Race::Render() {
         }
 
         if (DebugShowTriggerRegions) {
-            IndicateTriggerRegions();
+           // IndicateTriggerRegions();
         }
 
         if (DebugShowChargingStationInfo) {
@@ -3202,22 +3225,6 @@ void Race::DebugSelectPlayer(int whichPlayerNr) {
 
         Hud1Player->SetMonitorWhichPlayer(currPlayerFollow);
     // }
-}
-
-void Race::IndicateTriggerRegions() {
-    std::vector<MapTileRegionStruct*>::iterator it;
-
-    for (it = this->mTriggerRegionVec.begin(); it != this->mTriggerRegionVec.end(); ++it) {
-        ColorStruct *color = this->mGame->mDrawDebug->red;
-
-        if ((*it)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
-            color = this->mGame->mDrawDebug->cyan;
-        } else if ((*it)->regionType == LEVELFILE_REGION_TRIGGERMISSILE) {
-            color = this->mGame->mDrawDebug->orange;
-        }
-
-       mLevelTerrain->DrawRegionOutline((*it), color);
-   }
 }
 
 void Race::DebugDrawHeightMapTileOutline(int x, int z, ColorStruct* color) {
@@ -3457,6 +3464,23 @@ void Race::InitialUpdateEntityPositions() {
             vanCoord = (*it2)->Position;
             vanCoord.Z = mVCalc->map_altitude_lowest(vanCoord);
             (*it2)->Position = vanCoord;
+    }
+
+    std::vector<RaceTriggerInfoStruct*>::iterator it5;
+
+    //do the same for the existing vanilla triggers in the map
+    for (it5 = mVanillaTriggerVec.begin(); it5 != mVanillaTriggerVec.end(); ++it5) {
+            //the position in this struct is already
+            //stored in the vanilla "coordinate" system
+            vanCoord = (*it5)->thingPntr->Position;
+            //rocket trigger uses a different altitude
+            if (((*it5)->thingPntr->Group == 8) && ((*it5)->thingPntr->Member == 3)) {
+               vanCoord.Z = mVCalc->map_floor(vanCoord);
+            } else {
+               //all other triggers use this altitude
+               vanCoord.Z = mVCalc->map_altitude_lowest(vanCoord);
+            }
+            (*it5)->thingPntr->Position = vanCoord;
     }
 
     //finish initialization of the recovery
@@ -3828,16 +3852,15 @@ uint8_t Race::vehicle_race_positions_compare(VVehicle* vehicle1, VVehicle* vehic
     result = 0;
 
     if (v3 == v5) {
-        if (!vehicle1->CheckPoint) {
+        v8 = mThingManager->Thing[vehicle1->CheckPoint].Count;
+        if (!v8) {
             v8 = 16000;
-        } else {
-            v8 = mThingManager->Thing[vehicle1->CheckPoint].Count;
         }
 
-        if (!vehicle2->CheckPoint) {
+        count = mThingManager->Thing[vehicle2->CheckPoint].Count;
+
+        if (!count) {
             count = 16000;
-        } else {
-            count = mThingManager->Thing[vehicle2->CheckPoint].Count;
         }
 
         v10 = (v8 < count);
@@ -4454,14 +4477,6 @@ void Race::UpdateMorphs(irr::f32 frameDeltaTime) {
     mLevelBlocks->CheckForMeshUpdate();
 }
 
-void Race::UpdateTimers(irr::f32 frameDeltaTime) {
-    std::vector<Timer*>::iterator itTimer;
-
-    for (itTimer = mTimerVec.begin(); itTimer != mTimerVec.end(); ++itTimer) {
-        (*itTimer)->Update(frameDeltaTime);
-    }
-}
-
 void Race::UpdateCones(irr::f32 frameDeltaTime) {
     std::vector<Cone*>::iterator itCones;
     std::vector<Player*>::iterator itPlayer;
@@ -4794,12 +4809,6 @@ void Race::CleanUpDbgWayPointSceneNodes() {
     }
 }
 
-void Race::AddTimer(EntityItem *entity) {
-    Timer* newTimer = new Timer(entity, this);
-
-    this->mTimerVec.push_back(newTimer);
-}
-
 void Race::AddCamera(EntityItem *entity) {
     Camera* newCamera = new Camera(this, entity, mGame->mSmgr);
 
@@ -4812,93 +4821,55 @@ void Race::AddExplosionEntity(EntityItem *entity) {
     this->mExplosionEntityVec.push_back(newExplosion);
 }
 
-void Race::AddTrigger(EntityItem *entity) {
-    /*w = entity.OffsetX + 1f;
-    h = entity.OffsetY + 1f;
-    box = new Box(0, 0, 0, w, 2, h, new Vector4(0.9f, 0.3f, 0.6f, 0.5f));
-    box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-    Entities.AddNode(box);*/
+VThing* Race::CreateTriggerThing(EntityItem *entity) {
+    //get us a Thing for this trigger
+    irr::core::vector3df irrPos = entity->getCenter();
+    irr::core::vector3df vanPos = mVCalc->IrrlichtToVanillaCoord(irrPos);
+    VThing* newTriggerThing =
+            mThingManager->thing_initialise_member(vanPos, 0.0f, 0.0f, 0.0f, (int8_t)(entity->getRawType()),
+                            (int8_t)(entity->getRawSubType()), -1);
 
-    irr::u8 regionType = LEVELFILE_REGION_UNDEFINED;
+    //something went wrong?
+    if (newTriggerThing == nullptr)
+        return nullptr;
 
-    MapTileRegionStruct *newTriggerRegion = new MapTileRegionStruct();
-
-    int offsetXCells = (int)(entity->getOffsetX() / DEF_SEGMENTSIZE);
-    int offsetYCells = (int)(entity->getOffsetY() / DEF_SEGMENTSIZE);
-
-    irr::core::vector2di tileMin;
-
-    tileMin.X = entity->getCell().X;
-    tileMin.Y = entity->getCell().Y;
-
-    irr::core::vector2di tileMax = tileMin;
-
-    if (entity->getEntityType() == Entity::EntityType::TriggerCraft) {
-        regionType = LEVELFILE_REGION_TRIGGERCRAFT;
-
-        //12.04.2025: From original game observations it seems
-        //player craft trigger events can also only happen
-        //once; Otherwise the morphs in the levels would not work
-        //as observed in the original game, and would trigger more then
-        //once
-        newTriggerRegion->mOnlyTriggerOnce = true;
-        newTriggerRegion->mAlreadyTriggered = false;
-
-        tileMax.X += offsetXCells;
-        tileMax.Y += offsetYCells;
-    }
+    //set the target group that should be switched by this
+    //trigger
+    newTriggerThing->Id = entity->getTargetGroup();
 
     if (entity->getEntityType() == Entity::EntityType::TriggerRocket) {
-        regionType = LEVELFILE_REGION_TRIGGERMISSILE;
-
-        //let rocket trigger only trigger once
-        //trigger more often does not really make sense
-        newTriggerRegion->mOnlyTriggerOnce = true;
-        newTriggerRegion->mAlreadyTriggered = false;
-
-        //in the existing maps it seems default a missile trigger region
-        //always has offsetX and offsetY set to 0; this means the trigger is only
-        //in a single cell; This is very hard to hit
-        //therefore in this case I decided to change offsetX and offsetY to a higher
-        //value here
-        if ((offsetXCells == 0) || (offsetYCells == 0)) {
-            tileMin.X -= 1;
-            tileMin.Y -= 1;
-            tileMax.X += 1;
-            tileMax.Y += 1;
-        } else {
-            tileMax.X += offsetXCells;
-            tileMax.Y += offsetYCells;
-        }
+        newTriggerThing->Life = 5000;
+        newTriggerThing->CollideSize.set(1.0f, 1.0f, 2.0f);
+        newTriggerThing->ColideGroup = (2 & 0xFFFE);
+    } else if (entity->getEntityType() == Entity::EntityType::TriggerCraft) {
+        //this trigger only fires when a craft is there for
+        //a certain time duration
+        newTriggerThing->Count = 50;
+        newTriggerThing->CollideSize.X = entity->getOffsetX();
+        newTriggerThing->CollideSize.Y = entity->getOffsetY();
+    } else if (entity->getEntityType() == Entity::EntityType::TriggerTimed) {
+        //the value contains the time interval of the timer
+        //~50ms per each count
+        newTriggerThing->Count = entity->getValue();
     }
 
-    //make sure we only have valid cell numbers in the allowed range
-    this->mLevelTerrain->ForceTileGridCoordRange(tileMin);
-    this->mLevelTerrain->ForceTileGridCoordRange(tileMax);
+    return newTriggerThing;
+}
 
-    newTriggerRegion->regionId = (irr::u8)(mTriggerRegionVec.size());
-    newTriggerRegion->regionType = regionType;
-    newTriggerRegion->tileXmin = (irr::f32)(tileMin.X);
-    newTriggerRegion->tileYmin = (irr::f32)(tileMin.Y);
-    newTriggerRegion->tileXmax = (irr::f32)(tileMax.X);
-    newTriggerRegion->tileYmax = (irr::f32)(tileMax.Y);
+void Race::AddTrigger(EntityItem *entity) {
+    VThing* newTriggerThing = CreateTriggerThing(entity);
 
-    irr::u16 midCoordX;
-    irr::u16 midCoordY;
+    //something went wrong?
+    if (newTriggerThing == nullptr)
+        return;
 
-    //calculate region middle cell
-    midCoordX = ((tileMax.X - tileMin.X) / 2) + tileMin.X;
-    midCoordY = ((tileMax.Y - tileMin.Y) / 2) + tileMin.Y;
+    RaceTriggerInfoStruct* newStruct = new RaceTriggerInfoStruct();
+    newStruct->thingPntr = newTriggerThing;
+    newStruct->entityItemPntr = entity;
+    newStruct->readyForCleanup = false;
 
-    newTriggerRegion->regionCenterTileCoord.set(midCoordX, midCoordY);
-
-    //finally also store trigger target group inside this struct
-    //so that we have this information by the hand all the time if we
-    //need it
-    newTriggerRegion->mTargetGroup = entity->getTargetGroup();
-
-    //add the new region to the region vector
-    this->mTriggerRegionVec.push_back(newTriggerRegion);
+    //add to vector of existing triggers
+    mVanillaTriggerVec.push_back(newStruct);
 }
 
 void Race::CreateEntity(EntityItem *p_entity,
@@ -4992,17 +4963,10 @@ void Race::CreateEntity(EntityItem *p_entity,
         }
 
        case Entity::EntityType::TriggerCraft:
-       case Entity::EntityType::TriggerRocket: {
+       case Entity::EntityType::TriggerRocket:
+       case Entity::EntityType::TriggerTimed: {
             AddTrigger(p_entity);
             break;
-       }
-
-       case Entity::EntityType::TriggerTimed: {
-                //Billboard timer = new Billboard("images/stopwatch.png", 0.4f, 0.4f);
-                //timer.Position = entity.Center;
-                //Entities.AddNode(timer);
-                AddTimer(p_entity);
-                break;
        }
 
             case Entity::EntityType::MorphOnce:

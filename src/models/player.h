@@ -172,7 +172,6 @@ public:
     ~Player();
 
     void SetPlayerObject(PhysicsObject* phObjPtr);
-    void DamageGlas();
 
     //returns true if player craft of a computer
     //player is currently stuck
@@ -240,10 +239,6 @@ public:
     void AddTextureID(irr::s32 newTexId);
 
     void SetName(char* playerName);
-
-    //returns TRUE if player reached below/equal 0 health (therefore if
-    //player died); otherwise false is returned
-    bool Damage(irr::f32 damage, irr::u8 damageType);
 
     //if showDurationSec is negative, the text will be shown until it is deleted
     //with a call to function RemovePlayerPermanentGreenBigText
@@ -467,11 +462,6 @@ public:
 
     irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
 
-    //vector with this players HUD broken glas
-    //positions must be stored within the player, as each
-    //player has a different state of the glass
-    std::vector<HudDisplayPart*>* brokenGlasVec = nullptr;
-
     //true if player craft is currently jumping
     bool mCurrJumping = false;
     irr::f32 mCurrInAirTime;
@@ -519,10 +509,6 @@ public:
 
     bool DoWeNeedHidePlayerModel();
     bool IsCurrentlyValidTarget();
-
-    bool ShouldAmmoBarBlink();
-    bool ShouldGasolineBarBlink();
-    bool ShouldShieldBarBlink();
 
     irr::core::vector3df GetRandomMGunShootTargetLocation(bool shootDoesHit);
 
@@ -620,10 +606,6 @@ private:
     //definition of dirt texture elements vector
     std::vector<irr::s32> *dirtTexIdsVec = nullptr;
 
-    void AddGlasBreak();
-    void RepairGlasBreaks();
-    void CleanUpBrokenGlas();
-
     void StartPlayingLockOnSound();
     void StopPlayingLockOnSound();
 
@@ -635,10 +617,6 @@ private:
 
     irr::u8 mCurrentRiccosSound = 0;
     void PlayMGunShootsAtUsSound();
-
-    void HandleFuel(irr::f32 deltaTime);
-    void HandleAmmo();
-    void HandleShield();
 
     void UpdateInternalCoordVariables();
 

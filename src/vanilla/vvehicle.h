@@ -264,6 +264,11 @@ struct VehicleMovementStatusStruct {
     int16_t Count = 0;
 };
 
+struct VehicleBulletHoleStruct {
+    irr::core::vector2di Position;
+    int32_t Count = 0;
+};
+
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -340,6 +345,7 @@ public:
     VehicleViewStruct View;
     VehicleDamageStruct Damage;
     VehicleMovementStatusStruct MovementStatus;
+    VehicleBulletHoleStruct BulletHole[16];
 
     irr::f32 mDeltaTimeFactor = 1.0f;
 
@@ -571,18 +577,7 @@ private:
 
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
 
-    void CheckForTriggerCraftRegion();
     void CheckForChargingStation();
-
-    //is unequal to NULL if player craft is currently inside
-    //a craft trigger area defined in the level during
-    //the current player update
-    MapTileRegionStruct* mCurrentCraftTriggerRegion = nullptr;
-
-    //is unequal to NULL if player craft was inside
-    //a craft trigger area defined in the level during
-    //the last player update
-    MapTileRegionStruct* mLastCraftTriggerRegion = nullptr;
 
     //variables to remember if during the last
     //gameloop this player did any charging
@@ -621,6 +616,13 @@ private:
     sf::Sound* CollisionSound = nullptr;
 
     void CheckDustCloudEmitter();
+
+    //if showDurationSec is negative, the text will be shown until it is deleted
+    //with a call to function RemovePlayerPermanentGreenBigText
+    //if blinking is true text will blink (for example used for final lap text), If false
+    //text does not blink (as used when player died and waits for repair craft)
+    void ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking);
+    void RemovePlayerPermanentGreenBigText();
 
     //definition of dirt texture elements vector
     std::vector<irr::s32> *dirtTexIdsVec = nullptr;

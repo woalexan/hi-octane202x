@@ -28,20 +28,6 @@ void Player::SetPlayerObject(PhysicsObject* phObjPtr) {
    this->phobj = phObjPtr;
 }
 
-void Player::DamageGlas() {
-    //with a certain probability damage glas if another player
-    //shoots with the machine gun at me
-    irr::s32 rNum = rand();
-    irr::f32 rFloat = (float(rNum) / float (RAND_MAX));
-
-    //with 10% probability damage glas of player HUD
-    if (rFloat < 0.1f) {
-       if (mHUD != nullptr) {
-        AddGlasBreak();
-       }
-    }
-}
-
 //delivers a random machine gun shoot location at the area of the
 //player craft model if the shoot does hit the player (shootDoesHit = true)
 //in case shoot does not hit, delivers a random target location around the player
@@ -193,9 +179,6 @@ Player::~Player() {
     delete dirtTexIdsVec;
     dirtTexIdsVec = nullptr;
 
-    CleanUpBrokenGlas();
-    delete this->brokenGlasVec;
-
     //delete my cpu player
     //delete mCpuPlayer;
 
@@ -325,8 +308,6 @@ void Player::SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle) {
     } else if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_BROKEN) {
         //we are broken down, fix the shield
         this->mPlayerStats->shieldVal = this->mPlayerStats->shieldMax;
-        //also fix broken glass
-        RepairGlasBreaks();
 
         //original game in this case also refills fuel and ammo completely
         this->mPlayerStats->ammoVal = this->mPlayerStats->ammoMax;
@@ -474,10 +455,6 @@ Player::Player(Race* race, std::string model, irr::core::vector3d<irr::f32> NewP
 
     //create my missile launcher
     //mMissileLauncher = new MissileLauncher(this, mRace->mGame->mSmgr, mRace->mGame->mDriver);
-
-    //create vector to store all the current broken Hud glas locations
-    brokenGlasVec = new std::vector<HudDisplayPart*>();
-    brokenGlasVec->clear();
 
     //create a moving average calculation helper for craft leaning angle left/right with average over
     //20 values
@@ -1179,17 +1156,6 @@ void Player::Update(irr::f32 frameDeltaTime) {
     //check if this player is located at a charging station (gasoline, ammo or shield)
     CheckForChargingStation(frameDeltaTime);
 
-    //execute code for fuel consumption, create low fuel
-    //warnings, and change player state in case fuel is empty
-    HandleFuel(frameDeltaTime);
-
-    //execute source code to create low/empty ammo
-    //warnings
-    HandleAmmo();
-
-    //create low shield warnings
-    HandleShield();
-
     //next line is only for debugging
     //TestCpForceControlLogicWithHumanPlayer();
 
@@ -1294,33 +1260,6 @@ void Player::PlayMGunShootsAtUsSound() {
 
     if (mCurrentRiccosSound > 2)
         mCurrentRiccosSound = 0;
-}
-
-//returns TRUE if player reached below/equal 0 health (therefore if
-//player died); otherwise false is returned
-bool Player::Damage(irr::f32 damage, irr::u8 damageType) {
-    //TODO: commented out, does not compile anymore
-    // //if someone shoots with machine gun at us, and we are selected
-    // //as the player to follow play the riccos sound
-    // if ((damageType == DEF_RACE_DAMAGETYPE_MGUN) &&
-    //        (this->mRace->currPlayerFollow == this)) {
-    //            //Play machine gun shoots at us sounds
-    //            PlayMGunShootsAtUsSound();
-    // }
-
-    // //only deal positive damage!
-    // if ((damage > 0.0f) && (this->mPlayerStats->mPlayerCurrentState != STATE_PLAYER_BROKEN)) {
-    //     this->mPlayerStats->shieldVal -= damage;
-    //     if (this->mPlayerStats->shieldVal <= 0.0f) {
-    //         this->mPlayerStats->shieldVal = 0.0f;
-
-    //         this->WasDestroyed();
-
-    //         return true;
-    //    }
-    // }
-
-    return false;
 }
 
 void Player::WasDestroyed() {
@@ -1479,7 +1418,6 @@ void Player::CheckForChargingStation(irr::f32 deltaTime) {
            //(Vsync on). If we have different FPS rate we need to scale value!
             this->mPlayerStats->shieldVal += 0.22f * speedFactor;
 
-            RepairGlasBreaks();
 
             if (mHUD != nullptr) {
                 if (mPlayerStats->shieldVal >= mPlayerStats->shieldMax) {
@@ -1787,204 +1725,6 @@ void Player::FinishedLap() {
     //reset current lap time
     mPlayerStats->currLapTimeExact = 0.0;
     mPlayerStats->currLapTimeMultiple40mSec = 0;
-}
-
-//adds a single random location glas break
-void Player::AddGlasBreak() {
-    irr::s32 rNum = rand();
-    irr::f32 rWidthFloat = (float(rNum) / float (RAND_MAX)) * mRace->mGame->mScreenRes.Width;
-
-    rNum = rand();
-    irr::f32 rHeightFloat = (float(rNum) / float (RAND_MAX)) * mRace->mGame->mScreenRes.Height;
-
-    HudDisplayPart* newGlasBreak = new HudDisplayPart();
-    newGlasBreak->texture = this->mHUD->brokenGlas->texture;
-    newGlasBreak->altTexture = this->mHUD->brokenGlas->altTexture;
-    newGlasBreak->sizeTex = this->mHUD->brokenGlas->sizeTex;
-
-    //I decided to also prepare a member variable for the image
-    //source rect, so that it is always already available
-    //when we draw the Hud over and over again, so that we save CPU cycles
-    newGlasBreak->sourceRect.UpperLeftCorner.X = 0;
-    newGlasBreak->sourceRect.UpperLeftCorner.Y = 0;
-    newGlasBreak->sourceRect.LowerRightCorner.X = newGlasBreak->sizeTex.Width;
-    newGlasBreak->sourceRect.LowerRightCorner.Y = newGlasBreak->sizeTex.Height;
-
-    newGlasBreak->drawScrPosition.set((irr::s32)(rWidthFloat), (irr::s32)(rHeightFloat));
-
-    this->brokenGlasVec->push_back(newGlasBreak);
-}
-
-//repairs all current glas breaks
-void Player::RepairGlasBreaks() {
-
-    if (this->brokenGlasVec->size() > 0) {
-        std::vector<HudDisplayPart*>::iterator it;
-        HudDisplayPart* pntr;
-
-        for (it = brokenGlasVec->begin(); it != brokenGlasVec->end();) {
-            pntr = (*it);
-
-            it = brokenGlasVec->erase(it);
-
-            delete pntr;
-        }
-    }
-}
-
-//deletes all broken glas stuff from heap
-void Player::CleanUpBrokenGlas() {
-    std::vector<HudDisplayPart*>::iterator it;
-    HudDisplayPart* pntr;
-
-    if (this->brokenGlasVec->size() > 0) {
-        for (it = brokenGlasVec->begin(); it != brokenGlasVec->end();) {
-            pntr = (*it);
-
-            it = brokenGlasVec->erase(it);
-
-            if (pntr->texture != nullptr) {
-                //remove underlying texture
-                mRace->mGame->mDriver->removeTexture(pntr->texture);
-            }
-
-            if (pntr->altTexture != nullptr) {
-                //remove underlying texture
-                mRace->mGame->mDriver->removeTexture(pntr->altTexture);
-            }
-
-            delete pntr;
-        }
-    }
-}
-
-void Player::HandleFuel(irr::f32 deltaTime) {
-    //remove some gasoline if we are moving fast enough
-    //TODO: check with actual game how gasoline burning works exactly
-    if (phobj->physicState.speed > 3.0f) {
-
-        //29.04.2025: for gasoline burn we need to take into accont
-        //the current frame rate! otherwise the fuel consumption rate
-        //depends heavily on the frame rate of the computer!
-        irr::f32 speedFactor = (deltaTime / (irr::f32)(1.0f / 60.0f));
-
-        //the value 0.012f below was determined at my computer at constant
-        //60FPS to be correct
-        mPlayerStats->gasolineVal -= 0.012f * speedFactor;
-
-        if (mPlayerStats->gasolineVal <= 0.0f) {
-            mPlayerStats->gasolineVal = 0.0f;
-            if (!mEmptyFuelWarningAlreadyShown) {
-                if (mHUD != nullptr) {
-                    this->mHUD->ShowBannerText((char*)"FUEL EMPTY", 4.0f, true);
-                }
-                mEmptyFuelWarningAlreadyShown = true;
-
-                if ((this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_RACING) ||
-                (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_ONFIRSTWAYTOFINISHLINE)) {
-                    //change player state to empty fuel state
-                    SetNewState(STATE_PLAYER_EMPTYFUEL);
-
-                    LogMessage((char*)"I have empty fuel, I call recovery vehicle for help");
-                    //call a recovery vehicle to help us out
-                    this->mRace->CallRecoveryVehicleForHelp(this);
-                    mRecoveryVehicleCalled = true;
-                }
-            }
-        } else if (mPlayerStats->gasolineVal <= 25.0f) {
-            if (!mLowFuelWarningAlreadyShown) {
-                if (mHUD != nullptr) {
-                    this->mHUD->ShowBannerText((char*)"FUEL LOW", 4.0f, true);
-                }
-                mLowFuelWarningAlreadyShown = true;
-            }
-        }
-    }
-
-    if (mPlayerStats->gasolineVal > 0.0f) {
-          mEmptyFuelWarningAlreadyShown = false;
-
-          if (this->mPlayerStats->mPlayerCurrentState == STATE_PLAYER_EMPTYFUEL) {
-                //change player state to racing again
-                SetNewState(STATE_PLAYER_RACING);
-          }
-    }
-
-     if (mPlayerStats->gasolineVal > 25.0f) {
-          mLowFuelWarningAlreadyShown = false;
-     }
-}
-
-bool Player::ShouldAmmoBarBlink() {
-    if (mLowAmmoWarningAlreadyShown)
-        return true;
-
-    if (mEmptyAmmoWarningAlreadyShown)
-        return true;
-
-    return false;
-}
-
-bool Player::ShouldGasolineBarBlink() {
-    if (mLowFuelWarningAlreadyShown)
-        return true;
-
-    if (mEmptyFuelWarningAlreadyShown)
-        return true;
-
-    return false;
-}
-
-bool Player::ShouldShieldBarBlink() {
-    if (mLowShieldWarningAlreadyShown)
-        return true;
-
-    return false;
-}
-
-void Player::HandleAmmo() {
-    //low ammo warning is activated if only 2 ammo (missile) or
-    //less are left available
-    if (mPlayerStats->ammoVal <= 0.9f) {
-        if (!mEmptyAmmoWarningAlreadyShown) {
-            if (mHUD != nullptr) {
-                this->mHUD->ShowBannerText((char*)"AMMO EMPTY", 4.0f, true);
-            }
-            mEmptyAmmoWarningAlreadyShown = true;
-        }
-    } else if (mPlayerStats->ammoVal < 2.5f) {
-        if (!mLowAmmoWarningAlreadyShown) {
-            if (mHUD != nullptr) {
-                this->mHUD->ShowBannerText((char*)"AMMO LOW", 4.0f, true);
-            }
-            mLowAmmoWarningAlreadyShown = true;
-        }
-    }
-
-     if (mPlayerStats->ammoVal >= 1.0f) {
-         mEmptyAmmoWarningAlreadyShown = false;
-     }
-
-     if (mPlayerStats->ammoVal > 3.0f) {
-          mLowAmmoWarningAlreadyShown = false;
-     }
-}
-
-void Player::HandleShield() {
-    //low shield warning is activated if only 3 shield bars
-    //are remaining
-    if (mPlayerStats->shieldVal < (mPlayerStats->shieldMax * 0.5f)) {
-        if (!mLowShieldWarningAlreadyShown) {
-            if (mHUD != nullptr) {
-                this->mHUD->ShowBannerText((char*)"SHIELD LOW", 4.0f, true);
-            }
-            mLowShieldWarningAlreadyShown = true;
-        }
-    }
-
-    if (mPlayerStats->shieldVal >= (mPlayerStats->shieldMax * 0.5f)) {
-          mLowShieldWarningAlreadyShown = false;
-    }
 }
 
 void Player::SetDebugFlag(irr::u8 debugFlag, bool enable) {

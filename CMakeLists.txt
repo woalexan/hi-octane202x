@@ -238,8 +238,6 @@ add_executable(hi-octane202x
     src/models/player.cpp
     src/models/recovery.h
     src/models/recovery.cpp
-    src/models/timer.h
-    src/models/timer.cpp
     src/models/expentity.h
     src/models/expentity.cpp
     src/models/camera.h

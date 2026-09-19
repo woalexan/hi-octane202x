@@ -149,6 +149,13 @@ struct VehicleViewStruct;
 class VThingManager;
 class VEffectManager;
 
+struct RaceTriggerInfoStruct {
+    VThing* thingPntr = nullptr;
+    EntityItem* entityItemPntr = nullptr;
+    bool readyForCleanup = false;
+    bool retrigger = false;
+};
+
 class Race {
 public:
     Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
@@ -159,12 +166,6 @@ public:
 
     std::vector<VVehicle*> mVanillaCraftVec;
     std::vector<VRepair*> mVanillaRepairVehicleVec;
-
-    //TODO: populate this vector with the correct Things
-    //I do not right now what exactly this Things are, the seem to
-    //be able to deal damage to players; I created this vector for
-    //thing_touching_anything in ThingManager as it is used there
-    std::vector<VThing*> mGroup8ThingsVec;
 
     void RegisterTemporaryCollectible(Collectable* collectibleToAdd);
     void UnregisterTemporaryCollectible(Collectable* collectibleToRemove);
@@ -219,11 +220,6 @@ public:
     std::vector<LineStruct*> *ENTWallsegmentsLine_List = nullptr;
 
     irr::f32 GetAbsOrientationAngleFromDirectionVec(irr::core::vector3df dirVector, bool correctAngleOutsideRange = true);
-
-    //attacker is the enemy player that does damage the player targetToHit
-    //for damage that an entity does cause (for example steamFountain) attacker is set
-    //to nullptr
-    void DamagePlayer(Player* targetToHit, irr::f32 damageVal, irr::u8 damageType, Player* attacker = nullptr);
 
     VVehicle* currPlayerFollow = nullptr;
 
@@ -282,12 +278,7 @@ public:
     //vector of players in this race
     std::vector<Player*> mPlayerVec;
 
-    //vector of craft/missile trigger regions
-    std::vector<MapTileRegionStruct*> mTriggerRegionVec;
-
-    void PlayerEnteredCraftTriggerRegion(VVehicle* whichPlayer, MapTileRegionStruct* whichRegion);
-    void PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion);
-    void TimedTriggerOccured(Timer* whichTimer);
+    std::vector<RaceTriggerInfoStruct*> mVanillaTriggerVec;
 
     //irr::core::vector3df dbgMiniMapPnt1;
     //irr::core::vector3df dbgMiniMapPnt2;
@@ -550,18 +541,16 @@ private:
     //my vector of cones
     std::vector<Cone*>* coneVec = nullptr;
 
-    void IndicateTriggerRegions();
-
+    VThing* CreateTriggerThing(EntityItem *entity);
     void AddTrigger(EntityItem *entity);
 
     void UpdateParticleSystems(irr::f32 frameDeltaTime);
     void UpdateMorphs(irr::f32 frameDeltaTime);
-    void UpdateTimers(irr::f32 frameDeltaTime);
     void UpdateCones(irr::f32 frameDeltaTime);
     void UpdateExternalCameras();
 
-    std::vector<Timer*> mTimerVec;
-    void AddTimer(EntityItem *entity);
+    void UpdateTriggers(irr::f32 frameDeltaTime);
+    void UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDeltaTime);
 
     //holds currently pending trigger target group events (when some
     //entity reports that something should be triggered it
@@ -598,8 +587,6 @@ private:
     void CleanUpCones();
     void CleanUpMorphs();
     void CleanUpSky();
-    void CleanUpTriggers();
-    void CleanUpTimers();
     void CleanUpExplosionEntities();
     void CleanUpCameras();
     void CleanUpCollectableSpawners();

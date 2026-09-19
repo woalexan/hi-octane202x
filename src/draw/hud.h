@@ -211,6 +211,7 @@ private:
     //* Render list of finished players  *
     //************************************
 
+    void DrawBulletHoles();
     void DrawFinishedPlayerList();
     void DrawGasolineBar();
     int GetNumberCurrentFuelBars(int16_t fuelVal);

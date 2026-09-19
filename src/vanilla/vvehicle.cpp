@@ -714,6 +714,9 @@ void VVehicle::vehicle_execute_action0x19_reset() {
         ThingData->AffectWho = 0;
 
         ThingData->AffectStatus |= 0x80u;
+
+        //remove killed by HUD message
+        RemovePlayerPermanentGreenBigText();
     }
 
     FlightModel.Flag.Reposition = false;
@@ -935,9 +938,6 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         UpdateSceneNode();
         UpdateCoordinates();
     }
-
-    //check if player entered a craft trigger region
-    CheckForTriggerCraftRegion();
 
     //check if player is in an charging station
     CheckForChargingStation();
@@ -2479,6 +2479,10 @@ int32_t VVehicle::vehicle_get_checkpoint() {
 
       if ((currClosestCheckPointIdx > 0) &&
             vehicle_process_checkpoint(currClosestCheckPointIdx)) {
+
+          //race start finish line should always have value of 0
+          //this means if this if statement applies the player has
+          //crossed the finish line and the player has one lap more
           if (!mRace->mThingManager->Thing[CheckPoint].Count) {
               vehicle_checkpoint_next_lap();
               v5 = 1;
@@ -2589,7 +2593,7 @@ int16_t VVehicle::vehicle_checkpoint_find_next(int16_t forCheckPointIdx) {
 
                v9 = (v8 < count);
                if (!(*it)->Count) {
-                   index = (*it)->Count;
+                   index = (*it)->Index;
                }
 
                if (v9 && (count < i)) {
@@ -3046,6 +3050,7 @@ void VVehicle::vehicle_post_process() {
     irr::f32 speedFixed;
     int16_t number;
     int16_t v12;
+    char killMessage[80];
 
     /********************************
      * Fuel reduction due to moving *
@@ -3285,14 +3290,12 @@ void VVehicle::vehicle_post_process() {
                     atCharger = true;
                     mCurrChargingShield = true;
 
-                    //24.08.2026: The two Calculations below not yet verified to be correct!
-                    irr::f32 helper = ((16.0f - floor((irr::f32)(Stats.Health) / 102.4f)) / 16.0f);
-                    Damage.BulletCount *= (uint16_t)(helper);
+                    uint64_t helper = (1759218605LL * Stats.Health) >> 32;
+                    int32_t helper2 = static_cast<int32_t>(helper) >> 8;
+                    int32_t factor = ((16 - helper2 - (Stats.Health >> 15)) / 16);
 
-                    helper =
-                        ((16.0f - round((irr::f32)(Stats.Health) / 1024.0f)) / 16.0f);
-
-                    Damage.MissileCount *= (uint16_t)(helper);
+                    Damage.BulletCount *= factor;
+                    Damage.MissileCount *= factor;
                 } else {
 
                         /*if (Conditions.HealthRechargeCounter) {
@@ -3532,7 +3535,7 @@ void VVehicle::vehicle_post_process() {
                 //first player has Id = 1, second player has Id = 2 and so
                 uint16_t who = ThingData->AffectWho;
 
-                //do we know how killed this vehicle? If who is nonzero we know it was
+                //do we know who killed this vehicle? If who is nonzero we know it was
                 //another player and which
                 if (who) {
                     //24.08.2026: the logic in the original game implementation
@@ -3572,6 +3575,14 @@ void VVehicle::vehicle_post_process() {
                             //of the Attacker who archieved the kill; in my implementation I have no ControlThings,
                             //so I take the Index of the VehicleThing; Could be a source for a bug later?
                             Stats.Weight = (mRace->mVanillaCraftVec.at(idxKiller)->ThingData->Index + 1);
+
+                            //write into HUD who did it
+                            strcpy(killMessage, "KILLED BY ");
+                            strcat(killMessage, mRace->mVanillaCraftVec.at(idxKiller)->Stats.name);
+
+                            //show player that died a message in HUD, which other
+                            //player was the attacker, is a permanent message, and not blinking
+                            ShowPlayerBigGreenHudText(killMessage, -1.0f, false);
                         }
                     }
                 } else {
@@ -4132,60 +4143,6 @@ void VVehicle::FinishedRace() {
     // }
 }
 
-void VVehicle::CheckForTriggerCraftRegion() {
-    //remember last trigger region before next update
-    mLastCraftTriggerRegion = mCurrentCraftTriggerRegion;
-
-    std::vector<MapTileRegionStruct*>::iterator itRegion;
-
-    mCurrentCraftTriggerRegion = nullptr;
-
-    //16.05.2025: There is a (hidden) shortcut in level 2 that is opened by "driving" into the
-    //level wall. Problem is if we use the ships (origin middle) position to calculate the cell for craft trigger (which I did at the beginning),
-    //this point does not reach into the trigger area of the shortcut (because the heightmap collision detection and prevention
-    //prevents this middle coordinate to penetrate deep enough into the wall), and like this the way only opens when trying a lot of times,
-    //and with a lot of luck. It works but not acceptable.
-    //To make it work much better I decided to instead use a craft coordinate much further in the front of the craft, so that it can
-    //penetrate deep enough, and cause the craft trigger to fire much much easier.
-    int mTrigCurrPosCellX = -(int)(IrrWorldCraftTriggerSensor.X / mRace->mLevelTerrain->segmentSize);
-    int mTrigCurrPosCellY = (int)(IrrWorldCraftTriggerSensor.Z / mRace->mLevelTerrain->segmentSize);
-
-    //check for each trigger region in level
-    for (itRegion = this->mRace->mTriggerRegionVec.begin(); itRegion != this->mRace->mTriggerRegionVec.end(); ++itRegion) {
-        //only check for regions which are a playercraft trigger region
-        if ((*itRegion)->regionType == LEVELFILE_REGION_TRIGGERCRAFT) {
-            //is the player inside this area?
-            if (this->mRace->mLevelTerrain->CheckPosInsideRegion(mTrigCurrPosCellX,
-                    mTrigCurrPosCellY, (*itRegion))) {
-
-                //assume craft can only be in one region at a certain time
-                //craft trigger regions should not overlap!
-                mCurrentCraftTriggerRegion = (*itRegion);
-                break;
-            }
-        }
-    }
-
-    //did we enter a new trigger region?
-    //if so we need to trigger the trigger event and tell the race
-    //about it
-    if (mCurrentCraftTriggerRegion != nullptr) {
-        if (mCurrentCraftTriggerRegion != mLastCraftTriggerRegion) {
-            //yes, we hit a new trigger region
-
-            //is this a one time trigger only trigger?
-            if (((*itRegion)->mOnlyTriggerOnce && (!(*itRegion)->mAlreadyTriggered))
-                    || (!(*itRegion)->mOnlyTriggerOnce)) {
-                       if ((*itRegion)->mOnlyTriggerOnce) {
-                           (*itRegion)->mAlreadyTriggered = true;
-                       }
-
-                       mRace->PlayerEnteredCraftTriggerRegion(this, mCurrentCraftTriggerRegion);
-            }
-        }
-    }
-}
-
 //is called when the player collected a collectable item of the
 //level
 bool VVehicle::CollectedCollectable(Collectable* whichCollectable) {
@@ -4683,6 +4640,22 @@ void VVehicle::SetCurrClosestWayPointLink(std::pair <WayPointLinkInfoStruct*, ir
     if (newClosestWayPointLink.first != nullptr) {
         this->currClosestWayPointLink = newClosestWayPointLink;
         this->projPlayerPositionClosestWayPointLink = newClosestWayPointLink.second;
+    }
+}
+
+//if showDurationSec is negative, the text will be shown until it is deleted
+//with a call to function RemovePlayerPermanentGreenBigText
+//if blinking is true text will blink (for example used for final lap text), If false
+//text does not blink (as used when player died and waits for repair craft)
+void VVehicle::ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking) {
+    if (mHUD != nullptr) {
+        this->mHUD->ShowGreenBigText(text, timeDurationShowTextSec, blinking);
+    }
+}
+
+void VVehicle::RemovePlayerPermanentGreenBigText() {
+    if (mHUD != nullptr) {
+        this->mHUD->RemovePermanentGreenBigText();
     }
 }
 
