@@ -354,6 +354,8 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mVanillaCheckpointVec.clear();
     mCollectableSpawnerVec.clear();
 
+    mVanillaTriggerVec.clear();
+
     //my vector of player that need help
     //of a recovery vehicle and are currently waiting
     //for it
@@ -369,7 +371,6 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mPlayerVec.clear();
     mVanillaCraftVec.clear();
     mVanillaRepairVehicleVec.clear();
-    mGroup8ThingsVec.clear();
     mPlayerPhysicObjVec.clear();
     playerRaceFinishedVec.clear();
     mTriggerRegionVec.clear();
@@ -810,10 +811,16 @@ Race::~Race() {
     }
 
     //Cleanup the Group8 Things vector
-    std::vector<VThing*>::iterator it3;
+    std::vector<RaceTriggerInfoStruct*>::iterator it3;
+    RaceTriggerInfoStruct* pnterTriggerInfo;
 
-    for (it3 = this->mGroup8ThingsVec.begin(); it3 != this->mGroup8ThingsVec.end();) {
-        it3 = mGroup8ThingsVec.erase(it3);
+    //Cleanup the vanilla trigger Things vector
+    for (it3 = this->mVanillaTriggerVec.begin(); it3 != this->mVanillaTriggerVec.end();) {
+        pnterTriggerInfo = (*it3);
+        it3 = mVanillaTriggerVec.erase(it3);
+
+        //delete the struct itself
+        delete pnterTriggerInfo;
     }
 
     //remove camera SceneNode
@@ -1969,6 +1976,8 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mThingManagerTimer += frameDeltaTime;
 
     if (mThingManagerTimer >= 0.05f) {
+        UpdateTriggers(mThingManagerTimer);
+
         mThingManagerTimer = 0.0f;
 
         mThingManager->RunHousekeeping();
@@ -2163,6 +2172,61 @@ void Race::UpdateShadowLights() {
             mGame->mEffect->getShadowLight(0).setPosition(camAbsPos + irr::core::vector3df(0.0f, 40.0f, 0.0f));
             mGame->mEffect->getShadowLight(0).setTarget(camAbsPos);
         }
+    }
+}
+
+void Race::UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDeltaTime) {
+    if ((whichTrigger == nullptr) || (whichTrigger->thingPntr == nullptr))
+        return;
+
+    if (whichTrigger->readyForCleanup)
+        return;
+
+    //is this a rocket trigger?
+    if (whichTrigger->thingPntr->Member == 3) {
+        if (whichTrigger->thingPntr->Life >= 0) {
+            if (whichTrigger->thingPntr->AffectStatus & 1) {
+                whichTrigger->thingPntr->Life -= whichTrigger->thingPntr->AffectNumber;
+            }
+            whichTrigger->thingPntr->AffectStatus = 0;
+            whichTrigger->thingPntr->AffectNumber = 0;
+            whichTrigger->thingPntr->AffectWho = 0;
+            return;
+        } else {
+            //This rocket trigger does fire
+            //store trigger in pending trigger list, for processing during
+            //the next advance game routine call
+            this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
+            whichTrigger->readyForCleanup = true;
+            return;
+        }
+    }
+}
+
+//call this function every ~50 ms!
+void Race::UpdateTriggers(irr::f32 frameDeltaTime) {
+    std::vector<RaceTriggerInfoStruct*>::iterator it;
+    RaceTriggerInfoStruct* pntr;
+
+    //are there any triggers that need to be cleaned up?
+    for (it = mVanillaTriggerVec.begin(); it != mVanillaTriggerVec.end(); ) {
+        if ((*it)->readyForCleanup) {
+            pntr = (*it);
+            it = mVanillaTriggerVec.erase(it);
+
+            //free the thing
+            mThingManager->thing_remove(pntr->thingPntr);
+
+            //delete the struct itself
+            delete pntr;
+        } else {
+            ++it;
+        }
+    }
+
+    //now update all the remaining triggers
+    for (it = mVanillaTriggerVec.begin(); it != mVanillaTriggerVec.end(); ++it) {
+        UpdateTrigger((*it), frameDeltaTime);
     }
 }
 
@@ -3419,6 +3483,23 @@ void Race::InitialUpdateEntityPositions() {
             vanCoord = (*it2)->Position;
             vanCoord.Z = mVCalc->map_altitude_lowest(vanCoord);
             (*it2)->Position = vanCoord;
+    }
+
+    std::vector<RaceTriggerInfoStruct*>::iterator it5;
+
+    //do the same for the existing vanilla triggers in the map
+    for (it5 = mVanillaTriggerVec.begin(); it5 != mVanillaTriggerVec.end(); ++it5) {
+            //the position in this struct is already
+            //stored in the vanilla "coordinate" system
+            vanCoord = (*it5)->thingPntr->Position;
+            //rocket trigger uses a different altitude
+            if (((*it5)->thingPntr->Group == 8) && ((*it5)->thingPntr->Member == 3)) {
+               vanCoord.Z = mVCalc->map_floor(vanCoord);
+            } else {
+               //all other triggers use this altitude
+               vanCoord.Z = mVCalc->map_altitude_lowest(vanCoord);
+            }
+            (*it5)->thingPntr->Position = vanCoord;
     }
 
     //finish initialization of the recovery
@@ -4774,11 +4855,37 @@ void Race::AddExplosionEntity(EntityItem *entity) {
 }
 
 void Race::AddTrigger(EntityItem *entity) {
-    /*w = entity.OffsetX + 1f;
-    h = entity.OffsetY + 1f;
-    box = new Box(0, 0, 0, w, 2, h, new Vector4(0.9f, 0.3f, 0.6f, 0.5f));
-    box.Position = entity.Pos + Vector3.UnitY * 0.01f;
-    Entities.AddNode(box);*/
+    //get us a Thing for this trigger
+    irr::core::vector3df irrPos = entity->getCenter();
+    irr::core::vector3df vanPos = mVCalc->IrrlichtToVanillaCoord(irrPos);
+    VThing* newTriggerThing =
+            mThingManager->thing_initialise_member(vanPos, 0.0f, 0.0f, 0.0f, (int8_t)(entity->getRawType()),
+                            (int8_t)(entity->getRawSubType()), -1);
+
+    //something went wrong?
+    if (newTriggerThing == nullptr)
+        return;
+
+    //set the target group that should be switched by this
+    //trigger
+    newTriggerThing->Id = entity->getTargetGroup();
+
+    if (entity->getEntityType() == Entity::EntityType::TriggerRocket) {
+        newTriggerThing->Life = 5000;
+        newTriggerThing->CollideSize.set(1.0f, 1.0f, 2.0f);
+        newTriggerThing->ColideGroup = (2 & 0xFFFE);
+    }
+
+    RaceTriggerInfoStruct* newStruct = new RaceTriggerInfoStruct();
+    newStruct->thingPntr = newTriggerThing;
+    newStruct->readyForCleanup = false;
+
+    //add to vector of existing triggers
+    mVanillaTriggerVec.push_back(newStruct);
+
+    //if this is a rocket trigger we are already finished
+    if (entity->getEntityType() == Entity::EntityType::TriggerRocket)
+        return;
 
     irr::u8 regionType = LEVELFILE_REGION_UNDEFINED;
 
@@ -4807,30 +4914,6 @@ void Race::AddTrigger(EntityItem *entity) {
 
         tileMax.X += offsetXCells;
         tileMax.Y += offsetYCells;
-    }
-
-    if (entity->getEntityType() == Entity::EntityType::TriggerRocket) {
-        regionType = LEVELFILE_REGION_TRIGGERMISSILE;
-
-        //let rocket trigger only trigger once
-        //trigger more often does not really make sense
-        newTriggerRegion->mOnlyTriggerOnce = true;
-        newTriggerRegion->mAlreadyTriggered = false;
-
-        //in the existing maps it seems default a missile trigger region
-        //always has offsetX and offsetY set to 0; this means the trigger is only
-        //in a single cell; This is very hard to hit
-        //therefore in this case I decided to change offsetX and offsetY to a higher
-        //value here
-        if ((offsetXCells == 0) || (offsetYCells == 0)) {
-            tileMin.X -= 1;
-            tileMin.Y -= 1;
-            tileMax.X += 1;
-            tileMax.Y += 1;
-        } else {
-            tileMax.X += offsetXCells;
-            tileMax.Y += offsetYCells;
-        }
     }
 
     //make sure we only have valid cell numbers in the allowed range

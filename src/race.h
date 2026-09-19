@@ -149,6 +149,11 @@ struct VehicleViewStruct;
 class VThingManager;
 class VEffectManager;
 
+struct RaceTriggerInfoStruct {
+    VThing* thingPntr = nullptr;
+    bool readyForCleanup = false;
+};
+
 class Race {
 public:
     Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam, SoundEngine* soundEngine,
@@ -159,12 +164,6 @@ public:
 
     std::vector<VVehicle*> mVanillaCraftVec;
     std::vector<VRepair*> mVanillaRepairVehicleVec;
-
-    //TODO: populate this vector with the correct Things
-    //I do not right now what exactly this Things are, the seem to
-    //be able to deal damage to players; I created this vector for
-    //thing_touching_anything in ThingManager as it is used there
-    std::vector<VThing*> mGroup8ThingsVec;
 
     void RegisterTemporaryCollectible(Collectable* collectibleToAdd);
     void UnregisterTemporaryCollectible(Collectable* collectibleToRemove);
@@ -279,6 +278,8 @@ public:
 
     //vector of craft/missile trigger regions
     std::vector<MapTileRegionStruct*> mTriggerRegionVec;
+
+    std::vector<RaceTriggerInfoStruct*> mVanillaTriggerVec;
 
     void PlayerEnteredCraftTriggerRegion(VVehicle* whichPlayer, MapTileRegionStruct* whichRegion);
     void PlayerMissileHitMissileTrigger(Player* whichPlayer, MapTileRegionStruct* whichRegion);
@@ -554,6 +555,9 @@ private:
     void UpdateTimers(irr::f32 frameDeltaTime);
     void UpdateCones(irr::f32 frameDeltaTime);
     void UpdateExternalCameras();
+
+    void UpdateTriggers(irr::f32 frameDeltaTime);
+    void UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDeltaTime);
 
     std::vector<Timer*> mTimerVec;
     void AddTimer(EntityItem *entity);

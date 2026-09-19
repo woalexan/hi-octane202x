@@ -492,13 +492,13 @@ int16_t VThingManager::thing_touching_anything(VThing* whichThing) {
         }
     }
 
-    //Second part: For Things in Group 8, and Member = 3
-    std::vector<VThing*>::iterator it2;
+    //Second part: For Things in Group 8, and Member = 3 (which are rocket triggers)
+    std::vector<RaceTriggerInfoStruct*>::iterator it2;
 
-    for (it2 = mParentRace->mGroup8ThingsVec.begin(); it2 != mParentRace->mGroup8ThingsVec.end(); ++it2) {
-        if (((*it2)->Member == 3) && (whichThing->Id != (*it2)->Id) && thing_overlapping(whichThing, (*it2))) {
+    for (it2 = mParentRace->mVanillaTriggerVec.begin(); it2 != mParentRace->mVanillaTriggerVec.end(); ++it2) {
+        if (((*it2)->thingPntr->Member == 3) && (whichThing->Id != (*it2)->thingPntr->Id) && thing_overlapping(whichThing, (*it2)->thingPntr)) {
             AffectListIndex = AffectListIndex + 1;
-            AffectList[AffectListIndex] = (*it2)->Index;
+            AffectList[AffectListIndex] = (*it2)->thingPntr->Index;
         }
     }
 

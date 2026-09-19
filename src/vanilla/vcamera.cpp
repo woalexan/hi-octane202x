@@ -436,6 +436,9 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
     irr::f32 v17 = -distance;
     vanillaOutputCameraWindow.Camera.Position.Z += 0.5f;
     irr::f32 v18 = v14 + degrees;
+    //TODO: the next line is just an assumption, could be
+    //completely wrong!
+    irr::core::vector3df v19 = vanillaOutputCameraWindow.Camera.Position;
     irr::f32 v20 = fabs(v17);
     vanillaOutputCameraWindow.ChaseCamera.AngleZY = v18;
     irr::f32 v21 = v18;
@@ -456,7 +459,7 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
     irr::f32 v47;
     int16_t v33;
 
-    if ((v20 - 0.03125f) >= 9.97265625f) {
+    if (!((v20 >= 0.03125f) && (v20 <= 10.0f))) {
         goto camera_process_position_LABEL16;
     }
 
@@ -466,9 +469,7 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
        if (v17 <= -0.03125f) {
            v24 = v17;
            do {
-               //TODO: the next line is just an assumption, could be
-               //completely wrong!
-               position = vanillaOutputCameraWindow.Camera.Position;
+               position = v19;
                mParentRace->mVCalc->move_xyz(position, v15, v21, v22);
                position.Z += 0.0625f;
 
@@ -482,20 +483,18 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
            } while (v22 >= v24);
        }
 camera_process_position_LABEL15:
-       v17 = v23; // / 65536.0f;
+       v17 = v23; // / 65536.0f);
        goto camera_process_position_LABEL16;
     }
     v27 = 0.03125f;
     if (v17 < 0.03125f) {
 camera_process_position_LABEL14:
-        v23 = v16; //* 65536.0f;
+        v23 = v16; // * 65536.0f;
         goto camera_process_position_LABEL15;
     }
     v28 = v17;
     while (1) {
-        //TODO: the next line is just an assumption, could be
-        //completely wrong!
-        position = vanillaOutputCameraWindow.Camera.Position;
+        position = v19;
         mParentRace->mVCalc->move_xyz(position, v15, v21, v27);
         v30 = mParentRace->mVCalc->map_colide_4point(position, 0.5f, 0.5f);
         v17 = v27;

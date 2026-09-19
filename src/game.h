@@ -184,7 +184,7 @@ public:
 
     //if true skips main menue, and jumps directly to
     //defined race for game mechanics debugging
-    bool mDebugRace = false;
+    bool mDebugRace = true;
     bool mDebugDemoMode = false;
 
     bool enableLightning = false;
