@@ -93,8 +93,6 @@ public:
 
     //and a Status
     uint32_t Status = 0;
-
-    int32_t RocketsLaunched = 0;
 };
 
 #endif // VMLAUNCHER_H

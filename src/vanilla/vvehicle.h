@@ -190,9 +190,11 @@ struct VehicleBoosterStruct {
 //to vehicle
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
+    int32_t RocketsLaunched = 0;
     int32_t RocketsHit = 0;
     int32_t Bullets = 0;
     int32_t BulletsHit = 0;
+    int32_t HitRatio = 0;
     int32_t MiniGunHeatup = 0;
 
     //Note Deaths: In the original game implementation the Deaths array seems
@@ -204,13 +206,18 @@ struct VehicleConditionsStruct {
     int32_t Kills[8];
     int32_t KillsCount = 0;
     int32_t LapTimes[100];
+    int32_t AverageLapTime = 0;
+    int32_t FastestLapTime = 0;
     int32_t TotalTime = 0;
     int32_t LapCount = 0;
     int32_t FuelUsed = 0;
     int32_t HealthUsed = 0;
     int32_t WeaponsUsed = 0;
+    int32_t GodFactor = 0;
 
+    int32_t RacePosition = 0;
     int32_t RacePositionFinishShowTime = 0;
+    int32_t RacePoints = 0;
 
     bool FlagKill = false;
     bool FlagDeath = false;
@@ -455,6 +462,8 @@ public:
     void SetGameDifficultyLevel(uint8_t newDifficultyLevel);
 
     int16_t ControlViewType = 0;
+
+    uint8_t control_rating();
 
     //void TestBigExplosion();
 

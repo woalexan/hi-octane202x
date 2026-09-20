@@ -4541,8 +4541,164 @@ uint8_t VVehicle::vehicle_computer_set_no_shoot() {
 }
 
 void VVehicle::vehicle_calculate_behind_factor() {
+}
 
+//This function is called one time at the end of the race
+//to calculate the final player statistics and player rating
+//points (GodFactor)
+uint8_t VVehicle::control_rating() {
+    uint8_t result = 0;
+    int32_t godFactor;
+    bool v6;
+    bool v7;
+    int32_t v10;
+    int32_t v11;
+    int32_t v12;
+    int32_t v14;
+    int32_t v15;
+    int32_t v16;
+    int32_t v18;
+    int32_t v19;
+    int32_t v20;
+    int32_t v21;
+    int32_t rocketsLaunched;
+    int32_t bullets;
+    int32_t totalRaceTicksFinished;
 
+    if (!RacePositionFinish)
+        return result;
+
+    godFactor = Conditions.GodFactor;
+    v6 = (godFactor >= 0);
+    v7 = (godFactor < 3001);
+    if (v6) {
+        if (!v7) {
+            Conditions.GodFactor = 3000;
+        }
+    } else {
+        Conditions.GodFactor = 0;
+    }
+
+    rocketsLaunched = Conditions.RocketsLaunched;
+    Conditions.RacePosition = RacePositionFinish;
+    if (rocketsLaunched && (bullets = Conditions.Bullets) != 0) {
+        v10 = 100 * (10 * Conditions.RocketsHit + Conditions.BulletsHit);
+        v11 = 10 * rocketsLaunched + bullets;
+        v12 = (v10 / v11);
+        Conditions.HitRatio = v12;
+        Conditions.GodFactor += 20 * v12;
+    } else {
+       Conditions.HitRatio = 0;
+    }
+
+    totalRaceTicksFinished = TotalRaceTicksFinished;
+    Conditions.TotalTime = totalRaceTicksFinished;
+    //if (RaceLaps == 1) {
+    //    _break(7u, 0);
+    //}
+    //I added the next if statement to prevent division by zero
+    if (RaceLaps != 1) {
+        Conditions.AverageLapTime = (totalRaceTicksFinished / (RaceLaps - 1));
+    } else {
+        Conditions.AverageLapTime = totalRaceTicksFinished;
+    }
+    v14 = 1000 * (Conditions.KillsCount - Conditions.DeathsCount);
+    Conditions.FastestLapTime = FastestLapTicks;
+    if (v14 >= -10000) {
+      if (v14 >= 10001) {
+          v14 = 10000;
+      }
+    } else {
+        v14 = -10000;
+    }
+
+    v15 = v14 + Conditions.GodFactor;
+    v16 = 700 * (8 - Conditions.RacePosition);
+    Conditions.GodFactor = v15;
+    v18 = v16 + v15;
+    Conditions.GodFactor = v18;
+    if ((ControlStatus & 4) != 0) {
+        v19 = 20;
+control_rating_LABEL31:
+        Conditions.GodFactor = v19;
+        goto control_rating_LABEL32;
+    }
+    if (v18 >= 0) {
+      if (v18 >= 20000) {
+         Conditions.GodFactor = 19999;
+      }
+    } else {
+        Conditions.GodFactor = 0;
+    }
+
+    v20 = (19999 - Conditions.GodFactor) / 1000 - 3 + PlayerDifficultyLevel;
+    Conditions.GodFactor = v20;
+    if (v20 >= 0) {
+      v6 = (v20 < 20);
+      v19 = 19;
+      if (!v6) {
+          goto control_rating_LABEL31;
+      }
+    } else {
+        Conditions.GodFactor = 0;
+    }
+control_rating_LABEL32:
+    //The code below assigns the points each player has earned
+    //for the race. The points simply depend on the order of the final race positions
+    /*
+       1st place player gets 20 points
+       2nd place player gets 16 points
+       3rd place player gets 13 points
+       4th place player gets 11 points
+       5th place player gets 9 points
+       6th place player gets 7 points
+       7th place player gets 6 points
+       8th place player gets 5 points */
+    switch (Conditions.RacePosition) {
+        case 0: {
+            Conditions.RacePoints = 0;
+            return 1;
+        }
+        case 1: {
+            v21 = 20;
+            goto control_rating_LABEL42;
+        }
+        case 2: {
+            v21 = 16;
+            goto control_rating_LABEL42;
+        }
+        case 3: {
+            v21 = 13;
+            goto control_rating_LABEL42;
+        }
+        case 4: {
+            v21 = 11;
+            goto control_rating_LABEL42;
+        }
+        case 5: {
+            v21 = 9;
+            goto control_rating_LABEL42;
+        }
+        case 6: {
+            v21 = 7;
+            goto control_rating_LABEL42;
+        }
+        case 7: {
+            v21 = 6;
+            goto control_rating_LABEL42;
+        }
+        case 8: {
+            v21 = 5;
+control_rating_LABEL42:
+            Conditions.RacePoints = v21;
+            break;
+        }
+        default: {
+                return 1;
+                }
+    }
+
+    return 1;
 }
 
 void VVehicle::CheckForChargingStation() {

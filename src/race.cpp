@@ -1480,66 +1480,35 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
     std::vector<VVehicle*>::iterator itPlayer;
 
-    irr::u32 sumLapTimes;
-    bool firstLapTime;
-    irr::u16 minLapTime = 0;
-    size_t lapIdx;
-    size_t nrLaps;
-
     for (itPlayer = this->mVanillaCraftVec.begin(); itPlayer != this->mVanillaCraftVec.end(); ++itPlayer) {
+          //Trigger calculation of stat values
+          (*itPlayer)->control_rating();
+
           RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
-          firstLapTime = true;
-          sumLapTimes = 0;
-
-          nrLaps = (size_t)((*itPlayer)->RaceLaps);
-
-          //process lap time data, Lap times start at array index 1
-          //nrLaps contains value of actual number of laps + 1
-          for (lapIdx = 1; lapIdx < nrLaps; lapIdx++) {
-              sumLapTimes += (irr::u32)((*itPlayer)->Conditions.LapTimes[lapIdx]);
-
-              if (firstLapTime) {
-                  firstLapTime = false;
-                  minLapTime = (irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]);
-              } else {
-                  if ((irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]) < minLapTime) {
-                      minLapTime = (irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]);
-                  }
-              }
-          }
 
           strcpy(newEntry->playerName, (*itPlayer)->Stats.name);
           newEntry->nrKills = (irr::u8)((*itPlayer)->Conditions.KillsCount);
           newEntry->nrDeaths = (irr::u8)((*itPlayer)->Conditions.DeathsCount);
-          newEntry->raceTime = sumLapTimes;
-          newEntry->bestLapTime = minLapTime;
+          newEntry->raceTime = (irr::u32)((*itPlayer)->Conditions.TotalTime);
+          newEntry->bestLapTime = (irr::u16)((*itPlayer)->Conditions.FastestLapTime);
 
-          irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)(nrLaps - 1);
-          newEntry->avgLapTime = (irr::u16)(avgLapTime);
-          newEntry->racePosition = (irr::u8)((*itPlayer)->RacePositionFinish);
-
-          irr::u32 nrShootsfired = (*itPlayer)->Conditions.Bullets;
-          irr::f32 accuracy;
-
-          if (nrShootsfired > 0) {
-                    accuracy = ((irr::f32)((*itPlayer)->Conditions.BulletsHit) / (irr::f32)(nrShootsfired)) * 100.0f;
-          } else {
-              accuracy = 0.0f;
-          }
-
-          newEntry->hitAccuracy = (irr::u8)(accuracy);
+          newEntry->avgLapTime = (irr::u16)((*itPlayer)->Conditions.AverageLapTime);
+          newEntry->racePosition = (irr::u8)((*itPlayer)->Conditions.RacePosition);
+          newEntry->hitAccuracy = (irr::u8)((*itPlayer)->Conditions.HitRatio);
 
           //plausi check
           if (newEntry->hitAccuracy < 0)
-              newEntry->hitAccuracy = 0;
+               newEntry->hitAccuracy = 0;
 
           if (newEntry->hitAccuracy > 100)
-              newEntry->hitAccuracy = 100;
+               newEntry->hitAccuracy = 100;
 
-          //TODO: calculate later!
           //rating goes from lowest 1 (worst) up to
           //20 (best player)
-          newEntry->rating = 1;
+          newEntry->rating = (irr::u8)((*itPlayer)->Conditions.GodFactor);
+
+          //the points earned in the last race
+          newEntry->pointVal = (irr::u16)((*itPlayer)->Conditions.RacePoints);
 
           result->push_back(newEntry);
     }

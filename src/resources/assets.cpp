@@ -488,33 +488,32 @@ void Assets::InitDriverAssessementStrings() {
   driverAssessementStrings->clear();
 
   //Strings taken from Hi-Octane Exe file
-  //With the last ones I am not sure anymore if the belong to
-  //the driver assessement or not. I will need to find this out in
-  //the future
-  AddDriverAssessementString("IMMORTAL");
-  AddDriverAssessementString("HARDWIRED");
-  AddDriverAssessementString("OUTTA CONTROL");
-  AddDriverAssessementString("DEMON");
-  AddDriverAssessementString("DEADLY");
-  AddDriverAssessementString("WRECKER");
-  AddDriverAssessementString("DANGEROUS");
-  AddDriverAssessementString("TAILGATER");
-  AddDriverAssessementString("ANTISOCIAL");
-  AddDriverAssessementString("DUST DEVIL");
-  AddDriverAssessementString("UPWARDLY MOBILE");
-  AddDriverAssessementString("MEDIOCRE");
-  AddDriverAssessementString("TOO SLOW");
-  AddDriverAssessementString("ENDANGERED SPECIES");
-  AddDriverAssessementString("TARGET PRACTICE");
-  AddDriverAssessementString("BACK MARKER");
-  AddDriverAssessementString("CANYON KISSER");
-  AddDriverAssessementString("VICTIM");
-  AddDriverAssessementString("SCRAP");
-  AddDriverAssessementString("SMEAR");
-  //I believe the following string does not actually belong
+
+  //I believe the first string does not actually belong
   //to the driver assessement strings in Hi-Octance, because
   //the race stats page lists 20 different ratings, and not 21
   //AddDriverAssessementString("CHEATING SUCKS");
+
+  AddDriverAssessementString("SMEAR");
+  AddDriverAssessementString("SCRAP");
+  AddDriverAssessementString("VICTIM");
+  AddDriverAssessementString("CANYON KISSER");
+  AddDriverAssessementString("BACK MARKER");
+  AddDriverAssessementString("TARGET PRACTICE");
+  AddDriverAssessementString("ENDANGERED SPECIES");
+  AddDriverAssessementString("TOO SLOW");
+  AddDriverAssessementString("MEDIOCRE");
+  AddDriverAssessementString("UPWARDLY MOBILE");
+  AddDriverAssessementString("DUST DEVIL");
+  AddDriverAssessementString("ANTISOCIAL");
+  AddDriverAssessementString("TAILGATER");
+  AddDriverAssessementString("DANGEROUS");
+  AddDriverAssessementString("WRECKER");
+  AddDriverAssessementString("DEADLY");
+  AddDriverAssessementString("DEMON");
+  AddDriverAssessementString("OUTTA CONTROL");
+  AddDriverAssessementString("HARDWIRED");
+  AddDriverAssessementString("IMMORTAL");
 }
 
 irr::u8 Assets::GetNumberDriverAssessementStrings() {
@@ -1924,35 +1923,10 @@ std::vector<PointTableEntryStruct*>* Assets::GetLastRacePointsTable(std::vector<
 
     resultVec->clear();
 
-    //for each player assign the points this player earned
-    /* The points earned by each player in a race
-       are very easily assigned by the original game
-       It just depends on the order of the final positions
-       at the race end;
+    std::vector<RaceStatsEntryStruct*>::iterator itEntry;
+    PointTableEntryStruct* newPointTabEntry;
 
-       1st place player gets 20 points
-       2nd place player gets 16 points
-       3rd place player gets 13 points
-       4th place player gets 11 points
-       5th place player gets 9 points
-       6th place player gets 7 points
-       7th place player gets 6 points
-       8th place player gets 5 points */
-
-      std::vector<irr::u8> pointAssigementVec;
-      pointAssigementVec.push_back(20);
-      pointAssigementVec.push_back(16);
-      pointAssigementVec.push_back(13);
-      pointAssigementVec.push_back(11);
-      pointAssigementVec.push_back(9);
-      pointAssigementVec.push_back(7);
-      pointAssigementVec.push_back(6);
-      pointAssigementVec.push_back(5);
-
-      std::vector<RaceStatsEntryStruct*>::iterator itEntry;
-      PointTableEntryStruct* newPointTabEntry;
-
-      for (itEntry = lastRaceStats->begin(); itEntry != lastRaceStats->end(); ++itEntry) {
+    for (itEntry = lastRaceStats->begin(); itEntry != lastRaceStats->end(); ++itEntry) {
            //create a new point table entry item
            newPointTabEntry = new PointTableEntryStruct();
 
@@ -1962,7 +1936,8 @@ std::vector<PointTableEntryStruct*>* Assets::GetLastRacePointsTable(std::vector<
 
            //assign the earned points
            if (((*itEntry)->racePosition > 0) && ((*itEntry)->racePosition < 9)) {
-                newPointTabEntry->pointVal = pointAssigementVec.at((*itEntry)->racePosition - 1);
+                //Update 20.09.2026: Update: The points come already precalculated
+                newPointTabEntry->pointVal = (*itEntry)->pointVal;
            }
 
            resultVec->push_back(newPointTabEntry);

@@ -91,6 +91,10 @@ struct RaceStatsEntryStruct {
 
     //the position
     irr::u8 racePosition;
+
+    //the points earned in the last
+    //race
+    irr::u16 pointVal;
 };
 
 /************************

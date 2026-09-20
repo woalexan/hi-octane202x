@@ -390,7 +390,7 @@ void VMLauncher::Update(irr::f32 frameDeltaTime) {
                                  if (v15 != nullptr) {
                                     rNum = rand();
                                     v15->Count = ((rNum % 0x64u) < this->Count);
-                                    ++RocketsLaunched;
+                                    ++mOwner->Conditions.RocketsLaunched;
                                     this->Status = this->Status ^ 0x10;
                                     v18 = -90.0f;
                                     if ((this->Status & 0x10) != 0) {
