@@ -271,6 +271,7 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     uint32_t status;
     uint32_t v21;
 
+    mHasPhysicsView = false;
     /* I left quite some code out here, because I believe this code is searching
      * for start positions in the map and I want to do this somewhere else */
 
@@ -819,8 +820,14 @@ uint32_t VVehicle::GetControlOrigin() {
 }
 
 void VVehicle::Update(irr::f32 frameDeltaTime) {
-    mAbsTimeIntegrator += frameDeltaTime;
-    if (mAbsTimeIntegrator >= 0.05) {
+    if (!mHasPhysicsView) {
+        vehicle_set_camera();
+        mPreviousPhysicsView = mCurrentPhysicsView = mRenderView = View;
+        mHasPhysicsView = true;
+    }
+
+    mActionClock.Advance(frameDeltaTime);
+    for (int step = 0; step < VFixedStep::MaxStepsPerFrame && mActionClock.PopStep(); ++step) {
 
         //should run every ~45ms
         //timing close enough when called
@@ -848,7 +855,6 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
         //the vehicle thing!
         mRace->mThingManager->UpdateTimeSlice(this->ThingData);
 
-        mAbsTimeIntegrator = 0.0f;
     }
 
     //process machine gun
@@ -857,19 +863,14 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     //process missile launcher
     mMLauncher->Update(frameDeltaTime);
 
-    mUpdateVehicleTimeIntegrator += frameDeltaTime;
-    if (mUpdateVehicleTimeIntegrator >= 0.05) {
-        //the original game does not use DeltaTime which
-        //means depending on the speed the CPU is running the
-        //game speed completely changes, which is not a good thing
-        //I want to improve this by adding DeltaTime correction based on
-        //the game timing of the Playstation 1 game
-        //This version of the game runs the following functions every ~50ms;
-        //If we run them more often (which will be the case most of the time)
-        //we need to correct certain flight model parameters by a correction
-        //factor we calculate below.
-        mDeltaTimeFactor = (mUpdateVehicleTimeIntegrator / 0.05);
-        mUpdateVehicleTimeIntegrator = 0.0f;
+    mPhysicsClock.Advance(frameDeltaTime);
+    for (int step = 0; step < VFixedStep::MaxStepsPerFrame && mPhysicsClock.PopStep(); ++step) {
+        if (!mHasPhysicsView) {
+            vehicle_set_camera();
+            mPreviousPhysicsView = mCurrentPhysicsView = mRenderView = View;
+            mHasPhysicsView = true;
+        }
+        mPreviousPhysicsView = mCurrentPhysicsView;
 
         irr::core::vector3df delta;
 
@@ -935,6 +936,13 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
                // mRace->AdvModel = false;
         }
 
+        mCurrentPhysicsView = View;
+        // Respawns and recovery moves should appear immediately, without a
+        // visible trip across the map between unrelated physics positions.
+        if (FlightModel.Flag.Reposition ||
+            (mCurrentPhysicsView.Position - mPreviousPhysicsView.Position).getLengthSQ() > 4.0f) {
+            mPreviousPhysicsView = mCurrentPhysicsView;
+        }
         UpdateSceneNode();
         UpdateCoordinates();
     }
@@ -945,6 +953,40 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     CheckDustCloudEmitter();
 
     mDustBelowCraft->Update(frameDeltaTime);
+
+}
+
+void VVehicle::RestorePhysicsSceneNode() {
+    if (mHasPhysicsView && mCraftNode != nullptr) {
+        mRace->UpdateSceneNodeModel(mCraftNode, &View);
+    }
+}
+
+void VVehicle::ApplyRenderSceneNode() {
+    if (!mHasPhysicsView) {
+        return;
+    }
+    if (mCraftNode == nullptr) {
+        mRenderView = View;
+        return;
+    }
+
+    // Recovery vehicles can move a craft after its own physics update.
+    // Such external movement must never be blended with the old position.
+    if (View.Position != mCurrentPhysicsView.Position ||
+        View.AngleXY != mCurrentPhysicsView.AngleXY ||
+        View.AngleZY != mCurrentPhysicsView.AngleZY ||
+        View.AngleXZ != mCurrentPhysicsView.AngleXZ) {
+        mPreviousPhysicsView = mCurrentPhysicsView = View;
+        UpdateSceneNode();
+        UpdateCoordinates();
+    }
+
+    // Gameplay uses View and the physical scene node throughout AdvanceTime.
+    // The displayed model and camera may use the in-between pose afterwards.
+    mRenderView = VFixedStep::InterpolateView(mPreviousPhysicsView,
+                                              mCurrentPhysicsView, mPhysicsClock.Fraction());
+    mRace->UpdateSceneNodeModel(mCraftNode, &mRenderView);
 }
 
 void VVehicle::vehicle_terrain_effect(irr::core::vector3df delta) {

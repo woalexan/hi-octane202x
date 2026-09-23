@@ -1951,6 +1951,12 @@ void Race::UpdateLensFlare() {
 
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
+    // Vehicle collision and sensor code reads scene-node transforms. Restore
+    // the physical poses before running any gameplay for this frame.
+    for (VVehicle* vehicle : mVanillaCraftVec) {
+        vehicle->RestorePhysicsSceneNode();
+    }
+
     //are we in Race start phase, if so also call
     //race start control function
     if (mCurrentPhase == DEF_RACE_PHASE_START) {
@@ -2141,6 +2147,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //}
 
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntWorldAware);
+
+    // Apply visual interpolation only after collision, weapons and recovery
+    // have finished. GameLoopRace updates the camera and renders next.
+    for (VVehicle* vehicle : mVanillaCraftVec) {
+        vehicle->ApplyRenderSceneNode();
+    }
 }
 
 void Race::UpdateShadowLights() {

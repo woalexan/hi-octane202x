@@ -39,6 +39,7 @@
 #include <vector>
 #include <string>
 #include "../vanilla/vcalc.h"
+#include "vfixedstep.h"
 #include "../utils/path.h"
 #include "SFML/Audio.hpp"
 
@@ -343,11 +344,12 @@ public:
     VehicleBoosterStruct Booster;
     VehicleConditionsStruct Conditions;
     VehicleViewStruct View;
+    const VehicleViewStruct& GetRenderView() const { return mHasPhysicsView ? mRenderView : View; }
+    void RestorePhysicsSceneNode();
+    void ApplyRenderSceneNode();
     VehicleDamageStruct Damage;
     VehicleMovementStatusStruct MovementStatus;
     VehicleBulletHoleStruct BulletHole[16];
-
-    irr::f32 mDeltaTimeFactor = 1.0f;
 
     irr::f32 mDbgColl;
 
@@ -465,9 +467,12 @@ private:
     int32_t TotalRaceTicks = 0;
     int32_t TotalRaceTicksFinished = 0;
 
-    irr::f32 mAbsTimeIntegrator = 0.0f;
-
-    irr::f32 mUpdateVehicleTimeIntegrator = 0.0f;
+    VFixedStep::Clock mActionClock;
+    VFixedStep::Clock mPhysicsClock;
+    VehicleViewStruct mPreviousPhysicsView{};
+    VehicleViewStruct mCurrentPhysicsView{};
+    VehicleViewStruct mRenderView{};
+    bool mHasPhysicsView = false;
 
     uint8_t PlayerDifficultyLevel = 0;
 
