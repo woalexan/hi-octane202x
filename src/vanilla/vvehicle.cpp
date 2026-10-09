@@ -951,6 +951,16 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 void VVehicle::vehicle_check_bonuses() {
     int16_t v8;
     int16_t v9;
+    int32_t v49;
+    int16_t state;
+    irr::f32 difference;
+    irr::f32 v34;
+    irr::f32 v36;
+    irr::f32 v37;
+    irr::f32 v39;
+    int16_t v40;
+    int16_t v41;
+    bool v42;
 
     //**********************************************
     //* SuperCar game logic                        *
@@ -1036,6 +1046,198 @@ vehicle_check_bonuses_LABEL_14:
     //**********************************************
     //* Spin bonus game logic                      *
     //**********************************************
+    if (!FlightModel.Flag.Airbourn) {
+        Specials.Spin.State = 0;
+
+        //Clear bits Flag180, Flag 360, Flag540 and Flag720
+        Specials.Spin.Flags &= ~0x10;
+        Specials.Spin.Flags &= ~0x20;
+        Specials.Spin.Flags &= ~0x40;
+        Specials.Spin.Flags &= ~0x80;
+
+        if ((Specials.Spin.Flags & 0x8) != 0) {  //check for set FlagCheck720
+            //set flag Flag720
+            Specials.Spin.Flags |= 0x80;
+            v49 = Conditions.GodFactor + 720;
+
+            //I added this line myself
+            Specials.Spin.Count720++;
+
+            //in Demo Mode prevent HUD message
+            if (!mRace->mDemoMode) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '7';
+                msg[1] = '2';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound, FINALLAP sound is for 720°
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                }
+            }
+        } else if ((Specials.Spin.Flags & 0x4) != 0) { //check for set FlagCheck540
+            //09.10.2026: The next commented out line is from the original game
+            //It does not really make sense, but this is not a bug on my side
+            Specials.Spin.Flags |= 0x20; //set Flag360
+            v49 = Conditions.GodFactor + 540;
+
+            //I added this line myself
+            Specials.Spin.Count540++;
+
+            //in Demo Mode prevent HUD message
+            if (!mRace->mDemoMode) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '3';
+                msg[1] = '6';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_STUNT360, false);
+                }
+            }
+        } else if ((Specials.Spin.Flags & 2) != 0) {   //check for set FlagCheck360
+            Specials.Spin.Flags |= 0x20;  //set Flag360
+            v49 = Conditions.GodFactor + 360;
+
+            //I added this line myself
+            Specials.Spin.Count360++;
+
+            //in Demo Mode prevent HUD message
+            if (!mRace->mDemoMode) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '3';
+                msg[1] = '6';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_STUNT360, false);
+                }
+            }
+        } else {
+            if ((Specials.Spin.Flags & 0x1) == 0) {  //check if FlagCheck180 is not set
+vehicle_check_bonuses_LABEL64:
+                Specials.Spin.Flags &= ~0x8;    //clear flag FlagCheck720
+                Specials.Spin.Flags &= ~0x4;    //clear flag FlagCheck540
+                Specials.Spin.Flags &= ~0x2;    //clear flag FlagCheck360
+                Specials.Spin.Flags &= ~0x1;    //clear flag FlagCheck180
+                goto vehicle_check_bonuses_LABEL65;
+            }
+            Specials.Spin.Flags |= 0x10;   //set Flag180
+            v49 = Conditions.GodFactor + 180;
+
+            //I added this line myself
+            Specials.Spin.Count180++;
+
+            //in Demo Mode prevent HUD message
+            if (!mRace->mDemoMode) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '1';
+                msg[1] = '8';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_STUNT180, false);
+                }
+            }
+        }
+        Conditions.GodFactor = v49;
+        goto vehicle_check_bonuses_LABEL64;
+    }
+
+    state = Specials.Spin.State;
+    if (state == 1) {
+        difference =
+                mRace->mVCalc->angle_get_difference(Specials.Spin.LastAngle, ThingData->Movement.AngleXY);
+        Specials.Spin.LastAngle = ThingData->Movement.AngleXY;
+        if (difference <= 0.0f) {
+            Specials.Spin.Count -= difference;
+            Specials.Spin.State = 3;
+        } else {
+            Specials.Spin.Count += difference;
+            Specials.Spin.State = 2;
+        }
+        goto vehicle_check_bonuses_LABEL46;
+    }
+    if (state < 2) {
+        if (!Specials.Spin.State) {
+            Specials.Spin.LastAngle = ThingData->Movement.AngleXY;
+            Specials.Spin.Count = 0.0f;
+            Specials.Spin.State = 1;
+        }
+        goto vehicle_check_bonuses_LABEL46;
+    }
+
+    if (state != 2) {
+        if (state != 3) {
+           goto vehicle_check_bonuses_LABEL46;
+        }
+        v37 = mRace->mVCalc->angle_get_difference(Specials.Spin.LastAngle, ThingData->Movement.AngleXY);
+        if (v37 > 0.0f) {
+           goto vehicle_check_bonuses_LABEL42;
+        }
+        v36 = Specials.Spin.Count - v37;
+vehicle_check_bonuses_LABEL44:
+        Specials.Spin.Count = v36;
+        goto vehicle_check_bonuses_LABEL45;
+    }
+    v34 = mRace->mVCalc->angle_get_difference(Specials.Spin.LastAngle, ThingData->Movement.AngleXY);
+    if (v34 >= 0.0f) {
+        v36 = v34 + Specials.Spin.Count;
+        goto vehicle_check_bonuses_LABEL44;
+    }
+vehicle_check_bonuses_LABEL42:
+    Specials.Spin.State = 0;
+vehicle_check_bonuses_LABEL45:
+    Specials.Spin.LastAngle = ThingData->Movement.AngleXY;
+vehicle_check_bonuses_LABEL46:
+    v39 = Specials.Spin.Count;
+    if (v39 <= 660.003662109375f) {
+        if (v39 <= 480.003662109375f) {
+            v42 = (v39 < 150.00732421875f);
+            if (v39 <= 300.003662109375f) {
+                v41 = 0x1;
+                if (v42) {
+                    goto vehicle_check_bonuses_LABEL65;
+                }
+                v40 = Specials.Spin.Flags;
+            } else {
+                v40 = Specials.Spin.Flags;
+                v41 = 0x2;
+            }
+        } else {
+            v40 = Specials.Spin.Flags;
+            v41 = 0x4;
+        }
+    } else {
+        v40 = Specials.Spin.Flags;
+        v41 = 0x80;
+    }
+
+    Specials.Spin.Flags = (v40 | v41);
 
 vehicle_check_bonuses_LABEL65:
     Conditions.FlagKill = false;

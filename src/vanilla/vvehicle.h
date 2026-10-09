@@ -279,18 +279,27 @@ struct VehicleBulletHoleStruct {
 };
 
 struct VehicleSpinsStruct {
-    int32_t Count = 0;
+    irr::f32 Count = 0.0f;
     int16_t State = 0;
     irr::f32 StartAngle = 0.0f;
     irr::f32 LastAngle = 0.0f;
-    bool FlagCheck180 = false;
-    bool FlagCheck360 = false;
-    bool FlagCheck540 = false;
-    bool FlagCheck720 = false;
-    bool Flag180 = false;
-    bool Flag360 = false;
-    bool Flag540 = false;
-    bool Flag720 = false;
+    int16_t Flags = 0;
+    //Bit 0: FlagCheck180
+    //Bit 1: FlagCheck360
+    //Bit 2: FlagCheck540
+    //Bit 3: FlagCheck720
+    //Bit 4: Flag180
+    //Bit 5: Flag360
+    //Bit 6: Flag540
+    //Bit 7: Flag720
+    //Bit 8: PadBit0 (not used)
+    //Bit 9: PadBit1 (not used)
+    //Bit 10: PadBit2 (not used)
+    //Bit 11: PadBit3 (not used)
+    //Bit 12: PadBit4 (not used)
+    //Bit 13: PadBit5 (not used)
+    //Bit 14: PadBit6 (not used)
+    //Bit 15: PadBit7 (not used)
     uint8_t Count180 = 0;
     uint8_t Count360 = 0;
     uint8_t Count540 = 0;
