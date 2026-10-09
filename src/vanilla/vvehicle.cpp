@@ -1012,8 +1012,8 @@ vehicle_check_bonuses_LABEL_14:
             Conditions.GodFactor += 1000;
             ++Specials.SuperCar.Level;
 
-            //in Demo Mode prevent HUD message
-            if (!mRace->mDemoMode) {
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
                 //in demo mode prevent the message and the yee-haw sound
                 //from happening
                 ShowPlayerBigGreenHudText((char*)"SUPERCAR", 4.0f, true);
@@ -1063,8 +1063,8 @@ vehicle_check_bonuses_LABEL_14:
             //I added this line myself
             Specials.Spin.Count720++;
 
-            //in Demo Mode prevent HUD message
-            if (!mRace->mDemoMode) {
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
                 //in demo mode prevent the message and the yee-haw sound
                 //from happening
                 char msg[10];
@@ -1089,8 +1089,8 @@ vehicle_check_bonuses_LABEL_14:
             //I added this line myself
             Specials.Spin.Count540++;
 
-            //in Demo Mode prevent HUD message
-            if (!mRace->mDemoMode) {
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
                 //in demo mode prevent the message and the yee-haw sound
                 //from happening
                 char msg[10];
@@ -1113,8 +1113,8 @@ vehicle_check_bonuses_LABEL_14:
             //I added this line myself
             Specials.Spin.Count360++;
 
-            //in Demo Mode prevent HUD message
-            if (!mRace->mDemoMode) {
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
                 //in demo mode prevent the message and the yee-haw sound
                 //from happening
                 char msg[10];
@@ -1145,8 +1145,8 @@ vehicle_check_bonuses_LABEL64:
             //I added this line myself
             Specials.Spin.Count180++;
 
-            //in Demo Mode prevent HUD message
-            if (!mRace->mDemoMode) {
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
                 //in demo mode prevent the message and the yee-haw sound
                 //from happening
                 char msg[10];

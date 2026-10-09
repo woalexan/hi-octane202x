@@ -488,32 +488,33 @@ void Assets::InitDriverAssessementStrings() {
   driverAssessementStrings->clear();
 
   //Strings taken from Hi-Octane Exe file
-
-  //I believe the first string does not actually belong
+  //With the last ones I am not sure anymore if the belong to
+  //the driver assessement or not. I will need to find this out in
+  //the future
+  AddDriverAssessementString("IMMORTAL");
+  AddDriverAssessementString("HARDWIRED");
+  AddDriverAssessementString("OUTTA CONTROL");
+  AddDriverAssessementString("DEMON");
+  AddDriverAssessementString("DEADLY");
+  AddDriverAssessementString("WRECKER");
+  AddDriverAssessementString("DANGEROUS");
+  AddDriverAssessementString("TAILGATER");
+  AddDriverAssessementString("ANTISOCIAL");
+  AddDriverAssessementString("DUST DEVIL");
+  AddDriverAssessementString("UPWARDLY MOBILE");
+  AddDriverAssessementString("MEDIOCRE");
+  AddDriverAssessementString("TOO SLOW");
+  AddDriverAssessementString("ENDANGERED SPECIES");
+  AddDriverAssessementString("TARGET PRACTICE");
+  AddDriverAssessementString("BACK MARKER");
+  AddDriverAssessementString("CANYON KISSER");
+  AddDriverAssessementString("VICTIM");
+  AddDriverAssessementString("SCRAP");
+  AddDriverAssessementString("SMEAR");
+  //I believe the following string does not actually belong
   //to the driver assessement strings in Hi-Octance, because
   //the race stats page lists 20 different ratings, and not 21
   //AddDriverAssessementString("CHEATING SUCKS");
-
-  AddDriverAssessementString("SMEAR");
-  AddDriverAssessementString("SCRAP");
-  AddDriverAssessementString("VICTIM");
-  AddDriverAssessementString("CANYON KISSER");
-  AddDriverAssessementString("BACK MARKER");
-  AddDriverAssessementString("TARGET PRACTICE");
-  AddDriverAssessementString("ENDANGERED SPECIES");
-  AddDriverAssessementString("TOO SLOW");
-  AddDriverAssessementString("MEDIOCRE");
-  AddDriverAssessementString("UPWARDLY MOBILE");
-  AddDriverAssessementString("DUST DEVIL");
-  AddDriverAssessementString("ANTISOCIAL");
-  AddDriverAssessementString("TAILGATER");
-  AddDriverAssessementString("DANGEROUS");
-  AddDriverAssessementString("WRECKER");
-  AddDriverAssessementString("DEADLY");
-  AddDriverAssessementString("DEMON");
-  AddDriverAssessementString("OUTTA CONTROL");
-  AddDriverAssessementString("HARDWIRED");
-  AddDriverAssessementString("IMMORTAL");
 }
 
 irr::u8 Assets::GetNumberDriverAssessementStrings() {
