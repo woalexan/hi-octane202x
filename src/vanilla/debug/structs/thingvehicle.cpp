@@ -299,8 +299,6 @@ void ParseThingVehicle::Print() {
     std::cout << SideslipToThrust->GetAsString() << std::endl;
 }
 
- std::string GetAsString();
-
 void ParseThingVehicle::Update(size_t fromAdr) {
     Momentum = new MomentumClass(mParentMemDump->mDataTools, std::string("Momentum"), fromAdr);
 
@@ -331,5 +329,104 @@ void ParseThingVehicle::Update(size_t fromAdr) {
 }
 
 ParseThingVehicle::~ParseThingVehicle() {
+    if (Momentum != nullptr) {
+        delete Momentum;
+        Momentum = nullptr;
+    }
 
+    if (MovementInput != nullptr) {
+        delete MovementInput;
+        MovementInput = nullptr;
+    }
+
+    if (Increment != nullptr) {
+        delete Increment;
+        Increment = nullptr;
+    }
+
+    if (IncrementAdd != nullptr) {
+        delete IncrementAdd;
+        IncrementAdd = nullptr;
+    }
+
+    if (IncrementSub != nullptr) {
+        delete IncrementSub;
+        IncrementSub = nullptr;
+    }
+
+
+    if (IncrementLimit != nullptr) {
+        delete IncrementLimit;
+        IncrementLimit = nullptr;
+    }
+
+    if (FlightModel != nullptr) {
+        delete FlightModel;
+        FlightModel = nullptr;
+    }
+
+    if (VehicleDisplacement != nullptr) {
+        delete VehicleDisplacement;
+        VehicleDisplacement = nullptr;
+    }
+
+    if (VehicleSlope != nullptr) {
+        delete VehicleSlope;
+        VehicleSlope = nullptr;
+    }
+
+    if (VehicleBump != nullptr) {
+        delete VehicleBump;
+        VehicleBump = nullptr;
+    }
+
+    if (VehicleBonus != nullptr) {
+        delete VehicleBonus;
+        VehicleBonus = nullptr;
+    }
+
+    if (VehicleStats != nullptr) {
+        delete VehicleStats;
+        VehicleStats = nullptr;
+    }
+
+    if (Index != nullptr) {
+        delete Index;
+        Index = nullptr;
+    }
+
+    if (Friction != nullptr) {
+        delete Friction;
+        Friction = nullptr;
+    }
+
+    if (FrictionLimit != nullptr) {
+        delete FrictionLimit;
+        FrictionLimit = nullptr;
+    }
+
+    if (ThrustEffectiveness != nullptr) {
+        delete ThrustEffectiveness;
+        ThrustEffectiveness = nullptr;
+    }
+
+    if (Bounce != nullptr) {
+        delete Bounce;
+        Bounce = nullptr;
+    }
+
+    if (MaximumZpos != nullptr) {
+        delete MaximumZpos;
+        MaximumZpos = nullptr;
+    }
+
+    if (SideslipFriction != nullptr) {
+        delete SideslipFriction;
+        SideslipFriction = nullptr;
+    }
+
+    if (SideslipToThrust != nullptr) {
+        delete SideslipToThrust;
+        SideslipToThrust = nullptr;
+    }
 }

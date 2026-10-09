@@ -17,6 +17,7 @@
 #include "structs/thing.h"
 #include "../vthing.h"
 #include "structs/thingvehicle.h"
+#include "structs/control.h"
 #include "structs/basicstructs.h"
 #include "structs/vvectors.h"
 #include "datatools.h"
@@ -124,11 +125,13 @@ void DbgInterface::Init(std::string memDumpFileName, std::string memDumpFileName
         newDump->ReadAllThings(mDumpLevelStructStart);
         newDump->ReadVectors(mDumpLevelStructStart);
         newDump->ReadAllMapElements(mDumpLevelStructStart);
+        newDump->ReadAllPlayers(mDumpLevelStructStart);
 
         if (newDump2 != nullptr) {
             newDump2->ReadThingList(mDumpLevelStructStart);
             newDump2->ReadAllThings(mDumpLevelStructStart);
             newDump2->ReadVectors(mDumpLevelStructStart);
+            newDump2->ReadAllPlayers(mDumpLevelStructStart);
         }
 
         //std::vector<ParseThing*> vehicles = newDump->ReturnThingsWithGroup(10);
@@ -431,17 +434,23 @@ void DbgInterface::CompareTwoUInt16s(std::string varName, uint16_t val1, uint16_
     }
 }
 
-void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle, MemDump* compareDump) {
-    ParseThing* playerThing = compareDump->ReturnThingFirstPlayer();
+//playerNr starts with index 1 for first player
+void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle, MemDump* compareDump, uint8_t playerNr) {
+    //does this player exist?
+    ParseThing* playerThing = compareDump->ReturnThingPlayer(playerNr);
 
     if (playerThing == nullptr) {
+        //specified player does not exist
         return;
     }
 
     //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
     //possible VehicleThings that is linked to this specific vehicle;
     //parse its data
-    compareDump->ThingVehicle->Update(mDumpLevelStructStart + 0x40B3C + playerThing->VehicleIndex->mRawValue * 0x1F0);
+    ParseThingVehicle* ThingVehicle = compareDump->mExistingPlayerVehicleVec.at((size_t)(playerThing->VehicleIndex->mRawValue));
+    if (ThingVehicle == nullptr) {
+        return;
+    }
 
     //Now compare values of internal vehicle with vehicle from memory dump of original game
     CompareTwoFloats(std::string("ThingData.Position.X"), compareVehicle.ThingData->Position.X, playerThing->Position->XPos->mFloatValue);
@@ -463,61 +472,68 @@ void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle
     //targetVehicle.KeyPressedTurnLeft
     //targetVehicle.KeyPressedTurnRight
 
-    CompareTwoFloats(std::string("Displacement.X"), compareVehicle.Displacement.X, compareDump->ThingVehicle->VehicleDisplacement->XPos->mFloatValue);
-    CompareTwoFloats(std::string("Displacement.Y"), compareVehicle.Displacement.Y, compareDump->ThingVehicle->VehicleDisplacement->YPos->mFloatValue);
-    CompareTwoFloats(std::string("Displacement.Z"), compareVehicle.Displacement.Z, compareDump->ThingVehicle->VehicleDisplacement->ZPos->mFloatValue);
+    CompareTwoFloats(std::string("Displacement.X"), compareVehicle.Displacement.X, ThingVehicle->VehicleDisplacement->XPos->mFloatValue);
+    CompareTwoFloats(std::string("Displacement.Y"), compareVehicle.Displacement.Y, ThingVehicle->VehicleDisplacement->YPos->mFloatValue);
+    CompareTwoFloats(std::string("Displacement.Z"), compareVehicle.Displacement.Z, ThingVehicle->VehicleDisplacement->ZPos->mFloatValue);
 
-    CompareMovementData(std::string("Increment."), &compareVehicle.Increment, compareDump->ThingVehicle->Increment);
-    CompareMovementData(std::string("IncrementAdd."), &compareVehicle.IncrementAdd, compareDump->ThingVehicle->IncrementAdd);
-    CompareMovementData(std::string("IncrementSub."), &compareVehicle.IncrementSub, compareDump->ThingVehicle->IncrementSub);
-    CompareMovementData(std::string("IncrementLimit."), &compareVehicle.IncrementLimit, compareDump->ThingVehicle->IncrementLimit);
+    CompareMovementData(std::string("Increment."), &compareVehicle.Increment, ThingVehicle->Increment);
+    CompareMovementData(std::string("IncrementAdd."), &compareVehicle.IncrementAdd, ThingVehicle->IncrementAdd);
+    CompareMovementData(std::string("IncrementSub."), &compareVehicle.IncrementSub, ThingVehicle->IncrementSub);
+    CompareMovementData(std::string("IncrementLimit."), &compareVehicle.IncrementLimit, ThingVehicle->IncrementLimit);
 
-    CompareTwoFloats(std::string("Slope.X"), compareVehicle.Slope.X, compareDump->ThingVehicle->VehicleSlope->XPos->mFloatValue);
-    CompareTwoFloats(std::string("Slope.Y"), compareVehicle.Slope.Y, compareDump->ThingVehicle->VehicleSlope->YPos->mFloatValue);
-    CompareTwoFloats(std::string("Slope.Z"), compareVehicle.Slope.Z, compareDump->ThingVehicle->VehicleSlope->ZPos->mFloatValue);
+    CompareTwoFloats(std::string("Slope.X"), compareVehicle.Slope.X, ThingVehicle->VehicleSlope->XPos->mFloatValue);
+    CompareTwoFloats(std::string("Slope.Y"), compareVehicle.Slope.Y, ThingVehicle->VehicleSlope->YPos->mFloatValue);
+    CompareTwoFloats(std::string("Slope.Z"), compareVehicle.Slope.Z, ThingVehicle->VehicleSlope->ZPos->mFloatValue);
 
-    CompareTwoInt16s(std::string("Behind"), compareVehicle.Stats.Behind, compareDump->ThingVehicle->VehicleStats->Behind->mRawValue);
-    CompareTwoFloats(std::string("Stats.Velocity"), compareVehicle.Stats.Velocity, compareDump->ThingVehicle->VehicleStats->Velocity->mFloatValue);
+    CompareTwoInt16s(std::string("Behind"), compareVehicle.Stats.Behind, ThingVehicle->VehicleStats->Behind->mRawValue);
+    CompareTwoFloats(std::string("Stats.Velocity"), compareVehicle.Stats.Velocity, ThingVehicle->VehicleStats->Velocity->mFloatValue);
 
-    CompareSensorPointData(std::string("FlightModel.FrontLeft"), &compareVehicle.FlightModel.FrontLeft, compareDump->ThingVehicle->FlightModel->SensorPointFrontLeft);
-    CompareSensorPointData(std::string("FlightModel.FrontRight"), &compareVehicle.FlightModel.FrontRight, compareDump->ThingVehicle->FlightModel->SensorPointFrontRight);
-    CompareSensorPointData(std::string("FlightModel.RearLeft"), &compareVehicle.FlightModel.RearLeft, compareDump->ThingVehicle->FlightModel->SensorPointRearLeft);
-    CompareSensorPointData(std::string("FlightModel.RearRight"), &compareVehicle.FlightModel.RearRight, compareDump->ThingVehicle->FlightModel->SensorPointRearRight);
+    CompareSensorPointData(std::string("FlightModel.FrontLeft"), &compareVehicle.FlightModel.FrontLeft, ThingVehicle->FlightModel->SensorPointFrontLeft);
+    CompareSensorPointData(std::string("FlightModel.FrontRight"), &compareVehicle.FlightModel.FrontRight, ThingVehicle->FlightModel->SensorPointFrontRight);
+    CompareSensorPointData(std::string("FlightModel.RearLeft"), &compareVehicle.FlightModel.RearLeft, ThingVehicle->FlightModel->SensorPointRearLeft);
+    CompareSensorPointData(std::string("FlightModel.RearRight"), &compareVehicle.FlightModel.RearRight, ThingVehicle->FlightModel->SensorPointRearRight);
 
-    CompareTwoFloats(std::string("Momentum.AngleXY"), compareVehicle.Momentum.AngleXY, compareDump->ThingVehicle->Momentum->AngleXY->mFloatValue);
-    CompareTwoFloats(std::string("Momentum.DeltaX"), compareVehicle.Momentum.DeltaX, compareDump->ThingVehicle->Momentum->DeltaX->mFloatValue);
-    CompareTwoFloats(std::string("Momentum.DeltaY"), compareVehicle.Momentum.DeltaY, compareDump->ThingVehicle->Momentum->DeltaY->mFloatValue);
+    CompareTwoFloats(std::string("Momentum.AngleXY"), compareVehicle.Momentum.AngleXY, ThingVehicle->Momentum->AngleXY->mFloatValue);
+    CompareTwoFloats(std::string("Momentum.DeltaX"), compareVehicle.Momentum.DeltaX, ThingVehicle->Momentum->DeltaX->mFloatValue);
+    CompareTwoFloats(std::string("Momentum.DeltaY"), compareVehicle.Momentum.DeltaY, ThingVehicle->Momentum->DeltaY->mFloatValue);
 
-    CompareTwoFloats(std::string("Friction"), compareVehicle.mFriction, compareDump->ThingVehicle->Friction->mFloatValue);
-    CompareTwoFloats(std::string("FrictionLimit"), compareVehicle.mFrictionLimit, compareDump->ThingVehicle->FrictionLimit->mFloatValue);
-    CompareTwoInt16s(std::string("ThrustEffectiveness"), compareVehicle.mThrustEffectiveness, compareDump->ThingVehicle->ThrustEffectiveness->mRawValue);
-    CompareTwoFloats(std::string("SideslipToThrust"), compareVehicle.mSideslipToThrust, compareDump->ThingVehicle->SideslipToThrust->mFloatValue);
-    CompareTwoFloats(std::string("SideslipFriction"), compareVehicle.mSideslipFriction, compareDump->ThingVehicle->SideslipFriction->mFloatValue);
+    CompareTwoFloats(std::string("Friction"), compareVehicle.mFriction, ThingVehicle->Friction->mFloatValue);
+    CompareTwoFloats(std::string("FrictionLimit"), compareVehicle.mFrictionLimit, ThingVehicle->FrictionLimit->mFloatValue);
+    CompareTwoInt16s(std::string("ThrustEffectiveness"), compareVehicle.mThrustEffectiveness, ThingVehicle->ThrustEffectiveness->mRawValue);
+    CompareTwoFloats(std::string("SideslipToThrust"), compareVehicle.mSideslipToThrust, ThingVehicle->SideslipToThrust->mFloatValue);
+    CompareTwoFloats(std::string("SideslipFriction"), compareVehicle.mSideslipFriction, ThingVehicle->SideslipFriction->mFloatValue);
 
-    CompareMovementData(std::string("MovementInput."), &compareVehicle.MovementInput, compareDump->ThingVehicle->MovementInput);
+    CompareMovementData(std::string("MovementInput."), &compareVehicle.MovementInput, ThingVehicle->MovementInput);
 
-    CompareTwoFloats(std::string("MaximumZpos"), compareVehicle.mMaximumZpos, compareDump->ThingVehicle->MaximumZpos->mFloatValue);
-    CompareTwoFloats(std::string("Bounce"), compareVehicle.mBounce, compareDump->ThingVehicle->Bounce->mFloatValue);
+    CompareTwoFloats(std::string("MaximumZpos"), compareVehicle.mMaximumZpos, ThingVehicle->MaximumZpos->mFloatValue);
+    CompareTwoFloats(std::string("Bounce"), compareVehicle.mBounce, ThingVehicle->Bounce->mFloatValue);
 }
 
-void DbgInterface::CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* dump2) {
-    ParseThing* playerThing1 = dump1->ReturnThingFirstPlayer();
+//playerNr starts with index 1 for first player
+void DbgInterface::CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* dump2, uint8_t playerNr) {
+    ParseThing* playerThing1 = dump1->ReturnThingPlayer(playerNr);
 
     if (playerThing1 == nullptr) {
+        //specified player does not exist
         return;
     }
 
-    ParseThing* playerThing2 = dump2->ReturnThingFirstPlayer();
+    ParseThing* playerThing2 = dump2->ReturnThingPlayer(playerNr);
 
     if (playerThing2 == nullptr) {
+        //specified player does not exist
         return;
     }
 
-    //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
-    //possible VehicleThings that is linked to this specific vehicle;
-    //parse its data
-    dump1->ThingVehicle->Update(mDumpLevelStructStart + 0x40B3C + playerThing1->VehicleIndex->mRawValue * 0x1F0);
-    dump2->ThingVehicle->Update(mDumpLevelStructStart + 0x40B3C + playerThing2->VehicleIndex->mRawValue * 0x1F0);
+    ParseThingVehicle* vehicle1 = dump1->mExistingPlayerVehicleVec.at((size_t)(playerThing1->VehicleIndex->mRawValue));
+    if (vehicle1 == nullptr) {
+        return;
+    }
+
+    ParseThingVehicle* vehicle2 = dump2->mExistingPlayerVehicleVec.at((size_t)(playerThing2->VehicleIndex->mRawValue));
+    if (vehicle2 == nullptr) {
+        return;
+    }
 
     CompareTwoFloats(std::string("ThingData.Position.X"), playerThing1->Position->XPos->mFloatValue, playerThing2->Position->XPos->mFloatValue);
     CompareTwoFloats(std::string("ThingData.Position.Y"), playerThing1->Position->YPos->mFloatValue, playerThing2->Position->YPos->mFloatValue);
@@ -538,54 +554,59 @@ void DbgInterface::CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* d
     //targetVehicle.KeyPressedTurnLeft
     //targetVehicle.KeyPressedTurnRight
 
-    CompareTwoFloats(std::string("Displacement.X"), dump1->ThingVehicle->VehicleDisplacement->XPos->mFloatValue, dump2->ThingVehicle->VehicleDisplacement->XPos->mFloatValue);
-    CompareTwoFloats(std::string("Displacement.Y"), dump1->ThingVehicle->VehicleDisplacement->YPos->mFloatValue, dump2->ThingVehicle->VehicleDisplacement->YPos->mFloatValue);
-    CompareTwoFloats(std::string("Displacement.Z"), dump1->ThingVehicle->VehicleDisplacement->ZPos->mFloatValue, dump2->ThingVehicle->VehicleDisplacement->ZPos->mFloatValue);
+    CompareTwoFloats(std::string("Displacement.X"), vehicle1->VehicleDisplacement->XPos->mFloatValue, vehicle2->VehicleDisplacement->XPos->mFloatValue);
+    CompareTwoFloats(std::string("Displacement.Y"), vehicle1->VehicleDisplacement->YPos->mFloatValue, vehicle2->VehicleDisplacement->YPos->mFloatValue);
+    CompareTwoFloats(std::string("Displacement.Z"), vehicle1->VehicleDisplacement->ZPos->mFloatValue, vehicle2->VehicleDisplacement->ZPos->mFloatValue);
 
-    CompareMovementDataBetweenMemDumps(std::string("Increment."), dump1->ThingVehicle->Increment, dump2->ThingVehicle->Increment);
-    CompareMovementDataBetweenMemDumps(std::string("IncrementAdd."), dump1->ThingVehicle->IncrementAdd, dump2->ThingVehicle->IncrementAdd);
-    CompareMovementDataBetweenMemDumps(std::string("IncrementSub."), dump1->ThingVehicle->IncrementSub, dump2->ThingVehicle->IncrementSub);
-    CompareMovementDataBetweenMemDumps(std::string("IncrementLimit."), dump1->ThingVehicle->IncrementLimit, dump2->ThingVehicle->IncrementLimit);
+    CompareMovementDataBetweenMemDumps(std::string("Increment."), vehicle1->Increment, vehicle2->Increment);
+    CompareMovementDataBetweenMemDumps(std::string("IncrementAdd."), vehicle1->IncrementAdd, vehicle2->IncrementAdd);
+    CompareMovementDataBetweenMemDumps(std::string("IncrementSub."), vehicle1->IncrementSub, vehicle2->IncrementSub);
+    CompareMovementDataBetweenMemDumps(std::string("IncrementLimit."), vehicle1->IncrementLimit, vehicle2->IncrementLimit);
 
-    CompareTwoFloats(std::string("Slope.X"), dump1->ThingVehicle->VehicleSlope->XPos->mFloatValue, dump2->ThingVehicle->VehicleSlope->XPos->mFloatValue);
-    CompareTwoFloats(std::string("Slope.Y"), dump1->ThingVehicle->VehicleSlope->YPos->mFloatValue, dump2->ThingVehicle->VehicleSlope->YPos->mFloatValue);
-    CompareTwoFloats(std::string("Slope.Z"), dump1->ThingVehicle->VehicleSlope->ZPos->mFloatValue, dump2->ThingVehicle->VehicleSlope->ZPos->mFloatValue);
+    CompareTwoFloats(std::string("Slope.X"), vehicle1->VehicleSlope->XPos->mFloatValue, vehicle2->VehicleSlope->XPos->mFloatValue);
+    CompareTwoFloats(std::string("Slope.Y"), vehicle1->VehicleSlope->YPos->mFloatValue, vehicle2->VehicleSlope->YPos->mFloatValue);
+    CompareTwoFloats(std::string("Slope.Z"), vehicle1->VehicleSlope->ZPos->mFloatValue, vehicle2->VehicleSlope->ZPos->mFloatValue);
 
-    CompareTwoInt16s(std::string("Behind"), dump1->ThingVehicle->VehicleStats->Behind->mRawValue, dump2->ThingVehicle->VehicleStats->Behind->mRawValue);
-    CompareTwoFloats(std::string("Stats.Velocity"), dump1->ThingVehicle->VehicleStats->Velocity->mFloatValue, dump2->ThingVehicle->VehicleStats->Velocity->mFloatValue);
+    CompareTwoInt16s(std::string("Behind"), vehicle1->VehicleStats->Behind->mRawValue, vehicle2->VehicleStats->Behind->mRawValue);
+    CompareTwoFloats(std::string("Stats.Velocity"), vehicle1->VehicleStats->Velocity->mFloatValue, vehicle2->VehicleStats->Velocity->mFloatValue);
 
-    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.FrontLeft"), dump1->ThingVehicle->FlightModel->SensorPointFrontLeft, dump2->ThingVehicle->FlightModel->SensorPointFrontLeft);
-    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.FrontRight"), dump1->ThingVehicle->FlightModel->SensorPointFrontRight, dump2->ThingVehicle->FlightModel->SensorPointFrontRight);
-    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.RearLeft"), dump1->ThingVehicle->FlightModel->SensorPointRearLeft, dump2->ThingVehicle->FlightModel->SensorPointRearLeft);
-    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.RearRight"), dump1->ThingVehicle->FlightModel->SensorPointRearRight, dump2->ThingVehicle->FlightModel->SensorPointRearRight);
+    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.FrontLeft"), vehicle1->FlightModel->SensorPointFrontLeft, vehicle2->FlightModel->SensorPointFrontLeft);
+    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.FrontRight"), vehicle1->FlightModel->SensorPointFrontRight, vehicle2->FlightModel->SensorPointFrontRight);
+    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.RearLeft"), vehicle1->FlightModel->SensorPointRearLeft, vehicle2->FlightModel->SensorPointRearLeft);
+    CompareSensorPointDataBetweenTwoMemDumpts(std::string("FlightModel.RearRight"), vehicle1->FlightModel->SensorPointRearRight, vehicle2->FlightModel->SensorPointRearRight);
 
-    CompareTwoFloats(std::string("Momentum.AngleXY"), dump1->ThingVehicle->Momentum->AngleXY->mFloatValue, dump2->ThingVehicle->Momentum->AngleXY->mFloatValue);
-    CompareTwoFloats(std::string("Momentum.DeltaX"), dump1->ThingVehicle->Momentum->DeltaX->mFloatValue, dump2->ThingVehicle->Momentum->DeltaX->mFloatValue);
-    CompareTwoFloats(std::string("Momentum.DeltaY"), dump1->ThingVehicle->Momentum->DeltaY->mFloatValue, dump2->ThingVehicle->Momentum->DeltaY->mFloatValue);
+    CompareTwoFloats(std::string("Momentum.AngleXY"), vehicle1->Momentum->AngleXY->mFloatValue, vehicle2->Momentum->AngleXY->mFloatValue);
+    CompareTwoFloats(std::string("Momentum.DeltaX"), vehicle1->Momentum->DeltaX->mFloatValue, vehicle2->Momentum->DeltaX->mFloatValue);
+    CompareTwoFloats(std::string("Momentum.DeltaY"), vehicle1->Momentum->DeltaY->mFloatValue, vehicle2->Momentum->DeltaY->mFloatValue);
 
-    CompareTwoFloats(std::string("Friction"), dump1->ThingVehicle->Friction->mFloatValue, dump2->ThingVehicle->Friction->mFloatValue);
-    CompareTwoFloats(std::string("FrictionLimit"), dump1->ThingVehicle->FrictionLimit->mFloatValue, dump2->ThingVehicle->FrictionLimit->mFloatValue);
-    CompareTwoInt16s(std::string("ThrustEffectiveness"), dump1->ThingVehicle->ThrustEffectiveness->mRawValue, dump2->ThingVehicle->ThrustEffectiveness->mRawValue);
-    CompareTwoFloats(std::string("SideslipToThrust"), dump1->ThingVehicle->SideslipToThrust->mFloatValue, dump2->ThingVehicle->SideslipToThrust->mFloatValue);
-    CompareTwoFloats(std::string("SideslipFriction"), dump1->ThingVehicle->SideslipFriction->mFloatValue, dump2->ThingVehicle->SideslipFriction->mFloatValue);
+    CompareTwoFloats(std::string("Friction"), vehicle1->Friction->mFloatValue, vehicle2->Friction->mFloatValue);
+    CompareTwoFloats(std::string("FrictionLimit"), vehicle1->FrictionLimit->mFloatValue, vehicle2->FrictionLimit->mFloatValue);
+    CompareTwoInt16s(std::string("ThrustEffectiveness"), vehicle1->ThrustEffectiveness->mRawValue, vehicle2->ThrustEffectiveness->mRawValue);
+    CompareTwoFloats(std::string("SideslipToThrust"), vehicle1->SideslipToThrust->mFloatValue, vehicle2->SideslipToThrust->mFloatValue);
+    CompareTwoFloats(std::string("SideslipFriction"), vehicle1->SideslipFriction->mFloatValue, vehicle2->SideslipFriction->mFloatValue);
 
-    CompareMovementDataBetweenMemDumps(std::string("MovementInput."), dump1->ThingVehicle->MovementInput, dump2->ThingVehicle->MovementInput);
+    CompareMovementDataBetweenMemDumps(std::string("MovementInput."), vehicle1->MovementInput, vehicle2->MovementInput);
 
-    CompareTwoFloats(std::string("MaximumZpos"), dump1->ThingVehicle->MaximumZpos->mFloatValue, dump2->ThingVehicle->MaximumZpos->mFloatValue);
-    CompareTwoFloats(std::string("Bounce"), dump1->ThingVehicle->Bounce->mFloatValue, dump2->ThingVehicle->Bounce->mFloatValue);
+    CompareTwoFloats(std::string("MaximumZpos"), vehicle1->MaximumZpos->mFloatValue, vehicle2->MaximumZpos->mFloatValue);
+    CompareTwoFloats(std::string("Bounce"), vehicle1->Bounce->mFloatValue, vehicle2->Bounce->mFloatValue);
 }
 
-void DbgInterface::SetVehicleStatePlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump) {
-    ParseThing* playerThing = srcDump->ReturnThingFirstPlayer();
+//playerNr starts with index 1 for first player
+void DbgInterface::SetVehiclePhysicsStatePlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump, uint8_t playerNr) {
+    ParseThing* playerThing = srcDump->ReturnThingPlayer(playerNr);
 
     if (playerThing == nullptr) {
+        //specified player does not exist
         return;
     }
 
     //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
     //possible VehicleThings that is linked to this specific vehicle;
     //parse its data
-    srcDump->ThingVehicle->Update(mDumpLevelStructStart + 0x40B3C + playerThing->VehicleIndex->mRawValue * 0x1F0);
+    ParseThingVehicle* vehicle = srcDump->mExistingPlayerVehicleVec.at((size_t)(playerThing->VehicleIndex->mRawValue));
+    if (vehicle == nullptr) {
+        return;
+    }
 
     //now copy parsed data into my internal game object for debugging
     //purposes
@@ -597,49 +618,121 @@ void DbgInterface::SetVehicleStatePlayerFromMemDump(VVehicle& targetVehicle, Mem
     targetVehicle.ThingData->Displacement.Y = playerThing->Displacement->YPos->mFloatValue;
     targetVehicle.ThingData->Displacement.Z = playerThing->Displacement->ZPos->mFloatValue;
 
-    targetVehicle.ThingData->Life = playerThing->Life->mRawValue;
-
     CopyMovementClassToMovementStruct(targetVehicle.ThingData->Movement, playerThing->Movement);
-
-    targetVehicle.ThingData->TimeSlice = (uint8_t)(playerThing->TimeSlice->GetRawValue());
 
     //targetVehicle.KeyPressedAccel
     //targetVehicle.KeyPressedDeaccel
     //targetVehicle.KeyPressedTurnLeft
     //targetVehicle.KeyPressedTurnRight
-    targetVehicle.Displacement.X = srcDump->ThingVehicle->VehicleDisplacement->XPos->mFloatValue;
-    targetVehicle.Displacement.Y = srcDump->ThingVehicle->VehicleDisplacement->YPos->mFloatValue;
-    targetVehicle.Displacement.Z = srcDump->ThingVehicle->VehicleDisplacement->ZPos->mFloatValue;
+    targetVehicle.Displacement.X = vehicle->VehicleDisplacement->XPos->mFloatValue;
+    targetVehicle.Displacement.Y = vehicle->VehicleDisplacement->YPos->mFloatValue;
+    targetVehicle.Displacement.Z = vehicle->VehicleDisplacement->ZPos->mFloatValue;
 
-    CopyMovementClassToMovementStruct(targetVehicle.Increment, srcDump->ThingVehicle->Increment);
-    CopyMovementClassToMovementStruct(targetVehicle.IncrementAdd, srcDump->ThingVehicle->IncrementAdd);
-    CopyMovementClassToMovementStruct(targetVehicle.IncrementSub, srcDump->ThingVehicle->IncrementSub);
-    CopyMovementClassToMovementStruct(targetVehicle.IncrementLimit, srcDump->ThingVehicle->IncrementLimit);
+    CopyMovementClassToMovementStruct(targetVehicle.Increment, vehicle->Increment);
+    CopyMovementClassToMovementStruct(targetVehicle.IncrementAdd, vehicle->IncrementAdd);
+    CopyMovementClassToMovementStruct(targetVehicle.IncrementSub, vehicle->IncrementSub);
+    CopyMovementClassToMovementStruct(targetVehicle.IncrementLimit, vehicle->IncrementLimit);
 
-    targetVehicle.Slope.X = srcDump->ThingVehicle->VehicleSlope->XPos->mFloatValue;
-    targetVehicle.Slope.Y = srcDump->ThingVehicle->VehicleSlope->YPos->mFloatValue;
-    targetVehicle.Slope.Z = srcDump->ThingVehicle->VehicleSlope->ZPos->mFloatValue;
+    targetVehicle.Slope.X = vehicle->VehicleSlope->XPos->mFloatValue;
+    targetVehicle.Slope.Y = vehicle->VehicleSlope->YPos->mFloatValue;
+    targetVehicle.Slope.Z = vehicle->VehicleSlope->ZPos->mFloatValue;
 
-    targetVehicle.Stats.Behind = srcDump->ThingVehicle->VehicleStats->Behind->mRawValue;
-    targetVehicle.Stats.Velocity = srcDump->ThingVehicle->VehicleStats->Velocity->mFloatValue;
+    targetVehicle.Stats.Velocity = vehicle->VehicleStats->Velocity->mFloatValue;
 
-    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.FrontLeft, srcDump->ThingVehicle->FlightModel->SensorPointFrontLeft);
-    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.FrontRight, srcDump->ThingVehicle->FlightModel->SensorPointFrontRight);
-    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.RearLeft, srcDump->ThingVehicle->FlightModel->SensorPointRearLeft);
-    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.RearRight, srcDump->ThingVehicle->FlightModel->SensorPointRearRight);
+    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.FrontLeft, vehicle->FlightModel->SensorPointFrontLeft);
+    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.FrontRight, vehicle->FlightModel->SensorPointFrontRight);
+    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.RearLeft, vehicle->FlightModel->SensorPointRearLeft);
+    CopySensorPointClassToVehicleSensorPointStruct(targetVehicle.FlightModel.RearRight, vehicle->FlightModel->SensorPointRearRight);
 
-    targetVehicle.Momentum.AngleXY = srcDump->ThingVehicle->Momentum->AngleXY->mFloatValue;
-    targetVehicle.Momentum.DeltaX = srcDump->ThingVehicle->Momentum->DeltaX->mFloatValue;
-    targetVehicle.Momentum.DeltaY = srcDump->ThingVehicle->Momentum->DeltaY->mFloatValue;
-    targetVehicle.mFriction = srcDump->ThingVehicle->Friction->mFloatValue;
-    targetVehicle.mFrictionLimit = srcDump->ThingVehicle->FrictionLimit->mFloatValue;
-    targetVehicle.mThrustEffectiveness = srcDump->ThingVehicle->ThrustEffectiveness->mRawValue;
-    targetVehicle.mSideslipToThrust = srcDump->ThingVehicle->SideslipToThrust->mFloatValue;
-    targetVehicle.mSideslipFriction = srcDump->ThingVehicle->SideslipFriction->mFloatValue;
+    targetVehicle.Momentum.AngleXY = vehicle->Momentum->AngleXY->mFloatValue;
+    targetVehicle.Momentum.DeltaX = vehicle->Momentum->DeltaX->mFloatValue;
+    targetVehicle.Momentum.DeltaY = vehicle->Momentum->DeltaY->mFloatValue;
+    targetVehicle.mFriction = vehicle->Friction->mFloatValue;
+    targetVehicle.mFrictionLimit = vehicle->FrictionLimit->mFloatValue;
+    targetVehicle.mThrustEffectiveness = vehicle->ThrustEffectiveness->mRawValue;
+    targetVehicle.mSideslipToThrust = vehicle->SideslipToThrust->mFloatValue;
+    targetVehicle.mSideslipFriction = vehicle->SideslipFriction->mFloatValue;
 
-    CopyMovementClassToMovementStruct(targetVehicle.MovementInput, srcDump->ThingVehicle->MovementInput);
-    targetVehicle.mMaximumZpos = srcDump->ThingVehicle->MaximumZpos->mFloatValue;
-    targetVehicle.mBounce = srcDump->ThingVehicle->Bounce->mFloatValue;
+    CopyMovementClassToMovementStruct(targetVehicle.MovementInput, vehicle->MovementInput);
+    targetVehicle.mMaximumZpos = vehicle->MaximumZpos->mFloatValue;
+    targetVehicle.mBounce = vehicle->Bounce->mFloatValue;
+}
+
+//playerNr starts with index 1 for first player
+void DbgInterface::SetCurrentStatsPlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump, uint8_t playerNr) {
+    ParseThing* playerThing = srcDump->ReturnThingPlayer(playerNr);
+
+    if (playerThing == nullptr) {
+        //specified player does not exist
+        return;
+    }
+
+    //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
+    //possible VehicleThings that is linked to this specific vehicle;
+    //parse its data
+    ParseThingVehicle* vehicle = srcDump->mExistingPlayerVehicleVec.at((size_t)(playerThing->VehicleIndex->mRawValue));
+    if (vehicle == nullptr) {
+        return;
+    }
+
+    //now copy parsed data into my internal game object for debugging
+    //purposes
+    targetVehicle.ThingData->Life = playerThing->Life->mRawValue;
+    targetVehicle.ThingData->TimeSlice = (uint8_t)(playerThing->TimeSlice->GetRawValue());
+    targetVehicle.Stats.Behind = vehicle->VehicleStats->Behind->mRawValue;
+}
+
+void DbgInterface::SetControlConditionsPlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump, uint8_t playerNr) {
+    ParseThing* playerThing = srcDump->ReturnThingPlayer(playerNr);
+
+    if (playerThing == nullptr) {
+        //specified player does not exist
+        return;
+    }
+
+    ParseControlClass* srcClass = srcDump->mExistingControlVec.at((size_t)(playerNr));
+    if (srcClass == nullptr) {
+        return;
+    }
+
+    targetVehicle.Conditions.BumpAmount = srcClass->Conditions->BumpAmount->mRawValue;
+    targetVehicle.Conditions.RocketsLaunched = srcClass->Conditions->RocketsLaunched->mRawValue;
+    targetVehicle.Conditions.RocketsHit = srcClass->Conditions->RocketsHit->mRawValue;
+    targetVehicle.Conditions.Bullets = srcClass->Conditions->Bullets->mRawValue;
+    targetVehicle.Conditions.BulletsHit = srcClass->Conditions->BulletsHit->mRawValue;
+    targetVehicle.Conditions.HitRatio = srcClass->Conditions->HitRatio->mRawValue;
+    targetVehicle.Conditions.MiniGunHeatup = srcClass->Conditions->MiniGunHeatup->mRawValue;
+
+    for (size_t idx = 0; idx < 8; idx++) {
+        targetVehicle.Conditions.Deaths[idx] = srcClass->Conditions->Deaths[idx]->mRawValue;
+    }
+
+    targetVehicle.Conditions.DeathsCount = srcClass->Conditions->DeathsCount->mRawValue;
+
+    for (size_t idx = 0; idx < 8; idx++) {
+        targetVehicle.Conditions.Kills[idx] = srcClass->Conditions->Kills[idx]->mRawValue;
+    }
+
+    targetVehicle.Conditions.KillsCount = srcClass->Conditions->KillsCount->mRawValue;
+
+    //Skip the flags on purpose, change later? FlagKill, FlagDeath, FlagNewLap
+    for (size_t idx = 0; idx < 100; idx++) {
+        targetVehicle.Conditions.LapTimes[idx] = srcClass->Conditions->LapTimes[idx]->mRawValue;
+    }
+
+    targetVehicle.Conditions.AverageLapTime = srcClass->Conditions->AverageLapTime->mRawValue;
+    targetVehicle.Conditions.FastestLapTime = srcClass->Conditions->FastestLapTime->mRawValue;
+    targetVehicle.Conditions.TotalTime = srcClass->Conditions->TotalTime->mRawValue;
+    targetVehicle.Conditions.LapCount = srcClass->Conditions->LapCount->mRawValue;
+    targetVehicle.Conditions.FuelUsed = srcClass->Conditions->FuelUsed->mRawValue;
+    targetVehicle.Conditions.HealthUsed = srcClass->Conditions->HealthUsed->mRawValue;
+    targetVehicle.Conditions.WeaponsUsed = srcClass->Conditions->WeaponsUsed->mRawValue;
+    targetVehicle.Conditions.RacePosition = srcClass->Conditions->RacePosition->mRawValue;
+    targetVehicle.Conditions.RacePositionFinishShowTime = srcClass->Conditions->RacePositionFinishShowTime->mRawValue;
+    targetVehicle.Conditions.RacePoints = srcClass->Conditions->RacePoints->mRawValue;
+    targetVehicle.Conditions.GodFactor = srcClass->Conditions->GodFactor->mRawValue;
+
+    //skip all the fuel, weapon and health counter variables
 }
 
 DbgInterface::DbgInterface()

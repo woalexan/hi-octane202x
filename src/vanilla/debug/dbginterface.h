@@ -25,6 +25,7 @@ class SensorPointClass;
 class ParseVectors;
 class ParseColVectClass;
 class ParseColVectsListClass;
+class ParseControlClass;
 
 struct DiffByte {
     size_t atOffset;
@@ -40,9 +41,12 @@ public:
 
     void Init(std::string memDumpFileName, std::string memDumpFileName2, std::string levelFileName);
 
-    void SetVehicleStatePlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump);
-    void CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle, MemDump* compareDump);
-    void CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* dump2);
+    //playerNr starts with index 1 for first player in the function calls below
+    void SetVehiclePhysicsStatePlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump, uint8_t playerNr);
+    void SetCurrentStatsPlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump, uint8_t playerNr);
+    void SetControlConditionsPlayerFromMemDump(VVehicle& targetVehicle, MemDump* srcDump, uint8_t playerNr);
+    void CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle, MemDump* compareDump, uint8_t playerNr);
+    void CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* dump2, uint8_t playerNr);
     void CompareVectorsWithMemDump(VTrack& compareVector1, ParseVectors* compareVector2);
 
     MemDump* newDump = nullptr;

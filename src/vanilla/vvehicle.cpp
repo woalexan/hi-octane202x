@@ -194,7 +194,7 @@ void VVehicle::processWeaponBooster() {
 
 void VVehicle::TestCamera() {
     mRace->mVDbgInterface->Init(std::string("angle/angle2.bin"), std::string(""), std::string("extract/level0-1/level0-1-unpacked.dat"));
-    mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);
+    mRace->mVDbgInterface->SetVehiclePhysicsStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump, 1);
 
     mRace->mVDbgInterface->newDump->ReadEngineCamera();
       mRace->mGame->mSmgr->setActiveCamera(mRace->vanTestCam);
@@ -930,6 +930,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
                 vehicle_set_camera();
                 vehicle_post_process();
                 vehicle_computer_set_no_shoot();
+                vehicle_check_bonuses();
                 //vehicle_terrain_effect(delta);
 
                // mRace->AdvModel = false;
@@ -945,6 +946,101 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     CheckDustCloudEmitter();
 
     mDustBelowCraft->Update(frameDeltaTime);
+}
+
+void VVehicle::vehicle_check_bonuses() {
+    int16_t v8;
+    int16_t v9;
+
+    //**********************************************
+    //* SuperCar game logic                        *
+    //**********************************************
+
+    Specials.SuperCar.Flags &= ~0x4; //clear Flag FlagSuperCar
+    if (Conditions.FlagNewLap) {
+        v8 = Specials.SuperCar.Flags;
+        if ((v8 & 2) != 0) {  //is the Flag FlagLapLead set?
+           v9 = (v8 | 0x1);     //set the Flag FlagOneLapInTheLead
+        } else {
+           v9 = (v8 | 2);
+           if (RacePosition != 1) {
+vehicle_check_bonuses_LABEL_13:
+            Specials.SuperCar.Flags &= ~0x2;
+            Specials.SuperCar.Flags &= ~0x1;
+            Specials.SuperCar.KillsInFirstPlace = 0;
+            goto vehicle_check_bonuses_LABEL_14;
+        }
+    }
+    Specials.SuperCar.Flags = v9;
+    }
+    if (RacePosition != 1) {
+        goto vehicle_check_bonuses_LABEL_13;
+    }
+vehicle_check_bonuses_LABEL_14:
+    if ((Specials.SuperCar.Flags & 0x2) != 0) {
+       if (Conditions.FlagKill) {
+           ++Specials.SuperCar.KillsInFirstPlace;
+       }
+    }
+
+    if ((Specials.SuperCar.Flags & 0x1) != 0) {
+        Specials.SuperCar.Flags &= ~0x1;
+        if (Specials.SuperCar.KillsInFirstPlace >= Specials.SuperCar.Level) {
+            Specials.SuperCar.SuperCar = 200;
+            Specials.SuperCar.KillsInFirstPlace = 0;
+            Specials.SuperCar.Flags |= 0x4; //set Flag FlagSuperCar
+
+            //Backup the current weapon upgrade levels, to be able to restore them later
+            Specials.SuperCar.Backup.Weapon[0] = mMGun->Upgrade;
+            Specials.SuperCar.Backup.Weapon[1] = mMLauncher->Upgrade;
+            Specials.SuperCar.Backup.Weapon[2] = Booster.Upgrade;
+
+            //now upgrade all weapons to max upgrade level temporarily
+            mMGun->Upgrade = 3;
+            mMLauncher->Upgrade = 3;
+            Booster.Upgrade = 3;
+            Conditions.GodFactor += 1000;
+            ++Specials.SuperCar.Level;
+
+            //in Demo Mode prevent HUD message
+            if (!mRace->mDemoMode) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                ShowPlayerBigGreenHudText((char*)"SUPERCAR", 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    //mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                }
+            }
+        }
+    }
+
+    //if we are currently in SuperCar Mode, keep health, fuel and weapons level
+    //at maximum level
+    if (Specials.SuperCar.SuperCar) {
+        Stats.Health = 10000;
+        Stats.Fuel = 10000;
+        Stats.Weapons = 10000;
+        Specials.SuperCar.SuperCar--;
+
+        //is the SuperCar Time over?
+        if (!Specials.SuperCar.SuperCar) {
+            //yes its over, restore initial upgrade levels
+            mMGun->Upgrade = Specials.SuperCar.Backup.Weapon[0];
+            mMLauncher->Upgrade = Specials.SuperCar.Backup.Weapon[1];
+            Booster.Upgrade =  Specials.SuperCar.Backup.Weapon[2];
+        }
+    }
+
+    //**********************************************
+    //* Spin bonus game logic                      *
+    //**********************************************
+
+vehicle_check_bonuses_LABEL65:
+    Conditions.FlagKill = false;
+    Conditions.FlagDeath = false;
+    Conditions.FlagNewLap = false;
 }
 
 void VVehicle::vehicle_terrain_effect(irr::core::vector3df delta) {
@@ -1172,6 +1268,9 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    Bump.X = 0.0f;
    Bump.Y = 0.0f;
    Bump.Z = 0.0f;
+   Bonus.X = 0.0f;
+   Bonus.Y = 0.0f;
+   Bonus.Z = 0.0f;
    mMaximumZpos = 3.0f / 256.0f;
 
    FlightModel.FrontLeft.Zpos = ThingData->Position.Z;
@@ -1404,18 +1503,16 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
     irr::core::vector3df v44;
     irr::core::vector3df v50;
     irr::core::vector3df position;
+    irr::f32 v7;
+    irr::f32 YPos;
 
     delta.X += (Slope.X / 64.0f);
     delta.Y += (Slope.Y / 64.0f);
     v44.X = (Momentum.DeltaX / 4.0f);
     v44.Y = (Momentum.DeltaY / 4.0f);
 
-    //TODO: add later if I care about a Bonus
-    //Bonus.Xpos = v44.X * (Stats.Behind - 100) / 100
-    //Bonus.Ypos = v44.Y * (Stats.Behind - 100) / 100
-
-    irr::f32 v7;
-    irr::f32 YPos;
+    Bonus.X = (v44.X * ((irr::f32)(Stats.Behind) - 100.0f)) / 100.0f;
+    Bonus.Y = (v44.Y * ((irr::f32)(Stats.Behind) - 100.0f)) / 100.0f;
 
     if (!FlightModel.Flag.Airbourn) {
         irr::f32 v6 = sqrt(v44.Y * v44.Y + v44.X * v44.X);
@@ -2638,6 +2735,18 @@ void VVehicle::vehicle_checkpoint_next_lap() {
     ++Conditions.LapCount;
     Conditions.FlagNewLap = true;
     ++LapCounter;
+
+    //is this the last lap? if yes we need to show HUD Message for "final lap"
+    if ((!mRace->mDemoMode) && (LapCounter == (RaceLaps - 1))) {
+        //in demo mode prevent the message and the yee-haw sound
+        //from happening
+        ShowPlayerBigGreenHudText((char*)"FINAL LAP", 4.0f, true);
+
+        if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+            //play the yee-haw sound
+            mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+        }
+    }
 }
 
 uint8_t VVehicle::vehicle_set_autopilot_off() {

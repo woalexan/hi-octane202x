@@ -1480,6 +1480,8 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
     std::vector<VVehicle*>::iterator itPlayer;
 
+    //CompareMemDumpsVanilla();
+
     for (itPlayer = this->mVanillaCraftVec.begin(); itPlayer != this->mVanillaCraftVec.end(); ++itPlayer) {
           //Trigger calculation of stat values
           (*itPlayer)->control_rating();
@@ -1517,11 +1519,9 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 }
 
 void Race::CompareMemDumpsVanilla() {
-    mVDbgInterface->Init("level1-atstart.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+    mVDbgInterface->Init("level1-testrating.bin", "", "extract/level0-1/level0-1-unpacked.dat");
 
-    std::vector<ParseThing*> cameras = mVDbgInterface->newDump->ReturnThingsWithGroup(3);
-
-    //mVDbgInterface->Init("level1-aftermgun.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+    mVDbgInterface->SetControlConditionsPlayerFromMemDump(*this->mVanillaCraftVec.at(0), mVDbgInterface->newDump, 1);
 }
 
 void Race::DebugDrawChildInfoMemDump() {

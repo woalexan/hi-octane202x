@@ -309,6 +309,8 @@ add_executable(hi-octane202x
     src/vanilla/debug/structs/thinglist.cpp
     src/vanilla/debug/structs/thing.h
     src/vanilla/debug/structs/thing.cpp
+    src/vanilla/debug/structs/control.h
+    src/vanilla/debug/structs/control.cpp
     src/vanilla/debug/structs/basicstructs.h
     src/vanilla/debug/structs/basicstructs.cpp
     src/vanilla/debug/structs/vvectors.h

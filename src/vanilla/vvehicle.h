@@ -219,6 +219,8 @@ struct VehicleConditionsStruct {
     int32_t RacePositionFinishShowTime = 0;
     int32_t RacePoints = 0;
 
+    //The three variables below are needed to process
+    //vehicle bonuses
     bool FlagKill = false;
     bool FlagDeath = false;
     bool FlagNewLap = false;
@@ -276,6 +278,42 @@ struct VehicleBulletHoleStruct {
     int32_t Count = 0;
 };
 
+struct VehicleSpinsStruct {
+    int32_t Count = 0;
+    int16_t State = 0;
+    irr::f32 StartAngle = 0.0f;
+    irr::f32 LastAngle = 0.0f;
+    bool FlagCheck180 = false;
+    bool FlagCheck360 = false;
+    bool FlagCheck540 = false;
+    bool FlagCheck720 = false;
+    bool Flag180 = false;
+    bool Flag360 = false;
+    bool Flag540 = false;
+    bool Flag720 = false;
+    uint8_t Count180 = 0;
+    uint8_t Count360 = 0;
+    uint8_t Count540 = 0;
+    uint8_t Count720 = 0;
+};
+
+struct VehicleUpgradeBackupStruct {
+    uint16_t Weapon[4];
+};
+
+struct VehicleSuperCarStruct {
+    struct VehicleUpgradeBackupStruct Backup;
+    int16_t Level = 0;
+    int16_t SuperCar = 0;
+    int16_t KillsInFirstPlace = 0;
+    int16_t Flags = 0; // (bit 0 = FlagOneLapInTheLead, bit 1 = FlagLapLead, bit 2 = FlagSuperCar)
+};
+
+struct VehicleSpecialsStruct {
+    struct VehicleSpinsStruct Spin;
+    struct VehicleSuperCarStruct SuperCar;
+};
+
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -321,6 +359,7 @@ public:
     irr::core::vector3df Displacement;
     irr::core::vector3df Slope;
     irr::core::vector3df Bump;
+    irr::core::vector3df Bonus;
 
     VehicleSpecialMovesStruct Tumble;
     VehicleAutoTargetStruct AutoTarget;
@@ -351,6 +390,7 @@ public:
     VehicleConditionsStruct Conditions;
     VehicleViewStruct View;
     VehicleDamageStruct Damage;
+    VehicleSpecialsStruct Specials;
     VehicleMovementStatusStruct MovementStatus;
     VehicleBulletHoleStruct BulletHole[16];
 
@@ -532,6 +572,7 @@ private:
     uint8_t vehicle_colide(std::vector<VVehicle*> &vehicleVec, irr::core::vector3df& delta);
     uint8_t vehicle_colide_final_check_sean(std::vector<VVehicle*> &vehicleVec, irr::core::vector3df& delta);
     void vehicle_move_mapwho(irr::core::vector3df& delta);
+    void vehicle_check_bonuses();
     void vehicle_post_process();
 
     int32_t vehicle_get_checkpoint();
