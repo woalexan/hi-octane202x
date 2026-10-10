@@ -202,10 +202,10 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
 
     switch (mCameraWindow.Camera.Action) {
         case 1: {  //Looks at the vehicle straight from behind the vehicle
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
-            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
-            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
-            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->GetRenderView().AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
             v24 = mCameraWindow.Camera.AngleXY;
             v22 = mCameraWindow.ChaseCamera.AngleXY;
             mCameraWindow.ChaseCamera.Distance = 1.0f;
@@ -217,10 +217,10 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
         }
 
         case 2: { //Looks at the vehicle from in front of the vehicle
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
-            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
-            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
-            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->GetRenderView().AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
             mCameraWindow.ChaseCamera.Distance = 1.0f;
             v24 = mCameraWindow.Camera.AngleXY;
             mCameraWindow.ChaseCamera.AngleXY += 180.0f;
@@ -230,10 +230,10 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
         }
 
         case 3: { //Looks at the vehicle from the left side (side view)
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
-            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
-            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
-            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->GetRenderView().AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
             v24 = mCameraWindow.Camera.AngleXY;
             v36 = mCameraWindow.ChaseCamera.AngleXY;
             mCameraWindow.ChaseCamera.Distance = 1.0f;
@@ -244,10 +244,10 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
         }
 
         case 4: { //Looks at the vehicle from the right side (side view)
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
-            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
-            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
-            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->GetRenderView().AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
             v24 = mCameraWindow.Camera.AngleXY;
             v36 = mCameraWindow.ChaseCamera.AngleXY;
             mCameraWindow.ChaseCamera.Distance = 1.0f;
@@ -258,10 +258,10 @@ void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, i
         }
 
         case 5: { //Looks at the vehicle from the top (birds view)
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
-            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
-            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
-            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
+            mCameraWindow.ChaseCamera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+            mCameraWindow.ChaseCamera.AngleZY = whichVehicle->GetRenderView().AngleZY;
+            mCameraWindow.ChaseCamera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
             v24 = mCameraWindow.Camera.AngleXY;
             v25 = mCameraWindow.ChaseCamera.AngleXY;
             v48 = mCameraWindow.ChaseCamera.AngleZY;
@@ -313,10 +313,10 @@ camera_process_LABEL_35:
             }
 
             //we found a suitable camera, use it instead
-            mCameraWindow.Camera.AngleXY = mParentRace->mVCalc->angle_get_xy(*v61, whichVehicle->View.Position);
-            mCameraWindow.Camera.AngleZY = mParentRace->mVCalc->angle_get_zy(*v61, whichVehicle->View.Position);
+            mCameraWindow.Camera.AngleXY = mParentRace->mVCalc->angle_get_xy(*v61, whichVehicle->GetRenderView().Position);
+            mCameraWindow.Camera.AngleZY = mParentRace->mVCalc->angle_get_zy(*v61, whichVehicle->GetRenderView().Position);
             mCameraWindow.Camera.AngleXZ = 0.0f;
-            mCameraWindow.Camera.Position = *v61; //whichVehicle->View.Position;
+            mCameraWindow.Camera.Position = *v61; //whichVehicle->GetRenderView().Position;
 
             v71 = v64 * mCameraWindow.Camera.Zoom;
             //mCameraWindow.Camera.Detail.Sky = 0;
@@ -326,12 +326,12 @@ camera_process_LABEL_35:
 
         case 7: {   //This is the default internal cockpit view
 camera_process_LABEL_46:
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
             mCameraWindow.Camera.Distance = 0.0f;
 
-            mCameraWindow.Camera.AngleXY = whichVehicle->View.AngleXY;
-            mCameraWindow.Camera.AngleZY = whichVehicle->View.AngleZY;
-            mCameraWindow.Camera.AngleXZ = whichVehicle->View.AngleXZ;
+            mCameraWindow.Camera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+            mCameraWindow.Camera.AngleZY = whichVehicle->GetRenderView().AngleZY;
+            mCameraWindow.Camera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
             //something weird with ThingVehicle.VehicleDamage.ShimmerCount missing, implement later?
             break;
         }
@@ -375,7 +375,7 @@ camera_process_LABEL_46:
             //if (byte_801F3974) {
             //  mCameraWindow.ChaseCamera.AngleZY += 2.999267578125f;
             //}
-            mCameraWindow.Camera.Position = whichVehicle->View.Position;
+            mCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
             mCameraWindow.Camera.Distance =
                     (mParentRace->mVCalc->FixedPointToFloat8D8(mCameraWindow.Camera.Zoom) * 8.064f + 0.5f);
             mCameraWindow.Camera.AngleXY = mCameraWindow.ChaseCamera.AngleXY;
@@ -424,14 +424,14 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
                                       irr::f32 distance, irr::f32 degrees) {
     irr::core::vector3df position;
 
-    vanillaOutputCameraWindow.Camera.Position = whichVehicle->View.Position;
-    vanillaOutputCameraWindow.ChaseCamera.AngleXY = whichVehicle->View.AngleXY;
-    vanillaOutputCameraWindow.ChaseCamera.AngleXZ = whichVehicle->View.AngleXZ;
-    vanillaOutputCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
+    vanillaOutputCameraWindow.Camera.Position = whichVehicle->GetRenderView().Position;
+    vanillaOutputCameraWindow.ChaseCamera.AngleXY = whichVehicle->GetRenderView().AngleXY;
+    vanillaOutputCameraWindow.ChaseCamera.AngleXZ = whichVehicle->GetRenderView().AngleXZ;
+    vanillaOutputCameraWindow.ChaseCamera.AngleZY = whichVehicle->GetRenderView().AngleZY;
     vanillaOutputCameraWindow.ChaseCamera.Distance = distance;
 
-    irr::f32 v14 = whichVehicle->View.AngleZY;
-    irr::f32 v15 = whichVehicle->View.AngleXY;
+    irr::f32 v14 = whichVehicle->GetRenderView().AngleZY;
+    irr::f32 v15 = whichVehicle->GetRenderView().AngleXY;
     irr::f32 v16 = -distance;
     irr::f32 v17 = -distance;
     vanillaOutputCameraWindow.Camera.Position.Z += 0.5f;

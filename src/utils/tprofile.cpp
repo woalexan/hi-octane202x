@@ -241,6 +241,10 @@ void TimeProfiler::ShowWindow() {
 }
 
 void TimeProfiler::UpdateWindow() {
+   if (mWindowHidden) {
+       return;
+   }
+
    //update my internal text with last results
    GetTimeProfileResultDescending(mText, TPROFILER_MAXTEXTCHARS, mNumberOftProfilerResultsShown);
 
