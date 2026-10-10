@@ -271,6 +271,10 @@ void VVehicle::vehicle_execute_action0x0_initialize() {
     uint32_t status;
     uint32_t v21;
 
+    mComputerPassingSide = 0;
+    mComputerPassingTicks = 0;
+    mComputerPassingOffset = 0.0f;
+
     /* I left quite some code out here, because I believe this code is searching
      * for start positions in the map and I want to do this somewhere else */
 
@@ -2371,6 +2375,174 @@ uint8_t VVehicle::vehicle_check_vehicle_movement_status() {
     return result;
 }
 
+bool VVehicle::vehicle_computer_path_clear(const irr::core::vector3df& target) {
+    // Check the near part of the proposed line at hull width. In particular,
+    // do not dodge off a bridge just because there is no wall beside it.
+    const irr::core::vector3df start = ThingData->Position;
+    irr::core::vector3df forward = target - start;
+    forward.Z = 0.0f;
+    const irr::f32 distance = forward.getLength();
+    if (distance < 0.01f) {
+        return true;
+    }
+    forward /= distance;
+    const irr::core::vector3df side(-forward.Y, forward.X, 0.0f);
+    const irr::f32 width = FlightModel.SizeSideways + 0.12f;
+    const irr::f32 lookAhead = irr::core::min_(distance, 6.0f);
+    const int steps = static_cast<int>(ceil(lookAhead / 0.5f));
+    const auto insideMap = [this](const irr::core::vector3df& point) {
+        return point.X >= 0.0f && point.Y >= 0.0f &&
+               point.X < mRace->mLevelTerrain->get_width() - 1.0f &&
+               point.Y < mRace->mLevelTerrain->get_heigth() - 2.0f;
+    };
+    irr::core::vector3df previous[3] = {start - side * width, start, start + side * width};
+    // track_vector_collide indexes both endpoints without clamping them.
+    for (const auto& point : previous) {
+        if (!insideMap(point)) {
+            return false;
+        }
+    }
+    irr::f32 previousHeight = mRace->mVCalc->map_altitude_column_and_floor(start);
+
+    for (int step = 1; step <= steps; ++step) {
+        irr::core::vector3df center = start + forward * (lookAhead * step / steps);
+        center.Z = previousHeight + 0.65f;
+        const irr::f32 height = mRace->mVCalc->map_altitude_column_and_floor(center);
+        if (fabs(height - previousHeight) > 0.65f) {
+            return false;
+        }
+        for (int edge = 0; edge < 3; ++edge) {
+            irr::core::vector3df probe = center + side * ((edge - 1) * width);
+            if (!insideMap(probe)) {
+                return false;
+            }
+            probe.Z = height + 0.65f;
+            const irr::f32 support = mRace->mVCalc->map_altitude_column_and_floor(probe);
+            if (fabs(support - height) > 0.4f) {
+                return false;
+            }
+            probe.Z = support + 0.3f;
+            if (mRace->mVCalc->map_colide(probe) ||
+                mRace->mVTrack->track_vector_collide(previous[edge], probe)) {
+                return false;
+            }
+            previous[edge] = probe;
+        }
+        previousHeight = height;
+    }
+
+    // A free strip of ground may still be occupied by a second racer.
+    for (VVehicle* other : mRace->mVanillaCraftVec) {
+        if (other == this || other->ThingData->Action != 0x1 ||
+            other->FlightModel.Flag.Reposition || other->Stats.Health <= 0 ||
+            fabs(other->ThingData->Position.Z - start.Z) > 0.75f) {
+            continue;
+        }
+        irr::core::vector3df relative = other->ThingData->Position - start;
+        relative.Z = 0.0f;
+        const irr::f32 along = relative.dotProduct(forward);
+        if (along <= 0.0f || along > lookAhead) {
+            continue;
+        }
+        const irr::f32 clearance = FlightModel.SizeSideways + other->FlightModel.SizeSideways + 0.1f;
+        if ((relative - forward * along).getLengthSQ() < clearance * clearance) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void VVehicle::vehicle_computer_driving_target(irr::core::vector3df& target) {
+    if (ControlOrigin != 8 || FlightModel.Flag.Airbourn || FlightModel.Flag.AutoRefuel ||
+        FlightModel.Flag.AutoRepair || FlightModel.Flag.AutoRearm) {
+        mComputerPassingSide = 0;
+        mComputerPassingTicks = 0;
+        return;
+    }
+
+    irr::core::vector3df routeStart = ThingData->Position;
+    if (LastWayPoint && LastWayPoint != CurrentWaypoint) {
+        mRace->mVTrack->track_waypoint_position_set(routeStart, LastWayPoint);
+    }
+    irr::core::vector3df forward = target - routeStart;
+    forward.Z = 0.0f;
+    const irr::f32 routeLength = forward.getLength();
+    if (routeLength < 0.01f) {
+        return;
+    }
+    forward /= routeLength;
+    const irr::core::vector3df side(-forward.Y, forward.X, 0.0f);
+    const irr::core::vector3df relative = ThingData->Position - routeStart;
+    const irr::f32 alongRoute = relative.dotProduct(forward);
+    const irr::f32 ownLane = relative.dotProduct(side);
+    const irr::f32 preferredLane = (static_cast<int>(mPlayerNr) % 3 - 1) * 0.55f;
+    VVehicle* blocker = nullptr;
+    irr::f32 nearest = 6.0f;
+
+    for (VVehicle* other : mRace->mVanillaCraftVec) {
+        if (other == this || other->ThingData->Action != 0x1 ||
+            other->FlightModel.Flag.Reposition || other->Stats.Health <= 0 ||
+            fabs(other->ThingData->Position.Z - ThingData->Position.Z) > 0.75f) {
+            continue;
+        }
+        const irr::core::vector3df toOther = other->ThingData->Position - ThingData->Position;
+        const irr::f32 ahead = toOther.dotProduct(forward);
+        const irr::f32 separation = FlightModel.SizeSideways + other->FlightModel.SizeSideways + 0.35f;
+        if (ahead > 0.0f && ahead < nearest && fabs(toOther.dotProduct(side)) < separation) {
+            nearest = ahead;
+            blocker = other;
+        }
+    }
+
+    if (blocker) {
+        const irr::f32 otherLane = (blocker->ThingData->Position - routeStart).dotProduct(side);
+        const irr::f32 gap = FlightModel.SizeSideways + blocker->FlightModel.SizeSideways + 0.45f;
+        const int preferredSide = mComputerPassingTicks ? mComputerPassingSide :
+            (otherLane > ownLane + 0.05f ? -1 : otherLane < ownLane - 0.05f ? 1 :
+             (mPlayerNr % 2 ? -1 : 1));
+        // Aim near the rival so a distant waypoint cannot dilute the dodge.
+        irr::core::vector3df center = routeStart + forward *
+            irr::core::clamp(alongRoute + irr::core::max_(2.5f, nearest + 0.5f), 0.0f, routeLength);
+        center.Z = target.Z;
+        for (int attempt = 0; attempt < 2; ++attempt) {
+            const int passingSide = attempt ? -preferredSide : preferredSide;
+            const irr::f32 lane = irr::core::clamp(otherLane + passingSide * gap, -1.5f, 1.5f);
+            if ((lane - otherLane) * passingSide < gap - 0.01f) {
+                continue;
+            }
+            const irr::core::vector3df candidate = center + side * lane;
+            if (vehicle_computer_path_clear(candidate)) {
+                mComputerPassingSide = static_cast<int8_t>(passingSide);
+                mComputerPassingTicks = 20;
+                mComputerPassingOffset = lane;
+                target = candidate;
+                return;
+            }
+        }
+        // Neither side is available: queue until there is room to pass.
+        if (nearest < 2.5f) {
+            MovementInput.SpeedActual = -IncrementAdd.SpeedActual;
+        }
+        mComputerPassingTicks = 0;
+        mComputerPassingSide = 0;
+        return;
+    }
+
+    irr::f32 lane = preferredLane;
+    irr::core::vector3df center = target;
+    if (mComputerPassingTicks) {
+        --mComputerPassingTicks;
+        lane = mComputerPassingOffset;
+        center = routeStart + forward * irr::core::clamp(alongRoute + 6.0f, 0.0f, routeLength);
+    } else {
+        mComputerPassingSide = 0;
+    }
+    const irr::core::vector3df candidate = center + side * lane;
+    if (vehicle_computer_path_clear(candidate)) {
+        target = candidate;
+    }
+}
+
 uint8_t VVehicle::vehicle_control_from_autopilot() {
     irr::f32 velocity;
     irr::f32 decisionDistance;
@@ -2382,9 +2554,8 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
     uint16_t v23;
     uint32_t v28;
     irr::f32 v40;
-    irr::f32 v45;
-    irr::f32 v46;
-    irr::f32 v47;
+    irr::f32 steeringDemand;
+    irr::f32 steeringLimit;
     irr::f32 xy;
     irr::f32 difference;
     uint8_t result;
@@ -2580,34 +2751,26 @@ vehicle_control_from_autopilot_LABEL135:
     }
 
     v40 = 7.109375f;
-    if (ComputerPlayer.Count1 < 20) {
-        mRace->mVTrack->track_waypoint_position_set(position, v21);
-        xy = mRace->mVCalc->angle_get_xy(ThingData->Position, position);
-        difference = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, xy);
-        v40 = difference / 32.0f;
-        if ( difference < 0.0f) {
-            v40 = (difference + 0.12109375f) / 32.0f;
-        }
-    }
     if (ComputerPlayer.Count2) {
         MovementInput.SpeedActual = -IncrementAdd.SpeedActual;
     } else {
         MovementInput.SpeedActual = IncrementAdd.SpeedActual;
     }
-
-    v45 = IncrementAdd.AngleXY;
-    v46 = ((irr::f32)(v45 > 0.0f) - v45) * 0.5f;
-    if ((v40 < v46) || (v46 = (v45 + (IncrementAdd.AngleXY / 32768.0f)) * 0.5f),
-                         v47 = v40 * 65536.0f, v46 < v40) {
-        v40 = v46;
-        v47 = v46 * 65536.0f;
+    if (ComputerPlayer.Count1 < 20) {
+        mRace->mVTrack->track_waypoint_position_set(position, v21);
+        vehicle_computer_driving_target(position);
+        xy = mRace->mVCalc->angle_get_xy(ThingData->Position, position);
+        difference = mRace->mVCalc->angle_get_difference(ThingData->Movement.AngleXY, xy);
+        v40 = difference / 32.0f;
     }
 
-    if (v47 >= 0.0f) {
-        MovementInput.AngleXY = v40 + (MovementInput.AngleXY / 8.0f);
-    } else {
-        MovementInput.AngleXY = v40 - (MovementInput.AngleXY / 8.0f);
-    }
+    // Keep the requested turn before saturation for the corner/braking test.
+    // The former comma expression discarded the lower-bound check, making
+    // left turns much stronger than matching right turns.
+    steeringDemand = fabs(v40);
+    steeringLimit = fabs(IncrementAdd.AngleXY) * 0.5f;
+    v40 = irr::core::clamp(v40, -steeringLimit, steeringLimit);
+    MovementInput.AngleXY = v40 + (MovementInput.AngleXY / 8.0f);
 
     if (FlightModel.FunctionFlag.Pad9) {
         if (this->mMGun->Upgrade <= 0) {
@@ -2618,9 +2781,9 @@ vehicle_control_from_autopilot_LABEL135:
     if (PlayerDifficultyLevel) {
         if (LapCounter) {
             if (!FlightModel.Flag.pad1) {
-                if (FlightModel.Flag.pad2 || (v40 < 0.098876953125f)) {
+                if (FlightModel.Flag.pad2 || (steeringDemand < 0.098876953125f)) {
                      ++this->mMGun->Trigger;
-                } else if (v40 >= 1.0052490234375f) {
+                } else if (steeringDemand >= 1.0052490234375f) {
                     MovementInput.SpeedActual = -IncrementAdd.SpeedActual;
                 }
             }

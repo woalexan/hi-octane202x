@@ -554,6 +554,11 @@ private:
     VehicleComputerPlayerStruct ComputerPlayer;
     uint8_t vehicle_check_vehicle_movement_status();
     void vehicle_setup_computer_character();
+    bool vehicle_computer_path_clear(const irr::core::vector3df& target);
+    void vehicle_computer_driving_target(irr::core::vector3df& target);
+    int8_t mComputerPassingSide = 0;
+    uint8_t mComputerPassingTicks = 0;
+    irr::f32 mComputerPassingOffset = 0.0f;
 
     void vehicle_control();
     void vehicle_control_from_player();
