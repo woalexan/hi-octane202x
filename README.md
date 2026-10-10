@@ -27,10 +27,11 @@ I made a lot of progress over the last 5 months or so. This is already implement
 - Special bonus features (180°, 360°, 720°, Supercar) are now implemented
 - Broken glass effect on HUD does work
 - Rocket Gun triggers in levels are usable
+- Cones are implemented
 - Player rating is implemented (but needs to be still verified)
 
 #### TODO
-- Cones need to be implemented again, Same is true for steam effects at the race track
+- Steam effects at the race track need to be implemented again
 - Explosions that are predefined in the level are not yet working when triggered
 - I saw that at least in level 3 there is an hidden area that the player craft can not enter due to a bug
 - In some levels (for example 3, 4, 5) the computer players currently have a waypoint issue when the race starts. Needs to be fixed

@@ -114,7 +114,7 @@ class PhysicsObject;
 class SoundEngine;
 class Physics;
 class Bezier;
-class Cone;
+class VCone;
 class Recovery;
 class ExplosionLauncher;
 class ExplosionEntity;
@@ -543,7 +543,7 @@ private:
     void UpdateRecoveryVehicles(irr::f32 deltaTime);
 
     //my vector of cones
-    std::vector<Cone*>* coneVec = nullptr;
+    std::vector<VCone*> coneVec;
 
     VThing* CreateTriggerThing(EntityItem *entity);
     void AddTrigger(EntityItem *entity);

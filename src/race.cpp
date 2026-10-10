@@ -26,6 +26,7 @@
 #include "utils/fileutils.h"
 #include "utils/gamedbgwnd.h"
 #include "vanilla/vcalc.h"
+#include "vanilla/vcone.h"
 #include "vanilla/vtrack.h"
 #include "vanilla/vcamera.h"
 #include "vanilla/veffectmanager.h"
@@ -49,7 +50,6 @@
 #include "models/camera.h"
 #include "models/chargingstation.h"
 #include "models/column.h"
-#include "models/cone.h"
 #include "models/explauncher.h"
 #include "models/explosion.h"
 #include "models/expentity.h"
@@ -363,9 +363,7 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mPlayerWaitForRecoveryVec->clear();
 
     //my vector of cones on the race track
-    coneVec = new std::vector<Cone*>;
-    coneVec->clear();
-
+    coneVec.clear();
     mDbgWaypntSceneNodeVec.clear();
 
     mPlayerVec.clear();
@@ -1244,23 +1242,19 @@ Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffP
 }
 
 void Race::CleanUpCones() {
-    std::vector<Cone*>::iterator it;
-    Cone* pntr;
+    std::vector<VCone*>::iterator it;
+    VCone* pntr;
 
-    if (coneVec->size() > 0) {
-        for (it = coneVec->begin(); it != coneVec->end(); ) {
+    if (coneVec.size() > 0) {
+        for (it = coneVec.begin(); it != coneVec.end(); ) {
             pntr = (*it);
 
-            it = coneVec->erase(it);
+            it = coneVec.erase(it);
 
             //delete the cone
             delete pntr;
         }
     }
-
-    //delete also the vector itself
-    delete coneVec;
-    coneVec = nullptr;
 }
 
 void Race::CleanUpCameras() {
@@ -1911,6 +1905,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     if (mThingManagerTimer >= 0.05f) {
         UpdateTriggers(mThingManagerTimer);
 
+        //update all cones
+        UpdateCones(mThingManagerTimer);
+
         mThingManagerTimer = 0.0f;
 
         mThingManager->RunHousekeeping();
@@ -1967,9 +1964,6 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
             mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
     }
-
-    //update all cones
-    UpdateCones(frameDeltaTime);
 
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntUpdateCones);
 
@@ -3466,6 +3460,13 @@ void Race::InitialUpdateEntityPositions() {
     for (it4 = mCameraVec.begin(); it4 != mCameraVec.end(); ++it4) {
            (*it4)->InitializeHeight();
     }
+
+    //set final height of the cones
+    std::vector<VCone*>::iterator it6;
+
+    for (it6 = coneVec.begin(); it6 != coneVec.end(); ++it6) {
+           (*it6)->InitializeHeight();
+    }
 }
 
 bool Race::LoadLevel() {
@@ -4447,28 +4448,9 @@ void Race::UpdateMorphs(irr::f32 frameDeltaTime) {
 }
 
 void Race::UpdateCones(irr::f32 frameDeltaTime) {
-    std::vector<Cone*>::iterator itCones;
-    std::vector<Player*>::iterator itPlayer;
-    irr::core::vector3df playerPos;
-    irr::f32 dist;
-    irr::f32 speed;
+    std::vector<VCone*>::iterator itCones;
 
-    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
-        playerPos = (*itPlayer)->phobj->physicState.position;
-
-        for (itCones = coneVec->begin(); itCones != coneVec->end(); ++itCones) {
-            if (!(*itCones)->mActivity) {
-                dist = (playerPos - (*itCones)->Position).getLengthSQ();
-
-                if (dist < 2.0f) {
-                    speed = (*itPlayer)->phobj->physicState.speed * 0.7f;
-                    (*itCones)->WasHit(mPlayerVec.at(0)->craftForwardDirVec, speed);
-                }
-            }
-        }
-    }
-
-    for (itCones = coneVec->begin(); itCones != coneVec->end(); ++itCones) {
+    for (itCones = coneVec.begin(); itCones != coneVec.end(); ++itCones) {
         (*itCones)->Update(frameDeltaTime);
     }
 }
@@ -5118,11 +5100,15 @@ void Race::CreateEntity(EntityItem *p_entity,
         }
 
         case Entity::EntityType::Cone: {
-            irr::core::vector3df center = entity.getCenter();
-            Cone *cone = new Cone(this, center.X, center.Y + 0.104f, center.Z, mGame->mSmgr);
+            irr::core::vector3df irrPosEntity = entity.getCenter();
+            irr::core::vector3df vanPosEntity = mVCalc->IrrlichtToVanillaCoord(irrPosEntity);
+
+            vanPosEntity.Z = 0.0f; //the game has at this point of time no height information
+
+            VCone* newCone = new VCone(mGame->mSmgr, this, vanPosEntity);
 
             //remember all cones in a vector for later use
-            this->coneVec->push_back(cone);
+            this->coneVec.push_back(newCone);
 
             break;
         }

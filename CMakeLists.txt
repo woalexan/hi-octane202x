@@ -214,8 +214,6 @@ add_executable(hi-octane202x
     src/models/collectable.cpp
     src/models/column.h
     src/models/column.cpp
-    src/models/cone.h
-    src/models/cone.cpp
     src/models/explosion.h
     src/models/explosion.cpp
     src/models/explauncher.h
@@ -280,6 +278,8 @@ add_executable(hi-octane202x
     src/vanilla/vthing.cpp
     src/vanilla/vcalc.h
     src/vanilla/vcalc.cpp
+    src/vanilla/vcone.h
+    src/vanilla/vcone.cpp
     src/vanilla/vvehicle.h
     src/vanilla/vvehicle.cpp
     src/vanilla/vtrack.h
