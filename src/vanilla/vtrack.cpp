@@ -857,6 +857,7 @@ uint16_t VTrack::track_waypoint_nearest(irr::core::vector3df inputPosition) {
                  if (!firstRunDone) {
                      currMinVal = v14;
                      Child = v12;
+                     firstRunDone = true;
                  } else {
                      if (v14 < currMinVal) {
                          currMinVal = v14;

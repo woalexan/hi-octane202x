@@ -2395,6 +2395,10 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
 
     irr::core::vector3df position;
 
+    //This function verifies that computer players did travel a certain
+    //min distance between now and the last time, because otherwise the game
+    //assumes the computer player got stuck. And then a recovery vehicle is sent
+    //to rescue the computer player
     v2 = (vehicle_check_vehicle_movement_status() == 0);
     if (v2) {
         return 1;

@@ -34,7 +34,6 @@ I made a lot of progress over the last 5 months or so. This is already implement
 - Steam effects at the race track need to be implemented again
 - Explosions that are predefined in the level are not yet working when triggered
 - I saw that at least in level 3 there is an hidden area that the player craft can not enter due to a bug
-- In some levels (for example 3, 4, 5) the computer players currently have a waypoint issue when the race starts. Needs to be fixed
 
 Note regarding Windows and Visual Studio (MSVC) for compiling: Thanks to the contribution (Bugfixes) of the user ArthurReboulSalze the project was building and working under Windows not a long time ago. If my changes in the meantime broke the project under Windows again, the necessary repair work should not be very extensive.
 

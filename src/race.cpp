@@ -2081,13 +2081,13 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     CheckRaceFinished(frameDeltaTime);
 
-    /*mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);
+    /*mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);*/
 
     //update all particle systems
-    UpdateParticleSystems(frameDeltaTime);
+    //UpdateParticleSystems(frameDeltaTime);
 
     //update all collectable spawners
-    UpdateCollectableSpawners(frameDeltaTime);
+    /*UpdateCollectableSpawners(frameDeltaTime);
 
     //update all type2 collectables
     UpdateType2Collectables(frameDeltaTime);
@@ -3445,7 +3445,7 @@ void Race::InitialUpdateEntityPositions() {
             //the position in this struct is already
             //stored in the vanilla "coordinate" system
             vanCoord = (*it2)->Position;
-            vanCoord.Z = mVCalc->map_altitude_lowest(vanCoord);
+            vanCoord.Z = mVCalc->map_floor(vanCoord);  //occurs in initialiseBUILDING_CHECK_POINT
             (*it2)->Position = vanCoord;
     }
 
@@ -5231,6 +5231,7 @@ void Race::CreateEntity(EntityItem *p_entity,
 
                //add new steam fontain to my list of fontains
                steamFountainVec->push_back(sf);
+
                break;
         }
 
