@@ -424,6 +424,8 @@ void SoundEngine::LoadSoundResources() {
     LoadSoundResource(std::string(SFILE_GAME_MISSILE_SHOT), SRES_GAME_MISSILE_SHOT);
     LoadSoundResource(std::string(SFILE_GAME_EXPLODE), SRES_GAME_EXPLODE);
 
+    LoadSoundResource(std::string(SFILE_GAME_STUNT180), SRES_GAME_STUNT180);
+    LoadSoundResource(std::string(SFILE_GAME_STUNT360), SRES_GAME_STUNT360);
     LoadSoundResource(std::string(SFILE_GAME_FINALLAP), SRES_GAME_FINALLAP);
 
     LoadSoundResource(std::string(SFILE_GAME_RICCO1), SRES_GAME_RICCO1);
@@ -520,6 +522,8 @@ SoundEngine::~SoundEngine() {
     DeleteSoundResource(SRES_GAME_MISSILE_SHOT);
     DeleteSoundResource(SRES_GAME_EXPLODE);
 
+    DeleteSoundResource(SRES_GAME_STUNT180);
+    DeleteSoundResource(SRES_GAME_STUNT360);
     DeleteSoundResource(SRES_GAME_FINALLAP);
 
     DeleteSoundResource(SRES_GAME_RICCO1);

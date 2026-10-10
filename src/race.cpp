@@ -26,6 +26,7 @@
 #include "utils/fileutils.h"
 #include "utils/gamedbgwnd.h"
 #include "vanilla/vcalc.h"
+#include "vanilla/vcone.h"
 #include "vanilla/vtrack.h"
 #include "vanilla/vcamera.h"
 #include "vanilla/veffectmanager.h"
@@ -49,7 +50,6 @@
 #include "models/camera.h"
 #include "models/chargingstation.h"
 #include "models/column.h"
-#include "models/cone.h"
 #include "models/explauncher.h"
 #include "models/explosion.h"
 #include "models/expentity.h"
@@ -363,9 +363,7 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
     mPlayerWaitForRecoveryVec->clear();
 
     //my vector of cones on the race track
-    coneVec = new std::vector<Cone*>;
-    coneVec->clear();
-
+    coneVec.clear();
     mDbgWaypntSceneNodeVec.clear();
 
     mPlayerVec.clear();
@@ -1264,23 +1262,19 @@ Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffP
 }
 
 void Race::CleanUpCones() {
-    std::vector<Cone*>::iterator it;
-    Cone* pntr;
+    std::vector<VCone*>::iterator it;
+    VCone* pntr;
 
-    if (coneVec->size() > 0) {
-        for (it = coneVec->begin(); it != coneVec->end(); ) {
+    if (coneVec.size() > 0) {
+        for (it = coneVec.begin(); it != coneVec.end(); ) {
             pntr = (*it);
 
-            it = coneVec->erase(it);
+            it = coneVec.erase(it);
 
             //delete the cone
             delete pntr;
         }
     }
-
-    //delete also the vector itself
-    delete coneVec;
-    coneVec = nullptr;
 }
 
 void Race::CleanUpCameras() {
@@ -1500,66 +1494,37 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 
     std::vector<VVehicle*>::iterator itPlayer;
 
-    irr::u32 sumLapTimes;
-    bool firstLapTime;
-    irr::u16 minLapTime = 0;
-    size_t lapIdx;
-    size_t nrLaps;
+    //CompareMemDumpsVanilla();
 
     for (itPlayer = this->mVanillaCraftVec.begin(); itPlayer != this->mVanillaCraftVec.end(); ++itPlayer) {
+          //Trigger calculation of stat values
+          (*itPlayer)->control_rating();
+
           RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
-          firstLapTime = true;
-          sumLapTimes = 0;
-
-          nrLaps = (size_t)((*itPlayer)->RaceLaps);
-
-          //process lap time data, Lap times start at array index 1
-          //nrLaps contains value of actual number of laps + 1
-          for (lapIdx = 1; lapIdx < nrLaps; lapIdx++) {
-              sumLapTimes += (irr::u32)((*itPlayer)->Conditions.LapTimes[lapIdx]);
-
-              if (firstLapTime) {
-                  firstLapTime = false;
-                  minLapTime = (irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]);
-              } else {
-                  if ((irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]) < minLapTime) {
-                      minLapTime = (irr::u16)((*itPlayer)->Conditions.LapTimes[lapIdx]);
-                  }
-              }
-          }
 
           strcpy(newEntry->playerName, (*itPlayer)->Stats.name);
           newEntry->nrKills = (irr::u8)((*itPlayer)->Conditions.KillsCount);
           newEntry->nrDeaths = (irr::u8)((*itPlayer)->Conditions.DeathsCount);
-          newEntry->raceTime = sumLapTimes;
-          newEntry->bestLapTime = minLapTime;
+          newEntry->raceTime = (irr::u32)((*itPlayer)->Conditions.TotalTime);
+          newEntry->bestLapTime = (irr::u16)((*itPlayer)->Conditions.FastestLapTime);
 
-          irr::f32 avgLapTime = (irr::f32)(sumLapTimes) / (irr::f32)(nrLaps - 1);
-          newEntry->avgLapTime = (irr::u16)(avgLapTime);
-          newEntry->racePosition = (irr::u8)((*itPlayer)->RacePositionFinish);
-
-          irr::u32 nrShootsfired = (*itPlayer)->Conditions.Bullets;
-          irr::f32 accuracy;
-
-          if (nrShootsfired > 0) {
-                    accuracy = ((irr::f32)((*itPlayer)->Conditions.BulletsHit) / (irr::f32)(nrShootsfired)) * 100.0f;
-          } else {
-              accuracy = 0.0f;
-          }
-
-          newEntry->hitAccuracy = (irr::u8)(accuracy);
+          newEntry->avgLapTime = (irr::u16)((*itPlayer)->Conditions.AverageLapTime);
+          newEntry->racePosition = (irr::u8)((*itPlayer)->Conditions.RacePosition);
+          newEntry->hitAccuracy = (irr::u8)((*itPlayer)->Conditions.HitRatio);
 
           //plausi check
           if (newEntry->hitAccuracy < 0)
-              newEntry->hitAccuracy = 0;
+               newEntry->hitAccuracy = 0;
 
           if (newEntry->hitAccuracy > 100)
-              newEntry->hitAccuracy = 100;
+               newEntry->hitAccuracy = 100;
 
-          //TODO: calculate later!
           //rating goes from lowest 1 (worst) up to
           //20 (best player)
-          newEntry->rating = 1;
+          newEntry->rating = (irr::u8)((*itPlayer)->Conditions.GodFactor);
+
+          //the points earned in the last race
+          newEntry->pointVal = (irr::u16)((*itPlayer)->Conditions.RacePoints);
 
           result->push_back(newEntry);
     }
@@ -1568,11 +1533,9 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
 }
 
 void Race::CompareMemDumpsVanilla() {
-    mVDbgInterface->Init("level1-atstart.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+    mVDbgInterface->Init("level1-testrating.bin", "", "extract/level0-1/level0-1-unpacked.dat");
 
-    std::vector<ParseThing*> cameras = mVDbgInterface->newDump->ReturnThingsWithGroup(3);
-
-    //mVDbgInterface->Init("level1-aftermgun.bin", "", "extract/level0-1/level0-1-unpacked.dat");
+    mVDbgInterface->SetControlConditionsPlayerFromMemDump(*this->mVanillaCraftVec.at(0), mVDbgInterface->newDump, 1);
 }
 
 void Race::DebugDrawChildInfoMemDump() {
@@ -1962,6 +1925,9 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     if (mThingManagerTimer >= 0.05f) {
         UpdateTriggers(mThingManagerTimer);
 
+        //update all cones
+        UpdateCones(mThingManagerTimer);
+
         mThingManagerTimer = 0.0f;
 
         mThingManager->RunHousekeeping();
@@ -2018,9 +1984,6 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
             mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntMorphing);
     }
-
-    //update all cones
-    UpdateCones(frameDeltaTime);
 
     mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntUpdateCones);
 
@@ -3517,6 +3480,13 @@ void Race::InitialUpdateEntityPositions() {
     for (it4 = mCameraVec.begin(); it4 != mCameraVec.end(); ++it4) {
            (*it4)->InitializeHeight();
     }
+
+    //set final height of the cones
+    std::vector<VCone*>::iterator it6;
+
+    for (it6 = coneVec.begin(); it6 != coneVec.end(); ++it6) {
+           (*it6)->InitializeHeight();
+    }
 }
 
 bool Race::LoadLevel() {
@@ -4498,28 +4468,9 @@ void Race::UpdateMorphs(irr::f32 frameDeltaTime) {
 }
 
 void Race::UpdateCones(irr::f32 frameDeltaTime) {
-    std::vector<Cone*>::iterator itCones;
-    std::vector<Player*>::iterator itPlayer;
-    irr::core::vector3df playerPos;
-    irr::f32 dist;
-    irr::f32 speed;
+    std::vector<VCone*>::iterator itCones;
 
-    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
-        playerPos = (*itPlayer)->phobj->physicState.position;
-
-        for (itCones = coneVec->begin(); itCones != coneVec->end(); ++itCones) {
-            if (!(*itCones)->mActivity) {
-                dist = (playerPos - (*itCones)->Position).getLengthSQ();
-
-                if (dist < 2.0f) {
-                    speed = (*itPlayer)->phobj->physicState.speed * 0.7f;
-                    (*itCones)->WasHit(mPlayerVec.at(0)->craftForwardDirVec, speed);
-                }
-            }
-        }
-    }
-
-    for (itCones = coneVec->begin(); itCones != coneVec->end(); ++itCones) {
+    for (itCones = coneVec.begin(); itCones != coneVec.end(); ++itCones) {
         (*itCones)->Update(frameDeltaTime);
     }
 }
@@ -5169,11 +5120,15 @@ void Race::CreateEntity(EntityItem *p_entity,
         }
 
         case Entity::EntityType::Cone: {
-            irr::core::vector3df center = entity.getCenter();
-            Cone *cone = new Cone(this, center.X, center.Y + 0.104f, center.Z, mGame->mSmgr);
+            irr::core::vector3df irrPosEntity = entity.getCenter();
+            irr::core::vector3df vanPosEntity = mVCalc->IrrlichtToVanillaCoord(irrPosEntity);
+
+            vanPosEntity.Z = 0.0f; //the game has at this point of time no height information
+
+            VCone* newCone = new VCone(mGame->mSmgr, this, vanPosEntity);
 
             //remember all cones in a vector for later use
-            this->coneVec->push_back(cone);
+            this->coneVec.push_back(newCone);
 
             break;
         }

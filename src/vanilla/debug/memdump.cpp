@@ -16,6 +16,7 @@
 #include "structs/thing.h"
 #include "structs/thinglist.h"
 #include "structs/thingvehicle.h"
+#include "structs/control.h"
 #include "structs/vvectors.h"
 #include "structs/cam.h"
 #include "structs/basicstructs.h"
@@ -27,7 +28,6 @@ MemDump::MemDump(std::string dumpFile)
 
    //Thing = new ParseThing(this);
    ThingList = new ParseThingList(this);
-   ThingVehicle = new ParseThingVehicle(this);
    Vectors = new ParseVectors(this);
    EngineCamera = new ParseCamera(this);
 
@@ -36,6 +36,10 @@ MemDump::MemDump(std::string dumpFile)
           MapElements[x][y] = nullptr;
        }
    }
+
+   mExistingControlVec.clear();
+   mExistingPlayers.clear();
+   mExistingPlayerVehicleVec.clear();
 }
 
 MemDump::~MemDump() {
@@ -43,7 +47,6 @@ MemDump::~MemDump() {
 
   //  delete Thing;
     delete ThingList;
-    delete ThingVehicle;
     delete mMemDumpData;
     delete Vectors;
     delete EngineCamera;
@@ -55,6 +58,24 @@ MemDump::~MemDump() {
                MapElements[x][y] = nullptr;
            }
         }
+    }
+
+    std::vector<ParseControlClass*>::iterator it;
+    ParseControlClass* pntr;
+    for (it = mExistingControlVec.begin(); it != mExistingControlVec.end(); ) {
+        pntr = (*it);
+        it = mExistingControlVec.erase(it);
+
+        delete pntr;
+    }
+
+    std::vector<ParseThingVehicle*>::iterator it2;
+    ParseThingVehicle* pntrVehicle;
+    for (it2 = mExistingPlayerVehicleVec.begin(); it2 != mExistingPlayerVehicleVec.end(); ) {
+        pntrVehicle = (*it2);
+        it2 = mExistingPlayerVehicleVec.erase(it2);
+
+        delete pntrVehicle;
     }
 }
 
@@ -102,7 +123,7 @@ std::vector<ParseThing*> MemDump::ReturnThingsWithGroup(int8_t whichGroup) {
     return result;
 }
 
-ParseThing* MemDump::ReturnThingsWithIndex(int16_t whichIndex) {
+ParseThing* MemDump::ReturnThingWithIndex(int16_t whichIndex) {
     std::vector<ParseThing*>::iterator it;
     ParseThing* result = nullptr;
 
@@ -116,8 +137,14 @@ ParseThing* MemDump::ReturnThingsWithIndex(int16_t whichIndex) {
     return result;
 }
 
-//Returns null if first player is not found
-ParseThing* MemDump::ReturnThingFirstPlayer() {
+//Returns nullptr if specified player is not found
+//playerNr starts with index 1 for the first player
+ParseThing* MemDump::ReturnThingPlayer(uint8_t playerNr) {
+    //is the playerNr valid? range is from 1 up to 8
+    if ((playerNr < 1) || (playerNr > 8)) {
+        return nullptr;
+    }
+
     std::vector<ParseThing*> allVehicles = ReturnThingsWithGroup(10);
     std::vector<ParseThing*>::iterator it;
 
@@ -126,15 +153,66 @@ ParseThing* MemDump::ReturnThingFirstPlayer() {
     //repair vehicles also have grp10, sort them out by looking at the
     //Member variable value in all of the returned things
     //Repair vehicles have a member value of 9
+    //Id of Thing does carry the the player number
     for (it = allVehicles.begin(); it != allVehicles.end(); ++it) {
-        if ((*it)->Member->GetRawValue() != 9) {
-            //we found a player, which is not a repair vehicle
+        if (((*it)->Member->GetRawValue() != 9) && ((*it)->Id->mRawValue == (uint8_t)(playerNr))) {
+            //we found the correct player
             result = (*it);
             break;
         }
     }
 
     return (result);
+}
+
+//Returns nullptr if the control for specified player is not found
+//playerNr starts with index 1 for the first player
+ParseControlClass* MemDump::ReturnControlPlayer(uint8_t playerNr, size_t dumpLevelStructStart) {
+    ParseControlClass* result = nullptr;
+
+    //first try to get the player Thing
+    ParseThing* playerThing = ReturnThingPlayer(playerNr);
+
+    if (playerThing == nullptr) {
+        //We did not find the Thing for this player
+        return nullptr;
+    }
+
+    int16_t playerId = playerThing->Id->mRawValue;
+
+    //The playerId selects which Control we need to parse
+    size_t startAdr = dumpLevelStructStart + 0x22EDC + (playerId - 1) * 0x980;
+    result = new ParseControlClass(this);
+    result->Update(startAdr);
+
+    return result;
+}
+
+void MemDump::ReadAllPlayers(size_t dumpLevelStructStart) {
+    ParseThing* playerThingPntr;
+    ParseControlClass* controlPntr;
+    ParseThingVehicle* vehiclePntr;
+
+    for (uint8_t playerNr = 1; playerNr < 9; playerNr++) {
+        playerThingPntr = ReturnThingPlayer(playerNr);
+
+        //does this player exist in this game?
+        if (playerThingPntr != nullptr) {
+            mExistingPlayers.push_back(playerThingPntr);
+
+            //also get the vehicle struct for this player
+            vehiclePntr = new ParseThingVehicle(this);
+            vehiclePntr->Update(dumpLevelStructStart + 0x40B3C + playerThingPntr->VehicleIndex->mRawValue * 0x1F0);
+            mExistingPlayerVehicleVec.push_back(vehiclePntr);
+
+            //also get the control for this player
+            controlPntr = ReturnControlPlayer(playerNr, dumpLevelStructStart);
+
+            if (controlPntr != nullptr) {
+                mExistingControlVec.push_back(controlPntr);
+            }
+        }
+    }
 }
 
 void MemDump::ReadEngineCamera() {

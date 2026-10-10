@@ -32,6 +32,8 @@
 #define SFILE_GAME_MGUN_LONGSHOT "extract/sound/sound4-MINIGUN.WAV"
 #define SFILE_GAME_MISSILE_SHOT "extract/sound/sound2-MISSILE.WAV"
 #define SFILE_GAME_EXPLODE "extract/sound/sound2-EXPLODE.WAV"
+#define SFILE_GAME_STUNT180 "extract/sound/sound2-STUNT180.WAV"
+#define SFILE_GAME_STUNT360 "extract/sound/sound2-STUNT360.WAV"
 #define SFILE_GAME_FINALLAP "extract/sound/sound2-STUNT720.WAV"
 #define SFILE_GAME_RICCO1 "extract/sound/sound2-RICCO1.WAV"
 #define SFILE_GAME_RICCO2 "extract/sound/sound2-RICCO2.WAV"
@@ -80,6 +82,8 @@
 #define SRES_GAME_LOCKON 26
 #define SRES_GAME_START1 27
 #define SRES_GAME_START2 28
+#define SRES_GAME_STUNT180 29
+#define SRES_GAME_STUNT360 30
 
 #define SRES_INTRO_FIRE 50
 #define SRES_INTRO_EXPLODE 51

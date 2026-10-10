@@ -5,12 +5,12 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
-### Update 12.09.2026
+### Update 09.10.2026
 Since beginning of this year I am in the process of replacing my own older source code with new source code more or less based on the
 original games implementation. This will make my project feel much closer to the original. Right now the project contains old source code and
-new implementations in parallel, and in the near future I will beginn to remove old now unnecessary parts step by step.
+new implementations in parallel, and in the near future I will begin to remove old now unnecessary parts step by step.
 
-I made a lot of progress over the last 4 months or so. This is already implemented:
+I made a lot of progress over the last 5 months or so. This is already implemented:
 
 #### Current state
 - Extraction of the original game data into usable file formats is working
@@ -24,21 +24,19 @@ I made a lot of progress over the last 4 months or so. This is already implement
 - Auto Target System (so other players can be targeted)
 - First effects are implemented (Smoke, Small/Medium Explosions)
 - External camera views implemented and working now
+- Special bonus features (180°, 360°, 720°, Supercar) are now implemented
+- Broken glass effect on HUD does work
+- Rocket Gun triggers in levels are usable
+- Cones are implemented
+- Player rating is implemented (but needs to be still verified)
 
 #### TODO
-- Final race positions of players have a bug currently
-- Cones need to be implemented again, Same is true for steam effects at the race track
-- Calculation of player rating not yet implemented
-- Special bonus calculations (180°, 360°, Supercar) not yet implemented
-- Broken glass effect on HUD not implemented currently
-- Rocket Gun triggers in levels not working currently
+- Steam effects at the race track need to be implemented again
+- Explosions that are predefined in the level are not yet working when triggered
+- I saw that at least in level 3 there is an hidden area that the player craft can not enter due to a bug
+- In some levels (for example 3, 4, 5) the computer players currently have a waypoint issue when the race starts. Needs to be fixed
 
-Because of this huge rework this also means the main branch of this game is right now only partly playable. But I will try to fix the game
-as fast as possible over the upcoming months. Thank you for your understanding and patience.
-
-Another note: I have not tried to compile the current reworked game under Windows and Visual Studio for a long time. Because of the huge changes I expect Visual
-Studio could currently throw a lot of different warnings/errors regarding type conversions and so on... Maybe the project does not compile at all right now, without
-additional changes. I plan to do this after the reworked game is really playable again under my Linux system.
+Note regarding Windows and Visual Studio (MSVC) for compiling: Thanks to the contribution (Bugfixes) of the user ArthurReboulSalze the project was building and working under Windows not a long time ago. If my changes in the meantime broke the project under Windows again, the necessary repair work should not be very extensive.
 
 ![level3_25122025](screenshots/level3-25122025.png)
 
@@ -117,7 +115,7 @@ Last but not least I want to thank my wife, my two children, and my family for l
 
 
 #### Ideas for the future
-- Try to add dynamical lighting effects, and maybe utilize shaders
+- Try to add dynamical lighting effects (change to Deferred rendering), and maybe utilize shaders
 - Try to add multiplayer over Ethernet
 
 ![level5explosion](screenshots/level5-explosion.png)

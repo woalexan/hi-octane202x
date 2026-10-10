@@ -194,7 +194,7 @@ void VVehicle::processWeaponBooster() {
 
 void VVehicle::TestCamera() {
     mRace->mVDbgInterface->Init(std::string("angle/angle2.bin"), std::string(""), std::string("extract/level0-1/level0-1-unpacked.dat"));
-    mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);
+    mRace->mVDbgInterface->SetVehiclePhysicsStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump, 1);
 
     mRace->mVDbgInterface->newDump->ReadEngineCamera();
       mRace->mGame->mSmgr->setActiveCamera(mRace->vanTestCam);
@@ -930,6 +930,7 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
                 vehicle_set_camera();
                 vehicle_post_process();
                 vehicle_computer_set_no_shoot();
+                vehicle_check_bonuses();
                 //vehicle_terrain_effect(delta);
 
                // mRace->AdvModel = false;
@@ -945,6 +946,303 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     CheckDustCloudEmitter();
 
     mDustBelowCraft->Update(frameDeltaTime);
+}
+
+void VVehicle::vehicle_check_bonuses() {
+    int16_t v8;
+    int16_t v9;
+    int32_t v49;
+    int16_t state;
+    irr::f32 difference;
+    irr::f32 v34;
+    irr::f32 v36;
+    irr::f32 v37;
+    irr::f32 v39;
+    int16_t v40;
+    int16_t v41;
+    bool v42;
+
+    //**********************************************
+    //* SuperCar game logic                        *
+    //**********************************************
+
+    Specials.SuperCar.Flags &= ~0x4; //clear Flag FlagSuperCar
+    if (Conditions.FlagNewLap) {
+        v8 = Specials.SuperCar.Flags;
+        if ((v8 & 2) != 0) {  //is the Flag FlagLapLead set?
+           v9 = (v8 | 0x1);     //set the Flag FlagOneLapInTheLead
+        } else {
+           v9 = (v8 | 2);
+           if (RacePosition != 1) {
+vehicle_check_bonuses_LABEL_13:
+            Specials.SuperCar.Flags &= ~0x2;
+            Specials.SuperCar.Flags &= ~0x1;
+            Specials.SuperCar.KillsInFirstPlace = 0;
+            goto vehicle_check_bonuses_LABEL_14;
+        }
+    }
+    Specials.SuperCar.Flags = v9;
+    }
+    if (RacePosition != 1) {
+        goto vehicle_check_bonuses_LABEL_13;
+    }
+vehicle_check_bonuses_LABEL_14:
+    if ((Specials.SuperCar.Flags & 0x2) != 0) {
+       if (Conditions.FlagKill) {
+           ++Specials.SuperCar.KillsInFirstPlace;
+       }
+    }
+
+    if ((Specials.SuperCar.Flags & 0x1) != 0) {
+        Specials.SuperCar.Flags &= ~0x1;
+        if (Specials.SuperCar.KillsInFirstPlace >= Specials.SuperCar.Level) {
+            Specials.SuperCar.SuperCar = 200;
+            Specials.SuperCar.KillsInFirstPlace = 0;
+            Specials.SuperCar.Flags |= 0x4; //set Flag FlagSuperCar
+
+            //Backup the current weapon upgrade levels, to be able to restore them later
+            Specials.SuperCar.Backup.Weapon[0] = mMGun->Upgrade;
+            Specials.SuperCar.Backup.Weapon[1] = mMLauncher->Upgrade;
+            Specials.SuperCar.Backup.Weapon[2] = Booster.Upgrade;
+
+            //now upgrade all weapons to max upgrade level temporarily
+            mMGun->Upgrade = 3;
+            mMLauncher->Upgrade = 3;
+            Booster.Upgrade = 3;
+            Conditions.GodFactor += 1000;
+            ++Specials.SuperCar.Level;
+
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                ShowPlayerBigGreenHudText((char*)"SUPERCAR", 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    //mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                }
+            }
+        }
+    }
+
+    //if we are currently in SuperCar Mode, keep health, fuel and weapons level
+    //at maximum level
+    if (Specials.SuperCar.SuperCar) {
+        Stats.Health = 10000;
+        Stats.Fuel = 10000;
+        Stats.Weapons = 10000;
+        Specials.SuperCar.SuperCar--;
+
+        //is the SuperCar Time over?
+        if (!Specials.SuperCar.SuperCar) {
+            //yes its over, restore initial upgrade levels
+            mMGun->Upgrade = Specials.SuperCar.Backup.Weapon[0];
+            mMLauncher->Upgrade = Specials.SuperCar.Backup.Weapon[1];
+            Booster.Upgrade =  Specials.SuperCar.Backup.Weapon[2];
+        }
+    }
+
+    //**********************************************
+    //* Spin bonus game logic                      *
+    //**********************************************
+    if (!FlightModel.Flag.Airbourn) {
+        Specials.Spin.State = 0;
+
+        //Clear bits Flag180, Flag 360, Flag540 and Flag720
+        Specials.Spin.Flags &= ~0x10;
+        Specials.Spin.Flags &= ~0x20;
+        Specials.Spin.Flags &= ~0x40;
+        Specials.Spin.Flags &= ~0x80;
+
+        if ((Specials.Spin.Flags & 0x8) != 0) {  //check for set FlagCheck720
+            //set flag Flag720
+            Specials.Spin.Flags |= 0x80;
+            v49 = Conditions.GodFactor + 720;
+
+            //I added this line myself
+            Specials.Spin.Count720++;
+
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '7';
+                msg[1] = '2';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound, FINALLAP sound is for 720°
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                }
+            }
+        } else if ((Specials.Spin.Flags & 0x4) != 0) { //check for set FlagCheck540
+            //09.10.2026: The next commented out line is from the original game
+            //It does not really make sense, but this is not a bug on my side
+            Specials.Spin.Flags |= 0x20; //set Flag360
+            v49 = Conditions.GodFactor + 540;
+
+            //I added this line myself
+            Specials.Spin.Count540++;
+
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '3';
+                msg[1] = '6';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_STUNT360, false);
+                }
+            }
+        } else if ((Specials.Spin.Flags & 2) != 0) {   //check for set FlagCheck360
+            Specials.Spin.Flags |= 0x20;  //set Flag360
+            v49 = Conditions.GodFactor + 360;
+
+            //I added this line myself
+            Specials.Spin.Count360++;
+
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '3';
+                msg[1] = '6';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_STUNT360, false);
+                }
+            }
+        } else {
+            if ((Specials.Spin.Flags & 0x1) == 0) {  //check if FlagCheck180 is not set
+vehicle_check_bonuses_LABEL64:
+                Specials.Spin.Flags &= ~0x8;    //clear flag FlagCheck720
+                Specials.Spin.Flags &= ~0x4;    //clear flag FlagCheck540
+                Specials.Spin.Flags &= ~0x2;    //clear flag FlagCheck360
+                Specials.Spin.Flags &= ~0x1;    //clear flag FlagCheck180
+                goto vehicle_check_bonuses_LABEL65;
+            }
+            Specials.Spin.Flags |= 0x10;   //set Flag180
+            v49 = Conditions.GodFactor + 180;
+
+            //I added this line myself
+            Specials.Spin.Count180++;
+
+            //in Demo Mode prevent HUD message, or when player has finished the race
+            if (!mRace->mDemoMode && (RacePositionFinish == 0)) {
+                //in demo mode prevent the message and the yee-haw sound
+                //from happening
+                char msg[10];
+                msg[0] = '1';
+                msg[1] = '8';
+                msg[2] = '0';
+                msg[3] = 33;
+                msg[4] = 0;
+
+                ShowPlayerBigGreenHudText(&msg[0], 4.0f, true);
+
+                if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+                    //play the yee-haw sound
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_STUNT180, false);
+                }
+            }
+        }
+        Conditions.GodFactor = v49;
+        goto vehicle_check_bonuses_LABEL64;
+    }
+
+    state = Specials.Spin.State;
+    if (state == 1) {
+        difference =
+                mRace->mVCalc->angle_get_difference(Specials.Spin.LastAngle, ThingData->Movement.AngleXY);
+        Specials.Spin.LastAngle = ThingData->Movement.AngleXY;
+        if (difference <= 0.0f) {
+            Specials.Spin.Count -= difference;
+            Specials.Spin.State = 3;
+        } else {
+            Specials.Spin.Count += difference;
+            Specials.Spin.State = 2;
+        }
+        goto vehicle_check_bonuses_LABEL46;
+    }
+    if (state < 2) {
+        if (!Specials.Spin.State) {
+            Specials.Spin.LastAngle = ThingData->Movement.AngleXY;
+            Specials.Spin.Count = 0.0f;
+            Specials.Spin.State = 1;
+        }
+        goto vehicle_check_bonuses_LABEL46;
+    }
+
+    if (state != 2) {
+        if (state != 3) {
+           goto vehicle_check_bonuses_LABEL46;
+        }
+        v37 = mRace->mVCalc->angle_get_difference(Specials.Spin.LastAngle, ThingData->Movement.AngleXY);
+        if (v37 > 0.0f) {
+           goto vehicle_check_bonuses_LABEL42;
+        }
+        v36 = Specials.Spin.Count - v37;
+vehicle_check_bonuses_LABEL44:
+        Specials.Spin.Count = v36;
+        goto vehicle_check_bonuses_LABEL45;
+    }
+    v34 = mRace->mVCalc->angle_get_difference(Specials.Spin.LastAngle, ThingData->Movement.AngleXY);
+    if (v34 >= 0.0f) {
+        v36 = v34 + Specials.Spin.Count;
+        goto vehicle_check_bonuses_LABEL44;
+    }
+vehicle_check_bonuses_LABEL42:
+    Specials.Spin.State = 0;
+vehicle_check_bonuses_LABEL45:
+    Specials.Spin.LastAngle = ThingData->Movement.AngleXY;
+vehicle_check_bonuses_LABEL46:
+    v39 = Specials.Spin.Count;
+    if (v39 <= 660.003662109375f) {
+        if (v39 <= 480.003662109375f) {
+            v42 = (v39 < 150.00732421875f);
+            if (v39 <= 300.003662109375f) {
+                v41 = 0x1;
+                if (v42) {
+                    goto vehicle_check_bonuses_LABEL65;
+                }
+                v40 = Specials.Spin.Flags;
+            } else {
+                v40 = Specials.Spin.Flags;
+                v41 = 0x2;
+            }
+        } else {
+            v40 = Specials.Spin.Flags;
+            v41 = 0x4;
+        }
+    } else {
+        v40 = Specials.Spin.Flags;
+        v41 = 0x80;
+    }
+
+    Specials.Spin.Flags = (v40 | v41);
+
+vehicle_check_bonuses_LABEL65:
+    Conditions.FlagKill = false;
+    Conditions.FlagDeath = false;
+    Conditions.FlagNewLap = false;
 }
 
 void VVehicle::vehicle_terrain_effect(irr::core::vector3df delta) {
@@ -1172,6 +1470,9 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    Bump.X = 0.0f;
    Bump.Y = 0.0f;
    Bump.Z = 0.0f;
+   Bonus.X = 0.0f;
+   Bonus.Y = 0.0f;
+   Bonus.Z = 0.0f;
    mMaximumZpos = 3.0f / 256.0f;
 
    FlightModel.FrontLeft.Zpos = ThingData->Position.Z;
@@ -1404,18 +1705,16 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
     irr::core::vector3df v44;
     irr::core::vector3df v50;
     irr::core::vector3df position;
+    irr::f32 v7;
+    irr::f32 YPos;
 
     delta.X += (Slope.X / 64.0f);
     delta.Y += (Slope.Y / 64.0f);
     v44.X = (Momentum.DeltaX / 4.0f);
     v44.Y = (Momentum.DeltaY / 4.0f);
 
-    //TODO: add later if I care about a Bonus
-    //Bonus.Xpos = v44.X * (Stats.Behind - 100) / 100
-    //Bonus.Ypos = v44.Y * (Stats.Behind - 100) / 100
-
-    irr::f32 v7;
-    irr::f32 YPos;
+    Bonus.X = (v44.X * ((irr::f32)(Stats.Behind) - 100.0f)) / 100.0f;
+    Bonus.Y = (v44.Y * ((irr::f32)(Stats.Behind) - 100.0f)) / 100.0f;
 
     if (!FlightModel.Flag.Airbourn) {
         irr::f32 v6 = sqrt(v44.Y * v44.Y + v44.X * v44.X);
@@ -2638,6 +2937,18 @@ void VVehicle::vehicle_checkpoint_next_lap() {
     ++Conditions.LapCount;
     Conditions.FlagNewLap = true;
     ++LapCounter;
+
+    //is this the last lap? if yes we need to show HUD Message for "final lap"
+    if ((!mRace->mDemoMode) && (LapCounter == (RaceLaps - 1))) {
+        //in demo mode prevent the message and the yee-haw sound
+        //from happening
+        ShowPlayerBigGreenHudText((char*)"FINAL LAP", 4.0f, true);
+
+        if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
+            //play the yee-haw sound
+            mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+        }
+    }
 }
 
 uint8_t VVehicle::vehicle_set_autopilot_off() {
@@ -4541,8 +4852,164 @@ uint8_t VVehicle::vehicle_computer_set_no_shoot() {
 }
 
 void VVehicle::vehicle_calculate_behind_factor() {
+}
 
+//This function is called one time at the end of the race
+//to calculate the final player statistics and player rating
+//points (GodFactor)
+uint8_t VVehicle::control_rating() {
+    uint8_t result = 0;
+    int32_t godFactor;
+    bool v6;
+    bool v7;
+    int32_t v10;
+    int32_t v11;
+    int32_t v12;
+    int32_t v14;
+    int32_t v15;
+    int32_t v16;
+    int32_t v18;
+    int32_t v19;
+    int32_t v20;
+    int32_t v21;
+    int32_t rocketsLaunched;
+    int32_t bullets;
+    int32_t totalRaceTicksFinished;
 
+    if (!RacePositionFinish)
+        return result;
+
+    godFactor = Conditions.GodFactor;
+    v6 = (godFactor >= 0);
+    v7 = (godFactor < 3001);
+    if (v6) {
+        if (!v7) {
+            Conditions.GodFactor = 3000;
+        }
+    } else {
+        Conditions.GodFactor = 0;
+    }
+
+    rocketsLaunched = Conditions.RocketsLaunched;
+    Conditions.RacePosition = RacePositionFinish;
+    if (rocketsLaunched && (bullets = Conditions.Bullets) != 0) {
+        v10 = 100 * (10 * Conditions.RocketsHit + Conditions.BulletsHit);
+        v11 = 10 * rocketsLaunched + bullets;
+        v12 = (v10 / v11);
+        Conditions.HitRatio = v12;
+        Conditions.GodFactor += 20 * v12;
+    } else {
+       Conditions.HitRatio = 0;
+    }
+
+    totalRaceTicksFinished = TotalRaceTicksFinished;
+    Conditions.TotalTime = totalRaceTicksFinished;
+    //if (RaceLaps == 1) {
+    //    _break(7u, 0);
+    //}
+    //I added the next if statement to prevent division by zero
+    if (RaceLaps != 1) {
+        Conditions.AverageLapTime = (totalRaceTicksFinished / (RaceLaps - 1));
+    } else {
+        Conditions.AverageLapTime = totalRaceTicksFinished;
+    }
+    v14 = 1000 * (Conditions.KillsCount - Conditions.DeathsCount);
+    Conditions.FastestLapTime = FastestLapTicks;
+    if (v14 >= -10000) {
+      if (v14 >= 10001) {
+          v14 = 10000;
+      }
+    } else {
+        v14 = -10000;
+    }
+
+    v15 = v14 + Conditions.GodFactor;
+    v16 = 700 * (8 - Conditions.RacePosition);
+    Conditions.GodFactor = v15;
+    v18 = v16 + v15;
+    Conditions.GodFactor = v18;
+    if ((ControlStatus & 4) != 0) {
+        v19 = 20;
+control_rating_LABEL31:
+        Conditions.GodFactor = v19;
+        goto control_rating_LABEL32;
+    }
+    if (v18 >= 0) {
+      if (v18 >= 20000) {
+         Conditions.GodFactor = 19999;
+      }
+    } else {
+        Conditions.GodFactor = 0;
+    }
+
+    v20 = (19999 - Conditions.GodFactor) / 1000 - 3 + PlayerDifficultyLevel;
+    Conditions.GodFactor = v20;
+    if (v20 >= 0) {
+      v6 = (v20 < 20);
+      v19 = 19;
+      if (!v6) {
+          goto control_rating_LABEL31;
+      }
+    } else {
+        Conditions.GodFactor = 0;
+    }
+control_rating_LABEL32:
+    //The code below assigns the points each player has earned
+    //for the race. The points simply depend on the order of the final race positions
+    /*
+       1st place player gets 20 points
+       2nd place player gets 16 points
+       3rd place player gets 13 points
+       4th place player gets 11 points
+       5th place player gets 9 points
+       6th place player gets 7 points
+       7th place player gets 6 points
+       8th place player gets 5 points */
+    switch (Conditions.RacePosition) {
+        case 0: {
+            Conditions.RacePoints = 0;
+            return 1;
+        }
+        case 1: {
+            v21 = 20;
+            goto control_rating_LABEL42;
+        }
+        case 2: {
+            v21 = 16;
+            goto control_rating_LABEL42;
+        }
+        case 3: {
+            v21 = 13;
+            goto control_rating_LABEL42;
+        }
+        case 4: {
+            v21 = 11;
+            goto control_rating_LABEL42;
+        }
+        case 5: {
+            v21 = 9;
+            goto control_rating_LABEL42;
+        }
+        case 6: {
+            v21 = 7;
+            goto control_rating_LABEL42;
+        }
+        case 7: {
+            v21 = 6;
+            goto control_rating_LABEL42;
+        }
+        case 8: {
+            v21 = 5;
+control_rating_LABEL42:
+            Conditions.RacePoints = v21;
+            break;
+        }
+        default: {
+                return 1;
+                }
+    }
+
+    return 1;
 }
 
 void VVehicle::CheckForChargingStation() {

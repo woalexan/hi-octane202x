@@ -190,9 +190,11 @@ struct VehicleBoosterStruct {
 //to vehicle
 struct VehicleConditionsStruct {
     int32_t BumpAmount = 0;
+    int32_t RocketsLaunched = 0;
     int32_t RocketsHit = 0;
     int32_t Bullets = 0;
     int32_t BulletsHit = 0;
+    int32_t HitRatio = 0;
     int32_t MiniGunHeatup = 0;
 
     //Note Deaths: In the original game implementation the Deaths array seems
@@ -204,14 +206,21 @@ struct VehicleConditionsStruct {
     int32_t Kills[8];
     int32_t KillsCount = 0;
     int32_t LapTimes[100];
+    int32_t AverageLapTime = 0;
+    int32_t FastestLapTime = 0;
     int32_t TotalTime = 0;
     int32_t LapCount = 0;
     int32_t FuelUsed = 0;
     int32_t HealthUsed = 0;
     int32_t WeaponsUsed = 0;
+    int32_t GodFactor = 0;
 
+    int32_t RacePosition = 0;
     int32_t RacePositionFinishShowTime = 0;
+    int32_t RacePoints = 0;
 
+    //The three variables below are needed to process
+    //vehicle bonuses
     bool FlagKill = false;
     bool FlagDeath = false;
     bool FlagNewLap = false;
@@ -269,6 +278,51 @@ struct VehicleBulletHoleStruct {
     int32_t Count = 0;
 };
 
+struct VehicleSpinsStruct {
+    irr::f32 Count = 0.0f;
+    int16_t State = 0;
+    irr::f32 StartAngle = 0.0f;
+    irr::f32 LastAngle = 0.0f;
+    int16_t Flags = 0;
+    //Bit 0: FlagCheck180
+    //Bit 1: FlagCheck360
+    //Bit 2: FlagCheck540
+    //Bit 3: FlagCheck720
+    //Bit 4: Flag180
+    //Bit 5: Flag360
+    //Bit 6: Flag540
+    //Bit 7: Flag720
+    //Bit 8: PadBit0 (not used)
+    //Bit 9: PadBit1 (not used)
+    //Bit 10: PadBit2 (not used)
+    //Bit 11: PadBit3 (not used)
+    //Bit 12: PadBit4 (not used)
+    //Bit 13: PadBit5 (not used)
+    //Bit 14: PadBit6 (not used)
+    //Bit 15: PadBit7 (not used)
+    uint8_t Count180 = 0;
+    uint8_t Count360 = 0;
+    uint8_t Count540 = 0;
+    uint8_t Count720 = 0;
+};
+
+struct VehicleUpgradeBackupStruct {
+    uint16_t Weapon[4];
+};
+
+struct VehicleSuperCarStruct {
+    struct VehicleUpgradeBackupStruct Backup;
+    int16_t Level = 0;
+    int16_t SuperCar = 0;
+    int16_t KillsInFirstPlace = 0;
+    int16_t Flags = 0; // (bit 0 = FlagOneLapInTheLead, bit 1 = FlagLapLead, bit 2 = FlagSuperCar)
+};
+
+struct VehicleSpecialsStruct {
+    struct VehicleSpinsStruct Spin;
+    struct VehicleSuperCarStruct SuperCar;
+};
+
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -314,6 +368,7 @@ public:
     irr::core::vector3df Displacement;
     irr::core::vector3df Slope;
     irr::core::vector3df Bump;
+    irr::core::vector3df Bonus;
 
     VehicleSpecialMovesStruct Tumble;
     VehicleAutoTargetStruct AutoTarget;
@@ -344,6 +399,7 @@ public:
     VehicleConditionsStruct Conditions;
     VehicleViewStruct View;
     VehicleDamageStruct Damage;
+    VehicleSpecialsStruct Specials;
     VehicleMovementStatusStruct MovementStatus;
     VehicleBulletHoleStruct BulletHole[16];
 
@@ -456,6 +512,8 @@ public:
 
     int16_t ControlViewType = 0;
 
+    uint8_t control_rating();
+
     //void TestBigExplosion();
 
 private:
@@ -523,6 +581,7 @@ private:
     uint8_t vehicle_colide(std::vector<VVehicle*> &vehicleVec, irr::core::vector3df& delta);
     uint8_t vehicle_colide_final_check_sean(std::vector<VVehicle*> &vehicleVec, irr::core::vector3df& delta);
     void vehicle_move_mapwho(irr::core::vector3df& delta);
+    void vehicle_check_bonuses();
     void vehicle_post_process();
 
     int32_t vehicle_get_checkpoint();
