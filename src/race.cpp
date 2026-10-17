@@ -50,8 +50,6 @@
 #include "models/camera.h"
 #include "models/chargingstation.h"
 #include "models/column.h"
-#include "models/explauncher.h"
-#include "models/explosion.h"
 #include "models/expentity.h"
 #include "models/collectablespawner.h"
 #include "draw/drawdebug.h"
@@ -825,10 +823,6 @@ Race::~Race() {
     if (vanTestCam != nullptr) {
         vanTestCam->remove();
     }
-
-    //TODO: ExplosionLauncher does not have
-    //a deconstructor, does not clean up inside!
-    delete mExplosionLauncher;
 
     delete mWorldAware;
 
@@ -1682,9 +1676,6 @@ void Race::Init() {
     //waypoint links for computer player movement control later
     mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
 
-    //create my ExplosionLauncher
-    mExplosionLauncher = new ExplosionLauncher(this, mGame->mSmgr, mGame->mDriver);
-
     //create a new Bezier object for testing
     testBezier = new Bezier(mLevelTerrain, mGame->mDrawDebug);
 
@@ -2091,9 +2082,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //update all type2 collectables
     UpdateType2Collectables(frameDeltaTime);
-
-    //update all current explosions
-    mExplosionLauncher->Update(frameDeltaTime);*/
+*/
 
     UpdateShadowLights();
 

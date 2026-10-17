@@ -321,7 +321,7 @@ bool Game::HandleGuiEvent(const irr::SEvent& event) {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 4;
+    nextRaceLevelNr = 1;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)

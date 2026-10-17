@@ -241,9 +241,6 @@ public:
     //my physics
     Physics *mPhysics = nullptr;
 
-    //my explosion launcher
-    ExplosionLauncher* mExplosionLauncher = nullptr;
-
     //vector of all available explosions in
     //this map
     std::vector<ExplosionEntity*> mExplosionEntityVec;
