@@ -2084,7 +2084,7 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     /*mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);*/
 
     //update all particle systems
-    //UpdateParticleSystems(frameDeltaTime);
+    UpdateParticleSystems(frameDeltaTime);
 
     //update all collectable spawners
     /*UpdateCollectableSpawners(frameDeltaTime);
@@ -2203,13 +2203,22 @@ void Race::UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDelt
 
        return;
     } else if (whichTrigger->thingPntr->Member == 1) { //or a timed trigger?
-        whichTrigger->thingPntr->Count--;
-        if (whichTrigger->thingPntr->Count < 0) {
-            //Timed trigger does fire
-            this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
-            whichTrigger->thingPntr->Id = whichTrigger->thingPntr->Index;
-            whichTrigger->readyForCleanup = true;
-            return;
+        //I added timeTriggerRunning, not in the original game implementation
+        //Reason is that in the original game the Time Trigger Thing is only created and existing
+        //when the timer is started, and then it counts down immediately; And when the timer elapsed
+        //the trigger thing fires and is removed again; and a new timer is created and starts counting again...
+        //In my implementation everything is slightly different: I create all the timer Things right from the level
+        //loading, and I must delay the start of the timer running to the moment the trigger condition occurs;
+        //Otherwise all timers would start running immediately which would be wrong behavior
+        if (whichTrigger->timeTriggerRunning) {
+            whichTrigger->thingPntr->Count--;
+            if (whichTrigger->thingPntr->Count < 0) {
+                //Timed trigger does fire
+                this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
+                whichTrigger->thingPntr->Id = whichTrigger->thingPntr->Index;
+                whichTrigger->readyForCleanup = true;
+                return;
+            }
         }
 
         return;
@@ -2300,6 +2309,8 @@ void Race::ProcessPendingTriggers() {
                             //remember in the trigger struct that we want to retrigger it as soon as
                             //we are possible to do so
                             (*itTrigger)->retrigger = true;
+                            //Start the timer
+                            (*itTrigger)->timeTriggerRunning = true;
                            }
                 }
             }
@@ -3148,6 +3159,11 @@ void Race::Render() {
     if (DebugShowChildInfo) {
         DebugDrawChildInfo();
     }
+
+    /*std::vector<VVehicle*>::iterator itVeh;
+    for (itVeh = mVanillaCraftVec.begin(); itVeh != mVanillaCraftVec.end(); ++itVeh) {
+        (*itVeh)->DbgDrawCurrentWayPoint();
+    }*/
 
     //DebugDrawChildInfoMemDump();
 

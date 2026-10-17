@@ -158,6 +158,7 @@ struct RaceTriggerInfoStruct {
     EntityItem* entityItemPntr = nullptr;
     bool readyForCleanup = false;
     bool retrigger = false;
+    bool timeTriggerRunning = false;
 };
 
 class Race {

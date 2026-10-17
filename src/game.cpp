@@ -321,7 +321,7 @@ bool Game::HandleGuiEvent(const irr::SEvent& event) {
 void Game::SetupDebugGame() {
 
     //which level should be directly entered?
-    nextRaceLevelNr = 1;
+    nextRaceLevelNr = 4;
 
     //set craft for main player
     //value 0 means KD1 Speeder (default selection at first start)
@@ -1164,6 +1164,11 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
            wchar_t* text2 = new wchar_t[400];
 
            swprintf(text2, 390, L"");
+
+          /* swprintf(text2, 390, L"Float1: %lf\nCount1: %d\nCount2: %d\n",
+                    mCurrentRace->mVanillaCraftVec.at(1)->dbgFloat1,
+                    (int)(mCurrentRace->mVanillaCraftVec.at(1)->ComputerPlayer.Count1),
+                    (int)(mCurrentRace->mVanillaCraftVec.at(1)->ComputerPlayer.Count2));*/
 
            //swprintf(text2, 390, L"Things: %d\nEffects: %d\n ", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mEffectManager->GetNrCurrentlyActiveEffects()));
 
