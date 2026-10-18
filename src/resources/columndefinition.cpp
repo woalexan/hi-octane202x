@@ -397,6 +397,24 @@ int16_t ColumnDefinition::decode_Unknown3() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 24);
 }
 
+void ColumnDefinition::RemoveCollision() {
+  //backup the original shape so we can restore if
+  //if needed
+  mBackupShape = get_Shape();
+
+  //set the shape to 0 means
+  //the destroyed column will not
+  //cause the vehicles to collide anymore
+  set_Shape(0);
+}
+
+void ColumnDefinition::RestoreCollision() {
+  //restore the original shape
+  //so that we get the original collision
+  //behavior
+  set_Shape(mBackupShape);
+}
+
 //the following functions are for the LevelEditor functionality
 void ColumnDefinition::set_Shape(uint8_t newVal) {
    mShape = newVal;

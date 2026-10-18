@@ -24,11 +24,12 @@
 
 //if specialPreviewColumn is true this column can be used to render block preview pictures via Render to Target, or for example to render
 //a preview picture of a whole column; This functions are only usefull in the level editor of the game!
-Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel,
+Column::Column(bool inGame, LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel,
                 bool specialPreviewColumn, BlockDefinition* specialPreviewColumnBlockDefPntrA) {
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
    mLevelBlocks = myLevelBlocks;
    mTerrain = myTerrain;
+   mInGame = inGame;
 
    column_ready = true;
    DestroyOnMorph = false;
@@ -159,6 +160,11 @@ void Column::ResetDestroyedColumn() {
         irr::f32 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y;
 
         this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+
+        if (mInGame) {
+            //Restore original collision behavior
+            Definition->RestoreCollision();
+        }
     }
 }
 
@@ -182,6 +188,12 @@ void Column::ApplyMorph(float progress) {
                 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y - 100.0f;
 
                 this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+
+                if (mInGame) {
+                    //the column was destroyed, also make sure
+                    //the vehicles do not collide with it anymore
+                    Definition->RemoveCollision();
+                }
             }
         }
 

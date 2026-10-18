@@ -210,7 +210,7 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
 void LevelBlocks::AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
     //important 21.07.2025: Do not create a special column here, this is a normal column from
     //the map of the game!
-    Column *column = new Column(MyTerrain, this, definition, pos, levelRes, false, nullptr);
+    Column *column = new Column(false, MyTerrain, this, definition, pos, levelRes, false, nullptr);
 
     this->mNrBlocksInLevel += column->GetNumberContainedBlocks();
 
@@ -3016,7 +3016,7 @@ void LevelBlocks::SetupBlockPreview() {
 
    //create a special column far below the map (invisible to the player)
    //which we can use for block preview image creation using render to target feature
-   mBlockPreviewColumn = new Column(MyTerrain, this, mBlockPreviewColumnDef, specialColumBase, levelRes, true, mBlockPreviewBlockDef);
+   mBlockPreviewColumn = new Column(false, MyTerrain, this, mBlockPreviewColumnDef, specialColumBase, levelRes, true, mBlockPreviewBlockDef);
 
    /*********************************************************
     * First create a preview texture for non existing cubes *

@@ -88,7 +88,7 @@ class MapEntry;
 
 class Column {
 public:
-    Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelRes,
+    Column(bool inGame, LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelRes,
            bool specialPreviewColumn, BlockDefinition* specialPreviewColumnBlockDefPntrA);
     ~Column();
 
@@ -176,6 +176,7 @@ private:
     float segmentSize;
 
     bool mIlluminationEnabled;
+    bool mInGame;
 
     irr::u16 mNrBlocksInColumn = 0;
 

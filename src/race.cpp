@@ -5032,7 +5032,7 @@ void Race::CreateEntity(EntityItem *p_entity,
                                 colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
 
                                 //Important: Do not create a special column here, this is a normal game map column!
-                                (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes, false, nullptr);
+                                (*colIt)->MorphSource = new Column(true, levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes, false, nullptr);
                             }
 
                             sourceColumns.clear();

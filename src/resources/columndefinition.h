@@ -53,8 +53,11 @@ public:
 
     bool WriteChanges() override;
 
-    //for level editor, write into data
     void set_Shape(uint8_t newVal);
+    void RemoveCollision();
+    void RestoreCollision();
+
+    //for level editor, write into data
     void set_FloorTextureID(int16_t newVal);
     void set_Unknown1(int16_t newVal);
     void set_Occurence(int16_t newVal);
@@ -112,7 +115,13 @@ private:
     uint8_t mUnknown4;
 
     int16_t mFloorTextureID;
+    //The shape is used for collisionDetection in the game
     uint8_t mShape;
+
+    //backups the initial shape of the column
+    //in case we want to restore it again after
+    //destroying the column
+    uint8_t mBackupShape = 0;
 
     uint8_t decode_Shape();
     int16_t decode_FloorTextureID();
