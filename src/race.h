@@ -158,6 +158,7 @@ struct RaceTriggerInfoStruct {
     EntityItem* entityItemPntr = nullptr;
     bool readyForCleanup = false;
     bool retrigger = false;
+    bool timeTriggerRunning = false;
 };
 
 class Race {
@@ -239,9 +240,6 @@ public:
 
     //my physics
     Physics *mPhysics = nullptr;
-
-    //my explosion launcher
-    ExplosionLauncher* mExplosionLauncher = nullptr;
 
     //vector of all available explosions in
     //this map

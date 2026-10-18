@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 Wolf Alexander
+ Copyright (C) 2024-2026 Wolf Alexander
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
@@ -9,15 +9,17 @@
 
 #include "expentity.h"
 #include "../race.h"
-#include "explauncher.h"
+#include "../vanilla/veffectmanager.h"
+#include "../vanilla/vcalc.h"
 
 void ExplosionEntity::Trigger() {
     if (!mAlreadyExploded) {
         mAlreadyExploded = true;
 
+        irr::core::vector3df vanPos = mRace->mVCalc->IrrlichtToVanillaCoord(mPosition);
+
         //trigger explosion at correct location
-        //via the races own ExplosionLauncher object
-        this->mRace->mExplosionLauncher->Trigger(mPosition);
+        mRace->mEffectManager->AddEffect(EffectType::ExplosionMedium, vanPos, 0.0f, 0.0f, 0.0f, -1);
     }
 }
 

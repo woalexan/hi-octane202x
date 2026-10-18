@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024-2025 Wolf Alexander       (I did just translation to C++)
+ Copyright (C) 2024-2026 Wolf Alexander       (I did just translation to C++)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -395,6 +395,24 @@ int16_t ColumnDefinition::decode_Occurence() {
 
 int16_t ColumnDefinition::decode_Unknown3() {
    return ConvertByteArray_ToInt16(this->m_Bytes, 24);
+}
+
+void ColumnDefinition::RemoveCollision() {
+  //backup the original shape so we can restore if
+  //if needed
+  mBackupShape = get_Shape();
+
+  //set the shape to 0 means
+  //the destroyed column will not
+  //cause the vehicles to collide anymore
+  set_Shape(0);
+}
+
+void ColumnDefinition::RestoreCollision() {
+  //restore the original shape
+  //so that we get the original collision
+  //behavior
+  set_Shape(mBackupShape);
 }
 
 //the following functions are for the LevelEditor functionality

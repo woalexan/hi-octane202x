@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024-2025 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
+ Copyright (C) 2024-2026 Wolf Alexander       (I did translation to C++, and then modified and extended code for my project)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -24,11 +24,12 @@
 
 //if specialPreviewColumn is true this column can be used to render block preview pictures via Render to Target, or for example to render
 //a preview picture of a whole column; This functions are only usefull in the level editor of the game!
-Column::Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel,
+Column::Column(bool inGame, LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelResLevel,
                 bool specialPreviewColumn, BlockDefinition* specialPreviewColumnBlockDefPntrA) {
    segmentSize = 1.0f; // must be 1 for Hi-Octane !!
    mLevelBlocks = myLevelBlocks;
    mTerrain = myTerrain;
+   mInGame = inGame;
 
    column_ready = true;
    DestroyOnMorph = false;
@@ -159,6 +160,11 @@ void Column::ResetDestroyedColumn() {
         irr::f32 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y;
 
         this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+
+        if (mInGame) {
+            //Restore original collision behavior
+            Definition->RestoreCollision();
+        }
     }
 }
 
@@ -182,6 +188,12 @@ void Column::ApplyMorph(float progress) {
                 newColBaseVertex4Y = this->mBaseVert4CoordOriginal.Y - 100.0f;
 
                 this->AdjustMeshBaseVerticeHeight(newColBaseVertex1Y, newColBaseVertex2Y, newColBaseVertex3Y, newColBaseVertex4Y);
+
+                if (mInGame) {
+                    //the column was destroyed, also make sure
+                    //the vehicles do not collide with it anymore
+                    Definition->RemoveCollision();
+                }
             }
         }
 

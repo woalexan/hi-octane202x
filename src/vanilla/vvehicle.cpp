@@ -1604,16 +1604,27 @@ void VVehicle::vehicle_get_track_friction() {
 }
 
 void VVehicle::vehicle_calculate_angle() {
+    irr::f32 v4;
+    irr::f32 v5;
+    irr::f32 v6;
+    irr::f32 xy;
+    irr::f32 v8;
+    irr::f32 vHelp;
+
     //is the input angle != 0?
     if (fabs(MovementInput.AngleXY) > 0.0054931640625f) {
-         irr::f32 v5 = 0.0f;
-         irr::f32 vHelp = 0.0f;
-         if (fabs(Increment.AngleXY) > 0.0054931640625f) {
-           v5 = Increment.AngleXY / fabs(Increment.AngleXY);
+         v4 = Increment.AngleXY;
+         v5 = 0.0f;
+         v6 = fabs(v4);
+
+         if (v6 > 0.0054931640625f) {
+           v5 = (v4 / v6);
          }
 
-        if (fabs(MovementInput.AngleXY) > 0.0054931640625f) {
-           vHelp = (MovementInput.AngleXY / fabs(MovementInput.AngleXY));
+        xy = MovementInput.AngleXY;
+        v8 = fabs(xy);
+        if (v8 > 0.0054931640625f) {
+           vHelp = (xy / v8);
            if (fabs(v5 - vHelp) > 0.0054931640625f) {
                goto LABEL_15_vehicle_calculate_angle;
            }
@@ -2378,6 +2389,7 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
     uint16_t v17;
     uint16_t currentWaypoint;
     irr::f32 v19;
+    int32_t v19FixedBeforeShift;
     int32_t v19Fixed;
     uint16_t v23;
     uint32_t v28;
@@ -2385,6 +2397,8 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
     irr::f32 v45;
     irr::f32 v46;
     irr::f32 v47;
+    bool setFlagPad1 = false;
+    bool setFlagPad2 = false;
     irr::f32 xy;
     irr::f32 difference;
     uint8_t result;
@@ -2395,6 +2409,10 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
 
     irr::core::vector3df position;
 
+    //This function verifies that computer players did travel a certain
+    //min distance between now and the last time, because otherwise the game
+    //assumes the computer player got stuck. And then a recovery vehicle is sent
+    //to rescue the computer player
     v2 = (vehicle_check_vehicle_movement_status() == 0);
     if (v2) {
         return 1;
@@ -2430,7 +2448,8 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
 
            v11 = mRace->mVTrack->track_waypoint_type(CurrentWaypoint);
            if (v11 == 8) {  //is Waypoint of type 8?
-              FlightModel.Flag.pad1 = true;
+              setFlagPad1 = true;
+              setFlagPad2 = false;
            } else {
               if (v11 < 9) {
                 if (v11 == 7) {  //waypoint of type 7?
@@ -2461,6 +2480,7 @@ vehicle_control_from_autopilot_LABEL31:
                             //The next operation first seems to be tricky in floating point
                             //therefore initial solution: keep it in fixed point arithmetic
                             v19Fixed = mRace->mVCalc->FloatToFixedPoint24D8(v19);
+                            v19FixedBeforeShift = v19Fixed;
                             //Remove the lowest 2 bits (we loose accuracy)
                             v19Fixed = v19Fixed >> 2;
                             //Shift back 2 bits to the left, lowest 2 bits are
@@ -2468,7 +2488,11 @@ vehicle_control_from_autopilot_LABEL31:
                             v19Fixed = v19Fixed << 2;
                             v19Fixed &= 0xFFFFFFFC;
 
-                            if (v19Fixed == (v19Fixed - 1)) {
+                            //compare if due to the shifting back and forth we lost
+                            //accuracy
+                            //Note: The original code has a different if condition
+                            //Original statement: if (v19Fixed == (v19FixedBeforeShift - 1)) {
+                            if ((v19Fixed - v19FixedBeforeShift) < 0) {
                                 CurrentWaypoint =
                                         mRace->mVTrack->track_waypoint_junction_exists(CurrentWaypoint, 6);
                             }
@@ -2485,12 +2509,16 @@ vehicle_control_from_autopilot_LABEL31:
         if ( v11 != 9) {
             goto vehicle_control_from_autopilot_LABEL22;
         }
-        //Note 13.06.2026: Setting pad1 & pad2 flags is a bit tricky
-        //here; if something does not work reinvestigate this later, issue could
-        //be here
+
+        setFlagPad1 = false;
+        setFlagPad2 = true;
+    }
+    if (setFlagPad1) {
+        FlightModel.Flag.pad1 = true;
+    }
+    if (setFlagPad2) {
         FlightModel.Flag.pad2 = true;
     }
-
     goto vehicle_control_from_autopilot_LABEL22;
  }
 
@@ -2579,6 +2607,10 @@ vehicle_control_from_autopilot_LABEL135:
         return result;
     }
 
+    //Note 11.10.2026: The calculations for difference to v40 in the next block where
+    //verified to be correct for negative and positive difference values using the emulator
+    //and breakpoints; There is no issue here
+    //Verification start ok
     v40 = 7.109375f;
     if (ComputerPlayer.Count1 < 20) {
         mRace->mVTrack->track_waypoint_position_set(position, v21);
@@ -2589,18 +2621,36 @@ vehicle_control_from_autopilot_LABEL135:
             v40 = (difference + 0.12109375f) / 32.0f;
         }
     }
+
+    //Calculation Verification end 11.10.2026
     if (ComputerPlayer.Count2) {
         MovementInput.SpeedActual = -IncrementAdd.SpeedActual;
     } else {
         MovementInput.SpeedActual = IncrementAdd.SpeedActual;
     }
 
+    //Note 11.10.2026: I also verified for correct calculation from
+    //v45 to v46 using the emulator and a breakpoint; For the games default
+    //value the calculation is correct
     v45 = IncrementAdd.AngleXY;
-    v46 = ((irr::f32)(v45 > 0.0f) - v45) * 0.5f;
-    if ((v40 < v46) || (v46 = (v45 + (IncrementAdd.AngleXY / 32768.0f)) * 0.5f),
-                         v47 = v40 * 65536.0f, v46 < v40) {
+    if (v45 > 0.0f) {
+        v46 = (0.0054931640625f - v45) * 0.5f;
+    } else {
+        v46 = -v45 * 0.5f;
+    }
+
+    //Calculation Verification end 11.10.2026
+
+    //Note 11.10.2026: I also verified for correct calculation difference
+    //value to MovemenInput.AngleXY using the emulator and a breakpoint;
+    //I did this 2 times, one time for a positive and one time for a negative difference
+    //starting value; in both cases the result for MovementInput.AngleXY was correct;
+    if ((v40 < v46) || (v46 = (v45 + (IncrementAdd.AngleXY)) * 0.5f),
+                         v47 = v40, v46 < v40) {
         v40 = v46;
-        v47 = v46 * 65536.0f;
+        v47 = v46;
+    } else {
+        MovementInput.AngleXY = MovementInput.AngleXY;
     }
 
     if (v47 >= 0.0f) {
@@ -2608,6 +2658,8 @@ vehicle_control_from_autopilot_LABEL135:
     } else {
         MovementInput.AngleXY = v40 - (MovementInput.AngleXY / 8.0f);
     }
+
+    //Calculation Verification end 11.10.2026
 
     if (FlightModel.FunctionFlag.Pad9) {
         if (this->mMGun->Upgrade <= 0) {
@@ -2746,6 +2798,19 @@ void VVehicle::vehicle_set_autodrive_on() {
 void VVehicle::vehicle_set_autodrive_off() {
     FlightModel.Flag.AutoPilot = false;
     FlightModel.Flag.AutoDrive = false;
+}
+
+void VVehicle::DbgDrawCurrentWayPoint() {
+    irr::core::vector3df myPosIrr;
+    irr::core::vector3df currWayPointVan;
+    irr::core::vector3df currWayPointIrr;
+
+    if (CurrentWaypoint != 0) {
+        mRace->mVTrack->track_waypoint_position_set(currWayPointVan, CurrentWaypoint);
+        currWayPointIrr = mRace->mVCalc->VanillaToIrrlichtCoord(currWayPointVan);
+        myPosIrr = mRace->mVCalc->VanillaToIrrlichtCoord(ThingData->Position);
+        mRace->mGame->mDrawDebug->Draw3DLine(myPosIrr, currWayPointIrr, mRace->mGame->mDrawDebug->cyan);
+    }
 }
 
 int32_t VVehicle::vehicle_get_checkpoint() {

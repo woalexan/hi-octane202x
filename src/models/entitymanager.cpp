@@ -1002,7 +1002,7 @@ void EntityManager::CreateEntity(EntityItem* p_entity) {
                     colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
 
                     //Important: Do not create a special column here, this is a normal game map column!
-                    (*colIt)->MorphSource = new Column(mLevelTerrain, mLevelBlocks, (*colIt)->Definition, colPos, mLevelFile, false, nullptr);
+                    (*colIt)->MorphSource = new Column(false, mLevelTerrain, mLevelBlocks, (*colIt)->Definition, colPos, mLevelFile, false, nullptr);
                 }
 
                 sourceColumns.clear();

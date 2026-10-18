@@ -214,10 +214,6 @@ add_executable(hi-octane202x
     src/models/collectable.cpp
     src/models/column.h
     src/models/column.cpp
-    src/models/explosion.h
-    src/models/explosion.cpp
-    src/models/explauncher.h
-    src/models/explauncher.cpp
     src/models/irrmeshbuf.h
     src/models/irrmeshbuf.cpp
     src/models/levelblocks.h

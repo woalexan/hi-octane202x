@@ -106,11 +106,11 @@ struct VehicleFunctionFlagsStruct {
     bool Pad1;  //seems to be used for checkpoint processing logic
     bool Pad2;  //seems to be used for checkpoint processing logic
     bool Pad3;  //seems to be used for vehicle control logic
-    bool Pad4;  //seems to be used for computer player control
+    bool Pad4;  //seems to be used for computer player control TODO: state is not set anywhere, is only checked/used somewhere
     bool Pad5;  //seems to be used for computer player trigger of Rocket Gun
     bool Pad6;  //seems to be used during collision detection with vector collision
     bool Pad7;  //seems to be used for auto targeting system
-    bool Pad8;  //seems to be used for auto targeting system
+    bool Pad8;  //seems to be used for auto targeting system: TODO: state is not checked/used anywhere! is only cleared/set
     bool Pad9;  //seems to be used for computer player control
     bool Pad11; //seems to be used for computer player trigger of MGun
     bool Pad12; //seems to be used for checkpoint processing logic
@@ -514,6 +514,8 @@ public:
 
     uint8_t control_rating();
 
+    void DbgDrawCurrentWayPoint();
+
     //void TestBigExplosion();
 
 private:
@@ -552,6 +554,7 @@ private:
     void vehicle_do_action();
 
     VehicleComputerPlayerStruct ComputerPlayer;
+
     uint8_t vehicle_check_vehicle_movement_status();
     void vehicle_setup_computer_character();
 

@@ -1165,6 +1165,11 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
            swprintf(text2, 390, L"");
 
+          /* swprintf(text2, 390, L"Float1: %lf\nCount1: %d\nCount2: %d\n",
+                    mCurrentRace->mVanillaCraftVec.at(1)->dbgFloat1,
+                    (int)(mCurrentRace->mVanillaCraftVec.at(1)->ComputerPlayer.Count1),
+                    (int)(mCurrentRace->mVanillaCraftVec.at(1)->ComputerPlayer.Count2));*/
+
            //swprintf(text2, 390, L"Things: %d\nEffects: %d\n ", (int)(mCurrentRace->mThingManager->GetNumberThingsUsed()), (int)(mCurrentRace->mEffectManager->GetNrCurrentlyActiveEffects()));
 
             dbgText->setText(text2);

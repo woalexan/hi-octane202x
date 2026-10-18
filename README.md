@@ -5,7 +5,7 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
-### Update 09.10.2026
+### Update 18.10.2026
 Since beginning of this year I am in the process of replacing my own older source code with new source code more or less based on the
 original games implementation. This will make my project feel much closer to the original. Right now the project contains old source code and
 new implementations in parallel, and in the near future I will begin to remove old now unnecessary parts step by step.
@@ -29,12 +29,13 @@ I made a lot of progress over the last 5 months or so. This is already implement
 - Rocket Gun triggers in levels are usable
 - Cones are implemented
 - Player rating is implemented (but needs to be still verified)
+- Steam effects at the race track are implemented in my own way (but particle system needs to be improved in the near future)
 
 #### TODO
-- Steam effects at the race track need to be implemented again
-- Explosions that are predefined in the level are not yet working when triggered
-- I saw that at least in level 3 there is an hidden area that the player craft can not enter due to a bug
-- In some levels (for example 3, 4, 5) the computer players currently have a waypoint issue when the race starts. Needs to be fixed
+- Fine tune all sprite positions in the game (for example the explosions, machine gun bulltet hitting the ground)
+- Fix small morph bug with columns in the mine level
+- Implement missing routine that calculates the "behind-factor" that affects the difficulty of vehicle physics for the players depending on their current race position
+- Fix the bug/issue with the computer player craft turning instability (tried already, this is a tricky issue) 
 
 Note regarding Windows and Visual Studio (MSVC) for compiling: Thanks to the contribution (Bugfixes) of the user ArthurReboulSalze the project was building and working under Windows not a long time ago. If my changes in the meantime broke the project under Windows again, the necessary repair work should not be very extensive.
 

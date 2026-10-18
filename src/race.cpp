@@ -50,8 +50,6 @@
 #include "models/camera.h"
 #include "models/chargingstation.h"
 #include "models/column.h"
-#include "models/explauncher.h"
-#include "models/explosion.h"
 #include "models/expentity.h"
 #include "models/collectablespawner.h"
 #include "draw/drawdebug.h"
@@ -825,10 +823,6 @@ Race::~Race() {
     if (vanTestCam != nullptr) {
         vanTestCam->remove();
     }
-
-    //TODO: ExplosionLauncher does not have
-    //a deconstructor, does not clean up inside!
-    delete mExplosionLauncher;
 
     delete mWorldAware;
 
@@ -1682,9 +1676,6 @@ void Race::Init() {
     //waypoint links for computer player movement control later
     mWorldAware->PreAnalyzeWaypointLinksOffsetRange();
 
-    //create my ExplosionLauncher
-    mExplosionLauncher = new ExplosionLauncher(this, mGame->mSmgr, mGame->mDriver);
-
     //create a new Bezier object for testing
     testBezier = new Bezier(mLevelTerrain, mGame->mDrawDebug);
 
@@ -2081,19 +2072,17 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     CheckRaceFinished(frameDeltaTime);
 
-    /*mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);
+    /*mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntPlayerMonitoring);*/
 
     //update all particle systems
     UpdateParticleSystems(frameDeltaTime);
 
     //update all collectable spawners
-    UpdateCollectableSpawners(frameDeltaTime);
+    /*UpdateCollectableSpawners(frameDeltaTime);
 
     //update all type2 collectables
     UpdateType2Collectables(frameDeltaTime);
-
-    //update all current explosions
-    mExplosionLauncher->Update(frameDeltaTime);*/
+*/
 
     UpdateShadowLights();
 
@@ -2203,13 +2192,22 @@ void Race::UpdateTrigger(RaceTriggerInfoStruct* whichTrigger, irr::f32 frameDelt
 
        return;
     } else if (whichTrigger->thingPntr->Member == 1) { //or a timed trigger?
-        whichTrigger->thingPntr->Count--;
-        if (whichTrigger->thingPntr->Count < 0) {
-            //Timed trigger does fire
-            this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
-            whichTrigger->thingPntr->Id = whichTrigger->thingPntr->Index;
-            whichTrigger->readyForCleanup = true;
-            return;
+        //I added timeTriggerRunning, not in the original game implementation
+        //Reason is that in the original game the Time Trigger Thing is only created and existing
+        //when the timer is started, and then it counts down immediately; And when the timer elapsed
+        //the trigger thing fires and is removed again; and a new timer is created and starts counting again...
+        //In my implementation everything is slightly different: I create all the timer Things right from the level
+        //loading, and I must delay the start of the timer running to the moment the trigger condition occurs;
+        //Otherwise all timers would start running immediately which would be wrong behavior
+        if (whichTrigger->timeTriggerRunning) {
+            whichTrigger->thingPntr->Count--;
+            if (whichTrigger->thingPntr->Count < 0) {
+                //Timed trigger does fire
+                this->mPendingTriggerTargetGroups.push_back(whichTrigger->thingPntr->Id);
+                whichTrigger->thingPntr->Id = whichTrigger->thingPntr->Index;
+                whichTrigger->readyForCleanup = true;
+                return;
+            }
         }
 
         return;
@@ -2300,6 +2298,8 @@ void Race::ProcessPendingTriggers() {
                             //remember in the trigger struct that we want to retrigger it as soon as
                             //we are possible to do so
                             (*itTrigger)->retrigger = true;
+                            //Start the timer
+                            (*itTrigger)->timeTriggerRunning = true;
                            }
                 }
             }
@@ -3149,6 +3149,11 @@ void Race::Render() {
         DebugDrawChildInfo();
     }
 
+    /*std::vector<VVehicle*>::iterator itVeh;
+    for (itVeh = mVanillaCraftVec.begin(); itVeh != mVanillaCraftVec.end(); ++itVeh) {
+        (*itVeh)->DbgDrawCurrentWayPoint();
+    }*/
+
     //DebugDrawChildInfoMemDump();
 
     //mThingManager->DebugDrawParentInfo();
@@ -3445,7 +3450,7 @@ void Race::InitialUpdateEntityPositions() {
             //the position in this struct is already
             //stored in the vanilla "coordinate" system
             vanCoord = (*it2)->Position;
-            vanCoord.Z = mVCalc->map_altitude_lowest(vanCoord);
+            vanCoord.Z = mVCalc->map_floor(vanCoord);  //occurs in initialiseBUILDING_CHECK_POINT
             (*it2)->Position = vanCoord;
     }
 
@@ -5027,7 +5032,7 @@ void Race::CreateEntity(EntityItem *p_entity,
                                 colPos.Z = source->getCell().Y + ((*colIt)->Position.Z - entity.getCell().Y);
 
                                 //Important: Do not create a special column here, this is a normal game map column!
-                                (*colIt)->MorphSource = new Column(levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes, false, nullptr);
+                                (*colIt)->MorphSource = new Column(true, levelTerrain, levelBlocks, (*colIt)->Definition, colPos, levelRes, false, nullptr);
                             }
 
                             sourceColumns.clear();
@@ -5231,6 +5236,7 @@ void Race::CreateEntity(EntityItem *p_entity,
 
                //add new steam fontain to my list of fontains
                steamFountainVec->push_back(sf);
+
                break;
         }
 

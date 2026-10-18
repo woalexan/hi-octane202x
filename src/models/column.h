@@ -3,7 +3,7 @@
  the GitHub project https://github.com/movAX13h/HiOctaneTools to C++ by myself.
  This project also uses the GPL3 license which is attached to this project repo as well.
  
- Copyright (C) 2024-2025 Wolf Alexander       (I did translation to C++, and then modified code for my project)
+ Copyright (C) 2024-2026 Wolf Alexander       (I did translation to C++, and then modified code for my project)
  Copyright (C) 2016 movAX13h and srtuss  (authors of original source code)
 
  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
@@ -88,7 +88,7 @@ class MapEntry;
 
 class Column {
 public:
-    Column(LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelRes,
+    Column(bool inGame, LevelTerrain* myTerrain, LevelBlocks* myLevelBlocks, ColumnDefinition* Def, vector3d<irr::f32> pos, LevelFile* levelRes,
            bool specialPreviewColumn, BlockDefinition* specialPreviewColumnBlockDefPntrA);
     ~Column();
 
@@ -176,6 +176,7 @@ private:
     float segmentSize;
 
     bool mIlluminationEnabled;
+    bool mInGame;
 
     irr::u16 mNrBlocksInColumn = 0;
 
