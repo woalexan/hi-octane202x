@@ -1020,7 +1020,7 @@ vehicle_check_bonuses_LABEL_14:
 
                 if ((this->mHUD != nullptr) && (ControlOrigin != 8)) {
                     //play the yee-haw sound
-                    //mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
+                    mRace->mSoundEngine->PlaySound(SRES_GAME_FINALLAP, false);
                 }
             }
         }

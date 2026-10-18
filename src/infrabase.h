@@ -163,6 +163,11 @@ public:
   //not for the Level editor
   GameConfigStruct* mGameConfig = nullptr;
 
+  //The current active setting while the game is running
+  //because some option changes can only become active
+  //when restarting the game
+  bool mDoubleResolutionCurrActive = false;
+
   OriginalGameFolderInfoStruct* mOriginalGame = nullptr;
 
   std::vector<uint8_t> mGameVersionDate;
@@ -191,6 +196,7 @@ public:
 
   virtual void HandleMouseEvent(const irr::SEvent& event);
 
+  //the following variable is only used in the leveleditor
   bool mBlockPreviewEnabled = true;
 
   void CopyTexture(irr::video::ITexture* source, irr::video::ITexture* target);
@@ -286,8 +292,6 @@ public:
 
   void RenderProgressBar(irr::core::recti position, irr::video::SColor colorRect, irr::video::SColor lineColor,
                              irr::u8 nrBlocks, irr::s8 nrBlocksFilled);
-
-
 
 private:
   //Irrlicht stuff

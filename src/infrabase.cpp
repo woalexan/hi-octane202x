@@ -103,6 +103,7 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
         mGameConfig->enableShadows = false;
         mGameConfig->useUpgradedSky = true;
         mGameConfig->enableDoubleResolution = false;
+        mDoubleResolutionCurrActive = false;
         mGameConfig->skipIntro = false;
 
         if (!WriteGameConfigXmlFile(device)) {
@@ -217,6 +218,7 @@ bool InfrastructureBase::ReadGameConfigXmlFile(IrrlichtDevice *device) {
        }
 
        mGameConfig->enableDoubleResolution = outBool;
+       mDoubleResolutionCurrActive = outBool;
    }
 
    //get enableVSync setting

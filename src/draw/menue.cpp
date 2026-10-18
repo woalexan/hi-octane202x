@@ -179,6 +179,17 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
     irr::u16 nrEntries = (irr::u16)(this->pageEntryVec.size());
     irr::u32 startAlignY;
     irr::u32 alignX = newMenueSpace.UpperLeftCorner.X + newMenueSpace.getWidth() / 2;
+    irr::u32 overallen;
+
+    irr::u32 distEntryToSlider = MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
+    irr::u32 remGap = 50;
+    irr::u32 emptySpaceDistance = MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
+
+    if (mParentMenue->mGame->mDoubleResolutionCurrActive) {
+        distEntryToSlider *= 2;
+        remGap *= 2;
+        emptySpaceDistance *= 2;
+    }
 
     if (nrEntries > 0) {
         irr::u32 height = newMenueSpace.getHeight();
@@ -188,12 +199,13 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
         std::vector<MenueSingleEntry*>::iterator it;
         for (it = pageEntryVec.begin(); it != pageEntryVec.end(); ++it) {
             if (((*it)->entryType != MENUE_ENTRY_TYPE_TEXTINPUTFIELD) &&
-                ((*it)->entryType != MENUE_ENTRY_TYPE_EMPTYSPACE)) {
+                ((*it)->entryType != MENUE_ENTRY_TYPE_EMPTYSPACE) &&
+                ((*it)->entryType != MENUE_ENTRY_TYPE_SLIDER)) {
                 neededHeight += (*it)->GetHeight();
             } else {
                 //for text entry or empty space entry
                 //use fixed height in pixels
-                neededHeight += MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
+                neededHeight += emptySpaceDistance;
             }
 
             neededHeight += MENUE_ENTRY_DISTANCE_PIXEL;
@@ -203,6 +215,13 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
                 //to the checkbox
                 (*it)->checkBoxPixelPerBlockHeight = (*it)->GetHeight();
                 (*it)->checkBoxPixelPerBlockWidth = (*it)->checkBoxPixelPerBlockHeight;
+                overallen = distEntryToSlider + (*it)->checkBoxPixelPerBlockWidth * (*it)->checkBoxNrBlocks + (*it)->GetWidth(true);
+
+                if (newMenueSpace.getWidth() < (overallen + remGap)) {
+                    //not enough space for the slider thing, make the checkbox slider boxes less width
+                    (*it)->checkBoxPixelPerBlockWidth = ((newMenueSpace.getWidth() - remGap - distEntryToSlider - (*it)->GetWidth(true))) / (*it)->checkBoxNrBlocks;
+                    overallen = distEntryToSlider + (*it)->checkBoxPixelPerBlockWidth * (*it)->checkBoxNrBlocks + (*it)->GetWidth(true);
+                }
             }
         }
 
@@ -210,23 +229,31 @@ void MenuePage::RealignMenueEntries(irr::core::recti newMenueSpace) {
         startAlignY = newMenueSpace.UpperLeftCorner.Y + remainHeight / 2;
 
         for (it = pageEntryVec.begin(); it != pageEntryVec.end(); ++it) {
-           (*it)->drawTextScrPosition.X = alignX - (*it)->GetWidth() / 2;
-           (*it)->drawTextScrPosition.Y = startAlignY;
+
+            (*it)->drawTextScrPosition.Y = startAlignY;
+            (*it)->drawTextScrPosition.X = alignX - (*it)->GetWidth() / 2;
 
             //if this element also has a slider, we also need to set its outline box
             if ((*it)->entryType == MENUE_ENTRY_TYPE_SLIDER) {
-                (*it)->checkBoxOutline.UpperLeftCorner.X = (*it)->drawTextScrPosition.X + (*it)->GetWidth(false) + MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL;
+
+                overallen = distEntryToSlider + (*it)->checkBoxPixelPerBlockWidth * (*it)->checkBoxNrBlocks + (*it)->GetWidth(true);
+
+                (*it)->drawTextScrPosition.X = alignX - (overallen / 2);
+                (*it)->checkBoxOutline.UpperLeftCorner.X = (*it)->drawTextScrPosition.X + ((*it)->GetWidth(true)) + distEntryToSlider;
                 (*it)->checkBoxOutline.UpperLeftCorner.Y = startAlignY;
                 (*it)->checkBoxOutline.LowerRightCorner.X = (*it)->checkBoxOutline.UpperLeftCorner.X + (*it)->checkBoxNrBlocks * (*it)->checkBoxPixelPerBlockWidth;
                 (*it)->checkBoxOutline.LowerRightCorner.Y = (*it)->checkBoxOutline.UpperLeftCorner.Y + (*it)->checkBoxPixelPerBlockHeight;
             }
 
+
             if (((*it)->entryType != MENUE_ENTRY_TYPE_TEXTINPUTFIELD) &&
                 ((*it)->entryType != MENUE_ENTRY_TYPE_EMPTYSPACE)) {
+
                     startAlignY += (*it)->GetHeight() + MENUE_ENTRY_DISTANCE_PIXEL;
             } else {
-                    startAlignY += MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS;
+                    startAlignY += emptySpaceDistance;
             }
+
         }
     }
 }
@@ -970,7 +997,7 @@ void Menue::RenderCursor(MenueSingleEntry* textEntryField) {
 
     cursorPos.UpperLeftCorner.Y = textEntryField->drawTextScrPosition.Y + 1;
 
-    if (!mGame->mGameConfig->enableDoubleResolution) {
+    if (!mGame->mDoubleResolutionCurrActive) {
         //make cursor 18 x 18 pixels
         cursorPos.LowerRightCorner.X = cursorPos.UpperLeftCorner.X + 18;
         cursorPos.LowerRightCorner.Y = cursorPos.UpperLeftCorner.Y + 18;
@@ -1574,24 +1601,21 @@ void Menue::HandleUserInactiveTimer(irr::f32 frameDeltaTime) {
         //yes, trigger next defined action automatically
         mMenueUserInactiveTimer = 0.0f;
 
-        //create random number to decide between 0 = run demo, and
-        //1 = show high score page
-        int rNum;
-        rNum = mGame->randRangeInt(0, 1);
-
-        if (rNum == 0) {
+        if (lastInactiveAction == 1) {
             //we want to trigger a demo because player was inactive in the menue
             //for a longer time
             //set here currValue to 0, because this is not a checkbox/slider action
             ActStartDemo->currSetValue = 0;
             currActionToExecute = ActStartDemo;
+            lastInactiveAction = 0; //next time show highscore again
         } else {
-            if (rNum == 1) {
+            if (lastInactiveAction == 0) {
                 //we want to show the highscore page because player was inactive in the menue
                 //for a longer time
                 //set here currValue to 0, because this is not a checkbox/slider action
                 ActShowHighScorePage->currSetValue = 0;
                 currActionToExecute = ActShowHighScorePage;
+                lastInactiveAction = 1; //next time show demo again
             }
         }
     }

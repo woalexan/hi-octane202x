@@ -1580,7 +1580,7 @@ void Race::Init() {
 
     irr::s32 distCorner = 5;
 
-    if (mGame->mGameConfig->enableDoubleResolution) {
+    if (mGame->mDoubleResolutionCurrActive) {
         distCorner *= 2;
     }
         
