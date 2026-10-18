@@ -3937,6 +3937,7 @@ void Menue::ShowHighscore() {
    highScorePageTextVec->clear();
 
    MenueTextLabel* newLabel;
+   irr::u32 textXcoord;
    irr::u32 textYcoord;
    char* highScoreValStr;
    char* assessementStr;
@@ -3944,12 +3945,16 @@ void Menue::ShowHighscore() {
 
    //first add menue page title text
    newLabel = new MenueTextLabel();
-   newLabel->drawPositionTxt.X = 264;
-   newLabel->drawPositionTxt.Y = 45;
+   if (!mGame->mDoubleResolutionCurrActive) {
+     newLabel->drawPositionTxt.X = 264;
+     newLabel->drawPositionTxt.Y = 54;
+   } else {
+     newLabel->drawPositionTxt.X = 528;
+     newLabel->drawPositionTxt.Y = 90;
+   }
+
    newLabel->text = strdup("HISCORES");
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-
-   ScalePositionMenueTextLabel(*newLabel);
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
@@ -3966,17 +3971,25 @@ void Menue::ShowHighscore() {
    //loop over all 19 entries we want to show
    for (irr::u8 cnt = 0; cnt < 19; cnt++) {
        //first calculate textYcoord according to entry line
-       textYcoord = 75 + cnt * 14;
+       if (!mGame->mDoubleResolutionCurrActive) {
+            textXcoord = 56;
+            textYcoord = 75 + cnt * 14;
+       } else {
+            textXcoord = 112;
+            textYcoord = 150 + cnt * 36;
+       }
 
        //for the player name
        newLabel = new MenueTextLabel();
-       newLabel->drawPositionTxt.X = 56;
+       newLabel->drawPositionTxt.X = textXcoord;
        newLabel->drawPositionTxt.Y = textYcoord;
        newLabel->text = strdup(pntrTable->at(cnt)->namePlayer);
        newLabel->visible = true; //we must free this text pointer!
        newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -3988,8 +4001,15 @@ void Menue::ShowHighscore() {
 
        newLabel = new MenueTextLabel();
        newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
+
+       if (!mGame->mDoubleResolutionCurrActive) {
+            textXcoord = 313;
+       } else {
+            textXcoord = 626;
+       }
+
        newLabel->drawPositionTxt.X =
-               313 - mGame->mGameTexts->GetWidthPixelsGameText(
+               textXcoord - mGame->mGameTexts->GetWidthPixelsGameText(
                    highScoreValStr,
                    newLabel->whichFont) / 2;
 
@@ -4000,7 +4020,9 @@ void Menue::ShowHighscore() {
 
        newLabel->visible = true; //set to true, free text pointer afterwards!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        highScorePageTextVec->push_back(newLabel);
 
@@ -4011,10 +4033,16 @@ void Menue::ShowHighscore() {
                this->mGameAssets->GetDriverAssessementString(
                    pntrTable->at(cnt)->playerAssessementVal);
 
+       if (!mGame->mDoubleResolutionCurrActive) {
+            textXcoord = 592;
+       } else {
+            textXcoord = 1184;
+       }
+
        newLabel = new MenueTextLabel();
        newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
        newLabel->drawPositionTxt.X =
-               592 - mGame->mGameTexts->GetWidthPixelsGameText(
+               textXcoord - mGame->mGameTexts->GetWidthPixelsGameText(
                    assessementStr,
                    newLabel->whichFont);
 
@@ -4022,7 +4050,9 @@ void Menue::ShowHighscore() {
        newLabel->text = strdup(assessementStr);
        newLabel->visible = true; //we must free this text pointer!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        highScorePageTextVec->push_back(newLabel);
 
