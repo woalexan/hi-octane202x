@@ -1245,11 +1245,17 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
             mAttributionRunning = false;
         }
 
-        //was the race finished, that means all players went through the finish
-        //line and finished the last lap?
-        if (mCurrentRace->GetWasRaceFinished()) {
-            //yes it was, get race statistics
-            this->lastRaceStat = mCurrentRace->RetrieveFinalRaceStatistics();
+        //change next if statement to true for testing of race statistics
+        //menue page
+        if (false) {
+            this->lastRaceStat = mCurrentRace->CreateDummyFinalRaceStatistics();
+        } else {
+            //was the race finished, that means all players went through the finish
+            //line and finished the last lap?
+            if (mCurrentRace->GetWasRaceFinished()) {
+                //yes it was, get race statistics
+                this->lastRaceStat = mCurrentRace->RetrieveFinalRaceStatistics();
+            }
         }
 
         //clean up current race data

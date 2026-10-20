@@ -200,6 +200,9 @@ public:
     std::vector<RaceStatsEntryStruct*>* RetrieveFinalRaceStatistics();
     void CleanupRaceStatistics(std::vector<RaceStatsEntryStruct*>* pntr);
 
+    //helper function to create dummy race statistics for testing of final statistics menue page
+    std::vector<RaceStatsEntryStruct*>* CreateDummyFinalRaceStatistics();
+
     std::vector<irr::core::vector3df> mPlayerStartLocations;
 
     void CallRecoveryVehicleForHelp(Player* whichPlayer);

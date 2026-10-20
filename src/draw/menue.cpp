@@ -4115,6 +4115,8 @@ void Menue::CleanupRaceStatsPage() {
 }
 
 void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistics) {
+   irr::u32 txtLenPixels;
+
    //prepare text for this page
    raceStatsPageTextVec = new std::vector<MenueTextLabel*>();
    raceStatsPageTextVec->clear();
@@ -4128,12 +4130,25 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    //first add menue page title text
    newLabel = new MenueTextLabel();
-   newLabel->drawPositionTxt.X = 225;
-   newLabel->drawPositionTxt.Y = 25;
+   if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 320;
+        newLabel->drawPositionTxt.Y = 25;
+   } else {
+        newLabel->drawPositionTxt.X = 640;
+        newLabel->drawPositionTxt.Y = 50;
+   }
+
    newLabel->text = strdup("STATISTICS");
    newLabel->whichFont = mGame->mGameTexts->GameMenueSelectedItemFont;
 
-   ScalePositionMenueTextLabel(*newLabel);
+   txtLenPixels = mGame->mGameTexts->GetWidthPixelsGameText(
+               newLabel->text, newLabel->whichFont);
+
+   newLabel->drawPositionTxt.X -= (txtLenPixels / 2);
+
+   if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+   }
 
    //Reuse the visible bool variable in the MenueTextLabel struct
    //here for another purpose. If we set visible to true we know
@@ -4155,21 +4170,40 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt = cnt + 2) {
         //first calculate columnXcoord according to entry column from
         //left of screen to right
-        columnXcoord = 50 + cnt * 78;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+        } else {
+            columnXcoord = 100 + cnt * 78 * 2;
+        }
 
         //for the player name
         newLabel = new MenueTextLabel();
         newLabel->whichFont = mGame->mGameTexts->GameMenueWhiteTextSmallSVGA;
-        newLabel->drawPositionTxt.X = columnXcoord - mGame->mGameTexts->GetWidthPixelsGameText(
-                    finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont) / 2;
+        txtLenPixels = mGame->mGameTexts->GetWidthPixelsGameText(
+                    finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont);
+        newLabel->drawPositionTxt.X = columnXcoord - txtLenPixels / 2;
+
+        if (newLabel->drawPositionTxt.X < 9) {
+            newLabel->drawPositionTxt.X = 19;
+        }
+
+        if ((newLabel->drawPositionTxt.X + txtLenPixels) > (mGame->mScreenRes.Width - 10)) {
+            newLabel->drawPositionTxt.X = mGame->mScreenRes.Width - 20 - txtLenPixels;
+        }
 
         //even player entries draw in the upper name line
-        newLabel->drawPositionTxt.Y = 59;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            newLabel->drawPositionTxt.Y = 59;
+        } else {
+            newLabel->drawPositionTxt.Y = 142;
+        }
 
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
 
-        ScalePositionMenueTextLabel(*newLabel);
+        if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+        }
 
         raceStatsPageTextVec->push_back(newLabel);
 
@@ -4180,21 +4214,40 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 1; cnt < nrPlayers; cnt = cnt + 2) {
         //first calculate columnXcoord according to entry column from
         //left of screen to right
-        columnXcoord = 50 + cnt * 78;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+        } else {
+            columnXcoord = 100 + cnt * 78 * 2;
+        }
 
         //for the player name
         newLabel = new MenueTextLabel();
         newLabel->whichFont = mGame->mGameTexts->GameMenueWhiteTextSmallSVGA;
-        newLabel->drawPositionTxt.X = columnXcoord - mGame->mGameTexts->GetWidthPixelsGameText(
-                    finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont) / 2;
+        txtLenPixels = mGame->mGameTexts->GetWidthPixelsGameText(
+                    finalRaceStatistics->at(cnt)->playerName, newLabel->whichFont);
+        newLabel->drawPositionTxt.X = columnXcoord - txtLenPixels / 2;
+
+        if (newLabel->drawPositionTxt.X < 9) {
+            newLabel->drawPositionTxt.X = 19;
+        }
+
+        if ((newLabel->drawPositionTxt.X + txtLenPixels) > (mGame->mScreenRes.Width - 10)) {
+            newLabel->drawPositionTxt.X = mGame->mScreenRes.Width - 20 - txtLenPixels;
+        }
 
         //uneven player entries, draw the name in lower line
-        newLabel->drawPositionTxt.Y = 75;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            newLabel->drawPositionTxt.Y = 75;
+        } else {
+            newLabel->drawPositionTxt.Y = 180;
+        }
 
         newLabel->text = strdup(finalRaceStatistics->at(cnt)->playerName);
         newLabel->visible = true; //set to true, free text pointer afterwards!
 
-        ScalePositionMenueTextLabel(*newLabel);
+        if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+        }
 
         raceStatsPageTextVec->push_back(newLabel);
 
@@ -4205,13 +4258,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel = new MenueTextLabel();
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 235;
-   newLabel->drawPositionTxt.Y = 91;
+   if (!mGame->mDoubleResolutionCurrActive) {
+       newLabel->drawPositionTxt.X = 235;
+       newLabel->drawPositionTxt.Y = 91;
+   } else {
+       newLabel->drawPositionTxt.X = 470;
+       newLabel->drawPositionTxt.Y = 218;
+   }
 
    newLabel->text = strdup("HIT ACCURACY");
    newLabel->visible = true; //we must free this text pointer!
 
-   ScalePositionMenueTextLabel(*newLabel);
+   if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+   }
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4221,8 +4281,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
        //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 0 * 32;
+       if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 0 * 32;
+       } else {
+           columnXcoord = 100 + cnt * 78 * 2;
+           rowYCoord = 272 + 0 * 32;
+       }
 
        char* newText = new char[20];
 
@@ -4244,7 +4309,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -4255,13 +4322,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel = new MenueTextLabel();
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 287;
-   newLabel->drawPositionTxt.Y = 123;
+   if (!mGame->mDoubleResolutionCurrActive) {
+     newLabel->drawPositionTxt.X = 287;
+     newLabel->drawPositionTxt.Y = 123;
+   } else {
+     newLabel->drawPositionTxt.X = 574;
+     newLabel->drawPositionTxt.Y = 296;
+   }
 
    newLabel->text = strdup("KILLS");
    newLabel->visible = true; //we must free this text pointer!
 
-   ScalePositionMenueTextLabel(*newLabel);
+   if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+   }
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4271,8 +4345,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
        //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 1 * 32;
+       if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 1 * 32;
+        } else {
+           columnXcoord = 100 + cnt * 78 * 2;
+           rowYCoord = 272 + 1 * 76;
+       }
 
        char* newText = new char[20];
 
@@ -4293,7 +4372,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -4304,13 +4385,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel = new MenueTextLabel();
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 278;
-   newLabel->drawPositionTxt.Y = 155;
+   if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 278;
+        newLabel->drawPositionTxt.Y = 155;
+   } else {
+        newLabel->drawPositionTxt.X = 556;
+        newLabel->drawPositionTxt.Y = 372;
+   }
 
    newLabel->text = strdup("DEATHS");
    newLabel->visible = true; //we must free this text pointer!
 
-   ScalePositionMenueTextLabel(*newLabel);
+   if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+   }
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4320,8 +4408,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
        //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 2 * 32;
+       if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 2 * 32;
+       } else {
+            columnXcoord = 100 + cnt * 78 * 2;
+            rowYCoord = 272 + 2 * 76;
+       }
 
        char* newText = new char[20];
 
@@ -4342,7 +4435,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -4353,13 +4448,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel = new MenueTextLabel();
    newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-   newLabel->drawPositionTxt.X = 241;
-   newLabel->drawPositionTxt.Y = 187;
+   if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 241;
+        newLabel->drawPositionTxt.Y = 187;
+   } else {
+       newLabel->drawPositionTxt.X = 482;
+       newLabel->drawPositionTxt.Y = 449;
+   }
 
    newLabel->text = strdup("AVERAGE LAP");
    newLabel->visible = true; //we must free this text pointer!
 
-   ScalePositionMenueTextLabel(*newLabel);
+   if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+   }
 
    raceStatsPageTextVec->push_back(newLabel);
 
@@ -4369,8 +4471,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
        //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 3 * 32;
+       if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 3 * 32;
+       } else {
+           columnXcoord = 100 + cnt * 78 * 2;
+           rowYCoord = 272 + 3 * 76;
+       }
 
        char* newText = new char[20];
 
@@ -4391,7 +4498,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -4402,13 +4511,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
     newLabel = new MenueTextLabel();
     newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 263;
-    newLabel->drawPositionTxt.Y = 219;
+    if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 263;
+        newLabel->drawPositionTxt.Y = 219;
+    } else {
+        newLabel->drawPositionTxt.X = 526;
+        newLabel->drawPositionTxt.Y = 526;
+    }
 
     newLabel->text = strdup("BEST LAP");
     newLabel->visible = true; //we must free this text pointer!
 
-    ScalePositionMenueTextLabel(*newLabel);
+    if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+    }
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4418,8 +4534,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
     for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
         //first calculate columnXcoord according to entry column from
         //left of screen to right
-        columnXcoord = 50 + cnt * 78;
-        rowYCoord = 113 + 4 * 32;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 4 * 32;
+        } else {
+            columnXcoord = 100 + cnt * 78 * 2;
+            rowYCoord = 272 + 4 * 76;
+        }
 
         char* newText = new char[20];
 
@@ -4440,7 +4561,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
-        ScalePositionMenueTextLabel(*newLabel);
+        if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+        }
 
         raceStatsPageTextVec->push_back(newLabel);
 
@@ -4450,13 +4573,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
     // ****************** RACE TIME ***********
     newLabel = new MenueTextLabel();
     newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 255;
-    newLabel->drawPositionTxt.Y = 251;
+    if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 255;
+        newLabel->drawPositionTxt.Y = 251;
+    } else {
+        newLabel->drawPositionTxt.X = 510;
+        newLabel->drawPositionTxt.Y = 602;
+    }
 
     newLabel->text = strdup("RACE TIME");
     newLabel->visible = true; //we must free this text pointer!
 
-    ScalePositionMenueTextLabel(*newLabel);
+    if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+    }
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4466,8 +4596,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
     for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
         //first calculate columnXcoord according to entry column from
         //left of screen to right
-        columnXcoord = 50 + cnt * 78;
-        rowYCoord = 113 + 5 * 32;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 5 * 32;
+        } else {
+            columnXcoord = 100 + cnt * 78 * 2;
+            rowYCoord = 272 + 5 * 76;
+        }
 
         char* newText = new char[20];
 
@@ -4488,7 +4623,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
-        ScalePositionMenueTextLabel(*newLabel);
+        if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+        }
 
         raceStatsPageTextVec->push_back(newLabel);
 
@@ -4498,13 +4635,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
     // ****************** RATING ***********
     newLabel = new MenueTextLabel();
     newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 281;
-    newLabel->drawPositionTxt.Y = 283;
+    if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 281;
+        newLabel->drawPositionTxt.Y = 283;
+    } else {
+        newLabel->drawPositionTxt.X = 562;
+        newLabel->drawPositionTxt.Y = 679;
+    }
 
     newLabel->text = strdup("RATING");
     newLabel->visible = true; //we must free this text pointer!
 
-    ScalePositionMenueTextLabel(*newLabel);
+    if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+    }
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4514,8 +4658,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
     for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
         //first calculate columnXcoord according to entry column from
         //left of screen to right
-        columnXcoord = 50 + cnt * 78;
-        rowYCoord = 113 + 6 * 32;
+        if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 6 * 32;
+        } else {
+            columnXcoord = 100 + cnt * 78 * 2;
+            rowYCoord = 272 + 6 * 76;
+        }
 
         char* newText = new char[20];
 
@@ -4537,7 +4686,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
         newLabel->visible = true; //we must free this text pointer!
 
-        ScalePositionMenueTextLabel(*newLabel);
+        if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+        }
 
         raceStatsPageTextVec->push_back(newLabel);
 
@@ -4547,13 +4698,20 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
     // ****************** POSITION ***********
     newLabel = new MenueTextLabel();
     newLabel->whichFont = mGame->mGameTexts->GameMenueUnselectedTextSmallSVGA;
-    newLabel->drawPositionTxt.X = 269;
-    newLabel->drawPositionTxt.Y = 315;
+    if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 269;
+        newLabel->drawPositionTxt.Y = 315;
+    } else {
+        newLabel->drawPositionTxt.X = 538;
+        newLabel->drawPositionTxt.Y = 756;
+    }
 
     newLabel->text = strdup("POSITION");
     newLabel->visible = true; //we must free this text pointer!
 
-    ScalePositionMenueTextLabel(*newLabel);
+    if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+    }
 
     raceStatsPageTextVec->push_back(newLabel);
 
@@ -4563,8 +4721,13 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
    for (irr::u8 cnt = 0; cnt < nrPlayers; cnt++) {
        //first calculate columnXcoord according to entry column from
        //left of screen to right
-       columnXcoord = 50 + cnt * 78;
-       rowYCoord = 113 + 7 * 32;
+       if (!mGame->mDoubleResolutionCurrActive) {
+            columnXcoord = 50 + cnt * 78;
+            rowYCoord = 113 + 7 * 32;
+       } else {
+           columnXcoord = 100 + cnt * 78 * 2;
+           rowYCoord = 272 + 7 * 76;
+       }
 
        char* newText = new char[20];
 
@@ -4585,7 +4748,9 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
        newLabel->visible = true; //we must free this text pointer!
 
-       ScalePositionMenueTextLabel(*newLabel);
+       if (!mGame->mDoubleResolutionCurrActive) {
+            ScalePositionMenueTextLabel(*newLabel);
+       }
 
        raceStatsPageTextVec->push_back(newLabel);
 
@@ -4599,16 +4764,26 @@ void Menue::ShowRaceStats(std::vector<RaceStatsEntryStruct*>* finalRaceStatistic
 
    newLabel = new MenueTextLabel();
    newLabel->whichFont = mGame->mGameTexts->GameMenueSelectedItemFont;
-   newLabel->drawPositionTxt.X = 320 - mGame->mGameTexts->GetWidthPixelsGameText(
+
+   if (!mGame->mDoubleResolutionCurrActive) {
+        newLabel->drawPositionTxt.X = 320 - mGame->mGameTexts->GetWidthPixelsGameText(
+                playerAssessement, newLabel->whichFont) / 2;
+
+        newLabel->drawPositionTxt.Y = 363;
+   } else {
+       newLabel->drawPositionTxt.X = 640 - mGame->mGameTexts->GetWidthPixelsGameText(
                playerAssessement, newLabel->whichFont) / 2;
 
-   newLabel->drawPositionTxt.Y = 363;
+       newLabel->drawPositionTxt.Y = 871;
+   }
 
    newLabel->text = strdup(playerAssessement);
 
    newLabel->visible = true; //we must free this text pointer!
 
-   ScalePositionMenueTextLabel(*newLabel);
+   if (!mGame->mDoubleResolutionCurrActive) {
+        ScalePositionMenueTextLabel(*newLabel);
+   }
 
    raceStatsPageTextVec->push_back(newLabel);
 

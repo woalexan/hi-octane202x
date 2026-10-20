@@ -91,7 +91,7 @@ private:
 
     //if true config.dat file is updated
     //with latest selected choices
-    bool keepConfigDataFileUpdated = false;
+    bool keepConfigDataFileUpdated = true;
 
     bool InitSFMLAudio();
 
