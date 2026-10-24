@@ -105,10 +105,10 @@
 
 //empty space menue item height in pixels
 //is also the fixed height for text input fields
-#define MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS 30
+#define MENUE_ENTRY_EMPTYSPACE_HEIGHT_PIXELS 15
 
 //distance in pixels between menue entry and slider
-#define MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL 10
+#define MENUE_ENTRY_TOSLIDER_DISTANCE_PIXEL 15
 
 //after the user is inactive for 30 seconds in the menue
 //trigger an action automatically
@@ -625,6 +625,8 @@ private:
     irr::core::position2di mLogoExtensionStrPos;
 
     void ScalePositionMenueTextLabel(MenueTextLabel& whichLabel);
+
+    irr::u8 lastInactiveAction = 0; //0 = Show highscore, 1 = Run Demo
 
     //for fading in/out of menue
     irr::u8 mCurrFadingState = MENUE_STATE_FADING_FADEDIN;

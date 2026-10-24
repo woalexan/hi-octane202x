@@ -94,6 +94,12 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
    mLevelEditorMode = levelEditorMode;
    mEnableBlockPreview = enableBlockPreview;
 
+   if (mInfra->mRunningAs == INFRA_RUNNING_AS_GAME) {
+        mInGame = true;
+   } else {
+       mInGame = false;
+   }
+
    //this->m_texfile = texfile;
    mTexSource = textureSource;
 
@@ -210,7 +216,7 @@ LevelBlocks::LevelBlocks(InfrastructureBase* infra, LevelTerrain* myTerrain, Lev
 void LevelBlocks::AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes) {
     //important 21.07.2025: Do not create a special column here, this is a normal column from
     //the map of the game!
-    Column *column = new Column(false, MyTerrain, this, definition, pos, levelRes, false, nullptr);
+    Column *column = new Column(mInGame, MyTerrain, this, definition, pos, levelRes, false, nullptr);
 
     this->mNrBlocksInLevel += column->GetNumberContainedBlocks();
 

@@ -1526,6 +1526,136 @@ std::vector<RaceStatsEntryStruct*>* Race::RetrieveFinalRaceStatistics() {
     return (result);
 }
 
+//helper function to create dummy race statistics for testing of final statistics menue page
+std::vector<RaceStatsEntryStruct*>* Race::CreateDummyFinalRaceStatistics() {
+    std::vector<RaceStatsEntryStruct*>* result = new std::vector<RaceStatsEntryStruct*>;
+
+    result->clear();
+
+    RaceStatsEntryStruct* newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "PLAYER");
+    newEntry->nrKills = 3;
+    newEntry->nrDeaths = 1;
+    newEntry->raceTime = 4939;
+    newEntry->bestLapTime = 443;
+
+    newEntry->avgLapTime = 548;
+    newEntry->racePosition = 1;
+    newEntry->hitAccuracy = 34;
+    newEntry->rating = 9;
+    newEntry->pointVal = 20;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "ATROW");
+    newEntry->nrKills = 1;
+    newEntry->nrDeaths = 2;
+    newEntry->raceTime = 5232;
+    newEntry->bestLapTime = 480;
+
+    newEntry->avgLapTime = 581;
+    newEntry->racePosition = 3;
+    newEntry->hitAccuracy = 22;
+    newEntry->rating = 7;
+    newEntry->pointVal = 13;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "BARNSY");
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 5;
+    newEntry->raceTime = 5422;
+    newEntry->bestLapTime = 470;
+
+    newEntry->avgLapTime = 602;
+    newEntry->racePosition = 4;
+    newEntry->hitAccuracy = 43;
+    newEntry->rating = 11;
+    newEntry->pointVal = 11;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "SHUNTLY");
+    newEntry->nrKills = 4;
+    newEntry->nrDeaths = 0;
+    newEntry->raceTime = 5132;
+    newEntry->bestLapTime = 510;
+
+    newEntry->avgLapTime = 570;
+    newEntry->racePosition = 2;
+    newEntry->hitAccuracy = 47;
+    newEntry->rating = 10;
+    newEntry->pointVal = 16;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "COPSE");
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 0;
+    newEntry->raceTime = 5490;
+    newEntry->bestLapTime = 485;
+
+    newEntry->avgLapTime = 610;
+    newEntry->racePosition = 5;
+    newEntry->hitAccuracy = 14;
+    newEntry->rating = 7;
+    newEntry->pointVal = 9;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "MAD");
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 3;
+    newEntry->raceTime = 5700;
+    newEntry->bestLapTime = 532;
+
+    newEntry->avgLapTime = 633;
+    newEntry->racePosition = 6;
+    newEntry->hitAccuracy = 23;
+    newEntry->rating = 3;
+    newEntry->pointVal = 7;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "MANNY");
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 3;
+    newEntry->raceTime = 5930;
+    newEntry->bestLapTime = 562;
+
+    newEntry->avgLapTime = 658;
+    newEntry->racePosition = 7;
+    newEntry->hitAccuracy = 14;
+    newEntry->rating = 6;
+    newEntry->pointVal = 6;
+
+    result->push_back(newEntry);
+    newEntry = new RaceStatsEntryStruct();
+
+    strcpy(newEntry->playerName, "MCLALIN");
+    newEntry->nrKills = 0;
+    newEntry->nrDeaths = 0;
+    newEntry->raceTime = 6123;
+    newEntry->bestLapTime = 653;
+
+    newEntry->avgLapTime = 680;
+    newEntry->racePosition = 8;
+    newEntry->hitAccuracy = 23;
+    newEntry->rating = 8;
+    newEntry->pointVal = 5;
+
+    result->push_back(newEntry);
+
+    return (result);
+}
+
 void Race::CompareMemDumpsVanilla() {
     mVDbgInterface->Init("level1-testrating.bin", "", "extract/level0-1/level0-1-unpacked.dat");
 
@@ -1580,7 +1710,7 @@ void Race::Init() {
 
     irr::s32 distCorner = 5;
 
-    if (mGame->mGameConfig->enableDoubleResolution) {
+    if (mGame->mDoubleResolutionCurrActive) {
         distCorner *= 2;
     }
         
@@ -1903,6 +2033,31 @@ void Race::UpdateLensFlare() {
     mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 }
 
+void Race::UpdateCamera() {
+    size_t vehicleIndex = 0;
+
+    if (mDemoMode) {
+       //after a certain defined time follow the
+       //next player (every 5 seconds in the original game implementation)
+       vehicleIndex = (mGameTurn / 0x64) % ((uint32_t)(mVanillaCraftVec.size()));
+    }
+
+    if ((mVCamera != nullptr) && (mVanillaCraftVec.at(vehicleIndex) != nullptr)) {
+        VVehicle* followVehicle = mVanillaCraftVec.at(vehicleIndex);
+        if (((followVehicle->ThingData->Action == 1) || (followVehicle->ThingData->Action == 0) ||
+             (followVehicle->ThingData->Action == 2)) && (!followVehicle->FlightModel.Flag.AutoPilot)
+              && (!mDemoMode)) {
+            //use the currently selected player camera (internal cockpit, 3 different views from
+            //behind the craft)
+            mVCamera->camera_process(followVehicle, followVehicle->ControlViewType + 7);
+        } else {
+            //use the external camera, this is for example used when the player
+            //waits for the recovery vehicle....
+            mVCamera->camera_process(followVehicle, 6);
+        }
+    }
+}
+
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //are we in Race start phase, if so also call
@@ -1914,6 +2069,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mThingManagerTimer += frameDeltaTime;
 
     if (mThingManagerTimer >= 0.05f) {
+        //increase mGameTurn variable every 50ms
+        //After ~6.8 years in a race we have an issue :(
+        if (mGameTurn < 4294967295) {
+            mGameTurn++;
+        }
+
         UpdateTriggers(mThingManagerTimer);
 
         //update all cones
@@ -2031,14 +2192,14 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntAdvancePhysics);
 
-    if (!mDemoMode) {
+   // if (!mDemoMode) {
         //camera control normal race
         ManagePlayerCamera();
         //mGame->mSmgr->setActiveCamera(mVCraft->mOutsideCam);
-    } else {
+    //} else {
         //camera control for demo mode
-        ManageCameraDemoMode(frameDeltaTime);
-    }
+     //   ManageCameraDemoMode(frameDeltaTime);
+   // }
 
     //TODO: for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
     //      (*itPlayer)->AfterPhysicsUpdate();
@@ -3149,7 +3310,7 @@ void Race::Render() {
         DebugDrawChildInfo();
     }
 
-    /*std::vector<VVehicle*>::iterator itVeh;
+   /* std::vector<VVehicle*>::iterator itVeh;
     for (itVeh = mVanillaCraftVec.begin(); itVeh != mVanillaCraftVec.end(); ++itVeh) {
         (*itVeh)->DbgDrawCurrentWayPoint();
     }*/

@@ -203,6 +203,7 @@ private:
 
     InfrastructureBase* mInfra = nullptr;
 
+    bool mInGame;
     bool mIlluminationEnabled;
 
     void AddColumn(ColumnDefinition* definition, vector3d<irr::f32> pos, LevelFile *levelRes);
