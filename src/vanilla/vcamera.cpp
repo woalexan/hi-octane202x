@@ -163,7 +163,7 @@ void VCamera::camera_setup() {
     mCameraWindow.Camera.Zoom = 1.171875f;
 }
 
-void VCamera::camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, int32_t force_camera_action, int32_t cameraIndex) {
+void VCamera::camera_process(VVehicle* whichVehicle, int32_t force_camera_action) {
 
     irr::f32 v24;
     irr::f32 v25;
@@ -320,7 +320,7 @@ camera_process_LABEL_35:
 
             v71 = v64 * mCameraWindow.Camera.Zoom;
             //mCameraWindow.Camera.Detail.Sky = 0;
-            mCameraWindow.Camera.Distance = (v71 / 1000.0f);
+            mCameraWindow.Camera.Distance = (v71 / 3.90625f);
             break;
         }
 
@@ -377,7 +377,7 @@ camera_process_LABEL_46:
             //}
             mCameraWindow.Camera.Position = whichVehicle->View.Position;
             mCameraWindow.Camera.Distance =
-                    (mParentRace->mVCalc->FixedPointToFloat8D8(mCameraWindow.Camera.Zoom) * 8.064f + 0.5f);
+                    (mCameraWindow.Camera.Zoom * 8.064f + 0.5f);
             mCameraWindow.Camera.AngleXY = mCameraWindow.ChaseCamera.AngleXY;
             mCameraWindow.Camera.AngleZY = mCameraWindow.ChaseCamera.AngleZY;
             mCameraWindow.Camera.AngleXZ = mCameraWindow.ChaseCamera.AngleXZ;
@@ -395,10 +395,12 @@ camera_process_LABEL_46:
 
     if (((mCameraWindow.Camera.Action != 7) || (fabs(mCameraWindow.Camera.Distance) > 0.00390625f))
             && (fabs(mCameraWindow.Camera.Distance) > 0.00390625f)) {
+      //This move_xyz call creates a cool effect where the camera position does move towards and away
+      //from a moving vehicle during external view
       mParentRace->mVCalc->move_xyz(this->mCameraWindow.Camera.Position,
                                     mCameraWindow.Camera.AngleXY,
                                     mCameraWindow.Camera.AngleZY,
-                                    -mCameraWindow.Camera.Distance);
+                                    mCameraWindow.Camera.Distance);
 
       v94 = mCameraWindow.Camera.Position.Z;
 
@@ -410,6 +412,7 @@ camera_process_LABEL_46:
 
        SetIrrlichtCamera(mParentRace->vanTestCam, &mCameraWindow.Camera);
     } else {
+        //for internal cockpit view we should enter here
         v92 = whichVehicle->ThingData->Position.Z;
         v92Int = mParentRace->mVCalc->FloatToFixedPoint8D8(v92);
         v92Int |= 2;

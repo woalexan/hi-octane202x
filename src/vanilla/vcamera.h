@@ -48,16 +48,42 @@ class VVehicle;
 class ParseCamera;
 
 struct VCameraStruct {
+    //Position is the position of the camera in the engine
     irr::core::vector3df Position;
-    irr::core::vector3df Destination;
+
+    //Destination is present in the original game, but seems to be not
+    //used in the engine render call; Is just 0 bytes all the time
+    //If bytes are changed nothing happens during frame rendering, and if you
+    //write random bytes into the Destination the bytes just stay there, is not
+    //updated at all during game loop
+    //Therefore I just commented it out here
+    //irr::core::vector3df Destination;
+
+    //Angle controls how the camera is oriented
     irr::f32 AngleXY = 0.0f;
     irr::f32 AngleZY = 0.0f;
     irr::f32 AngleXZ = 0.0f;
+
+    //I believe Lens sets the Field of view during rendering in the
+    //original games engine; Value is initialized but does not change during
+    //a game; If I modify the value then the rendering is affected, in a way
+    //that more or less polygons outside of the middle of the frame area are rendered
     //irr::f32 Lens;
+
+    //is calculated and used in external view to
+    //create the effect that the camera position does move
+    //towards or away from the moving vehicle
     irr::f32 Distance;
+
     //int16_t Follow;
-    int16_t Zoom;
+    //Zoom has just a predefined value that does not change during the Race
+    //Affects the calculation result of Distance above
+    irr::f32 Zoom;
+
     int16_t Static;
+
+    //Action controls which camera view is used
+    //(6 = external view, 7 = default internal cockpit view)
     int16_t Action;
 };
 
@@ -71,7 +97,8 @@ struct VCameraWindowStruct {
 
 class VCamera {
 
-private:
+//private:
+public:
     Race* mParentRace = nullptr;
 
     void camera_process_position(VVehicle* whichVehicle, VCameraWindowStruct& vanillaOutputCameraWindow,
@@ -79,8 +106,8 @@ private:
 
     //seems to be an array of 16 structs
     //with 70 bytes size each
-    int16_t word_8011EF2C[1120];
-    int16_t word_8011EF32[1120];
+    //int16_t word_8011EF2C[1120];
+    //int16_t word_8011EF32[1120];
 
     VCameraWindowStruct mCameraWindow;
     VCameraStruct mRenderCamera;
@@ -93,7 +120,7 @@ public:
     VCamera(Race* parentRace);
     ~VCamera();
 
-    void camera_process(/*int32_t player_number*/ VVehicle* whichVehicle, int32_t force_camera_action, int32_t cameraIndex);
+    void camera_process(VVehicle* whichVehicle, int32_t force_camera_action);
 
     //sets an Irrlicht camera in a way to replicate the original games camera view
     void SetIrrlichtCamera(irr::scene::ICameraSceneNode* whichCamera, ParseCamera* setToState);

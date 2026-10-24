@@ -2033,6 +2033,31 @@ void Race::UpdateLensFlare() {
     mRay->EmptyTriangleHitInfoVector(allHitTriangles);
 }
 
+void Race::UpdateCamera() {
+    size_t vehicleIndex = 0;
+
+    if (mDemoMode) {
+       //after a certain defined time follow the
+       //next player (every 5 seconds in the original game implementation)
+       vehicleIndex = (mGameTurn / 0x64) % ((uint32_t)(mVanillaCraftVec.size()));
+    }
+
+    if ((mVCamera != nullptr) && (mVanillaCraftVec.at(vehicleIndex) != nullptr)) {
+        VVehicle* followVehicle = mVanillaCraftVec.at(vehicleIndex);
+        if (((followVehicle->ThingData->Action == 1) || (followVehicle->ThingData->Action == 0) ||
+             (followVehicle->ThingData->Action == 2)) && (!followVehicle->FlightModel.Flag.AutoPilot)
+              && (!mDemoMode)) {
+            //use the currently selected player camera (internal cockpit, 3 different views from
+            //behind the craft)
+            mVCamera->camera_process(followVehicle, followVehicle->ControlViewType + 7);
+        } else {
+            //use the external camera, this is for example used when the player
+            //waits for the recovery vehicle....
+            mVCamera->camera_process(followVehicle, 6);
+        }
+    }
+}
+
 void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //are we in Race start phase, if so also call
@@ -2044,6 +2069,12 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mThingManagerTimer += frameDeltaTime;
 
     if (mThingManagerTimer >= 0.05f) {
+        //increase mGameTurn variable every 50ms
+        //After ~6.8 years in a race we have an issue :(
+        if (mGameTurn < 4294967295) {
+            mGameTurn++;
+        }
+
         UpdateTriggers(mThingManagerTimer);
 
         //update all cones
@@ -2161,14 +2192,14 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
 
     //mGame->mTimeProfiler->Profile(mGame->mTimeProfiler->tIntAdvancePhysics);
 
-    if (!mDemoMode) {
+   // if (!mDemoMode) {
         //camera control normal race
         ManagePlayerCamera();
         //mGame->mSmgr->setActiveCamera(mVCraft->mOutsideCam);
-    } else {
+    //} else {
         //camera control for demo mode
-        ManageCameraDemoMode(frameDeltaTime);
-    }
+     //   ManageCameraDemoMode(frameDeltaTime);
+   // }
 
     //TODO: for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
     //      (*itPlayer)->AfterPhysicsUpdate();
@@ -3279,7 +3310,7 @@ void Race::Render() {
         DebugDrawChildInfo();
     }
 
-    /*std::vector<VVehicle*>::iterator itVeh;
+   /* std::vector<VVehicle*>::iterator itVeh;
     for (itVeh = mVanillaCraftVec.begin(); itVeh != mVanillaCraftVec.end(); ++itVeh) {
         (*itVeh)->DbgDrawCurrentWayPoint();
     }*/

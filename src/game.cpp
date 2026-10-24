@@ -1165,6 +1165,9 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
            swprintf(text2, 390, L"");
 
+           /*swprintf(text2, 390, L"Dist: %lf Zoom: %lf",
+                               mCurrentRace->mVCamera->mCameraWindow.Camera.Distance, mCurrentRace->mVCamera->mCameraWindow.Camera.Zoom);*/
+
           /* swprintf(text2, 390, L"Float1: %lf\nCount1: %d\nCount2: %d\n",
                     mCurrentRace->mVanillaCraftVec.at(1)->dbgFloat1,
                     (int)(mCurrentRace->mVanillaCraftVec.at(1)->ComputerPlayer.Count1),
@@ -1177,19 +1180,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
             delete[] text2;
     }
 
-    if ((mCurrentRace->mVCamera != nullptr) && (mCurrentRace->mVanillaCraftVec.at(0) != nullptr)) {
-        VVehicle* followVehicle = mCurrentRace->mVanillaCraftVec.at(0);
-        if (((followVehicle->ThingData->Action == 1) || (followVehicle->ThingData->Action == 0) || (followVehicle->ThingData->Action == 2)) && (!followVehicle->FlightModel.Flag.AutoPilot)
-              && (!mCurrentRace->mDemoMode)) {
-            //use the currently selected player camera (internal cockpit, 3 different views from
-            //behind the craft)
-            mCurrentRace->mVCamera->camera_process(followVehicle, followVehicle->ControlViewType + 7, 0);
-        } else {
-            //use the closest external camera, this is for example used when the player
-            //waits for the recovery vehicle....
-            mCurrentRace->mVCamera->camera_process(followVehicle, 6, 0);
-        }
-    }
+    mCurrentRace->UpdateCamera();
 
     mDriver->beginScene(true,true,
      video::SColor(255,100,101,140));
@@ -1220,6 +1211,13 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
             //tell the race to stop itself, and exit
             mCurrentRace->InitiateExitRace();
         }
+    }
+
+    //is a Demo race running, if so do we want to end the
+    //demo? after 75 seconds like in the original game
+    if (!mAttributionRunning && mCurrentRace->mDemoMode && (mCurrentRace->mGameTurn >= 1500)) {
+        //yes, end the demo
+        mCurrentRace->InitiateExitRace();
     }
 
     //render log window

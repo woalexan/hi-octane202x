@@ -194,6 +194,8 @@ public:
     void AddPlayer(bool humanPlayer, char* name, std::string player_model);
     void End();
 
+    void UpdateCamera();
+
     void SetDebugFlag(irr::u8 debugFlag, bool enable);
     bool GetDebugFlag(irr::u8 debugFlag);
 
@@ -388,6 +390,10 @@ public:
     //vector of predefined camera locations for demo mode
     //positions are stored inside the level files
     std::vector<Camera*> mCameraVec;
+
+    //In original each Control Thing has its own mGameTurn variable
+    //But I moved it to the race, all vehicles/players will share the same one
+    uint32_t mGameTurn  = 0;
 
 private:
     std::string mLevelRootPath;

@@ -239,7 +239,7 @@ void VVehicle::UpdateEngineSound() {
     //if this players camera is currently selected to be followed
     //set engine sound to be non spatial, otherwise we get a weird directional
     //sound effect when the player rotates around his axis
-    if (this->mRace->currPlayerFollow == this) {
+    if ((this->mRace->currPlayerFollow == this) && (!mRace->mDemoMode)) {
         this->mRace->mSoundEngine->UpdateVehicleState(this, pitch);
     } else {
         //is not the main player (player that we follow right now)
@@ -2491,8 +2491,8 @@ vehicle_control_from_autopilot_LABEL31:
                             //compare if due to the shifting back and forth we lost
                             //accuracy
                             //Note: The original code has a different if condition
-                            //Original statement: if (v19Fixed == (v19FixedBeforeShift - 1)) {
-                            if ((v19Fixed - v19FixedBeforeShift) < 0) {
+                            if (v19Fixed == (v19FixedBeforeShift - 1)) {
+                            //if ((v19Fixed - v19FixedBeforeShift) < 0) {
                                 CurrentWaypoint =
                                         mRace->mVTrack->track_waypoint_junction_exists(CurrentWaypoint, 6);
                             }
@@ -2649,8 +2649,6 @@ vehicle_control_from_autopilot_LABEL135:
                          v47 = v40, v46 < v40) {
         v40 = v46;
         v47 = v46;
-    } else {
-        MovementInput.AngleXY = MovementInput.AngleXY;
     }
 
     if (v47 >= 0.0f) {
