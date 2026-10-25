@@ -434,6 +434,10 @@ camera_process_LABEL_46:
        SetIrrlichtCamera(mParentRace->vanTestCam, &mCameraWindow.Camera);
     } else {
         //for internal cockpit view we should enter here
+        //make sure this vehicle SceneNode is hidden, so that it does not
+        //block the internal cockpit view
+        whichVehicle->HideCraftModel();
+
         v92 = whichVehicle->ThingData->Position.Z;
         v92Int = mParentRace->mVCalc->FloatToFixedPoint8D8(v92);
         v92Int |= 2;

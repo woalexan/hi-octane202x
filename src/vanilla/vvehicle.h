@@ -520,6 +520,9 @@ public:
 
     void DbgDrawCurrentWayPoint();
 
+    void HideCraftModel();
+    void UnhideCraftModel();
+
     //void TestBigExplosion();
 
 private:
@@ -539,6 +542,8 @@ private:
 
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* mCraftMesh = nullptr;
+
+    bool mCraftVisible = true;
 
     bool mUpdateEngineSound = false;
 

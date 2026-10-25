@@ -2036,6 +2036,20 @@ void Race::UpdateLensFlare() {
 void Race::UpdateCamera() {
     size_t vehicleIndex = 0;
 
+    //control visibility of the vehicle scenenode
+    //In case the player that is followed (rendered) uses internal cockpit view
+    //the own model Scenenode must be hidden, so that we do not see it
+    //blocking our view
+
+    //first make sure all player vehicle models are visible
+    //the one that is followed in the HUD right now is then hidden in
+    //mVCamera->camera_process function call below if the internal
+    //cockpit view is used
+    std::vector<VVehicle*>::iterator it;
+    for (it = mVanillaCraftVec.begin(); it != mVanillaCraftVec.end(); ++it) {
+        (*it)->UnhideCraftModel();
+    }
+
     if (mDemoMode) {
        //after a certain defined time follow the
        //next player (every 5 seconds in the original game implementation)
@@ -2069,9 +2083,11 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     mThingManagerTimer += frameDeltaTime;
 
     if (mThingManagerTimer >= 0.05f) {
-        //increase mGameTurn variable every 50ms
+        //increase mGameTurn variable every 50ms after the first player
+        //has moved over the finish line the first time
         //After ~6.8 years in a race we have an issue :(
-        if (mGameTurn < 4294967295) {
+        if ((mGameTurn < 4294967295) && (mCurrentPhase != DEF_RACE_PHASE_START)
+                && (mCurrentPhase != DEF_RACE_PHASE_FIRSTWAYTOWARDSFINISHLINE)) {
             mGameTurn++;
         }
 
