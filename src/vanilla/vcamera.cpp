@@ -164,7 +164,6 @@ void VCamera::camera_setup() {
 }
 
 void VCamera::camera_process(VVehicle* whichVehicle, int32_t force_camera_action) {
-
     irr::f32 v24;
     irr::f32 v25;
     irr::f32 v26;
@@ -187,16 +186,15 @@ void VCamera::camera_process(VVehicle* whichVehicle, int32_t force_camera_action
     std::vector<Camera*>::iterator it;
     irr::f32 xyz;
     irr::f32 v71;
-
-    /* if (player_number != -1) {
-         word_8011EF2C[70 * cameraIndex] = player_number;
-     }*/
+    int32_t v80;
+    int32_t v81;
+    bool v82;
+    irr::f32 v83;
 
     //my solution
     if (force_camera_action == -1) {
          //not implemented right now
     } else {
-        //word_8011EF32[70 * cameraIndex] = force_camera_action;
         mCameraWindow.Camera.Action = force_camera_action;
     }
 
@@ -316,10 +314,9 @@ camera_process_LABEL_35:
             mCameraWindow.Camera.AngleXY = mParentRace->mVCalc->angle_get_xy(*v61, whichVehicle->View.Position);
             mCameraWindow.Camera.AngleZY = mParentRace->mVCalc->angle_get_zy(*v61, whichVehicle->View.Position);
             mCameraWindow.Camera.AngleXZ = 0.0f;
-            mCameraWindow.Camera.Position = *v61; //whichVehicle->View.Position;
+            mCameraWindow.Camera.Position = *v61;
 
             v71 = v64 * mCameraWindow.Camera.Zoom;
-            //mCameraWindow.Camera.Detail.Sky = 0;
             mCameraWindow.Camera.Distance = (v71 / 3.90625f);
             break;
         }
@@ -332,22 +329,38 @@ camera_process_LABEL_46:
             mCameraWindow.Camera.AngleXY = whichVehicle->View.AngleXY;
             mCameraWindow.Camera.AngleZY = whichVehicle->View.AngleZY;
             mCameraWindow.Camera.AngleXZ = whichVehicle->View.AngleXZ;
-            //something weird with ThingVehicle.VehicleDamage.ShimmerCount missing, implement later?
+
+            //The code below starting from here until the break shakes the internal
+            //cockpit view camera in case the player is attacked, or the player
+            //bumps into another player
+            v80 = static_cast<int32_t>(whichVehicle->Damage.ShimmerCount);
+            v81 = static_cast<int32_t>((static_cast<int64_t>(274877907LL * (v80 << 6)) >> 32) >> 6) * (2 * (mParentRace->mGameTurn & 1) - 1);
+            whichVehicle->Damage.ShimmerCount = static_cast<uint16_t>(5 * (v80 / 8));
+            v82 = (v81 == 0);
+            if (!v82) {
+                v83 = mParentRace->mVCalc->FixedPointToFloat8D8(static_cast<int16_t>(v81));
+                //I added a factor of 2.0f by the move_xyz call speed parameter to make the effect
+                //more pronounced
+                mParentRace->mVCalc->move_xyz(mCameraWindow.Camera.Position,
+                                              mCameraWindow.Camera.AngleXY + 90.0f,
+                                              mCameraWindow.Camera.AngleZY, v83 * 2.0f);
+            }
+
             break;
         }
 
         case 8: { //This is the first external view behind the craft, with the smallest distance to vehicle
-            camera_process_position(whichVehicle, mCameraWindow, 0.46875f, 0.0823974609375f);
+            camera_process_position(whichVehicle, mCameraWindow, 0.46875f, 15.0f);
             break;
         }
 
         case 9: { //This is the 2nd external view behind the craft, with middle distance to vehicle
-            camera_process_position(whichVehicle, mCameraWindow, 0.9375f, 0.054931640625f);
+            camera_process_position(whichVehicle, mCameraWindow, 1.40625f, 10.0f);
             break;
         }
 
         case 0xA: { //This is the 3rd external view behind the craft, with the highest distance to vehicle
-            camera_process_position(whichVehicle, mCameraWindow, 1.40625f, 0.0274658203125f);
+            camera_process_position(whichVehicle, mCameraWindow, 1.80625f, 5.0f);
             break;
         }
 
@@ -395,12 +408,20 @@ camera_process_LABEL_46:
 
     if (((mCameraWindow.Camera.Action != 7) || (fabs(mCameraWindow.Camera.Distance) > 0.00390625f))
             && (fabs(mCameraWindow.Camera.Distance) > 0.00390625f)) {
-      //This move_xyz call creates a cool effect where the camera position does move towards and away
-      //from a moving vehicle during external view
-      mParentRace->mVCalc->move_xyz(this->mCameraWindow.Camera.Position,
-                                    mCameraWindow.Camera.AngleXY,
-                                    mCameraWindow.Camera.AngleZY,
-                                    mCameraWindow.Camera.Distance);
+      if ((mCameraWindow.Camera.Action == 0x8) || (mCameraWindow.Camera.Action == 0x9) ||
+              (mCameraWindow.Camera.Action == 0xA)) {
+          mParentRace->mVCalc->move_xyz(this->mCameraWindow.Camera.Position,
+                                        mCameraWindow.Camera.AngleXY,
+                                        mCameraWindow.Camera.AngleZY,
+                                        -mCameraWindow.Camera.Distance);
+      } else {
+          //This move_xyz call creates a cool effect where the camera position does move towards and away
+          //from a moving vehicle during external view
+          mParentRace->mVCalc->move_xyz(this->mCameraWindow.Camera.Position,
+                                        mCameraWindow.Camera.AngleXY,
+                                        mCameraWindow.Camera.AngleZY,
+                                        mCameraWindow.Camera.Distance);
+      }
 
       v94 = mCameraWindow.Camera.Position.Z;
 
@@ -423,6 +444,8 @@ camera_process_LABEL_46:
     }
 }
 
+//This function implements a control loop that is used to control the external view camera that is
+//moving behind the player craft
 void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruct& vanillaOutputCameraWindow,
                                       irr::f32 distance, irr::f32 degrees) {
     irr::core::vector3df position;
@@ -433,14 +456,12 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
     vanillaOutputCameraWindow.ChaseCamera.AngleZY = whichVehicle->View.AngleZY;
     vanillaOutputCameraWindow.ChaseCamera.Distance = distance;
 
-    irr::f32 v14 = whichVehicle->View.AngleZY;
+    irr::f32 v14 = vanillaOutputCameraWindow.ChaseCamera.AngleZY;
     irr::f32 v15 = whichVehicle->View.AngleXY;
     irr::f32 v16 = -distance;
     irr::f32 v17 = -distance;
     vanillaOutputCameraWindow.Camera.Position.Z += 0.5f;
     irr::f32 v18 = v14 + degrees;
-    //TODO: the next line is just an assumption, could be
-    //completely wrong!
     irr::core::vector3df v19 = vanillaOutputCameraWindow.Camera.Position;
     irr::f32 v20 = fabs(v17);
     vanillaOutputCameraWindow.ChaseCamera.AngleZY = v18;
@@ -462,13 +483,13 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
     irr::f32 v47;
     int16_t v33;
 
-    if (!((v20 >= 0.03125f) && (v20 <= 10.0f))) {
+    if ((v20 <= 0.03125f) || (v20 >= 10.00390625f)) {
         goto camera_process_position_LABEL16;
     }
 
     if (v17 < 0.0f) {
        v22 = -0.03125f;
-       v23 = v16; // * 65536.0f;
+       v23 = v16;
        if (v17 <= -0.03125f) {
            v24 = v17;
            do {
@@ -482,17 +503,17 @@ void VCamera::camera_process_position(VVehicle* whichVehicle, VCameraWindowStruc
                    goto camera_process_position_LABEL16;
                }
                v22 -= 0.03125f;
-               v23 = v16; // * 65536.0f;
+               v23 = v16;
            } while (v22 >= v24);
        }
 camera_process_position_LABEL15:
-       v17 = v23; // / 65536.0f);
+       v17 = v23;
        goto camera_process_position_LABEL16;
     }
     v27 = 0.03125f;
     if (v17 < 0.03125f) {
 camera_process_position_LABEL14:
-        v23 = v16; // * 65536.0f;
+        v23 = v16;
         goto camera_process_position_LABEL15;
     }
     v28 = v17;
@@ -574,7 +595,7 @@ int32_t VCamera::move_point_see_point(irr::core::vector3df position_from,
     //better do this in fixed point arithmetic
     rough_xyz = static_cast<int32_t>(mParentRace->mVCalc->FloatToFixedPoint8D8(rough_xyz_float));
 
-    if (rough_xyz < 257) {
+    if (rough_xyz >= 257) {
          v6 = rough_xyz + 64;
          if (v6 < 0) {
              v6 = rough_xyz + 191;

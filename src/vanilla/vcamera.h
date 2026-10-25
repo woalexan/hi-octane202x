@@ -97,17 +97,11 @@ struct VCameraWindowStruct {
 
 class VCamera {
 
-//private:
-public:
+private:
     Race* mParentRace = nullptr;
 
     void camera_process_position(VVehicle* whichVehicle, VCameraWindowStruct& vanillaOutputCameraWindow,
                                  irr::f32 distance, irr::f32 degrees);
-
-    //seems to be an array of 16 structs
-    //with 70 bytes size each
-    //int16_t word_8011EF2C[1120];
-    //int16_t word_8011EF32[1120];
 
     VCameraWindowStruct mCameraWindow;
     VCameraStruct mRenderCamera;
