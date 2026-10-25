@@ -243,6 +243,10 @@ struct VehicleConditionsStruct {
 };
 
 struct VehicleDamageStruct {
+    //ShimmerCount variable is used to shake
+    //the internal cockpit camera slightly in case
+    //player is attacked, or the player bumps into
+    //another player
     uint16_t ShimmerCount = 0;
     uint16_t BulletCount = 0;
     uint16_t MissileCount = 0;
@@ -516,6 +520,9 @@ public:
 
     void DbgDrawCurrentWayPoint();
 
+    void HideCraftModel();
+    void UnhideCraftModel();
+
     //void TestBigExplosion();
 
 private:
@@ -535,6 +542,8 @@ private:
 
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* mCraftMesh = nullptr;
+
+    bool mCraftVisible = true;
 
     bool mUpdateEngineSound = false;
 

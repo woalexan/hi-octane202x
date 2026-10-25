@@ -22,47 +22,6 @@
 //The target hover height of the craft above the race track
 const irr::f32 HOVER_HEIGHT = 0.6f;  //0.6f
 
-const irr::f32 MAX_PLAYER_SPEED = 17.0f;
-
-const irr::f32 CRAFT_SIDEWAYS_BRAKING = 2.0f;
-
-const irr::f32 CRAFT_JUMPDETECTION_THRES = 1.2f;
-
-const irr::f32 DEF_PLAYER_MGUN_MINHIT_PROB = 25.0f;
-const irr::f32 DEF_PLAYER_MGUN_MAXHIT_PROB = 90.0f;
-
-#define CRAFT_AIRFRICTION_NOTURBO 0.3f
-#define CRAFT_AIRFRICTION_TURBO 0.2f
-
-#define CRAFT_NOLEANING 0
-#define CRAFT_LEANINGLEFT 1
-#define CRAFT_LEANINGRIGHT 2
-
-#define STATE_HMAP_COLL_IDLE 0
-#define STATE_HMAP_COLL_WATCH 1
-#define STATE_HMAP_COLL_RESOLVE 2
-#define STATE_HMAP_COLL_NOINTERSECTPNT 3
-#define STATE_HMAP_COLL_FAILED 4
-
-#define STATE_PLAYER_BEFORESTART 0
-#define STATE_PLAYER_ONFIRSTWAYTOFINISHLINE 1
-#define STATE_PLAYER_RACING 2
-#define STATE_PLAYER_EMPTYFUEL 3
-#define STATE_PLAYER_BROKEN 4
-#define STATE_PLAYER_GRABEDBYRECOVERYVEHICLE 5
-
-#define CAMERA_PLAYER_COCKPIT 0
-#define CAMERA_PLAYER_BEHINDCRAFT 1
-#define CAMERA_EXTERNALVIEW 2
-#define CAMERA_PLAYER_SIDELOOKING 3
-
-#define DEF_PLAYER_DBG_ALL 0
-#define DEF_PLAYER_DBG_CURRWAYPOINTLINK 1
-#define DEF_PLAYER_DBG_ACTINGFORCES 2
-#define DEF_PLAYER_DBG_CPU_CURRSEGMENT 3
-#define DEF_PLAYER_DBG_CPU_PATHHISTORY 4
-#define DEF_PLAYER_DBG_FREESPACE 5
-
 /************************
  * Forward declarations *
  ************************/
@@ -76,85 +35,6 @@ class MovingAverageCalculator;
 class MapEntry;
 class EntityItem;
 
-typedef struct {
-    irr::u8 lapNr;
-    irr::u32 lapTimeMultiple40mSec;
-} LAPTIMEENTRY;
-
-typedef struct PlayerStats {
-    irr::f32 speed;
-    irr::f32 speedMax = MAX_PLAYER_SPEED;
-
-    irr::f32 shieldVal;
-    irr::f32 gasolineVal;
-    irr::f32 ammoVal;
-
-    irr::f32 shieldMax = 50.0;
-    irr::f32 gasolineMax = 50.0;
-
-    //the player has ammo for 6 missiles
-    //at the start
-    irr::f32 ammoMax = 6.0;
-
-    irr::f32 mgHeatVal = 0.0;
-    irr::f32 mgHeatMax = 100.0;
-
-    irr::f32 boosterVal;
-    irr::f32 boosterMax = 100.0;
-
-    irr::f32 throttleVal;
-    irr::f32 throttleMax = 100.0;
-
-    //current equipment upgrade levels
-
-    //minigun level, goes from 0 (no upgrade, to 3 upgrades)
-    int currMinigunUpgradeLevel = 0;
-
-    //rocket level, goes from 0 (no upgrade, to 3 upgrades)
-    int currRocketUpgradeLevel = 0;
-
-    //booster level, goes from 0 (no upgrade, to 3 upgrades)
-    int currBoosterUpgradeLevel = 0;
-
-    irr::u32 currLapTimeMultiple40mSec = 0;
-    irr::f32 currLapTimeExact;
-    std::vector <LAPTIMEENTRY> lapTimeList;
-    LAPTIMEENTRY lastLap;
-    LAPTIMEENTRY LapBeforeLastLap;
-
-    irr::u8 currRacePlayerPos = 0;
-    irr::u8 overallPlayerNumber = 0;
-
-    irr::u8 currLapNumber = 1;
-
-    irr::u8 raceNumberLaps = 6;
-
-    bool mHasFinishedRace = false;
-
-    //for the accuracy calculation later
-    //in statistics
-    irr::u32 shootsMissed = 0;
-    irr::u32 shootsHit = 0;
-
-    //the number of occurences where this player
-    //has totaled another player completely
-    irr::u8 currKillCount = 0;
-
-    //the number of occurences where this player
-    //was totaled, for whatever reason
-    irr::u8 currDeathCount = 0;
-
-    //player names in Hi-Octane are limited
-    //to 8 characters, plus 1 termination char + 1 extra
-    //char to be on the safe side :)
-    char name[10];
-
-    bool mPlayerCanMove;
-    bool mPlayerCanShoot;
-
-    irr::u8 mPlayerCurrentState;
-} PLAYERSTATS;
-
 class HUD; //Forward declaration
 class Race; //Forward declaration
 class SmokeTrail; //Forward declaration
@@ -162,7 +42,6 @@ class DustBelowCraft; //Forward declaration
 class MachineGun; //Forward declaration
 class MissileLauncher; //Forward declaration
 class PhysicsObject; //Forward declaration
-class Recovery; //Forward declaration
 struct HudDisplayPart; //Forward declaration
 
 class Player {
@@ -171,16 +50,6 @@ public:
            irr::u8 nrLaps, bool humanPlayer);
     ~Player();
 
-    void SetPlayerObject(PhysicsObject* phObjPtr);
-
-    //returns true if player craft of a computer
-    //player is currently stuck
-    //returns always false when called for a human
-    //player, regardless what the human player currently
-    //does
-    bool IsCurrentlyStuck();
-
-    void ExecuteCpPlayerLogic(irr::f32 deltaTime);
 
     //set high reset values, so that the values have no
     //influence until first worldAware calculation has been done
@@ -204,16 +73,11 @@ public:
     irr::f32 dbgCameraVal;
     irr::f32 dbgCameraTargetVal;
 
-    void SetDebugFlag(irr::u8 debugFlag, bool enable);
-    bool GetDebugFlag(irr::u8 debugFlag);
-
     bool firstNoKeyPressed = false;
 
     //True means humanPlayer
     //False is for computer player
     bool mHumanPlayer;
-
-    void ChangeViewMode();
 
     int mCurrPosCellX;
     int mCurrPosCellY;
@@ -232,73 +96,7 @@ public:
     //up by players that have not already full ammo currenty
     bool CollectedCollectable(Collectable* whichCollectable);
 
-    void StartPlayingWarningSound();
-    void StopPlayingWarningSound();
-
-    void Update(irr::f32 frameDeltaTime);
     void AddTextureID(irr::s32 newTexId);
-
-    void SetName(char* playerName);
-
-    //if showDurationSec is negative, the text will be shown until it is deleted
-    //with a call to function RemovePlayerPermanentGreenBigText
-    //if blinking is true text will blink (for example used for final lap text), If false
-    //text does not blink (as used when player died and waits for repair craft)
-    void ShowPlayerBigGreenHudText(char* text, irr::f32 timeDurationShowTextSec, bool blinking);
-    void RemovePlayerPermanentGreenBigText();
-
-    irr::f32 currentSideForce = 0.0f;
-
-    irr::core::vector3d<irr::f32> LocalTopLookingCamPosPnt;
-    irr::core::vector3d<irr::f32> LocalTopLookingCamTargetPnt;
-
-    irr::core::vector3d<irr::f32> Local1stPersonCamPosPnt;
-    irr::core::vector3d<irr::f32> Local1stPersonCamTargetPnt;
-
-    irr::core::vector3df WorldTopLookingCamPosPnt;
-    irr::core::vector3df WorldTopLookingCamTargetPnt;
-
-    irr::core::vector3df World1stPersonCamPosPnt;
-    irr::core::vector3df World1stPersonCamTargetPnt;
-
-    irr::core::vector3df LocalSideLookingCamPosPnt;
-    irr::core::vector3df LocalSideLookingCamTargetPnt;
-
-    irr::core::vector3df WorldSideLookingCamPosPnt;
-    irr::core::vector3df WorldSideLookingCamTargetPnt;
-
-    //local coordinate for control of craft
-    irr::core::vector3d<irr::f32> LocalCraftForceCntrlPnt;
-
-    //a local coordinate system point defined on the players craft, for height control
-    irr::core::vector3d<irr::f32> LocalCraftFrontPnt;
-    irr::core::vector3d<irr::f32> LocalCraftBackPnt;
-    irr::core::vector3d<irr::f32> LocalCraftLeftPnt;
-    irr::core::vector3d<irr::f32> LocalCraftRightPnt;
-
-    irr::core::vector3d<irr::f32> LocalCraftOrigin;
-
-    //local position on the craft where smoke pours out if
-    //player is damaged
-    irr::core::vector3d<irr::f32> LocalCraftSmokePnt;
-
-    //local position on the craft where dust clouds are created when
-    //hovering above dusty tiles next to the race track
-    irr::core::vector3d<irr::f32> LocalCraftDustPnt;
-
-    //mainly for debugging
-    irr::core::vector3d<irr::f32> WorldCoordCraftFrontPnt;
-    irr::core::vector3d<irr::f32> WorldCoordCraftBackPnt;
-    irr::core::vector3d<irr::f32> WorldCoordCraftLeftPnt;
-    irr::core::vector3d<irr::f32> WorldCoordCraftRightPnt;
-
-    //world coordinate position on the craft where smoke pours out if
-    //player is damaged
-    irr::core::vector3d<irr::f32> WorldCoordCraftSmokePnt;
-
-    //world coordinate position on the craft where dust clouds are created when
-    //hovering above dusty tiles next to the race track
-    irr::core::vector3d<irr::f32> WorldCraftDustPnt;
 
     irr::core::vector3df LocalCraftAboveCOGStabilizationPoint;
     irr::core::vector3df WorldCoordCraftAboveCOGStabilizationPoint;
@@ -355,22 +153,6 @@ public:
     //shooting target for mgun at player model quickly
     irr::core::vector3df mPlayerModelExtend;
 
-    //my player internal camera for cockpit
-    irr::scene::ICameraSceneNode* mIntCamera = nullptr;
-    //my 3rd person camera from behind the craft
-    irr::scene::ICameraSceneNode* mThirdPersonCamera = nullptr;
-
-    irr::scene::ICameraSceneNode* mSideLookingCamera = nullptr;
-
-    void UpdateCameras();
-
-    //the players stats
-    PLAYERSTATS *mPlayerStats = nullptr;
-
-    //copy of the player stats when player
-    //crosses finish line the last time
-    PLAYERSTATS *mFinalPlayerStats = nullptr;
-
     //the parent race for this player
     Race *mRace = nullptr;
 
@@ -394,13 +176,6 @@ public:
 
     //void AlignPlayerModelToTerrainBelow();
 
-    void SetupComputerPlayerForStart(irr::core::vector3df startPos);
-
-    void SetupForStart();
-    void SetupToSkipStart();
-    void SetupForFirstWayToFinishLine();
-    void DeactivateAttack();
-
     bool AllAnimatorsDone();
 
     EntityItem* cPTargetEntity = nullptr;
@@ -409,19 +184,7 @@ public:
     //while currClosestWayPointLink is current != nullptr
     irr::core::vector3df projPlayerPositionClosestWayPointLink;
 
-    //the following variable is used for race position calculation
-    irr::f32 remainingDistanceToNextCheckPoint = 0.0f;
-
-    //the current calculate angle between craft upwards direction vector
-    //and the world Y-axis. Is used to draw the sky background image realistic
-    irr::f32 currPlayerCraftLeaningAngleDeg = 0.0f;
-    irr::u8 currPlayerCraftLeaningOrientation = CRAFT_NOLEANING;
-
-    irr::f32 currPlayerCraftForwardLeaningAngleDeg = 0.0f;
-
     //void ProjectPlayerAtCurrentSegment();
-
-    void FinishedLap();
 
     irr::core::vector3df pos_in_worldspace_frontPos;
     irr::core::vector3df pos_in_worldspace_backPos;
@@ -433,113 +196,18 @@ public:
     irr::f32 DbgCurrRaceTrackHeightLeft;
     irr::f32 DbgCurrRaceTrackHeightRight;*/
 
-    void DebugCraftLocalFeatureCoordinates();
-
-    void SetMyHUD(HUD* pntrHUD);
-    HUD* GetMyHUD();
-
-    bool mBoosterActive = false;
-    bool mBoosterRechargeCurrentlyLocked = false;
-    bool mLastBoosterActive = false;
-
-    bool mMaxTurboActive = false;
-    bool mLastMaxTurboActive = false;
-    irr::f32 mRemainingMaxTurboActiveTime;
-
-    void Collided();
-    void AfterPhysicsUpdate();
-    sf::Sound* CollisionSound = nullptr;
-
     //Get current weapon shooting target for this player
     //Returns true if there was a target found, False otherwise
     bool GetWeaponTarget(RayHitTriangleInfoStruct &shotTarget);
-
-    void SetGrabedByRecoveryVehicle(Recovery* whichRecoveryVehicle);
-    void FreedFromRecoveryVehicleAgain();
-
-    irr::core::vector3df dbgCurrCeilingMinPos;
-    bool minCeilingFound;
-
-    irr::core::vector2df GetMyBezierCurvePlaningCoord(irr::core::vector3df &threeDCoord);
-
-    //true if player craft is currently jumping
-    bool mCurrJumping = false;
-    irr::f32 mCurrInAirTime;
-
-    bool firstHeightControlLoop = true;
-
-    //needed for player jump detection
-    //logic
-    irr::f32 lastHeightFront;
-    irr::f32 lastHeightBack;
-
-    irr::f32 lastDistCraftTerrainBack;
-    irr::f32 currDistCraftTerrainFront;
-    irr::f32 currDistCraftTerrainBack;
-
-    irr::u8 playerAbsAngleSkytListElementNr = 0;
-
-    MovingAverageCalculator* mMovingAvgPlayerLeaningAngleLeftRightCalc = nullptr;
-    irr::f32 mCurrentAvgPlayerLeaningAngleLeftRightValue;
-    irr::f32 nextLeaningAngleUpdate = -1.0f;
 
     //MovingAverageCalculator* mMovingAvgPlayerPositionCalc;
     //irr::core::vector3df mCurrentAvgPlayerPosition;
 
     void DebugSelectionBox(bool boundingBoxVisible);
 
-    void TestCpForceControlLogicWithHumanPlayer();
-
-    //current best camera for this players external view
-    Camera* externalCamera = nullptr;
-
-    irr::u8 mCurrentViewMode;
-    irr::u8 mLastViewModeBeforeBrokenCraft;
-
-    irr::scene::ICameraSceneNode* DeliverActiveCamera();
-
-    bool mOtherPlayerHasMissleLockAtMe = false;
-
-    void HideCraft();
-    void UnhideCraft();
-
-    irr::f32 GetHoverHeight();
-
-    bool mCraftVisible;
-
-    bool DoWeNeedHidePlayerModel();
-    bool IsCurrentlyValidTarget();
-
-    irr::core::vector3df GetRandomMGunShootTargetLocation(bool shootDoesHit);
-
-    //returns integer with value between 0 and 100
-    //percent
-    irr::u32 GetMGunHitProbability();
-
-    void LogMessage(char *msgTxt);
-
-    //returns true if player is currently in chargeing
-    //station and charges fuel, shield or ammo
-    bool IsCurrentlyCharging();
-
-    bool IsCurrentlyChargingFuel();
-    bool IsCurrentlyChargingShield();
-    bool IsCurrentlyChargingAmmo();
-
-    void DebugDraw();
-
 private:
     //the mesh for the Irrlicht SceneNode model
     irr::scene::IAnimatedMesh* PlayerMesh = nullptr;
-
-    //from which recovery vehicle are we currently grabbed?
-    Recovery* mGrabedByThisRecoveryVehicle = nullptr;
-
-    void SetNewState(irr::u32 newPlayerState);
-
-    irr::u32 GetCurrentState();
-
-    void JumpControlPhysicsLoop(irr::f32 deltaTime);
 
 /*    bool GetCurrentCeilingMinimumPosition(irr::core::vector3df &currMinPos);
     bool GetCurrentCeilingMinimumPositionHelper(HMAPCOLLSENSOR *sensor,
@@ -549,44 +217,8 @@ private:
 
     void CalcCraftLocalFeatureCoordinates(irr::core::vector3d<irr::f32> NewPosition, irr::core::vector3d<irr::f32> NewFrontAt);
 
-    void CheckForChargingStation(irr::f32 deltaTime);
     void CheckForTriggerCraftRegion();
-   // void CalcPlayerCraftLeaningAngle();
 
-    std::list<irr::f32> playerCamHeightList;
-    irr::u8 playerCamHeightListElementNr = 0;
-
-    std::list<irr::f32> playerAbsAngleSkyList;
-
-    //variables to remember if during the last
-    //gameloop this player did any charging
-    bool mLastChargingFuel = false;
-    bool mLastChargingShield = false;
-    bool mLastChargingAmmo = false;
-
-    //variables to know if we do currently
-    //charging
-    bool mCurrChargingFuel = false;
-    bool mCurrChargingShield = false;
-    bool mCurrChargingAmmo = false;
-
-    //variables to remember if certain banner texts
-    //were already shown to the player once, to prevent
-    //to trigger them continiously
-    bool mLowFuelWarningAlreadyShown = false;
-    bool mEmptyFuelWarningAlreadyShown = false;
-    bool mLowAmmoWarningAlreadyShown = false;
-    bool mEmptyAmmoWarningAlreadyShown = false;
-    bool mLowShieldWarningAlreadyShown = false;
-    bool mBlockAdditionalFuelFullMsg = false;
-    bool mBlockAdditionalShieldFullMsg = false;
-    bool mBlockAdditionalAmmoFullMsg = false;
-
-    bool mPlayerCurrentlyCharging = false;
-    sf::Sound* mChargingSoundSource = nullptr;
-    sf::Sound* mWarningSoundSource = nullptr;
-    sf::Sound* mLockOnSoundSource = nullptr;
-    
     //each player has a particle system for the
     //case the craft is heavily damager
     //smoke is relased behind the craft
@@ -606,27 +238,14 @@ private:
     //definition of dirt texture elements vector
     std::vector<irr::s32> *dirtTexIdsVec = nullptr;
 
-    void StartPlayingLockOnSound();
-    void StopPlayingLockOnSound();
-
-    void WasDestroyed();
-
-    void UpdateHUDState();
-    void FinishedRace();
-    void CpTakeOverHuman();
-
     irr::u8 mCurrentRiccosSound = 0;
     void PlayMGunShootsAtUsSound();
-
-    void UpdateInternalCoordVariables();
 
     bool mDebugDrawCurrWayPointLink = false;
     bool mDebugDrawActingForces = false;
     bool mDebugDrawCPUCurrSegment = false;
     bool mDebugDrawCPUPathHistory = false;
     bool mDebugDrawFreeSpace = false;
-
-    void DebugDrawFreeSpace();
 
 public:
 

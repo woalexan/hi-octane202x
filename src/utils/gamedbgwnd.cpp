@@ -65,7 +65,7 @@ GameDbgWnd::~GameDbgWnd() {
         mGuiGameDbgWnd.ShowCloneRecording->remove();
     }
 
-    if (mGuiGameDbgWnd.ShowCurrWayPointLink != nullptr) {
+    /*if (mGuiGameDbgWnd.ShowCurrWayPointLink != nullptr) {
         mGuiGameDbgWnd.ShowCurrWayPointLink->remove();
     }
 
@@ -83,7 +83,7 @@ GameDbgWnd::~GameDbgWnd() {
 
     if (mGuiGameDbgWnd.ShowPlayerFreeSpace != nullptr) {
         mGuiGameDbgWnd.ShowPlayerFreeSpace->remove();
-    }
+    }*/
 
     if (mGuiGameDbgWnd.LevelTab != nullptr) {
         mGuiGameDbgWnd.LevelTab->remove();
@@ -186,7 +186,7 @@ void GameDbgWnd::CreateWindow() {
 
     pos = initialPos;
 
-    currState = mParentRace->GetPlayersDbgFlagState(DEF_PLAYER_DBG_CURRWAYPOINTLINK);
+  /*  currState = mParentRace->GetPlayersDbgFlagState(DEF_PLAYER_DBG_CURRWAYPOINTLINK);
     mGuiGameDbgWnd.ShowCurrWayPointLink = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
                                                                                          mGuiGameDbgWnd.MovementTab, GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX, L"Curr Waypointlink");
 
@@ -208,7 +208,7 @@ void GameDbgWnd::CreateWindow() {
     pos.Y += height;
     currState = mParentRace->GetPlayersDbgFlagState(DEF_PLAYER_DBG_FREESPACE);
     mGuiGameDbgWnd.ShowPlayerFreeSpace = mParentRace->mGame->mGuienv->addCheckBox(currState, rect<s32> ( pos.X, pos.Y, pos.X + width, pos.Y + height),
-                                                                                         mGuiGameDbgWnd.MovementTab, GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX, L"Free Space");
+                                                                                         mGuiGameDbgWnd.MovementTab, GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX, L"Free Space");*/
 
     //move window to a better start location
     Window->move(irr::core::vector2d<irr::s32>(250,50));
@@ -279,7 +279,7 @@ void GameDbgWnd::OnCheckBoxChanged(irr::s32 checkboxId) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_ACTIVATEMORPHKEYTRG, mGuiGameDbgWnd.ActivateMorphKeyTrg->isChecked());
     } else if (checkboxId == GUI_ID_LEVEL_SHOWCHARGINGSTATIONINFO_CHECKBOX) {
         mParentRace->SetDebugFlag(DEF_RACE_DBG_CHARGINGSTATIONINFO, mGuiGameDbgWnd.ShowChargingStationInfo->isChecked());
-    } else if (checkboxId == GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX) {
+    } /*else if (checkboxId == GUI_ID_MOVEMENT_CURRWAYPOINTLINK_CHECKBOX) {
         mParentRace->UpdatePlayersDbgFlag(DEF_PLAYER_DBG_CURRWAYPOINTLINK, mGuiGameDbgWnd.ShowCurrWayPointLink->isChecked());
     } else if (checkboxId == GUI_ID_MOVEMENT_ACTINGFORCES_CHECKBOX) {
         mParentRace->UpdatePlayersDbgFlag(DEF_PLAYER_DBG_ACTINGFORCES, mGuiGameDbgWnd.ShowPlayerActingForces->isChecked());
@@ -289,5 +289,5 @@ void GameDbgWnd::OnCheckBoxChanged(irr::s32 checkboxId) {
         mParentRace->UpdatePlayersDbgFlag(DEF_PLAYER_DBG_CPU_PATHHISTORY, mGuiGameDbgWnd.ShowPlayerCPUPathHistory->isChecked());
     } else if (checkboxId == GUI_ID_MOVEMENT_CPU_FREESPACE_CHECKBOX) {
         mParentRace->UpdatePlayersDbgFlag(DEF_PLAYER_DBG_FREESPACE, mGuiGameDbgWnd.ShowPlayerFreeSpace->isChecked());
-    }
+    }*/
 }

@@ -45,11 +45,11 @@ struct GUIGameDbgWnd
     irr::gui::IGUICheckBox* ShowCloneRecording;
 
     //Movement Tab items
-    irr::gui::IGUICheckBox* ShowCurrWayPointLink;
+    /*irr::gui::IGUICheckBox* ShowCurrWayPointLink;
     irr::gui::IGUICheckBox* ShowPlayerActingForces;
     irr::gui::IGUICheckBox* ShowPlayerCPUCurrentSegment;
     irr::gui::IGUICheckBox* ShowPlayerCPUPathHistory;
-    irr::gui::IGUICheckBox* ShowPlayerFreeSpace;
+    irr::gui::IGUICheckBox* ShowPlayerFreeSpace;*/
 };
 
 class GameDbgWnd {

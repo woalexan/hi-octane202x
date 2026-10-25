@@ -948,6 +948,26 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
     mDustBelowCraft->Update(frameDeltaTime);
 }
 
+void VVehicle::HideCraftModel() {
+    if (mCraftVisible) {
+        mCraftVisible = false;
+        mCraftNode->setVisible(false);
+        if (mRace->mGame->mUseXEffects) {
+            mRace->mGame->mEffect->removeShadowFromNode(mCraftNode);
+        }
+    }
+}
+
+void VVehicle::UnhideCraftModel() {
+    if (!mCraftVisible) {
+        mCraftVisible = true;
+        mCraftNode->setVisible(true);
+        if (mRace->mGame->mUseXEffects) {
+            mRace->mGame->mEffect->addShadowToNode(mCraftNode, E_FILTER_TYPE::EFT_12PCF);
+        }
+    }
+}
+
 void VVehicle::vehicle_check_bonuses() {
     int16_t v8;
     int16_t v9;

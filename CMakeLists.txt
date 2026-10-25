@@ -230,8 +230,6 @@ add_executable(hi-octane202x
     src/models/particle.cpp
     src/models/player.h
     src/models/player.cpp
-    src/models/recovery.h
-    src/models/recovery.cpp
     src/models/expentity.h
     src/models/expentity.cpp
     src/models/camera.h
