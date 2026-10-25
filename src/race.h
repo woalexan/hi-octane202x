@@ -391,6 +391,11 @@ public:
     //But I moved it to the race, all vehicles/players will share the same one
     uint32_t mGameTurn  = 0;
 
+    //if true the camera is inside player1 craft
+    //if false we have a free-moving camera for debugging and
+    //development
+    bool playerCamera = true;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -454,11 +459,6 @@ private:
     irr::f32 absTimeMorph = 0.0f;
 
     MiniMap* mMiniMap = nullptr;
-
-    //if true the camera is inside player1 craft
-    //if false we have a free-moving camera for debugging and
-    //development
-    bool playerCamera = true;
 
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = false;

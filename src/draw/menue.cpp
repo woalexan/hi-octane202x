@@ -500,6 +500,7 @@ void Menue::InitActions() {
     ActSetEnableShadows = new MenueAction(MENUE_ACTION_SETENABLESHADOW);
     ActSetVSync = new MenueAction(MENUE_ACTION_SETVSYNC);
     ActSetDoubleResolution = new MenueAction(MENUE_ACTION_SETDOUBLERESOLUTION);
+    ActExitOptionsMenue = new MenueAction(MENUE_ACTION_EXITOPTIONSMENUE);
 
     /***************************
      * Info actions            *
@@ -545,6 +546,9 @@ void Menue::InitMenuePages() {
 
     //Info menue page
     InfoMenuePage = new MenuePage(this, TopMenuePage, MENUE_INFO);
+
+    //Restart for options to take effect page
+    RestartForOptionsPage = new MenuePage(this, OptionMenuePage, MENUE_RESTARTOPTIONS);
 }
 
 void Menue::CreateMenueEntries() {
@@ -648,7 +652,7 @@ void Menue::CreateMenueEntries() {
     }
 
     OptionMenuePage->AddSliderMenueEntry("SKIP INTRO", true, setValue, 1, 1, ActSkipIntro);
-    OptionMenuePage->AddDefaultMenueEntry("MAIN MENU", true, TopMenuePage, nullptr);
+    OptionMenuePage->AddDefaultMenueEntry("MAIN MENU", true, nullptr, ActExitOptionsMenue);
 
     /**********************************
     * CHANGE Player Name Menue Page   *
@@ -776,6 +780,12 @@ void Menue::CreateMenueEntries() {
 
     InfoMenuePage->AddDefaultMenueEntry("ATTRIBUTION", true, nullptr, ActStartAttribution);
     InfoMenuePage->AddDefaultMenueEntry("MAIN MENU", true, TopMenuePage, nullptr);
+
+    /*******************************************************
+    * Restart for options to take effect Info Menue Page   *
+    * ******************************************************/
+
+    RestartForOptionsPage->AddDefaultMenueEntry("PLEASE RESTART GAME", true, TopMenuePage, nullptr);
 }
 
 void Menue::SetWindowAnimationVec() {
@@ -3376,6 +3386,45 @@ void Menue::SetFullyFadedIn() {
     mCurrFadingFactor = 1.0f;
 
     UpdateCurrentRenderColors();
+}
+
+void Menue::ShowRestartRequiredInfo() {
+    currSelMenuePage = this->RestartForOptionsPage;
+    //Select the first and only entry on this menue page
+    currSelMenueSingleEntry = this->RestartForOptionsPage->pageEntryVec.at(0);
+
+    RealignMenuePageItems();
+
+    //initial setup for type writer effect
+    //of main menue
+    if (MENUE_ENABLETYPEWRITEREFFECT) {
+        typeWriterEffectNextCharacterAbsTime = absoluteTime;
+        currNrCharsShownCnter = 0;
+        finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+    }
+
+    currMenueState = MENUE_STATE_TYPETEXT;
+}
+
+void Menue::ShowMainMenueNoAnimation() {
+    mMenueUserInactiveTimer = 0.0f;
+
+    //initially game shows main menue top page
+    //with item Race selected
+    currSelMenuePage = this->TopMenuePage;
+    currSelMenueSingleEntry = this->Race;
+
+    RealignMenuePageItems();
+
+    //initial setup for type writer effect
+    //of main menue
+    if (MENUE_ENABLETYPEWRITEREFFECT) {
+        typeWriterEffectNextCharacterAbsTime = absoluteTime;
+        currNrCharsShownCnter = 0;
+        finalNrChardsShownMenuePageFinished = this->GetNrOfCharactersOnMenuePage(currSelMenuePage);
+    }
+
+    currMenueState = MENUE_STATE_TYPETEXT;
 }
 
 void Menue::ShowMainMenue() {

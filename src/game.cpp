@@ -712,6 +712,15 @@ void Game::HandleMenueActions() {
         WriteGameConfigXmlFile(mDevice);
     }
 
+    if (pendingAction == MainMenue->ActExitOptionsMenue) {
+        if (RestartRequiredToTakeOverOptionsChange()) {
+            MainMenue->ShowRestartRequiredInfo();
+        } else {
+            //no restart required, simply go back to Main Menue
+            MainMenue->ShowMainMenueNoAnimation();
+        }
+    }
+
     if (pendingAction == MainMenue->ActReturnFromDetailsMenue) {
         //write the new updated configuration
         logging::Info("Updated configuration in game config Xml file");

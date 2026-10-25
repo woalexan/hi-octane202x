@@ -3248,10 +3248,10 @@ void Race::Render() {
         DebugDrawChildInfo();
     }
 
-   /* std::vector<VVehicle*>::iterator itVeh;
+    std::vector<VVehicle*>::iterator itVeh;
     for (itVeh = mVanillaCraftVec.begin(); itVeh != mVanillaCraftVec.end(); ++itVeh) {
         (*itVeh)->DbgDrawCurrentWayPoint();
-    }*/
+    }
 
     //DebugDrawChildInfoMemDump();
 

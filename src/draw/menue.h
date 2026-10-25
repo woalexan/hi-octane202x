@@ -29,6 +29,7 @@
 #define MENUE_SELECTRACETRACK 10
 #define MENUE_SELECTSHIP 11
 #define MENUE_INFO 12
+#define MENUE_RESTARTOPTIONS 13
 
 //special "menue" pages
 #define MENUE_HIGHSCORE 202
@@ -56,6 +57,7 @@
 #define MENUE_ACTION_RETURNFROMDETAILSMENUE 12
 #define MENUE_ACTION_SETSKIPINTRO 13
 #define MENUE_ACTION_STARTATTRIBUTION 14
+#define MENUE_ACTION_EXITOPTIONSMENUE 15
 
 //"special" menue actions
 #define MENUE_ACTION_CLOSERACESTATPAGE 101
@@ -416,6 +418,9 @@ private:
     //Info menue page
     MenuePage* InfoMenuePage = nullptr;
 
+    //Restart for options to take effect page
+    MenuePage* RestartForOptionsPage = nullptr;
+
     irr::u32 MaxMenueEntryNumber(MenuePage* inputPage);
     void SelectNewMenueEntryWithEntryNr(MenuePage* newMenuePage, irr::u32 nextSelEntryNr);
     MenueSingleEntry* GetMenueSingleEntryForEntryNr(MenuePage* newMenuePage, irr::u32 inputEntryNr);
@@ -675,6 +680,8 @@ public:
     MenueAction* ActSetMusicVolume = nullptr;
     MenueAction* ActSetSoundVolume = nullptr;
 
+    MenueAction* ActExitOptionsMenue = nullptr;
+
     //special menue actions
     MenueAction* ActCloseRaceStatPage = nullptr;
     MenueAction* ActStartDemo = nullptr;
@@ -709,7 +716,9 @@ public:
 
     void ShowGameTitle();
     void ShowGameLoadingScreen();
+    void ShowRestartRequiredInfo();
     void ShowMainMenue();
+    void ShowMainMenueNoAnimation();
     void ShowChampionshipMenue(bool enaWindowAnimation = false);
     void ShowRaceMenue();
     void ShowIntro();
