@@ -43,7 +43,6 @@
 #include "models/morph.h"
 #include "models/player.h"
 #include "models/collectable.h"
-#include "models/recovery.h"
 #include "models/levelterrain.h"
 #include "models/levelblocks.h"
 #include "vanilla/vvehicle.h"
@@ -1216,45 +1215,6 @@ void Race::UpdateRecoveryVehicles(irr::f32 deltaTime) {
    }
 }
 
-//returns an available recovery vehicle for physics reset
-//if no recovery vehicle is available returns nullptr
-Recovery* Race::FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffPointAfterReset) {
-    std::vector<Recovery*>::iterator itRec;
-    irr::f32 distance;
-    vector< pair <irr::f32, Recovery*> > vecAvailRecoveryVehicles;
-
-    for (itRec = recoveryVec->begin(); itRec != recoveryVec->end(); ++itRec) {
-            //currently available?
-            if ((*itRec)->CurrentlyReadyforMission()) {
-                //yes it is, calculate distance between recovery vehicle and the drop off position
-                //we want to call the closest one
-                distance = (dropOffPointAfterReset - (*itRec)->GetCurrentPosition()).getLength();
-
-                vecAvailRecoveryVehicles.push_back( make_pair(distance, (*itRec)));
-            }
-    }
-
-    //if there is at least one recovery vehicle available sort them by descending distance,
-    //and select one for this player physics recovery, otherwise do nothing
-    //and return nullptr
-    if (vecAvailRecoveryVehicles.size() > 0) {
-            //sort vector pairs in descending value of distance
-           std::sort(vecAvailRecoveryVehicles.rbegin(), vecAvailRecoveryVehicles.rend());
-
-           //start with the last element in sorted vector (which is the closest recovery vehicle
-           //to the dropoff location)
-           auto it4 = vecAvailRecoveryVehicles.rbegin();
-
-           //return the selected recovery vehicle to help this player
-           //for physics reset
-           return ((*it4).second);
-        }
-
-    //currently no recovery vehicles available
-    //return nullptr
-    return (nullptr);
-}
-
 void Race::CleanUpCones() {
     std::vector<VCone*>::iterator it;
     VCone* pntr;
@@ -1329,9 +1289,9 @@ void Race::StopMusic() {
 
 void Race::StopAllSounds() {
     //make sure all warning sounds are off
-    std::vector<Player*>::iterator itPlayer;
+    std::vector<VVehicle*>::iterator itPlayer;
 
-    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
+    for (itPlayer = mVanillaCraftVec.begin(); itPlayer != mVanillaCraftVec.end(); ++itPlayer) {
         (*itPlayer)->StopPlayingWarningSound();
     }
 
@@ -2523,18 +2483,6 @@ void Race::UpdateParticleSystems(irr::f32 frameDeltaTime) {
     }
 }
 
-void Race::HandleComputerPlayers(irr::f32 frameDeltaTime) {
-    std::vector<Player*>::iterator itPlayer;
-
-    for (itPlayer = mPlayerVec.begin(); itPlayer != mPlayerVec.end(); ++itPlayer) {
-        (*itPlayer)->dbgPlayerInMyWay.clear();
-
-        //function just returns internally when called for human
-        //player, so just call for every player
-        (*itPlayer)->ExecuteCpPlayerLogic(frameDeltaTime);
-    }
-}
-
 void Race::HandleDebugInput() {
 
     //only for debugging purposes, to trigger
@@ -2640,20 +2588,6 @@ void Race::HandleDebugInput() {
 
     if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_P)) {
         playerCamera = !playerCamera;
-
-        //unhide all player models
-        std::vector<Player*>::iterator it;
-        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
-            (*it)->UnhideCraft();
-        }
-
-        if (playerCamera) {
-           //hide the camera of the selected player
-           if (currPlayerFollow != nullptr) {
-             //TODO: commented out
-             //  currPlayerFollow->HideCraft();
-           }
-        }
     }
 
     if (AllowStartMorphsPerKey) {
@@ -2670,9 +2604,6 @@ void Race::HandleDebugInput() {
    }
 
    if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_T)) {
-      // mVCraft->Update(0.01);
-     //  AdvModel = true;
-       //mVCraft->TestCamera();
        mVanillaCraftVec.at(0)->ControlViewType++;
        if (mVanillaCraftVec.at(0)->ControlViewType > 3) {
            mVanillaCraftVec.at(0)->ControlViewType = 0;
@@ -2723,15 +2654,6 @@ void Race::TriggerRaceStart() {
 //running animations are done; Only then we finally exit the race
 //The function below is used to initiate this final phase of the race
 void Race::InitiateExitRace() {
-   //from now on prevent all players from firing
-   //the machine gun or another missile
-   //so that the animators have all time to finish
-   std::vector<Player*>::iterator it;
-
-   for (it = this->mPlayerVec.begin(); it != this->mPlayerVec.end(); ++it) {
-       (*it)->DeactivateAttack();
-   }
-
    //new race phase, we only wait until all animators have finished
    this->mCurrentPhase = DEF_RACE_PHASE_WAITUNTIL_ANIMATORS_DONE;
 }
@@ -3336,7 +3258,7 @@ void Race::Render() {
     //mThingManager->DebugDrawParentInfo();
 }
 
-void Race::UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable) {
+/*void Race::UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable) {
     std::vector<Player*>::iterator it;
 
     for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
@@ -3349,7 +3271,7 @@ bool Race::GetPlayersDbgFlagState(irr::u8 debugFlag) {
         return false;
 
     return mPlayerVec.at(0)->GetDebugFlag(debugFlag);
-}
+}*/
 
 void Race::DebugShowAllObstaclePlayers() {
     std::vector<Player*>::iterator itPlayer;
@@ -4684,89 +4606,6 @@ void Race::UpdateExternalCameras() {
     //          }
     //      }
     // }
-}
-
-void Race::FindNextPlayerToFollowInDemoMode() {
-    std::vector<Player*>::iterator it;
-
-    mFollowPlayerDemoMode = nullptr;
-
-    for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
-        //is there an external camera available for this player currently,
-        //and the player is not stuck (we do not want to highlight the fact
-        //that we have not the best computer player controls and a stuck player :) )
-        if (((*it)->externalCamera != nullptr) && (!(*it)->IsCurrentlyStuck())) {
-            //ok, lets follow this player now
-            mFollowPlayerDemoMode = (*it);
-            mFollowPlayerDemoModeTimeCounter = 0.0f;
-
-            break;
-        }
-    }
-}
-
-void Race::ManageCameraDemoMode(irr::f32 deltaTime) {
-    irr::scene::ICameraSceneNode* activeCam = nullptr;
-
-    //do we need to find a new player to follow
-    //with an external camera?
-    if (mFollowPlayerDemoMode == nullptr) {
-        FindNextPlayerToFollowInDemoMode();
-    } else {
-        //we currently follow a player
-        //is it time to change again? or did the player we follow loose the external
-        //camera
-        mFollowPlayerDemoModeTimeCounter += deltaTime;
-
-        if (mFollowPlayerDemoModeTimeCounter > DEF_RACE_DEMOMODE_MAXTIMEFOLLOWPLAYER) {
-              //we need to find the next available player to follow
-              FindNextPlayerToFollowInDemoMode();
-        }
-    }
-
-    if (playerCamera) {
-        //get active camera of player we currently follow
-        //in demo mode
-        if (this->mFollowPlayerDemoMode != nullptr) {
-           if (mFollowPlayerDemoMode->externalCamera != nullptr) {
-                mFollowPlayerDemoMode->UnhideCraft();
-
-                //update external camera focus
-               //TODO: commented out this->mFollowPlayerDemoMode->externalCamera->Update();
-
-               //TODO: commented out activeCam = this->mFollowPlayerDemoMode->externalCamera->mCamSceneNode;
-            } else {
-               //as a workaround use cockpit camera of this player
-               mFollowPlayerDemoMode->HideCraft();
-
-               activeCam = this->mFollowPlayerDemoMode->mIntCamera;
-           }
-        } else {
-            return;
-        }
-    } else {
-        //free moving camera to inspect the level/map
-        //make sure to unhide all players
-        std::vector<Player*>::iterator it;
-
-        for (it = mPlayerVec.begin(); it != mPlayerVec.end(); ++it) {
-            (*it)->UnhideCraft();
-        }
-
-        activeCam = mCamera;
-    }
-
-    if (activeCam == nullptr)
-        return;
-
-    //has the active camera changed?
-    //if so change it for rendering
-    if (activeCam != currActiveCamera) {
-        mGame->mSmgr->setActiveCamera(activeCam);
-        currActiveCamera = activeCam;
-    }
-
-    UpdateSoundListener();
 }
 
 void Race::ManagePlayerCamera() {

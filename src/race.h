@@ -209,10 +209,6 @@ public:
 
     void CallRecoveryVehicleForHelp(Player* whichPlayer);
 
-    //returns an available recovery vehicle for physics reset
-    //if no recovery vehicle is available returns nullptr
-    Recovery* FindRecoveryVehicleForPhysicsReset(irr::core::vector3df dropOffPointAfterReset);
-
     bool exitRace = false;
 
     //handles the height map terrain
@@ -348,8 +344,8 @@ public:
 
     MapConfigStruct* mMapConfig = nullptr;
 
-    void UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable);
-    bool GetPlayersDbgFlagState(irr::u8 debugFlag);
+    //void UpdatePlayersDbgFlag(irr::u8 debugFlag, bool enable);
+    //bool GetPlayersDbgFlagState(irr::u8 debugFlag);
 
     bool AdvModel = false;
 
@@ -575,7 +571,6 @@ private:
     Player* mFollowPlayerDemoMode = nullptr;
     irr::f32 mFollowPlayerDemoModeTimeCounter = 0.0f;
 
-    void ManageCameraDemoMode(irr::f32 deltaTime);
     void FindNextPlayerToFollowInDemoMode();
     void UpdateSoundListener();
 

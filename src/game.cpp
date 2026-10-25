@@ -1151,11 +1151,7 @@ void Game::GameLoopRace(irr::f32 frameDeltaTime) {
 
     mTimeProfiler->Profile(mTimeProfiler->tIntHandleInput);
 
-    if (!this->mTimeStopped) {
-        mCurrentRace->HandleComputerPlayers(frameDeltaTime);
-    }
-
-    mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
+    //mTimeProfiler->Profile(mTimeProfiler->tIntHandleComputerPlayers);
 
     //Update Time Profiler results
     mTimeProfiler->UpdateWindow();

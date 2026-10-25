@@ -988,8 +988,8 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
         for (itAngle = PlayerSeenAngleList.begin(); itAngle != PlayerSeenAngleList.end(); ++itAngle) {
             //skip players that are no valid target right now
             //is the distance small enough? otherwise skip entry
-            if (PlayerSeenList[currElIndx].HitPlayerPntr->IsCurrentlyValidTarget()
-                 && (PlayerSeenList[currElIndx].HitDistance < maxViewDistance)) {
+            if (/*PlayerSeenList[currElIndx].HitPlayerPntr->IsCurrentlyValidTarget()
+                 &&*/ (PlayerSeenList[currElIndx].HitDistance < maxViewDistance)) {
                 if (firstElement) {
                     firstElement = false;
                     minElIndx = currElIndx;
@@ -1011,7 +1011,7 @@ void WorldAwareness::Analyse(Player *whichPlayer) {
 
     //tell player if/which player he has targeted
     //in case there is no valid target player we set nullptr
-    whichPlayer->SetTarget(resPlayer);
+    //whichPlayer->SetTarget(resPlayer);
 
     if (WA_ALLOW_DEBUGGING) {
         if (WriteOneDbgPic && whichPlayer == mRace->mPlayerVec.at(0)) {
