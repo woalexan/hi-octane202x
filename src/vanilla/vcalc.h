@@ -78,6 +78,8 @@ public:
 
     irr::f32 FixedPointToFloat24D8(int32_t fixedPntVal);
 
+    uint32_t SqrL(uint32_t x);
+
     //original "raw" angles (for example in thing->Movement.Angle.ZY, is struct Angle)
     //contain the absolute angle in current steps for a unit circle of 65536 steps
     //this function simply converts this angle into a floating point angle value

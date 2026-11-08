@@ -26,6 +26,7 @@ class ParseVectors;
 class ParseColVectClass;
 class ParseColVectsListClass;
 class ParseControlClass;
+class CollideControlClass;
 
 struct DiffByte {
     size_t atOffset;
@@ -48,6 +49,13 @@ public:
     void CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle, MemDump* compareDump, uint8_t playerNr);
     void CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* dump2, uint8_t playerNr);
     void CompareVectorsWithMemDump(VTrack& compareVector1, ParseVectors* compareVector2);
+
+    //This function parses memory content at address 0x801FFEB8 to derive value of local
+    //variable Delta in processVEHICLE_CAR. Warning: Execute this function only if the memory
+    //dump was made at the correct breakpoints and the variable currently really exists in
+    //the memory dump. Otherwise you will read garbage values. Variable only exists inside
+    //function processVEHICLE_CAR;
+    irr::core::vector3df ParseVehiclePhysicsDeltaVariable(MemDump* srcDump);
 
     MemDump* newDump = nullptr;
     MemDump* newDump2 = nullptr;
@@ -77,6 +85,7 @@ private:
 
     void CopyMovementClassToMovementStruct(MovementStruct& targetStruct, MovementClass* srcClass);
     void CopySensorPointClassToVehicleSensorPointStruct(VehicleSensorPointStruct& targetStruct, SensorPointClass* srcClass);
+    void CopyAllFlightModelFlagsToStruct(VehicleCollideControlStruct& targetStruct, CollideControlClass* srcClass);
 };
 
 #endif // DBGINTERFACE_H

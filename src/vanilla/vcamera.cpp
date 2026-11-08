@@ -436,7 +436,11 @@ camera_process_LABEL_46:
         //for internal cockpit view we should enter here
         //make sure this vehicle SceneNode is hidden, so that it does not
         //block the internal cockpit view
-        whichVehicle->HideCraftModel();
+        //25.10.2026: If we use the game freemoving camera (for testing etc.)
+        //do not hide the craft model
+        if (mParentRace->playerCamera) {
+            whichVehicle->HideCraftModel();
+        }
 
         v92 = whichVehicle->ThingData->Position.Z;
         v92Int = mParentRace->mVCalc->FloatToFixedPoint8D8(v92);

@@ -89,6 +89,35 @@ irr::core::vector3df VCalculations::IrrlichtToVanillaCoord(irr::core::vector3df 
     return result;
 }
 
+uint32_t VCalculations::SqrL(uint32_t x) {
+    uint32_t result;
+    uint32_t v2;
+    uint32_t v3;
+    bool v4;
+    uint32_t v5;
+
+    result = 1;
+    if (x != 1) {
+        v2 = (x >> 1);
+        if ((int)(x) <= 0) {
+            return 0;
+        } else {
+            while (1) {
+                v3 = (x / v2);
+                v4 = ((x / v2) >= v2);
+                v5 = v2 + (x / v2);
+                if (v4) {
+                    break;
+                }
+                v2 = v5 >> 1;
+            }
+            return v3;
+        }
+    }
+
+    return result;
+}
+
 /***************************************************
  * Map Collide stuff                               *
  ***************************************************/

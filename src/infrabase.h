@@ -113,6 +113,8 @@ public:
 
   irr::u8 mRunningAs;
 
+  bool RestartRequiredToTakeOverOptionsChange();
+
   //decoded command line parameter
   //information
   void ParseCommandLineInformation(int pArgc, char **pArgv);

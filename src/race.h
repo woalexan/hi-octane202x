@@ -150,6 +150,7 @@ class SpriteThing;
 class VRepair;
 struct VThing;
 struct VehicleViewStruct;
+struct VehicleDebugRecordingStruct;
 class VThingManager;
 class VEffectManager;
 
@@ -391,6 +392,11 @@ public:
     //But I moved it to the race, all vehicles/players will share the same one
     uint32_t mGameTurn  = 0;
 
+    //if true the camera is inside player1 craft
+    //if false we have a free-moving camera for debugging and
+    //development
+    bool playerCamera = true;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -416,11 +422,26 @@ private:
     //recording
     irr::scene::IMeshSceneNode *CloneShip = nullptr;
 
+    //A irrlicht model for vehicle debug drawing
+    irr::scene::IMeshSceneNode *DbgShip = nullptr;
+
     //ShadowMap settings
     E_FILTER_TYPE mShadowMapFilterType;
     irr::u32 mShadowMapResolution;
 
     SShadowLight* mShadowLight = nullptr;
+
+    bool mDebugDrawShip = false;
+    size_t mDebugDrawShipIdx = 0;
+    size_t mDebugDrawShipLastIdx = 0;
+    bool mDebugDrawShipForceUpdate = false;
+
+    irr::gui::IGUIStaticText* DebugDrawShipParamOutput = nullptr;
+
+    void PreRenderDebugDrawShip();
+    void RenderDebugDrawShip();
+    void DebugDrawShipEnable();
+    void DebugDrawShipDisable();
 
     MyMusicStream* mMusicPlayer = nullptr;
 
@@ -454,11 +475,6 @@ private:
     irr::f32 absTimeMorph = 0.0f;
 
     MiniMap* mMiniMap = nullptr;
-
-    //if true the camera is inside player1 craft
-    //if false we have a free-moving camera for debugging and
-    //development
-    bool playerCamera = true;
 
     //variables to switch different debugging functions on and off
     bool DebugShowWaypoints = false;
@@ -613,7 +629,6 @@ public:
 
 private:
     void UpdateCollectableSpawners(irr::f32 frameDeltaTime);
-
 
     void CreateChargingStations();
 

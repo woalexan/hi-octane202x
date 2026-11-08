@@ -91,6 +91,9 @@ CollideControlClass::CollideControlClass(DataTools* parent, std::string name, si
     SensorPointRearLeft = new SensorPointClass(parent, std::string("SensorPointRearLeft"), startPosData + 0x48);
     SensorPointRearRight = new SensorPointClass(parent, std::string("SensorPointRearRight"), startPosData + 0x68);
 
+    Flag = mParent->AddUInt16_NumVar(std::string("Flag"), startPosData + 0x88);
+    FunctionFlag = mParent->AddUInt16_NumVar(std::string("FunctionFlag"), startPosData + 0x8A);
+
     RideHeight = mParent->AddUInt16_NumVar(std::string("RideHeight"), startPosData + 0x8C);
     BrakePower = mParent->AddUInt16_NumVar(std::string("BrakePower"), startPosData + 0x8E);
 }
@@ -101,7 +104,8 @@ std::string CollideControlClass::GetAsString() {
     output << mName << ": " << CollideSizeForward->GetAsString() << ", " << CollideSizeRear->GetAsString() << ", " <<
               CollideSizeSideways->GetAsString()  << ", " << CollideSizeSensorOffset->GetAsString() << ", " <<
               SensorPointFrontLeft->GetAsString() << ", " << SensorPointFrontRight->GetAsString() << ", " <<
-              SensorPointRearLeft->GetAsString() << ", " << SensorPointRearRight->GetAsString() << ", " << RideHeight->GetAsString() <<
+              SensorPointRearLeft->GetAsString() << ", " << SensorPointRearRight->GetAsString() << ", " << Flag->GetAsString() << ", " <<
+              FunctionFlag->GetAsString() << ", " << RideHeight->GetAsString() <<
               ", " << BrakePower->GetAsString();
 
     return output.str();
@@ -139,6 +143,14 @@ CollideControlClass::~CollideControlClass() {
     if (SensorPointRearRight != nullptr) {
         delete SensorPointRearRight;
         SensorPointRearRight = nullptr;
+    }
+    if (Flag != nullptr) {
+        delete Flag;
+        Flag = nullptr;
+    }
+    if (FunctionFlag != nullptr) {
+        delete FunctionFlag;
+        FunctionFlag = nullptr;
     }
     if (RideHeight != nullptr) {
         delete RideHeight;

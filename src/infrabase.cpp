@@ -26,6 +26,11 @@
 #include "font/font_manager.h"
 #include "game.h"
 
+bool InfrastructureBase::RestartRequiredToTakeOverOptionsChange() {
+    //If the current used resolution differs with the configured one we need to restart
+    return (mDoubleResolutionCurrActive != mGameConfig->enableDoubleResolution);
+}
+
 //Returns true in case of success, False otherwise
 bool InfrastructureBase::WriteGameConfigXmlFile(IrrlichtDevice *device) {
     std::string cfgFileName(mGameRootDir.c_str());

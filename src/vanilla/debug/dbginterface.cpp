@@ -152,6 +152,142 @@ void DbgInterface::CopyMovementClassToMovementStruct(MovementStruct& targetStruc
     targetStruct.SpeedActual = srcClass->SpeedActual->mFloatValue;
 }
 
+void DbgInterface::CopyAllFlightModelFlagsToStruct(VehicleCollideControlStruct& targetStruct, CollideControlClass* srcClass) {
+    uint16_t raw = srcClass->Flag->mRawValue;
+
+    targetStruct.Flag.Booster = false;
+    targetStruct.Flag.Brake = false;
+    targetStruct.Flag.Airbourn = false;
+    targetStruct.Flag.BarrelRoll = false;
+    targetStruct.Flag.AutoPilot = false;
+    targetStruct.Flag.AutoRefuel = false;
+    targetStruct.Flag.AutoRearm = false;
+    targetStruct.Flag.AutoRepair = false;
+    targetStruct.Flag.AutoStop = false;
+    targetStruct.Flag.AutoPilotSet = false;
+    targetStruct.Flag.AutoDrive = false;
+    targetStruct.Flag.HealthDeath = false;
+    targetStruct.Flag.FuelDeath = false;
+    targetStruct.Flag.Reposition = false;
+    targetStruct.Flag.pad1 = false;
+    targetStruct.Flag.pad2 = false;
+
+    if (raw & 1)
+      targetStruct.Flag.Booster = true;
+
+    if (raw & 2)
+      targetStruct.Flag.Brake = true;
+
+    if (raw & 4)
+      targetStruct.Flag.Airbourn = true;
+
+    if (raw & 8)
+      targetStruct.Flag.BarrelRoll = true;
+
+    if (raw & 16)
+      targetStruct.Flag.AutoPilot = true;
+
+    if (raw & 32)
+      targetStruct.Flag.AutoRefuel = true;
+
+    if (raw & 64)
+      targetStruct.Flag.AutoRearm = true;
+
+    if (raw & 128)
+      targetStruct.Flag.AutoRepair = true;
+
+    if (raw & 256)
+      targetStruct.Flag.AutoStop = true;
+
+    if (raw & 512)
+      targetStruct.Flag.AutoPilotSet = true;
+
+    if (raw & 1024)
+      targetStruct.Flag.AutoDrive = true;
+
+    if (raw & 2048)
+      targetStruct.Flag.HealthDeath = true;
+
+    if (raw & 4096)
+      targetStruct.Flag.FuelDeath = true;
+
+    if (raw & 8192)
+      targetStruct.Flag.Reposition = true;
+
+    if (raw & 16384)
+      targetStruct.Flag.pad1 = true;
+
+    if (raw & 32768)
+      targetStruct.Flag.pad2 = true;
+
+    raw = srcClass->FunctionFlag->mRawValue;
+
+    targetStruct.FunctionFlag.Booster = false;
+    targetStruct.FunctionFlag.Brake = false;
+    targetStruct.FunctionFlag.BarrelRoll = false;
+    targetStruct.FunctionFlag.Pad1 = false;
+    targetStruct.FunctionFlag.Pad2 = false;
+    targetStruct.FunctionFlag.Pad3 = false;
+    targetStruct.FunctionFlag.Pad4 = false;
+    targetStruct.FunctionFlag.Pad5 = false;
+    targetStruct.FunctionFlag.Pad6 = false;
+    targetStruct.FunctionFlag.Pad7 = false;
+    targetStruct.FunctionFlag.Pad8 = false;
+    targetStruct.FunctionFlag.Pad9 = false;
+    targetStruct.FunctionFlag.Pad10 = false;
+    targetStruct.FunctionFlag.Pad11 = false;
+    targetStruct.FunctionFlag.Pad12 = false;
+    targetStruct.FunctionFlag.Pad13 = false;
+
+    if (raw & 1)
+      targetStruct.FunctionFlag.Booster = true;
+
+    if (raw & 2)
+      targetStruct.FunctionFlag.Brake = true;
+
+    if (raw & 4)
+      targetStruct.FunctionFlag.BarrelRoll = true;
+
+    if (raw & 8)
+      targetStruct.FunctionFlag.Pad1 = true;
+
+    if (raw & 16)
+      targetStruct.FunctionFlag.Pad2 = true;
+
+    if (raw & 32)
+      targetStruct.FunctionFlag.Pad3 = true;
+
+    if (raw & 64)
+      targetStruct.FunctionFlag.Pad4 = true;
+
+    if (raw & 128)
+      targetStruct.FunctionFlag.Pad5 = true;
+
+    if (raw & 256)
+      targetStruct.FunctionFlag.Pad6 = true;
+
+    if (raw & 512)
+      targetStruct.FunctionFlag.Pad7 = true;
+
+    if (raw & 1024)
+      targetStruct.FunctionFlag.Pad8 = true;
+
+    if (raw & 2048)
+      targetStruct.FunctionFlag.Pad9 = true;
+
+    if (raw & 4096)
+      targetStruct.FunctionFlag.Pad10 = true;
+
+    if (raw & 8192)
+      targetStruct.FunctionFlag.Pad11 = true;
+
+    if (raw & 16384)
+      targetStruct.FunctionFlag.Pad12 = true;
+
+    if (raw & 32768)
+      targetStruct.FunctionFlag.Pad13 = true;
+}
+
 void DbgInterface::CompareTracksColVect(std::string prefixName, TrackColVectStruct& compareStruct, ParseColVectClass* compareClass) {
     std::string name1(prefixName);
     name1.append(".Pos1.X");
@@ -434,6 +570,38 @@ void DbgInterface::CompareTwoUInt16s(std::string varName, uint16_t val1, uint16_
     }
 }
 
+//This function parses memory content at address 0x801FFEB8 to derive value of local
+//variable Delta in processVEHICLE_CAR. Warning: Execute this function only if the memory
+//dump was made at the correct breakpoints and the variable currently really exists in
+//the memory dump. Otherwise you will read garbage values. Variable only exists inside
+//function processVEHICLE_CAR;
+irr::core::vector3df DbgInterface::ParseVehiclePhysicsDeltaVariable(MemDump* srcDump) {
+     uint8_t msByte = srcDump->mMemDumpData->mData->at(0x1FFEB9);
+     uint8_t lsByte = srcDump->mMemDumpData->mData->at(0x1FFEB8);
+
+     uint16_t byte = (msByte << 8) | lsByte;
+     int16_t fixedFloatVal = static_cast<int16_t>(byte);
+
+     irr::core::vector3df res;
+     res.X = srcDump->mDataTools->FixedPointToFloat8D8(fixedFloatVal);
+
+     msByte = srcDump->mMemDumpData->mData->at(0x1FFEB9 + 2);
+     lsByte = srcDump->mMemDumpData->mData->at(0x1FFEB8 + 2);
+
+     byte = (msByte << 8) | lsByte;
+     fixedFloatVal = static_cast<int16_t>(byte);
+     res.Y = srcDump->mDataTools->FixedPointToFloat8D8(fixedFloatVal);
+
+     msByte = srcDump->mMemDumpData->mData->at(0x1FFEB9 + 4);
+     lsByte = srcDump->mMemDumpData->mData->at(0x1FFEB8 + 4);
+
+     byte = (msByte << 8) | lsByte;
+     fixedFloatVal = static_cast<int16_t>(byte);
+     res.Z = srcDump->mDataTools->FixedPointToFloat8D8(fixedFloatVal);
+
+     return res;
+}
+
 //playerNr starts with index 1 for first player
 void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle, MemDump* compareDump, uint8_t playerNr) {
     //does this player exist?
@@ -447,7 +615,17 @@ void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle
     //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
     //possible VehicleThings that is linked to this specific vehicle;
     //parse its data
-    ParseThingVehicle* ThingVehicle = compareDump->mExistingPlayerVehicleVec.at((size_t)(playerThing->VehicleIndex->mRawValue));
+    std::vector<ParseThingVehicle*>::iterator it;
+
+    ParseThingVehicle* ThingVehicle = nullptr;
+
+    for (it = compareDump->mExistingPlayerVehicleVec.begin(); it != compareDump->mExistingPlayerVehicleVec.end(); ++it) {
+        if ((*it)->Index->mRawValue == (int16_t)(playerThing->VehicleIndex->mRawValue)) {
+            ThingVehicle = (*it);
+            break;
+        }
+    }
+
     if (ThingVehicle == nullptr) {
         return;
     }
@@ -497,11 +675,11 @@ void DbgInterface::CompareVehicleStatePlayerWithMemDump(VVehicle& compareVehicle
     CompareTwoFloats(std::string("Momentum.DeltaX"), compareVehicle.Momentum.DeltaX, ThingVehicle->Momentum->DeltaX->mFloatValue);
     CompareTwoFloats(std::string("Momentum.DeltaY"), compareVehicle.Momentum.DeltaY, ThingVehicle->Momentum->DeltaY->mFloatValue);
 
-    CompareTwoFloats(std::string("Friction"), compareVehicle.mFriction, ThingVehicle->Friction->mFloatValue);
-    CompareTwoFloats(std::string("FrictionLimit"), compareVehicle.mFrictionLimit, ThingVehicle->FrictionLimit->mFloatValue);
+    CompareTwoInt16s(std::string("Friction"), compareVehicle.mFriction, ThingVehicle->Friction->mRawValue);
+    CompareTwoInt16s(std::string("FrictionLimit"), compareVehicle.mFrictionLimit, ThingVehicle->FrictionLimit->mRawValue);
     CompareTwoInt16s(std::string("ThrustEffectiveness"), compareVehicle.mThrustEffectiveness, ThingVehicle->ThrustEffectiveness->mRawValue);
-    CompareTwoFloats(std::string("SideslipToThrust"), compareVehicle.mSideslipToThrust, ThingVehicle->SideslipToThrust->mFloatValue);
-    CompareTwoFloats(std::string("SideslipFriction"), compareVehicle.mSideslipFriction, ThingVehicle->SideslipFriction->mFloatValue);
+    CompareTwoInt16s(std::string("SideslipToThrust"), compareVehicle.mSideslipToThrust, ThingVehicle->SideslipToThrust->mRawValue);
+    CompareTwoInt16s(std::string("SideslipFriction"), compareVehicle.mSideslipFriction, ThingVehicle->SideslipFriction->mRawValue);
 
     CompareMovementData(std::string("MovementInput."), &compareVehicle.MovementInput, ThingVehicle->MovementInput);
 
@@ -525,12 +703,30 @@ void DbgInterface::CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* d
         return;
     }
 
-    ParseThingVehicle* vehicle1 = dump1->mExistingPlayerVehicleVec.at((size_t)(playerThing1->VehicleIndex->mRawValue));
+    ParseThingVehicle* vehicle1 = nullptr;
+
+    std::vector<ParseThingVehicle*>::iterator it;
+
+    for (it = dump1->mExistingPlayerVehicleVec.begin(); it != dump1->mExistingPlayerVehicleVec.end(); ++it) {
+        if ((*it)->Index->mRawValue == (int16_t)(playerThing1->VehicleIndex->mRawValue)) {
+            vehicle1 = (*it);
+            break;
+        }
+    }
+
     if (vehicle1 == nullptr) {
         return;
     }
 
-    ParseThingVehicle* vehicle2 = dump2->mExistingPlayerVehicleVec.at((size_t)(playerThing2->VehicleIndex->mRawValue));
+    ParseThingVehicle* vehicle2 = nullptr;
+
+    for (it = dump2->mExistingPlayerVehicleVec.begin(); it != dump2->mExistingPlayerVehicleVec.end(); ++it) {
+        if ((*it)->Index->mRawValue == (int16_t)(playerThing2->VehicleIndex->mRawValue)) {
+            vehicle2 = (*it);
+            break;
+        }
+    }
+
     if (vehicle2 == nullptr) {
         return;
     }
@@ -579,11 +775,11 @@ void DbgInterface::CompareVehicleStateBetweenMemDumps(MemDump* dump1, MemDump* d
     CompareTwoFloats(std::string("Momentum.DeltaX"), vehicle1->Momentum->DeltaX->mFloatValue, vehicle2->Momentum->DeltaX->mFloatValue);
     CompareTwoFloats(std::string("Momentum.DeltaY"), vehicle1->Momentum->DeltaY->mFloatValue, vehicle2->Momentum->DeltaY->mFloatValue);
 
-    CompareTwoFloats(std::string("Friction"), vehicle1->Friction->mFloatValue, vehicle2->Friction->mFloatValue);
-    CompareTwoFloats(std::string("FrictionLimit"), vehicle1->FrictionLimit->mFloatValue, vehicle2->FrictionLimit->mFloatValue);
+    CompareTwoInt16s(std::string("Friction"), vehicle1->Friction->mRawValue, vehicle2->Friction->mRawValue);
+    CompareTwoInt16s(std::string("FrictionLimit"), vehicle1->FrictionLimit->mRawValue, vehicle2->FrictionLimit->mRawValue);
     CompareTwoInt16s(std::string("ThrustEffectiveness"), vehicle1->ThrustEffectiveness->mRawValue, vehicle2->ThrustEffectiveness->mRawValue);
-    CompareTwoFloats(std::string("SideslipToThrust"), vehicle1->SideslipToThrust->mFloatValue, vehicle2->SideslipToThrust->mFloatValue);
-    CompareTwoFloats(std::string("SideslipFriction"), vehicle1->SideslipFriction->mFloatValue, vehicle2->SideslipFriction->mFloatValue);
+    CompareTwoInt16s(std::string("SideslipToThrust"), vehicle1->SideslipToThrust->mRawValue, vehicle2->SideslipToThrust->mRawValue);
+    CompareTwoInt16s(std::string("SideslipFriction"), vehicle1->SideslipFriction->mRawValue, vehicle2->SideslipFriction->mRawValue);
 
     CompareMovementDataBetweenMemDumps(std::string("MovementInput."), vehicle1->MovementInput, vehicle2->MovementInput);
 
@@ -603,7 +799,17 @@ void DbgInterface::SetVehiclePhysicsStatePlayerFromMemDump(VVehicle& targetVehic
     //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
     //possible VehicleThings that is linked to this specific vehicle;
     //parse its data
-    ParseThingVehicle* vehicle = srcDump->mExistingPlayerVehicleVec.at((size_t)(playerThing->VehicleIndex->mRawValue));
+    std::vector<ParseThingVehicle*>::iterator it;
+
+    ParseThingVehicle* vehicle = nullptr;
+
+    for (it = srcDump->mExistingPlayerVehicleVec.begin(); it != srcDump->mExistingPlayerVehicleVec.end(); ++it) {
+        if ((*it)->Index->mRawValue == (int16_t)(playerThing->VehicleIndex->mRawValue)) {
+            vehicle = (*it);
+            break;
+        }
+    }
+
     if (vehicle == nullptr) {
         return;
     }
@@ -619,6 +825,10 @@ void DbgInterface::SetVehiclePhysicsStatePlayerFromMemDump(VVehicle& targetVehic
     targetVehicle.ThingData->Displacement.Z = playerThing->Displacement->ZPos->mFloatValue;
 
     CopyMovementClassToMovementStruct(targetVehicle.ThingData->Movement, playerThing->Movement);
+
+    targetVehicle.ThingData->AffectStatus = playerThing->Colide->Affect->Status->mRawValue;
+    targetVehicle.ThingData->AffectNumber = playerThing->Colide->Affect->Number->mRawValue;
+    targetVehicle.ThingData->AffectWho = playerThing->Colide->Affect->Who->mRawValue;
 
     //targetVehicle.KeyPressedAccel
     //targetVehicle.KeyPressedDeaccel
@@ -647,11 +857,17 @@ void DbgInterface::SetVehiclePhysicsStatePlayerFromMemDump(VVehicle& targetVehic
     targetVehicle.Momentum.AngleXY = vehicle->Momentum->AngleXY->mFloatValue;
     targetVehicle.Momentum.DeltaX = vehicle->Momentum->DeltaX->mFloatValue;
     targetVehicle.Momentum.DeltaY = vehicle->Momentum->DeltaY->mFloatValue;
-    targetVehicle.mFriction = vehicle->Friction->mFloatValue;
-    targetVehicle.mFrictionLimit = vehicle->FrictionLimit->mFloatValue;
+    targetVehicle.mFriction = vehicle->Friction->mRawValue;
+    targetVehicle.mFrictionLimit = vehicle->FrictionLimit->mRawValue;
     targetVehicle.mThrustEffectiveness = vehicle->ThrustEffectiveness->mRawValue;
-    targetVehicle.mSideslipToThrust = vehicle->SideslipToThrust->mFloatValue;
-    targetVehicle.mSideslipFriction = vehicle->SideslipFriction->mFloatValue;
+    targetVehicle.mSideslipToThrust = vehicle->SideslipToThrust->mRawValue;
+    targetVehicle.mSideslipFriction = vehicle->SideslipFriction->mRawValue;
+
+    targetVehicle.Stats.Behind = vehicle->VehicleStats->Behind->mRawValue;
+    targetVehicle.FlightModel.BrakePower = static_cast<int16_t>((vehicle->FlightModel->BrakePower->mRawValue));
+
+    //copy all flight model flags
+    CopyAllFlightModelFlagsToStruct(targetVehicle.FlightModel, vehicle->FlightModel);
 
     CopyMovementClassToMovementStruct(targetVehicle.MovementInput, vehicle->MovementInput);
     targetVehicle.mMaximumZpos = vehicle->MaximumZpos->mFloatValue;
@@ -670,7 +886,17 @@ void DbgInterface::SetCurrentStatsPlayerFromMemDump(VVehicle& targetVehicle, Mem
     //VehicleIndex in Thing tells us the index of the VehicleThing in the array of
     //possible VehicleThings that is linked to this specific vehicle;
     //parse its data
-    ParseThingVehicle* vehicle = srcDump->mExistingPlayerVehicleVec.at((size_t)(playerThing->VehicleIndex->mRawValue));
+    std::vector<ParseThingVehicle*>::iterator it;
+
+    ParseThingVehicle* vehicle = nullptr;
+
+    for (it = srcDump->mExistingPlayerVehicleVec.begin(); it != srcDump->mExistingPlayerVehicleVec.end(); ++it) {
+        if ((*it)->Index->mRawValue == (int16_t)(playerThing->VehicleIndex->mRawValue)) {
+            vehicle = (*it);
+            break;
+        }
+    }
+
     if (vehicle == nullptr) {
         return;
     }

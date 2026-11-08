@@ -49,10 +49,11 @@ public:
 
     std::string GetAsString();
 
+    uint32_t mRawValue;
+
 private:
     std::string mName;
     DataTools* mParent = nullptr;
-    uint32_t mRawValue;
 };
 
 class Int8_Num {
