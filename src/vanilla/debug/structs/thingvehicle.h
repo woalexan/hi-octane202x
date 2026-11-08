@@ -90,8 +90,8 @@ public:
     SensorPointClass* SensorPointRearLeft = nullptr;
     SensorPointClass* SensorPointRearRight = nullptr;
 
-    //struct VehicleControlFlags Flag;
-    //struct VehicleFunctionFlags FunctionFlag
+    UInt16_Num *Flag = nullptr;
+    UInt16_Num *FunctionFlag = nullptr;
     UInt16_Num* RideHeight = nullptr;
     UInt16_Num* BrakePower = nullptr;
 };

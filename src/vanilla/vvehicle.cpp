@@ -841,13 +841,6 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
             UpdateEngineSound();
         }
 
-        ClosestMissile = 0.0f;
-        vehicle_do_action();
-
-        //we need to update the TimeSlice variable in
-        //the vehicle thing!
-        mRace->mThingManager->UpdateTimeSlice(this->ThingData);
-
         mAbsTimeIntegrator = 0.0f;
     }
 
@@ -873,41 +866,41 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 
         irr::core::vector3df delta;
 
+        ClosestMissile = 0.0f;
+        vehicle_do_action();
+
+        HandleDebugRecording();
+
         //Note 25.07.2026: We can only execute the physics model if we are not
         //currently repositioning the craft by other means
         if (!FlightModel.Flag.Reposition) {
             //if (mRace->AdvModel) {
-               //mRace->mVDbgInterface->Init(std::string("camera.bin"), std::string(""), std::string("extract/level0-1/level0-1-unpacked.dat"));
-               //ParseThing* thing = mRace->mVDbgInterface->newDump->ReturnThingFirstPlayer();
-               //mRace->mVDbgInterface->newDump->ThingVehicle->Update(mRace->mVDbgInterface->mDumpLevelStructStart + 0x40B3C + thing->VehicleIndex->mRawValue * 0x1F0);
-
-                // mRace->mVDbgInterface->Init(std::string("testfile.bin"), std::string(""), std::string("extract/level0-1/level0-1-unpacked.dat"));
-                //mRace->mVDbgInterface->Init(std::string("beforeangle.bin"), std::string("afterangle.bin"), std::string("extract/level0-1/level0-1-unpacked.dat"));
-
-
-                //mRace->mVDbgInterface->CompareVehicleStateBetweenMemDumps(mRace->mVDbgInterface->newDump, mRace->mVDbgInterface->newDump2);
-
                 //Playstation 1 emulator executes this vehicle update loop average every 1721634 CPU cycles
                 //CPU clocks at 33.8688 MHz, which means lets run this loop every ~50.83 ms
-
-               /* mRace->mVDbgInterface->Init(std::string("coll.bin"), std::string(""), std::string("extract/level0-1/level0-1-unpacked.dat"));
-                ParseThing* thing = mRace->mVDbgInterface->newDump->ReturnThingFirstPlayer();
-                mRace->mVDbgInterface->newDump->ThingVehicle->Update(mRace->mVDbgInterface->mDumpLevelStructStart + 0x40B3C + thing->VehicleIndex->mRawValue * 0x1F0);
-
-                mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);*/
 
                 vehicle_process_autotarget();
                 vehicle_get_track_friction();
                 vehicle_calculate_angle();
 
-                //mRace->mVDbgInterface->CompareVehicleStatePlayerWithMemDump(*this, mRace->mVDbgInterface->newDump2);
-
-               //  mRace->mVDbgInterface->SetVehicleStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump);
-
                 vehicle_calculate_thrust(delta);
                 mRace->mVCalc->move_displacement_slope(ThingData->Position, Slope);
 
+                //debug calculate momentum Start
+                /*mRace->mVDbgInterface->Init(std::string("calcmom/dump1in.bin"), std::string("calcmom/dump1out.bin"), std::string("extract/level0-1/level0-1-unpacked.dat"));
+                mRace->mVDbgInterface->SetVehiclePhysicsStatePlayerFromMemDump(*this, mRace->mVDbgInterface->newDump, 2);
+
+                delta = mRace->mVDbgInterface->ParseVehiclePhysicsDeltaVariable(mRace->mVDbgInterface->newDump);
+
+                std::cout << "AffectStatus: " << (int)(ThingData->AffectStatus) << std::endl;
+                std::cout << DebugPrintFlightModelFlags(this->FlightModel) << std::endl;
+                std::cout << DebugPrintFlightModelFunctionFlags(this->FlightModel) << std::endl;*/
+
                 vehicle_calculate_momentum(delta);
+
+                /*mRace->mVDbgInterface->CompareVehicleStatePlayerWithMemDump(*this, mRace->mVDbgInterface->newDump2, 2);
+                irr::core::vector3df deltaDump2 = mRace->mVDbgInterface->ParseVehiclePhysicsDeltaVariable(mRace->mVDbgInterface->newDump2);
+                irr::core::vector3df deltaDiff = deltaDump2 - delta;*/
+
                 vehicle_calculate_movement_delta(delta);
                 vehicle_colide_map(delta);
                 vehicle_colide_vectors(delta);
@@ -938,6 +931,10 @@ void VVehicle::Update(irr::f32 frameDeltaTime) {
 
         UpdateSceneNode();
         UpdateCoordinates();
+
+        //we need to update the TimeSlice variable in
+        //the vehicle thing!
+        mRace->mThingManager->UpdateTimeSlice(this->ThingData);
     }
 
     //check if player is in an charging station
@@ -1318,6 +1315,30 @@ void VVehicle::vehicle_terrain_effect(irr::core::vector3df delta) {
     }
 }
 
+VehicleDebugRecordingStruct* VVehicle::GetCurrentDebugRecordingStruct() {
+    VehicleDebugRecordingStruct* newStruct = new VehicleDebugRecordingStruct();
+    if (newStruct == nullptr)
+        return nullptr;
+
+    newStruct->KeyPressedTurnLeft = KeyPressedTurnLeft;
+    newStruct->KeyPressedTurnRight = KeyPressedTurnRight;
+    newStruct->KeyPressedAccel = KeyPressedAccel;
+    newStruct->KeyPressedDeaccel = KeyPressedDeaccel;
+    newStruct->KeyPressedBooster = KeyPressedBooster;
+    newStruct->KeyPressedMachineGun = KeyPressedMachineGun;
+    newStruct->KeyPressedMissileLauncher = KeyPressedMissileLauncher;
+    newStruct->CurrentWaypoint = CurrentWaypoint;
+    newStruct->DbgDecisionDistance = DbgdecisionDistance;
+    newStruct->MovementInput = MovementInput;
+    newStruct->Increment = Increment;
+    newStruct->ComputerPlayer = ComputerPlayer;
+
+    newStruct->ThingData = *ThingData;
+    newStruct->View = View;
+
+    return newStruct;
+}
+
 irr::core::vector3df VVehicle::IrrCoordGetDustEmitterPosition() {
     return IrrWorldCraftDustPnt;
 }
@@ -1361,8 +1382,8 @@ void VVehicle::SetupFlightModelConstants() {
     IncrementLimit.SpeedActual = mRace->mVCalc->FixedPointToFloat8D8(240);
 
     mThrustEffectiveness = 100;
-    mSideslipFriction = mRace->mVCalc->FixedPointToFloat8D8(7);
-    mSideslipToThrust = mRace->mVCalc->FixedPointToFloat8D8(60);
+    mSideslipFriction = 7;
+    mSideslipToThrust = 60;
     mBounce = mRace->mVCalc->FixedPointToFloat8D8(50);
     Stats.Behind = 100;
     mMGun->Upgrade = 0;
@@ -1382,7 +1403,7 @@ void VVehicle::SetupFlightModelConstants() {
     FlightModel.SizeSensorOffset = mRace->mVCalc->FixedPointToFloat8D8(100);
 
     FlightModel.RideHeight = mRace->mVCalc->FixedPointToFloat8D8(50);
-    FlightModel.BrakePower = mRace->mVCalc->FixedPointToFloat8D8(16);
+    FlightModel.BrakePower = 16; //mRace->mVCalc->FixedPointToFloat8D8(16);
 
     FlightModel.FrontLeft.Rebound = mRace->mVCalc->FixedPointToFloat8D8(50);
     FlightModel.FrontLeft.ReboundLimit = mRace->mVCalc->FixedPointToFloat8D8(80);
@@ -1527,7 +1548,9 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
    FlightModel.FunctionFlag.Pad7 = false;
    FlightModel.FunctionFlag.Pad8 = false;
    FlightModel.FunctionFlag.Pad9 = false;
+   FlightModel.FunctionFlag.Pad10 = false;
    FlightModel.FunctionFlag.Pad11 = false;
+   FlightModel.FunctionFlag.Pad13 = false;
 
    //Pad12 seems to be used for checkpoint and lap number processing
    FlightModel.FunctionFlag.Pad12 = false;
@@ -1580,13 +1603,54 @@ VVehicle::VVehicle(Race* mParentRace, uint8_t playerNr, std::string model, irr::
 
    //create my Dust cloud emitter particles system
    mDustBelowCraft = new DustBelowCraft(mRace->mGame->mSmgr, mRace->mGame->mDriver, this, 100);
+
+   mDebugRecordingData.clear();
 }
 
+void VVehicle::CleanUpDebugRecording() {
+    std::vector<VehicleDebugRecordingStruct*>::iterator it;
+    VehicleDebugRecordingStruct* pntr;
+
+    if (GetDebugRecordingNrSamples() > 0) {
+        for (it = mDebugRecordingData.begin(); it != mDebugRecordingData.end();) {
+            pntr = (*it);
+
+            it = mDebugRecordingData.erase(it);
+
+            delete pntr;
+        }
+    }
+}
+
+void VVehicle::HandleDebugRecording() {
+   if (!mEnableDebugRecording)
+       return;
+
+   VehicleDebugRecordingStruct* newStruct = GetCurrentDebugRecordingStruct();
+   if (newStruct != nullptr) {
+        mDebugRecordingData.push_back(newStruct);
+   }
+}
+
+VehicleDebugRecordingStruct* VVehicle::GetDebugRecordingForIdx(size_t whichIdx) {
+    if (whichIdx > (GetDebugRecordingNrSamples() - 1)) {
+        return nullptr;
+    }
+
+    return mDebugRecordingData[whichIdx];
+}
+
+size_t VVehicle::GetDebugRecordingNrSamples() {
+    return mDebugRecordingData.size();
+}
+
+//Note 08.11.2026: I checked with Ghidra, Ghidra delivered the
+//same source code
 void VVehicle::vehicle_get_track_friction() {
     if (FlightModel.Flag.Airbourn) {
         //if we are currently air bourne there is no friction
         //logging::Info("AirBourn");
-        mFriction = 0.0f;
+        mFriction = 0;
         return;
     }
 
@@ -1595,24 +1659,21 @@ void VVehicle::vehicle_get_track_friction() {
     if ((ThingData->TimeSlice & 1) == 0) {
         //no, we are currently not air bourne
         //get the current friction value from the tile below
-        uint16_t tileFriction = mRace->mVCalc->map_colide_friction(ThingData->Position);
+        int16_t tileFriction = (int16_t)(mRace->mVCalc->map_colide_friction(ThingData->Position));
         if (!tileFriction) {
             //friction is 0, set 15 (original game does the same)
             tileFriction = 15;
         }
 
-        irr::f32 tileFrictionFloating =
-                mRace->mVCalc->FixedPointToFloat8D8((int16_t)(tileFriction));
+        int16_t newFriction;
 
-        irr::f32 newFriction;
-
-        if (mFriction >= tileFrictionFloating) {
-            newFriction = mFriction - 0.00390625f;
-            if (tileFrictionFloating >= mFriction) {
+        if (mFriction >= tileFriction) {
+            newFriction = mFriction - 1;
+            if (tileFriction >= mFriction) {
                 return;
             }
         } else {
-            newFriction = mFriction + 0.00390625f;
+            newFriction = mFriction + 1;
         }
 
         mFriction = newFriction;
@@ -1638,38 +1699,41 @@ void VVehicle::vehicle_calculate_angle() {
          v6 = fabs(v4);
 
          if (v6 > 0.0054931640625f) {
+           //v5 contains the sign bit
+           //of v4
            v5 = (v4 / v6);
          }
 
         xy = MovementInput.AngleXY;
+        vHelp = 0.0f;
         v8 = fabs(xy);
         if (v8 > 0.0054931640625f) {
+           //vHelp contains the sign bit
+           //of xy
            vHelp = (xy / v8);
-           if (fabs(v5 - vHelp) > 0.0054931640625f) {
-               goto LABEL_15_vehicle_calculate_angle;
+           if (fabs(v5 - vHelp) > 0.5f) {
+               Increment.AngleXY *= (0.84375f);
+               goto LABEL_16_vehicle_calculate_angle;
            }
        } else if (fabs(v5) > 0.0054931640625f) {
-LABEL_15_vehicle_calculate_angle:
            Increment.AngleXY *= (0.84375f);
            goto LABEL_16_vehicle_calculate_angle;
        }
 
 LABEL_16_vehicle_calculate_angle:
        Increment.AngleXY += MovementInput.AngleXY;
-       goto LABEL_18_vehicle_calculate_angle;
+    } else {
+        Increment.AngleXY *= (0.890625f);
     }
 
-    Increment.AngleXY *= (0.890625f);
-
-LABEL_18_vehicle_calculate_angle:
     //Increment.AngleXY seems to be a relative angle
     //limit the maximum possible range
-    if (Increment.AngleXY >= -IncrementLimit.AngleXY) {
+    if (Increment.AngleXY < -IncrementLimit.AngleXY) {
+         Increment.AngleXY = -IncrementLimit.AngleXY;
+    } else {
         if (IncrementLimit.AngleXY < Increment.AngleXY) {
             Increment.AngleXY = IncrementLimit.AngleXY;
         }
-    } else {
-        Increment.AngleXY = -IncrementLimit.AngleXY;
     }
 
     ThingData->Movement.AngleXY += Increment.AngleXY;
@@ -1734,13 +1798,15 @@ void VVehicle::vehicle_calculate_thrust(irr::core::vector3df& delta) {
 
 void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
     irr::core::vector3df v44;
-    irr::core::vector3df v50;
+    irr::core::vector3df local_70;
     irr::core::vector3df position;
     irr::f32 v7;
-    irr::f32 YPos;
+    irr::f32 iVar11;
+    irr::f32 iVar13;
+    int16_t helpVarFixed;
 
-    delta.X += (Slope.X / 64.0f);
-    delta.Y += (Slope.Y / 64.0f);
+    delta.X += (Slope.X / 64.0f);     //ok
+    delta.Y += (Slope.Y / 64.0f);     //ok
     v44.X = (Momentum.DeltaX / 4.0f);
     v44.Y = (Momentum.DeltaY / 4.0f);
 
@@ -1748,20 +1814,28 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
     Bonus.Y = (v44.Y * ((irr::f32)(Stats.Behind) - 100.0f)) / 100.0f;
 
     if (!FlightModel.Flag.Airbourn) {
+        //Versuch Start
+        // int16_t v44YFixed = mRace->mVCalc->FloatToFixedPoint8D8(v44.Y);
+        // int16_t v44XFixed = mRace->mVCalc->FloatToFixedPoint8D8(v44.X);
+        // int32_t xFixed1 = v44YFixed * v44YFixed + v44XFixed * v44XFixed;
+        // uint32_t xFixed2 = static_cast<uint32_t>(xFixed1);
+        // uint32_t yFixed = mRace->mVCalc->SqrL(xFixed2);
+        // irr::f32 v6 = mRace->mVCalc->FixedPointToFloat8D8(static_cast<int16_t>(yFixed));
+        //Versuch End
+
         irr::f32 v6 = sqrt(v44.Y * v44.Y + v44.X * v44.X);
         if (v6 < 0.390625f) {
             v7 = 0.1953125f - v6;
             if (v7 >= 0.0f) {
-                if (v7 >= 0.1953125) {
-                    v7 = 0.1953125;
+                if (v7 > 0.1953125f) {
+                    v7 = 0.1953125f;
                 }
             } else {
                 v7 = 0.0f;
             }
 
-            YPos = delta.Y;
-            delta.X += delta.X * (v7 / 0.390625f);
-            delta.Y = YPos + YPos * (v7 / 0.390625f);
+            delta.X += (delta.X * v7) / 100.0f;
+            delta.Y += (delta.Y * v7) / 100.0f;
         }
 
         Momentum.DeltaX += delta.X;
@@ -1801,74 +1875,106 @@ void VVehicle::vehicle_calculate_momentum(irr::core::vector3df& delta) {
                }
             }
 
-            //Keep double for DeltaX and DeltaY!
-            double DeltaX = (double)(Momentum.DeltaX);
-            double DeltaY = (double)(Momentum.DeltaY);
+            double sVar9 = (double)(Momentum.DeltaX);        //for X
+            double sVar3 = (double)(Momentum.DeltaY);        //for Y
 
             irr::f32 speedValConst = 4.0f;
 
-            int8_t v55 =
-                    mRace->mVCalc->move_displacement_set(v50, ThingData->Movement.AngleXY, 0.0f, speedValConst);
+            mRace->mVCalc->move_displacement_set(local_70, ThingData->Movement.AngleXY, 0.0f, speedValConst);
 
-            //with the code below the disassembler had some issues, and the Pseudo-C Code
-            //was unusable; Therefore this is based on a longer assembly study session, and stepping
-            //with the Playstation 1 Emulator debugger, Pretty weird code
-            double floatV50_X = (double)(v50.X);
-            double floatV50_Y = (double)(v50.Y);
+            double local_58 = (double)(local_70.X);      //for X   //original implementation does here technically a multiplication with 256.0f
+            double local_50 = (double)(local_70.Y);      //for Y   //original implementation does here technically a multiplication with 256.0f
 
-            floatV50_X = floatV50_X / speedValConst;
-            floatV50_Y = floatV50_Y / speedValConst;
+            local_58 = local_58 / (double)(speedValConst);            //for X
+            local_50 = local_50 / (double)(speedValConst);            //for Y
 
-            double multXRes = floatV50_X * DeltaX * 256.0;
-            double multYRes = floatV50_Y * DeltaY * 256.0;
+            double local_48 = sVar9;                //for X   //original implementation does here technically a multiplication with 256.0f
+            double local_40 = sVar3;                //for Y   //original implementation does here technically a multiplication with 256.0f
 
-            double sum = multXRes + multYRes;
+            double uVar17 = local_58 * local_48;             //for X
+            double uVar18 = local_50 * local_40;             //for Y
 
-            double multXResSum = floatV50_X * sum;
-            double multYResSum = floatV50_Y * sum;
+            double local_38 = uVar17 + uVar18;
+            double local_68 = local_58 * local_38;          //for X
+            double local_60 = local_50 * local_38;          //for Y
 
-            int32_t multXResSumInt = (int32_t)(multXResSum);
-            int32_t multYResSumInt = (int32_t)(multYResSum);
-
-            v44.X = mRace->mVCalc->FixedPointToFloat8D8(static_cast<int16_t>(multXResSumInt));
-            v44.Y = mRace->mVCalc->FixedPointToFloat8D8(static_cast<int16_t>(multYResSumInt));
+            v44.X = (irr::f32)(trunc(local_68));            //for X
+            irr::f32 sVar6 = (irr::f32)(trunc(local_60));   //for Y
             v44.Z = 0.0f;
 
-            double v45_var70 = DeltaX - (double)(v44.X);
-            double v45_var70_plus2 = DeltaY - (double)(v44.Y);
-            double v46_var6C = (double)(v44.Z);
+            irr::f32 uVar12 = (irr::f32)(sVar9) - v44.X;    //for X
+            irr::f32 uVar7 = (irr::f32)(sVar3) - sVar6;     //for Y
 
-            v44.X *= (0.9765625f - mFriction);
-            v44.Y *= (0.9765625f - mFriction);
+            iVar13 = v44.X * (irr::f32)(0xFA - mFriction);
+            // if (iVar13 < 0.0f) {
+            //     iVar13 += 0.99609375f;
+            // }
+
+            v44.X = (iVar13 / 256.0f);                      //for X
+
+            iVar13 = sVar6 * (irr::f32)(0xFA - mFriction);
+            // if (iVar13 < 0.0f) {
+            //     iVar13 += 0.99609375f;
+            // }
+
+            v44.Y = (iVar13 / 256.0f);                      //for Y
 
             Momentum.DeltaX = v44.X;
             Momentum.DeltaY = v44.Y;
 
-            double v47 = v45_var70_plus2;
-            double v48 = v46_var6C;
+            helpVarFixed = (0xFA - mSideslipFriction);
 
-            v45_var70 *= (0.9765625 - (double)(mSideslipFriction) - (double)(mFriction));
-            v45_var70_plus2 *= (0.9765625 - (double)(mSideslipFriction) - (double)(mFriction));
+            iVar13 = uVar12 * (irr::f32)(0xFA - mSideslipFriction - mFriction);  //for X
+            // if (iVar13 < 0.0f) {
+            //     iVar13 += 0.99609375f;
+            // }
 
-            Momentum.DeltaX += (irr::f32)(v45_var70);
-            Momentum.DeltaY += (irr::f32)(v45_var70_plus2);
+            irr::f32 uVar16 = (iVar13 / 256.0f);                               //for X
 
-            double v35 = (v47 - v45_var70_plus2) * (v47 - v45_var70_plus2);
-            v45_var70_plus2 = v47 - v45_var70_plus2;
-            v45_var70 = v47 - v45_var70_plus2;
-            v46_var6C = v48 - v46_var6C;
+            iVar13 = uVar7 * (irr::f32)(0xFA - mSideslipFriction - mFriction);   //for Y
+            // if (iVar13 < 0.0f) {
+            //     iVar13 += 0.99609375f;
+            // }
 
-            double v36 = sqrt(v35 + v45_var70 * v45_var70);
-            mRace->mVCalc->move_displacement_set(v44, ThingData->Movement.AngleXY, 0.0f, (irr::f32)(v36));
+            irr::f32 uVar8 = (iVar13 / 256.0f);                                //for Y
 
-            Momentum.DeltaX += v44.X * (mSideslipFriction / 100.0f);
-            Momentum.DeltaY += v44.Y * (mSideslipFriction / 100.0f);
+            Momentum.DeltaX += uVar16;                       //for X
+            Momentum.DeltaY += uVar8;                        //for Y
+
+            iVar13 = uVar7 - uVar8;
+            iVar11 = uVar12 - uVar16;
+
+            //Versuch 2 Start
+            // int16_t iVar13Fixed = mRace->mVCalc->FloatToFixedPoint8D8(iVar13);
+            // int16_t iVar11Fixed = mRace->mVCalc->FloatToFixedPoint8D8(iVar11);
+            // int32_t xFixed3 = iVar13Fixed * iVar13Fixed + iVar11Fixed * iVar11Fixed;
+            // uint32_t xFixed4 = static_cast<uint32_t>(xFixed3);
+            // uint32_t yFixed3 = mRace->mVCalc->SqrL(xFixed4);
+            // irr::f32 sqrtResult = mRace->mVCalc->FixedPointToFloat8D8(static_cast<int16_t>(yFixed3));
+            //Versuch 2 End
+
+            irr::f32 sqrtResult = sqrt(iVar13 * iVar13 + iVar11 * iVar11);
+            mRace->mVCalc->move_displacement_set(v44, ThingData->Movement.AngleXY, 0.0f, sqrtResult);
+
+            Momentum.DeltaX += v44.X * ((irr::f32)(mSideslipToThrust) / 100.0f);    //for X
+            Momentum.DeltaY += v44.Y * ((irr::f32)(mSideslipToThrust) / 100.0f);    //for Y
         }
 
         if (FlightModel.Flag.Brake) {
            if (FlightModel.FunctionFlag.Brake) {
-                Momentum.DeltaX *= (0.9765625f - FlightModel.BrakePower);
-                Momentum.DeltaY *= (0.9765625f - FlightModel.BrakePower);
+                iVar11 = (irr::f32)(0xFA - FlightModel.BrakePower) * Momentum.DeltaX;
+                // if (iVar11 < 0.0f) {
+                //     iVar11 += 0.99609375f;
+                // }
+
+                Momentum.DeltaX = (iVar11 / 256.0f);
+
+                iVar13 = (irr::f32)(0xFA - FlightModel.BrakePower) * Momentum.DeltaY;
+                // if (iVar13 < 0.0f) {
+                //     iVar13 += 0.99609375f;
+                // }
+
+                Momentum.DeltaY = (iVar13 / 256.0f);
            }
         }
     }
@@ -1880,18 +1986,20 @@ void VVehicle::vehicle_calculate_movement_delta(irr::core::vector3df& delta) {
     irr::f32 v7;
     irr::f32 v9;
 
-    //TODO: add the Bump and Bonus four commented out lines below, if I know what
-    //the do exactly
-
     delta.X = Momentum.DeltaX / 4.0f;
     delta.Y = Momentum.DeltaY / 4.0f;
     delta.Z = Displacement.Z;
-    //delta.X += Bump.X;
-    //delta.Y += Bump.Y;
+    //Bump can be used for collision detection and solution in
+    //with vehicle_colide function; as long as this function is not called
+    //this Bump additions below have no (negative) effect
+    delta.X += Bump.X;
+    delta.Y += Bump.Y;
     Stats.Velocity = mRace->mVCalc->distance_get_xyz(position1, delta);
-    //delta.X += Bonus.X;
+    //Bonus below seems to be used by behind_factor calculation that
+    //helps the player with better handling if he is at the end of the race
+    delta.X += Bonus.X;
     irr::f32 Xpos = delta.X;
-    //delta.Y += Bonus.Y;
+    delta.Y += Bonus.Y;
 
     if (Xpos < -0.9765625f) {
         v5 = -0.9765625f;
@@ -2019,8 +2127,6 @@ void VVehicle::vehicle_move_roll(irr::core::vector3df& delta) {
     irr::f32 craftHeightDiff;
     irr::f32 absCraftHeightDiff;
     bool v9;
-    int32_t intPart;
-    irr::f32 fracPart;
 
     if (FlightModel.Flag.Airbourn) {
         //yes, we are in the air right now
@@ -2033,12 +2139,9 @@ void VVehicle::vehicle_move_roll(irr::core::vector3df& delta) {
 
     absCraftHeightDiff = fabs(craftHeightDiff);
 
-    intPart = (int32_t)(craftHeightDiff);
-    fracPart = craftHeightDiff - (irr::f32)(intPart);
-
     if (absCraftHeightDiff < (2.0f * FlightModel.SizeSideways)) {
         v10 = ThingData->Movement.AngleXZ +
-                (mRace->mVCalc->arctanPlusMultiply32(fracPart, -2.0f * FlightModel.SizeSideways)
+                (mRace->mVCalc->arctanPlusMultiply32(craftHeightDiff, -2.0f * FlightModel.SizeSideways)
                  -ThingData->Movement.AngleXZ) / 8.0f;
 
         ThingData->Movement.AngleXZ = v10;
@@ -2459,6 +2562,8 @@ uint8_t VVehicle::vehicle_control_from_autopilot() {
           decisionDistance = 4.0f;
       }
     }
+
+    DbgdecisionDistance = decisionDistance;
 
     //are we close enough to the current waypoint?
     if (mRace->mVTrack->track_waypoint_distance(ThingData->Position, CurrentWaypoint)
@@ -3076,6 +3181,8 @@ void VVehicle::vehicle_set_camera() {
     View.Position = ThingData->Position;
     View.AngleXY = ThingData->Movement.AngleXY;
     View.AngleZY = ThingData->Movement.AngleZY;
+    //Adding Increment.AngleXY below makes the craft roll "sideways" slightly when
+    //taking curves
     View.AngleXZ = ThingData->Movement.AngleXZ + 4.0f * Increment.AngleXY;
 
     //is there currently a BarrelRoll?
@@ -5209,6 +5316,114 @@ void VVehicle::RemovePlayerPermanentGreenBigText() {
     }
 }
 
+std::string VVehicle::DebugPrintFlightModelFlags(VehicleCollideControlStruct& targetStruct) {
+    std::string activeFlags("Flag: ");
+
+    if (targetStruct.Flag.Booster)
+        activeFlags += "Booster, ";
+
+    if (targetStruct.Flag.Brake)
+        activeFlags += "Brake, ";
+
+    if (targetStruct.Flag.Airbourn)
+        activeFlags += "Airbourn, ";
+
+    if (targetStruct.Flag.BarrelRoll)
+        activeFlags += "BarrelRoll, ";
+
+    if (targetStruct.Flag.AutoPilot)
+        activeFlags += "AutoPilot, ";
+
+    if (targetStruct.Flag.AutoRefuel)
+        activeFlags += "AutoRefuel, ";
+
+    if (targetStruct.Flag.AutoRearm)
+        activeFlags += "AutoRearm, ";
+
+    if (targetStruct.Flag.AutoRepair)
+        activeFlags += "AutoRepair, ";
+
+    if (targetStruct.Flag.AutoStop)
+        activeFlags += "AutoStop, ";
+
+    if (targetStruct.Flag.AutoPilotSet)
+        activeFlags += "AutoPilotSet, ";
+
+    if (targetStruct.Flag.AutoDrive)
+        activeFlags += "AutoDrive, ";
+
+    if (targetStruct.Flag.HealthDeath)
+        activeFlags += "HealthDeath, ";
+
+    if (targetStruct.Flag.FuelDeath)
+        activeFlags += "FuelDeath, ";
+
+    if (targetStruct.Flag.Reposition)
+        activeFlags += "Reposition, ";
+
+    if (targetStruct.Flag.pad1)
+        activeFlags += "pad1, ";
+
+    if (targetStruct.Flag.pad2)
+        activeFlags += "pad2, ";
+
+    return activeFlags;
+}
+
+std::string VVehicle::DebugPrintFlightModelFunctionFlags(VehicleCollideControlStruct& targetStruct) {
+    std::string activeFlags("FunctionFlag: ");
+
+    if (targetStruct.FunctionFlag.Booster)
+        activeFlags += "Booster, ";
+
+    if (targetStruct.FunctionFlag.Brake)
+        activeFlags += "Brake, ";
+
+    if (targetStruct.FunctionFlag.BarrelRoll)
+        activeFlags += "BarrelRoll, ";
+
+    if (targetStruct.FunctionFlag.Pad1)
+        activeFlags += "pad1, ";
+
+    if (targetStruct.FunctionFlag.Pad2)
+        activeFlags += "pad2, ";
+
+    if (targetStruct.FunctionFlag.Pad3)
+        activeFlags += "pad3, ";
+
+    if (targetStruct.FunctionFlag.Pad4)
+        activeFlags += "pad4, ";
+
+    if (targetStruct.FunctionFlag.Pad5)
+        activeFlags += "pad5, ";
+
+    if (targetStruct.FunctionFlag.Pad6)
+        activeFlags += "pad6, ";
+
+    if (targetStruct.FunctionFlag.Pad7)
+        activeFlags += "pad7, ";
+
+    if (targetStruct.FunctionFlag.Pad8)
+        activeFlags += "pad8, ";
+
+    if (targetStruct.FunctionFlag.Pad9)
+        activeFlags += "pad9, ";
+
+    if (targetStruct.FunctionFlag.Pad10)
+        activeFlags += "pad10, ";
+
+    if (targetStruct.FunctionFlag.Pad11)
+        activeFlags += "pad11, ";
+
+    if (targetStruct.FunctionFlag.Pad12)
+        activeFlags += "pad12, ";
+
+    if (targetStruct.FunctionFlag.Pad13)
+        activeFlags += "pad13, ";
+
+    return activeFlags;
+}
+
 VVehicle::~VVehicle() {
     //Remove my Scenenode from
     //Scenemanager
@@ -5246,6 +5461,8 @@ VVehicle::~VVehicle() {
         delete mMLauncher;
         mMLauncher = nullptr;
     }
+
+    CleanUpDebugRecording();
 
     if (ThingData != nullptr) {
         mRace->mThingManager->thing_delete(ThingData);

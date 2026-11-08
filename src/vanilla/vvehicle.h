@@ -39,6 +39,7 @@
 #include <vector>
 #include <string>
 #include "../vanilla/vcalc.h"
+#include "../vanilla/vthing.h"
 #include "../utils/path.h"
 #include "SFML/Audio.hpp"
 
@@ -62,7 +63,6 @@ class VMGun;
 class VMLauncher;
 class Race;
 struct MapTileRegionStruct;
-struct VThing;
 
 struct VehicleSensorPointStruct {
     irr::core::vector3df Position;
@@ -112,8 +112,10 @@ struct VehicleFunctionFlagsStruct {
     bool Pad7;  //seems to be used for auto targeting system
     bool Pad8;  //seems to be used for auto targeting system: TODO: state is not checked/used anywhere! is only cleared/set
     bool Pad9;  //seems to be used for computer player control
+    bool Pad10; //no usage seen until now, only added so that we can parse its value from MemDump
     bool Pad11; //seems to be used for computer player trigger of MGun
     bool Pad12; //seems to be used for checkpoint processing logic
+    bool Pad13; //no usage seen until now, only added so that we can parse its value from MemDump
 };
 
 struct VehicleCollideControlStruct {
@@ -128,7 +130,7 @@ struct VehicleCollideControlStruct {
     VehicleControlFlagsStruct Flag;
     VehicleFunctionFlagsStruct FunctionFlag;
     irr::f32 RideHeight;
-    irr::f32 BrakePower;
+    int16_t BrakePower;
 };
 
 struct VehicleStatsStruct {
@@ -327,6 +329,32 @@ struct VehicleSpecialsStruct {
     struct VehicleSuperCarStruct SuperCar;
 };
 
+//30.10.2026: The struct below does not exist in
+//the original game implementation, I created it only to
+//help hopefully with the FlightModel debugging and error
+//search
+struct VehicleDebugRecordingStruct {
+    //which keys were pressed
+    bool KeyPressedTurnLeft;
+    bool KeyPressedTurnRight;
+    bool KeyPressedAccel;
+    bool KeyPressedDeaccel;
+    bool KeyPressedBooster;
+    bool KeyPressedMachineGun;
+    bool KeyPressedMissileLauncher;
+
+    uint16_t CurrentWaypoint;
+
+    VThing ThingData;
+    VehicleViewStruct View;
+
+    irr::f32 DbgDecisionDistance;
+
+    MovementStruct MovementInput;
+    MovementStruct Increment;
+    VehicleComputerPlayerStruct ComputerPlayer;
+};
+
 class VVehicle {
 public:
     //playerNr starting with value 1 for first player, 8 for last player
@@ -343,6 +371,8 @@ public:
     void DrawDebug();
     void TestCamera();
 
+    VehicleDebugRecordingStruct* GetCurrentDebugRecordingStruct();
+
     bool KeyPressedTurnLeft = false;
     bool KeyPressedTurnRight = false;
     bool KeyPressedAccel = false;
@@ -350,6 +380,8 @@ public:
     bool KeyPressedBooster = false;
     bool KeyPressedMachineGun = false;
     bool KeyPressedMissileLauncher = false;
+
+    bool mEnableDebugRecording = false;
 
     //Pointer to my thing
     VThing* ThingData = nullptr;
@@ -381,8 +413,8 @@ public:
     VehicleStatsStruct Stats;
 
     int16_t mThrustEffectiveness;
-    irr::f32 mSideslipFriction = 0.0f;
-    irr::f32 mSideslipToThrust = 0.0f;
+    int16_t mSideslipFriction;
+    int16_t mSideslipToThrust;
 
     //is the distance of the currently closest missile
     //to this player vehicle
@@ -394,8 +426,8 @@ public:
     irr::f32 mBumpDamage = 0.0f;
 
     //flight model parameters
-    irr::f32 mFriction = 0.0f;
-    irr::f32 mFrictionLimit = 0.0f;
+    int16_t mFriction = 0;
+    int16_t mFrictionLimit = 0;
     irr::f32 mBounce = 0.0f;
     irr::f32 mMaximumZpos = 0.0f;
 
@@ -406,6 +438,9 @@ public:
     VehicleSpecialsStruct Specials;
     VehicleMovementStatusStruct MovementStatus;
     VehicleBulletHoleStruct BulletHole[16];
+
+    std::string DebugPrintFlightModelFunctionFlags(VehicleCollideControlStruct& targetStruct);
+    std::string DebugPrintFlightModelFlags(VehicleCollideControlStruct& targetStruct);
 
     irr::f32 mDeltaTimeFactor = 1.0f;
 
@@ -523,11 +558,16 @@ public:
     void HideCraftModel();
     void UnhideCraftModel();
 
+    VehicleDebugRecordingStruct* GetDebugRecordingForIdx(size_t whichIdx);
+    size_t GetDebugRecordingNrSamples();
+
     //void TestBigExplosion();
 
 private:
     uint32_t ControlOrigin = 1; //activates the human player
     uint16_t LastWayPoint = 0;
+
+    irr::f32 DbgdecisionDistance = 0.0f;
 
     int32_t TotalRaceTicks = 0;
     int32_t TotalRaceTicksFinished = 0;
@@ -708,6 +748,10 @@ private:
     void UpdateSceneNode();
 
     void processWeaponBooster();
+
+    std::vector<VehicleDebugRecordingStruct*> mDebugRecordingData;
+    void HandleDebugRecording();
+    void CleanUpDebugRecording();
 };
 
 #endif // VVEHICLE_H

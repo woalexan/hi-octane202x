@@ -187,6 +187,11 @@ public:
     bool mDebugRace = false;
     bool mDebugDemoMode = false;
 
+    //Functionality for debug recording of player
+    //in race
+    bool mDebugRecordPlayer = false;
+    size_t mDebugRecordPlayerNr = 2;
+
     bool enableLightning = false;
     bool fullscreen = false;
     bool DebugShowVariableBoxes = false;

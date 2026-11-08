@@ -373,6 +373,15 @@ Race::Race(Game* parentGame, MyMusicStream* gameMusicPlayerParam,
 
     mSpriteThingList.clear();
 
+    if (mGame->mDebugRecordPlayer) {
+        DbgShip = mGame->mSmgr->addMeshSceneNode(mGame->mGameAssets->mCraftVec->at(1)->MeshCraft.at(1));
+
+        DebugDrawShipParamOutput = mGame->mGuienv->addStaticText(L"",
+               rect<s32>(400,300,630,460), false, true, nullptr, -1, true);
+
+        DebugDrawShipParamOutput->setVisible(false);
+    }
+
     //for the start of the race we want to trigger
     //target group 1 once
     mPendingTriggerTargetGroups.push_back(1);
@@ -834,6 +843,12 @@ Race::~Race() {
 
     if (CloneShip != nullptr) {
         CloneShip->remove();
+        CloneShip = nullptr;
+    }
+
+    if (DbgShip != nullptr) {
+        DbgShip->remove();
+        DbgShip = nullptr;
     }
 
     delete mPath;
@@ -1374,6 +1389,12 @@ void Race::AddPlayer(bool humanPlayer, char* name, std::string player_model) {
         // It will use the default shadow mode, ESM_BOTH, which allows it to
         // both cast and receive shadows.
         mGame->mEffect->addShadowToNode(newPlayer->mCraftNode, mShadowMapFilterType);
+    }
+
+    if (mGame->mDebugRecordPlayer) {
+        if (nextPlayerNr == mGame->mDebugRecordPlayerNr) {
+            newPlayer->mEnableDebugRecording = true;
+        }
     }
 
     //set player name, and race difficulty level
@@ -2632,6 +2653,39 @@ void Race::HandleDebugInput() {
                }
            }
    }
+
+   if (mGame->mDebugRecordPlayer) {
+       if (mGame->mEventReceiver->IsKeyDownSingleEvent(irr::KEY_KEY_U)) {
+          mDebugDrawShip = !mDebugDrawShip;
+          if (mDebugDrawShip) {
+              mGame->StopTime();
+              DebugDrawShipEnable();
+          } else {
+              DebugDrawShipDisable();
+              mGame->StartTime();
+          }
+       }
+
+       if (mDebugDrawShip) {
+
+           if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_I)) {
+               mDebugDrawShipIdx--;
+
+               if (mDebugDrawShipIdx < 0) {
+                   mDebugDrawShipIdx = 0;
+               }
+           }
+
+           if (mGame->mEventReceiver->IsKeyDown(irr::KEY_KEY_O)) {
+               mDebugDrawShipIdx++;
+               size_t maxIndex = mVanillaCraftVec.at(mGame->mDebugRecordPlayerNr-1)->GetDebugRecordingNrSamples();
+
+               if (mDebugDrawShipIdx >= maxIndex ) {
+                   mDebugDrawShipIdx = (maxIndex - 1);
+               }
+           }
+        }
+   }
 }
 
 void Race::TriggerRaceStart() {
@@ -3153,6 +3207,10 @@ void InfrastructureBase::ModelRotate(irr::scene::ISceneNode *node, irr::core::ve
 }
 
 void Race::Render() {
+    if (mGame->mDebugRecordPlayer) {
+       PreRenderDebugDrawShip();
+    }
+
     //if we do not use XEffects (and we have vanilla sky enabled) we can simply render the sky
     //with XEffect this does not work, so here we have to use the upgraded skydome
     if (!mGame->mGameConfig->useUpgradedSky) {
@@ -3248,9 +3306,13 @@ void Race::Render() {
         DebugDrawChildInfo();
     }
 
-    std::vector<VVehicle*>::iterator itVeh;
+    /*std::vector<VVehicle*>::iterator itVeh;
     for (itVeh = mVanillaCraftVec.begin(); itVeh != mVanillaCraftVec.end(); ++itVeh) {
         (*itVeh)->DbgDrawCurrentWayPoint();
+    }*/
+
+    if (mDebugDrawShip) {
+       RenderDebugDrawShip();
     }
 
     //DebugDrawChildInfoMemDump();
@@ -5428,4 +5490,81 @@ void Race::CleanUpCollectableSpawners() {
         }
     }
 }
+
+void Race::DebugDrawShipEnable() {
+    mDebugDrawShip = true;
+    mDebugDrawShipForceUpdate = true;
+
+    DbgShip->setVisible(true);
+    DebugDrawShipParamOutput->setVisible(true);
+}
+
+void Race::DebugDrawShipDisable() {
+    mDebugDrawShip = false;
+    DbgShip->setVisible(false);
+    DebugDrawShipParamOutput->setVisible(false);
+}
+
+void Race::PreRenderDebugDrawShip() {
+    if (mDebugDrawShip) {
+        if ((mDebugDrawShipIdx != mDebugDrawShipLastIdx) || mDebugDrawShipForceUpdate) {
+                //should we draw a valid index, or not?
+                VehicleDebugRecordingStruct* whichState = mVanillaCraftVec.at(mGame->mDebugRecordPlayerNr-1)->GetDebugRecordingForIdx(mDebugDrawShipIdx);
+                if (whichState == nullptr)
+                    return;
+
+                //we have valid data, render debug info
+                UpdateSceneNodeModel(DbgShip, &whichState->View);
+
+                mDebugDrawShipLastIdx = mDebugDrawShipIdx;
+
+                wchar_t* text2 = new wchar_t[400];
+
+                swprintf(text2, 390, L"IncXY: %lf\nIncZY: %lf\nIncXZ: %lf",
+                         whichState->ThingData.Movement.AngleXY,
+                         whichState->ThingData.Movement.AngleZY,
+                         whichState->ThingData.Movement.AngleXZ);
+
+                DebugDrawShipParamOutput->setText(text2);
+
+                delete[] text2;
+        }
+    }
+}
+
+void Race::RenderDebugDrawShip() {
+    if (mDebugDrawShip) {
+            //should we draw a valid index, or not?
+            VehicleDebugRecordingStruct* whichState = mVanillaCraftVec.at(mGame->mDebugRecordPlayerNr-1)->GetDebugRecordingForIdx(mDebugDrawShipIdx);
+            if (whichState == nullptr)
+                  return;
+
+            //Draw the current WayPoint
+            if (whichState->CurrentWaypoint != 0) {
+                irr::core::vector3df currWayPointVan;
+                irr::core::vector3df currWayPointIrr;
+                irr::core::vector3df myPosIrr;
+                mVTrack->track_waypoint_position_set(currWayPointVan, whichState->CurrentWaypoint);
+                currWayPointIrr = mVCalc->VanillaToIrrlichtCoord(currWayPointVan);
+                myPosIrr = mVCalc->VanillaToIrrlichtCoord(whichState->ThingData.Position);
+                mGame->mDrawDebug->Draw3DLine(myPosIrr, currWayPointIrr, mGame->mDrawDebug->cyan);
+            }
+
+            //draw direction vector for Increment
+            irr::core::vector3df startVan = whichState->ThingData.Position;
+            irr::core::vector3df endVan = startVan;
+            mVCalc->move_xyz(endVan, whichState->ThingData.Movement.AngleXY,
+                             whichState->ThingData.Movement.AngleXZ,
+                             whichState->ThingData.Movement.SpeedActual);
+
+            irr::core::vector3df startIrr =
+                    mVCalc->VanillaToIrrlichtCoord(startVan);
+            irr::core::vector3df endIrr =
+                    mVCalc->VanillaToIrrlichtCoord(endVan);
+
+            mGame->mDrawDebug->Draw3DLine(startIrr, endIrr, mGame->mDrawDebug->green);
+
+        }
+}
+
 

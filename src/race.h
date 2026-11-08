@@ -150,6 +150,7 @@ class SpriteThing;
 class VRepair;
 struct VThing;
 struct VehicleViewStruct;
+struct VehicleDebugRecordingStruct;
 class VThingManager;
 class VEffectManager;
 
@@ -421,11 +422,26 @@ private:
     //recording
     irr::scene::IMeshSceneNode *CloneShip = nullptr;
 
+    //A irrlicht model for vehicle debug drawing
+    irr::scene::IMeshSceneNode *DbgShip = nullptr;
+
     //ShadowMap settings
     E_FILTER_TYPE mShadowMapFilterType;
     irr::u32 mShadowMapResolution;
 
     SShadowLight* mShadowLight = nullptr;
+
+    bool mDebugDrawShip = false;
+    size_t mDebugDrawShipIdx = 0;
+    size_t mDebugDrawShipLastIdx = 0;
+    bool mDebugDrawShipForceUpdate = false;
+
+    irr::gui::IGUIStaticText* DebugDrawShipParamOutput = nullptr;
+
+    void PreRenderDebugDrawShip();
+    void RenderDebugDrawShip();
+    void DebugDrawShipEnable();
+    void DebugDrawShipDisable();
 
     MyMusicStream* mMusicPlayer = nullptr;
 
@@ -613,7 +629,6 @@ public:
 
 private:
     void UpdateCollectableSpawners(irr::f32 frameDeltaTime);
-
 
     void CreateChargingStations();
 
