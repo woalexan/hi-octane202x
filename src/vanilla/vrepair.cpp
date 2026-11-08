@@ -69,6 +69,13 @@ void VRepair::Initialize() {
     RecoveryNode->setMaterialFlag(irr::video::EMF_LIGHTING, mRace->mGame->enableLightning);
     RecoveryNode->setMaterialFlag(irr::video::EMF_FOG_ENABLE, true);
 
+    if (mRace->mGame->mUseXEffects) {
+        // Add this SceneNode to the shadow node list, using the chosen filtertype.
+        // It will use the default shadow mode, ESM_BOTH, which allows it to
+        // both cast and receive shadows.
+        mRace->mGame->mEffect->addShadowToNode(RecoveryNode, mRace->mShadowMapFilterType);
+    }
+
     repair_vehicle_set_camera();
     UpdateSceneNode();
 }

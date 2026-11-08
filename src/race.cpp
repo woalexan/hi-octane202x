@@ -5188,15 +5188,7 @@ void Race::CreateEntity(EntityItem *p_entity,
 
             VRepair* newRepairVehicle = new VRepair(this, entity.getCenter(), mGame->mSmgr);
 
-            if (mGame->mUseXEffects) {
-                // Add this SceneNode to the shadow node list, using the chosen filtertype.
-                // It will use the default shadow mode, ESM_BOTH, which allows it to
-                // both cast and receive shadows.
-                mGame->mEffect->addShadowToNode(newRepairVehicle->RecoveryNode, mShadowMapFilterType);
-            }
-
             //remember all recovery vehicles in a vector for later use
-            //this->recoveryVec->push_back(recov1);
             this->mVanillaRepairVehicleVec.push_back(newRepairVehicle);
 
             break;

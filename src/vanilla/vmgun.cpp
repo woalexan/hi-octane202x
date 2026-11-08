@@ -264,6 +264,8 @@ uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
         v22 = rand() % 3;
         if (v22 == 1) {
             //sample_play(whichThing, 4);
+            irr::core::vector3df irrLocation = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
+            mParentRace->mSoundEngine->PlaySound(SRES_GAME_RICCO1, irrLocation, false);
             v28 = 4;
         } else if (v22 >= 2) {
             if (v22 != 2) {
@@ -271,6 +273,8 @@ uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
             }
 
             //sample_play(whichThing, 6);
+            irr::core::vector3df irrLocation = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
+            mParentRace->mSoundEngine->PlaySound(SRES_GAME_RICCO2, irrLocation, false);
             v28 = 6;
         } else {
             if (v22) {
@@ -278,6 +282,8 @@ uint8_t VMGun::processSHOT_BULLET(MGunShotStruct* whichShot) {
             }
 
             //sample_play(whichThing, 3);
+            irr::core::vector3df irrLocation = mParentRace->mVCalc->VanillaToIrrlichtCoord(whichThing->Position);
+            mParentRace->mSoundEngine->PlaySound(SRES_GAME_RICCO3, irrLocation, false);
             v28 = 3;
         }
         //sample_set_pitch(whichThing, v28, .... TBD)

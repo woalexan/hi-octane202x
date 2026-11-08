@@ -397,6 +397,10 @@ public:
     //development
     bool playerCamera = true;
 
+    //ShadowMap settings
+    E_FILTER_TYPE mShadowMapFilterType;
+    irr::u32 mShadowMapResolution;
+
 private:
     std::string mLevelRootPath;
     std::string mLevelName;
@@ -424,10 +428,6 @@ private:
 
     //A irrlicht model for vehicle debug drawing
     irr::scene::IMeshSceneNode *DbgShip = nullptr;
-
-    //ShadowMap settings
-    E_FILTER_TYPE mShadowMapFilterType;
-    irr::u32 mShadowMapResolution;
 
     SShadowLight* mShadowLight = nullptr;
 
