@@ -5,7 +5,7 @@ If you want to help in any way, or you have ideas or feedback please let me know
 
 This source code will only run if the user does possess and supply it with the original game data files.
 
-### Update 18.10.2026
+### Update 08.11.2026
 Since beginning of this year I am in the process of replacing my own older source code with new source code more or less based on the
 original games implementation. This will make my project feel much closer to the original. Right now the project contains old source code and
 new implementations in parallel, and in the near future I will begin to remove old now unnecessary parts step by step.
@@ -19,14 +19,14 @@ I made a lot of progress over the last 5 months or so. This is already implement
 - Player stats (Health, Fuel, Ammo) and Recharging stations are working
 - HUD during the race is working
 - Recovery vehicles are working
-- Computer player steering (basic function working, but there must be a hidden bug somewhere I need to fix, so not perfect)
+- Computer player steering 
 - Computer players also attack the human player now
 - Auto Target System (so other players can be targeted)
 - First effects are implemented (Smoke, Small/Medium Explosions)
 - External camera views implemented and working now
 - Special bonus features (180°, 360°, 720°, Supercar) are now implemented
 - Broken glass effect on HUD does work
-- Rocket Gun triggers in levels are usable
+- Rocket Gun and player craft triggers in levels are usable
 - Cones are implemented
 - Player rating is implemented (but needs to be still verified)
 - Steam effects at the race track are implemented in my own way (but particle system needs to be improved in the near future)
@@ -35,7 +35,6 @@ I made a lot of progress over the last 5 months or so. This is already implement
 - Fine tune all sprite positions in the game (for example the explosions, machine gun bulltet hitting the ground)
 - Fix small morph bug with columns in the mine level
 - Implement missing routine that calculates the "behind-factor" that affects the difficulty of vehicle physics for the players depending on their current race position
-- Fix the bug/issue with the computer player craft turning instability (tried already, this is a tricky issue) 
 
 Note regarding Windows and Visual Studio (MSVC) for compiling: Thanks to the contribution (Bugfixes) of the user ArthurReboulSalze the project was building and working under Windows not a long time ago. If my changes in the meantime broke the project under Windows again, the necessary repair work should not be very extensive.
 
