@@ -2165,6 +2165,10 @@ void Race::AdvanceTime(irr::f32 frameDeltaTime) {
     //}
 
     for (itPlayer = mVanillaCraftVec.begin(); itPlayer != mVanillaCraftVec.end(); ++itPlayer) {
+        (*itPlayer)->PreUpdate();
+    }
+
+    for (itPlayer = mVanillaCraftVec.begin(); itPlayer != mVanillaCraftVec.end(); ++itPlayer) {
         (*itPlayer)->Update(frameDeltaTime);
     }
 

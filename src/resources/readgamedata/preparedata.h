@@ -259,7 +259,7 @@ private:
 
     void ConvertObjectTexture(char* rawDataFilename, char* outputFilename, int scaleFactor);
     bool DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
-            char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf);
+            const char *atlasFileName, const char* exportDir, const char* outputFileName, TABFILE *tabf);
 
     //further split sound files
     void SplitSoundFile(const char* filename, const char *ofilename, std::vector<SOUNDFILEENTRY> *entries);
@@ -279,7 +279,7 @@ private:
 
     void ExtractTmaps();
 
-    bool ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor);
+    bool ConvertTMapImageData(const char* rawDataFilename, const char* outputFilename, int scaleFactor);
 
     //Variables for Intro
     //Processing
@@ -294,7 +294,7 @@ private:
     void RepairFLI(const char* outputFLIFileName);
     void ProcessFrame(long currFrameNr);
     void ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                           char* outputFilename, int scaleFactor);
+                           const char* outputFilename, int scaleFactor);
 
     void SplitSoundDatFile();
     unsigned long mNrSoundFiles;
@@ -316,7 +316,7 @@ private:
     //Important note: This data is not extracted from the original
     //game files, as I do not have this data
     void AddOtherLevelsHiOctaneTools();
-    void SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName);
+    void SplitHiOctaneToolsAtlas(const char* targetFile, const char* exportDir, const char* outputFileName);
 
     irr::video::IImage* UpscaleImage(irr::video::IImage *srcImg, irr::u32 sizex, irr::u32 sizey, int scaleFactor);
 

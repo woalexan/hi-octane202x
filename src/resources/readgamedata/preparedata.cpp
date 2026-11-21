@@ -16,6 +16,7 @@
 #include "../../utils/fileutils.h"
 #include "../readgamedata/objectdatfile.h"
 #include <iomanip>
+#include <cstdio>
 #include <algorithm>
 #include "../xbrz-1-8/xbrz.h"
 #include "../intro/flifix.h"
@@ -431,7 +432,7 @@ void PrepareData::MoveIndexedFilesToNewLocation(const char* srcPath, const char*
         srcfileName.append(srcPath);
         srcfileName.append("/");
         srcfileName.append(srcPrefix);
-        sprintf (fname, "%0*u.png", 4, (idx + srcStartIdx));
+        snprintf (fname, 30, "%0*u.png", 4, (idx + srcStartIdx));
         srcfileName.append(fname);
 
         if (!(FileExists(srcfileName.c_str()) == 1)) {
@@ -453,7 +454,7 @@ void PrepareData::MoveIndexedFilesToNewLocation(const char* srcPath, const char*
         }
 
         //remove the source file
-        std::remove(srcfileName.c_str());
+        remove(srcfileName.c_str());
     }
 }
 
@@ -585,7 +586,11 @@ bool PrepareData::CreateMapConfigFile(const char* filename, irr::u8 levelNr) {
             newConfig.texBaseLocation.append("extract/textures/level0-1");
             newConfig.useCustomTextures = true;
 
-            newConfig.EnableLensFlare = true;
+            //newConfig.EnableLensFlare = true;
+            //21.11.2026: LensFlare disabled right now in Level 1, because sometimes
+            //it causes the game to freeze. Because the RayTracing goes wrong sometimes in
+            //Endless loop, TODO
+            newConfig.EnableLensFlare = false;
             newConfig.lensflareLocation.set(0.0f,80.0f,-80.0f);
             newConfig.cloudColorCenter1.set(220, 220, 220, 220);
             newConfig.cloudColorInner1.set(180, 180, 180, 180);
@@ -1392,19 +1397,21 @@ void PrepareData::ExtractGameLogoSVGA() {
 
     //We also want to create an upscaled version (times 2) of this intro pictures
     //for double resolution mode
-    char finalpathSrc[80];
-    char finalpathDest[80];
+    irr::io::path finalpathSrc("");
+    irr::io::path finalpathDest("");
     char fname[20];
 
     for (int idx = 0; idx < 6; idx++) {
-           strcpy(finalpathSrc, "extract/images/logo0-1-");
-           sprintf (fname, "%0*ld.png", 4, (long)idx);
-           strcat(finalpathSrc, fname);
+           finalpathSrc = "";
+           finalpathSrc.append("extract/images/logo0-1-");
+           snprintf (fname, 20, "%0*ld.png", 4, (long)idx);
+           finalpathSrc.append(fname);
 
-           strcpy(finalpathDest, "extract/images/logo0-1-x2-");
-           strcat(finalpathDest, fname);
+           finalpathDest = "";
+           finalpathDest.append("extract/images/logo0-1-x2-");
+           finalpathDest.append(fname);
 
-           UpscaleExistingImageFile(finalpathSrc, finalpathDest, 2);
+           UpscaleExistingImageFile(finalpathSrc.c_str(), finalpathDest.c_str(), 2);
     }
 }
 
@@ -1898,8 +1905,8 @@ bool PrepareData::DetectFontCharacterColor(irr::video::IImage* image, irr::video
 void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileName, const char* destFntFileName,
           irr::u32 fileNameNumOffset, irr::u32 numberCharacters, bool cleanUp) {
 
-    char finalpathSrc[70];
-    char finalpathDest[70];
+    irr::io::path finalpathSrc("");
+    irr::io::path finalpathDest("");
     char fname[70];
     irr::video::SColor detColor;
 
@@ -1908,11 +1915,13 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
 
     for (ulong idx = fileNameNumOffset; idx < (numberCharacters + fileNameNumOffset); idx++) {
         //build current filename
-        strcpy(finalpathSrc, sourceFntFileName);
-        strcpy(finalpathDest, destFntFileName);
-        sprintf (fname, "%0*lu.png", 4, idx);
-        strcat(finalpathSrc, fname);
-        strcat(finalpathDest, fname);
+        finalpathSrc = "";
+        finalpathDest = "";
+        finalpathSrc.append(sourceFntFileName);
+        finalpathDest.append(destFntFileName);
+        snprintf (fname, 70, "%0*lu.png", 4, idx);
+        finalpathSrc.append(fname);
+        finalpathDest.append(fname);
 
         //now we have source and destination file names
         //load image with irrlicht
@@ -1921,7 +1930,7 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
         irr::core::dimension2d<irr::u32> srcDim(srcImg->getDimension().Width, srcImg->getDimension().Height);
 
         if (srcImg == nullptr)
-            throw std::string("Error opening source image file: ") + finalpathSrc;
+            throw std::string("Error opening source image file: ") + std::string(finalpathSrc.c_str());
 
         //copy source image into new destination image
         irr::video::IImage* destImg =
@@ -1944,11 +1953,11 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
 
         //detect font color inside source image
         if (!this->DetectFontCharacterColor(destImg, &detColor)) {
-            throw std::string("Error detecting font color in image file: ") + finalpathSrc;
+            throw std::string("Error detecting font color in image file: ") + std::string(finalpathSrc.c_str());
         }
 
         if (!this->ReplacePixelColor(destImg, detColor, newColor)) {
-            throw std::string("Error replacing pixel color in image file: ") + finalpathSrc;
+            throw std::string("Error replacing pixel color in image file: ") + std::string(finalpathSrc.c_str());
         }
 
         //now we have the font character with new color in image variable
@@ -1961,7 +1970,7 @@ void PrepareData::CreateFontForUnselectedItemsInMenue(const char* sourceFntFileN
         destImg->drop();
 
         if (cleanUp) {
-            std::remove(finalpathSrc);
+            std::remove(finalpathSrc.c_str());
         }
     }
 }
@@ -2306,7 +2315,7 @@ void PrepareData::ExportTerrainTextures(const char* targetFile, const char* expo
 //therefore to be able to use the levels 7 up to 9 data from their project
 //we have to reorganize the atlas again (split it in single picture files)
 //Returns true in case of success, returns false in case of unexpected problem
-void PrepareData::SplitHiOctaneToolsAtlas(char* targetFile, char* exportDir, char* outputFileName) {
+void PrepareData::SplitHiOctaneToolsAtlas(const char* targetFile, const char* exportDir, const char* outputFileName) {
     //first open target image again
     irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(targetFile);
     irr::video::IImage* origAtlas = mInfra->mDriver->createImageFromFile(targetFile);
@@ -2403,54 +2412,54 @@ void PrepareData::ExtractTerrainTexture(char levelNr) {
 }
 
 void PrepareData::AddOtherLevelsHiOctaneTools() {
-     char outputDirName[50];
-     char outputFile[50];
-     char finalFile[50];
-     char levelFile[50];
+     irr::io::path outputDirName("");
+     irr::io::path outputFile("");
+     irr::io::path finalFile("");
+     irr::io::path levelFile("");
 
-     strcpy(outputFile, "userdata/level0-7.png");
-     strcpy(levelFile, "userdata/level0-7.dat");
-     strcpy(finalFile, "/tex");
+     outputFile.append("userdata/level0-7.png");
+     levelFile.append("userdata/level0-7.dat");
+     finalFile.append("/tex");
 
      //are level 7 files available in userdata folder?
-     if ((FileExists(outputFile) == 1) && (FileExists(levelFile) == 1)) {
+     if ((FileExists(outputFile.c_str()) == 1) && (FileExists(levelFile.c_str()) == 1)) {
          //yes, install level 7 in extract folder
-         strcpy(outputDirName, "extract/level0-7");
-         SplitHiOctaneToolsAtlas(outputFile, outputDirName, finalFile);
+         outputDirName = "extract/level0-7";
+         SplitHiOctaneToolsAtlas(outputFile.c_str(), outputDirName.c_str(), finalFile.c_str());
 
          //copy level file to target dir
-         strcpy(outputFile, "extract/level0-7/level0-7-unpacked.dat");
-         copy_file(levelFile, outputFile);
+         outputFile = "extract/level0-7/level0-7-unpacked.dat";
+         copy_file(levelFile.c_str(), outputFile.c_str());
      }
 
-     strcpy(outputFile, "userdata/level0-8.png");
-     strcpy(levelFile, "userdata/level0-8.dat");
-     strcpy(finalFile, "/tex");
+     outputFile = "userdata/level0-8.png";
+     levelFile = "userdata/level0-8.dat";
+     finalFile = "/tex";
 
      //are level 8 files available in userdata folder?
-     if ((FileExists(outputFile) == 1) && (FileExists(levelFile) == 1)) {
+     if ((FileExists(outputFile.c_str()) == 1) && (FileExists(levelFile.c_str()) == 1)) {
          //yes, install level 8 in extract folder
-         strcpy(outputDirName, "extract/level0-8");
-         SplitHiOctaneToolsAtlas(outputFile, outputDirName, finalFile);
+         outputDirName = "extract/level0-8";
+         SplitHiOctaneToolsAtlas(outputFile.c_str(), outputDirName.c_str(), finalFile.c_str());
 
          //copy level file to target dir
-         strcpy(outputFile, "extract/level0-8/level0-8-unpacked.dat");
-         copy_file(levelFile, outputFile);
+         outputFile = "extract/level0-8/level0-8-unpacked.dat";
+         copy_file(levelFile.c_str(), outputFile.c_str());
      }
 
-     strcpy(outputFile, "userdata/level0-9.png");
-     strcpy(levelFile, "userdata/level0-9.dat");
-     strcpy(finalFile, "/tex");
+     outputFile = "userdata/level0-9.png";
+     levelFile = "userdata/level0-9.dat";
+     finalFile = "/tex";
 
      //are level 9 files available in userdata folder?
-     if ((FileExists(outputFile) == 1) && (FileExists(levelFile) == 1)) {
+     if ((FileExists(outputFile.c_str()) == 1) && (FileExists(levelFile.c_str()) == 1)) {
          //yes, install level 9 in extract folder
-         strcpy(outputDirName, "extract/level0-9");
-         SplitHiOctaneToolsAtlas(outputFile, outputDirName, finalFile);
+         outputDirName = "extract/level0-9";
+         SplitHiOctaneToolsAtlas(outputFile.c_str(), outputDirName.c_str(), finalFile.c_str());
 
          //copy level file to target dir
-         strcpy(outputFile, "extract/level0-9/level0-9-unpacked.dat");
-         copy_file(levelFile, outputFile);
+         outputFile = "extract/level0-9/level0-9-unpacked.dat";
+         copy_file(levelFile.c_str(), outputFile.c_str());
      }
 }
 
@@ -2489,7 +2498,7 @@ irr::video::IImage* PrepareData::UpscaleImage(irr::video::IImage *srcImg, irr::u
 }
 
 void PrepareData::ConvertIntroFrame(unsigned char* ByteArray, flic::Colormap colorMap, irr::u32 sizex, irr::u32 sizey,
-                                    char* outputFilename, int scaleFactor) {
+                                    const char* outputFilename, int scaleFactor) {
      //create an empty image
      irr::video::IImage* img =
              mInfra->mDriver->createImage(irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8, irr::core::dimension2d<irr::u32>(sizex, sizey));
@@ -2555,7 +2564,7 @@ void PrepareData::ConvertObjectTexture(char* rawDataFilename, char* outputFilena
 //we have to reorganize the atlas again (split it in single picture files)
 //Returns true in case of success, returns false in case of unexpected problem
 bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
-        char *atlasFileName, char* exportDir, char* outputFileName, TABFILE *tabf) {
+        const char *atlasFileName, const char* exportDir, const char* outputFileName, TABFILE *tabf) {
     //first open target image again
     irr::io::IReadFile *file = mInfra->mDevice->getFileSystem()->createAndOpenFile(atlasFileName);
 
@@ -2572,7 +2581,7 @@ bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
 
     //now we need to extract all singulated files
 
-    char finalpath[50];
+    irr::io::path finalpath("");
     char fname[20];
 
     TABFILE_ITEM* itemPntr;
@@ -2615,10 +2624,11 @@ bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
 
                 }*/
 
-            strcpy(finalpath, exportDir);
-            strcat(finalpath, outputFileName);
-            sprintf (fname, "%0*d.png", 4, tileIdx);
-            strcat(finalpath, fname);
+            finalpath = "";
+            finalpath.append(exportDir);
+            finalpath.append(outputFileName);
+            snprintf (fname, 20, "%0*d.png", 4, tileIdx);
+            finalpath.append(fname);
 
             //create new file for writting
             irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(finalpath, false);
@@ -2641,7 +2651,7 @@ bool PrepareData::DebugSplitModelTextureAtlasAndWriteSingulatedPictures(
     return true;
 }
 
-bool PrepareData::ConvertTMapImageData(char* rawDataFilename, char* outputFilename, int scaleFactor) {
+bool PrepareData::ConvertTMapImageData(const char* rawDataFilename, const char* outputFilename, int scaleFactor) {
     FILE* iFile;
 
     iFile = fopen(rawDataFilename, "rb");
@@ -2928,12 +2938,11 @@ void PrepareData::ExtractModelTextures() {
          throw std::string("Could not locate the original games object data file tex0-0.tab");
     }
 
-    char outputfile[50];
-    strcpy(outputfile, "extract/models/tex0-0.png");
+    irr::io::path outputfile("extract/models/tex0-0.png");
 
     ConvertRawImageData(inputDatFile.c_str(),
                         (irr::u32)(modelTexAtlasSize.Width),
-                        (irr::u32)(modelTexAtlasSize.Height), outputfile, 1);
+                        (irr::u32)(modelTexAtlasSize.Height), outputfile.c_str(), 1);
 
     /********************************************
     * We also need the TAB file to know where  *
@@ -3002,18 +3011,20 @@ void PrepareData::ExtractTmaps() {
     size_t counter = 0;
     unsigned long ofilenr = 0;
     FILE* oFile = nullptr;
+    char fname[20];
+    char fname2[20];
+    irr::io::path finalpath("");
+    irr::io::path finalpathUnpacked("");
 
     while (counter < ByteArray.size()) {
         if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
             && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1))
         {
             //new file start found
-
-            char finalpath[50];
-            char fname[20];
-            strcpy(finalpath, "extract/sprites/tmaps-packed");
-            sprintf (fname, "%0*lu.dat", 4, ofilenr);
-            strcat(finalpath, fname);
+            finalpath = "";
+            finalpath.append("extract/sprites/tmaps-packed");
+            snprintf (fname, 20, "%0*lu.dat", 4, ofilenr);
+            finalpath.append(fname);
             ofilenr++;
 
             if (oFile != nullptr) {
@@ -3021,9 +3032,9 @@ void PrepareData::ExtractTmaps() {
                 fclose(oFile);
             }
 
-            oFile = fopen(finalpath, "wb");
+            oFile = fopen(finalpath.c_str(), "wb");
             if (oFile == nullptr) {
-                throw std::string("Cannot open file for writing: ") + finalpath;
+                throw std::string("Cannot open file for writing: ") + std::string(finalpath.c_str());
             }
         }
         if (oFile != nullptr) {
@@ -3038,51 +3049,41 @@ void PrepareData::ExtractTmaps() {
    //RNC unpack all the sprite files
    unsigned long filecnt;
 
-   for (filecnt = 0; filecnt < ofilenr; filecnt++) {
-       char finalpath[50];
-       char finalpathUnpacked[50];
-       char fname[20];
-       strcpy(finalpath, "extract/sprites/tmaps-packed");
-       strcpy(finalpathUnpacked, "extract/sprites/tmaps-unpacked");
-       sprintf (fname, "%0*lu.dat", 4, filecnt);
-       strcat(finalpath, fname);
-       strcat(finalpathUnpacked, fname);
 
-       UnpackDataFile(finalpath, finalpathUnpacked);
+   for (filecnt = 0; filecnt < ofilenr; filecnt++) {
+       finalpath = "extract/sprites/tmaps-packed";
+       finalpathUnpacked = "extract/sprites/tmaps-unpacked";
+       snprintf (fname, 20, "%0*lu.dat", 4, filecnt);
+       finalpath.append(fname);
+       finalpathUnpacked.append(fname);
+
+       UnpackDataFile(finalpath.c_str(), finalpathUnpacked.c_str());
    }
 
    //export raw video data to png pictures
     for (filecnt = 0; filecnt < ofilenr; filecnt++) {
-        char finalpath[50];
-        char finalpathUnpacked[50];
-        char fname[20];
-        char fname2[20];
-        strcpy(finalpath, "extract/sprites/tmaps");
-        strcpy(finalpathUnpacked, "extract/sprites/tmaps-unpacked");
-        sprintf (fname, "%0*lu.dat", 4, filecnt);
-        sprintf (fname2, "%0*lu.png", 4, filecnt);
-        strcat(finalpath, fname2);
-        strcat(finalpathUnpacked, fname);
+        finalpath = "extract/sprites/tmaps";
+        finalpathUnpacked = "extract/sprites/tmaps-unpacked";
+        snprintf (fname, 20, "%0*lu.dat", 4, filecnt);
+        snprintf (fname2, 20, "%0*lu.png", 4, filecnt);
+        finalpath.append(fname2);
+        finalpathUnpacked.append(fname);
 
         //upscale Tmaps by a factor of 2
-        ConvertTMapImageData(finalpathUnpacked, finalpath, 2);
+        ConvertTMapImageData(finalpathUnpacked.c_str(), finalpath.c_str(), 2);
     }
 
     //cleanup unnecessary files
     for (filecnt = 0; filecnt < ofilenr; filecnt++) {
-        char finalpath[50];
-        char finalpathUnpacked[50];
-        char fname[20];
-        char fname2[20];
-        strcpy(finalpath, "extract/sprites/tmaps-packed");
-        strcpy(finalpathUnpacked, "extract/sprites/tmaps-unpacked");
-        sprintf (fname, "%0*lu.dat", 4, filecnt);
-        sprintf (fname2, "%0*lu.dat", 4, filecnt);
-        strcat(finalpath, fname2);
-        strcat(finalpathUnpacked, fname);
+        finalpath = "extract/sprites/tmaps-packed";
+        finalpathUnpacked = "extract/sprites/tmaps-unpacked";
+        snprintf (fname, 20,  "%0*lu.dat", 4, filecnt);
+        snprintf (fname2, 20, "%0*lu.dat", 4, filecnt);
+        finalpath.append(fname2);
+        finalpathUnpacked.append(fname);
 
-        remove(finalpathUnpacked);
-        remove(finalpath);
+        remove(finalpathUnpacked.c_str());
+        remove(finalpath.c_str());
     }
 }
 
@@ -3102,17 +3103,17 @@ void PrepareData::SplitSoundDatFile() {
     size_t counter = 0;
     mNrSoundFiles = 0;
     FILE* oFile = nullptr;
+    char fname[20];
+    irr::io::path finalpath("");
 
     while (counter < ByteArray.size()) {
         if (((ByteArray.size() - counter) > 4) && (ByteArray[counter] == 'R') && (ByteArray[counter+1] == 'N')
            && (ByteArray[counter+2] == 'C') && (ByteArray[counter+3] == 1))
         {
             //new file start found
-            char finalpath[50];
-            char fname[20];
-            strcpy(finalpath, "extract/sound/sound-packed");
-            sprintf (fname, "%0*lu.dat", 4, mNrSoundFiles);
-            strcat(finalpath, fname);
+            finalpath = "extract/sound/sound-packed";
+            snprintf (fname, 20, "%0*lu.dat", 4, mNrSoundFiles);
+            finalpath.append(fname);
             mNrSoundFiles++;
 
             if (oFile != nullptr) {
@@ -3120,9 +3121,9 @@ void PrepareData::SplitSoundDatFile() {
                 fclose(oFile);
             }
 
-            oFile = fopen(finalpath, "wb");
+            oFile = fopen(finalpath.c_str(), "wb");
             if (oFile == nullptr) {
-                throw std::string("Cannot open file for writing: ") + finalpath;
+                throw std::string("Cannot open file for writing: ") + std::string(finalpath.c_str());
             }
         }
 
@@ -3136,18 +3137,19 @@ void PrepareData::SplitSoundDatFile() {
 
 void PrepareData::RNCUnpackSoundData() {
     unsigned long filecnt;
+    char fname[20];
+    irr::io::path finalpath("");
+    irr::io::path finalpathUnpacked("");
+
 
     for (filecnt = 0; filecnt < mNrSoundFiles; filecnt++) {
-        char finalpath[50];
-        char finalpathUnpacked[50];
-        char fname[20];
-        strcpy(finalpath, "extract/sound/sound-packed");
-        strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
-        sprintf (fname, "%0*lu.dat", 4, filecnt);
-        strcat(finalpath, fname);
-        strcat(finalpathUnpacked, fname);
+        finalpath = "extract/sound/sound-packed";
+        finalpathUnpacked = "extract/sound/sound-unpacked";
+        snprintf (fname, 20, "%0*lu.dat", 4, filecnt);
+        finalpath.append(fname);
+        finalpathUnpacked.append(fname);
 
-        UnpackDataFile(finalpath, finalpathUnpacked);
+        UnpackDataFile(finalpath.c_str(), finalpathUnpacked.c_str());
     }
 }
 
@@ -3161,12 +3163,16 @@ bool PrepareData::ExtractAudio() {
         nrSubSteps = 7;
     }
 
-    char infofilename1[50];
+    irr::io::path infofilename1("");
     std::vector<SOUNDFILEENTRY> list;
     list.clear();
 
-    char splitfilename1[50];
-    char ofilename1[50];
+    irr::io::path splitfilename1("");
+    irr::io::path ofilename1("");
+
+    irr::io::path finalpath("");
+    irr::io::path finalpathUnpacked("");
+    char fname[20];
 
     switch(currSubStep) {
         case 0: {
@@ -3189,12 +3195,12 @@ bool PrepareData::ExtractAudio() {
             //****************************
 
             //read file infos for first sound package
-            strcpy(infofilename1, "extract/sound/sound-unpacked0001.dat");
-            ReadSoundFileEntries(infofilename1, &list);
+            infofilename1 = "extract/sound/sound-unpacked0001.dat";
+            ReadSoundFileEntries(infofilename1.c_str(), &list);
 
-            strcpy(splitfilename1, "extract/sound/sound-unpacked0000.dat");
-            strcpy(ofilename1, "extract/sound/sound0-");
-            SplitSoundFile(splitfilename1, ofilename1, &list);
+            splitfilename1 = "extract/sound/sound-unpacked0000.dat";
+            ofilename1 = "extract/sound/sound0-";
+            SplitSoundFile(splitfilename1.c_str(), ofilename1.c_str(), &list);
             break;
         }
 
@@ -3203,12 +3209,12 @@ bool PrepareData::ExtractAudio() {
             // Sound package 2
             //****************************
 
-            strcpy(infofilename1, "extract/sound/sound-unpacked0003.dat");
-            ReadSoundFileEntries(infofilename1, &list);
+            infofilename1 = "extract/sound/sound-unpacked0003.dat";
+            ReadSoundFileEntries(infofilename1.c_str(), &list);
 
-            strcpy(splitfilename1, "extract/sound/sound-unpacked0002.dat");
-            strcpy(ofilename1, "extract/sound/sound2-");
-            SplitSoundFile(splitfilename1, ofilename1, &list);
+            splitfilename1 = "extract/sound/sound-unpacked0002.dat";
+            ofilename1 = "extract/sound/sound2-";
+            SplitSoundFile(splitfilename1.c_str(), ofilename1.c_str(), &list);
             break;
         }
 
@@ -3217,12 +3223,12 @@ bool PrepareData::ExtractAudio() {
             // Sound package 3
             //****************************
 
-            strcpy(infofilename1, "extract/sound/sound-unpacked0005.dat");
-            ReadSoundFileEntries(infofilename1, &list);
+            infofilename1 = "extract/sound/sound-unpacked0005.dat";
+            ReadSoundFileEntries(infofilename1.c_str(), &list);
 
-            strcpy(splitfilename1, "extract/sound/sound-unpacked0004.dat");
-            strcpy(ofilename1, "extract/sound/sound4-");
-            SplitSoundFile(splitfilename1, ofilename1, &list);
+            splitfilename1 = "extract/sound/sound-unpacked0004.dat";
+            ofilename1 = "extract/sound/sound4-";
+            SplitSoundFile(splitfilename1.c_str(), ofilename1.c_str(), &list);
             break;
         }
 
@@ -3231,32 +3237,29 @@ bool PrepareData::ExtractAudio() {
 //            // Sound package 4
 //            //****************************
 
-//            strcpy(splitfilename1, "extract/sound/sound-unpacked0006.dat");
-//            strcpy(ofilename1, "extract/sound/sound6-");
+//            splitfilename1 = "extract/sound/sound-unpacked0006.dat";
+//            ofilename1 = "extract/sound/sound6-";
 
-//            SplitSoundFile(splitfilename1, ofilename1);
+//            SplitSoundFile(splitfilename1.c_str(), ofilename1.c_str());
 
-//            strcpy(splitfilename1, "extract/sound/sound-unpacked0007.dat");
-//            strcpy(ofilename1, "extract/sound/sound7-");
+//            splitfilename1 = "extract/sound/sound-unpacked0007.dat";
+//            ofilename1 = "extract/sound/sound7-";
 
-//            SplitSoundFile(splitfilename1, ofilename1);
+//            SplitSoundFile(splitfilename1.c_str(), ofilename1.c_str());
 //            break;
 //        }
 
         case 5: {
             //cleanup unnecessary files
             for (unsigned long filecnt = 0; filecnt < mNrSoundFiles; filecnt++) {
-                char finalpath[50];
-                char finalpathUnpacked[50];
-                char fname[20];
-                strcpy(finalpath, "extract/sound/sound-packed");
-                strcpy(finalpathUnpacked, "extract/sound/sound-unpacked");
-                sprintf (fname, "%0*lu.dat", 4, filecnt);
-                strcat(finalpath, fname);
-                strcat(finalpathUnpacked, fname);
+                finalpath = "extract/sound/sound-packed";
+                finalpathUnpacked = "extract/sound/sound-unpacked";
+                snprintf (fname, 20, "%0*lu.dat", 4, filecnt);
+                finalpath.append(fname);
+                finalpathUnpacked.append(fname);
 
-                remove(finalpath);
-                remove(finalpathUnpacked);
+                remove(finalpath.c_str());
+                remove(finalpathUnpacked.c_str());
             }
             break;
         }
@@ -3340,25 +3343,31 @@ void PrepareData::SplitSoundFile(const char* filename, const char *ofilename, st
 
     std::vector<SOUNDFILEENTRY>::iterator it;
     unsigned long lastpos;
+    irr::io::path finalpath("");
+    //char fname[20];
 
     //go through all files
    for(it = entries->begin(); it != entries->end(); ++it) {
        //skip the empty files with name "NULL.WAV" and ""
           if ((strcmp((*it).soundFilename, "NULL.WAV") != 0) && (strcmp((*it).soundFilename, "") != 0)) {
-                char finalpath[50];
-                strcpy(finalpath, ofilename);
+
+                finalpath = "";
+                finalpath.append(ofilename);
 
                 //next 2 outcommented lines if we simply want wave files
                 //names with increasing number in them
-                /*sprintf (fname, "%0*lu.wav", 4, ofilenr);
-                strcat(finalpath, fname);*/
+                /*
+                snprintf (fname, 20, "%0*lu.wav", 4, ofilenr);
+                finalpath.append(fname);
+                */
 
                 //next two lines if we want wave files with official names in them
-                strcat(finalpath, (*it).soundFilename);
+                finalpath.append((*it).soundFilename);
 
-                oFile = fopen(finalpath, "wb");
+                oFile = fopen(finalpath.c_str(), "wb");
+
                 if (oFile == nullptr) {
-                    throw std::string("Error - Cannot open file for writting: ") + finalpath;
+                    throw std::string("Error - Cannot open file for writting: ") + std::string(finalpath.c_str());
                 }
 
                 lastpos = (*it).offsetTune + (*it).tuneLenBytes;
@@ -3382,16 +3391,17 @@ void PrepareData::ExtractMusicFiles(const char* outputNameStr, FILE *iFile,
 
     FILE *oFile = nullptr;
     unsigned long dataCnt;
+    irr::io::path finalpath("");
 
      for(it2 = VecTuneInformation.begin(); it2 != VecTuneInformation.end(); ++it2) {
-         char finalpath[50];
-         strcpy(finalpath, outputNameStr);
-         strcat(finalpath, "/");
-         strcat(finalpath, (*it2).soundFilename);
+         finalpath = "";
+         finalpath.append(outputNameStr);
+         finalpath.append("/");
+         finalpath.append((*it2).soundFilename);
 
-         oFile = fopen(finalpath, "wb");
+         oFile = fopen(finalpath.c_str(), "wb");
          if (oFile == nullptr) {
-             throw std::string("Error - Cannot open file for writting: ") + finalpath;
+             throw std::string("Error - Cannot open file for writting: ") + std::string(finalpath.c_str());
          }
 
          //go to start of song file data
@@ -3430,7 +3440,7 @@ void PrepareData::ExtractMusic() {
     //Information on https://moddingwiki.shikadi.net/wiki/Hi_Octane
     //see under MUSIC.DAT
 
-    char outputNameStr[50];
+    irr::io::path outputNameStr("");
 
     //locate the needed input file
     irr::io::path inputDatFile =
@@ -3441,7 +3451,7 @@ void PrepareData::ExtractMusic() {
          throw std::string("Could not locate the original games sound data file music.dat");
     }
 
-    strcpy(outputNameStr, "extract/music");
+    outputNameStr = "extract/music";
 
     FILE* iFile;
 
@@ -3538,7 +3548,7 @@ void PrepareData::ExtractMusic() {
         }
 
         //extract all available tune files
-        ExtractMusicFiles(outputNameStr, iFile, &(*it), VecTuneInformation);
+        ExtractMusicFiles(outputNameStr.c_str(), iFile, &(*it), VecTuneInformation);
 
         //clear list again to make room for next file round
         VecTuneInformation.clear();
@@ -3647,18 +3657,18 @@ void PrepareData::ProcessFrame(long currFrameNr) {
     }
 
     //process the current decoded frame data in buffer
-    char outFrameFileName[50];
+    irr::io::path outFrameFileName("");
     char fname[20];
 
     //create the filename for the picture output file
-    strcpy(outFrameFileName, "extract/intro/frame");
+    outFrameFileName = "extract/intro/frame";
     //28.12.2025: Change from png image format to jpg instead
     //The image quality loss is not really visible, but instead of
     //85.7 MB during my experiments we only need 11.9 MB on disc for the
     //overall sequence
-    //sprintf (fname, "%0*lu.png", 4, i);
-    sprintf (fname, "%0*lu.jpg", 4, currFrameNr);
-    strcat(outFrameFileName, fname);
+    //snprintf (fname, 20, "%0*lu.png", 4, i);
+    snprintf (fname, 20, "%0*lu.jpg", 4, currFrameNr);
+    outFrameFileName.append(fname);
 
     std::string msg("");
     msg.append("Upscaling frame ");
@@ -3668,7 +3678,7 @@ void PrepareData::ProcessFrame(long currFrameNr) {
 
     //original frame size is 320x200, scale with factor of 2 to get frames with 640 x 400
     ConvertIntroFrame(mFLIBuffer->data(), mFLIFrame->colormap, mFLIHeader->width,
-                      mFLIHeader->height, outFrameFileName, 2);
+                      mFLIHeader->height, outFrameFileName.c_str(), 2);
 }
 
 void PrepareData::ConvertCompressedImageData(const char* packfile, const char* outfile, irr::u32 sizex, irr::u32 sizey, int scaleFactor) {
@@ -3744,7 +3754,7 @@ void PrepareData::ExtractImagesfromDataFile(const char* datfname, const char* ta
         for (it = outImageVec.begin(); it != outImageVec.end(); ++it, ++it2) {
             outFileName = "";
             outFileName.append(outputDir);
-            sprintf (fname, "%0*ld.png", 4, (long)((*it2)));
+            snprintf (fname, 20, "%0*ld.png", 4, (long)((*it2)));
             outFileName.append(fname);
 
             irr::io::IWriteFile* outputPic = mInfra->mDevice->getFileSystem()->createAndWriteFile(outFileName, false);
