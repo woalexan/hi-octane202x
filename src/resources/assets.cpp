@@ -54,16 +54,16 @@ Assets::Assets(Game* game, bool updateGameConfigFile) {
         CreateNewConfigFileContents(&currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
 
         //save the new file
-        char filenameTestFile[100];
+        irr::io::path filenameTestFile("");
 
-        strcpy(filenameTestFile, this->mGame->mOriginalGame->saveFolder->getPath().c_str());
-        strcat(filenameTestFile, (char*)("config.dat"));
-
-        //save the new config.dat file
-        WriteGameConfigFile(filenameTestFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
+        filenameTestFile.append(this->mGame->mOriginalGame->saveFolder->getPath());
+        filenameTestFile.append("config.dat");
 
         //remember config.dat filename/file path
-        mAbsPathConfigFile = strdup(filenameTestFile);
+        mAbsPathConfigFile = strdup(filenameTestFile.c_str());
+
+        //save the new config.dat file
+        WriteGameConfigFile(mAbsPathConfigFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen);
     } else {
         //config.dat file found
         if (ReadGameConfigFile(mAbsPathConfigFile, &currentConfigFileDataByteArray, currentConfigFileDataByteArrayLen)) {
